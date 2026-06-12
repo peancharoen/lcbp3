@@ -36,12 +36,14 @@ import { SandboxOcrEngineService } from './services/sandbox-ocr-engine.service';
 import { EmbeddingService } from './services/embedding.service';
 import { VramMonitorService } from './services/vram-monitor.service';
 import { OcrCacheService } from './services/ocr-cache.service';
+import { AiPolicyService } from './services/ai-policy.service';
 import { MigrationLog } from './entities/migration-log.entity';
 import { AiAuditLog } from './entities/ai-audit-log.entity';
 import { MigrationReviewRecord } from './entities/migration-review.entity';
 import { MigrationProgress } from './entities/migration-progress.entity';
 import { SystemSetting } from './entities/system-setting.entity';
 import { AiAvailableModel } from './entities/ai-available-model.entity';
+import { AiExecutionProfile } from './entities/ai-execution-profile.entity';
 import { AiMigrationCheckpointService } from './ai-migration-checkpoint.service';
 import { AiEnabledGuard } from './guards/ai-enabled.guard';
 import { UserModule } from '../user/user.module';
@@ -96,6 +98,7 @@ import {
       ImportTransaction,
       MigrationReviewQueue,
       AiPrompt,
+      AiExecutionProfile,
     ]),
 
     BullModule.registerQueue(
@@ -171,6 +174,7 @@ import {
   providers: [
     AiService,
     AiSettingsService,
+    AiPolicyService,
     AiIngestService,
     AiMigrationCheckpointService,
     AiQueueService,
@@ -201,6 +205,7 @@ import {
   exports: [
     AiService,
     AiSettingsService,
+    AiPolicyService,
     AiIngestService,
     AiMigrationCheckpointService,
     AiQueueService,

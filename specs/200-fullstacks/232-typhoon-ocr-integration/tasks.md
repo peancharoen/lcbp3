@@ -146,7 +146,7 @@
 - [x] T047 [P] Add error handling for VRAM insufficiency in backend/src/modules/ai/services/ai.service.ts
 - [x] T048 [P] Add error handling for Ollama service unavailability in backend/src/modules/ai/services/ocr.service.ts
 - [x] T049 Run quickstart.md validation on Admin Desktop
-- [x] T050 Update agent-memory.md with Typhoon OCR integration details
+- [x] T050 Update project-memory-override.md with Typhoon OCR integration details
 
 ---
 

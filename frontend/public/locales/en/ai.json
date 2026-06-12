@@ -44,5 +44,14 @@
     "delete_confirm": "Delete this pattern?",
     "loading": "Loading...",
     "not_found": "Intent not found"
+  },
+  "ai_runtime_policy": {
+    "error_model_key_forbidden": "model.key is not allowed. The system selects the model automatically.",
+    "error_execution_profile_forbidden": "executionProfile is not allowed in the request payload.",
+    "error_temperature_forbidden": "temperature override is not allowed. Runtime parameters are managed by policy.",
+    "error_top_p_forbidden": "top_p override is not allowed. Runtime parameters are managed by policy.",
+    "error_max_tokens_forbidden": "maxTokens override is not allowed. Runtime parameters are managed by policy.",
+    "error_cpu_timeout": "Retrieval operation timed out on CPU fallback. Please retry later.",
+    "error_large_context_unauthorized": "The large-context profile requires administrator privileges."
   }
 }

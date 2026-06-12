@@ -186,8 +186,8 @@ importers:
         specifier: ^5.8.2
         version: 5.8.2
       joi:
-        specifier: ^18.0.1
-        version: 18.0.2
+        specifier: ^18.2.1
+        version: 18.2.1
       ms:
         specifier: ^2.1.3
         version: 2.1.3
@@ -3494,9 +3494,6 @@ packages:
   '@sqltools/formatter@1.2.5':
     resolution: {integrity: sha512-Uy0+khmZqUrUGm5dmMqVlnvufZRSK0FbYzVgp0UMstm+F5+W2/jnEEQyc9vo1ZR/E5ZI/B1WjjoTqBqwJL6Krw==}
 
-  '@standard-schema/spec@1.0.0':
-    resolution: {integrity: sha512-m2bOd0f2RT9k8QJx1JN85cZYyH1RqFBdlwtkSlf4tBDYLCiiZnv1fIIwacK6cqwXavOydf0NPToMQgpKq+dVlA==}
-
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
 
@@ -6281,8 +6278,8 @@ packages:
     resolution: {integrity: sha512-ekilCSN1jwRvIbgeg/57YFh8qQDNbwDb9xT/qu2DAHbFFZUicIl4ygVaAvzveMhMVr3LnpSKTNnwt8PoOfmKhQ==}
     hasBin: true
 
-  joi@18.0.2:
-    resolution: {integrity: sha512-RuCOQMIt78LWnktPoeBL0GErkNaJPTBGcYuyaBvUOQSpcpcLfWrHPPihYdOGbV5pam9VTWbeoF7TsGiHugcjGA==}
+  joi@18.2.1:
+    resolution: {integrity: sha512-2/OKlogiESf2Nh3TFCrRjrr9z1DRHeW0I+KReF67+4J0Ns+8hBtHRmoWAZ2OFU6I5+TWLEe6sVlSdXPjHm5UbQ==}
     engines: {node: '>= 20'}
 
   jose@6.2.2:
@@ -12156,8 +12153,6 @@ snapshots:
 
   '@sqltools/formatter@1.2.5': {}
 
-  '@standard-schema/spec@1.0.0': {}
-
   '@standard-schema/spec@1.1.0': {}
 
   '@swc/helpers@0.5.15':
@@ -15532,7 +15527,7 @@ snapshots:
   jiti@2.6.1:
     optional: true
 
-  joi@18.0.2:
+  joi@18.2.1:
     dependencies:
       '@hapi/address': 5.1.1
       '@hapi/formula': 3.0.2
@@ -15540,7 +15535,7 @@ snapshots:
       '@hapi/pinpoint': 2.0.1
       '@hapi/tlds': 1.1.4
       '@hapi/topo': 6.0.2
-      '@standard-schema/spec': 1.0.0
+      '@standard-schema/spec': 1.1.0
 
   jose@6.2.2: {}
 

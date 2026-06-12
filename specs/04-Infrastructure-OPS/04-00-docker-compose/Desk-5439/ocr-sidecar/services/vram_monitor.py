@@ -1,0 +1,43 @@
+# File: specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/services/vram_monitor.py
+# Change Log:
+# - 2026-06-11: Initial creation of VramMonitor service for Python OCR sidecar to query GPU VRAM headroom from Ollama /api/ps
+
+from dataclasses import dataclass
+import os
+import httpx
+import logging
+
+logger = logging.getLogger("ocr-sidecar.vram-monitor")
+
+@dataclass
+class VramHeadroom:
+    total_mb: float
+    used_mb: float
+    available_mb: float
+    query_success: bool
+
+def get_vram_headroom() -> VramHeadroom:
+    """
+    ดึงข้อมูล VRAM headroom จาก Ollama /api/ps
+    และคำนวณพื้นที่คงเหลือใน VRAM เพื่อประกอบการตัดสินใจเรื่อง Residency และ CPU Fallback
+    """
+    ollama_url = os.getenv("OLLAMA_API_URL", "http://host.docker.internal:11434")
+    total_vram_mb = float(os.getenv("GPU_TOTAL_VRAM_MB", "16384.0"))
+    try:
+        # ดึงสถานะ running models จาก Ollama
+        with httpx.Client(timeout=3.0) as client:
+            response = client.get(f"{ollama_url}/api/ps")
+        if response.status_code != 200:
+            logger.warning(f"Ollama ps endpoint returned status code: {response.status_code}")
+            return VramHeadroom(total_vram_mb, total_vram_mb, 0.0, False)
+        data = response.json()
+        models = data.get("models", [])
+        total_used_bytes = 0
+        for model in models:
+            total_used_bytes += model.get("size_vram", 0)
+        used_mb = float(total_used_bytes) / (1024.0 * 1024.0)
+        available_mb = max(0.0, total_vram_mb - used_mb)
+        return VramHeadroom(total_vram_mb, used_mb, available_mb, True)
+    except Exception as e:
+        logger.warning(f"Failed to query Ollama VRAM: {str(e)}")
+        return VramHeadroom(total_vram_mb, total_vram_mb, 0.0, False)

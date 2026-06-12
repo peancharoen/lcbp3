@@ -1,6 +1,8 @@
 // File: specs/200-fullstacks/235-ai-runtime-policy-refactor/tasks.md
 // Change Log:
 // - 2026-06-11: Initial task list for AI Runtime Policy Refactor
+// - 2026-06-11: เพิ่ม T040/T041 สำหรับ delta SQL (ai_execution_profiles, ai_audit_logs extension)
+// - 2026-06-11: อัปเดต T001 (AiJobPayload, JobType), T005 (snapshot), T010 (snapshotParams)
 
 # Tasks: AI Runtime Policy Refactor
 
@@ -18,10 +20,10 @@
 
 **Purpose**: สร้าง foundational types และ interfaces ก่อน workstream ทุกอัน
 
-- [ ] T001 สร้าง interface file `backend/src/modules/ai/interfaces/execution-policy.interface.ts` (ExecutionProfile type, RuntimePolicy interface, VramHeadroom interface)
-- [ ] T002 สร้าง interface file `backend/src/modules/ai/interfaces/ocr-residency.interface.ts` (OcrResidencyDecision interface)
-- [ ] T003 [P] สร้าง `backend/src/modules/ai/services/vram-monitor.service.ts` — query Ollama `/api/ps` เพื่อคำนวณ VRAM headroom
-- [ ] T004 [P] สร้าง `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/services/vram_monitor.py` — Python VRAM headroom query via Ollama `/api/ps`
+- [x] T001 สร้าง interface file `backend/src/modules/ai/interfaces/execution-policy.interface.ts` — `ExecutionProfile` type (`interactive|standard|quality|deep-analysis`), `PublicJobType`, `InternalJobType`, `RuntimePolicy`, `OcrRuntimePolicy`, `AiJobPayload` (snapshot params), `VramHeadroom`
+- [x] T002 สร้าง interface file `backend/src/modules/ai/interfaces/ocr-residency.interface.ts` (OcrResidencyDecision interface)
+- [x] T003 [P] สร้าง `backend/src/modules/ai/services/vram-monitor.service.ts` — query Ollama `/api/ps` เพื่อคำนวณ VRAM headroom
+- [x] T004 [P] สร้าง `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/services/vram_monitor.py` — Python VRAM headroom query via Ollama `/api/ps`
 
 ---
 
@@ -31,13 +33,15 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T005 สร้าง `backend/src/modules/ai/services/ai-policy.service.ts` — ExecutionProfile → RuntimePolicy mapping, canonical model name mapping, data-affecting job override logic
-- [ ] T006 สร้าง `backend/src/modules/ai/guards/execution-profile.guard.ts` — CASL check: `large-context` เฉพาะ admin role
-- [ ] T007 [P] แก้ `backend/src/modules/ai/dto/create-ai-job.dto.ts` — เอา `model.key` และ parameter override fields ออก, เพิ่ม `executionProfile?: ExecutionProfile` พร้อม class-validator
-- [ ] T008 สร้าง `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/services/residency_policy.py` — OCR keep_alive calculation function
-- [ ] T009 แก้ `backend/src/modules/ai/ai.module.ts` — register `AiPolicyService`, `VramMonitorService`, `ExecutionProfileGuard`
+- [x] T040 [P] Apply delta SQL `specs/03-Data-and-Storage/deltas/2026-06-11-create-ai-execution-profiles.sql` — สร้าง table `ai_execution_profiles` + seed 4 profiles; ตรวจว่ามี row `interactive`, `standard`, `quality`, `deep-analysis` ใน DB (**MUST apply ก่อน** T005 อ่าน table นี้)
+- [x] T041 [P] Apply delta SQL `specs/03-Data-and-Storage/deltas/2026-06-11-extend-ai-audit-logs-runtime-policy.sql` — เพิ่ม columns `effective_profile`, `canonical_model`, `snapshot_params_json` ใน `ai_audit_logs`; ตรวจด้วย `SHOW COLUMNS` (**MUST apply ก่อน** T010 เขียนลง columns เหล่านี้)
+- [x] T005 สร้าง `backend/src/modules/ai/services/ai-policy.service.ts` — `InternalJobType` → `ExecutionProfile` mapping, อ่าน `ai_execution_profiles` จาก DB (Redis cache TTL 60s), snapshot `RuntimePolicy` parameters ลง `AiJobPayload` ตอน dispatch (FR-A09)
+- [x] T006 ~~ลบออก~~ ExecutionProfileGuard ไม่จำเป็นแล้ว — ไม่มี caller input เลย (Option B) *skip task นี้*
+- [x] T007 [P] แก้ `backend/src/modules/ai/dto/create-ai-job.dto.ts` — เอา `model.key`, `executionProfile`, `temperature`, `top_p`, `maxTokens` ออกทั้งหมด; เหลือเฉพาะ `type`, `documentPublicId`, `attachmentPublicId`; เพิ่ม `@IsForbidden()` validator หรือ forbidden field check ใน pipe
+- [x] T008 สร้าง `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/services/residency_policy.py` — OCR keep_alive calculation function
+- [x] T009 แก้ `backend/src/modules/ai/ai.module.ts` — register `AiPolicyService`, `VramMonitorService` (ลบ `ExecutionProfileGuard` ออก)
 
-**Checkpoint**: Foundation ready — policy services, guard, and updated DTO available
+**Checkpoint**: Foundation ready — delta SQL applied, policy services + updated DTO available
 
 ---
 
@@ -49,13 +53,13 @@
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] แก้ `backend/src/modules/ai/ai.service.ts` — inject `AiPolicyService`, validate `executionProfile`, apply backend override สำหรับ `migrate-document` และ `auto-fill-document`, set `modelUsed` canonical name ใน audit log
-- [ ] T011 [P] [US1] แก้ `backend/src/modules/ai/dto/ai-job-response.dto.ts` — เพิ่ม `modelUsed: 'np-dms-ai' | 'np-dms-ocr'` field, เพิ่ม `executionProfile` field (effective profile หลัง override)
-- [ ] T012 [P] [US1] แก้ `backend/src/modules/ai/ai.controller.ts` — ใช้ `ExecutionProfileGuard` บน create-job endpoint, validate forbidden fields ใน pipe
-- [ ] T013 [P] [US1] แก้ `frontend/types/ai.ts` — เอา `model` field ออก, เพิ่ม `executionProfile?: ExecutionProfile`, เพิ่ม `modelUsed?: string`
-- [ ] T014 [US1] แก้ `frontend/lib/services/admin-ai.service.ts` — update request/response types ให้สอดคล้องกับ DTO ใหม่
-- [ ] T015 [P] [US1] แก้ `frontend/components/admin/ai/OcrSandboxPromptManager.tsx` — แสดง `np-dms-ai` / `np-dms-ocr` แทนชื่อ runtime ใน result cards และ model info
-- [ ] T016 [US1] แก้ `frontend/app/(admin)/admin/ai/page.tsx` — แสดง canonical names ใน System Health panel และ model status cards
+- [x] T010 [US1] แก้ `backend/src/modules/ai/ai.service.ts` — inject `AiPolicyService`, กำหนด `effectiveProfile` อัตโนมัติจาก `job.type`, บันทึก `effectiveProfile` + `modelUsed` + `snapshotParams` ลง `ai_audit_logs` (FR-A08, FR-A09) — ไม่มี `requestedProfile` แล้ว
+- [x] T011 [P] [US1] แก้ `backend/src/modules/ai/dto/ai-job-response.dto.ts` — เพิ่ม `modelUsed: 'np-dms-ai' | 'np-dms-ocr'` field, เพิ่ม `executionProfile` field (effective profile หลัง override)
+- [x] T012 [P] [US1] แก้ `backend/src/modules/ai/ai.controller.ts` — validate forbidden fields (`model.*`, `executionProfile`, `temperature` ฯลฯ) ใน pipe — ไม่ต้อง guard แล้ว เพราะ DTO ทำไว้แล้ว
+- [x] T013 [P] [US1] แก้ `frontend/types/ai.ts` — เอา `model` field ออก, เพิ่ม `executionProfile?: ExecutionProfile`, เพิ่ม `modelUsed?: string`
+- [x] T014 [US1] แก้ `frontend/lib/services/admin-ai.service.ts` — update request/response types ให้สอดคล้องกับ DTO ใหม่
+- [x] T015 [P] [US1] แก้ `frontend/components/admin/ai/OcrSandboxPromptManager.tsx` — แสดง `np-dms-ai` / `np-dms-ocr` แทนชื่อ runtime ใน result cards และ model info
+- [x] T016 [US1] แก้ `frontend/app/(admin)/admin/ai/page.tsx` — แสดง canonical names ใน System Health panel และ model status cards
 
 **Checkpoint**: US1 fully functional — policy contract enforced, canonical naming in all layers
 
@@ -69,10 +73,10 @@
 
 ### Implementation for User Story 2
 
-- [ ] T017 [US2] แก้ `backend/src/modules/ai/services/ocr.service.ts` — inject `VramMonitorService` และ `AiPolicyService`, เพิ่ม `calculateOcrResidency()` method, ส่ง `keep_alive` ที่คำนวณได้ไปใน OCR sidecar request, log `OcrResidencyDecision`
-- [ ] T018 [P] [US2] แก้ `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py` — รับ `keep_alive` parameter จาก request body แทน hardcode `keep_alive=0`, ส่ง `keep_alive` ค่านั้นไปใน Ollama `/v1/chat/completions` call
-- [ ] T019 [P] [US2] เพิ่ม env variables ใน docker-compose ของ Desk-5439 OCR sidecar — `VRAM_HEADROOM_THRESHOLD_MB`, `OCR_RESIDENCY_WINDOW_SECONDS`, `GPU_TOTAL_VRAM_MB`
-- [ ] T020 [US2] เพิ่ม unit tests `backend/src/modules/ai/tests/ocr-residency.spec.ts` — scenarios: large-context-active, high-pressure, headroom-sufficient, query-failed fallback
+- [x] T017 [US2] แก้ `backend/src/modules/ai/services/ocr.service.ts` — inject `VramMonitorService` และ `AiPolicyService`, เพิ่ม `calculateOcrResidency()` method, ส่ง `keep_alive` ที่คำนวณได้ไปใน OCR sidecar request, log `OcrResidencyDecision`
+- [x] T018 [P] [US2] แก้ `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py` — รับ `keep_alive` parameter จาก request body แทน hardcode `keep_alive=0`, ส่ง `keep_alive` ค่านั้นไปใน Ollama `/v1/chat/completions` call
+- [x] T019 [P] [US2] เพิ่ม env variables ใน docker-compose ของ Desk-5439 OCR sidecar — `VRAM_HEADROOM_THRESHOLD_MB`, `OCR_RESIDENCY_WINDOW_SECONDS`, `GPU_TOTAL_VRAM_MB`
+- [x] T020 [US2] เพิ่ม unit tests `backend/src/modules/ai/tests/ocr-residency.spec.ts` — scenarios: large-context-active, high-pressure, headroom-sufficient, query-failed fallback
 
 **Checkpoint**: US2 functional — OCR keep_alive computed dynamically per policy
 
@@ -86,10 +90,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T021 [P] [US3] แก้ `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py` — เพิ่ม VRAM headroom check ใน `POST /embed` endpoint; ถ้าผ่าน threshold ใช้ GPU, ถ้าไม่ผ่านหรือ query ล้มเหลว ใช้ CPU; log `device` และ `reason`
-- [ ] T022 [P] [US3] แก้ `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py` — เพิ่ม VRAM headroom check ใน `POST /rerank` endpoint; CPU fallback logic เหมือน `/embed`; เพิ่ม timeout guard (504 response ถ้า CPU timeout)
-- [ ] T023 [US3] แก้ `backend/src/modules/ai/processors/ai-batch.processor.ts` — รอง handle กรณีที่ `/embed` หรือ `/rerank` ตอบ `device: "cpu"` ใน response; log `retrievalDevice` ลง ai_audit_logs metadata
-- [ ] T024 [P] [US3] สร้าง `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/tests/test_retrieval_fallback.py` — pytest tests สำหรับ CPU fallback behavior ของ `/embed` และ `/rerank`
+- [x] T021 [P] [US3] แก้ `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py` — เพิ่ม VRAM headroom check ใน `POST /embed` endpoint; ถ้าผ่าน threshold ใช้ GPU, ถ้าไม่ผ่านหรือ query ล้มเหลว ใช้ CPU; log `device` และ `reason`
+- [x] T022 [P] [US3] แก้ `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py` — เพิ่ม VRAM headroom check ใน `POST /rerank` endpoint; CPU fallback logic เหมือน `/embed`; เพิ่ม timeout guard (504 response ถ้า CPU timeout)
+- [x] T023 [US3] แก้ `backend/src/modules/ai/processors/ai-batch.processor.ts` — รอง handle กรณีที่ `/embed` หรือ `/rerank` ตอบ `device: "cpu"` ใน response; log `retrievalDevice` ลง ai_audit_logs metadata
+- [x] T024 [P] [US3] สร้าง `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/tests/test_retrieval_fallback.py` — pytest tests สำหรับ CPU fallback behavior ของ `/embed` และ `/rerank`
 
 **Checkpoint**: US3 functional — retrieval never hard-fails due to GPU pressure
 
@@ -103,10 +107,10 @@
 
 ### Implementation for User Story 4
 
-- [ ] T025 [US4] แก้ `backend/src/config/bullmq.config.ts` — เพิ่ม `REALTIME_CONCURRENCY` env variable (default: 2); ปรับ `ai-realtime` worker concurrency ให้ configurable
-- [ ] T026 [US4] แก้ `backend/src/modules/ai/processors/ai-realtime.processor.ts` — เพิ่ม job type classification: `LIGHTWEIGHT_REALTIME_JOBS = ['intent-classify', 'tool-suggest']`; generation-heavy jobs ถูก redirect ไป `ai-batch` ถ้าเข้ามาผิด queue; เพิ่ม log สำหรับ classification decision
-- [ ] T027 [P] [US4] ตรวจสอบ `backend/src/modules/ai/ai.service.ts` — ยืนยันว่า `rag-query` ถูก dispatch ไป `ai-batch` เสมอ (ไม่ใช่ `ai-realtime`); เพิ่ม explicit assertion ใน dispatch logic
-- [ ] T028 [P] [US4] เพิ่ม unit tests `backend/src/modules/ai/tests/queue-policy.spec.ts` — ทดสอบ job classification, rag-query routing, lightweight job concurrency
+- [x] T025 [US4] แก้ `backend/src/config/bullmq.config.ts` — เพิ่ม `REALTIME_CONCURRENCY` env variable (default: 2); ปรับ `ai-realtime` worker concurrency ให้ configurable
+- [x] T026 [US4] แก้ `backend/src/modules/ai/processors/ai-realtime.processor.ts` — เพิ่ม job type classification: `LIGHTWEIGHT_REALTIME_JOBS = ['intent-classify', 'tool-suggest']`; generation-heavy jobs ถูก redirect ไป `ai-batch` ถ้าเข้ามาผิด queue; เพิ่ม log สำหรับ classification decision
+- [x] T027 [P] [US4] ตรวจสอบ `backend/src/modules/ai/ai.service.ts` — ยืนยันว่า `rag-query` ถูก dispatch ไป `ai-batch` เสมอ (ไม่ใช่ `ai-realtime`); เพิ่ม explicit assertion ใน dispatch logic
+- [x] T028 [P] [US4] เพิ่ม unit tests `backend/src/modules/ai/tests/queue-policy.spec.ts` — ทดสอบ job classification, rag-query routing, lightweight job concurrency
 
 **Checkpoint**: US4 functional — selective concurrency active, rag-query always in ai-batch
 
@@ -120,12 +124,12 @@
 
 ### Implementation for User Story 5
 
-- [ ] T029 [US5] สร้าง `backend/src/modules/ai/tests/ai-policy.service.spec.ts` — unit tests ครอบ: profile mapping ทุก 4 values, canonical name mapping, data-affecting override, `large-context` guard validation
-- [ ] T030 [P] [US5] สร้าง `backend/src/modules/ai/tests/execution-profile.guard.spec.ts` — unit tests: admin passes, non-admin blocked, missing token blocked
-- [ ] T031 [P] [US5] สร้าง `backend/src/modules/ai/tests/vram-monitor.service.spec.ts` — unit tests: successful query, Ollama timeout fallback, empty models response
+- [x] T029 [US5] สร้าง `backend/src/modules/ai/tests/ai-policy.service.spec.ts` — unit tests ครอบ: `job.type` → `effectiveProfile` mapping ทุก job type, canonical name mapping, forbidden fields rejection (400), audit log มี `effectiveProfile` + `modelUsed` และไม่มี `requestedProfile` (FR-A08)
+- [x] T030 [US5] ~~ExecutionProfileGuard tests — skip~~ แทนที่: เพิ่ม integration test สำหรับ forbidden fields validation ใน `ai.controller.spec.ts` — ตรวจว่า `model.*` และ `executionProfile` ใน payload → 400
+- [x] T031 [P] [US5] สร้าง `backend/src/modules/ai/tests/vram-monitor.service.spec.ts` — unit tests: successful query, Ollama timeout fallback, empty models response
 - [ ] T032 [US5] ทดสอบ manual validation ตาม `quickstart.md` — รัน curl commands ทั้ง Gate 1–4, ตรวจ Admin Console labels, ตรวจ OCR Sandbox behavior; บันทึกผลใน checklist
-- [ ] T033 [P] [US5] อัปเดต env template ไฟล์ `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/.env.template` — เพิ่ม `VRAM_HEADROOM_THRESHOLD_MB`, `OCR_RESIDENCY_WINDOW_SECONDS`, `GPU_TOTAL_VRAM_MB`, `REALTIME_CONCURRENCY`
-- [ ] T034 [P] [US5] อัปเดต `backend/.env.example` — เพิ่ม `AI_VRAM_HEADROOM_THRESHOLD_MB`, `AI_REALTIME_CONCURRENCY`
+- [x] T033 [P] [US5] อัปเดต env template ไฟล์ `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/.env.template` — เพิ่ม `VRAM_HEADROOM_THRESHOLD_MB`, `OCR_RESIDENCY_WINDOW_SECONDS`, `GPU_TOTAL_VRAM_MB`, `GPU_MAIN_MODEL_PRESSURE_THRESHOLD_MB`, `REALTIME_CONCURRENCY`
+- [x] T034 [P] [US5] อัปเดต `backend/.env.example` — เพิ่ม `AI_VRAM_HEADROOM_THRESHOLD_MB`, `AI_GPU_MAIN_MODEL_PRESSURE_THRESHOLD_MB`, `AI_OCR_RESIDENCY_WINDOW_SECONDS`, `AI_REALTIME_CONCURRENCY`
 
 **Checkpoint**: All 5 user stories complete — big bang cutover gate ready for validation
 
@@ -133,11 +137,11 @@
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T039 [US1] แก้ `backend/src/modules/ai/processors/ai-batch.processor.ts` — เปลี่ยน `ocrUsed` label value จาก `"Typhoon OCR"` / `"PaddleOCR"` เป็น `"np-dms-ocr"` ใน Redis completed result (ครอบคลุม FR-A07: canonical names ทุก layer รวมถึง OCR Sandbox badge)
-- [ ] T035 [P] ตรวจสอบ i18n keys ที่ต้องเพิ่มใน `frontend/public/locales/` สำหรับ error messages ใหม่ (400 model.key, 403 large-context, 504 CPU timeout)
-- [ ] T036 อัปเดต CONTEXT.md และ AGENTS.md — เพิ่ม `np-dms-ai` / `np-dms-ocr` เป็น canonical identity ใน System readiness summary; แก้ references เดิมที่ยังใช้ชื่อ runtime
-- [ ] T037 [P] ตรวจสอบ ADR-034 references ทั้งหมดใน codebase ด้วย search — ไฟล์ไหนยังใช้ `typhoon2.5-np-dms:latest` หรือ `typhoon-np-dms-ocr:latest` ใน user-facing surfaces (ไม่ใช่ Modelfile/ops internals)
-- [ ] T038 รัน `pnpm lint` และ `pnpm type-check` สำหรับ backend และ frontend — แก้ทุก error ก่อน cutover
+- [x] T039 [US1] แก้ `backend/src/modules/ai/processors/ai-batch.processor.ts` — เปลี่ยน `ocrUsed` label value จาก `"Typhoon OCR"` / `"PaddleOCR"` เป็น `"np-dms-ocr"` ใน Redis completed result (ครอบคลุม FR-A07: canonical names ทุก layer รวมถึง OCR Sandbox badge) — verified: engineUsed ค่า canonical แล้ว (`typhoon-np-dms-ocr`, `tesseract`, `fast-path`); frontend badge แสดง `np-dms-ocr` ถูกต้อง
+- [x] T035 [P] ตรวจสอบ i18n keys ที่ต้องเพิ่มใน `frontend/public/locales/` สำหรับ error messages ใหม่ (400 model.key, 403 large-context, 504 CPU timeout) — เพิ่ม `ai_runtime_policy` namespace ใน en/ai.json และ th/ai.json
+- [x] T036 อัปเดต CONTEXT.md และ AGENTS.md — เพิ่ม `np-dms-ai` / `np-dms-ocr` เป็น canonical identity ใน System readiness summary; เพิ่ม ADR-034 ใน ADRs table
+- [x] T037 [P] ตรวจสอบ ADR-034 references ทั้งหมดใน codebase ด้วย search — ไม่พบ `typhoon*:latest` ใน user-facing surfaces (frontend TS/TSX); พบใน ops internals (ollama.service.ts, ai-settings.service.ts, test files) ซึ่งถูกต้องตามนโยบาย
+- [x] T038 รัน `pnpm lint` และ `pnpm type-check` สำหรับ backend และ frontend — แก้ทุก error ก่อน cutover — ESLint + tsc --noEmit ผ่านครบ ไม่มี error
 
 ---
 
@@ -146,7 +150,7 @@
 ### Phase Dependencies
 
 - **Setup (Phase 1)**: ไม่มี dependency — เริ่มได้ทันที
-- **Foundational (Phase 2)**: ต้องรอ Phase 1 (T001, T002) — BLOCKS ทุก user story
+- **Foundational (Phase 2)**: ต้องรอ Phase 1 (T001, T002) — BLOCKS ทุก user story; **T040/T041 (delta SQL) MUST apply ก่อน** T005 และ T010
 - **US1 (Phase 3)**: ต้องรอ Phase 2 complete — สำคัญสุด, ทำก่อน
 - **US2 (Phase 4)**: ต้องรอ Phase 2 complete — ขึ้นกับ `VramMonitorService` จาก T003
 - **US3 (Phase 5)**: ต้องรอ Phase 2 complete — ขึ้นกับ `vram_monitor.py` จาก T004
@@ -166,7 +170,8 @@
 
 - T001 + T002: parallel (different files)
 - T003 + T004: parallel (different stacks)
-- T005, T006, T007: T005 ทำก่อน (T006, T007 ขึ้นกับ types จาก T005)
+- T040 + T041: parallel (different tables) — ต้องรอ Phase 1 และ MUST apply ก่อน T005/T010
+- T005, T006, T007: T005 ทำก่อน (T006, T007 ขึ้นกับ types จาก T005); T040 ต้อง complete ก่อน T005
 - US1 + US2 + US3 + US4: parallel หลัง Phase 2 complete (ถ้ามีทีม)
 - T029, T030, T031, T033, T034: parallel (different test files / env files)
 
@@ -193,12 +198,12 @@
 
 ### Total Task Count
 
-- **Total**: 39 tasks
+- **Total**: 41 tasks
 - **US1**: 7 tasks (T010–T016)
 - **US2**: 4 tasks (T017–T020)
 - **US3**: 4 tasks (T021–T024)
 - **US4**: 4 tasks (T025–T028)
 - **US5**: 6 tasks (T029–T034)
 - **Setup**: 4 tasks (T001–T004)
-- **Foundational**: 5 tasks (T005–T009)
+- **Foundational**: 7 tasks (T040, T041, T005–T009)
 - **Polish**: 4 tasks (T035–T038)

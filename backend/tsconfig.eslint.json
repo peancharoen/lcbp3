@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "allowJs": true,
+    "noEmit": true
+  },
+  "include": [
+    "src/**/*.ts",
+    "test/**/*.ts",
+    "tests/**/*.ts",
+    "scratch/**/*.ts",
+    "scratch/**/*.js",
+    "jest.config.js",
+    "*.config.mjs"
+  ],
+  "exclude": ["node_modules", "dist", "documentation"]
+}

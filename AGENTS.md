@@ -10,11 +10,11 @@
 ## 📦 Project Memory Override
 
 For this repository (`E:\np-dms\lcbp3`), use project memory from:
-`E:\np-dms\lcbp3\memory\agent-memory.md`
+`E:\np-dms\lcbp3\memory\project-memory-override.md`
 
 **Before using global Codex memory**, read this project memory file first when the task depends on prior repo context, conventions, decisions, or rollout history.
 
-If project memory conflicts with global memory, prefer `memory/agent-memory.md` for LCBP3-specific facts.
+If project memory conflicts with global memory, prefer `memory/project-memory-override.md` for LCBP3-specific facts.
 
 ---
 

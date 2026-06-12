@@ -76,6 +76,14 @@
     "processing": "กำลังประมวลผลด้วย Typhoon LLM...",
     "error_vram": "VRAM ไม่เพียงพอสำหรับโหลดโมเดล Typhoon LLM",
     "error_timeout": "หมดเวลาการประมวลผล LLM (120 วินาที)"
+  },
+  "ai_runtime_policy": {
+    "error_model_key_forbidden": "ไม่อนุญาตให้ระบุ model.key ระบบจะเลือกโมเดลให้อัตโนมัติ",
+    "error_execution_profile_forbidden": "ไม่อนุญาตให้ระบุ executionProfile ใน payload",
+    "error_temperature_forbidden": "ไม่อนุญาตให้ override ค่า temperature พารามิเตอร์ถูกควบคุมโดย Runtime Policy",
+    "error_top_p_forbidden": "ไม่อนุญาตให้ override ค่า top_p พารามิเตอร์ถูกควบคุมโดย Runtime Policy",
+    "error_max_tokens_forbidden": "ไม่อนุญาตให้ override ค่า maxTokens พารามิเตอร์ถูกควบคุมโดย Runtime Policy",
+    "error_cpu_timeout": "การดึงข้อมูลหมดเวลาขณะใช้ CPU fallback กรุณาลองใหม่อีกครั้ง",
+    "error_large_context_unauthorized": "Profile large-context ต้องการสิทธิ์ผู้ดูแลระบบ"
   }
 }
-

@@ -89,7 +89,7 @@
 **Purpose**: Documentation update + compliance verification
 
 - [X] T018 [P] อัปเดต `AGENTS.md` — Current Decisions D10: เปลี่ยน `gemma4:e4b Q8_0` เป็น `typhoon2.5-np-dms:latest (main) + typhoon-np-dms-ocr:latest (OCR)`; อัปเดต version เป็น v1.9.9 และ sync date
-- [X] T019 [P] อัปเดต `memory/agent-memory.md` — Section 2.5 model names + Section 5 D10 + Section 7 Ollama row + Section 8 Recent Rollouts entry
+- [X] T019 [P] อัปเดต `memory/project-memory-override.md` — Section 2.5 model names + Section 5 D10 + Section 7 Ollama row + Section 8 Recent Rollouts entry
 - [X] T020 [P] อัปเดต `.agents/rules/11-ai-integration.md` — 2-model stack: `gemma4:e2b → typhoon2.5-np-dms:latest`
 - [ ] T021 [P] รัน type check: `pnpm --filter backend build` — ต้องผ่าน 0 errors
 - [ ] T022 [P] รัน lint: `pnpm --filter backend lint` — ตรวจสอบ no console.log, no any

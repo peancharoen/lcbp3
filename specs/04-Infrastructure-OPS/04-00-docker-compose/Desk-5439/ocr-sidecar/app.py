@@ -1,4 +1,4 @@
-# File: specs/04-Infrastructure-OPS/04-00-docker-compose\Desk-5439\ocr-sidecar\app.py
+# File: specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py
 # Typhoon OCR HTTP Sidecar API — รับ POST /ocr แล้วคืนข้อความที่สกัดจาก PDF/Image
 # ตาม ADR-023A (revised 2026-06-11): ใช้ typhoon_ocr library + np-dms-ocr (Ollama) แทน Tesseract
 # Change Log:
@@ -21,6 +21,7 @@
 # - 2026-06-05: เพิ่ม Option 2 (aggressive preprocessing: deskew + Otsu threshold + morphology) และ Option 3 (smart post-processing: regex-based hallucination removal) เพื่อลด Tesseract noise/hallucination (T025)
 # - 2026-06-06: เปลี่ยน keep_alive จาก 300s เป็น 0 เพื่อ unload model ทันทีหลังเสร็จงาน (แก้ปัญหา VRAM ไม่พอเมื่อ typhoon2.5-np-dms load พร้อมกัน)
 # - 2026-06-11: เปลี่ยน process_with_typhoon_ocr ให้ใช้ prepare_ocr_messages จาก typhoon_ocr library + inject DMS tags; เปลี่ยน endpoint เป็น /v1/chat/completions
+# - 2026-06-11: US2 & US3 - เพิ่ม keep_alive parameter และ CPU fallback สำหรับ /embed และ /rerank
 
 import os
 import logging
@@ -30,11 +31,13 @@ import json
 import tempfile
 import fitz  # PyMuPDF (ใช้สำหรับ page count + fast-path text extraction)
 import httpx
+import asyncio
 from pathlib import Path
 from typing import Optional
 from PIL import Image
 import io
 from typhoon_ocr import prepare_ocr_messages
+from services.vram_monitor import get_vram_headroom
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends, Security, status
 from fastapi.security.api_key import APIKeyHeader
@@ -104,6 +107,7 @@ class OcrRequest(BaseModel):
     pdfPath: str
     maxPages: Optional[int] = None
     engine: Optional[str] = None
+    keep_alive: Optional[int] = None
 
 class OcrResponse(BaseModel):
     text: str
@@ -211,7 +215,7 @@ def process_with_typhoon_ocr(pdf_path: str, page_num: int = 1, options_override:
         "repetition_penalty": options_override.get("repeat_penalty", 1.2),
         "temperature": options_override.get("temperature", 0.1),
         "top_p": options_override.get("top_p", 0.6),
-        "keep_alive": 0,  # Unload model ทันทีหลังเสร็จงานเพื่อคืน VRAM ให้ np-dms-ai ใช้งานได้
+        "keep_alive": options_override.get("keep_alive", 0),  # Unload model ทันทีหลังเสร็จงานเพื่อคืน VRAM ให้ np-dms-ai ใช้งานได้
     }
     # ใช้ Ollama OpenAI-compatible endpoint (/v1/chat/completions)
     with httpx.Client(timeout=TYPHOON_OCR_TIMEOUT) as client:
@@ -249,11 +253,14 @@ def ocr_extract(req: OcrRequest):
         raise HTTPException(status_code=404, detail=f"ไม่พบไฟล์: {req.pdfPath}")
     selected_engine = (req.engine or "auto").strip().lower()
     max_pages = req.maxPages or MAX_PAGES
+    typhoon_options = {}
+    if req.keep_alive is not None:
+        typhoon_options["keep_alive"] = req.keep_alive
     try:
         doc = fitz.open(str(pdf_path))
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"เปิดไฟล์ PDF ล้มเหลว: {e}")
-    return _process_pdf_doc(doc, selected_engine, max_pages)
+    return _process_pdf_doc(doc, selected_engine, max_pages, typhoon_options)
 
 @app.post("/ocr-upload", response_model=OcrResponse, dependencies=[Depends(get_api_key)])
 def ocr_upload(
@@ -263,6 +270,7 @@ def ocr_upload(
     temperature: Optional[float] = Form(default=None),
     topP: Optional[float] = Form(default=None),
     repeatPenalty: Optional[float] = Form(default=None),
+    keep_alive: Optional[int] = Form(default=None),
 ):
     """OCR จาก multipart file upload — ไม่ต้องการ shared volume mount"""
     selected_engine = engine.strip().lower()
@@ -275,6 +283,8 @@ def ocr_upload(
         typhoon_options["top_p"] = topP
     if repeatPenalty is not None:
         typhoon_options["repeat_penalty"] = repeatPenalty
+    if keep_alive is not None:
+        typhoon_options["keep_alive"] = keep_alive
     pdf_bytes = file.file.read()
     import tempfile
     tmp_pdf_path: str | None = None
@@ -317,6 +327,7 @@ class EmbedRequest(BaseModel):
 class EmbedResponse(BaseModel):
     dense: list[float]
     sparse: dict
+    device: Optional[str] = None
 
 class RerankRequest(BaseModel):
     query: str
@@ -325,54 +336,133 @@ class RerankRequest(BaseModel):
 class RerankResponse(BaseModel):
     scores: list[float]
     ranked_indices: list[int]
+    device: Optional[str] = None
 
 @app.post("/embed", response_model=EmbedResponse, dependencies=[Depends(get_api_key)])
-def embed_text(req: EmbedRequest):
-    """BGE-M3 embedding generator (Dense + Sparse)"""
+async def embed_text(req: EmbedRequest):
+    """BGE-M3 embedding generator (Dense + Sparse) พร้อม CPU fallback และ timeout guard"""
     if bge_model is None:
         raise HTTPException(status_code=503, detail="BGE-M3 model not loaded")
+    threshold_mb = float(os.getenv("VRAM_HEADROOM_THRESHOLD_MB", "3000.0"))
+    timeout_sec = float(os.getenv("RETRIEVAL_TIMEOUT_SECONDS", "30.0"))
+    headroom = get_vram_headroom()
+    device = "cuda"
+    reason = "headroom-sufficient"
+    if not headroom.query_success:
+        device = "cpu"
+        reason = "gpu-query-failed"
+    elif headroom.available_mb < threshold_mb:
+        device = "cpu"
+        reason = "gpu-headroom-below-threshold"
     try:
+        if device == "cuda":
+            import torch
+            if torch.cuda.is_available():
+                bge_model.model.to("cuda")
+            else:
+                device = "cpu"
+                reason = "cuda-not-available"
+                bge_model.model.to("cpu")
+        else:
+            bge_model.model.to("cpu")
+    except Exception as e:
+        logger.warning(f"Failed to move BGE-M3 model to {device}: {e}")
+        device = "cpu"
+        reason = f"device-move-failed: {str(e)}"
+        try:
+            bge_model.model.to("cpu")
+        except Exception:
+            pass
+    logger.info(f"Embedding on device: {device} (reason: {reason})")
+    def run_inference():
         output = bge_model.encode([req.text], return_dense=True, return_sparse=True)
         dense_vector = [float(x) for x in output['dense_vecs'][0]]
         lexical_dict = output['lexical_weights'][0]
-
         indices = []
         values = []
         for token_id, weight in lexical_dict.items():
             indices.append(int(token_id))
             values.append(float(weight))
-
+        return dense_vector, indices, values
+    try:
+        dense_vector, indices, values = await asyncio.wait_for(
+            asyncio.to_thread(run_inference),
+            timeout=timeout_sec
+        )
         return EmbedResponse(
             dense=dense_vector,
-            sparse={"indices": indices, "values": values}
+            sparse={"indices": indices, "values": values},
+            device=device
         )
+    except asyncio.TimeoutError:
+        logger.error(f"Embedding generation timed out after {timeout_sec}s on device {device}")
+        raise HTTPException(status_code=504, detail="Embedding generation timed out")
     except Exception as e:
         logger.error(f"Embedding generation failed: {e}")
         raise HTTPException(status_code=500, detail=f"Embedding generation failed: {str(e)}")
 
 @app.post("/rerank", response_model=RerankResponse, dependencies=[Depends(get_api_key)])
-def rerank_chunks(req: RerankRequest):
-    """BGE-Reranker-Large chunk re-ranker"""
+async def rerank_chunks(req: RerankRequest):
+    """BGE-Reranker-Large chunk re-ranker พร้อม CPU fallback และ timeout guard"""
     if reranker is None:
         raise HTTPException(status_code=503, detail="Reranker model not loaded")
     if not req.chunks:
-        return RerankResponse(scores=[], ranked_indices=[])
+        return RerankResponse(scores=[], ranked_indices=[], device="cpu")
+    threshold_mb = float(os.getenv("VRAM_HEADROOM_THRESHOLD_MB", "3000.0"))
+    timeout_sec = float(os.getenv("RETRIEVAL_TIMEOUT_SECONDS", "30.0"))
+    headroom = get_vram_headroom()
+    device = "cuda"
+    reason = "headroom-sufficient"
+    if not headroom.query_success:
+        device = "cpu"
+        reason = "gpu-query-failed"
+    elif headroom.available_mb < threshold_mb:
+        device = "cpu"
+        reason = "gpu-headroom-below-threshold"
     try:
+        if device == "cuda":
+            import torch
+            if torch.cuda.is_available():
+                reranker.model.to("cuda")
+            else:
+                device = "cpu"
+                reason = "cuda-not-available"
+                reranker.model.to("cpu")
+        else:
+            reranker.model.to("cpu")
+    except Exception as e:
+        logger.warning(f"Failed to move Reranker model to {device}: {e}")
+        device = "cpu"
+        reason = f"device-move-failed: {str(e)}"
+        try:
+            reranker.model.to("cpu")
+        except Exception:
+            pass
+    logger.info(f"Reranking on device: {device} (reason: {reason})")
+    def run_rerank():
         pairs = [[req.query, chunk] for chunk in req.chunks]
         scores = reranker.compute_score(pairs)
         if isinstance(scores, float):
             scores = [scores]
         else:
             scores = [float(s) for s in scores]
-
         indexed_scores = list(enumerate(scores))
         indexed_scores.sort(key=lambda x: x[1], reverse=True)
         ranked_indices = [idx for idx, _ in indexed_scores]
-
+        return scores, ranked_indices
+    try:
+        scores, ranked_indices = await asyncio.wait_for(
+            asyncio.to_thread(run_rerank),
+            timeout=timeout_sec
+        )
         return RerankResponse(
             scores=scores,
-            ranked_indices=ranked_indices
+            ranked_indices=ranked_indices,
+            device=device
         )
+    except asyncio.TimeoutError:
+        logger.error(f"Reranking timed out after {timeout_sec}s on device {device}")
+        raise HTTPException(status_code=504, detail="Reranking timed out")
     except Exception as e:
         logger.error(f"Reranking failed: {e}")
         raise HTTPException(status_code=500, detail=f"Reranking failed: {str(e)}")

@@ -592,7 +592,7 @@ export default function OcrSandboxPromptManager() {
                   </CardTitle>
                   <Badge variant="outline" className="text-xs">
                     {ocrResult.engineUsed === 'typhoon-np-dms-ocr'
-                      ? 'Typhoon OCR'
+                      ? 'np-dms-ocr'
                       : ocrResult.ocrUsed
                         ? 'Tesseract'
                         : 'Fast Path (Text Layer)'}
@@ -601,7 +601,7 @@ export default function OcrSandboxPromptManager() {
                 <CardContent className="pt-4">
                   {ocrResult.fallbackUsed && (
                     <div className="mb-3 rounded-md border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-600 dark:text-amber-400">
-                      Typhoon OCR unavailable. Fallback to Tesseract was used for this run.
+                      np-dms-ocr unavailable. Fallback to Tesseract was used for this run.
                     </div>
                   )}
                   <div className="relative rounded-md bg-muted p-4 font-mono text-xs overflow-auto max-h-[200px] border border-border/10">

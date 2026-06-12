@@ -1,4 +1,4 @@
-// File: src/modules/ai/services/ocr.service.ts
+// File: backend/src/modules/ai/services/ocr.service.ts
 // Change Log
 // - 2026-05-15: เพิ่ม OCR auto-detection service สำหรับ ADR-023A.
 // - 2026-05-25: แก้ไข AggregateError (empty message) จาก axios โดย wrap เป็น Error พร้อม context ที่ชัดเจน.
@@ -11,6 +11,7 @@
 // - 2026-06-01: เปลี่ยน processWithTesseract/processWithTyphoon ให้ส่ง file content ผ่าน multipart ไปยัง /ocr-upload แทนการส่ง path
 // - 2026-06-02: ส่งค่า X-API-Key ใน request headers ไปยัง ocr-sidecar เพื่อความมั่นคงปลอดภัยสูงสุด (ADR-033, Suggestion 2)
 // - 2026-06-04: ADR-034 — เปลี่ยน TYPHOON_ENGINE.engineName เป็น typhoon-np-dms-ocr:latest ตรงกับชื่อโมเดลใน Ollama
+// - 2026-06-11: US2 - คำนวณ OCR residency keep_alive แบบ dynamic ตาม VRAM headroom และ active profile
 
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -29,12 +30,16 @@ import { SystemSetting } from '../entities/system-setting.entity';
 import { AiAuditLog, AiAuditStatus } from '../entities/ai-audit-log.entity';
 import { OcrCacheService } from './ocr-cache.service';
 import { VramMonitorService } from './vram-monitor.service';
+import { AiPolicyService } from './ai-policy.service';
+import { ExecutionProfile } from '../interfaces/execution-policy.interface';
+import { OcrResidencyDecision } from '../interfaces/ocr-residency.interface';
 
 export interface OcrDetectionInput {
   extractedText?: string;
   extractedChars?: number;
   pdfPath?: string;
   documentPublicId?: string; // เพิ่มเพื่อการทำ audit logs
+  activeProfile?: ExecutionProfile;
 }
 
 export interface OcrDetectionResult {
@@ -101,6 +106,9 @@ export class OcrService {
   private readonly threshold: number;
   private readonly ocrApiUrl: string;
   private readonly ocrSidecarApiKey: string;
+  private readonly vramHeadroomThresholdMb: number;
+  private readonly ocrResidencyWindowSeconds: number;
+  private readonly mainModelPressureThresholdMb: number;
   constructor(
     private readonly configService: ConfigService,
     @InjectRepository(SystemSetting)
@@ -109,6 +117,7 @@ export class OcrService {
     private readonly auditLogRepo: Repository<AiAuditLog>,
     private readonly ocrCacheService: OcrCacheService,
     private readonly vramMonitorService: VramMonitorService,
+    private readonly aiPolicyService: AiPolicyService,
     @InjectRedis() private readonly redis: Redis
   ) {
     this.threshold = this.configService.get<number>('OCR_CHAR_THRESHOLD', 100);
@@ -120,6 +129,82 @@ export class OcrService {
       'OCR_SIDECAR_API_KEY',
       'lcbp3-dms-ocr-sidecar-secure-token-2026'
     );
+    this.vramHeadroomThresholdMb = this.configService.get<number>(
+      'VRAM_HEADROOM_THRESHOLD_MB',
+      this.configService.get<number>('AI_VRAM_HEADROOM_THRESHOLD_MB', 3000)
+    );
+    this.ocrResidencyWindowSeconds = this.configService.get<number>(
+      'OCR_RESIDENCY_WINDOW_SECONDS',
+      this.configService.get<number>('AI_OCR_RESIDENCY_WINDOW_SECONDS', 120)
+    );
+    this.mainModelPressureThresholdMb = this.configService.get<number>(
+      'GPU_MAIN_MODEL_PRESSURE_THRESHOLD_MB',
+      this.configService.get<number>(
+        'AI_GPU_MAIN_MODEL_PRESSURE_THRESHOLD_MB',
+        12000
+      )
+    );
+  }
+
+  /**
+   * คำนวณ keep_alive สำหรับ OCR ตามความจุ VRAM และประวัติการรัน
+   */
+  async calculateOcrResidency(
+    activeProfile?: ExecutionProfile | null
+  ): Promise<OcrResidencyDecision> {
+    try {
+      const headroom = await this.vramMonitorService.getVramHeadroom();
+      if (!headroom.querySuccess) {
+        return {
+          keepAliveSeconds: 0,
+          vramHeadroomMb: 0,
+          activeProfile: activeProfile ?? null,
+          reason: 'query-failed',
+        };
+      }
+      if (activeProfile === 'deep-analysis') {
+        this.logger.log(`OCR Residency: deep-analysis active, keep_alive = 0`);
+        return {
+          keepAliveSeconds: 0,
+          vramHeadroomMb: headroom.availableMb,
+          activeProfile,
+          reason: 'deep-analysis-active',
+        };
+      }
+      const isHighPressure =
+        (headroom.mainModelVramMb ?? 0) > this.mainModelPressureThresholdMb ||
+        headroom.availableMb < this.vramHeadroomThresholdMb;
+      if (isHighPressure) {
+        this.logger.log(
+          `OCR Residency: VRAM pressure is high (main: ${headroom.mainModelVramMb}MB, avail: ${headroom.availableMb}MB), keep_alive = 0`
+        );
+        return {
+          keepAliveSeconds: 0,
+          vramHeadroomMb: headroom.availableMb,
+          activeProfile: activeProfile ?? null,
+          reason: 'high-pressure',
+        };
+      }
+      this.logger.log(
+        `OCR Residency: VRAM headroom sufficient (${headroom.availableMb} MB), keep_alive = ${this.ocrResidencyWindowSeconds}`
+      );
+      return {
+        keepAliveSeconds: this.ocrResidencyWindowSeconds,
+        vramHeadroomMb: headroom.availableMb,
+        activeProfile: activeProfile ?? null,
+        reason: 'headroom-sufficient',
+      };
+    } catch (err: unknown) {
+      this.logger.warn(
+        `Failed to calculate OCR residency: ${err instanceof Error ? err.message : String(err)}`
+      );
+      return {
+        keepAliveSeconds: 0,
+        vramHeadroomMb: 0,
+        activeProfile: activeProfile ?? null,
+        reason: 'query-failed',
+      };
+    }
   }
 
   /** ดึงรายการ OCR Engines ทั้งหมด พร้อมตรวจสอบตัวที่กำลัง Active */
@@ -311,7 +396,6 @@ export class OcrService {
   ): Promise<OcrDetectionResult> {
     const startTime = Date.now();
     try {
-      // 1. ตรวจสอบ VRAM insufficiency guard
       const hasCapacity = await this.vramMonitorService.hasVramCapacity(
         TYPHOON_OCR_REQUIRED_VRAM_MB
       );
@@ -321,7 +405,8 @@ export class OcrService {
         );
         return this.processWithTesseract(input);
       }
-
+      const residency = await this.calculateOcrResidency(input.activeProfile);
+      const keepAlive = residency.keepAliveSeconds;
       this.logger.debug(`Typhoon OCR processing: ${input.pdfPath}`);
       const fileBuffer = fs.readFileSync(input.pdfPath!);
       const form = new FormData();
@@ -331,6 +416,7 @@ export class OcrService {
         'upload.pdf'
       );
       form.append('engine', 'typhoon-np-dms-ocr');
+      form.append('keep_alive', String(keepAlive));
       const response = await axios.post<OcrSidecarResponse>(
         `${this.ocrApiUrl}/ocr-upload`,
         form,
@@ -339,10 +425,8 @@ export class OcrService {
           headers: { 'X-API-Key': this.ocrSidecarApiKey },
         }
       );
-
       const text = response.data.text ?? '';
       const durationMs = Date.now() - startTime;
-
       await this.writeAuditLog({
         documentPublicId: input.documentPublicId,
         aiModel: 'typhoon-ocr',
@@ -352,7 +436,6 @@ export class OcrService {
         processingTimeMs: durationMs,
         cacheHit: false,
       });
-
       return {
         text,
         ocrUsed: true,
@@ -398,6 +481,7 @@ export class OcrService {
   async embedViaSidecar(text: string): Promise<{
     dense: number[];
     sparse: { indices: number[]; values: number[] };
+    device?: string;
   }> {
     try {
       const response = await axios.post(
@@ -412,6 +496,7 @@ export class OcrService {
       return response.data as {
         dense: number[];
         sparse: { indices: number[]; values: number[] };
+        device?: string;
       };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -424,7 +509,7 @@ export class OcrService {
   async rerankViaSidecar(
     query: string,
     chunks: string[]
-  ): Promise<{ scores: number[]; ranked_indices: number[] }> {
+  ): Promise<{ scores: number[]; ranked_indices: number[]; device?: string }> {
     try {
       const response = await axios.post(
         `${this.ocrApiUrl}/rerank`,
@@ -435,7 +520,11 @@ export class OcrService {
           },
         }
       );
-      return response.data as { scores: number[]; ranked_indices: number[] };
+      return response.data as {
+        scores: number[];
+        ranked_indices: number[];
+        device?: string;
+      };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.error(`Failed to rerank via Sidecar: ${msg}`);

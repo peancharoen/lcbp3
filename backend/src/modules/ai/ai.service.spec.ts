@@ -2,6 +2,7 @@
 // Unit Tests สำหรับ AiService — ทดสอบ Business Logic สำคัญ: Callback, Update, Status Transitions
 // Change Log
 // - 2026-05-21: เพิ่ม unit tests สำหรับ getSystemHealth (T026) ทั้งกรณี cache hit/miss และ queue metrics.
+// - 2026-06-11: เพิ่ม mock สำหรับ AiPolicyService เพื่อแก้ไข test regression
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
@@ -17,7 +18,11 @@ import {
 import { AiAuditLog, AiAuditStatus } from './entities/ai-audit-log.entity';
 import { AiCallbackDto } from './dto/ai-callback.dto';
 import { MigrationUpdateDto } from './dto/migration-update.dto';
-import { NotFoundException, BusinessException } from '../../common/exceptions';
+import {
+  NotFoundException,
+  BusinessException,
+  ValidationException,
+} from '../../common/exceptions';
 import { AuditLog } from '../../common/entities/audit-log.entity';
 import {
   QUEUE_AI_BATCH,
@@ -28,6 +33,9 @@ import { AiQdrantService } from './qdrant.service';
 import { ImportTransaction } from '../migration/entities/import-transaction.entity';
 import { AiSettingsService } from './ai-settings.service';
 import { VramMonitorService } from './services/vram-monitor.service';
+import { AiPolicyService } from './services/ai-policy.service';
+import { Attachment } from '../../common/file-storage/entities/attachment.entity';
+import { Project } from '../project/entities/project.entity';
 
 const DEFAULT_REDIS_TOKEN = 'default_IORedisModuleConnectionToken';
 
@@ -108,6 +116,44 @@ describe('AiService', () => {
       loadedModels: [],
       hasCapacity: true,
     }),
+  };
+
+  // Mock AiPolicyService
+  const mockAiPolicyService = {
+    getCanonicalModelName: jest.fn().mockImplementation((name: string) => {
+      if (name.includes('ocr')) return 'np-dms-ocr';
+      return 'np-dms-ai';
+    }),
+    getProfileForJobType: jest.fn().mockReturnValue('standard'),
+    getProfileParameters: jest.fn().mockResolvedValue({
+      canonicalModel: 'np-dms-ai',
+      temperature: 0.5,
+      topP: 0.8,
+      maxTokens: 4096,
+      numCtx: 8192,
+      repeatPenalty: 1.15,
+      keepAliveSeconds: 600,
+    }),
+    createJobPayload: jest
+      .fn()
+      .mockImplementation(async (jobType, docId, attachId) => {
+        await Promise.resolve();
+        return {
+          jobType,
+          documentPublicId: docId,
+          attachmentPublicId: attachId,
+          effectiveProfile: 'standard',
+          canonicalModel: 'np-dms-ai',
+          snapshotParams: {
+            temperature: 0.5,
+            topP: 0.8,
+            maxTokens: 4096,
+            numCtx: 8192,
+            repeatPenalty: 1.15,
+            keepAliveSeconds: 600,
+          },
+        };
+      }),
   };
 
   const mockRedis = {
@@ -191,6 +237,7 @@ describe('AiService', () => {
         { provide: AiQdrantService, useValue: mockQdrantService },
         { provide: AiSettingsService, useValue: mockAiSettingsService },
         { provide: VramMonitorService, useValue: mockVramMonitorService },
+        { provide: AiPolicyService, useValue: mockAiPolicyService },
         { provide: DEFAULT_REDIS_TOKEN, useValue: mockRedis },
       ],
     }).compile();
@@ -237,6 +284,90 @@ describe('AiService', () => {
           }),
         }),
         { jobId: 'C22024-MIGRATION:LEGACY-001' }
+      );
+    });
+  });
+
+  describe('submitUnifiedJob', () => {
+    it('ไม่ควรบันทึก ai_audit_logs เป็น SUCCESS ตั้งแต่ตอน enqueue', async () => {
+      mockImportTransactionRepo.manager.findOne.mockResolvedValueOnce({
+        publicId: '019505a1-7c3e-7000-8000-abc123def777',
+      });
+      mockQueue.getJob.mockResolvedValue(null);
+      mockQueue.add.mockResolvedValue({ id: 'job-enqueued' });
+      const result = await service.submitUnifiedJob(
+        {
+          type: 'rag-query',
+          projectPublicId: '019505a1-7c3e-7000-8000-abc123def777',
+          payload: { query: 'test' },
+        },
+        'job-enqueued'
+      );
+      expect(result).toEqual({
+        jobId: 'job-enqueued',
+        status: 'queued',
+        modelUsed: 'np-dms-ai',
+        effectiveProfile: 'standard',
+        queueName: 'ai-batch',
+      });
+      expect(mockAuditLogRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('ควร reject rag-query ที่ไม่มี payload.query', async () => {
+      await expect(
+        service.submitUnifiedJob(
+          {
+            type: 'rag-query',
+            projectPublicId: '019505a1-7c3e-7000-8000-abc123def777',
+            payload: {},
+          },
+          'job-no-query'
+        )
+      ).rejects.toBeInstanceOf(ValidationException);
+    });
+
+    it('ควร reject projectPublicId ที่ไม่พบในระบบด้วย 422', async () => {
+      mockImportTransactionRepo.manager.findOne.mockResolvedValueOnce(null);
+      await expect(
+        service.submitUnifiedJob(
+          {
+            type: 'rag-query',
+            projectPublicId: '019505a1-7c3e-7000-8000-abc123def777',
+            payload: { query: 'test' },
+          },
+          'job-missing-project'
+        )
+      ).rejects.toBeInstanceOf(BusinessException);
+      expect(mockImportTransactionRepo.manager.findOne).toHaveBeenCalledWith(
+        Project,
+        {
+          where: { publicId: '019505a1-7c3e-7000-8000-abc123def777' },
+        }
+      );
+    });
+
+    it('ควร reject attachment reference ที่ไม่พบในระบบด้วย 422', async () => {
+      mockImportTransactionRepo.manager.findOne
+        .mockResolvedValueOnce({
+          publicId: '019505a1-7c3e-7000-8000-abc123def777',
+        })
+        .mockResolvedValueOnce(null);
+      await expect(
+        service.submitUnifiedJob(
+          {
+            type: 'rag-query',
+            projectPublicId: '019505a1-7c3e-7000-8000-abc123def777',
+            documentPublicId: '019505a1-7c3e-7000-8000-abc123def456',
+            payload: { query: 'test' },
+          },
+          'job-missing-attachment'
+        )
+      ).rejects.toBeInstanceOf(BusinessException);
+      expect(mockImportTransactionRepo.manager.findOne).toHaveBeenCalledWith(
+        Attachment,
+        {
+          where: { publicId: '019505a1-7c3e-7000-8000-abc123def456' },
+        }
       );
     });
   });

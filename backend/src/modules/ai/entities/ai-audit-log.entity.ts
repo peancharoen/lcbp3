@@ -1,7 +1,8 @@
-// File: src/modules/ai/entities/ai-audit-log.entity.ts
+// File: backend/src/modules/ai/entities/ai-audit-log.entity.ts
 // Change Log
 // - 2026-05-14: เพิ่ม ADR-023 feedback fields โดยคง legacy audit fields ไว้ช่วงเปลี่ยนผ่าน.
 // - 2026-05-30: เพิ่ม modelType, vramUsageMB, cacheHit สำหรับ Typhoon OCR integration (T008, ADR-032).
+// - 2026-06-11: เปลี่ยน Record<string, any> เป็น Record<string, unknown> เพื่อแก้ปัญหา ESLint
 // Entity สำหรับตาราง ai_audit_logs — บันทึก AI Interaction และ feedback ตาม ADR-023
 
 import {
@@ -99,6 +100,25 @@ export class AiAuditLog extends UuidBaseEntity {
   // ข้อความ Error (ถ้ามี)
   @Column({ name: 'error_message', type: 'text', nullable: true })
   errorMessage?: string;
+
+  @Column({
+    name: 'effective_profile',
+    type: 'varchar',
+    length: 50,
+    nullable: true,
+  })
+  effectiveProfile?: string;
+
+  @Column({
+    name: 'canonical_model',
+    type: 'varchar',
+    length: 50,
+    nullable: true,
+  })
+  canonicalModel?: string;
+
+  @Column({ name: 'snapshot_params_json', type: 'json', nullable: true })
+  snapshotParamsJson?: Record<string, unknown>;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

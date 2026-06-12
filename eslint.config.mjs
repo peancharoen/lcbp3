@@ -16,9 +16,11 @@ export default [
       '**/tmp/**',
       'specs/**',
       'backend/documentation/**',
+      'backend/scratch/**',
       'backend/scripts/**',
       'frontend/public/**',
       '**/test/**',
+      '**/*.d.ts',
     ],
   },
   ...backendConfig.map((config) => ({

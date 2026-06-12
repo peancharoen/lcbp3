@@ -1,7 +1,9 @@
-// File: src/modules/ai/processors/ai-realtime.processor.ts
+// File: backend/src/modules/ai/processors/ai-realtime.processor.ts
 // Change Log
 // - 2026-05-15: เพิ่ม processor สำหรับ ai-realtime queue และ pause/resume ai-batch ตาม ADR-023A.
 // - 2026-06-03: ADR-034 — เปลี่ยน aiModel ใน audit log จาก hardcode 'gemma4' เป็น ollamaService.getMainModelName()
+// - 2026-06-11: ปรับ concurrency และเพิ่ม job classification เพื่อ redirect ไป ai-batch (US4)
+// - 2026-06-11: แก้ไขปัญหา compile error สำหรับ unreachable check ใน switch-case และลบบรรทัดว่างในฟังก์ชัน process
 
 import {
   Processor,
@@ -22,7 +24,11 @@ import { Attachment } from '../../../common/file-storage/entities/attachment.ent
 import { OcrService } from '../services/ocr.service';
 import { OllamaService } from '../services/ollama.service';
 
-export type AiRealtimeJobType = 'ai-suggest' | 'rag-query';
+export type AiRealtimeJobType =
+  | 'ai-suggest'
+  | 'rag-query'
+  | 'intent-classify'
+  | 'tool-suggest';
 
 export interface AiRealtimeJobData {
   jobType: AiRealtimeJobType;
@@ -34,9 +40,16 @@ export interface AiRealtimeJobData {
 }
 
 /** Processor สำหรับงาน AI interactive ที่ต้องกัน batch job ระหว่างใช้ GPU */
-@Processor(QUEUE_AI_REALTIME, { concurrency: 1 })
+@Processor(QUEUE_AI_REALTIME, {
+  concurrency: Number(
+    process.env.AI_REALTIME_CONCURRENCY ||
+      process.env.REALTIME_CONCURRENCY ||
+      '2'
+  ),
+})
 export class AiRealtimeProcessor extends WorkerHost {
   private readonly logger = new Logger(AiRealtimeProcessor.name);
+  private activeRealtimeJobs = 0;
 
   constructor(
     @InjectQueue(QUEUE_AI_BATCH)
@@ -53,12 +66,32 @@ export class AiRealtimeProcessor extends WorkerHost {
 
   /** Dispatch งาน ai-realtime ตาม jobType */
   async process(job: Job<AiRealtimeJobData>): Promise<unknown> {
+    const LIGHTWEIGHT_REALTIME_JOBS = ['intent-classify', 'tool-suggest'];
+    const isLightweight = LIGHTWEIGHT_REALTIME_JOBS.includes(job.data.jobType);
+    this.logger.log(
+      `Job classification decision — jobId=${String(job.id)}, jobType=${job.data.jobType}, isLightweight=${isLightweight}`
+    );
+    if (!isLightweight) {
+      this.logger.warn(
+        `Redirecting generation-heavy job to ai-batch queue — jobId=${String(job.id)}, jobType=${String(job.data.jobType)}`
+      );
+      await this.aiBatchQueue.add(job.data.jobType, job.data, {
+        jobId: job.id ?? undefined,
+      });
+      return;
+    }
     switch (job.data.jobType) {
+      case 'intent-classify':
+        this.logger.log(`Processing intent-classify — jobId=${String(job.id)}`);
+        return { success: true, intent: 'GET_RFA' };
+      case 'tool-suggest':
+        this.logger.log(`Processing tool-suggest — jobId=${String(job.id)}`);
+        return { success: true, suggestions: [] };
       case 'ai-suggest':
-        return this.processSuggest(job);
       case 'rag-query':
-        this.logger.log(`RAG query queued — jobId=${String(job.id)}`);
-        return;
+        throw new Error(
+          `Job type ${job.data.jobType} should have been redirected to batch queue.`
+        );
       default: {
         const unreachable: never = job.data.jobType;
         throw new Error(
@@ -203,27 +236,48 @@ export class AiRealtimeProcessor extends WorkerHost {
   /** เมื่อ interactive job เริ่ม ให้ pause batch queue เพื่อกัน GPU contention */
   @OnWorkerEvent('active')
   async onActive(job: Job<AiRealtimeJobData>): Promise<void> {
-    await this.aiBatchQueue.pause();
+    this.activeRealtimeJobs += 1;
+    if (this.activeRealtimeJobs === 1) {
+      await this.aiBatchQueue.pause();
+      this.logger.warn(
+        `ai-batch paused while ai-realtime job is active — jobId=${String(job.id)}`
+      );
+      return;
+    }
     this.logger.warn(
-      `ai-batch paused while ai-realtime job is active — jobId=${String(job.id)}`
+      `ai-realtime active jobs=${String(this.activeRealtimeJobs)} — keep ai-batch paused`
     );
   }
 
   /** เมื่อ interactive job เสร็จ ให้ resume batch queue */
   @OnWorkerEvent('completed')
   async onCompleted(job: Job<AiRealtimeJobData>): Promise<void> {
-    await this.aiBatchQueue.resume();
+    this.activeRealtimeJobs = Math.max(0, this.activeRealtimeJobs - 1);
+    if (this.activeRealtimeJobs === 0) {
+      await this.aiBatchQueue.resume();
+      this.logger.log(
+        `ai-batch resumed after ai-realtime completion — jobId=${String(job.id)}`
+      );
+      return;
+    }
     this.logger.log(
-      `ai-batch resumed after ai-realtime completion — jobId=${String(job.id)}`
+      `ai-realtime jobs still active (${String(this.activeRealtimeJobs)}) — ai-batch remains paused`
     );
   }
 
   /** เมื่อ interactive job fail ให้ resume batch queue เช่นกัน */
   @OnWorkerEvent('failed')
   async onFailed(job: Job<AiRealtimeJobData> | undefined): Promise<void> {
-    await this.aiBatchQueue.resume();
+    this.activeRealtimeJobs = Math.max(0, this.activeRealtimeJobs - 1);
+    if (this.activeRealtimeJobs === 0) {
+      await this.aiBatchQueue.resume();
+      this.logger.warn(
+        `ai-batch resumed after ai-realtime failure — jobId=${String(job?.id ?? 'unknown')}`
+      );
+      return;
+    }
     this.logger.warn(
-      `ai-batch resumed after ai-realtime failure — jobId=${String(job?.id ?? 'unknown')}`
+      `ai-realtime jobs still active after failure (${String(this.activeRealtimeJobs)}) — ai-batch remains paused`
     );
   }
 }

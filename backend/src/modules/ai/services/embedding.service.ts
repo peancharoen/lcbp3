@@ -2,6 +2,7 @@
 // Change Log
 // - 2026-05-15: เพิ่ม EmbeddingService สำหรับ full-document chunked embedding ตาม ADR-023A T021.
 // - 2026-06-05: ปรับปรุงเป็น Hybrid Embedding และเพิ่ม Semantic Chunking ผ่าน typhoon2.5 (T025-T027)
+// - 2026-06-11: US3 - เพิ่มการคืนค่า device (cpu/gpu) จาก embedding
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -20,6 +21,7 @@ export interface EmbeddingResult {
   success: boolean;
   chunksEmbedded: number;
   error?: string;
+  device?: string;
 }
 
 /** บริการสร้าง embedding สำหรับ full-document RAG (ADR-023A) */
@@ -75,19 +77,18 @@ export class EmbeddingService {
           error: 'No OCR text provided',
         };
       }
-
-      // 1. แบ่งข้อความออกเป็น Chunk ด้วย Semantic Chunking
       const chunks = await this.semanticChunkTextWithFallback(ocrText);
       this.logger.log(
         `Document ${documentPublicId} split into ${chunks.length} chunks`
       );
-
-      // 2. แปลงแต่ละ chunk เป็น Hybrid Vector และเตรียม points
       const points = [];
+      let usedDevice = 'gpu';
       for (const [idx, chunk] of chunks.entries()) {
         try {
-          // เรียก Sidecar /embed เพื่อแปลงข้อความของ chunk
           const embedResult = await this.ocrService.embedViaSidecar(chunk.text);
+          if (embedResult.device === 'cpu') {
+            usedDevice = 'cpu';
+          }
           points.push({
             id: `${documentPublicId}-${idx}`,
             vector: {
@@ -116,7 +117,6 @@ export class EmbeddingService {
           );
         }
       }
-
       if (points.length === 0) {
         return {
           success: false,
@@ -124,21 +124,19 @@ export class EmbeddingService {
           error: 'All chunks failed to embed',
         };
       }
-
-      // 3. ลบ points เก่าของเอกสาร (เพื่อความ idempotent และรองรับ revision ใหม่)
       await this.qdrantService.deleteByDocumentPublicId(
         projectPublicId,
         documentPublicId
       );
-
-      // 4. บันทึก points ใหม่ลง Qdrant
       await this.qdrantService.upsert(projectPublicId, points);
-
       this.logger.log(
         `Successfully embedded ${points.length} chunks for document ${documentPublicId} in project ${projectPublicId}`
       );
-
-      return { success: true, chunksEmbedded: points.length };
+      return {
+        success: true,
+        chunksEmbedded: points.length,
+        device: usedDevice,
+      };
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       this.logger.error(

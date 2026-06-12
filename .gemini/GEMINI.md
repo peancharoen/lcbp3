@@ -1,9 +1,20 @@
-# NAP-DMS Gemini Rules & Standards
+# NAP-DMS Project Context & Rules
 
 - For: Gemini (Google AI Studio, Vertex AI, Antigravity, Gemini CLI)
-- Version: 1.9.8 | Last synced from AGENTS.md: 2026-06-02
+- Version: 1.9.10 | Last synced from AGENTS.md: 2026-06-11
 - Repo: [https://git.np-dms.work/np-dms/lcbp3](https://git.np-dms.work/np-dms/lcbp3)
 - Skill pack: `.agents/skills/` (v1.9.0, 21 skills) — see [`skills/README.md`](../.agents/skills/README.md) + [`skills/_LCBP3-CONTEXT.md`](../.agents/skills/_LCBP3-CONTEXT.md)
+
+---
+
+## 📦 Project Memory Override
+
+For this repository (`E:\np-dms\lcbp3`), use project memory from:
+`E:\np-dms\lcbp3\memory\project-memory-override.md`
+
+**Before using global Gemini memory**, read this project memory file first when the task depends on prior repo context, conventions, decisions, or rollout history.
+
+If project memory conflicts with global memory, prefer `memory/project-memory-override.md` for LCBP3-specific facts.
 
 ---
 
@@ -126,7 +137,8 @@ Spec priority: **`06-Decision-Records`** > **`05-Engineering-Guidelines`** > oth
 | **ADR-019 UUID**               | `specs/06-Decision-Records/ADR-019-hybrid-identifier-strategy.md`           | ✅ Active | UUID-related work                                                                      |
 | **ADR-021 Workflow Context**   | `specs/06-Decision-Records/ADR-021-workflow-context.md`                     | ✅ Active | Integrated workflow & step attachments                                                 |
 | **ADR-023 AI Architecture**    | `specs/06-Decision-Records/ADR-023-unified-ai-architecture.md`              | ✅ Active | Unified AI boundaries and pipeline (base architecture)                                 |
-| **ADR-023A AI Model Rev.**     | `specs/06-Decision-Records/ADR-023A-unified-ai-architecture.md`             | ✅ Active | 2-Model stack (gemma4:e4b Q8_0), BullMQ 2-queue, RAG embed scope, OCR auto-detect      |
+| **ADR-023A AI Model Rev.**     | `specs/06-Decision-Records/ADR-023A-unified-ai-architecture.md`             | ✅ Active | 2-queue, RAG embed scope, OCR auto-detect (model stack superseded by ADR-034)          |
+| **ADR-034 Thai Model Stack**   | `specs/06-Decision-Records/ADR-034-AI-model-change.md`                      | ✅ Active | typhoon2.5-np-dms:latest (Main) + typhoon-np-dms-ocr:latest (OCR, keep_alive:0)        |
 | **ADR-024 Intent Class.**      | `specs/06-Decision-Records/ADR-024-intent-classification-strategy.md`       | ✅ Active | Hybrid Pattern→LLM Fallback; ai_intent_patterns DB; Redis cache 5 min                  |
 | **ADR-025 AI Tool Layer**      | `specs/06-Decision-Records/ADR-025-ai-tool-layer-architecture.md`           | ✅ Active | Server-side Tool dispatch; CASL-guarded bridge; ToolResult uses publicId only          |
 | **ADR-026 Chat UI**            | `specs/06-Decision-Records/ADR-026-document-chat-ui-pattern.md`             | ✅ Active | Side-panel Document Chat UI; useAiChat() hook; streaming response support              |
@@ -243,7 +255,7 @@ Read `specs/05-Engineering-Guidelines/05-07-hybrid-uuid-implementation-plan.md` 
 5. **Password:** bcrypt 12 salt rounds, min 8 chars, rotate every 90 days
 6. **Rate Limiting:** `ThrottlerGuard` on all auth endpoints
 7. **File Upload:** Whitelist PDF/DWG/DOCX/XLSX/ZIP, max 50MB, ClamAV scan
-8. **AI Isolation (ADR-023/023A):** Ollama on Admin Desktop ONLY — NO direct DB/storage access; 2-model stack `gemma4:e4b Q8_0` + `nomic-embed-text`; all inference via BullMQ (`ai-realtime` / `ai-batch`)
+8. **AI Isolation (ADR-023/023A/034):** Ollama on Admin Desktop ONLY — NO direct DB/storage access; model stack `typhoon2.5-np-dms:latest` (main) + `typhoon-np-dms-ocr:latest` (OCR, keep_alive:0) + `nomic-embed-text`; all inference via BullMQ (`ai-realtime` / `ai-batch`)
 9. **Error Handling (ADR-007):** Use layered error classification with user-friendly messages
 10. **AI Integration (ADR-023/023A):** RFA-First approach; n8n orchestrates Migration Phase only via DMS API — never calls Ollama directly; `QdrantService.search()` requires `projectPublicId` as mandatory param
 
@@ -529,7 +541,7 @@ When user asks about... check these files:
 - [ ] **Qdrant Multi-tenancy:** `projectPublicId` filter enforced
 - [ ] **Human-in-the-loop:** AI outputs validated before use
 - [ ] **Audit Logging:** All AI interactions logged to `ai_audit_logs`
-- [ ] **2-Model Stack:** gemma4:e4b Q8_0 + nomic-embed-text verified
+- [ ] **Model Stack (ADR-034):** typhoon2.5-np-dms:latest + typhoon-np-dms-ocr:latest + nomic-embed-text verified
 - [ ] **Dynamic Prompts (ADR-029):** Prompt templates loaded from `ai_prompts` DB, not hardcoded
 
 **Performance & Complex Logic:**
@@ -546,6 +558,108 @@ When user asks about... check these files:
 - [ ] Code formatting follows Prettier rules
 - [ ] Comment completeness where helpful
 - [ ] Minor optimizations considered but not required
+
+---
+
+## 🔌 MCP MariaDB Tools
+
+MCP MariaDB server ให้เครื่องมือสำหรับตรวจสอบและจัดการ database โดยตรง ใช้สำหรับ:
+
+- ตรวจสอบ schema กับ spec file `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql`
+- Debug ปัญหา database โดยไม่ต้องเข้า MySQL client
+- ตรวจสอบ data ใน production/staging
+- Validate การเปลี่ยนแปลง schema ก่อน deploy
+
+### Available Tools
+
+| Tool                         | หน้าที่                        | ตัวอย่างการใช้งาน                                  |
+| ---------------------------- | ------------------------------ | -------------------------------------------------- |
+| `mcp1_mysql_test_connection` | ทดสอบ connection กับ database  | ตรวจสอบว่า MCP server เชื่อมต่อได้                 |
+| `mcp1_mysql_show_databases`  | แสดง databases ทั้งหมด         | ดูว่ามี database อะไรบ้าง                          |
+| `mcp1_mysql_show_tables`     | แสดง tables ทั้งหมดใน database | ดูรายชื่อ tables ใน `lcbp3`                        |
+| `mcp1_mysql_describe_table`  | ดู structure/columns ของ table | ตรวจสอบ columns, types, keys ของ `correspondences` |
+| `mcp1_mysql_query`           | รัน SELECT query               | ดู data ใน table หรือ join query                   |
+| `mcp1_mysql_insert`          | INSERT data                    | เพิ่ม seed data หรือ test data                     |
+| `mcp1_mysql_update`          | UPDATE data                    | แก้ไข data ใน table                                |
+| `mcp1_mysql_delete`          | DELETE data                    | ลบ data ใน table                                   |
+
+### การใช้งานร่วมกับ Development Flow
+
+**เมื่อเขียน query ใหม่:**
+
+1. ใช้ `mcp1_mysql_describe_table` เพื่อตรวจสอบ columns และ types
+2. เปรียบเทียบกับ `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql`
+3. ใช้ `mcp1_mysql_query` เพื่อทดสอบ query ก่อน implement
+
+**เมื่อเปลี่ยน schema (ADR-009):**
+
+1. ใช้ `mcp1_mysql_describe_table` เพื่อดู structure ปัจจุบัน
+2. สร้าง SQL delta ใน `specs/03-Data-and-Storage/deltas/`
+3. ใช้ `mcp1_mysql_query` เพื่อตรวจสอบผลลัพธ์หลัง apply delta
+
+**เมื่อ debug ปัญหา database:**
+
+1. ใช้ `mcp1_mysql_query` เพื่อดู data จริง
+2. เปรียบเทียบกับ spec และ data dictionary
+3. ตรวจสอบ foreign keys และ constraints
+
+### ข้อควรระวัง
+
+- **❌ ห้ามใช้ MCP MariaDB สำหรับ DDL operations** (CREATE/ALTER/DROP) โดยตรง — ต้องใช้ SQL delta ตาม ADR-009
+- **✅ ใช้สำหรับ DQL/DML operations** (SELECT/INSERT/UPDATE/DELETE) เพื่อ debug และ test เท่านั้น
+- **⚠️ ระวัง DELETE operations** — อาจทำให้เสีย data ใน production
+- **✅ ตรวจสอบ schema กับ spec file เสมอ** ก่อนเขียน query
+
+---
+
+## 🧠 MCP Memory Tools
+
+MCP Memory server ให้เครื่องมือสำหรับจัดการ Knowledge Graph และ Long-term Memory ใช้สำหรับ:
+
+- จัดเก็บความรู้และ context ของโปรเจกต์ในรูปแบบ Graph (Entities + Relations + Observations)
+- ค้นหาและดึงข้อมูล context จาก memory ที่บันทึกไว้ใน session ก่อนหน้า
+- สร้าง/แก้ไข/ลบ entities, relations, และ observations ใน knowledge graph
+
+### Available Tools
+
+| Tool                       | หน้าที่                                      | ตัวอย่างการใช้งาน                            |
+| -------------------------- | -------------------------------------------- | -------------------------------------------- |
+| `mcp3_create_entities`     | สร้าง entities ใหม่หลายตัวพร้อม observations | สร้าง entity ใหม่เช่น Project, User, Task    |
+| `mcp3_create_relations`    | สร้าง relations ระหว่าง entities             | สร้าง relation: Project → has → User         |
+| `mcp3_add_observations`    | เพิ่ม observations ให้ entity ที่มีอยู่แล้ว  | เพิ่ม context เพิ่มเติมให้ entity            |
+| `mcp3_delete_entities`     | ลบ entities และ relations ที่เกี่ยวข้อง      | ลบ entity ที่ไม่ใช้แล้ว                      |
+| `mcp3_delete_relations`    | ลบ relations ระหว่าง entities                | ลบ relation ที่ผิดหรือไม่ใช้แล้ว             |
+| `mcp3_delete_observations` | ลบ observations จาก entity                   | ลบ context ที่ผิดหรือล้าสุด                  |
+| `mcp3_open_nodes`          | ดึงข้อมูล entities ตามชื่อ                   | ดึง entity ที่ระบุชื่อ                       |
+| `mcp3_read_graph`          | อ่าน knowledge graph ทั้งหมด                 | ดูทั้ง graph structure                       |
+| `mcp3_search_nodes`        | ค้นหา entities ตาม query                     | ค้นหา entity จากชื่อ, type, หรือ observation |
+
+### การใช้งานร่วมกับ Development Flow
+
+**เมื่อบันทึก context ใหม่:**
+
+1. ใช้ `mcp3_create_entities` เพื่อสร้าง entities ใหม่ (ถ้ายังไม่มี)
+2. ใช้ `mcp3_create_relations` เพื่อเชื่อมโยง entities
+3. ใช้ `mcp3_add_observations` เพื่อเพิ่ม context/observations
+
+**เมื่อค้นหา context:**
+
+1. ใช้ `mcp3_search_nodes` เพื่อค้นหา entities ที่เกี่ยวข้อง
+2. ใช้ `mcp3_open_nodes` เพื่อดึงข้อมูล entities ที่ต้องการ
+3. ใช้ `mcp3_read_graph` เพื่อดู relations ระหว่าง entities
+
+**เมื่อแก้ไข context:**
+
+1. ใช้ `mcp3_add_observations` เพื่อเพิ่ม observations ใหม่
+2. ใช้ `mcp3_delete_observations` เพื่อลบ observations ที่ผิด
+3. ใช้ `mcp3_create_relations` หรือ `mcp3_delete_relations` เพื่อปรับ relations
+
+### ข้อควรระวัง
+
+- **✅ ใช้สำหรับบันทึก context ที่ต้องใช้ร่วมกันหลาย session** — เช่น การตัดสินใจสำคัญ, architecture decisions, rollout history
+- **⚠️ ระวังการลบ entities** — อาจทำให้เสีย context ที่ยังใช้งานอยู่
+- **✅ ตรวจสอบว่า entity มีอยู่แล้วก่อนสร้าง** — ใช้ `mcp3_search_nodes` หรือ `mcp3_open_nodes` ก่อน
+- **✅ ใช้ชื่อ entity ที่ชัดเจนและไม่ซ้ำกัน** — เพื่อป้องกันความสับสน
 
 ---
 
@@ -582,15 +696,26 @@ This file is a **quick reference**. For detailed information:
 
 ## 🔄 Change Log
 
-| Version | Date       | Changes                                                                                                                                                                                                                               | Updated By     |
-| ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
-| 1.9.8   | 2026-06-02 | Added ADR-033 Active Model & OCR; ADR-031/032 status Draft→Active; ADR-032/033 in Tier 3 AI Runtime Layer & Specialized Work; Dynamic Prompt context trigger; AI Model/OCR Active Switch trigger; Dynamic Prompts checklist item      | Windsurf AI    |
-| 1.9.7   | 2026-05-25 | Added ADR-029 Dynamic Prompt Management to Key Spec Files table; fixed gemma4 model name e2b→e4b Q8_0; added Dynamic Prompt context trigger; added ADR-029 to Tier 3 AI checklist; bumped last synced date                            | Windsurf AI    |
-| 1.9.6   | 2026-05-22 | Added ADR-024/025/026/027/028 to Key Spec Files; Tier 3 expanded (AI Runtime Layer + Migration Pipeline); Specialized Work updated; 6 new Context-Aware Triggers; Forbidden Actions + Domain Terminology synced from AGENTS.md v1.9.6 | Windsurf AI    |
-| 1.9.5   | 2026-05-18 | **Grill-with-Docs Session:** Domain terminology clarified (Correspondence = all doc types), Tier 3: SPECIALIZED WORK added, Context-Aware Triggers with Status column, Tier-specific Final Checklists                                 | Windsurf AI    |
-| 1.9.4   | 2026-05-16 | Added ADR-015 Release Strategy to Key Spec Files table (Blue-Green deployment + release gates)                                                                                                                                        | Human Dev      |
-| 1.9.3   | 2026-05-15 | ADR-023A: Model revision — gemma4:9b+Typhoon→gemma4:e4b Q8_0 (2-model stack), BullMQ 2-queue split, RAG full-doc embed, OCR auto-detect, n8n→DMS API boundary, QdrantService multi-tenancy contract                                   | Windsurf AI    |
-| 1.9.2   | 2026-05-14 | Consolidated legacy AI ADRs (017, 017B, 018, 020, 022) into master ADR-023: Unified AI Architecture                                                                                                                                   | Antigravity AI |
-| 1.9.1   | 2026-05-13 | Added `bugfix` workflow and skill (migrated and improved from `docs/bugfix.md`)                                                                                                                                                       | Windsurf AI    |
-| 1.9.0   | 2026-05-03 | Integrated Global TypeScript Coding Standards (Headers, JSDoc, Thai comments, Single Export, No blank lines)                                                                                                                          | Windsurf AI    |
-| 1.8.5   | 2026-04-22 | Legacy version                                                                                                                                                                                                                        | Human Dev      |
+| Version | Date       | Changes                                                                                                                                                                                                                                    | Updated By     |
+| ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------- |
+| 1.9.10  | 2026-06-11 | Synced from AGENTS.md: Added MCP MariaDB Tools section, MCP Memory Tools section; Added ADR-034 Thai Model Stack; Updated AI Isolation to ADR-034 typhoon2.5 model stack; Added Project Memory Override section; Updated Change Log        | Windsurf AI    |
+| 1.9.9   | 2026-06-06 | ADR-034 Thai-Optimized AI Model Stack: typhoon2.5-np-dms:latest (main) + typhoon-np-dms-ocr:latest (OCR); model switching in ai-batch processor; AiSettingsService static constants; SQL delta; updated Key Spec Files + AI isolation rule | Windsurf AI    |
+| 1.9.8   | 2026-06-02 | Added ADR-033 Active Model & OCR; ADR-031/032 status Draft→Active; ADR-032/033 in Tier 3 AI Runtime Layer & Specialized Work; Dynamic Prompt context trigger; AI Model/OCR Active Switch trigger; Dynamic Prompts checklist item           | Windsurf AI    |
+| 1.9.7   | 2026-05-25 | Added ADR-029 Dynamic Prompt Management to Key Spec Files table; fixed gemma4 model name e2b→e4b Q8_0; added Dynamic Prompt context trigger; added ADR-029 to Tier 3 AI checklist; bumped last synced date                                 | Windsurf AI    |
+| 1.9.6   | 2026-05-22 | Added ADR-024/025/026/027/028 to Key Spec Files; Tier 3 expanded (AI Runtime Layer + Migration Pipeline); Specialized Work updated; 6 new Context-Aware Triggers; Forbidden Actions + Domain Terminology synced from AGENTS.md v1.9.6      | Windsurf AI    |
+| 1.9.5   | 2026-05-18 | **Grill-with-Docs Session:** Domain terminology clarified (Correspondence = all doc types), Tier 3: SPECIALIZED WORK added, Context-Aware Triggers with Status column, Tier-specific Final Checklists                                      | Windsurf AI    |
+| 1.9.4   | 2026-05-16 | Added ADR-015 Release Strategy to Key Spec Files table (Blue-Green deployment + release gates)                                                                                                                                             | Human Dev      |
+| 1.9.3   | 2026-05-15 | ADR-023A: Model revision — gemma4:9b+Typhoon→gemma4:e4b Q8_0 (2-model stack), BullMQ 2-queue split, RAG full-doc embed, OCR auto-detect, n8n→DMS API boundary, QdrantService multi-tenancy contract                                        | Windsurf AI    |
+| 1.9.2   | 2026-05-14 | Consolidated legacy AI ADRs (017, 017B, 018, 020, 022) into master ADR-023: Unified AI Architecture                                                                                                                                        | Antigravity AI |
+| 1.9.1   | 2026-05-13 | Added `bugfix` workflow and skill (migrated and improved from `docs/bugfix.md`)                                                                                                                                                            | Windsurf AI    |
+| 1.9.0   | 2026-05-03 | Integrated Global TypeScript Coding Standards (Headers, JSDoc, Thai comments, Single Export, No blank lines)                                                                                                                               | Windsurf AI    |
+| 1.8.5   | 2026-04-22 | Legacy version                                                                                                                                                                                                                             | Human Dev      |
+
+---
+
+**To update this file:**
+
+1. Edit relevant sections
+2. Update Change Log above
+3. Bump version number in header
+4. Commit: `spec(agents): bump GEMINI.md to vX.X.X - <brief description>`

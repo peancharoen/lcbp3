@@ -99,14 +99,13 @@ find_feature_dir_by_prefix() {
 
     local prefix="${BASH_REMATCH[1]}"
 
-    # Search for directories in specs/ that start with this prefix
+    # Search for directories in specs/ that start with this prefix (supporting subdirectories)
     local matches=()
     if [[ -d "$specs_dir" ]]; then
-        for dir in "$specs_dir"/"$prefix"-*; do
-            if [[ -d "$dir" ]]; then
-                matches+=("$(basename "$dir")")
-            fi
-        done
+        # ค้นหาโฟลเดอร์ที่ตรงกับ prefix ในระบบย่อย
+        while IFS= read -r -d '' dir; do
+            matches+=("$dir")
+        done < <(find "$specs_dir" -maxdepth 3 -type d -name "${prefix}-*" -print0 2>/dev/null)
     fi
 
     # Handle results
@@ -115,12 +114,12 @@ find_feature_dir_by_prefix() {
         echo "$specs_dir/$branch_name"
     elif [[ ${#matches[@]} -eq 1 ]]; then
         # Exactly one match - perfect!
-        echo "$specs_dir/${matches[0]}"
+        echo "${matches[0]}"
     else
         # Multiple matches - this shouldn't happen with proper naming convention
         echo "ERROR: Multiple spec directories found with prefix '$prefix': ${matches[*]}" >&2
         echo "Please ensure only one spec directory exists per numeric prefix." >&2
-        echo "$specs_dir/$branch_name"  # Return something to avoid breaking the script
+        echo "${matches[0]}"  # Return first match to avoid breaking the script
     fi
 }
 

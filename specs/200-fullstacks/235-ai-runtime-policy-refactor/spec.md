@@ -22,19 +22,19 @@
 
 ### User Story 1 — Policy Contract & Canonical Naming (Priority: P1)
 
-นักพัฒนาและ admin ที่ส่ง AI job request ผ่าน AI Gateway จะส่งได้แค่ `executionProfile` (`fast | balanced | thai-accurate | large-context`) โดยไม่สามารถระบุชื่อ model หรือ override runtime parameters ได้เอง — system แสดงและบันทึก model ในทุก layer ด้วยชื่อ canonical `np-dms-ai` และ `np-dms-ocr` แทนชื่อ runtime เดิม
+User ทั่วไปส่ง AI job request ผ่าน AI Gateway โดยระบุแค่ `job type` — ระบบ backend กำหนด execution policy (model, parameters) ทั้งหมดอัตโนมัติตาม job type โดยไม่มี caller input ใดๆ เกี่ยวกับ model หรือ profile — system แสดงและบันทึก model ในทุก layer ด้วยชื่อ canonical `np-dms-ai` และ `np-dms-ocr` แทนชื่อ runtime เดิม Admin/Superadmin สามารถดูและทดสอบ policy behavior ผ่าน Admin Console และ OCR Sandbox เท่านั้น
 
 **Why this priority**: เป็นรากฐานของทุก workstream — ถ้า contract ยังเป็น caller-driven อยู่ workstream อื่นไม่มีความหมาย
 
-**Independent Test**: ยิง POST ไปยัง AI Gateway endpoint ด้วย payload ที่มี `model.key` หรือ `temperature` แล้วตรวจว่า API reject 400 พร้อม error message; ยิงด้วย `executionProfile: "balanced"` แล้วตรวจว่าผ่านและ log/response แสดง `np-dms-ai`
+**Independent Test**: ยิง POST ไปยัง AI Gateway endpoint ด้วย `job type` เท่านั้น แล้วตรวจว่า response แสดง `modelUsed: "np-dms-ai"` และ audit log มี `effectiveProfile` ที่ถูกต้องตาม job type
 
 **Acceptance Scenarios**:
 
-1. **Given** AI job request ที่มี `model: { key: "typhoon2.5-np-dms:latest" }`, **When** ส่งไปยัง `POST /api/ai/jobs`, **Then** system ตอบ HTTP 400 พร้อมข้อความว่า field `model.key` ไม่อนุญาต
-2. **Given** AI job request ที่มี `executionProfile: "balanced"`, **When** job ถูก dispatch ไปยัง `ai-batch` queue, **Then** job payload บันทึก `modelUsed: "np-dms-ai"` ใน audit log
+1. **Given** AI job request ที่มี `model: { key: "typhoon2.5-np-dms:latest" }` หรือ `executionProfile` field ใดๆ, **When** ส่งไปยัง `POST /api/ai/jobs`, **Then** system ตอบ HTTP 400 เพราะ fields เหล่านั้นไม่อนุญาต
+2. **Given** AI job request ที่มีแค่ `type: "rag-query"`, **When** job ถูก dispatch ไปยัง `ai-batch` queue, **Then** job payload บันทึก `modelUsed: "np-dms-ai"` และ `effectiveProfile` ที่ backend กำหนดให้ใน audit log
 3. **Given** admin เปิด AI Admin Console, **When** ดู model information panel, **Then** แสดงชื่อ `np-dms-ai` และ `np-dms-ocr` ไม่ใช่ชื่อ runtime จริง (เช่น `typhoon2.5-np-dms:latest`)
-4. **Given** `auto-fill-document` job ถูกส่งมาพร้อม `executionProfile: "fast"`, **When** backend process job, **Then** backend override เป็น deterministic profile โดยไม่ใช้ค่า `fast` ที่ caller ส่งมา
-5. **Given** `large-context` profile ถูกส่งโดย non-admin user, **When** backend validate, **Then** ตอบ HTTP 403 เพราะ profile นั้น restrict เฉพาะ admin/special workflows
+4. **Given** `auto-fill-document` job ถูกส่งมา, **When** backend process job, **Then** backend กำหนด `effectiveProfile: "quality"` อัตโนมัติตาม job type โดยไม่รับ input จาก caller
+5. **Given** admin เปิด OCR Sandbox, **When** ทดสอบ OCR job, **Then** สามารถดู `effectiveProfile` และ `modelUsed` ที่ระบบกำหนดให้ในผลลัพธ์
 
 ---
 
@@ -107,10 +107,12 @@ BullMQ queue ปรับให้ `ai-realtime` รองรับ concurrency 
 ### Edge Cases
 
 - ถ้า VRAM headroom calculation service ล้มเหลว (timeout หรือ error) → ต้อง fallback เป็น `keep_alive: 0` เสมอ (safe default)
-- ถ้า caller ส่ง `executionProfile` ที่ไม่อยู่ใน canonical set → ตอบ 400 validation error
+- ถ้า caller ส่ง `executionProfile` หรือ `model.*` fields มาใน payload → ตอบ 400 validation error ทันที (FR-A01)
 - ถ้า `large-context` profile ถูก whitelist ให้ admin แต่ VRAM ไม่พอ → backend ต้อง reject พร้อม error ชัดเจน ไม่ใช่ silent fallback
 - ถ้า OCR job เข้ามาพร้อมกับ main model generation job → LLM-First rule บังคับ: OCR ต้องรอหรือใช้ `keep_alive: 0`
 - ถ้า `/embed` fallback ไป CPU แล้ว job ใช้เวลานานเกิน timeout → ต้อง return partial result หรือ error ที่ชัดเจน ไม่ใช่ hang
+- ถ้า `VramMonitorService` ทำงานผิดพลาดหลัง cutover (เช่น Ollama `/api/ps` schema เปลี่ยน) → ระบบยัง operate ได้ด้วย safe default (`keep_alive: 0`) — **ไม่มี rollback plan; policy คือ fix-forward เท่านั้น** ต้องแก้ไขจนสำเร็จ
+- VRAM race condition ระหว่าง headroom snapshot กับ Ollama request arrival ถือว่ายอมรับได้ เนื่องจาก `np-dms-ai` VRAM usage ใน production ถูก manual test จนมั่นใจก่อน cutover แล้ว
 
 ---
 
@@ -120,19 +122,21 @@ BullMQ queue ปรับให้ `ai-realtime` รองรับ concurrency 
 
 **Workstream A: Contract & Canonical Naming**
 
-- **FR-A01**: System MUST reject AI job requests ที่มี `model.key` field ใน payload (HTTP 400)
-- **FR-A02**: System MUST reject AI job requests ที่มี direct `temperature`, `top_p`, หรือ `maxTokens` overrides (HTTP 400)
-- **FR-A03**: `executionProfile` MUST รับค่าได้เฉพาะ `fast | balanced | thai-accurate | large-context`
-- **FR-A04**: `large-context` profile MUST ถูก authorize เฉพาะ admin role หรือ backend-whitelisted workflows
-- **FR-A05**: System MUST map `executionProfile` → canonical model name และ runtime parameters ใน backend policy layer
-- **FR-A06**: งาน data-affecting (`migrate-document`, `auto-fill-document`) MUST ถูก backend override profile โดยไม่ใช้ค่าที่ caller ส่งมา
+- **FR-A01**: System MUST reject AI job requests ที่มี `model.key`, `executionProfile`, `temperature`, `top_p`, หรือ `maxTokens` field ใน payload (HTTP 400) — ไม่มี caller input ใดๆ เกี่ยวกับ model หรือ profile
+- **FR-A02**: `CreateAiJobDto` MUST รับเฉพาะ `type`, `documentPublicId`, `attachmentPublicId` — ไม่มี profile หรือ model fields
+- **FR-A03**: Backend MUST กำหนด `effectiveProfile` อัตโนมัติจาก `job.type` ตาม policy mapping ใน `AiPolicyService`
+- **FR-A04**: Admin/Superadmin ดูและทดสอบ policy behavior ได้ผ่าน Admin Console และ OCR Sandbox เท่านั้น — ไม่ผ่าน API payload; OCR Sandbox ใช้ `sandbox-analysis` job type ภายใน ซึ่ง map ไป `deep-analysis` profile สำหรับ long-context document testing
+- **FR-A05**: System MUST map `job.type` → `{ effectiveProfile, canonicalModel, runtimeParameters }` ใน backend policy layer
+- **FR-A06**: ทุก job type MUST มี deterministic policy mapping — ไม่มี job type ใดที่ไม่มี default policy
 - **FR-A07**: ทุก layer (API response, audit log, Admin Console, OCR Sandbox) MUST แสดงชื่อ `np-dms-ai` และ `np-dms-ocr` แทนชื่อ runtime จริง
+- **FR-A08**: audit log MUST บันทึก `effectiveProfile` (ค่าที่ backend กำหนด) และ `modelUsed` (canonical name) — `requestedProfile` เสมอ `null` เพราะไม่มี caller input
+- **FR-A09**: `AiPolicyService` MUST snapshot `{ temperature, topP, maxTokens, numCtx, repeatPenalty, keepAliveSeconds }` จาก `ai_execution_profiles` (DB/Redis) ณ เวลา dispatch แล้วฝังใน BullMQ job payload — worker ใช้ค่าจาก payload โดยตรง ไม่อ่าน DB อีกรอบ; ทำให้ทุก job predictable และ audit log ตรงกับ parameters ที่ใช้จริง
 
 **Workstream B: Runtime Policy**
 
-- **FR-B01**: Backend MUST มี policy mapping: `executionProfile` → `{ canonicalModel, keep_alive, temperature, top_p, maxTokens }`
+- **FR-B01**: Backend MUST มี policy mapping: `executionProfile` → `{ canonicalModel, keep_alive, temperature, top_p, max_tokens, num_ctx, repeat_penalty }`; ค่า default ตาม `docs/ai-profiles.md`; ค่าจริง calibrate ได้ผ่าน Admin Console และบันทึกใน DB ตาม ADR-029
 - **FR-B02**: OCR residency MUST คำนวณ `keep_alive` แบบ dynamic จาก VRAM headroom และ active profile
-- **FR-B03**: ถ้า active profile = `large-context` หรือ main model pressure = high → OCR `keep_alive` MUST = `0`
+- **FR-B03**: ถ้า active profile = `deep-analysis` หรือ main model pressure = high → OCR `keep_alive` MUST = `0` โดย "main model pressure สูง" นิยามว่า `np-dms-ai.size_vram` ใน Ollama `/api/ps` response > `GPU_MAIN_MODEL_PRESSURE_THRESHOLD_MB` (configurable env)
 - **FR-B04**: ถ้า VRAM headroom ≥ policy threshold → OCR สามารถใช้ residency window > 0
 - **FR-B05**: VRAM headroom calculation ล้มเหลว → MUST fallback เป็น `keep_alive: 0` (safe default)
 - **FR-B06**: OCR residency decision MUST ถูก log พร้อม headroom value ที่ใช้ตัดสิน
@@ -155,7 +159,7 @@ BullMQ queue ปรับให้ `ai-realtime` รองรับ concurrency 
 
 ### Key Entities
 
-- **ExecutionProfile**: Enum value ที่ caller ส่งมา (`fast | balanced | thai-accurate | large-context`) — contract ระดับ API
+- **ExecutionProfile**: Enum value ที่ backend กำหนดภายใน (`interactive | standard | quality | deep-analysis`) — **ไม่ expose ใน public API** ใช้ภายใน policy layer และ audit log เท่านั้น; ค่า default กำหนดใน `docs/ai-profiles.md` และ calibrate ได้ผ่าน Admin Console (ADR-029)
 - **RuntimePolicy**: Backend mapping จาก `ExecutionProfile` → `{ canonicalModel, keep_alive, temperature, top_p, maxTokens }` — ไม่ expose ใน API
 - **VramHeadroom**: ค่า computed ณ เวลา request ที่ใช้ตัดสิน OCR residency และ retrieval acceleration — บันทึกใน log
 - **CanonicalModelIdentity**: ชื่อ `np-dms-ai` หรือ `np-dms-ocr` — ใช้ทุกชั้นที่ผู้ใช้เห็น
@@ -182,6 +186,10 @@ BullMQ queue ปรับให้ `ai-realtime` รองรับ concurrency 
 
 - Q: ถ้า `/embed` fallback ไป CPU แล้ว job ใช้เวลานานเกิน timeout → ควร return partial result หรือ return error ที่ชัดเจน? → A: Return error ที่ชัดเจนพร้อม HTTP 504 timeout message — ไม่ return partial result เพราะ downstream LLM context จะ incomplete และทำให้ผลลัพธ์ผิดพลาดโดยไม่รู้ตัว
 - Q: VRAM headroom threshold ระดับ spec ควรกำหนด default value ไหม? → A: ไม่กำหนดใน spec — threshold เป็น operational config (env variable `VRAM_HEADROOM_THRESHOLD_MB`) ที่ ops/admin ปรับได้ runtime; spec ระบุแค่ว่า "ต้องมี threshold ที่ configurable" และ "ต้องใช้ safe default = 0 (unload) เมื่อ query ล้มเหลว"
+- Q: "main model pressure สูง" วัดอย่างไรในทางปฏิบัติ? → A: วัดจาก `np-dms-ai.size_vram` ใน Ollama `/api/ps` response เทียบกับ `GPU_MAIN_MODEL_PRESSURE_THRESHOLD_MB` (configurable env) — ไม่ใช้ Redis flag หรือ shared state ใหม่
+- Q: Rollback plan สำหรับ big bang cutover คืออะไร? → A: ไม่มี rollback — policy คือ fix-forward เท่านั้น; ถ้า cutover มีปัญหาต้องแก้ไขจนสำเร็จ
+- Q: audit log ควรบันทึก profile ที่ caller ส่งมา หรือ profile ที่ใช้จริงหลัง override? → A: บันทึกแค่ `effectiveProfile` และ `modelUsed` — `requestedProfile` เสมอ `null` เพราะ user ไม่ได้ส่ง profile มาเลย (backend กำหนดทั้งหมดจาก job type)
+- Q: `executionProfile` ควรรับจาก caller ไหม? → A: ไม่ — backend กำหนดทั้งหมดจาก job type; user ทั่วไปไม่รู้จัก profile เลย; admin ทดสอบผ่าน Admin Console/OCR Sandbox เท่านั้น
 
 ## Assumptions
 
@@ -189,5 +197,5 @@ BullMQ queue ปรับให้ `ai-realtime` รองรับ concurrency 
 - VRAM headroom threshold ค่าเริ่มต้นจะถูกกำหนดใน config/env และปรับได้โดยไม่ต้อง redeploy
 - Canonical model names (`np-dms-ai`, `np-dms-ocr`) ถูก tag ใน Ollama registry บน Desk-5439 ก่อน cutover
 - OCR sidecar (`app.py`) บน Desk-5439 จะถูก update เป็นส่วนหนึ่งของ cutover
-- Big bang rollout: ไม่มี parallel legacy path — ทุก change deploy พร้อมกันในรอบเดียว
+- Big bang rollout: ไม่มี parallel legacy path — ทุก change deploy พร้อมกันในรอบเดียว; **ไม่มี rollback plan — fix-forward เท่านั้น**
 - `ai-realtime` concurrency uplift เป็น configuration change ไม่ใช่ architectural change ใหม่

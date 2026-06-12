@@ -1,4 +1,4 @@
-// File: src/modules/ai/ai.controller.ts
+// File: backend/src/modules/ai/ai.controller.ts
 // Change Log
 // - 2026-05-14: เพิ่ม Legacy Migration staging endpoints ตาม ADR-023.
 // - 2026-05-14: ย้าย DeleteAuditLogsQueryDto ไป dto/ folder; ลบ authHeader passthrough (🟢 LOW-1/LOW-2).
@@ -13,6 +13,7 @@
 // - 2026-06-01: [BUGFIX] submitSandboxOcr: เพิ่ม @ApiBearerAuth(), @HttpCode(ACCEPTED), Body({ engineType }) และส่ง engineType ไปยัง enqueueSandboxJob
 // - 2026-06-02: เพิ่ม REST endpoints GET /ai/ocr-engines และ POST /ai/ocr-engines/:engineId/select (T003, T004, ADR-033) และนำเข้า SystemException เพื่อป้องกันความเสียหายในการคอมไพล์
 // - 2026-06-06: [BUGFIX] เพิ่ม @Throttle({ default: { limit: 300, ttl: 60000 } }) บน GET admin/sandbox/job/:id เพื่อแก้ ThrottlerException spam จาก frontend polling
+// - 2026-06-11: แก้ไขการส่งพารามิเตอร์ให้กับ queueSuggestJob ใน suggestDocumentMetadata
 // Controller สำหรับ AI Gateway Endpoints (ADR-023)
 
 import {
@@ -62,7 +63,7 @@ import { AiRagQueryDto } from './dto/ai-rag-query.dto';
 import { ExtractDocumentDto } from './dto/extract-document.dto';
 import { AiCallbackDto } from './dto/ai-callback.dto';
 import { CreateAiJobDto } from './dto/create-ai-job.dto';
-import { SubmitAiJobDto } from './dto/submit-ai-job.dto';
+import { AiJobResponseDto } from './dto/ai-job-response.dto';
 import { MigrationUpdateDto } from './dto/migration-update.dto';
 import { MigrationQueryDto } from './dto/migration-query.dto';
 import { ValidationException, SystemException } from '../../common/exceptions';
@@ -171,11 +172,7 @@ export class AiController {
     @Body() dto: CreateAiJobDto,
     @Headers('idempotency-key') idempotencyKey: string
   ): Promise<{ success: boolean; jobId?: string; status: string }> {
-    const result = await this.aiService.queueSuggestJob({
-      ...dto,
-      jobType: 'ai-suggest',
-      idempotencyKey: idempotencyKey || dto.idempotencyKey,
-    });
+    const result = await this.aiService.queueSuggestJob(dto, idempotencyKey);
     return {
       success: result.success,
       jobId: result.jobId,
@@ -199,25 +196,25 @@ export class AiController {
   @UseGuards(JwtAuthGuard, AiEnabledGuard, RbacGuard)
   @ApiBearerAuth()
   @RequirePermission('ai.suggest')
-  @HttpCode(HttpStatus.ACCEPTED)
+  @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
-    summary: 'Submit AI migration job — ส่งงานย้ายเอกสารให้ AI ประมวลผล',
+    summary: 'Submit unified AI job — ส่งงานประมวลผล AI แบบรวมศูนย์',
     description:
-      'รับ tempAttachmentId/documentNumber แล้วส่งงานย้ายเอกสารเข้า BullMQ เพื่อรอการประมวลผล',
+      'รับชนิดงานและข้อมูลอ้างอิง เพื่อส่งงานประมวลผล AI เข้าคิว BullMQ',
   })
   @ApiHeader({
     name: 'Idempotency-Key',
     description: 'Unique key เพื่อป้องกัน duplicate AI job',
     required: true,
   })
-  async submitMigrationJob(
-    @Body() dto: SubmitAiJobDto,
+  async submitUnifiedJob(
+    @Body() dto: CreateAiJobDto,
     @Headers('idempotency-key') idempotencyKey: string
-  ) {
+  ): Promise<AiJobResponseDto> {
     if (!idempotencyKey) {
       throw new ValidationException('Idempotency-Key header is required');
     }
-    return this.aiService.submitMigrationJob(dto, idempotencyKey);
+    return this.aiService.submitUnifiedJob(dto, idempotencyKey);
   }
 
   @Get('jobs/:jobId')

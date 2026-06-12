@@ -1,4 +1,4 @@
-// File: src/modules/ai/processors/ai-batch.processor.ts
+// File: backend/src/modules/ai/processors/ai-batch.processor.ts
 // Change Log
 // - 2026-06-08: แก้ไขปัญหา LLM JSON response truncated โดยการเพิ่ม num_ctx เป็น 16384 ใน sandbox-extract, sandbox-ai-extract และ migrate-document (แก้ไขโดย AGY Gemini 3.5 Flash (Medium))
 // - 2026-05-15: เพิ่ม processor สำหรับ ai-batch queue ตาม ADR-023A.
@@ -12,8 +12,11 @@
 // - 2026-05-28: EC-001 ใช้ findOrSuggestTags เพื่อตรวจจับ Tag ใหม่และบันทึก aiIssues; EC-002 ตรวจสอบ UUID ของผู้ส่ง/ผู้รับ และ Flag เมื่อหาไม่พบ
 // - 2026-06-03: ADR-034 — เพิ่ม 'ocr-extract' job type + OCR_JOB_TYPES constant + processOcrExtract() ที่มี model switching logic (unload main → load OCR → generate → reload main)
 // - 2026-06-06: แก้ไข bug LLM JSON parse failure — เพิ่ม retry logic (2 attempts), debug log raw response, และปรับปรุง error message ให้แสดงทั้ง raw และ cleaned response
+// - 2026-06-11: US2 - ส่ง activeProfile ไปยัง detectAndExtract ในการประมวลผล OCR และบันทึก retrieval device metadata ใน audit logs
+// - 2026-06-11: US4 - เพิ่มการรองรับ ai-suggest และ rag-query ใน batch processor หลังการทำ redirection
 // - 2026-06-06: เพิ่ม OCR text truncation (MAX_OCR_TEXT_CHARS=15000) เพื่อป้องกัน context overflow เมื่อเอกสารยาวมากชน num_ctx 8192
 // - 2026-06-06: [T036] เพิ่ม ollamaOptions: { num_ctx: 8192 } ใน generateStructuredJson เพื่อรองรับ prompt ยาว 18k+ chars และแก้ไข bug response ว่างจาก context window ไม่พอ
+// - 2026-06-11: แก้ไข ESLint errors โดยการเพิ่ม properties (effectiveProfile, canonicalModel, snapshotParams) ใน AiBatchJobData และยกเลิกการใช้ as any
 
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
@@ -31,13 +34,17 @@ import {
   SandboxOcrEngineService,
   SandboxOcrEngineType,
 } from '../services/sandbox-ocr-engine.service';
-import { OllamaService } from '../services/ollama.service';
+import {
+  OllamaService,
+  OllamaGenerateOptions,
+} from '../services/ollama.service';
 import { Project } from '../../project/entities/project.entity';
 import { AiAuditLog, AiAuditStatus } from '../entities/ai-audit-log.entity';
 import { TagsService } from '../../tags/tags.service';
 import { MigrationService } from '../../migration/migration.service';
 import { MigrationErrorType } from '../../migration/entities/migration-error.entity';
 import { AiPromptsService } from '../prompts/ai-prompts.service';
+import type { ExecutionProfile } from '../interfaces/execution-policy.interface';
 
 interface MigrateDocumentMetadata extends Record<string, unknown> {
   projectPublicId?: string;
@@ -62,7 +69,9 @@ export type AiBatchJobType =
   | 'sandbox-ocr-only'
   | 'sandbox-ai-extract'
   | 'migrate-document'
-  | 'rag-prepare';
+  | 'rag-prepare'
+  | 'ai-suggest'
+  | 'rag-query';
 
 /** รายการ job types ที่ต้องใช้ Typhoon OCR model — จะ trigger model switching (ADR-034) */
 export const OCR_JOB_TYPES: ReadonlyArray<AiBatchJobType> = [
@@ -76,6 +85,16 @@ export interface AiBatchJobData {
   payload: Record<string, unknown>;
   batchId?: string;
   idempotencyKey: string;
+  effectiveProfile?: ExecutionProfile;
+  canonicalModel?: 'np-dms-ai' | 'np-dms-ocr';
+  snapshotParams?: {
+    temperature: number;
+    topP: number;
+    maxTokens: number;
+    numCtx: number;
+    repeatPenalty: number;
+    keepAliveSeconds: number;
+  };
 }
 
 /** OCR text สูงสุดที่ส่งเข้า LLM prompt — ป้องกัน context overflow (num_ctx 8192, Thai ~3 chars/token) */
@@ -286,6 +305,16 @@ export class AiBatchProcessor extends WorkerHost {
             await this.setAiProcessingStatus(job.data.documentPublicId, 'DONE');
           }
           return;
+        case 'ai-suggest':
+          this.logger.log(
+            `AI Suggest job processing — jobId=${String(job.id)}`
+          );
+          await this.processSuggest(job);
+          return;
+        case 'rag-query':
+          this.logger.log(`RAG query job processing — jobId=${String(job.id)}`);
+          await this.processRagQuery(job);
+          return;
         case 'embed-document':
           this.logger.log(`Embedding job processing — jobId=${String(job.id)}`);
           await this.processEmbedDocument(job.data);
@@ -353,6 +382,7 @@ export class AiBatchProcessor extends WorkerHost {
 
   /** ประมวลผล embed-document job ด้วย EmbeddingService (T022) */
   private async processEmbedDocument(data: AiBatchJobData): Promise<void> {
+    const startTime = Date.now();
     const { documentPublicId, projectPublicId, payload } = data;
     const pdfPath = payload.pdfPath as string;
     const extractedText = readString(payload.extractedText);
@@ -378,6 +408,7 @@ export class AiBatchProcessor extends WorkerHost {
           pdfPath,
           extractedText,
           documentPublicId,
+          activeProfile: data.effectiveProfile,
         })
       ).text;
     const result = await this.embeddingService.embedDocument(
@@ -394,6 +425,19 @@ export class AiBatchProcessor extends WorkerHost {
     if (!result.success) {
       throw new Error(`Embedding failed: ${result.error ?? 'Unknown error'}`);
     }
+    const durationMs = Date.now() - startTime;
+    await this.saveAiAuditLog({
+      documentPublicId,
+      aiModel: data.canonicalModel ?? 'np-dms-ai',
+      status: AiAuditStatus.SUCCESS,
+      processingTimeMs: durationMs,
+      effectiveProfile: data.effectiveProfile,
+      canonicalModel: data.canonicalModel,
+      snapshotParamsJson: {
+        ...(data.snapshotParams ?? {}),
+        retrievalDevice: result.device,
+      },
+    });
     this.logger.log(
       `Embedding completed for document ${documentPublicId} — ${result.chunksEmbedded} chunks embedded`
     );
@@ -782,6 +826,7 @@ export class AiBatchProcessor extends WorkerHost {
   }
 
   private async processRagPrepare(data: AiBatchJobData): Promise<void> {
+    const startTime = Date.now();
     const payload = data.payload || {};
     const documentPublicId =
       (payload.documentPublicId as string) || data.documentPublicId;
@@ -795,12 +840,9 @@ export class AiBatchProcessor extends WorkerHost {
     const documentDate = (payload.documentDate as string) || undefined;
     let cachedOcrText = (payload.cachedOcrText as string) || undefined;
     const attachmentPath = (payload.attachmentPath as string) || undefined;
-
     this.logger.log(
       `processRagPrepare: starting for doc=${documentPublicId}, project=${projectPublicId}`
     );
-
-    // T020a: Resolve OCR text. Use cached if available; otherwise extract using OcrService
     if (!cachedOcrText && attachmentPath) {
       this.logger.log(
         `processRagPrepare: No cached OCR text. Extracting text from ${attachmentPath}...`
@@ -808,6 +850,7 @@ export class AiBatchProcessor extends WorkerHost {
       try {
         const ocrResult = await this.ocrService.detectAndExtract({
           pdfPath: attachmentPath,
+          activeProfile: data.effectiveProfile,
         });
         cachedOcrText = ocrResult.text;
       } catch (err: unknown) {
@@ -816,28 +859,23 @@ export class AiBatchProcessor extends WorkerHost {
         throw err;
       }
     }
-
     if (!cachedOcrText) {
       this.logger.warn(
         `processRagPrepare: ไม่มี OCR text และไม่มี attachment path - skip embedding`
       );
       return;
     }
-
-    // T020b: skip-guard (< 50 chars)
     if (cachedOcrText.trim().length < 50) {
       this.logger.warn(
         `processRagPrepare: OCR text สั้นเกินไป (${cachedOcrText.trim().length} chars) — skip embedding`
       );
       return;
     }
-
-    // T020c: embed + upsert pipeline
     try {
       this.logger.log(
         `processRagPrepare: chunking and embedding document ${documentPublicId}...`
       );
-      await this.embeddingService.embedDocument(
+      const result = await this.embeddingService.embedDocument(
         projectPublicId,
         documentPublicId,
         correspondenceNumber,
@@ -848,6 +886,19 @@ export class AiBatchProcessor extends WorkerHost {
         documentDate,
         cachedOcrText
       );
+      const durationMs = Date.now() - startTime;
+      await this.saveAiAuditLog({
+        documentPublicId,
+        aiModel: data.canonicalModel ?? 'np-dms-ai',
+        status: AiAuditStatus.SUCCESS,
+        processingTimeMs: durationMs,
+        effectiveProfile: data.effectiveProfile,
+        canonicalModel: data.canonicalModel,
+        snapshotParamsJson: {
+          ...(data.snapshotParams ?? {}),
+          retrievalDevice: result.device,
+        },
+      });
       this.logger.log(
         `processRagPrepare: successfully processed document ${documentPublicId}`
       );
@@ -864,6 +915,7 @@ export class AiBatchProcessor extends WorkerHost {
   ): Promise<void> {
     const startTime = Date.now();
     const { documentPublicId, projectPublicId, payload, batchId } = job.data;
+    const modelUsed = job.data.canonicalModel;
     const docNumber = payload.documentNumber as string;
     const contextOverride =
       payload.contextOverride &&
@@ -888,6 +940,7 @@ export class AiBatchProcessor extends WorkerHost {
     try {
       ocrResult = await this.ocrService.detectAndExtract({
         pdfPath: attachment.filePath,
+        activeProfile: job.data.effectiveProfile,
       });
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -904,6 +957,9 @@ export class AiBatchProcessor extends WorkerHost {
         status: AiAuditStatus.FAILED,
         errorMessage: errMsg,
         processingTimeMs: Date.now() - startTime,
+        effectiveProfile: job.data.effectiveProfile,
+        canonicalModel: job.data.canonicalModel,
+        snapshotParamsJson: job.data.snapshotParams,
       });
       throw err;
     }
@@ -930,11 +986,28 @@ export class AiBatchProcessor extends WorkerHost {
 
     let aiResponse: string;
     try {
-      aiResponse = await this.ollamaService.generate(resolvedPrompt, {
+      const snapshotParams = job.data.snapshotParams;
+      const generateOptions: OllamaGenerateOptions = {
         format: 'json',
         timeoutMs: 120000,
-        options: { num_ctx: 16384, num_predict: 4096 },
-      });
+        model: modelUsed,
+      };
+      if (snapshotParams) {
+        generateOptions.options = {
+          temperature: snapshotParams.temperature,
+          top_p: snapshotParams.topP,
+          num_predict: snapshotParams.maxTokens,
+          num_ctx: snapshotParams.numCtx,
+          repeat_penalty: snapshotParams.repeatPenalty,
+        };
+        generateOptions.keepAlive = snapshotParams.keepAliveSeconds;
+      } else {
+        generateOptions.options = { num_ctx: 16384, num_predict: 4096 };
+      }
+      aiResponse = await this.ollamaService.generate(
+        resolvedPrompt,
+        generateOptions
+      );
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
       this.logger.error(`การวิเคราะห์ของ AI ล้มเหลว: ${errMsg}`);
@@ -946,10 +1019,13 @@ export class AiBatchProcessor extends WorkerHost {
       });
       await this.saveAiAuditLog({
         documentPublicId,
-        aiModel: this.ollamaService.getMainModelName(),
+        aiModel: modelUsed ?? this.ollamaService.getMainModelName(),
         status: AiAuditStatus.FAILED,
         errorMessage: errMsg,
         processingTimeMs: Date.now() - startTime,
+        effectiveProfile: job.data.effectiveProfile,
+        canonicalModel: job.data.canonicalModel,
+        snapshotParamsJson: job.data.snapshotParams,
       });
       throw err;
     }
@@ -972,10 +1048,13 @@ export class AiBatchProcessor extends WorkerHost {
       });
       await this.saveAiAuditLog({
         documentPublicId,
-        aiModel: this.ollamaService.getMainModelName(),
+        aiModel: modelUsed ?? this.ollamaService.getMainModelName(),
         status: AiAuditStatus.FAILED,
         errorMessage: errMsg,
         processingTimeMs: Date.now() - startTime,
+        effectiveProfile: job.data.effectiveProfile,
+        canonicalModel: job.data.canonicalModel,
+        snapshotParamsJson: job.data.snapshotParams,
       });
       throw new Error(errMsg);
     }
@@ -1132,11 +1211,14 @@ export class AiBatchProcessor extends WorkerHost {
 
     await this.saveAiAuditLog({
       documentPublicId,
-      aiModel: this.ollamaService.getMainModelName(),
+      aiModel: modelUsed ?? this.ollamaService.getMainModelName(),
       status: AiAuditStatus.SUCCESS,
       aiSuggestionJson: extractedMetadata as unknown as Record<string, unknown>,
       confidenceScore: confidence,
       processingTimeMs: Date.now() - startTime,
+      effectiveProfile: job.data.effectiveProfile,
+      canonicalModel: job.data.canonicalModel,
+      snapshotParamsJson: job.data.snapshotParams,
     });
     this.logger.log(
       `ประมวลผลเอกสาร ${docNumber} สำเร็จและถูกส่งเข้า Staging Queue แล้ว`
@@ -1151,6 +1233,9 @@ export class AiBatchProcessor extends WorkerHost {
     confidenceScore?: number;
     processingTimeMs?: number;
     errorMessage?: string;
+    effectiveProfile?: string;
+    canonicalModel?: string;
+    snapshotParamsJson?: Record<string, unknown>;
   }): Promise<void> {
     try {
       const log = this.aiAuditLogRepo.create({
@@ -1162,6 +1247,9 @@ export class AiBatchProcessor extends WorkerHost {
         confidenceScore: data.confidenceScore,
         processingTimeMs: data.processingTimeMs,
         errorMessage: data.errorMessage,
+        effectiveProfile: data.effectiveProfile,
+        canonicalModel: data.canonicalModel,
+        snapshotParamsJson: data.snapshotParamsJson,
       });
       await this.aiAuditLogRepo.save(log);
     } catch (err: unknown) {
@@ -1169,5 +1257,150 @@ export class AiBatchProcessor extends WorkerHost {
         `บันทึก ai_audit_logs ล้มเหลว: ${err instanceof Error ? err.message : String(err)}`
       );
     }
+  }
+
+  private async processRagQuery(job: Job<AiBatchJobData>): Promise<void> {
+    const payload = job.data.payload || {};
+    const query = typeof payload['query'] === 'string' ? payload['query'] : '';
+    if (query.trim().length === 0) {
+      throw new Error('payload.query is required for rag-query jobs');
+    }
+    const requestPublicId =
+      typeof payload['requestPublicId'] === 'string'
+        ? payload['requestPublicId']
+        : job.data.idempotencyKey;
+    const userPublicId =
+      typeof payload['userPublicId'] === 'string'
+        ? payload['userPublicId']
+        : 'system';
+    await this.ragService.processQuery(
+      requestPublicId,
+      query,
+      job.data.projectPublicId,
+      userPublicId,
+      new AbortController().signal
+    );
+  }
+
+  private async processSuggest(
+    job: Job<AiBatchJobData>
+  ): Promise<Record<string, unknown>> {
+    const startTime = Date.now();
+    try {
+      if (job.data.documentPublicId) {
+        await this.setAiProcessingStatus(
+          job.data.documentPublicId,
+          'PROCESSING'
+        );
+      }
+      const payload = job.data.payload || {};
+      const extractedText =
+        typeof payload['extractedText'] === 'string'
+          ? payload['extractedText']
+          : '';
+      const pdfPath =
+        typeof payload['pdfPath'] === 'string' ? payload['pdfPath'] : undefined;
+      const extractedChars =
+        typeof payload['extractedChars'] === 'number'
+          ? payload['extractedChars']
+          : extractedText.length;
+      const textResult = await this.ocrService.detectAndExtract({
+        extractedText,
+        extractedChars,
+        pdfPath,
+      });
+      const prompt = [
+        'Extract concise DMS metadata from this engineering document.',
+        'Return only JSON with fields: title, documentType, category, confidenceScore.',
+        textResult.text.slice(0, 6000),
+      ].join('\n');
+      const rawOutput = await this.ollamaService.generate(prompt);
+      const suggestion = this.parseSuggestion(rawOutput);
+      const masterCategories = Array.isArray(payload['masterDataCategories'])
+        ? (payload['masterDataCategories'] as string[])
+        : undefined;
+      const normalizedSuggestion = this.flagUnknownCategories(
+        suggestion,
+        masterCategories
+      );
+      await this.saveAiAuditLog({
+        documentPublicId: job.data.documentPublicId,
+        aiModel:
+          job.data.canonicalModel ?? this.ollamaService.getMainModelName(),
+        status: AiAuditStatus.SUCCESS,
+        aiSuggestionJson: normalizedSuggestion,
+        confidenceScore: this.extractConfidence(normalizedSuggestion),
+        processingTimeMs: Date.now() - startTime,
+        effectiveProfile: job.data.effectiveProfile,
+        canonicalModel: job.data.canonicalModel,
+        snapshotParamsJson: job.data.snapshotParams,
+      });
+      if (job.data.documentPublicId) {
+        await this.setAiProcessingStatus(job.data.documentPublicId, 'DONE');
+      }
+      return {
+        suggestion: normalizedSuggestion,
+        ocrUsed: textResult.ocrUsed,
+      };
+    } catch (err) {
+      if (job.data.documentPublicId) {
+        await this.setAiProcessingStatus(job.data.documentPublicId, 'FAILED');
+      }
+      await this.saveAiAuditLog({
+        documentPublicId: job.data.documentPublicId,
+        aiModel:
+          job.data.canonicalModel ?? this.ollamaService.getMainModelName(),
+        status: AiAuditStatus.FAILED,
+        processingTimeMs: Date.now() - startTime,
+        errorMessage: err instanceof Error ? err.message : String(err),
+        effectiveProfile: job.data.effectiveProfile,
+        canonicalModel: job.data.canonicalModel,
+        snapshotParamsJson: job.data.snapshotParams,
+      });
+      throw err;
+    }
+  }
+
+  private parseSuggestion(rawOutput: string): Record<string, unknown> {
+    try {
+      const parsed = JSON.parse(rawOutput) as unknown;
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
+    } catch {
+      this.logger.warn('AI suggestion output was not valid JSON');
+    }
+    return {
+      title: rawOutput.slice(0, 250),
+      confidenceScore: 0,
+      is_unknown: true,
+    };
+  }
+
+  private flagUnknownCategories(
+    suggestion: Record<string, unknown>,
+    masterDataCategories: unknown
+  ): Record<string, unknown> {
+    if (!Array.isArray(masterDataCategories)) return suggestion;
+    const knownValues = new Set(
+      masterDataCategories
+        .filter((value): value is string => typeof value === 'string')
+        .map((value) => value.toLowerCase())
+    );
+    const category = suggestion['category'];
+    if (
+      typeof category === 'string' &&
+      !knownValues.has(category.toLowerCase())
+    ) {
+      return { ...suggestion, is_unknown: true };
+    }
+    return suggestion;
+  }
+
+  private extractConfidence(
+    suggestion: Record<string, unknown>
+  ): number | undefined {
+    const confidence = suggestion['confidenceScore'];
+    return typeof confidence === 'number' ? confidence : undefined;
   }
 }

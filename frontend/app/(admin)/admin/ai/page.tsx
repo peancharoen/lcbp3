@@ -56,9 +56,16 @@ function normalizeLoadedModels(value: unknown): VramLoadedModelView[] {
   }
   return value.map((item, index) => {
     if (typeof item === 'string') {
+      const name = item.toLowerCase();
+      let normName = item;
+      if (name.includes('ocr') || name.includes('typhoon-np-dms-ocr')) {
+        normName = 'np-dms-ocr';
+      } else if (name.includes('typhoon') || name.includes('np-dms-ai')) {
+        normName = 'np-dms-ai';
+      }
       return {
         modelId: `${item}-${index}`,
-        modelName: item,
+        modelName: normName,
       };
     }
     if (item && typeof item === 'object') {
@@ -68,10 +75,17 @@ function normalizeLoadedModels(value: unknown): VramLoadedModelView[] {
         name?: string;
         vramUsageMB?: number;
       };
-      const modelName = model.modelName ?? model.name ?? `model-${index + 1}`;
+      const rawName = model.modelName ?? model.name ?? `model-${index + 1}`;
+      const name = rawName.toLowerCase();
+      let normName = rawName;
+      if (name.includes('ocr') || name.includes('typhoon-np-dms-ocr')) {
+        normName = 'np-dms-ocr';
+      } else if (name.includes('typhoon') || name.includes('np-dms-ai')) {
+        normName = 'np-dms-ai';
+      }
       return {
-        modelId: model.modelId ?? modelName,
-        modelName,
+        modelId: model.modelId ?? rawName,
+        modelName: normName,
         vramUsageMB: model.vramUsageMB,
       };
     }
@@ -122,7 +136,13 @@ export default function AiAdminConsolePage() {
       return res as SandboxProject[];
     },
   });
-  const healthOllamaModels = ensureArray<string>(health?.ollama?.models);
+  const rawHealthOllamaModels = ensureArray<string>(health?.ollama?.models);
+  const healthOllamaModels = Array.from(new Set(rawHealthOllamaModels.map((m) => {
+    const name = m.toLowerCase();
+    if (name.includes('ocr') || name.includes('typhoon-np-dms-ocr')) return 'np-dms-ocr';
+    if (name.includes('typhoon') || name.includes('np-dms-ai')) return 'np-dms-ai';
+    return m;
+  })));
   const healthQdrantCollections = ensureArray<string>(health?.qdrant?.collections);
   const vramLoadedModels = normalizeLoadedModels(vramStatus?.loadedModels);
   const sandboxProjects = ensureArray<SandboxProject>(projects);

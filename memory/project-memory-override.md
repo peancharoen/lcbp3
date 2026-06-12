@@ -85,3 +85,18 @@ QDRANT_URL
 
 - [ ] เพิ่ม unit test สำหรับ `upsertQueueRecord` ใน `ai-migration-checkpoint.service.spec.ts`
 - [ ] เพิ่ม unit test สำหรับ checksum dedup ใน `file-storage.service.spec.ts`
+
+### Feature-235: AI Runtime Policy Refactor ✅ COMPLETE
+
+- [x] **Phase 1–8 ทุก task เสร็จครบ** ยกเว้น T032 (manual validation ต้องรัน curl บน environment จริง)
+- [x] **Test suite:** 5 suites / 27 tests ผ่านใน targeted verification รอบล่าสุด (`ai.service.spec`, `ocr-residency.spec`, `queue-policy.spec`, `vram-monitor.service.spec`, `ai.controller.spec`)
+- [x] **ESLint + tsc --noEmit:** ผ่านครบ ไม่มี error
+- [x] **Canonical naming:** `np-dms-ai` / `np-dms-ocr` ทุก layer (API response, audit log, Admin Console, frontend badge)
+- [x] **Adaptive OCR Residency:** `keep_alive` คำนวณ dynamic จาก VRAM headroom + active profile
+- [x] **CPU Fallback Retrieval:** `/embed` + `/rerank` บน sidecar fallback ไป CPU เมื่อ GPU headroom ไม่พอ
+- [x] **Queue Policy:** `ai-realtime` concurrency=2 (configurable ผ่าน `AI_REALTIME_CONCURRENCY`); `rag-query` → `ai-batch` เสมอ
+- [x] **Validation artifacts:** `specs/200-fullstacks/235-ai-runtime-policy-refactor/validation-report.md` = `PARTIAL`; `checklists/cutover-validation.md` สร้างไว้สำหรับปิด T032
+- [x] **i18n:** เพิ่ม `ai_runtime_policy` namespace ใน en/th locales
+- [x] **CONTEXT.md:** เพิ่ม Feature-235 ใน System Readiness + ADR-034 ใน ADRs table
+- [ ] **T032:** Manual validation gate (Gate 1–4) — ให้ใช้ `checklists/cutover-validation.md` เป็น runbook หลัก
+- **Branch:** `235-ai-runtime-policy-refactor` — พร้อม merge หลัง T032 manual validation ผ่าน

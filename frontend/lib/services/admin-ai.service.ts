@@ -15,6 +15,7 @@
 // - 2026-06-02: normalize VRAM response ให้รองรับ field names จาก backend ปัจจุบันและรูปแบบ loadedModels แบบเดิม
 
 import api from '../api/client';
+import { AiJobResponse } from '../../types/ai';
 
 export interface AiAdminSettings {
   aiFeaturesEnabled: boolean;
@@ -314,6 +315,23 @@ export const adminAiService = {
   selectOcrEngine: async (engineId: string): Promise<{ activeEngineName: string }> => {
     const { data } = await api.post(`/ai/ocr-engines/${encodeURIComponent(engineId)}/select`, {});
     return extractData<{ activeEngineName: string }>(data);
+  },
+
+  submitAiJob: async (
+    type: string,
+    documentPublicId?: string,
+    attachmentPublicId?: string,
+    payload?: Record<string, unknown>,
+    projectPublicId?: string
+  ): Promise<AiJobResponse> => {
+    const { data } = await api.post('/ai/jobs', {
+      type,
+      documentPublicId,
+      attachmentPublicId,
+      payload,
+      projectPublicId,
+    });
+    return extractData<AiJobResponse>(data);
   },
 };
 

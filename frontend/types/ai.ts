@@ -74,3 +74,13 @@ export interface AiPaginatedResult<T> {
   limit: number;
   totalPages: number;
 }
+
+export type ExecutionProfile = 'interactive' | 'standard' | 'quality' | 'deep-analysis';
+
+export interface AiJobResponse {
+  jobId: string;
+  status: 'queued' | 'completed' | 'failed';
+  modelUsed: 'np-dms-ai' | 'np-dms-ocr';
+  effectiveProfile: ExecutionProfile;
+  queueName: 'ai-realtime' | 'ai-batch';
+}

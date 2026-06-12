@@ -16,4 +16,5 @@
 | 2026-06-05 | v1.9.8  | RAG Pipeline Enhancements (Spec 234 / ADR-035) — BGE-M3 + BGE-Reranker + Hybrid Qdrant (Session 14/15) | ✅ Complete                   |
 | 2026-06-06 | v1.9.9  | LLM JSON Parse Failure & VRAM Fix (ADR-035-135) — retry logic + keep_alive=0 + ESLint heap fix     | ✅ Complete                   |
 | 2026-06-08 | v1.9.10 | LLM JSON Response Truncation Fix — ขยาย num_ctx: 16384 (Session 16 โดย AGY Gemini 3.5 Flash (Medium)) | ✅ Complete                   |
-
+| 2026-06-11 | v1.9.10 | AI Runtime Policy Refactor (Feature-235) — Canonical names (`np-dms-ai`/`np-dms-ocr`), Adaptive OCR Residency, CPU Fallback Retrieval, Queue Policy (ai-realtime concurrency=2) — targeted verification 27/27 tests ✅ ESLint + tsc clean | ⏳ Pending T032 Manual Gate + Merge |
+| 2026-06-11 | v1.9.10 | Feature-235 validation follow-up — validation-report.md = PARTIAL, cutover-validation checklist added, targeted verification 27/27 | ⏳ Pending T032 execution |

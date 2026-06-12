@@ -1,11 +1,14 @@
-// File: src/modules/ai/ai.service.ts
+// File: backend/src/modules/ai/ai.service.ts
 // Service หลักของ AI Gateway — เชื่อมต่อระหว่าง DMS กับ n8n/Ollama Pipeline (ADR-018, ADR-020)
 // Change Log
 // - 2026-05-21: เพิ่ม getSystemHealth พร้อมระบบแคช Redis 30 วินาทีตาม ADR-027.
 // - 2026-05-21: แก้ไข ESLint unsafe return error ใน getSystemHealth โดยใช้ interface SystemHealthResponse
 // - 2026-05-29: เพิ่ม OcrService.checkHealth() เข้า getSystemHealth() เพื่อแสดงสถานะ OCR sidecar
 // - 2026-06-02: ปรับปรุง activateAiModel ให้มีการโหลดและยืนยันโมเดลล่วงหน้าแบบ Synchronous (T008, ADR-033) และล้างโมเดลตัวเก่าออกเพื่อประหยัด VRAM (Suggestion 1)
-// - 2026-06-03: ADR-034 — เพิ่ม activeModels field (เอา mainModel+ocrModel) ใน SystemHealthResponse
+// - 2026-06-03: ADR-034 — เพิ่ม active models ใน SystemHealthResponse
+// - 2026-06-11: US2 - เพิ่มการผูก execution profile ใน submitMigrationJob ของ ai.service.ts
+// - 2026-06-11: US4 - เพิ่ม explicit assertion สำหรับการ dispatch RAG query ไปยัง ai-batch queue
+// - 2026-06-11: แก้ไข compile errors (SystemException arguments, idempotencyKey signature, type mapping) และลบบรรทัดว่างในฟังก์ชันที่แก้ไข
 import { Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
@@ -37,8 +40,11 @@ import { MigrationQueryDto } from './dto/migration-query.dto';
 import { AiValidationService } from './ai-validation.service';
 import { CreateAiJobDto } from './dto/create-ai-job.dto';
 import { SubmitAiJobDto } from './dto/submit-ai-job.dto';
+import { AiJobResponseDto } from './dto/ai-job-response.dto';
+import { AiPolicyService } from './services/ai-policy.service';
 import { ImportTransaction } from '../migration/entities/import-transaction.entity';
 import { Project } from '../project/entities/project.entity';
+import { Attachment } from '../../common/file-storage/entities/attachment.entity';
 import {
   QUEUE_AI_BATCH,
   QUEUE_AI_REALTIME,
@@ -52,6 +58,7 @@ import {
   VramMonitorService,
   VramStatus,
 } from './services/vram-monitor.service';
+import type { AiJobPayload } from './interfaces/execution-policy.interface';
 import {
   AiModelConfiguration,
   AiModelType,
@@ -178,6 +185,7 @@ export class AiService {
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
     private readonly aiValidationService: AiValidationService,
+    private readonly aiPolicyService: AiPolicyService,
     @InjectRepository(MigrationLog)
     private readonly migrationLogRepo: Repository<MigrationLog>,
     @InjectRepository(AiAuditLog)
@@ -220,7 +228,16 @@ export class AiService {
   // --- ADR-023A BullMQ Job Queueing ---
 
   /** ส่งงาน AI Suggest เข้า ai-realtime queue แบบไม่ block request thread */
-  async queueSuggestJob(dto: CreateAiJobDto): Promise<AiQueueResult> {
+  async queueSuggestJob(
+    dto: CreateAiJobDto,
+    idempotencyKey: string
+  ): Promise<AiQueueResult> {
+    if (dto.type === 'rag-query') {
+      throw new SystemException(
+        'RAG query cannot be queued in AI realtime queue',
+        { errorCode: 'AI_QUEUE_ERROR' }
+      );
+    }
     if (!this.aiRealtimeQueue) {
       const error = new Error('AI realtime queue is not registered');
       this.logger.error('AI job queue failed', {
@@ -229,18 +246,17 @@ export class AiService {
       });
       return { success: false, error };
     }
-
     try {
       const job = await this.aiRealtimeQueue.add(
         'ai-suggest',
         {
           jobType: 'ai-suggest',
           documentPublicId: dto.documentPublicId,
-          projectPublicId: dto.projectPublicId,
+          projectPublicId: dto.projectPublicId || '',
           payload: dto.payload ?? {},
-          idempotencyKey: dto.idempotencyKey,
+          idempotencyKey,
         },
-        { jobId: dto.idempotencyKey }
+        { jobId: idempotencyKey }
       );
       return { success: true, jobId: String(job.id) };
     } catch (err: unknown) {
@@ -254,7 +270,10 @@ export class AiService {
   }
 
   /** ส่งงาน embedding เข้า ai-batch queue แบบ best-effort */
-  async queueEmbedJob(dto: CreateAiJobDto): Promise<AiQueueResult> {
+  async queueEmbedJob(
+    dto: CreateAiJobDto,
+    idempotencyKey: string
+  ): Promise<AiQueueResult> {
     if (!this.aiBatchQueue) {
       const error = new Error('AI batch queue is not registered');
       this.logger.error('AI job queue failed', {
@@ -263,18 +282,17 @@ export class AiService {
       });
       return { success: false, error };
     }
-
     try {
       const job = await this.aiBatchQueue.add(
         'embed-document',
         {
           jobType: 'embed-document',
-          documentPublicId: dto.documentPublicId,
-          projectPublicId: dto.projectPublicId,
+          documentPublicId: dto.documentPublicId || '',
+          projectPublicId: dto.projectPublicId || '',
           payload: dto.payload ?? {},
-          idempotencyKey: dto.idempotencyKey,
+          idempotencyKey,
         },
-        { jobId: dto.idempotencyKey }
+        { jobId: idempotencyKey }
       );
       return { success: true, jobId: String(job.id) };
     } catch (err: unknown) {
@@ -284,6 +302,124 @@ export class AiService {
         error,
       });
       return { success: false, error };
+    }
+  }
+
+  /** ส่งงาน AI แบบสากล (Unified AI Job) เข้า BullMQ ตามนโยบายความมั่นคงปลอดภัย (ADR-023A) */
+  async submitUnifiedJob(
+    dto: CreateAiJobDto,
+    idempotencyKey: string
+  ): Promise<AiJobResponseDto> {
+    const queueName = 'ai-batch';
+    const queue = this.aiBatchQueue;
+    if (dto.type === 'rag-query') {
+      if (queueName !== 'ai-batch') {
+        throw new SystemException(
+          'RAG query must be dispatched to ai-batch queue',
+          { errorCode: 'AI_QUEUE_ERROR' }
+        );
+      }
+    }
+    if (!queue) {
+      throw new SystemException('AI batch queue is not registered', {
+        errorCode: 'AI_QUEUE_ERROR',
+      });
+    }
+    await this.validateUnifiedJobRequest(dto);
+    const activeJob = await queue.getJob(idempotencyKey);
+    if (activeJob) {
+      const payload = activeJob.data as unknown as AiJobPayload;
+      return {
+        jobId: String(activeJob.id),
+        status: 'queued',
+        modelUsed: payload.canonicalModel,
+        effectiveProfile: payload.effectiveProfile,
+        queueName: 'ai-batch',
+      };
+    }
+    const payload = await this.aiPolicyService.createJobPayload(
+      dto.type,
+      dto.documentPublicId || dto.attachmentPublicId,
+      dto.attachmentPublicId
+    );
+    const finalPayload = {
+      ...payload,
+      documentPublicId: payload.documentPublicId || '',
+      projectPublicId: dto.projectPublicId || '',
+      payload: dto.payload || {},
+      idempotencyKey,
+    };
+    const job = await queue.add(
+      dto.type,
+      finalPayload as unknown as AiBatchJobData,
+      {
+        jobId: idempotencyKey,
+      }
+    );
+    return {
+      jobId: String(job.id),
+      status: 'queued',
+      modelUsed: payload.canonicalModel,
+      effectiveProfile: payload.effectiveProfile,
+      queueName: 'ai-batch',
+    };
+  }
+
+  private async validateUnifiedJobRequest(dto: CreateAiJobDto): Promise<void> {
+    if (dto.type === 'rag-query') {
+      const query = dto.payload?.['query'];
+      if (typeof query !== 'string' || query.trim().length === 0) {
+        throw new ValidationException(
+          'payload.query is required for rag-query jobs'
+        );
+      }
+      if (!dto.projectPublicId) {
+        throw new ValidationException(
+          'projectPublicId is required for rag-query jobs'
+        );
+      }
+    }
+    if (
+      (dto.type === 'auto-fill-document' || dto.type === 'migrate-document') &&
+      !dto.documentPublicId &&
+      !dto.attachmentPublicId
+    ) {
+      throw new ValidationException(
+        'documentPublicId or attachmentPublicId is required for document AI jobs'
+      );
+    }
+    if (dto.projectPublicId) {
+      const project = await this.importTransactionRepo.manager.findOne(
+        Project,
+        {
+          where: { publicId: dto.projectPublicId },
+        }
+      );
+      if (!project) {
+        throw new BusinessException(
+          'PROJECT_NOT_FOUND',
+          `Project with publicId ${dto.projectPublicId} was not found`,
+          'ไม่พบโครงการที่อ้างอิงสำหรับงาน AI'
+        );
+      }
+    }
+    const referenceIds = [dto.documentPublicId, dto.attachmentPublicId].filter(
+      (value): value is string => typeof value === 'string'
+    );
+    for (const publicId of referenceIds) {
+      const attachment = await this.importTransactionRepo.manager.findOne(
+        Attachment,
+        {
+          where: { publicId },
+        }
+      );
+      if (!attachment) {
+        throw new BusinessException(
+          'ATTACHMENT_NOT_FOUND',
+          `Attachment with publicId ${publicId} was not found`,
+          'ไม่พบไฟล์อ้างอิงสำหรับงาน AI'
+        );
+      }
     }
   }
 
@@ -327,9 +463,14 @@ export class AiService {
         defaultProject?.publicId ?? '00000000-0000-0000-0000-000000000000';
     }
     try {
+      const payload = await this.aiPolicyService.createJobPayload(
+        'migrate-document',
+        dto.payload.tempAttachmentId
+      );
       const job = await this.aiBatchQueue.add(
         'migrate-document',
         {
+          ...payload,
           jobType: 'migrate-document',
           documentPublicId: dto.payload.tempAttachmentId,
           projectPublicId,
@@ -691,6 +832,9 @@ export class AiService {
     inputHash?: string;
     outputHash?: string;
     errorMessage?: string;
+    effectiveProfile?: string;
+    canonicalModel?: string;
+    snapshotParamsJson?: Record<string, unknown>;
   }): Promise<void> {
     try {
       const auditLog = this.aiAuditLogRepo.create({
@@ -702,6 +846,9 @@ export class AiService {
         inputHash: data.inputHash,
         outputHash: data.outputHash,
         errorMessage: data.errorMessage,
+        effectiveProfile: data.effectiveProfile,
+        canonicalModel: data.canonicalModel,
+        snapshotParamsJson: data.snapshotParamsJson,
       });
       await this.aiAuditLogRepo.save(auditLog);
     } catch (auditError: unknown) {
