@@ -8,12 +8,13 @@
 // - 2026-05-25: เพิ่ม AI Model Management UI สำหรับเลือกโมเดลแบบไดนามิก (ADR-027).
 // - 2026-05-30: นำเข้าและแสดงผล OcrEngineSelector component ใน Overview tab (T019, T020)
 // - 2026-06-02: เพิ่มตัวบ่งชี้โมเดลหลักที่กำลังใช้งาน (Active Global Model badge) บนการ์ด System Toggle (T010, ADR-033)
+// - 2026-06-13: [235] ลบ AI Model Management (ADR-027) และ OCR Engine Selector ออก; แก้ System Toggle แสดง canonical names (np-dms-ai/np-dms-ocr); แก้ label OCR Sidecar
 
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Brain, Loader2, Power, ShieldCheck, Cpu, Database, Activity, Search, Info, HelpCircle, AlertCircle, Settings2, Trash2, ScanText } from 'lucide-react';
+import { Brain, Loader2, Power, ShieldCheck, Cpu, Database, Activity, Search, Info, HelpCircle, AlertCircle, ScanText } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,12 +28,10 @@ import { projectService } from '@/lib/services/project.service';
 import {
   adminAiService,
   AiSandboxJobResult,
-  AiAvailableModel,
   AiRagCitation,
 } from '@/lib/services/admin-ai.service';
 import { toast } from 'sonner';
 import OcrSandboxPromptManager from '@/components/admin/ai/OcrSandboxPromptManager';
-import OcrEngineSelector from '@/components/admin/ai/OcrEngineSelector';
 
 interface SandboxProject {
   publicId: string;
@@ -96,6 +95,13 @@ function normalizeLoadedModels(value: unknown): VramLoadedModelView[] {
   });
 }
 
+function toCanonicalModel(rawName: string): string {
+  const name = rawName.toLowerCase();
+  if (name.includes('ocr') || name.includes('typhoon-np-dms-ocr')) return 'np-dms-ocr';
+  if (name.includes('typhoon') || name.includes('np-dms-ai')) return 'np-dms-ai';
+  return rawName;
+}
+
 export default function AiAdminConsolePage() {
   const { data, isLoading, isError, refetch, isFetching } = useAiStatus();
   const { data: health, isLoading: isHealthLoading, refetch: refetchHealth } = useAiHealth();
@@ -109,16 +115,6 @@ export default function AiAdminConsolePage() {
   const [isSandboxPolling, setIsSandboxPolling] = useState<boolean>(false);
   const [sandboxProgress, setSandboxProgress] = useState<number>(0);
   const [sandboxStatusText, setSandboxStatusText] = useState<string>('');
-
-  // AI Model Management State (ADR-027)
-  const { data: aiModelsData, refetch: refetchModels } = useQuery<{ models: AiAvailableModel[]; activeModel: string }>({
-    queryKey: ['ai-available-models'],
-    queryFn: async () => {
-      return await adminAiService.getAvailableModels();
-    },
-  });
-  const availableModels = ensureArray<AiAvailableModel>(aiModelsData?.models);
-  const activeModel = aiModelsData?.activeModel ?? '';
 
   // VRAM Monitoring State (T034, T036, US2)
   const { data: vramStatus, refetch: refetchVram } = useQuery({
@@ -154,44 +150,8 @@ export default function AiAdminConsolePage() {
     await toggleMutation.mutateAsync(enabled);
   };
 
-  const handleModelChange = async (modelId: string): Promise<void> => {
-    try {
-      const selectedModel = availableModels.find(m => m.modelId === modelId || String(m.id) === modelId);
-      const name = selectedModel?.modelName || modelId;
-      await adminAiService.setActiveModel(modelId);
-      toast.success(`เปลี่ยนโมเดลเป็น ${name} สำเร็จ`);
-      await refetchModels();
-      refetchVram();
-    } catch (err: unknown) {
-      const errorResponse = err as { response?: { data?: { message?: string } } };
-      const errorMsg = errorResponse.response?.data?.message || 'ไม่สามารถเปลี่ยนโมเดลได้เนื่องจาก VRAM ไม่เพียงพอ';
-      toast.error(errorMsg);
-    }
-  };
-
-  const handleToggleModel = async (modelName: string): Promise<void> => {
-    try {
-      await adminAiService.toggleModelActive(modelName);
-      toast.success(`เปลี่ยนสถานะโมเดล ${modelName} สำเร็จ`);
-      await refetchModels();
-    } catch {
-      toast.error('ไม่สามารถเปลี่ยนสถานะโมเดลได้');
-    }
-  };
-
-  const handleRemoveModel = async (modelName: string): Promise<void> => {
-    if (!confirm(`ต้องการลบโมเดล ${modelName} ใช่หรือไม่?`)) return;
-    try {
-      await adminAiService.removeModel(modelName);
-      toast.success(`ลบโมเดล ${modelName} สำเร็จ`);
-      await refetchModels();
-    } catch {
-      toast.error('ไม่สามารถลบโมเดลได้');
-    }
-  };
-
   const handleRefreshAll = async (): Promise<void> => {
-    await Promise.all([refetch(), refetchHealth(), refetchModels(), refetchVram()]);
+    await Promise.all([refetch(), refetchHealth(), refetchVram()]);
   };
 
   const handleSubmitSandbox = async (e: React.FormEvent): Promise<void> => {
@@ -368,7 +328,7 @@ export default function AiAdminConsolePage() {
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="flex items-center gap-2 text-sm font-medium">
                   <ScanText className="h-4 w-4 text-primary" />
-                  OCR Sidecar (Tesseract)
+                  OCR Sidecar (np-dms-ocr)
                 </CardTitle>
                 {isHealthLoading ? <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" /> : renderStatusBadge(health?.ocr?.status)}
               </CardHeader>
@@ -496,7 +456,7 @@ export default function AiAdminConsolePage() {
               </CardContent>
             </Card>
           </div>
-          
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
@@ -513,10 +473,14 @@ export default function AiAdminConsolePage() {
                   <div className="text-sm text-muted-foreground">
                     Superadmin ยังสามารถเข้าถึงส่วนทดสอบและดูแลระบบได้ตามสิทธิ์
                   </div>
-                  <div className="text-xs text-muted-foreground flex items-center gap-1.5 pt-1">
-                    <span>Active Global Model:</span>
+                  <div className="text-xs text-muted-foreground flex items-center gap-1.5 pt-1 flex-wrap">
+                    <span>Active Models:</span>
                     <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-primary/20 text-primary bg-primary/5 font-semibold">
-                      {activeModel || 'Loading...'}
+                      {isHealthLoading ? 'Loading...' : toCanonicalModel(health?.activeModels?.main ?? 'np-dms-ai')}
+                    </Badge>
+                    <span className="text-muted-foreground/50">+</span>
+                    <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-purple-500/20 text-purple-600 dark:text-purple-400 bg-purple-500/5 font-semibold">
+                      {isHealthLoading ? 'Loading...' : toCanonicalModel(health?.activeModels?.ocr ?? 'np-dms-ocr')}
                     </Badge>
                   </div>
                 </div>
@@ -537,114 +501,6 @@ export default function AiAdminConsolePage() {
               )}
             </CardContent>
           </Card>
-
-          {/* AI Model Management Card (ADR-027) */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Settings2 className="h-5 w-5" />
-                AI Model Management
-                <Badge variant="outline" className="text-[10px]">ADR-027</Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                <div className="space-y-2 flex-1">
-                  <label htmlFor="model-select" className="text-sm font-medium text-foreground">
-                    โมเดล AI ที่ใช้งานอยู่ (Global)
-                  </label>
-                  <Select
-                    value={availableModels.find((m) => m.modelName === activeModel)?.modelId || availableModels.find((m) => m.modelName === activeModel)?.id?.toString() || ''}
-                    onValueChange={handleModelChange}
-                  >
-                    <SelectTrigger id="model-select" className="w-full sm:w-[300px]">
-                      <SelectValue placeholder="-- เลือกโมเดล --" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableModels
-                        .filter((m) => m.isActive)
-                        .map((model) => (
-                          <SelectItem key={model.modelId || model.modelName} value={model.modelId || model.id?.toString() || model.modelName}>
-                            {model.modelName}
-                            {model.isDefault && (
-                              <Badge variant="secondary" className="ml-2 text-[10px]">Default</Badge>
-                            )}
-                            {model.vramRequirementMB && (
-                              <span className="ml-1 text-muted-foreground">({Math.round(model.vramRequirementMB / 1024 * 10) / 10}GB VRAM)</span>
-                            )}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  โมเดลปัจจุบัน: <Badge variant="default">{activeModel || 'Loading...'}</Badge>
-                </div>
-              </div>
-
-              <div className="border-t pt-4">
-                <h4 className="text-sm font-medium mb-3">รายการโมเดลทั้งหมด</h4>
-                <div className="space-y-2">
-                  {availableModels.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">ไม่มีโมเดลในระบบ</p>
-                  ) : (
-                    availableModels.map((model) => (
-                      <div
-                        key={model.modelId || model.modelName}
-                        className="flex items-center justify-between p-2 rounded border bg-background/50"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Badge
-                            variant={model.isActive ? 'default' : 'secondary'}
-                            className="text-[10px]"
-                          >
-                            {model.isActive ? 'Active' : 'Inactive'}
-                          </Badge>
-                          <span className="text-sm font-medium">{model.modelName}</span>
-                          {model.isDefault && (
-                            <Badge variant="outline" className="text-[10px]">Default</Badge>
-                          )}
-                          {activeModel === model.modelName && (
-                            <Badge variant="default" className="text-[10px] bg-emerald-500">Current</Badge>
-                          )}
-                          {model.vramRequirementMB && (
-                            <Badge variant="outline" className="text-[10px] border-amber-500/20 text-amber-500 bg-amber-500/5">
-                              {Math.round(model.vramRequirementMB / 1024 * 10) / 10} GB VRAM
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {!model.isDefault && (
-                            <>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleToggleModel(model.modelName)}
-                                disabled={activeModel === model.modelName && model.isActive}
-                              >
-                                {model.isActive ? 'Deactivate' : 'Activate'}
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleRemoveModel(model.modelName)}
-                                disabled={model.isDefault || activeModel === model.modelName}
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* OCR Engine Management Card (ADR-032) */}
-          <OcrEngineSelector />
 
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
@@ -675,7 +531,7 @@ export default function AiAdminConsolePage() {
             </Card>
           </div>
         </TabsContent>
-        
+
         <TabsContent value="playground" className="space-y-6">
           <Card className="border border-border/50 bg-background/50 backdrop-blur-md">
             <CardHeader>
