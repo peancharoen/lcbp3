@@ -1,4 +1,6 @@
 // File: lib/services/workflow-engine.service.ts
+// Change Log:
+// - 2026-06-13: Export helper functions for testing and clean up internal formatting
 import apiClient from '@/lib/api/client';
 import {
   CreateWorkflowDefinitionDto,
@@ -35,69 +37,56 @@ interface BackendWorkflowShape {
   updated_at?: string;
 }
 
-const extractArrayData = <T>(value: unknown): T[] => {
+export const extractArrayData = <T>(value: unknown): T[] => {
   let current: unknown = value;
-
   for (let i = 0; i < 5; i += 1) {
     if (Array.isArray(current)) {
       return current as T[];
     }
-
     if (!current || typeof current !== 'object' || !('data' in current)) {
       return [];
     }
-
     current = (current as { data?: unknown }).data;
   }
-
   return Array.isArray(current) ? (current as T[]) : [];
 };
 
-const extractNestedData = <T>(value: unknown): T => {
+export const extractNestedData = <T>(value: unknown): T => {
   let current: unknown = value;
-
   for (let i = 0; i < 5; i += 1) {
     if (!current || typeof current !== 'object' || !('data' in current)) {
       return current as T;
     }
-
     current = (current as WorkflowResponseShape).data;
   }
-
   return current as T;
 };
 
-const extractDslDefinition = (dsl: BackendWorkflowShape['dsl']): string => {
+export const extractDslDefinition = (dsl: BackendWorkflowShape['dsl']): string => {
   if (typeof dsl === 'string') {
     return dsl;
   }
-
   if (!dsl || typeof dsl !== 'object') {
     return '';
   }
-
   if (typeof dsl.dslDefinition === 'string') {
     return dsl.dslDefinition;
   }
-
   return JSON.stringify(dsl, null, 2);
 };
 
-const normalizeWorkflowType = (workflowCode?: string): WorkflowType => {
+export const normalizeWorkflowType = (workflowCode?: string): WorkflowType => {
   const normalizedCode = workflowCode?.toUpperCase() ?? '';
-
   if (normalizedCode.includes('RFA')) {
     return 'RFA';
   }
-
   if (normalizedCode.includes('DRAWING')) {
     return 'DRAWING';
   }
-
   return 'CORRESPONDENCE';
 };
 
-const mapWorkflow = (backendObj: BackendWorkflowShape): Workflow => {
+export const mapWorkflow = (backendObj: BackendWorkflowShape): Workflow => {
   if (!backendObj) throw new Error('Workflow not found');
   return {
     publicId: String(backendObj.id ?? ''),

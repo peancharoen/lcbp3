@@ -1,3 +1,7 @@
+// File: lib/services/session.service.ts
+// Change Log:
+// - 2026-06-13: Export helper functions for testing, clean up formatting, and add file header
+
 import apiClient from '@/lib/api/client';
 
 export interface Session {
@@ -14,25 +18,21 @@ export interface Session {
   isCurrent: boolean;
 }
 
-const extractArrayData = <T>(value: unknown): T[] => {
+export const extractArrayData = <T>(value: unknown): T[] => {
   let current: unknown = value;
-
   for (let i = 0; i < 5; i += 1) {
     if (Array.isArray(current)) {
       return current as T[];
     }
-
     if (!current || typeof current !== 'object' || !('data' in current)) {
       return [];
     }
-
     current = (current as { data?: unknown }).data;
   }
-
   return Array.isArray(current) ? (current as T[]) : [];
 };
 
-const transformSession = (session: Session | (Omit<Session, 'id'> & { id: string | number })): Session => ({
+export const transformSession = (session: Session | (Omit<Session, 'id'> & { id: string | number })): Session => ({
   ...session,
   id: typeof session.id === 'number' ? session.id : Number(session.id),
 });

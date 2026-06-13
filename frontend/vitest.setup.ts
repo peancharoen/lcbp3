@@ -1,6 +1,35 @@
 import '@testing-library/jest-dom/vitest';
 import { vi } from 'vitest';
 
+// Mock @hookform/resolvers/zod to handle Zod v4 prototype mismatch gracefully
+vi.mock('@hookform/resolvers/zod', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@hookform/resolvers/zod')>();
+  return {
+    ...original,
+    zodResolver: (schema: any, schemaOptions: any, resolverOptions: any) => {
+      const resolver = original.zodResolver(schema, schemaOptions, resolverOptions);
+      return async (values: any, context: any, options: any) => {
+        try {
+          return await resolver(values, context, options);
+        } catch (error: any) {
+          if (error.issues) {
+            const errors = error.issues.reduce((acc: any, issue: any) => {
+              const path = issue.path.join('.');
+              acc[path] = {
+                type: issue.code,
+                message: issue.message,
+              };
+              return acc;
+            }, {});
+            return { values: {}, errors };
+          }
+          throw error;
+        }
+      };
+    },
+  };
+});
+
 // Mock sonner toast
 vi.mock('sonner', () => ({
   toast: {
