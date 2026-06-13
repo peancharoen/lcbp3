@@ -13,6 +13,10 @@
 // - 2026-06-03: ADR-034 — เพิ่ม activeModels field (หลัก+OCR) ใน AiSystemHealth interface
 // - 2026-06-02: แก้ endpoint getAvailableModels ให้ตรงกับ backend admin route (/ai/admin/models)
 // - 2026-06-02: normalize VRAM response ให้รองรับ field names จาก backend ปัจจุบันและรูปแบบ loadedModels แบบเดิม
+// - 2026-06-13: T027-T029 — เพิ่ม getSandboxProfile, saveSandboxProfile, resetSandboxProfile สำหรับ sandbox parameter management
+// - 2026-06-13: T042-T043 — เพิ่ม applyProfile และ getProductionDefaults สำหรับปรับใช้และดึงค่า production parameters
+// - 2026-06-13: US4 — อัปเดต submitSandboxExtract และ submitSandboxAiExtract ให้รองรับ project/contract publicId
+
 
 import api from '../api/client';
 import { AiJobResponse } from '../../types/ai';
@@ -138,6 +142,17 @@ export interface AiActiveModelResponse {
   activeModel: string;
 }
 
+/** พารามิเตอร์ sandbox draft สำหรับ profile (ADR-036) */
+export interface SandboxProfileParams {
+  canonicalModel: 'np-dms-ai' | 'np-dms-ocr';
+  temperature: number;
+  topP: number;
+  maxTokens: number | null;
+  numCtx: number | null;
+  repeatPenalty: number;
+  keepAliveSeconds: number;
+}
+
 const extractData = <T>(value: unknown): T => {
   if (value && typeof value === 'object' && 'data' in value) {
     return (value as { data: T }).data;
@@ -215,10 +230,16 @@ export const adminAiService = {
     return extractData<AiSandboxJobResult>(data);
   },
   submitSandboxExtract: async (
-    file: File
+    file: File,
+    projectPublicId: string,
+    contractPublicId?: string
   ): Promise<{ requestPublicId: string; jobId: string; status: string }> => {
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('projectPublicId', projectPublicId);
+    if (contractPublicId) {
+      formData.append('contractPublicId', contractPublicId);
+    }
     const { data } = await api.post('/ai/admin/sandbox/extract', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -258,11 +279,15 @@ export const adminAiService = {
 
   submitSandboxAiExtract: async (
     requestPublicId: string,
-    promptVersion?: number
+    promptVersion: number | undefined,
+    projectPublicId: string,
+    contractPublicId?: string
   ): Promise<{ requestPublicId: string; jobId: string; status: string }> => {
     const { data } = await api.post('/ai/admin/sandbox/ai-extract', {
       requestPublicId,
       promptVersion,
+      projectPublicId,
+      contractPublicId,
     });
     return extractData<{ requestPublicId: string; jobId: string; status: string }>(data);
   },
@@ -315,6 +340,51 @@ export const adminAiService = {
   selectOcrEngine: async (engineId: string): Promise<{ activeEngineName: string }> => {
     const { data } = await api.post(`/ai/ocr-engines/${encodeURIComponent(engineId)}/select`, {});
     return extractData<{ activeEngineName: string }>(data);
+  },
+
+  // --- Sandbox Parameter Management (ADR-036, T027-T029) ---
+
+  getSandboxProfile: async (profileName: string): Promise<SandboxProfileParams> => {
+    const { data } = await api.get(`/ai/sandbox-profiles/${encodeURIComponent(profileName)}`);
+    return extractData<SandboxProfileParams>(data);
+  },
+
+  saveSandboxProfile: async (
+    profileName: string,
+    updates: Partial<SandboxProfileParams>,
+    idempotencyKey: string
+  ): Promise<SandboxProfileParams> => {
+    const { data } = await api.put(
+      `/ai/sandbox-profiles/${encodeURIComponent(profileName)}`,
+      updates,
+      { headers: { 'Idempotency-Key': idempotencyKey } }
+    );
+    return extractData<SandboxProfileParams>(data);
+  },
+
+  resetSandboxProfile: async (profileName: string): Promise<SandboxProfileParams> => {
+    const { data } = await api.post(
+      `/ai/sandbox-profiles/${encodeURIComponent(profileName)}/reset`,
+      {}
+    );
+    return extractData<SandboxProfileParams>(data);
+  },
+
+  applyProfile: async (
+    profileName: string,
+    idempotencyKey: string
+  ): Promise<SandboxProfileParams> => {
+    const { data } = await api.post(
+      `/ai/profiles/${encodeURIComponent(profileName)}/apply`,
+      {},
+      { headers: { 'Idempotency-Key': idempotencyKey } }
+    );
+    return extractData<SandboxProfileParams>(data);
+  },
+
+  getProductionDefaults: async (profileName: string): Promise<SandboxProfileParams> => {
+    const { data } = await api.get(`/ai/profiles/${encodeURIComponent(profileName)}`);
+    return extractData<SandboxProfileParams>(data);
   },
 
   submitAiJob: async (

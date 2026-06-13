@@ -1,3 +1,7 @@
+// File: frontend/components/rfas/form.tsx
+// Change Log:
+// - 2026-06-13: Export helpers for unit tests
+
 'use client';
 
 import { useForm, type SubmitErrorHandler } from 'react-hook-form';
@@ -100,7 +104,7 @@ type SelectableDrawingOption = {
   };
 };
 
-const extractArrayData = <T,>(value: unknown): T[] => {
+export const extractArrayData = <T,>(value: unknown): T[] => {
   let current: unknown = value;
 
   for (let i = 0; i < 5; i += 1) {
@@ -118,7 +122,7 @@ const extractArrayData = <T,>(value: unknown): T[] => {
   return Array.isArray(current) ? (current as T[]) : [];
 };
 
-const dedupeByKey = <T,>(items: T[], getKey: (item: T) => string | number | undefined): T[] => {
+export const dedupeByKey = <T,>(items: T[], getKey: (item: T) => string | number | undefined): T[] => {
   const seen = new Set<string | number>();
 
   return items.filter((item) => {
@@ -133,7 +137,7 @@ const dedupeByKey = <T,>(items: T[], getKey: (item: T) => string | number | unde
   });
 };
 
-const getOptionValue = (value?: string | number): string | undefined => {
+export const getOptionValue = (value?: string | number): string | undefined => {
   if (value === undefined || value === null || value === '') {
     return undefined;
   }
@@ -141,11 +145,11 @@ const getOptionValue = (value?: string | number): string | undefined => {
   return String(value);
 };
 
-const getMasterOptionValue = (option: { publicId?: string; id?: number }): string | undefined => {
+export const getMasterOptionValue = (option: { publicId?: string; id?: number }): string | undefined => {
   return getOptionValue(option.publicId ?? option.id);
 };
 
-export function RFAForm() {
+export function RFAForm({ defaultValues }: { defaultValues?: Partial<RFAFormData> } = {}) {
   const router = useRouter();
   const createMutation = useCreateRFA();
   const { data: aiStatus, isLoading: isAiStatusLoading } = useAiStatus();
@@ -184,6 +188,7 @@ export function RFAForm() {
       dueDate: '',
       shopDrawingRevisionIds: [],
       asBuiltDrawingRevisionIds: [],
+      ...defaultValues,
     },
   });
 

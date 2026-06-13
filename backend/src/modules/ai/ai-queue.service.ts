@@ -126,6 +126,7 @@ export class AiQueueService {
     payload: {
       idempotencyKey: string;
       projectPublicId?: string;
+      contractPublicId?: string;
       query?: string;
       userPublicId?: string;
       filePublicId?: string;
@@ -152,6 +153,7 @@ export class AiQueueService {
           pdfPath: payload.pdfPath,
           engineType: payload.engineType,
           typhoonOptions: payload.typhoonOptions,
+          contractPublicId: payload.contractPublicId,
           ...payload.extraPayload,
         },
         idempotencyKey: payload.idempotencyKey,

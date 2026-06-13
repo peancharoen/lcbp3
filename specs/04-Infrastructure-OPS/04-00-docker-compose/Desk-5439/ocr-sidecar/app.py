@@ -22,6 +22,7 @@
 # - 2026-06-06: เปลี่ยน keep_alive จาก 300s เป็น 0 เพื่อ unload model ทันทีหลังเสร็จงาน (แก้ปัญหา VRAM ไม่พอเมื่อ typhoon2.5-np-dms load พร้อมกัน)
 # - 2026-06-11: เปลี่ยน process_with_typhoon_ocr ให้ใช้ prepare_ocr_messages จาก typhoon_ocr library + inject DMS tags; เปลี่ยน endpoint เป็น /v1/chat/completions
 # - 2026-06-11: US2 & US3 - เพิ่ม keep_alive parameter และ CPU fallback สำหรับ /embed และ /rerank
+# - 2026-06-13: ADR-036 — เปลี่ยน canonical engine/model เป็น np-dms-ocr และคง legacy aliases
 
 import os
 import logging
@@ -84,7 +85,7 @@ async def get_api_key(api_key: str = Security(api_key_header)):
 OCR_CHAR_THRESHOLD = int(os.getenv("OCR_CHAR_THRESHOLD", "100"))
 MAX_PAGES = int(os.getenv("OCR_MAX_PAGES", "0"))  # 0 = ทุกหน้า
 OLLAMA_API_URL = os.getenv("OLLAMA_API_URL", "http://host.docker.internal:11434")
-TYPHOON_OCR_MODEL = os.getenv("TYPHOON_OCR_MODEL", "typhoon-np-dms-ocr:latest")
+TYPHOON_OCR_MODEL = os.getenv("TYPHOON_OCR_MODEL", "np-dms-ocr:latest")
 TYPHOON_OCR_TIMEOUT = int(os.getenv("TYPHOON_OCR_TIMEOUT", "360"))  # รองรับ cold-start ~65s + inference ~30s/page
 
 logger.info(f"Typhoon OCR Sidecar initialized (model={TYPHOON_OCR_MODEL}, ollama={OLLAMA_API_URL})")
@@ -120,16 +121,17 @@ class OcrResponse(BaseModel):
 def health():
     return {
         "status": "ok",
-        "engine": "typhoon-np-dms-ocr",
+        "engine": "np-dms-ocr",
         "typhoonModel": TYPHOON_OCR_MODEL,
         "ollamaUrl": OLLAMA_API_URL,
     }
 
 # alias map สำหรับ engine name เก่า → canonical name
 _ENGINE_ALIASES: dict[str, str] = {
-    "typhoon-ocr1.5-3b": "typhoon-np-dms-ocr",
-    "typhoon-ocr-3b": "typhoon-np-dms-ocr",
-    "typhoon_ocr": "typhoon-np-dms-ocr",
+    "typhoon-ocr1.5-3b": "np-dms-ocr",
+    "typhoon-ocr-3b": "np-dms-ocr",
+    "typhoon_ocr": "np-dms-ocr",
+    "typhoon-np-dms-ocr": "np-dms-ocr",
 }
 
 def _process_pdf_doc(doc: fitz.Document, selected_engine: str, max_pages: int, typhoon_options: dict = {}, pdf_path: str | None = None) -> OcrResponse:
@@ -156,7 +158,7 @@ def _process_pdf_doc(doc: fitz.Document, selected_engine: str, max_pages: int, t
                 engineUsed="fast-path",
             )
 
-    if selected_engine == "typhoon-np-dms-ocr":
+    if selected_engine == "np-dms-ocr":
         # ใช้ prepare_ocr_messages รับ PDF path โดยตรง — ไม่ต้องแปลง PIL Image อีกต่อไป
         resolved_path = pdf_path or (str(doc.name) if hasattr(doc, 'name') and doc.name else None)
         if not resolved_path:
@@ -173,8 +175,8 @@ def _process_pdf_doc(doc: fitz.Document, selected_engine: str, max_pages: int, t
             engineUsed=selected_engine,
         )
 
-    # ถ้าไม่ใช่ engine ที่รู้จัก ให้ใช้ typhoon-np-dms-ocr เป็น fallback
-    logger.warning(f"Unknown engine '{selected_engine}' — fallback to typhoon-np-dms-ocr")
+    # ถ้าไม่ใช่ engine ที่รู้จัก ให้ใช้ np-dms-ocr เป็น fallback
+    logger.warning(f"Unknown engine '{selected_engine}' — fallback to np-dms-ocr")
     resolved_path = pdf_path or (str(doc.name) if hasattr(doc, 'name') and doc.name else None)
     if not resolved_path:
         raise ValueError("ไม่สามารถหา PDF path — ต้องส่ง pdf_path เข้ามาด้วย")
@@ -187,7 +189,7 @@ def _process_pdf_doc(doc: fitz.Document, selected_engine: str, max_pages: int, t
         ocrUsed=True,
         pageCount=page_count,
         charCount=len(fallback_text),
-        engineUsed="typhoon-np-dms-ocr",
+        engineUsed="np-dms-ocr",
     )
 
 def process_with_typhoon_ocr(pdf_path: str, page_num: int = 1, options_override: dict = {}) -> str:

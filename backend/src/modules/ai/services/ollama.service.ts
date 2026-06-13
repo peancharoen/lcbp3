@@ -7,6 +7,7 @@
 // - 2026-06-06: เพิ่ม system prompt support ใน OllamaGenerateOptions และ generate() method เพื่อรองรับ Typhoon model ที่ต้องการ system prompt แยกต่างหาก
 // - 2026-06-06: [T036] แก้ไข default URL เป็น http://192.168.10.100:11434 (Desk-5439) แทน localhost; เพิ่ม options และ keepAlive ใน OllamaGenerateOptions เพื่อรองรับ Typhoon model parameters
 // - 2026-06-08: เพิ่ม num_predict ใน OllamaGenerateOptions.options — ป้องกัน JSON truncation เมื่อ LLM สร้าง structured output
+// - 2026-06-13: ADR-036 — เปลี่ยน default model tags เป็น np-dms-ai/np-dms-ocr
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -55,11 +56,11 @@ export class OllamaService {
     );
     this.mainModel = this.configService.get<string>(
       'OLLAMA_MODEL_MAIN',
-      'typhoon2.5-np-dms:latest'
+      'np-dms-ai:latest'
     );
     this.ocrModel = this.configService.get<string>(
       'OLLAMA_MODEL_OCR',
-      'typhoon-np-dms-ocr:latest'
+      'np-dms-ocr:latest'
     );
     this.embedModel = this.configService.get<string>(
       'OLLAMA_MODEL_EMBED',
@@ -68,7 +69,7 @@ export class OllamaService {
     this.timeoutMs = this.configService.get<number>('AI_TIMEOUT_MS', 30000);
   }
 
-  /** สร้างข้อความตอบกลับด้วย typhoon2.5-np-dms:latest หรือโมเดลที่ระบุใน options.model / ENV */
+  /** สร้างข้อความตอบกลับด้วย np-dms-ai:latest หรือโมเดลที่ระบุใน options.model / ENV */
   async generate(
     prompt: string,
     options: OllamaGenerateOptions = {}

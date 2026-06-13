@@ -1,4 +1,6 @@
 // File: lib/api/client.ts
+// Change Log:
+// - 2026-06-13: Export getAuthToken for unit testing
 import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosError } from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -10,7 +12,7 @@ let cachedToken: string | null = null;
 let tokenPromise: Promise<string | null> | null = null;
 
 // Async function to get token
-async function getAuthToken(): Promise<string | null> {
+export async function getAuthToken(): Promise<string | null> {
   if (cachedToken) return cachedToken;
 
   if (tokenPromise) return tokenPromise;

@@ -1,0 +1,13 @@
+# ยกเว้นไฟล์ทดสอบและ specs
+*.spec.ts
+*.test.ts
+*.spec.js
+*.test.js
+__tests__/
+tests/
+test/
+
+# ยกเว้นแคชและไฟล์ชั่วคราว
+.jest-cache/
+tmp/
+temp/

@@ -1,0 +1,93 @@
+# Frontend API Service Contracts for Unified AI Model Architecture
+# TypeScript interface definitions for frontend API calls
+
+# Sandbox Parameters Service
+getSandboxParameters:
+  function: getSandboxParameters(profileName: string)
+  returns: Promise<SandboxProfile>
+  endpoint: GET /api/ai/sandbox-profiles/:profileName
+  description: Retrieve sandbox parameters for a specific profile
+
+saveSandboxDraft:
+  function: saveSandboxDraft(profileName: string, params: SandboxProfileUpdate)
+  returns: Promise<SandboxProfile>
+  endpoint: PUT /api/ai/sandbox-profiles/:profileName
+  description: Save sandbox parameters for a specific profile
+
+resetSandboxToProduction:
+  function: resetSandboxToProduction(profileName: string)
+  returns: Promise<SandboxProfile>
+  endpoint: POST /api/ai/sandbox-profiles/:profileName/reset
+  description: Reset sandbox parameters to production defaults
+
+# Production Parameters Service
+getProductionDefaults:
+  function: getProductionDefaults(profileName: string)
+  returns: Promise<ProductionProfile>
+  endpoint: GET /api/ai/profiles/:profileName
+  description: Retrieve production parameters (read-only)
+
+applyProfile:
+  function: applyProfile(profileName: string, idempotencyKey: string, canonicalModel?: string)
+  returns: Promise<ApplyProfileResult>
+  endpoint: POST /api/ai/profiles/:profileName/apply
+  headers:
+    Idempotency-Key: string
+  description: Apply sandbox parameters to production
+
+# TypeScript Interfaces
+interface SandboxProfile {
+  profileName: string
+  canonicalModel: 'np-dms-ai' | 'np-dms-ocr'
+  temperature: number
+  topP: number
+  repeatPenalty: number
+  numCtx?: number | null
+  maxTokens?: number | null
+  keepAliveSeconds?: number | null
+}
+
+interface SandboxProfileUpdate {
+  temperature: number
+  topP: number
+  repeatPenalty: number
+  numCtx?: number | null
+  maxTokens?: number | null
+  keepAliveSeconds?: number | null
+}
+
+interface ProductionProfile {
+  profileName: string
+  canonicalModel: 'np-dms-ai' | 'np-dms-ocr'
+  temperature: number
+  topP: number
+  repeatPenalty: number
+  numCtx?: number | null
+  maxTokens?: number | null
+  keepAliveSeconds?: number | null
+  isActive: boolean
+}
+
+interface ApplyProfileRequest {
+  canonicalModel?: 'np-dms-ai' | 'np-dms-ocr'
+}
+
+interface ApplyProfileResult {
+  success: boolean
+  profileName: string
+  oldValues: Record<string, unknown>
+  newValues: Record<string, unknown>
+  appliedAt: string
+}
+
+# Sandbox Test Parameters (for context parity)
+interface SandboxTestContext {
+  projectPublicId: string
+  contractPublicId?: string
+}
+
+# Model Selection
+type ModelType = 'np-dms-ai' | 'np-dms-ocr'
+
+# Profile Names
+type ProfileName = 'interactive' | 'standard' | 'quality' | 'deep-analysis' | 'ocr-extract'

@@ -9,6 +9,7 @@
 // - 2026-05-30: นำเข้าและแสดงผล OcrEngineSelector component ใน Overview tab (T019, T020)
 // - 2026-06-02: เพิ่มตัวบ่งชี้โมเดลหลักที่กำลังใช้งาน (Active Global Model badge) บนการ์ด System Toggle (T010, ADR-033)
 // - 2026-06-13: [235] ลบ AI Model Management (ADR-027) และ OCR Engine Selector ออก; แก้ System Toggle แสดง canonical names (np-dms-ai/np-dms-ocr); แก้ label OCR Sidecar
+// - 2026-06-13: ADR-036 — ใช้ canonical model constants สำหรับหน้า AI Admin Console
 
 'use client';
 
@@ -45,6 +46,9 @@ interface VramLoadedModelView {
   vramUsageMB?: number;
 }
 
+const MAIN_MODEL_NAME = 'np-dms-ai';
+const OCR_MODEL_NAME = 'np-dms-ocr';
+
 function ensureArray<T>(value: unknown): T[] {
   return Array.isArray(value) ? value : [];
 }
@@ -58,9 +62,9 @@ function normalizeLoadedModels(value: unknown): VramLoadedModelView[] {
       const name = item.toLowerCase();
       let normName = item;
       if (name.includes('ocr') || name.includes('typhoon-np-dms-ocr')) {
-        normName = 'np-dms-ocr';
-      } else if (name.includes('typhoon') || name.includes('np-dms-ai')) {
-        normName = 'np-dms-ai';
+        normName = OCR_MODEL_NAME;
+      } else if (name.includes('typhoon') || name.includes(MAIN_MODEL_NAME)) {
+        normName = MAIN_MODEL_NAME;
       }
       return {
         modelId: `${item}-${index}`,
@@ -78,9 +82,9 @@ function normalizeLoadedModels(value: unknown): VramLoadedModelView[] {
       const name = rawName.toLowerCase();
       let normName = rawName;
       if (name.includes('ocr') || name.includes('typhoon-np-dms-ocr')) {
-        normName = 'np-dms-ocr';
-      } else if (name.includes('typhoon') || name.includes('np-dms-ai')) {
-        normName = 'np-dms-ai';
+        normName = OCR_MODEL_NAME;
+      } else if (name.includes('typhoon') || name.includes(MAIN_MODEL_NAME)) {
+        normName = MAIN_MODEL_NAME;
       }
       return {
         modelId: model.modelId ?? rawName,
@@ -97,8 +101,8 @@ function normalizeLoadedModels(value: unknown): VramLoadedModelView[] {
 
 function toCanonicalModel(rawName: string): string {
   const name = rawName.toLowerCase();
-  if (name.includes('ocr') || name.includes('typhoon-np-dms-ocr')) return 'np-dms-ocr';
-  if (name.includes('typhoon') || name.includes('np-dms-ai')) return 'np-dms-ai';
+  if (name.includes('ocr') || name.includes('typhoon-np-dms-ocr')) return OCR_MODEL_NAME;
+  if (name.includes('typhoon') || name.includes(MAIN_MODEL_NAME)) return MAIN_MODEL_NAME;
   return rawName;
 }
 
@@ -135,8 +139,8 @@ export default function AiAdminConsolePage() {
   const rawHealthOllamaModels = ensureArray<string>(health?.ollama?.models);
   const healthOllamaModels = Array.from(new Set(rawHealthOllamaModels.map((m) => {
     const name = m.toLowerCase();
-    if (name.includes('ocr') || name.includes('typhoon-np-dms-ocr')) return 'np-dms-ocr';
-    if (name.includes('typhoon') || name.includes('np-dms-ai')) return 'np-dms-ai';
+    if (name.includes('ocr') || name.includes('typhoon-np-dms-ocr')) return OCR_MODEL_NAME;
+    if (name.includes('typhoon') || name.includes(MAIN_MODEL_NAME)) return MAIN_MODEL_NAME;
     return m;
   })));
   const healthQdrantCollections = ensureArray<string>(health?.qdrant?.collections);

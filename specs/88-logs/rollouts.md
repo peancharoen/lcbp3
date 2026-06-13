@@ -18,3 +18,5 @@
 | 2026-06-08 | v1.9.10 | LLM JSON Response Truncation Fix — ขยาย num_ctx: 16384 (Session 16 โดย AGY Gemini 3.5 Flash (Medium)) | ✅ Complete                   |
 | 2026-06-11 | v1.9.10 | AI Runtime Policy Refactor (Feature-235) — Canonical names (`np-dms-ai`/`np-dms-ocr`), Adaptive OCR Residency, CPU Fallback Retrieval, Queue Policy (ai-realtime concurrency=2) — targeted verification 27/27 tests ✅ ESLint + tsc clean | ⏳ Pending T032 Manual Gate + Merge |
 | 2026-06-11 | v1.9.10 | Feature-235 validation follow-up — validation-report.md = PARTIAL, cutover-validation checklist added, targeted verification 27/27 | ⏳ Pending T032 execution |
+| 2026-06-12 | v1.9.10 | Feature-235 quickstart.md fix — corrected Backend URL, API paths, token extraction, verified Gate 1A/1B/1D (Session by Devin Cascade) | ✅ Complete (T032 done) |
+| 2026-06-13 | v1.9.10 | Feature-236 Unified OCR Architecture & Sandbox Parity — endpoints, UI parameters, apply production, dual-model, project/contract context selector, snapshot dual-model, 256/256 tests passed | ✅ Complete (tsc + eslint clean) |

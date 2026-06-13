@@ -5,6 +5,7 @@
 // - 2026-06-02: ส่งค่า X-API-Key ใน request headers ไปยัง ocr-sidecar เพื่อความมั่นคงปลอดภัยสูงสุด (ADR-033, Suggestion 2)
 // - 2026-06-04: ADR-034 — เพิ่ม 'typhoon-np-dms-ocr' เป็น canonical SandboxOcrEngineType; legacy aliases ยังรองรับ
 // - 2026-06-04: เพิ่ม OcrTyphoonOptions interface; รับ temperature/topP/repeatPenalty จาก frontend sandbox เพื่อ override Modelfile defaults
+// - 2026-06-13: ADR-036 — เปลี่ยน canonical SandboxOcrEngineType เป็น np-dms-ocr และคง legacy alias
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -12,7 +13,11 @@ import axios from 'axios';
 import * as fs from 'fs';
 import { OcrService } from './ocr.service';
 
-export type SandboxOcrEngineType = 'auto' | 'tesseract' | 'typhoon-np-dms-ocr';
+export type SandboxOcrEngineType =
+  | 'auto'
+  | 'tesseract'
+  | 'np-dms-ocr'
+  | 'typhoon-np-dms-ocr';
 
 /** ค่า parameter สำหรับ Typhoon OCR ที่ override Modelfile defaults ได้จาก sandbox UI */
 export interface OcrTyphoonOptions {
@@ -60,12 +65,14 @@ export class SandboxOcrEngineService {
     engineType: SandboxOcrEngineType = 'auto',
     typhoonOptions?: OcrTyphoonOptions
   ): Promise<SandboxOcrResult> {
+    const resolvedEngineType =
+      engineType === 'typhoon-np-dms-ocr' ? 'np-dms-ocr' : engineType;
     this.logger.log(
-      `detectAndExtract called — engine="${engineType}" pdfPath="${pdfPath}" typhoonOptions=${JSON.stringify(typhoonOptions ?? null)}`
+      `detectAndExtract called — engine="${resolvedEngineType}" pdfPath="${pdfPath}" typhoonOptions=${JSON.stringify(typhoonOptions ?? null)}`
     );
-    if (engineType === 'auto' || engineType === 'tesseract') {
+    if (resolvedEngineType === 'auto' || resolvedEngineType === 'tesseract') {
       this.logger.log(
-        `engine="${engineType}" → routing to Tesseract/fast-path`
+        `engine="${resolvedEngineType}" → routing to Tesseract/fast-path`
       );
       const result = await this.ocrService.detectAndExtract({ pdfPath });
       return {
@@ -77,7 +84,7 @@ export class SandboxOcrEngineService {
     }
 
     this.logger.log(
-      `engine="typhoon-np-dms-ocr" → calling sidecar at ${this.ocrApiUrl}/ocr-upload`
+      `engine="np-dms-ocr" → calling sidecar at ${this.ocrApiUrl}/ocr-upload`
     );
     try {
       let fileBuffer: Buffer;
@@ -99,7 +106,7 @@ export class SandboxOcrEngineService {
         new Blob([new Uint8Array(fileBuffer)], { type: 'application/pdf' }),
         'upload.pdf'
       );
-      form.append('engine', engineType);
+      form.append('engine', resolvedEngineType);
       if (typhoonOptions?.temperature !== undefined) {
         form.append('temperature', String(typhoonOptions.temperature));
       }
@@ -127,7 +134,7 @@ export class SandboxOcrEngineService {
       return {
         text: response.data.text ?? '',
         ocrUsed: response.data.ocrUsed ?? true,
-        engineUsed: response.data.engineUsed ?? engineType,
+        engineUsed: response.data.engineUsed ?? resolvedEngineType,
         fallbackUsed: false,
       };
     } catch (error: unknown) {

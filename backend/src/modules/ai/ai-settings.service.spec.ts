@@ -99,15 +99,13 @@ describe('AiSettingsService', () => {
     );
   });
 
-  it('ควรใช้ typhoon2.5-np-dms:latest (DEFAULT_MODEL) เป็นค่า active model เริ่มต้นเมื่อยังไม่มี system setting (ADR-034)', async () => {
+  it('ควรใช้ np-dms-ai:latest (DEFAULT_MODEL) เป็นค่า active model เริ่มต้นเมื่อยังไม่มี system setting (ADR-036)', async () => {
     mockRedis.get.mockResolvedValue(null);
     mockSettingRepo.findOne.mockResolvedValue(null);
-    await expect(service.getActiveModel()).resolves.toBe(
-      'typhoon2.5-np-dms:latest'
-    );
+    await expect(service.getActiveModel()).resolves.toBe('np-dms-ai:latest');
     expect(mockRedis.set).toHaveBeenCalledWith(
       'system_settings:AI_ACTIVE_MODEL',
-      'typhoon2.5-np-dms:latest',
+      'np-dms-ai:latest',
       'EX',
       30
     );

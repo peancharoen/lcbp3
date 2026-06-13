@@ -9,6 +9,8 @@
 // - 2026-05-28: เพิ่ม test สำหรับ EC-001 (NEW_TAG_SUGGESTED) และ EC-002 (UNRESOLVED_SENDER/RECIPIENT_UUID)
 // - 2026-05-29: แก้ไข mockAttachmentRepo เพิ่ม property manager เพื่อรองรับ jest.spyOn ใน EC-001, EC-002, และ migrate-document tests
 // - 2026-06-03: ADR-034 — เพิ่ม OCR_JOB_TYPES import, mock unloadModel/loadModel/getOcrModelName, อัปเดต getMainModelName เป็น typhoon2.5, เพิ่ม test ocr-extract model switching
+// - 2026-06-13: ADR-036 — อัปเดต model switching tests เป็น np-dms-ai/np-dms-ocr
+// - 2026-06-13: US5 — Mock AiPolicyService เพื่อให้ผ่านการทดสอบและรองรับ sandbox parameter injection
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
@@ -30,6 +32,7 @@ import { AiAuditLog } from '../entities/ai-audit-log.entity';
 import { TagsService } from '../../tags/tags.service';
 import { MigrationService } from '../../migration/migration.service';
 import { AiPromptsService } from '../prompts/ai-prompts.service';
+import { AiPolicyService } from '../services/ai-policy.service';
 
 describe('AiBatchProcessor', () => {
   let processor: AiBatchProcessor;
@@ -61,13 +64,13 @@ describe('AiBatchProcessor', () => {
     detectAndExtract: jest.fn().mockResolvedValue({
       text: 'OCR text LCBP3-CIV-001 Civil',
       ocrUsed: true,
-      engineUsed: 'typhoon-np-dms-ocr',
+      engineUsed: 'np-dms-ocr',
       fallbackUsed: false,
     }),
   };
   const mockOllamaService = {
-    getMainModelName: jest.fn().mockReturnValue('typhoon2.5-np-dms:latest'),
-    getOcrModelName: jest.fn().mockReturnValue('typhoon-np-dms-ocr:latest'),
+    getMainModelName: jest.fn().mockReturnValue('np-dms-ai:latest'),
+    getOcrModelName: jest.fn().mockReturnValue('np-dms-ocr:latest'),
     loadModel: jest.fn().mockResolvedValue(true),
     unloadModel: jest.fn().mockResolvedValue(true),
     generate: jest.fn().mockResolvedValue(
@@ -148,6 +151,17 @@ describe('AiBatchProcessor', () => {
     findByVersion: jest.fn().mockResolvedValue(null),
     saveTestResult: jest.fn().mockResolvedValue(undefined),
   };
+  const mockAiPolicyService = {
+    getSandboxParameters: jest.fn().mockResolvedValue({
+      temperature: 0.1,
+      topP: 0.6,
+      maxTokens: 4096,
+      numCtx: 8192,
+      repeatPenalty: 1.1,
+      keepAliveSeconds: 0,
+      canonicalModel: 'np-dms-ai',
+    }),
+  };
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -176,6 +190,7 @@ describe('AiBatchProcessor', () => {
         { provide: TagsService, useValue: mockTagsService },
         { provide: MigrationService, useValue: mockMigrationService },
         { provide: AiPromptsService, useValue: mockAiPromptsService },
+        { provide: AiPolicyService, useValue: mockAiPolicyService },
       ],
     }).compile();
     processor = module.get<AiBatchProcessor>(AiBatchProcessor);
@@ -204,27 +219,27 @@ describe('AiBatchProcessor', () => {
     } as unknown as Job<AiBatchJobData>;
     await processor.process(job);
     expect(mockOllamaService.unloadModel).toHaveBeenCalledWith(
-      'typhoon2.5-np-dms:latest'
+      'np-dms-ai:latest'
     );
     expect(mockOllamaService.loadModel).toHaveBeenCalledWith(
-      'typhoon-np-dms-ocr:latest',
+      'np-dms-ocr:latest',
       0
     );
     expect(mockOllamaService.generate).toHaveBeenCalledWith(
       'Extract OCR text from this document.',
       expect.objectContaining({
-        model: 'typhoon-np-dms-ocr:latest',
+        model: 'np-dms-ocr:latest',
         timeoutMs: 120000,
       })
     );
     expect(mockOllamaService.loadModel).toHaveBeenCalledWith(
-      'typhoon2.5-np-dms:latest',
+      'np-dms-ai:latest',
       -1
     );
     expect(mockRedis.setex).toHaveBeenCalledWith(
       'ai:ocr:result:doc-ocr-uuid-001',
       3600,
-      expect.stringContaining('typhoon-np-dms-ocr:latest')
+      expect.stringContaining('np-dms-ocr:latest')
     );
     expect(attachmentRepo.update).toHaveBeenCalledWith(
       { publicId: 'doc-ocr-uuid-001' },
@@ -308,7 +323,8 @@ describe('AiBatchProcessor', () => {
     await processor.process(job);
     expect(sandboxOcrEngineService.detectAndExtract).toHaveBeenCalledWith(
       '/files/test.pdf',
-      'auto'
+      'auto',
+      undefined
     );
     expect(ollamaService.generate).toHaveBeenCalledWith(
       expect.any(String),
@@ -328,7 +344,7 @@ describe('AiBatchProcessor', () => {
     const cachedOcrPayload = {
       ocrText: 'OCR text for retry test\u0002\u0000',
       ocrUsed: true,
-      engineUsed: 'typhoon-np-dms-ocr',
+      engineUsed: 'np-dms-ocr',
       fallbackUsed: false,
       timestamp: '2026-06-06T15:00:00.000Z',
     };
@@ -518,9 +534,9 @@ describe('AiBatchProcessor', () => {
     expect(attachmentRepo.findOne).toHaveBeenCalledWith({
       where: { publicId: 'doc-uuid-123' },
     });
-    expect(ocrService.detectAndExtract).toHaveBeenCalledWith({
-      pdfPath: '/files/test.pdf',
-    });
+    expect(ocrService.detectAndExtract).toHaveBeenCalledWith(
+      expect.objectContaining({ pdfPath: '/files/test.pdf' })
+    );
     expect(ollamaService.generate).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({
@@ -605,9 +621,9 @@ describe('AiBatchProcessor', () => {
         },
       } as unknown as Job<AiBatchJobData>;
       await processor.process(job);
-      expect(ocrService.detectAndExtract).toHaveBeenCalledWith({
-        pdfPath: '/files/test-ocr.pdf',
-      });
+      expect(ocrService.detectAndExtract).toHaveBeenCalledWith(
+        expect.objectContaining({ pdfPath: '/files/test-ocr.pdf' })
+      );
       expect(embeddingService.embedDocument).toHaveBeenCalledWith(
         'proj-uuid-456',
         'doc-uuid-123',
@@ -619,6 +635,110 @@ describe('AiBatchProcessor', () => {
         undefined,
         'extracted ocr text from document that is long enough to bypass character length check'
       );
+    });
+  });
+
+  describe('Sandbox Context Parity (US4)', () => {
+    it('ควรดึง projectPublicId และ contractPublicId จาก payload และส่งต่อให้ resolveContext ใน sandbox-extract', async () => {
+      const job = {
+        id: 'job-extract-context',
+        data: {
+          jobType: 'sandbox-extract',
+          documentPublicId: 'idem-extract-context-123',
+          projectPublicId: 'default',
+          payload: {
+            pdfPath: '/files/test.pdf',
+            projectPublicId: 'proj-uuid-override',
+            contractPublicId: 'contract-uuid-override',
+          },
+          idempotencyKey: 'idem-extract-context-123',
+        },
+      } as unknown as Job<AiBatchJobData>;
+      await processor.process(job);
+      expect(mockAiPromptsService.resolveContext).toHaveBeenCalledWith(
+        expect.any(Object),
+        'proj-uuid-override',
+        'contract-uuid-override'
+      );
+    });
+
+    it('ควรดึง projectPublicId และ contractPublicId จาก payload และส่งต่อให้ resolveContext ใน sandbox-ai-extract', async () => {
+      const cachedOcrPayload = {
+        ocrText: 'OCR text for retry test',
+        ocrUsed: true,
+        engineUsed: 'np-dms-ocr',
+        fallbackUsed: false,
+        timestamp: '2026-06-06T15:00:00.000Z',
+      };
+      mockRedis.get = jest
+        .fn()
+        .mockResolvedValueOnce(JSON.stringify(cachedOcrPayload));
+      const job = {
+        id: 'job-ai-extract-context',
+        data: {
+          jobType: 'sandbox-ai-extract',
+          documentPublicId: 'idem-ai-extract-context-123',
+          projectPublicId: 'default',
+          payload: {
+            promptVersion: 2,
+            projectPublicId: 'proj-uuid-override',
+            contractPublicId: 'contract-uuid-override',
+          },
+          idempotencyKey: 'idem-ai-extract-context-123',
+        },
+      } as unknown as Job<AiBatchJobData>;
+      await processor.process(job);
+      expect(mockAiPromptsService.resolveContext).toHaveBeenCalledWith(
+        expect.any(Object),
+        'proj-uuid-override',
+        'contract-uuid-override'
+      );
+    });
+  });
+
+  describe('Dual-Model Snapshot (US5/Phase 8)', () => {
+    it('ควรดึง ocrSnapshotParams จาก job data และส่งต่อให้ detectAndExtract ใน migrate-document', async () => {
+      const mockManager = {
+        createQueryBuilder: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        from: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getRawOne: jest.fn().mockResolvedValue({ id: 10 }),
+      };
+      (mockAttachmentRepo as unknown as { manager: unknown }).manager =
+        mockManager;
+      const job = {
+        id: 'job-migrate-snapshot',
+        data: {
+          jobType: 'migrate-document',
+          documentPublicId: 'doc-uuid-123',
+          projectPublicId: 'proj-uuid-456',
+          payload: {
+            documentNumber: 'LEGACY-001',
+            title: 'Legacy Title',
+            senderOrgId: 1,
+            receiverOrgId: 2,
+          },
+          idempotencyKey: 'idem-migrate-snapshot',
+          batchId: 'batch-999',
+          effectiveProfile: 'quality',
+          ocrSnapshotParams: {
+            temperature: 0.15,
+            topP: 0.65,
+            repeatPenalty: 1.15,
+          },
+        },
+      } as unknown as Job<AiBatchJobData>;
+      await processor.process(job);
+      expect(ocrService.detectAndExtract).toHaveBeenCalledWith({
+        pdfPath: '/files/test.pdf',
+        activeProfile: 'quality',
+        typhoonOptions: {
+          temperature: 0.15,
+          topP: 0.65,
+          repeatPenalty: 1.15,
+        },
+      });
     });
   });
 });

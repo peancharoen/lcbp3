@@ -3,16 +3,23 @@
 // - 2026-05-25: Created OcrSandboxPromptManager component for dynamic prompt editing, version control, and sandbox testing (ADR-029)
 // - 2026-05-25: Extracted inline strings to i18n keys via useTranslations() (Obs #1 fix)
 // - 2026-05-25: Refactored sandbox polling to useSandboxRun hook (Obs #2 fix)
-// - 2026-05-26: เพิ่มการตรวจสอบ versionsQuery.data แบบทนทานเพื่อป้องกัน Error N.find is not a function ในกรณีที่ API ส่งข้อมูลแบบ wrapped object มา
+// - 2026-05-26: เพิ่มการตรวจสอบ versionsQuery.data แบบทนทานเพื่อป้องกัน Error N.find is not a function
 // - 2026-05-29: เพิ่ม OCR Raw Text section ในผล sandbox
-// - 2026-05-29: ปรับปรุงการโหลด Active Prompt ให้ทนทานต่อ race conditions และรูปแบบประเภทข้อมูลที่ส่งมาจาก API (boolean, number, string)
+// - 2026-05-29: ปรับปรุงการโหลด Active Prompt ให้ทนทานต่อ race conditions และรูปแบบประเภทข้อมูล
 // - 2026-05-30: Refactor เป็น 2-step flow (Step 1: OCR-only → Step 2: AI Extraction) ตาม spec 231
-// - 2026-06-02: ปรับปรุงลำดับปุ่มแท็บเริ่มต้นให้เริ่มที่ OCR Sandbox และเปลี่ยน dropdown labels ของตัวเลือกโมเดล Typhoon OCR ให้แสดงหน่วยความจำ VRAM แม่นยำ (T012, T013, ADR-033)
-// - 2026-06-04: เปลี่ยน OCR Engine dropdown จาก hardcoded เป็น dynamic โดยดึงจาก getOcrEngines() API และ map engineType → SandboxOcrEngineType
-// - 2026-06-04: เพิ่ม UI sliders (temperature/topP/repeatPenalty) สำหรับ typhoon-np-dms-ocr engine; ส่งเป็น optional override ไปยัง sidecar
+// - 2026-06-02: ปรับปรุงลำดับปุ่มแท็บเริ่มต้นให้เริ่มที่ OCR Sandbox และเปลี่ยน dropdown labels ของ Typhoon OCR
+// - 2026-06-04: เปลี่ยน OCR Engine dropdown จาก hardcoded เป็น dynamic โดยดึงจาก getOcrEngines() API
+// - 2026-06-04: เพิ่ม UI sliders (temperature/topP/repeatPenalty) สำหรับ OCR engine
+// - 2026-06-13: ADR-036 — เปลี่ยน sandbox OCR engine key เป็น np-dms-ocr
+// - 2026-06-13: T030 — เพิ่ม Sandbox Parameter Panel สำหรับ tuning production profile draft
+// - 2026-06-13: T044-T045 — เพิ่มปุ่ม Apply to Production และแสดงผลแผงพารามิเตอร์ของระบบ Production แบบอ่านอย่างเดียว
+// - 2026-06-13: US4 — เพิ่ม project/contract selectors สำหรับ sandbox context parity
+// - 2026-06-13: US5 — เพิ่มลิงก์สลับไปยังหน้าจัดการ Prompt Version (Editor tab) จากส่วนเลือกเวอร์ชันใน Sandbox
+// - 2026-06-13: US9 — แก้ไข ESLint errors: ลบ parseInt และแก้ไข unsafe any type casting ของ projects/contracts
+
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,10 +41,23 @@ import {
 } from 'lucide-react';
 import { useAiPrompts, useSandboxRun } from '@/hooks/use-ai-prompts';
 import { useTranslations } from '@/hooks/use-translations';
+import { useProjects, useContracts } from '@/hooks/use-master-data';
 import PromptVersionHistory from './PromptVersionHistory';
 import { cn } from '@/lib/utils';
 import { AiPrompt } from '@/types/ai-prompts';
-import { adminAiService, OcrEngineResponse } from '@/lib/services/admin-ai.service';
+import { adminAiService, OcrEngineResponse, SandboxProfileParams } from '@/lib/services/admin-ai.service';
+
+interface SandboxProjectOption {
+  publicId: string;
+  projectCode: string;
+  projectName: string;
+}
+
+interface SandboxContractOption {
+  publicId: string;
+  contractCode: string;
+  contractName: string;
+}
 
 const DEFAULT_OCR_TEMPLATE = `คุณคือเอนจิ้นสกัดข้อมูลอัจฉริยะ (Document Intelligence Engine)
 วิเคราะห์ข้อความ OCR ที่ได้รับจากเอกสารของโครงการ Laem Chabang Port Phase 3 และสกัดข้อมูลเมตาดาต้าให้ออกมาเป็น JSON object ที่ถูกต้องตามโครงสร้างที่กำหนด
@@ -120,6 +140,110 @@ export default function OcrSandboxPromptManager() {
     queryFn: () => adminAiService.getOcrEngines(),
     staleTime: 60_000,
   });
+  // --- Sandbox Parameter Panel state (T030, ADR-036) ---
+  const [selectedModel, setSelectedModel] = useState<'np-dms-ai' | 'np-dms-ocr'>('np-dms-ai');
+  const profileName = selectedModel === 'np-dms-ai' ? 'standard' : 'ocr-extract';
+  const [sandboxParams, setSandboxParams] = useState<SandboxProfileParams | null>(null);
+  const [sandboxParamsDraft, setSandboxParamsDraft] = useState<Partial<SandboxProfileParams>>({});
+  const [isSavingParams, setIsSavingParams] = useState(false);
+  const [isResettingParams, setIsResettingParams] = useState(false);
+  const [showParamPanel, setShowParamPanel] = useState(false);
+
+  // --- US4 states ---
+  const [selectedProjectPublicId, setSelectedProjectPublicId] = useState<string>('');
+  const [selectedContractPublicId, setSelectedContractPublicId] = useState<string>('');
+  const { data: projectsData } = useProjects();
+  const projects = Array.isArray(projectsData) ? (projectsData as SandboxProjectOption[]) : [];
+  const { data: contractsData } = useContracts(selectedProjectPublicId);
+  const contracts = Array.isArray(contractsData) ? (contractsData as SandboxContractOption[]) : [];
+
+  const handleProjectChange = (projectId: string) => {
+    setSelectedProjectPublicId(projectId);
+    setSelectedContractPublicId('');
+  };
+
+  // --- Phase 4 apply and production defaults states (T044, T045) ---
+  const [prodParams, setProdParams] = useState<SandboxProfileParams | null>(null);
+  const [isApplyingParams, setIsApplyingParams] = useState(false);
+
+  const fetchProdParams = useCallback(async () => {
+    try {
+      const params = await adminAiService.getProductionDefaults(profileName);
+      setProdParams(params);
+    } catch {
+      // Ignored
+    }
+  }, [profileName]);
+
+  useEffect(() => {
+    adminAiService.getSandboxProfile(profileName)
+      .then((params) => {
+        setSandboxParams(params);
+        setSandboxParamsDraft({
+          temperature: params.temperature,
+          topP: params.topP,
+          repeatPenalty: params.repeatPenalty,
+          maxTokens: params.maxTokens,
+          numCtx: params.numCtx,
+          keepAliveSeconds: params.keepAliveSeconds,
+        });
+      })
+      .catch(() => { /* ไม่ต้องแสดง error — อาจเป็น 403 หาก feature ยังไม่เปิด */ });
+
+    fetchProdParams();
+  }, [profileName, fetchProdParams]);
+
+  const handleSaveParams = useCallback(async () => {
+    setIsSavingParams(true);
+    try {
+      const key = `sandbox-params-${profileName}-${Date.now()}`;
+      const updated = await adminAiService.saveSandboxProfile(profileName, sandboxParamsDraft, key);
+      setSandboxParams(updated);
+      toast.success('Sandbox parameters saved');
+    } catch {
+      toast.error('Failed to save sandbox parameters');
+    } finally {
+      setIsSavingParams(false);
+    }
+  }, [profileName, sandboxParamsDraft]);
+
+  const handleApplyParams = useCallback(async () => {
+    if (!confirm(`Are you sure you want to apply sandbox draft parameters for ${profileName} to production? This will immediately affect live production jobs.`)) {
+      return;
+    }
+    setIsApplyingParams(true);
+    try {
+      const idempotencyKey = `apply-params-${profileName}-${Date.now()}`;
+      await adminAiService.applyProfile(profileName, idempotencyKey);
+      toast.success('Parameters successfully applied to production!');
+      await fetchProdParams();
+    } catch {
+      toast.error('Failed to apply parameters to production');
+    } finally {
+      setIsApplyingParams(false);
+    }
+  }, [profileName, fetchProdParams]);
+
+  const handleResetParams = useCallback(async () => {
+    setIsResettingParams(true);
+    try {
+      const reset = await adminAiService.resetSandboxProfile(profileName);
+      setSandboxParams(reset);
+      setSandboxParamsDraft({
+        temperature: reset.temperature,
+        topP: reset.topP,
+        repeatPenalty: reset.repeatPenalty,
+        maxTokens: reset.maxTokens,
+        numCtx: reset.numCtx,
+        keepAliveSeconds: reset.keepAliveSeconds,
+      });
+      toast.success('Sandbox parameters reset to production values');
+    } catch {
+      toast.error('Failed to reset sandbox parameters');
+    } finally {
+      setIsResettingParams(false);
+    }
+  }, [profileName]);
   const ocrEngineOptions = useMemo(() => {
     const base = [{ value: 'auto', label: 'Auto (Current Baseline)' }];
     if (!ocrEnginesData) return base;
@@ -128,7 +252,7 @@ export default function OcrSandboxPromptManager() {
         e.engineType === 'tesseract'
           ? 'tesseract'
           : e.engineType === 'typhoon_ocr'
-          ? 'typhoon-np-dms-ocr'
+          ? 'np-dms-ocr'
           : e.engineType;
       const vramLabel =
         e.vramRequirementMB > 0
@@ -222,6 +346,10 @@ export default function OcrSandboxPromptManager() {
   // Step 1: OCR-only handler
   const handleStep1Ocr = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedProjectPublicId) {
+      toast.error('Please select a project first');
+      return;
+    }
     if (!ocrFile) {
       toast.error(t('ai.prompt.noFile'));
       return;
@@ -229,7 +357,7 @@ export default function OcrSandboxPromptManager() {
     try {
       resetSandbox();
       setSandboxStep('ocr');
-      const typhoonOptions = selectedOcrEngine === 'typhoon-np-dms-ocr'
+      const typhoonOptions = selectedOcrEngine === 'np-dms-ocr'
         ? { temperature: typhoonTemperature, topP: typhoonTopP, repeatPenalty: typhoonRepeatPenalty }
         : undefined;
       const { requestPublicId } = await adminAiService.submitSandboxOcr(
@@ -270,6 +398,10 @@ export default function OcrSandboxPromptManager() {
   // Step 2: AI Extraction handler
   const handleStep2AiExtract = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedProjectPublicId) {
+      toast.error('Please select a project first');
+      return;
+    }
     if (!ocrResult) {
       toast.error('Please run Step 1 (OCR) first');
       return;
@@ -282,7 +414,9 @@ export default function OcrSandboxPromptManager() {
       resetSandbox();
       const { requestPublicId } = await adminAiService.submitSandboxAiExtract(
         ocrResult.requestPublicId,
-        selectedPromptVersion
+        selectedPromptVersion,
+        selectedProjectPublicId,
+        selectedContractPublicId || undefined
       );
       toast.success('AI Extraction started');
       // เริ่ม polling ผ่าน useSandboxRun hook
@@ -302,6 +436,8 @@ export default function OcrSandboxPromptManager() {
     setTyphoonTopP(0.1);
     setTyphoonRepeatPenalty(1.1);
     setOcrFile(null);
+    setSelectedProjectPublicId('');
+    setSelectedContractPublicId('');
     resetSandbox();
   };
   // แปล status key เป็นข้อความตาม locale ปัจจุบัน
@@ -396,10 +532,140 @@ export default function OcrSandboxPromptManager() {
                     : 'Step 2: Test AI prompt with OCR text'}
                 </p>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
+                {/* Project and Contract Selectors (US4) */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-foreground flex items-center gap-1">
+                      Project <span className="text-destructive">*</span>
+                    </label>
+                    <select
+                      value={selectedProjectPublicId}
+                      onChange={(e) => handleProjectChange(e.target.value)}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs"
+                      disabled={sandboxState.isRunning}
+                    >
+                      <option value="">-- Select Project --</option>
+                      {projects.map((proj) => (
+                        <option key={proj.publicId} value={proj.publicId}>
+                          {proj.projectCode} - {proj.projectName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-foreground">
+                      Contract
+                    </label>
+                    <select
+                      value={selectedContractPublicId}
+                      onChange={(e) => setSelectedContractPublicId(e.target.value)}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs"
+                      disabled={sandboxState.isRunning || !selectedProjectPublicId}
+                    >
+                      <option value="">-- Select Contract (Optional) --</option>
+                      {contracts.map((ctr) => (
+                        <option key={ctr.publicId} value={ctr.publicId}>
+                          {ctr.contractCode} - {ctr.contractName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="border-t border-border/10 my-4" />
+
                 {sandboxStep === 'ocr' ? (
                   <form onSubmit={handleStep1Ocr} className="space-y-4">
-                    <div className="space-y-2">
+                    <div className="space-y-4">
+                      {/* --- Sandbox Parameter Panel (T030) --- */}
+                      {sandboxParams && (
+                        <div className="rounded-md border border-border/30 bg-muted/10">
+                          <button
+                            type="button"
+                            onClick={() => setShowParamPanel((v) => !v)}
+                            className="flex w-full items-center justify-between px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            <span>LLM Sandbox Parameters (production profile draft)</span>
+                            <span className="text-[10px]">{showParamPanel ? '\u25b2' : '\u25bc'}</span>
+                          </button>
+                          {showParamPanel && (
+                            <div className="px-3 pb-3 space-y-3 border-t border-border/20 pt-3">
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-medium text-muted-foreground">Model Profile (T050)</label>
+                                <select
+                                  value={selectedModel}
+                                  onChange={(e) => setSelectedModel(e.target.value as 'np-dms-ai' | 'np-dms-ocr')}
+                                  className="w-full rounded border border-input bg-background px-2.5 py-1 text-xs"
+                                >
+                                  <option value="np-dms-ai">LLM Engine (np-dms-ai / standard)</option>
+                                  <option value="np-dms-ocr">OCR Engine (np-dms-ocr / ocr-extract)</option>
+                                </select>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-3 text-xs">
+                                <div className="space-y-1">
+                                  <div className="flex justify-between"><label>Temperature</label><span className="font-mono text-muted-foreground">{((sandboxParamsDraft.temperature ?? sandboxParams?.temperature) ?? 0).toFixed(2)}</span></div>
+                                  <input type="range" min={0} max={1} step={0.01} value={(sandboxParamsDraft.temperature ?? sandboxParams?.temperature) ?? 0} onChange={(e) => setSandboxParamsDraft((p) => ({ ...p, temperature: parseFloat(e.target.value) }))} className="w-full h-1.5 accent-primary" />
+                                </div>
+                                <div className="space-y-1">
+                                  <div className="flex justify-between"><label>Top-P</label><span className="font-mono text-muted-foreground">{((sandboxParamsDraft.topP ?? sandboxParams?.topP) ?? 0).toFixed(2)}</span></div>
+                                  <input type="range" min={0} max={1} step={0.01} value={(sandboxParamsDraft.topP ?? sandboxParams?.topP) ?? 0} onChange={(e) => setSandboxParamsDraft((p) => ({ ...p, topP: parseFloat(e.target.value) }))} className="w-full h-1.5 accent-primary" />
+                                </div>
+                                <div className="space-y-1">
+                                  <div className="flex justify-between"><label>Repeat Penalty</label><span className="font-mono text-muted-foreground">{((sandboxParamsDraft.repeatPenalty ?? sandboxParams?.repeatPenalty) ?? 1).toFixed(2)}</span></div>
+                                  <input type="range" min={1} max={2} step={0.01} value={(sandboxParamsDraft.repeatPenalty ?? sandboxParams?.repeatPenalty) ?? 1} onChange={(e) => setSandboxParamsDraft((p) => ({ ...p, repeatPenalty: parseFloat(e.target.value) }))} className="w-full h-1.5 accent-primary" />
+                                </div>
+                                <div className="space-y-1">
+                                  <div className="flex justify-between"><label>Keep-Alive (s)</label><span className="font-mono text-muted-foreground">{(sandboxParamsDraft.keepAliveSeconds ?? sandboxParams?.keepAliveSeconds) ?? 0}</span></div>
+                                  <input type="range" min={0} max={3600} step={60} value={(sandboxParamsDraft.keepAliveSeconds ?? sandboxParams?.keepAliveSeconds) ?? 0} onChange={(e) => setSandboxParamsDraft((p) => ({ ...p, keepAliveSeconds: Number(e.target.value) }))} className="w-full h-1.5 accent-primary" />
+                                </div>
+                                {selectedModel === 'np-dms-ai' && (
+                                  <>
+                                    <div className="space-y-1">
+                                      <div className="flex justify-between"><label>Max Tokens</label><span className="font-mono text-muted-foreground">{(sandboxParamsDraft.maxTokens ?? sandboxParams?.maxTokens) ?? 4096}</span></div>
+                                      <input type="range" min={256} max={16384} step={256} value={(sandboxParamsDraft.maxTokens ?? sandboxParams?.maxTokens) ?? 4096} onChange={(e) => setSandboxParamsDraft((p) => ({ ...p, maxTokens: Number(e.target.value) }))} className="w-full h-1.5 accent-primary" />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <div className="flex justify-between"><label>Ctx Size</label><span className="font-mono text-muted-foreground">{(sandboxParamsDraft.numCtx ?? sandboxParams?.numCtx) ?? 8192}</span></div>
+                                      <input type="range" min={1024} max={32768} step={1024} value={(sandboxParamsDraft.numCtx ?? sandboxParams?.numCtx) ?? 8192} onChange={(e) => setSandboxParamsDraft((p) => ({ ...p, numCtx: Number(e.target.value) }))} className="w-full h-1.5 accent-primary" />
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+
+                              {/* Production Defaults Read-Only Panel (T045) */}
+                              {prodParams && (
+                                <div className="rounded border border-emerald-500/20 bg-emerald-500/5 p-2.5 text-xs space-y-1">
+                                  <p className="font-semibold text-emerald-600 dark:text-emerald-400">Current Production Parameters (Read-only)</p>
+                                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] font-mono text-muted-foreground font-semibold">
+                                    <div>Model: {prodParams.canonicalModel}</div>
+                                    <div>Temperature: {prodParams.temperature.toFixed(2)}</div>
+                                    <div>Top-P: {prodParams.topP.toFixed(2)}</div>
+                                    <div>Repeat Penalty: {prodParams.repeatPenalty.toFixed(2)}</div>
+                                    <div>Keep-Alive: {prodParams.keepAliveSeconds}s</div>
+                                    {prodParams.maxTokens !== null && <div>Max Tokens: {prodParams.maxTokens}</div>}
+                                    {prodParams.numCtx !== null && <div>Ctx Size: {prodParams.numCtx}</div>}
+                                  </div>
+                                </div>
+                              )}
+
+                              <div className="flex justify-end gap-2 pt-1 flex-wrap">
+                                <Button type="button" variant="outline" size="sm" disabled={isResettingParams} onClick={handleResetParams} className="text-xs h-7 px-3">
+                                  {isResettingParams ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Reset to Production'}
+                                </Button>
+                                <Button type="button" variant="secondary" size="sm" disabled={isSavingParams} onClick={handleSaveParams} className="text-xs h-7 px-3">
+                                  {isSavingParams ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Save Draft'}
+                                </Button>
+                                <Button type="button" variant="destructive" size="sm" disabled={isApplyingParams} onClick={handleApplyParams} className="text-xs h-7 px-3 flex items-center gap-1">
+                                  {isApplyingParams ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                                  Apply to Production
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                       <div className="space-y-2">
                         <label className="text-xs font-medium">OCR Engine</label>
                         <select
@@ -407,14 +673,12 @@ export default function OcrSandboxPromptManager() {
                           onChange={(e) => setSelectedOcrEngine(e.target.value)}
                           className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs"
                         >
-                          {ocrEngineOptions.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </option>
-                          ))}
+                           {ocrEngineOptions.map((opt) => (
+                             <option key={opt.value} value={opt.value}>{opt.label}</option>
+                           ))}
                         </select>
                       </div>
-                      {selectedOcrEngine === 'typhoon-np-dms-ocr' && (
+                      {selectedOcrEngine === 'np-dms-ocr' && (
                         <div className="space-y-3 rounded-md border border-dashed border-amber-500/30 bg-amber-500/5 p-3">
                           <p className="text-xs font-medium text-amber-600 dark:text-amber-400">Typhoon OCR Options <span className="font-normal text-muted-foreground">(override Modelfile defaults)</span></p>
                           <div className="space-y-1">
@@ -516,7 +780,7 @@ export default function OcrSandboxPromptManager() {
                     <div className="flex justify-end gap-3 pt-2">
                       <Button
                         type="submit"
-                        disabled={sandboxState.isRunning || !ocrFile}
+                        disabled={sandboxState.isRunning || !ocrFile || !selectedProjectPublicId}
                         className="flex items-center gap-2"
                       >
                         {sandboxState.isRunning ? (
@@ -537,7 +801,16 @@ export default function OcrSandboxPromptManager() {
                   <form onSubmit={handleStep2AiExtract} className="space-y-4">
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium">Prompt Version:</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-medium">Prompt Version:</span>
+                          <button
+                            type="button"
+                            onClick={() => setActiveTab('editor')}
+                            className="text-[10px] text-primary hover:underline font-semibold"
+                          >
+                            (Manage/Edit Prompts)
+                          </button>
+                        </div>
                         <select
                           value={selectedPromptVersion ?? (activePrompt?.versionNumber ?? '')}
                           onChange={(e) => setSelectedPromptVersion(e.target.value ? Number(e.target.value) : undefined)}
@@ -562,7 +835,7 @@ export default function OcrSandboxPromptManager() {
                         </Button>
                         <Button
                           type="submit"
-                          disabled={sandboxState.isRunning || !activePrompt}
+                          disabled={sandboxState.isRunning || !activePrompt || !selectedProjectPublicId}
                           className="flex items-center gap-2"
                         >
                           {sandboxState.isRunning ? (
@@ -591,7 +864,7 @@ export default function OcrSandboxPromptManager() {
                     OCR Raw Text (Step 1 Result)
                   </CardTitle>
                   <Badge variant="outline" className="text-xs">
-                    {ocrResult.engineUsed === 'typhoon-np-dms-ocr'
+                    {ocrResult.engineUsed === 'np-dms-ocr'
                       ? 'np-dms-ocr'
                       : ocrResult.ocrUsed
                         ? 'Tesseract'

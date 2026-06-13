@@ -12,6 +12,7 @@
 // - 2026-06-02: ส่งค่า X-API-Key ใน request headers ไปยัง ocr-sidecar เพื่อความมั่นคงปลอดภัยสูงสุด (ADR-033, Suggestion 2)
 // - 2026-06-04: ADR-034 — เปลี่ยน TYPHOON_ENGINE.engineName เป็น typhoon-np-dms-ocr:latest ตรงกับชื่อโมเดลใน Ollama
 // - 2026-06-11: US2 - คำนวณ OCR residency keep_alive แบบ dynamic ตาม VRAM headroom และ active profile
+// - 2026-06-13: US5 - เพิ่มการส่ง temperature, topP และ repeatPenalty ไปยัง OCR sidecar ผ่าน multipart form (T070)
 
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -40,6 +41,11 @@ export interface OcrDetectionInput {
   pdfPath?: string;
   documentPublicId?: string; // เพิ่มเพื่อการทำ audit logs
   activeProfile?: ExecutionProfile;
+  typhoonOptions?: {
+    temperature?: number;
+    topP?: number;
+    repeatPenalty?: number;
+  };
 }
 
 export interface OcrDetectionResult {
@@ -417,6 +423,18 @@ export class OcrService {
       );
       form.append('engine', 'typhoon-np-dms-ocr');
       form.append('keep_alive', String(keepAlive));
+      if (input.typhoonOptions?.temperature !== undefined) {
+        form.append('temperature', String(input.typhoonOptions.temperature));
+      }
+      if (input.typhoonOptions?.topP !== undefined) {
+        form.append('topP', String(input.typhoonOptions.topP));
+      }
+      if (input.typhoonOptions?.repeatPenalty !== undefined) {
+        form.append(
+          'repeatPenalty',
+          String(input.typhoonOptions.repeatPenalty)
+        );
+      }
       const response = await axios.post<OcrSidecarResponse>(
         `${this.ocrApiUrl}/ocr-upload`,
         form,

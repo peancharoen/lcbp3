@@ -9,6 +9,7 @@
 // - 2026-05-23: ลงทะเบียน MigrationProgress + AiMigrationCheckpointService (ADR-023A)
 // - 2026-05-25: ลงทะเบียน AiAvailableModel สำหรับ AI Model Management (ADR-027).
 // - 2026-05-30: ลงทะเบียน VramMonitorService, OcrCacheService, TyphoonOcrProcessor, TyphoonLlmProcessor (ADR-032).
+// - 2026-06-13: ลงทะเบียน AiSandboxProfile สำหรับ ADR-036 sandbox-production parity
 // Module สำหรับ AI Gateway — ลงทะเบียน Services และ Controllers (ADR-023)
 
 import { Logger, Module, OnModuleInit } from '@nestjs/common';
@@ -44,6 +45,7 @@ import { MigrationProgress } from './entities/migration-progress.entity';
 import { SystemSetting } from './entities/system-setting.entity';
 import { AiAvailableModel } from './entities/ai-available-model.entity';
 import { AiExecutionProfile } from './entities/ai-execution-profile.entity';
+import { AiSandboxProfile } from './entities/ai-sandbox-profile.entity';
 import { AiMigrationCheckpointService } from './ai-migration-checkpoint.service';
 import { AiEnabledGuard } from './guards/ai-enabled.guard';
 import { UserModule } from '../user/user.module';
@@ -99,6 +101,7 @@ import {
       MigrationReviewQueue,
       AiPrompt,
       AiExecutionProfile,
+      AiSandboxProfile,
     ]),
 
     BullModule.registerQueue(

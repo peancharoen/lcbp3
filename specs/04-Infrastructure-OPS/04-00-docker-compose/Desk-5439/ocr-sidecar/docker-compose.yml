@@ -14,6 +14,7 @@
 # - 2026-06-02: เพิ่ม ollama-metrics (NorskHelsenett) — Prometheus sidecar สำหรับ Ollama metrics
 #              expose /metrics บน port 9924; Prometheus (ASUSTOR) scrape จาก 192.168.10.100:9924
 # - 2026-06-11: US2 & US3 - เพิ่ม VRAM headroom, residency window, pressure threshold, retrieval timeout env variables
+# - 2026-06-13: ADR-036 — เปลี่ยน TYPHOON_OCR_MODEL เป็น np-dms-ocr:latest
 #
 # วิธีรัน:
 #   docker compose up -d --build
@@ -43,7 +44,7 @@ services:
       # ชี้ตรงไปยัง Ollama (port 11434) ไม่ผ่าน metrics proxy
       # (proxy ไม่ forward /api/generate ได้ถูกต้อง — ทำให้ response ว่าง)
       OLLAMA_API_URL: "http://host.docker.internal:11434"
-      TYPHOON_OCR_MODEL: "typhoon-np-dms-ocr:latest"
+      TYPHOON_OCR_MODEL: "np-dms-ocr:latest"
       # Timeout 360 วินาที/หน้า — รองรับ cold-start โหลด model (~70s) + inference (10GB model, CPU offload)
       TYPHOON_OCR_TIMEOUT: "360"
       # ─── VRAM, Residency & Timeout Configurations (Feature-235) ──────────────

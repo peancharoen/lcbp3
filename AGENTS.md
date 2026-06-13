@@ -138,7 +138,7 @@ Spec priority: **`06-Decision-Records`** > **`05-Engineering-Guidelines`** > oth
 | **ADR-021 Workflow Context**   | `specs/06-Decision-Records/ADR-021-workflow-context.md`                     | ✅ Active | Integrated workflow & step attachments                                                 |
 | **ADR-023 AI Architecture**    | `specs/06-Decision-Records/ADR-023-unified-ai-architecture.md`              | ✅ Active | Unified AI boundaries and pipeline (base architecture)                                 |
 | **ADR-023A AI Model Rev.**     | `specs/06-Decision-Records/ADR-023A-unified-ai-architecture.md`             | ✅ Active | 2-queue, RAG embed scope, OCR auto-detect (model stack superseded by ADR-034)          |
-| **ADR-034 Thai Model Stack**   | `specs/06-Decision-Records/ADR-034-AI-model-change.md`                      | ✅ Active | typhoon2.5-np-dms:latest (Main) + typhoon-np-dms-ocr:latest (OCR, keep_alive:0)        |
+| **ADR-034 Thai Model Stack**   | `specs/06-Decision-Records/ADR-034-AI-model-change.md`                      | ✅ Active | np-dms-ai:latest (Main) + np-dms-ocr:latest (OCR, keep_alive:0)                        |
 | **ADR-024 Intent Class.**      | `specs/06-Decision-Records/ADR-024-intent-classification-strategy.md`       | ✅ Active | Hybrid Pattern→LLM Fallback; ai_intent_patterns DB; Redis cache 5 min                  |
 | **ADR-025 AI Tool Layer**      | `specs/06-Decision-Records/ADR-025-ai-tool-layer-architecture.md`           | ✅ Active | Server-side Tool dispatch; CASL-guarded bridge; ToolResult uses publicId only          |
 | **ADR-026 Chat UI**            | `specs/06-Decision-Records/ADR-026-document-chat-ui-pattern.md`             | ✅ Active | Side-panel Document Chat UI; useAiChat() hook; streaming response support              |
@@ -270,7 +270,7 @@ Read `specs/05-Engineering-Guidelines/05-07-hybrid-uuid-implementation-plan.md` 
 5. **Password:** bcrypt 12 salt rounds, min 8 chars, rotate every 90 days
 6. **Rate Limiting:** `ThrottlerGuard` on all auth endpoints
 7. **File Upload:** Whitelist PDF/DWG/DOCX/XLSX/ZIP, max 50MB, ClamAV scan
-8. **AI Isolation (ADR-023/023A/034):** Ollama on Admin Desktop ONLY — NO direct DB/storage access; model stack `typhoon2.5-np-dms:latest` (main) + `typhoon-np-dms-ocr:latest` (OCR, keep_alive:0) + `nomic-embed-text`; all inference via BullMQ (`ai-realtime` / `ai-batch`)
+8. **AI Isolation (ADR-023/023A/034):** Ollama on Admin Desktop ONLY — NO direct DB/storage access; model stack `np-dms-ai:latest` (main) + `np-dms-ocr:latest` (OCR, keep_alive:0) + `nomic-embed-text`; all inference via BullMQ (`ai-realtime` / `ai-batch`)
 9. **Error Handling (ADR-007):** Use layered error classification with user-friendly messages
 10. **AI Integration (ADR-023/023A):** RFA-First approach; n8n orchestrates Migration Phase only via DMS API — never calls Ollama directly; `QdrantService.search()` requires `projectPublicId` as mandatory param
 
@@ -432,7 +432,7 @@ Full glossary: `specs/00-overview/00-02-glossary.md`
 
 **For AI Runtime Layer (ADR-024/025/026/027):**
 
-- ADR-024: Pattern Layer first (ai_intent_patterns DB + Redis cache 5 min) → LLM Fallback (typhoon2.5-np-dms:latest, semaphore max=3)
+- ADR-024: Pattern Layer first (ai_intent_patterns DB + Redis cache 5 min) → LLM Fallback (np-dms-ai:latest, semaphore max=3)
 - ADR-025: Tool Registry dispatch — AI Gateway → Tool → Business Service; ToolResult DTO must use publicId only
 - ADR-026: useAiChat() hook + side-panel UI; streaming response via SSE; TanStack Query cache
 - ADR-027: Admin Console — dynamic model/prompt/intent control; CASL-guarded admin-only endpoints
@@ -662,7 +662,7 @@ MCP Memory server ให้เครื่องมือสำหรับจ�
 - [ ] **Qdrant Multi-tenancy:** `projectPublicId` filter enforced
 - [ ] **Human-in-the-loop:** AI outputs validated before use
 - [ ] **Audit Logging:** All AI interactions logged to `ai_audit_logs`
-- [ ] **Model Stack (ADR-034):** typhoon2.5-np-dms:latest + typhoon-np-dms-ocr:latest + nomic-embed-text verified
+- [ ] **Model Stack (ADR-034):** np-dms-ai:latest + np-dms-ocr:latest + nomic-embed-text verified
 - [ ] **Dynamic Prompts (ADR-029):** Prompt templates loaded from `ai_prompts` DB, not hardcoded
 
 **Performance & Complex Logic:**
@@ -718,7 +718,7 @@ This file is a **quick reference**. For detailed information:
 | Version | Date       | Changes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Updated By     |
 | ------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
 | 1.9.10  | 2026-06-06 | Added MCP MariaDB Tools section with available tools (test_connection, show_databases, show_tables, describe_table, query, insert, update, delete), usage guidelines for development flow, and safety warnings for DDL operations; Added MCP Memory Tools section with Knowledge Graph management tools (create_entities, create_relations, add_observations, delete_entities, delete_relations, delete_observations, open_nodes, read_graph, search_nodes) for long-term context storage | Windsurf AI    |
-| 1.9.9   | 2026-06-03 | ADR-034 Thai-Optimized AI Model Stack: typhoon2.5-np-dms:latest (main) + typhoon-np-dms-ocr:latest (OCR); model switching in ai-batch processor; AiSettingsService static constants; SQL delta; updated Key Spec Files + AI isolation rule                                                                                                                                                                                                                                                | Windsurf AI    |
+| 1.9.9   | 2026-06-13 | ADR-034 canonical model names sync: np-dms-ai:latest / np-dms-ocr:latest; ADR-036 parity prep; model switching and sidecar refs updated                                                                                                                                                                                                                                              | Codex          |
 | 1.9.8   | 2026-06-02 | Added ADR-033 Active Model & OCR Runner Management; implemented Synchronous LLM switches, GPU Memory Auto-release, sidecar `X-API-Key` headers protection; updated Key Spec Files & Specialized Work AI runtime sections                                                                                                                                                                                                                                                                  | Windsurf AI    |
 | 1.9.7   | 2026-05-25 | Added ADR-029 Dynamic Prompt Management to Key Spec Files table; fixed gemma4 model name e2b→e4b Q8_0; added Dynamic Prompt context trigger; added ADR-029 to Tier 3 AI checklist; bumped last synced date                                                                                                                                                                                                                                                                                | Windsurf AI    |
 | 1.9.6   | 2026-05-22 | Added ADR-024/025/026/027/028 to Key Spec Files table; Tier 3 expanded with AI Runtime Layer + Migration Pipeline tiers; Specialized Work section updated with ADR-024~028 patterns; 6 new Context-Aware Triggers; bumped Last synced date                                                                                                                                                                                                                                                | Windsurf AI    |

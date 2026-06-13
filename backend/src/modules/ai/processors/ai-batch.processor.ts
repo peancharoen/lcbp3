@@ -33,6 +33,7 @@ import { OcrService } from '../services/ocr.service';
 import {
   SandboxOcrEngineService,
   SandboxOcrEngineType,
+  OcrTyphoonOptions,
 } from '../services/sandbox-ocr-engine.service';
 import {
   OllamaService,
@@ -44,6 +45,7 @@ import { TagsService } from '../../tags/tags.service';
 import { MigrationService } from '../../migration/migration.service';
 import { MigrationErrorType } from '../../migration/entities/migration-error.entity';
 import { AiPromptsService } from '../prompts/ai-prompts.service';
+import { AiPolicyService } from '../services/ai-policy.service';
 import type { ExecutionProfile } from '../interfaces/execution-policy.interface';
 
 interface MigrateDocumentMetadata extends Record<string, unknown> {
@@ -90,10 +92,15 @@ export interface AiBatchJobData {
   snapshotParams?: {
     temperature: number;
     topP: number;
-    maxTokens: number;
-    numCtx: number;
+    maxTokens: number | null;
+    numCtx: number | null;
     repeatPenalty: number;
     keepAliveSeconds: number;
+  };
+  ocrSnapshotParams?: {
+    temperature: number;
+    topP: number;
+    repeatPenalty: number;
   };
 }
 
@@ -213,6 +220,7 @@ export class AiBatchProcessor extends WorkerHost {
     private readonly tagsService: TagsService,
     private readonly migrationService: MigrationService,
     private readonly aiPromptsService: AiPromptsService,
+    private readonly aiPolicyService: AiPolicyService,
     @InjectRedis() private readonly redis: Redis
   ) {
     super();
@@ -228,7 +236,14 @@ export class AiBatchProcessor extends WorkerHost {
       model?: string;
       system?: string;
       format?: 'json';
-      ollamaOptions?: { num_ctx?: number; num_predict?: number };
+      ollamaOptions?: {
+        num_ctx?: number;
+        num_predict?: number;
+        temperature?: number;
+        top_p?: number;
+        repeat_penalty?: number;
+      };
+      keepAlive?: number;
     }
   ): Promise<{
     extractedMetadata: Record<string, unknown>;
@@ -241,6 +256,7 @@ export class AiBatchProcessor extends WorkerHost {
       const rawResponse = await this.ollamaService.generate(prompt, {
         ...options,
         options: options.ollamaOptions,
+        keepAlive: options.keepAlive,
       });
       const cleanedResponse = sanitizeLlmJsonResponse(rawResponse);
       lastRawResponse = rawResponse;
@@ -492,6 +508,7 @@ export class AiBatchProcessor extends WorkerHost {
       ocrText = await this.ollamaService.generate(prompt, {
         model: ocrModel,
         timeoutMs: 120000,
+        keepAlive: 0,
       });
     } finally {
       this.logger.log(`[ModelSwitch] Reloading ${mainModel} (keep_alive:-1)`);
@@ -519,6 +536,9 @@ export class AiBatchProcessor extends WorkerHost {
     const engineType = (payload.engineType as SandboxOcrEngineType) || 'auto';
     const overrideProjPublicId =
       (payload.projectPublicId as string) || projectPublicId;
+    const overrideContractPublicId = payload.contractPublicId as
+      | string
+      | undefined;
     if (!pdfPath) {
       throw new Error('pdfPath is required for sandbox-extract job');
     }
@@ -531,9 +551,26 @@ export class AiBatchProcessor extends WorkerHost {
       })
     );
     try {
+      let ocrParams: OcrTyphoonOptions | undefined = undefined;
+      if (engineType === 'np-dms-ocr') {
+        try {
+          const ocrDraft =
+            await this.aiPolicyService.getSandboxParameters('ocr-extract');
+          ocrParams = {
+            temperature: ocrDraft.temperature,
+            topP: ocrDraft.topP,
+            repeatPenalty: ocrDraft.repeatPenalty,
+          };
+        } catch (err) {
+          this.logger.warn(
+            `Failed to fetch sandbox parameters for ocr-extract: ${String(err)}`
+          );
+        }
+      }
       const ocrResult = await this.sandboxOcrEngineService.detectAndExtract(
         pdfPath,
-        engineType
+        engineType,
+        ocrParams
       );
       const sanitizedOcrText = sanitizeOcrText(ocrResult.text);
       if (sanitizedOcrText.length !== ocrResult.text.length) {
@@ -553,7 +590,8 @@ export class AiBatchProcessor extends WorkerHost {
       // ดังนั้นส่ง undefined เพื่อ skip project lookup
       const masterDataContext = await this.aiPromptsService.resolveContext(
         activePrompt,
-        overrideProjPublicId === 'default' ? undefined : overrideProjPublicId
+        overrideProjPublicId === 'default' ? undefined : overrideProjPublicId,
+        overrideContractPublicId
       );
       const compactMasterDataContext = JSON.stringify(masterDataContext);
 
@@ -573,13 +611,45 @@ export class AiBatchProcessor extends WorkerHost {
         `Prompt stats: OCR=${ocrTextSafe.length} chars, MasterData=${compactMasterDataContext.length} chars, Total=${resolvedPrompt.length} chars`
       );
 
+      let sandboxParams;
+      try {
+        sandboxParams =
+          await this.aiPolicyService.getSandboxParameters('standard');
+      } catch (err) {
+        this.logger.warn(
+          `Failed to fetch sandbox parameters for standard: ${String(err)}`
+        );
+      }
+
+      const generateOptions: {
+        format: 'json';
+        timeoutMs: number;
+        ollamaOptions?: {
+          num_ctx?: number;
+          num_predict?: number;
+          temperature?: number;
+          top_p?: number;
+          repeat_penalty?: number;
+        };
+        keepAlive?: number;
+      } = {
+        format: 'json',
+        timeoutMs: 120000,
+        ollamaOptions: {
+          num_ctx: sandboxParams?.numCtx ?? 16384,
+          num_predict: sandboxParams?.maxTokens ?? 4096,
+          temperature: sandboxParams?.temperature,
+          top_p: sandboxParams?.topP,
+          repeat_penalty: sandboxParams?.repeatPenalty,
+        },
+      };
+      if (sandboxParams?.keepAliveSeconds !== undefined) {
+        generateOptions.keepAlive = sandboxParams.keepAliveSeconds;
+      }
+
       const { extractedMetadata } = await this.generateStructuredJson(
         resolvedPrompt,
-        {
-          format: 'json',
-          timeoutMs: 120000,
-          ollamaOptions: { num_ctx: 16384, num_predict: 4096 }, // num_predict ป้องกัน output ถูก truncate
-        }
+        generateOptions
       );
       await this.aiPromptsService.saveTestResult(
         'ocr_extraction',
@@ -641,11 +711,28 @@ export class AiBatchProcessor extends WorkerHost {
       })
     );
 
+    let ocrParams = typhoonOptions;
+    if (!ocrParams && engineType === 'np-dms-ocr') {
+      try {
+        const ocrDraft =
+          await this.aiPolicyService.getSandboxParameters('ocr-extract');
+        ocrParams = {
+          temperature: ocrDraft.temperature,
+          topP: ocrDraft.topP,
+          repeatPenalty: ocrDraft.repeatPenalty,
+        };
+      } catch (err) {
+        this.logger.warn(
+          `Failed to fetch sandbox parameters for ocr-extract: ${String(err)}`
+        );
+      }
+    }
+
     try {
       const ocrResult = await this.sandboxOcrEngineService.detectAndExtract(
         pdfPath,
         engineType,
-        typhoonOptions
+        ocrParams
       );
       const sanitizedOcrText = sanitizeOcrText(ocrResult.text);
       if (sanitizedOcrText.length !== ocrResult.text.length) {
@@ -757,9 +844,15 @@ export class AiBatchProcessor extends WorkerHost {
       // Resolve context และ run LLM
       // Sandbox ใช้ 'default' projectPublicId แต่ไม่ต้องการ override context
       // ดังนั้นส่ง undefined เพื่อ skip project lookup
+      const overrideProjPublicId =
+        (payload.projectPublicId as string) || projectPublicId;
+      const overrideContractPublicId = payload.contractPublicId as
+        | string
+        | undefined;
       const masterDataContext = await this.aiPromptsService.resolveContext(
         targetPrompt,
-        projectPublicId === 'default' ? undefined : projectPublicId
+        overrideProjPublicId === 'default' ? undefined : overrideProjPublicId,
+        overrideContractPublicId
       );
       const compactMasterDataContext = JSON.stringify(masterDataContext);
 
@@ -777,13 +870,46 @@ export class AiBatchProcessor extends WorkerHost {
       this.logger.debug(
         `Prompt stats: OCR=${ocrTextSafe.length} chars, MasterData=${compactMasterDataContext.length} chars, Total=${resolvedPrompt.length} chars`
       );
+
+      let sandboxParams;
+      try {
+        sandboxParams =
+          await this.aiPolicyService.getSandboxParameters('standard');
+      } catch (err) {
+        this.logger.warn(
+          `Failed to fetch sandbox parameters for standard: ${String(err)}`
+        );
+      }
+
+      const generateOptions: {
+        format: 'json';
+        timeoutMs: number;
+        ollamaOptions?: {
+          num_ctx?: number;
+          num_predict?: number;
+          temperature?: number;
+          top_p?: number;
+          repeat_penalty?: number;
+        };
+        keepAlive?: number;
+      } = {
+        format: 'json',
+        timeoutMs: 120000,
+        ollamaOptions: {
+          num_ctx: sandboxParams?.numCtx ?? 16384,
+          num_predict: sandboxParams?.maxTokens ?? 4096,
+          temperature: sandboxParams?.temperature,
+          top_p: sandboxParams?.topP,
+          repeat_penalty: sandboxParams?.repeatPenalty,
+        },
+      };
+      if (sandboxParams?.keepAliveSeconds !== undefined) {
+        generateOptions.keepAlive = sandboxParams.keepAliveSeconds;
+      }
+
       const { extractedMetadata } = await this.generateStructuredJson(
         resolvedPrompt,
-        {
-          format: 'json',
-          timeoutMs: 120000,
-          ollamaOptions: { num_ctx: 16384, num_predict: 4096 }, // num_predict ป้องกัน output ถูก truncate
-        }
+        generateOptions
       );
 
       await this.aiPromptsService.saveTestResult(
@@ -941,6 +1067,7 @@ export class AiBatchProcessor extends WorkerHost {
       ocrResult = await this.ocrService.detectAndExtract({
         pdfPath: attachment.filePath,
         activeProfile: job.data.effectiveProfile,
+        typhoonOptions: job.data.ocrSnapshotParams,
       });
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -996,8 +1123,8 @@ export class AiBatchProcessor extends WorkerHost {
         generateOptions.options = {
           temperature: snapshotParams.temperature,
           top_p: snapshotParams.topP,
-          num_predict: snapshotParams.maxTokens,
-          num_ctx: snapshotParams.numCtx,
+          num_predict: snapshotParams.maxTokens ?? undefined,
+          num_ctx: snapshotParams.numCtx ?? undefined,
           repeat_penalty: snapshotParams.repeatPenalty,
         };
         generateOptions.keepAlive = snapshotParams.keepAliveSeconds;

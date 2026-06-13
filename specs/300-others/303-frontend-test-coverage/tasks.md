@@ -25,10 +25,10 @@
 
 **Purpose**: ตรวจสอบ test environment — helper มีอยู่แล้วใน codebase
 
-- [ ] T001 อ่าน `frontend/vitest.config.ts` ยืนยัน include pattern และ coverage config — ไม่ต้องแก้ไข แค่ทำความเข้าใจ
-- [ ] T002 รัน `npm run test:coverage` ครั้งแรก เพื่อยืนยันว่า environment พร้อม และดู baseline coverage 13.54%
-- [ ] T003 อ่าน `frontend/lib/test-utils.tsx` ทำความเข้าใจ `createTestQueryClient()` pattern
-- [ ] T004 อ่าน test file ตัวอย่าง `frontend/hooks/__tests__/use-correspondence.test.ts` เพื่อ internalize pattern
+- [x] T001 อ่าน `frontend/vitest.config.ts` ยืนยัน include pattern และ coverage config — ไม่ต้องแก้ไข แค่ทำความเข้าใจ
+- [x] T002 รัน `npm run test:coverage` ครั้งแรก เพื่อยืนยันว่า environment พร้อม และดู baseline coverage 13.54%
+- [x] T003 อ่าน `frontend/lib/test-utils.tsx` ทำความเข้าใจ `createTestQueryClient()` pattern
+- [x] T004 อ่าน test file ตัวอย่าง `frontend/hooks/__tests__/use-correspondence.test.ts` เพื่อ internalize pattern
 
 **Checkpoint**: environment พร้อม, helper และ factory พร้อมใช้
 
@@ -40,9 +40,9 @@
 
 **⚠️ CRITICAL**: Phase 3, 4, 5 ต้องรอให้ Phase นี้เสร็จก่อน
 
-- [ ] T007 สร้าง test สำหรับ API client mock pattern ใน `frontend/__tests__/helpers/api-mock.ts` — ตรวจสอบว่า vi.mock ทำงานได้ถูกต้อง
-- [ ] T008 [P] เขียน smoke test สำหรับ 1 hook ง่ายๆ ใน `frontend/hooks/use-auth.spec.ts` เพื่อยืนยัน Vitest + RTL ทำงาน end-to-end
-- [ ] T009 กำหนด test naming convention และ file header format ใน `frontend/__tests__/README.md` (Thai comments, `// File:` header)
+- [x] T007 สร้าง test สำหรับ API client mock pattern ใน `frontend/__tests__/helpers/api-mock.ts` — ตรวจสอบว่า vi.mock ทำงานได้ถูกต้อง
+- [x] T008 [P] เขียน smoke test สำหรับ 1 hook ง่ายๆ ใน `frontend/hooks/use-auth.spec.ts` เพื่อยืนยัน Vitest + RTL ทำงาน end-to-end
+- [x] T009 กำหนด test naming convention และ file header format ใน `frontend/__tests__/README.md` (Thai comments, `// File:` header)
 
 **Checkpoint**: Foundation ready — สามารถเริ่ม Phase 3, 4, 5 ได้
 
@@ -56,33 +56,33 @@
 
 ### hooks/ — Custom Hooks (19 ที่ยังขาด)
 
-- [ ] T010 [P] [US1] เขียน `frontend/hooks/__tests__/use-master-data.test.ts` — ครอบ `useProjects`, `useOrganizations`, `useUsers` (hook นี้ถูก import ในทุก form)
-- [ ] T011 [P] [US1] เขียน `frontend/hooks/__tests__/use-workflows.test.ts` — ครอบ list + filter workflows, error state
-- [ ] T012 [P] [US1] เขียน `frontend/hooks/__tests__/use-transmittal.test.ts` — ครอบ CRUD operations
-- [ ] T013 [P] [US1] เขียน `frontend/hooks/__tests__/use-numbering.test.ts` — ครอบ document number generation
-- [ ] T014 [P] [US1] เขียน `frontend/hooks/__tests__/use-ai-prompts.test.ts` — ครอบ list, activate prompt
-- [ ] T015 [P] [US1] เขียน `frontend/hooks/__tests__/use-delegation.test.ts` — ครอบ delegation CRUD
-- [ ] T016 [P] [US1] เขียน `frontend/hooks/__tests__/use-dashboard.test.ts` — ครอบ metrics fetch, error
-- [ ] T017 [P] [US1] เขียน `frontend/hooks/__tests__/use-review-teams.test.ts` — ครอบ list + member management
+- [x] T010 [P] [US1] เขียน `frontend/hooks/__tests__/use-master-data.test.ts` — ครอบ `useProjects`, `useOrganizations`, `useUsers` (hook นี้ถูก import ในทุก form)
+- [x] T011 [P] [US1] เขียน `frontend/hooks/__tests__/use-workflows.test.ts` — ครอบ list + filter workflows, error state
+- [x] T012 [P] [US1] เขียน `frontend/hooks/__tests__/use-transmittal.test.ts` — ครอบ CRUD operations
+- [x] T013 [P] [US1] เขียน `frontend/hooks/__tests__/use-numbering.test.ts` — ครอบ document number generation
+- [x] T014 [P] [US1] เขียน `frontend/hooks/__tests__/use-ai-prompts.test.ts` — ครอบ list, activate prompt
+- [x] T015 [P] [US1] เขียน `frontend/hooks/__tests__/use-delegation.test.ts` — ครอบ delegation CRUD
+- [x] T016 [P] [US1] เขียน `frontend/hooks/__tests__/use-dashboard.test.ts` — ครอบ metrics fetch, error
+- [x] T017 [P] [US1] เขียน `frontend/hooks/__tests__/use-review-teams.test.ts` — ครอบ list + member management
 
 ### lib/services/ — Services (25 ที่ยังขาด — เน้น high priority ก่อน)
 
-- [ ] T018 [P] [US1] เขียน `frontend/lib/services/__tests__/rfa.service.test.ts` — ครอบ getAll, getByUuid, create, submit (apiClient mock ใน setup.ts แล้ว)
-- [ ] T019 [P] [US1] เขียน `frontend/lib/services/__tests__/user.service.test.ts` — ครอบ getAll, getById, update
-- [ ] T020 [P] [US1] เขียน `frontend/lib/services/__tests__/transmittal.service.test.ts` — ครอบ CRUD
-- [ ] T021 [P] [US1] เขียน `frontend/lib/services/__tests__/circulation.service.test.ts` — ครอบ CRUD
-- [ ] T022 [P] [US1] เขียน `frontend/lib/services/__tests__/dashboard.service.test.ts` — ครอบ metrics endpoints
+- [x] T018 [P] [US1] เขียน `frontend/lib/services/__tests__/rfa.service.test.ts` — ครอบ getAll, getByUuid, create, submit (apiClient mock ใน setup.ts แล้ว)
+- [x] T019 [P] [US1] เขียน `frontend/lib/services/__tests__/user.service.test.ts` — ครอบ getAll, getById, update
+- [x] T020 [P] [US1] เขียน `frontend/lib/services/__tests__/transmittal.service.test.ts` — ครอบ CRUD
+- [x] T021 [P] [US1] เขียน `frontend/lib/services/__tests__/circulation.service.test.ts` — ครอบ CRUD
+- [x] T022 [P] [US1] เขียน `frontend/lib/services/__tests__/dashboard.service.test.ts` — ครอบ metrics endpoints
 
 ### components/correspondences/ — ยังขาด 8 files
 
-- [ ] T023 [P] [US1] เขียน `frontend/components/correspondences/__tests__/list.test.tsx` — ครอบ render, empty state, loading
-- [ ] T024 [P] [US1] เขียน `frontend/components/correspondences/__tests__/circulation-status-card.test.tsx` — ครอบทุก status
-- [ ] T025 [P] [US1] เขียน `frontend/components/correspondences/__tests__/tag-manager.test.tsx` — ครอบ add/remove tags
+- [x] T023 [P] [US1] เขียน `frontend/components/correspondences/__tests__/list.test.tsx` — ครอบ render, empty state, loading
+- [x] T024 [P] [US1] เขียน `frontend/components/correspondences/__tests__/circulation-status-card.test.tsx` — ครอบทุก status
+- [x] T025 [P] [US1] เขียน `frontend/components/correspondences/__tests__/tag-manager.test.tsx` — ครอบ add/remove tags
 
 ### components/common/ และ components/ui/
 
-- [ ] T026 [P] [US1] เขียน test สำหรับ components ใน `frontend/components/common/__tests__/` — ยก coverage จาก 26% ขึ้น ≥ 60%
-- [ ] T027 [P] [US1] เขียน test สำหรับ components ใน `frontend/components/ui/__tests__/` — ยก coverage จาก 31% ขึ้น ≥ 60%
+- [x] T026 [P] [US1] เขียน test สำหรับ components ใน `frontend/components/common/__tests__/` — ยก coverage จาก 26% ขึ้น ≥ 60%
+- [x] T027 [P] [US1] เขียน test สำหรับ components ใน `frontend/components/ui/__tests__/` — ยก coverage จาก 31% ขึ้น ≥ 60%
 
 **Checkpoint**: รัน `npm run test:coverage` → ยืนยัน Statements ≥ 30% → merge Phase 1 PR
 
@@ -96,30 +96,30 @@
 
 ### components/rfas/ — RFA (Critical Business Feature, 0% → ≥60%)
 
-- [ ] T028 [P] [US2] เขียน `frontend/components/rfas/__tests__/list.test.tsx` — ครอบ render, filter by status, empty state
-- [ ] T029 [P] [US2] เขียน `frontend/components/rfas/__tests__/detail.test.tsx` — ครอบ header display, attachment list, action buttons
-- [ ] T030 [US2] เขียน `frontend/components/rfas/__tests__/form.test.tsx` — ครอบ validation, submit (ไฟล์ใหญ่ 32KB — ต้องแบ่ง test เป็น describe blocks)
+- [x] T028 [P] [US2] เขียน `frontend/components/rfas/__tests__/list.test.tsx` — ครอบ render, filter by status, empty state
+- [x] T029 [P] [US2] เขียน `frontend/components/rfas/__tests__/detail.test.tsx` — ครอบ header display, attachment list, action buttons
+- [x] T030 [US2] เขียน `frontend/components/rfas/__tests__/form.test.tsx` — ครอบ validation, submit (ไฟล์ใหญ่ 32KB — ต้องแบ่ง test เป็น describe blocks)
 
 ### lib/services/ — Services ที่ยังขาด (ต่อจาก Phase 1)
 
-- [ ] T031 [P] [US2] เขียน `frontend/lib/services/__tests__/workflow-engine.service.test.ts` — ครอบ getAll, transition, getHistory
-- [ ] T032 [P] [US2] เขียน `frontend/lib/services/__tests__/document-numbering.service.test.ts` — ครอบ generate, preview, format
-- [ ] T033 [P] [US2] เขียน `frontend/lib/services/__tests__/session.service.test.ts` — ครอบ login, logout, refresh
+- [x] T031 [P] [US2] เขียน `frontend/lib/services/__tests__/workflow-engine.service.test.ts` — ครอบ getAll, transition, getHistory
+- [x] T032 [P] [US2] เขียน `frontend/lib/services/__tests__/document-numbering.service.test.ts` — ครอบ generate, preview, format
+- [x] T033 [P] [US2] เขียน `frontend/lib/services/__tests__/session.service.test.ts` — ครอบ login, logout, refresh
 
 ### components/numbering/ — Document Numbering
 
-- [ ] T034 [P] [US2] เขียน `frontend/components/numbering/__tests__/` tests — ครอบ format display, configuration form, preview
+- [x] T034 [P] [US2] เขียน `frontend/components/numbering/__tests__/` tests — ครอบ format display, configuration form, preview
 
 ### lib/api/ — API Client Layer (0.38% → ≥70%)
 
-- [ ] T035 [P] [US2] เขียน `frontend/lib/api/__tests__/` tests — ครอบ request interceptors, response handlers, error cases
+- [x] T035 [P] [US2] เขียน `frontend/lib/api/__tests__/` tests — ครอบ request interceptors, response handlers, error cases
 
 ### components/auth/ และ components/drawings/
 
-- [ ] T036 [P] [US2] เขียน `frontend/components/auth/__tests__/` tests — ครอบ login form, validation
-- [ ] T037 [P] [US2] เขียน `frontend/components/drawings/__tests__/` tests — ครอบ Shop Drawing list, upload, status
-- [ ] T038 [P] [US2] เขียน test เพิ่มสำหรับ `frontend/components/workflows/__tests__/` — ยก coverage จาก 15% ขึ้น ≥ 60%
-- [ ] T039 [P] [US2] เขียน `frontend/hooks/__tests__/use-workflow-history.test.ts` — ครอบ history fetch
+- [x] T036 [P] [US2] เขียน `frontend/components/auth/__tests__/` tests — ครอบ login form, validation
+- [x] T037 [P] [US2] เขียน `frontend/components/drawings/__tests__/` tests — ครอบ Shop Drawing list, upload, status
+- [x] T038 [P] [US2] เขียน test เพิ่มสำหรับ `frontend/components/workflows/__tests__/` — ยก coverage จาก 15% ขึ้น ≥ 60%
+- [x] T039 [P] [US2] เขียน `frontend/hooks/__tests__/use-workflow-history.test.ts` — ครอบ history fetch
 
 **Checkpoint**: รัน `npm run test:coverage` → ยืนยัน Statements ≥ 50% → merge Phase 2 PR
 
@@ -134,23 +134,23 @@
 ### components/admin/ — Admin Panel
 
 - [ ] T034 [P] [US3] เขียน test สำหรับ Admin dashboard components ใน `frontend/components/admin/` — ครอบ render, data display
-- [ ] T035 [P] [US3] เขียน test สำหรับ AI Admin panel ใน `frontend/components/admin/ai/` — ครอบ model selection, prompt management (ADR-027)
-- [ ] T036 [P] [US3] เขียน test สำหรับ Admin reference management ใน `frontend/components/admin/reference/`
-- [ ] T037 [P] [US3] เขียน test สำหรับ Admin security settings ใน `frontend/components/admin/security/`
+- [x] T035 [P] [US3] เขียน test สำหรับ AI Admin panel ใน `frontend/components/admin/ai/` — ครอบ model selection, prompt management (ADR-027)
+- [x] T036 [P] [US3] เขียน test สำหรับ Admin reference management ใน `frontend/components/admin/reference/`
+- [x] T037 [P] [US3] เขียน test สำหรับ Admin security settings ใน `frontend/components/admin/security/`
 
 ### components/workflow/ — Workflow Engine UI
 
-- [ ] T038 [P] [US3] เขียน test สำหรับ Workflow display components ใน `frontend/components/workflow/` — ครอบ step display, status
-- [ ] T039 [P] [US3] เขียน test สำหรับ Workflow transition buttons — ครอบ disable state, confirmation, submit
+- [x] T038 [P] [US3] เขียน test สำหรับ Workflow display components ใน `frontend/components/workflow/` — ครอบ step display, status
+- [x] T039 [P] [US3] เขียน test สำหรับ Workflow transition buttons — ครอบ disable state, confirmation, submit
 
 ### components/layout/ และ Remaining
 
-- [ ] T040 [P] [US3] เขียน test สำหรับ Layout components ใน `frontend/components/layout/` — ครอบ nav, sidebar, header
-- [ ] T041 [P] [US3] เขียน test สำหรับ Transmittal components ใน `frontend/components/transmittal/`
-- [ ] T042 [P] [US3] เขียน test สำหรับ Circulation components ใน `frontend/components/circulation/`
-- [ ] T043 [P] [US3] เขียน test สำหรับ lib/stores/ — ครอบ state initialization, updates, selectors
-- [ ] T044 [P] [US3] เขียน test สำหรับ lib/utils/ — ครอบ utility functions ทั้งหมด (เป็น pure function ควร coverage 100%)
-- [ ] T045 [P] [US3] เขียน test สำหรับ lib/i18n/ — ครอบ translation loading, fallback
+- [x] T040 [P] [US3] เขียน test สำหรับ Layout components ใน `frontend/components/layout/` — ครอบ nav, sidebar, header
+- [x] T041 [P] [US3] เขียน test สำหรับ Transmittal components ใน `frontend/components/transmittal/`
+- [x] T042 [P] [US3] เขียน test สำหรับ Circulation components ใน `frontend/components/circulation/`
+- [x] T043 [P] [US3] เขียน test สำหรับ lib/stores/ — ครอบ state initialization, updates, selectors
+- [x] T044 [P] [US3] เขียน test สำหรับ lib/utils/ — ครอบ utility functions ทั้งหมด (เป็น pure function ควร coverage 100%)
+- [x] T045 [P] [US3] เขียน test สำหรับ lib/i18n/ — ครอบ translation loading, fallback
 
 **Checkpoint**: รัน `npm run test:coverage` → ยืนยัน Statements ≥ 70% → merge Phase 3 PR
 

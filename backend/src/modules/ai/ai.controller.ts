@@ -11,14 +11,17 @@
 // - 2026-05-30: เพิ่ม @UseInterceptors(FileInterceptor('file')) ใน submitSandboxOcr เพื่อแก้ไขปัญหา BadRequestException (File is required)
 // - 2026-05-30: เพิ่ม endpoints GET/POST/PATCH models และ GET vram/status สำหรับ dynamic AI model management และ VRAM monitoring (T031-T034, US2)
 // - 2026-06-01: [BUGFIX] submitSandboxOcr: เพิ่ม @ApiBearerAuth(), @HttpCode(ACCEPTED), Body({ engineType }) และส่ง engineType ไปยัง enqueueSandboxJob
-// - 2026-06-02: เพิ่ม REST endpoints GET /ai/ocr-engines และ POST /ai/ocr-engines/:engineId/select (T003, T004, ADR-033) และนำเข้า SystemException เพื่อป้องกันความเสียหายในการคอมไพล์
-// - 2026-06-06: [BUGFIX] เพิ่ม @Throttle({ default: { limit: 300, ttl: 60000 } }) บน GET admin/sandbox/job/:id เพื่อแก้ ThrottlerException spam จาก frontend polling
+// - 2026-06-02: เพิ่ม REST endpoints ocr-engines สำหรับ OCR engine management (T003, T004, ADR-033)
+// - 2026-06-06: [BUGFIX] เพิ่ม Throttle บน GET admin/sandbox/job/:id เพื่อแก้ ThrottlerException spam
 // - 2026-06-11: แก้ไขการส่งพารามิเตอร์ให้กับ queueSuggestJob ใน suggestDocumentMetadata
+// - 2026-06-13: T024-T026 — เพิ่ม sandbox parameter endpoints (GET/PUT/POST reset) ตาม ADR-036
+// - 2026-06-13: T036, T037, T039, T040, T041 — เพิ่ม endpoints apply sandbox profile และ get production parameters พร้อม idempotency, CASL, validation และ audit
 // Controller สำหรับ AI Gateway Endpoints (ADR-023)
 
 import {
   Controller,
   Post,
+  Put,
   Get,
   Patch,
   Delete,
@@ -78,6 +81,7 @@ import { RbacGuard } from '../../common/guards/rbac.guard';
 import { ParseUuidPipe } from '../../common/pipes/parse-uuid.pipe';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
+import { Audit } from '../../common/decorators/audit.decorator';
 import { User } from '../user/entities/user.entity';
 import { ServiceAccountGuard } from './guards/service-account.guard';
 import { v7 as uuidv7 } from 'uuid';
@@ -100,6 +104,11 @@ import {
 import { OcrService } from './services/ocr.service';
 import { OcrEngineResponseDto } from './dto/ocr-engine-response.dto';
 import { OcrEngineConfiguration } from './entities/ocr-engine-configuration.entity';
+import { AiPolicyService } from './services/ai-policy.service';
+import {
+  RuntimePolicy,
+  ExecutionProfile,
+} from './interfaces/execution-policy.interface';
 
 @ApiTags('AI Gateway')
 @Controller('ai')
@@ -113,6 +122,7 @@ export class AiController {
     private readonly aiToolRegistryService: AiToolRegistryService,
     private readonly fileStorageService: FileStorageService,
     private readonly migrationCheckpointService: AiMigrationCheckpointService,
+    private readonly aiPolicyService: AiPolicyService,
     @InjectRedis() private readonly redis: Redis,
     @Optional() private readonly ocrService?: OcrService
   ) {}
@@ -489,6 +499,8 @@ export class AiController {
       })
     )
     file: Express.Multer.File,
+    @Body('projectPublicId') projectPublicId: string,
+    @Body('contractPublicId') contractPublicId: string | undefined,
     @CurrentUser() user: User
   ): Promise<{ requestPublicId: string; jobId: string; status: string }> {
     const queueSize = await this.aiQueueService.getBatchQueueSize();
@@ -515,6 +527,8 @@ export class AiController {
       {
         idempotencyKey: requestPublicId,
         pdfPath: attachment.filePath,
+        projectPublicId,
+        contractPublicId,
       }
     );
     return { requestPublicId, jobId, status: 'queued' };
@@ -544,7 +558,7 @@ export class AiController {
         },
         engineType: {
           type: 'string',
-          enum: ['auto', 'tesseract', 'typhoon-np-dms-ocr'],
+          enum: ['auto', 'tesseract', 'np-dms-ocr', 'typhoon-np-dms-ocr'],
           description: 'OCR engine ที่ต้องการใช้ (default: auto)',
         },
         temperature: {
@@ -587,6 +601,7 @@ export class AiController {
     const validEngineTypes = [
       'auto',
       'tesseract',
+      'np-dms-ocr',
       'typhoon-np-dms-ocr',
     ] as const;
     const resolvedEngineType: SandboxOcrEngineType = validEngineTypes.includes(
@@ -627,14 +642,26 @@ export class AiController {
       'รับ requestPublicId จาก Step 1 และ optional promptVersion แล้ว run LLM extraction',
   })
   async submitSandboxAiExtract(
-    @Body() dto: { requestPublicId: string; promptVersion?: number }
+    @Body()
+    dto: {
+      requestPublicId: string;
+      promptVersion?: number;
+      projectPublicId: string;
+      contractPublicId?: string;
+    }
   ): Promise<{ requestPublicId: string; jobId: string; status: string }> {
-    const { requestPublicId, promptVersion } = dto;
+    const {
+      requestPublicId,
+      promptVersion,
+      projectPublicId,
+      contractPublicId,
+    } = dto;
     const jobId = await this.aiQueueService.enqueueSandboxJob(
       'sandbox-ai-extract',
       {
         idempotencyKey: requestPublicId,
-        projectPublicId: 'default', // Sandbox ใช้ default project
+        projectPublicId,
+        contractPublicId,
         extraPayload: { promptVersion },
       }
     );
@@ -1095,5 +1122,170 @@ export class AiController {
       throw new SystemException('OcrService not injected in AiController');
     }
     return this.ocrService.selectOcrEngine(engineId, user.user_id);
+  }
+
+  // ─── Sandbox Parameter Management (ADR-036, T024-T026) ────────────────────
+
+  @Get('sandbox-profiles/:profileName')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @ApiOperation({
+    summary:
+      'Sandbox Parameters — ดึงค่า draft parameters สำหรับ profile (T024)',
+    description:
+      'ดึงค่า sandbox draft ของ profile; ถ้ายังไม่มีจะ seed จาก production ก่อน',
+  })
+  @ApiParam({
+    name: 'profileName',
+    description: 'ชื่อ profile เช่น standard, quality, ocr-extract',
+  })
+  async getSandboxProfile(
+    @Param('profileName') profileName: string
+  ): Promise<RuntimePolicy> {
+    return this.aiPolicyService.getSandboxParameters(profileName);
+  }
+
+  @Put('sandbox-profiles/:profileName')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'Save Sandbox Draft — บันทึก draft parameters สำหรับ profile (T025)',
+    description:
+      'UPSERT sandbox draft parameters สำหรับ profile ที่ระบุ รองรับ partial updates',
+  })
+  @ApiParam({
+    name: 'profileName',
+    description: 'ชื่อ profile เช่น standard, quality, ocr-extract',
+  })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    description: 'Unique key เพื่อป้องกัน duplicate save',
+    required: true,
+  })
+  async saveSandboxProfile(
+    @Param('profileName') profileName: string,
+    @Body()
+    updates: Partial<{
+      temperature: number;
+      topP: number;
+      maxTokens: number | null;
+      numCtx: number | null;
+      repeatPenalty: number;
+      keepAliveSeconds: number;
+      canonicalModel: 'np-dms-ai' | 'np-dms-ocr';
+    }>,
+    @CurrentUser() user: User,
+    @Headers('idempotency-key') idempotencyKey: string
+  ): Promise<RuntimePolicy> {
+    if (!idempotencyKey) {
+      throw new ValidationException('Idempotency-Key header is required');
+    }
+    return this.aiPolicyService.saveSandboxDraft(
+      profileName,
+      updates,
+      user.user_id
+    );
+  }
+
+  @Post('sandbox-profiles/:profileName/reset')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'Reset Sandbox to Production — รีเซ็ต draft ให้ตรงกับ production (T026)',
+    description: 'เขียนทับ sandbox draft ด้วยค่า production profile ปัจจุบัน',
+  })
+  @ApiParam({
+    name: 'profileName',
+    description: 'ชื่อ profile ที่ต้องการ reset',
+  })
+  async resetSandboxProfile(
+    @Param('profileName') profileName: string,
+    @CurrentUser() user: User
+  ): Promise<RuntimePolicy> {
+    return this.aiPolicyService.resetSandboxToProduction(
+      profileName,
+      user.user_id
+    );
+  }
+
+  @Post('profiles/:profileName/apply')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_ai')
+  @HttpCode(HttpStatus.OK)
+  @Audit('APPLY_PROFILE', 'ai_execution_profiles')
+  @ApiOperation({
+    summary:
+      'Apply Sandbox Parameters — ปรับใช้ draft parameters ไปยัง production (T040)',
+    description:
+      'คัดลอกค่า sandbox draft ไปยัง production profile และล้าง Redis cache key',
+  })
+  @ApiParam({
+    name: 'profileName',
+    description: 'ชื่อ profile เช่น standard, quality, ocr-extract',
+  })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    description: 'Unique key เพื่อป้องกัน duplicate apply',
+    required: true,
+  })
+  async applyProfile(
+    @Param('profileName') profileName: string,
+    @CurrentUser() user: User,
+    @Headers('idempotency-key') idempotencyKey: string
+  ): Promise<RuntimePolicy> {
+    if (!idempotencyKey) {
+      throw new ValidationException('Idempotency-Key header is required');
+    }
+    const redisKey = `idempotency:apply-profile:${idempotencyKey}`;
+    const cachedResult = await this.redis.get(redisKey);
+    if (cachedResult) {
+      return JSON.parse(cachedResult) as RuntimePolicy;
+    }
+    const result = await this.aiPolicyService.applyProfile(
+      profileName,
+      user.user_id
+    );
+    await this.redis.set(redisKey, JSON.stringify(result), 'EX', 300);
+    return result;
+  }
+
+  @Get('profiles/:profileName')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @ApiOperation({
+    summary:
+      'Get Production Profile Parameters — ดึงค่า production parameters (T041)',
+    description: 'ดึงค่า production parameters ของ profile ปัจจุบัน',
+  })
+  @ApiParam({
+    name: 'profileName',
+    description: 'ชื่อ profile เช่น standard, quality, ocr-extract',
+  })
+  async getProductionProfile(
+    @Param('profileName') profileName: string
+  ): Promise<RuntimePolicy> {
+    if (profileName === 'ocr-extract') {
+      return this.aiPolicyService.getModelDefaults('np-dms-ocr');
+    }
+    const validProfiles: ExecutionProfile[] = [
+      'interactive',
+      'standard',
+      'quality',
+      'deep-analysis',
+    ];
+    const profile = validProfiles.find((p) => p === profileName);
+    if (!profile) {
+      throw new ValidationException(`Invalid profile name: ${profileName}`);
+    }
+    return this.aiPolicyService.getProfileParameters(profile);
   }
 }

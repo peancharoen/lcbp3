@@ -3,10 +3,10 @@
 ---
 
 **title:** 'LCBP3-DMS Architecture Documentation'
-**version:** 1.9.8
+**version:** 1.9.9
 **status:** active
 **owner:** Nattanin Peancharoen
-**last_updated:** 2026-05-30
+**last_updated:** 2026-06-13
 **related:**
 
 - specs/02-Architecture/02-01-system-context.md
@@ -23,7 +23,7 @@
 2. [Software Architecture & Design](#2-software-architecture--design)
 3. [Network Design & Security](#3-network-design--security)
 4. [API Design & Error Handling](#4-api-design--error-handling)
-5. [AI Architecture (ADR-023/023A/024/025)](#5-ai-architecture-adr-023023a)
+5. [AI Architecture (ADR-023/023A/024/025/034/036)](#5-ai-architecture-adr-023023a)
 6. [Architecture Decision Records (ADRs)](#6-architecture-decision-records-adrs)
 
 ---
@@ -87,6 +87,12 @@ graph TB
 | **Git**      | git              | git.np-dms.work     | Gitea               | Code Repository    |
 | **Cache**    | -                | -                   | Redis               | Caching, Locking   |
 | **Search**   | -                | -                   | Elasticsearch 9.3.4 | Full-text Indexing |
+
+### 1.5.1 Frontend Test Structure
+
+Frontend unit and component tests use Vitest + React Testing Library. Test files follow the live `frontend/vitest.config.ts` include pattern with `*.test.ts` / `*.test.tsx` and are placed in `__tests__` folders beside the covered source where practical.
+
+Current coverage expansion includes admin (`components/admin/**/__tests__`), workflow (`components/workflow/__tests__`), transmittal (`components/transmittal/__tests__`), hooks (`hooks/__tests__`), services (`lib/services/__tests__`), API client (`lib/api/__tests__`), stores (`lib/stores/__tests__`), utils (`lib/utils/__tests__`), common components, and UI components. HTTP-facing code is mocked; no frontend coverage test should call the backend API directly.
 
 ### 1.6 Data Flow & Interactions
 
@@ -455,7 +461,7 @@ throw new BusinessException('Cannot approve correspondence in current status', '
 
 ---
 
-## 5. AI Architecture (ADR-023/023A/024/025)
+## 5. AI Architecture (ADR-023/023A/024/025/034/036)
 
 ### 5.1 AI Integration Architecture
 
@@ -472,8 +478,8 @@ graph TB
     end
 
     subgraph "Admin Desktop (Desk-5439)"
-        Ollama["Ollama Engine<br/>gemma4:e4b Q8_0 + nomic-embed-text"]
-        OCR["PaddleOCR + PyThaiNLP"]
+        Ollama["Ollama Engine<br/>np-dms-ai + np-dms-ocr"]
+        OCR["OCR Sidecar<br/>Typhoon OCR + BGE-M3/Reranker"]
     end
 
     subgraph "Vector Database"
@@ -494,8 +500,8 @@ graph TB
 | ----------------- | ------------------------- | ------------------------------------------------------- |
 | **AI Gateway**    | Backend (NestJS)          | API endpoints, validation, audit logging                |
 | **BullMQ Queues** | Backend (NestJS)          | ai-realtime (RAG/Suggest), ai-batch (OCR/Extract/Embed) |
-| **Ollama Engine** | Admin Desktop (Desk-5439) | gemma4:e4b Q8_0 (LLM) + nomic-embed-text (Embedding)    |
-| **OCR Engine**    | Admin Desktop (Desk-5439) | PaddleOCR + PyThaiNLP (Thai/English text extraction)    |
+| **Ollama Engine** | Admin Desktop (Desk-5439) | `np-dms-ai` (main LLM) + `np-dms-ocr` (OCR model)        |
+| **OCR Sidecar**   | Admin Desktop (Desk-5439) | Typhoon OCR endpoint + BGE-M3 embed + BGE reranker       |
 | **Qdrant**        | QNAP NAS                  | Vector storage with project isolation                   |
 
 ### 5.3 AI Architecture Rules
@@ -509,9 +515,18 @@ graph TB
 
 ### 5.4 2-Model Stack (ADR-023A)
 
-- **gemma4:e4b Q8_0** (~4.0GB VRAM) - Main LLM for classification, tagging, extraction
-- **nomic-embed-text** (~0.3GB VRAM) - Text embedding for RAG
-- **Total VRAM Peak:** ~4.3GB
+- **np-dms-ai** - Main LLM for classification, tagging, extraction, RAG answers
+- **np-dms-ocr** - OCR model through the sidecar, with adaptive residency from ADR-033
+- **BGE-M3 + BGE Reranker** - Retrieval stack served by the OCR sidecar
+
+---
+
+### 5.5 Parameter Governance (ADR-036)
+
+- **Production defaults:** `ai_execution_profiles`, keyed by `profile_name` and `canonical_model`
+- **Sandbox drafts:** `ai_sandbox_profiles`, seeded from production before admin testing
+- **Apply semantics:** draft → production UPSERT + Redis cache invalidation; affects new jobs only
+- **Snapshot semantics:** LLM params use `snapshotParams`; OCR quality params use `ocrSnapshotParams`; `keep_alive` remains lazy per ADR-033
 
 ---
 
@@ -539,6 +554,8 @@ graph TB
 | **ADR-029**  | Dynamic Prompt Management       | ✅ Active | Prompt templates in DB (`ai_prompts`), Redis cache TTL 60s, versioned                  |
 | **ADR-031**  | Hermes Agent & Telegram Bridge  | 📝 Draft  | Optional DevOps Agent with Telegram commands, read-only diagnostics                    |
 | **ADR-032**  | Typhoon OCR Integration         | 📝 Draft  | Typhoon OCR-3B + typhoon2.1-gemma3-4b on Admin Desktop, VRAM monitoring, Redis caching |
+| **ADR-034**  | AI Model Change                 | ✅ Active | Canonical model identities `np-dms-ai` and `np-dms-ocr`                                |
+| **ADR-036**  | Unified OCR Architecture        | 📝 Proposed | Sandbox-production parity for AI/OCR runtime parameters                                |
 
 ### 6.2 ADR References
 
@@ -565,6 +582,7 @@ For detailed architectural decisions, please refer to:
 
 | Version   | Date       | Changes                                                                                                                             |
 | --------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **1.9.9** | 2026-06-13 | Updated AI Architecture for ADR-036 sandbox-production parity and canonical `np-dms-ai`/`np-dms-ocr` model names                    |
 | **1.9.7** | 2026-05-25 | Added ADR-029 Dynamic Prompt Management to ADR table; bumped version/date                                                           |
 | **1.9.5** | 2026-05-22 | Added ADR-024/025/026/027/028 to ADR reference table; updated AI Architecture section heading; schema reference corrected to v1.9.0 |
 | **1.9.2** | 2026-05-18 | Complete restructure following specs/02-Architecture format, added comprehensive diagrams, updated AI Architecture (ADR-023/023A)   |

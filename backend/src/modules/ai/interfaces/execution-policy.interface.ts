@@ -1,6 +1,7 @@
 // File: backend/src/modules/ai/interfaces/execution-policy.interface.ts
 // Change Log:
 // - 2026-06-11: Initial creation of execution policy interfaces for AI runtime policy refactor
+// - 2026-06-13: ADR-036 — เพิ่ม OCR snapshot params และ nullable OCR runtime fields
 
 /**
  * Public job types exposed in API.
@@ -40,10 +41,20 @@ export interface RuntimePolicy {
   canonicalModel: 'np-dms-ai' | 'np-dms-ocr';
   temperature: number;
   topP: number;
-  maxTokens: number;
-  numCtx: number;
+  maxTokens: number | null;
+  numCtx: number | null;
   repeatPenalty: number;
   keepAliveSeconds: number;
+}
+
+/**
+ * OCR quality parameters frozen at dispatch time.
+ * พารามิเตอร์คุณภาพ OCR ที่ snapshot ได้ โดยไม่รวม keep_alive ตาม ADR-033
+ */
+export interface OcrSnapshotParams {
+  temperature: number;
+  topP: number;
+  repeatPenalty: number;
 }
 
 /**
@@ -71,9 +82,10 @@ export interface AiJobPayload {
   snapshotParams: {
     temperature: number;
     topP: number;
-    maxTokens: number;
-    numCtx: number;
+    maxTokens: number | null;
+    numCtx: number | null;
     repeatPenalty: number;
     keepAliveSeconds: number;
   };
+  ocrSnapshotParams?: OcrSnapshotParams;
 }

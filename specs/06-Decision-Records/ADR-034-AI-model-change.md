@@ -37,8 +37,8 @@
 
 | Model | Role | Base Model | Size | Keep-Alive |
 |-------|------|------------|------|------------|
-| `typhoon2.5-np-dms:latest` | Main AI (General + OCR Post-processing + Extraction + RAG Q&A) | `scb10x/typhoon2.5-qwen3-4b:latest` | ~2.5GB | Stand by ตลอด (ไม่ใช่ 0) |
-| `typhoon-np-dms-ocr:latest` | OCR ภาษาไทย | `scb10x/typhoon-ocr1.5-3b:latest` | ~3.2GB | `0` (unload ทันที) |
+| `np-dms-ai:latest` | Main AI (General + OCR Post-processing + Extraction + RAG Q&A) | `scb10x/typhoon2.5-qwen3-4b:latest` | ~2.5GB | Stand by ตลอด (ไม่ใช่ 0) |
+| `np-dms-ocr:latest` | OCR ภาษาไทย | `scb10x/typhoon-ocr1.5-3b:latest` | ~3.2GB | `0` (unload ทันที) |
 
 ### Key Parameters (Main Model)
 
@@ -60,7 +60,7 @@ PARAMETER repeat_penalty 1.15
 
 file: E:\np-dms\lcbp3\specs\04-Infrastructure-OPS\04-00-docker-compose\Desk-5439\typhoon2.5-np-dms.model.md
 ```t
-# ollama create typhoon2.5-np-dms -f ./typhoon2.5-np-dms.model.md
+# ollama create np-dms-ai -f ./np-dms-ai.model.md
 
 FROM scb10x/typhoon2.5-qwen3-4b:latest
 
@@ -92,7 +92,7 @@ Guidelines:
 ---
 file: E:\np-dms\lcbp3\specs\04-Infrastructure-OPS\04-00-docker-compose\Desk-5439\typhoon-np-dms-ocr.model.md
 ```t
-# ollama create typhoon-np-dms-ocr -f ./typhoon-np-dms-ocr.model.md
+# ollama create np-dms-ocr -f ./np-dms-ocr.model.md
 
 # ใส่ชื่อ tag โมเดล 3B ที่คุณต้องการจูนตรงนี้ได้เลย
 FROM scb10x/typhoon-ocr1.5-3b:latest
@@ -143,18 +143,18 @@ async function processJob(job: Job) {
 
   if (jobType === 'ocr-extract') {
     // OCR job: unload main, load OCR, process, unload OCR
-    await ollama.unloadModel('typhoon2.5-np-dms');
-    await ollama.loadModel('typhoon-np-dms-ocr', { keep_alive: 0 });
-    const result = await ollama.generate('typhoon-np-dms-ocr', prompt);
+    await ollama.unloadModel('np-dms-ai');
+    await ollama.loadModel('np-dms-ocr', { keep_alive: 0 });
+    const result = await ollama.generate('np-dms-ocr', prompt);
     // keep_alive: 0 จะ unload อัตโนมัติหลังเสร็จ
 
     // โหลด main model กลับเข้า VRAM สำหรับงานถัดไป
-    await ollama.loadModel('typhoon2.5-np-dms');
+    await ollama.loadModel('np-dms-ai');
     return result;
   }
 
   // Main model jobs: extraction, rag-query, ai-suggest
-  const result = await ollama.generate('typhoon2.5-np-dms', prompt);
+  const result = await ollama.generate('np-dms-ai', prompt);
   return result;
 }
 ```
@@ -173,7 +173,7 @@ async function processJob(job: Job) {
 
 | File | Change |
 |------|--------|
-| `backend/src/modules/ai/services/ai-settings.service.ts` | Hardcode `DEFAULT_MODEL = 'typhoon2.5-np-dms:latest'` |
+| `backend/src/modules/ai/services/ai-settings.service.ts` | Hardcode `DEFAULT_MODEL = 'np-dms-ai:latest'` |
 | `backend/src/modules/ai/services/ollama.service.ts` | เพิ่ม method `unloadModel()` และ `loadModel()` สำหรับ switching |
 | `backend/src/modules/ai/processors/ai-batch.processor.ts` | Implement switching logic ตาม pseudo-code ด้านบน |
 
@@ -188,8 +188,8 @@ async function processJob(job: Job) {
 1. **Desk-5439:** สร้าง custom models บน Ollama
    ```bash
    cd /path/to/model/files
-   ollama create typhoon2.5-np-dms -f ./typhoon2.5-np-dms.model.md
-   ollama create typhoon-np-dms-ocr -f ./typhoon-np-dms-ocr.model.md
+   ollama create np-dms-ai -f ./np-dms-ai.model.md
+   ollama create np-dms-ocr -f ./np-dms-ocr.model.md
    ```
 
 2. **QNAP Backend:** Deploy ด้วย code changes (ADR-033 mechanism ยังคงใช้ได้)
@@ -206,7 +206,7 @@ async function processJob(job: Job) {
 
 หากพบปัญหา:
 1. สร้าง custom model ใหม่จาก base model ตัวอื่น (เช่น กลับไป `gemma4:e2b`)
-2. หรือแก้ไข `typhoon2.5-np-dms.model.md` แล้วสร้าง version ใหม่ (`:v2`)
+2. หรือแก้ไข `np-dms-ai.model.md` แล้วสร้าง version ใหม่ (`:v2`)
 3. Update code ให้ชี้ไป model ใหม่ แล้ว redeploy
 
 ---
@@ -217,7 +217,7 @@ async function processJob(job: Job) {
 |-----|---------|--------|
 | **ADR-023A** | Section 2.1 Model Stack | Superseded by ADR-034 — model config ใช้ค่าจากนี้ |
 | **ADR-033** | VRAM Monitor + Model Switching | ยังใช้ได้ — mechanism เดิม เปลี่ยนแค่ชื่อ model |
-| **ADR-032** | Typhoon OCR Integration | OCR model ถูกแทนที่โดย `typhoon-np-dms-ocr` |
+| **ADR-032** | Typhoon OCR Integration | OCR model ถูกแทนที่โดย `np-dms-ocr` |
 
 ---
 

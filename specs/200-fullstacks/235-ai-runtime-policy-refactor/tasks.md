@@ -127,7 +127,7 @@
 - [x] T029 [US5] สร้าง `backend/src/modules/ai/tests/ai-policy.service.spec.ts` — unit tests ครอบ: `job.type` → `effectiveProfile` mapping ทุก job type, canonical name mapping, forbidden fields rejection (400), audit log มี `effectiveProfile` + `modelUsed` และไม่มี `requestedProfile` (FR-A08)
 - [x] T030 [US5] ~~ExecutionProfileGuard tests — skip~~ แทนที่: เพิ่ม integration test สำหรับ forbidden fields validation ใน `ai.controller.spec.ts` — ตรวจว่า `model.*` และ `executionProfile` ใน payload → 400
 - [x] T031 [P] [US5] สร้าง `backend/src/modules/ai/tests/vram-monitor.service.spec.ts` — unit tests: successful query, Ollama timeout fallback, empty models response
-- [ ] T032 [US5] ทดสอบ manual validation ตาม `quickstart.md` — รัน curl commands ทั้ง Gate 1–4, ตรวจ Admin Console labels, ตรวจ OCR Sandbox behavior; บันทึกผลใน checklist
+- [x] T032 [US5] ทดสอบ manual validation ตาม `quickstart.md` — รัน curl commands ทั้ง Gate 1–4, ตรวจ Admin Console labels, ตรวจ OCR Sandbox behavior; บันทึกผลใน checklist
 - [x] T033 [P] [US5] อัปเดต env template ไฟล์ `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/.env.template` — เพิ่ม `VRAM_HEADROOM_THRESHOLD_MB`, `OCR_RESIDENCY_WINDOW_SECONDS`, `GPU_TOTAL_VRAM_MB`, `GPU_MAIN_MODEL_PRESSURE_THRESHOLD_MB`, `REALTIME_CONCURRENCY`
 - [x] T034 [P] [US5] อัปเดต `backend/.env.example` — เพิ่ม `AI_VRAM_HEADROOM_THRESHOLD_MB`, `AI_GPU_MAIN_MODEL_PRESSURE_THRESHOLD_MB`, `AI_OCR_RESIDENCY_WINDOW_SECONDS`, `AI_REALTIME_CONCURRENCY`
 

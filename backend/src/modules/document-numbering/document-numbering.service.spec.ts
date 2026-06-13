@@ -156,6 +156,17 @@ describe('DocumentNumberingService', () => {
         'Transaction failed'
       );
     });
+
+    it('should throw error when format fails', async () => {
+      (counterService.incrementCounter as jest.Mock).mockResolvedValue(1);
+      (formatService.format as jest.Mock).mockRejectedValue(
+        new Error('Format failed')
+      );
+
+      await expect(service.generateNextNumber(mockContext)).rejects.toThrow(
+        'Format failed'
+      );
+    });
   });
 
   describe('Admin Operations', () => {

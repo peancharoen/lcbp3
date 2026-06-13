@@ -1,0 +1,240 @@
+# Backend API Contracts for Unified AI Model Architecture
+# OpenAPI 3.0 specification for new endpoints
+
+openapi: 3.0.0
+info:
+  title: LCBP3 AI Parameter Management API
+  version: 1.0.0
+  description: API endpoints for sandbox parameter testing and production parameter application
+
+paths:
+  /api/ai/sandbox-profiles/{profileName}:
+    get:
+      summary: Get sandbox parameters for a profile
+      tags:
+        - Sandbox Parameters
+      parameters:
+        - name: profileName
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [interactive, standard, quality, deep-analysis, ocr-extract]
+      responses:
+        '200':
+          description: Sandbox parameters retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SandboxProfile'
+        '404':
+          description: Profile not found
+    put:
+      summary: Save sandbox parameters for a profile
+      tags:
+        - Sandbox Parameters
+      parameters:
+        - name: profileName
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [interactive, standard, quality, deep-analysis, ocr-extract]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SandboxProfileUpdate'
+      responses:
+        '200':
+          description: Sandbox parameters saved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SandboxProfile'
+        '400':
+          description: Validation error
+    post:
+      summary: Reset sandbox parameters to production defaults
+      tags:
+        - Sandbox Parameters
+      parameters:
+        - name: profileName
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [interactive, standard, quality, deep-analysis, ocr-extract]
+      responses:
+        '200':
+          description: Sandbox parameters reset successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SandboxProfile'
+
+  /api/ai/profiles/{profileName}:
+    get:
+      summary: Get production parameters for a profile (read-only)
+      tags:
+        - Production Parameters
+      parameters:
+        - name: profileName
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [interactive, standard, quality, deep-analysis, ocr-extract]
+      responses:
+        '200':
+          description: Production parameters retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductionProfile'
+        '404':
+          description: Profile not found
+    post:
+      summary: Apply sandbox parameters to production
+      tags:
+        - Production Parameters
+      parameters:
+        - name: profileName
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [interactive, standard, quality, deep-analysis, ocr-extract]
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplyProfileRequest'
+      responses:
+        '200':
+          description: Parameters applied successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplyProfileResult'
+        '400':
+          description: Validation error (parameter ranges, etc.)
+        '403':
+          description: Permission denied (CASL)
+        '409':
+          description: Duplicate apply (Idempotency-Key already used)
+
+components:
+  schemas:
+    SandboxProfile:
+      type: object
+      properties:
+        profileName:
+          type: string
+        canonicalModel:
+          type: string
+          enum: [np-dms-ai, np-dms-ocr]
+        temperature:
+          type: number
+          minimum: 0
+          maximum: 1
+        topP:
+          type: number
+          minimum: 0
+          maximum: 1
+        repeatPenalty:
+          type: number
+          minimum: 0
+        numCtx:
+          type: integer
+          nullable: true
+        maxTokens:
+          type: integer
+          nullable: true
+        keepAliveSeconds:
+          type: integer
+          nullable: true
+
+    SandboxProfileUpdate:
+      type: object
+      properties:
+        temperature:
+          type: number
+          minimum: 0
+          maximum: 1
+        topP:
+          type: number
+          minimum: 0
+          maximum: 1
+        repeatPenalty:
+          type: number
+          minimum: 0
+        numCtx:
+          type: integer
+          nullable: true
+        maxTokens:
+          type: integer
+          nullable: true
+        keepAliveSeconds:
+          type: integer
+          nullable: true
+
+    ProductionProfile:
+      type: object
+      properties:
+        profileName:
+          type: string
+        canonicalModel:
+          type: string
+          enum: [np-dms-ai, np-dms-ocr]
+        temperature:
+          type: number
+          minimum: 0
+          maximum: 1
+        topP:
+          type: number
+          minimum: 0
+          maximum: 1
+        repeatPenalty:
+          type: number
+          minimum: 0
+        numCtx:
+          type: integer
+          nullable: true
+        maxTokens:
+          type: integer
+          nullable: true
+        keepAliveSeconds:
+          type: integer
+          nullable: true
+        isActive:
+          type: boolean
+
+    ApplyProfileRequest:
+      type: object
+      properties:
+        canonicalModel:
+          type: string
+          enum: [np-dms-ai, np-dms-ocr]
+
+    ApplyProfileResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        profileName:
+          type: string
+        oldValues:
+          type: object
+        newValues:
+          type: object
+        appliedAt:
+          type: string
+          format: date-time

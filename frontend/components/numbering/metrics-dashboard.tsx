@@ -16,7 +16,7 @@ export function MetricsDashboard() {
         const data = await documentNumberingService.getMetrics();
         setMetrics(data);
       } catch (_error) {
-        // Failed to fetch metrics - handled by loading state
+        setMetrics({});
       } finally {
         setLoading(false);
       }

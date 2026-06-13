@@ -202,3 +202,9 @@ npm run test:cov
 - [ ] ทุก test file มี `// File:` header
 - [ ] ทุก mock data ใช้ `publicId` (UUIDv7) ไม่ใช่ `id` ตัวเลข (ADR-019)
 - [ ] Bug ที่พบระหว่างเขียน test ถูก fix และ commit ใน PR เดียวกัน
+
+### Coverage Run Record
+
+| Date | Command | Test Files | Tests | Statements | Branches | Functions | Lines | Status |
+|------|---------|------------|-------|------------|----------|-----------|-------|--------|
+| 2026-06-14 | `pnpm --filter lcbp3-frontend exec vitest run --coverage` | 92 passed | 692 passed | 51.62% | 41.03% | 50.27% | 52.47% | Phase 2 gate passed (≥50% statements) |

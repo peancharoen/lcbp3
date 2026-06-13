@@ -231,23 +231,32 @@ _Avoid_: Throw exception from tool, Untyped error
 | **Profile-Only Parameter Governance**        | API caller ส่งได้เพียง `Execution Profile`; ค่า temperature, top_p, max tokens และ runtime parameters จริงถูกกำหนดโดย backend policy เท่านั้น                                                            | Caller parameter override, free-form runtime tuning                          |
 | **Integrated Retrieval Acceleration Policy** | การเร่งความเร็ว retrieval เช่น BGE embedding/reranking บน GPU เป็นส่วนหนึ่งของ AI runtime resource policy เดียวกับ main model และ OCR ไม่ใช่งาน optimization แยกอิสระ                                    | Standalone retrieval tuning, separate GPU policy for RAG only                |
 
+## Glossary Updates (from ADR-036)
+
+| Term                            | Definition                                                                                                                                                                                                                                                                                                                | Avoid                                                                    |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| **Apply to Production**         | การกระทำของ admin ที่ copy ค่าจาก **Sandbox Draft Profile** (`ai_sandbox_profiles`) ทับ production row ใน `ai_execution_profiles` (UPSERT + invalidate Redis); systemPrompt → activate version ใน `ai_prompts`; มีผลกับงานที่ submit **หลังจากนั้น** เท่านั้น                                                             | new system_settings param store, lazy-read at process time               |
+| **Sandbox Draft Profile**       | ค่า runtime params ที่ admin ปรับ/ทดสอบ — เก็บแยก persisted ใน `ai_sandbox_profiles` (mirror `ai_execution_profiles` + `profile_name` + `canonical_model`); **seed ค่าตั้งต้นจาก production row** เมื่อยังไม่มี draft หรือกด reset; production **ไม่เห็น** draft จนกว่าจะกด Apply to Production                           | ephemeral override, draft ใน production table, implicit production write |
+| **Production Pipeline Sandbox** | เครื่องมือ admin ที่รัน **เส้นทางประมวลผลเดียวกับ production** (`processMigrateDocument`): OCR → Active Prompt → Master Data context → LLM extraction — ต่างแค่ **ไม่ commit ลง DB**; เพื่อ parity จริงต้องดึง runtime params จาก `ai_execution_profiles` row เดียวกับ production (ห้าม hardcode `num_ctx`/`num_predict`) | OCR Sandbox (สื่อแคบ), OCR test tool, OCR-only sandbox                   |
+| **Tunable Production Defaults** | ค่า runtime params ที่ admin ปรับได้และ production ดึงไปใช้ = row ใน `ai_execution_profiles` (รวม row `ocr-extract` สำหรับ `np-dms-ocr`) ไม่ใช่ store แยก                                                                                                                                                                 | OCR*PRODUCTION_DEFAULTS key, AI_MODEL*\*\_DEFAULTS system_settings       |
+
 ---
 
 ## System readiness summary (resolved)
 
-| Component                     | สถานะ    | หมายเหตุ                                                                                        |
-| :---------------------------- | :------- | :---------------------------------------------------------------------------------------------- |
-| **Infrastructure**            | ✅ พร้อม | NestJS + Next.js + MariaDB + Redis + Elasticsearch                                              |
-| **Workflow Engine**           | ✅ พร้อม | DSL-based, ADR-001/021                                                                          |
-| **AI Boundary**               | ✅ พร้อม | ADR-023A — Ollama isolation, no direct DB access                                                |
-| **RAG Pipeline**              | ✅ พร้อม | Qdrant service ป้องกันการรั่วไหลระหว่างโปรเจกต์                                                 |
-| **Intent Router**             | ✅ พร้อม | ADR-024 Active — Intent Classifier (Pattern→LLM Fallback) ทำงานเสร็จสมบูรณ์                     |
-| **AI Tool Layer**             | ✅ พร้อม | ADR-025 Active — Tool Layer Bridge functions พัฒนาเสร็จสมบูรณ์                                  |
-| **Document Chat UI**          | ✅ พร้อม | ADR-026 Active — แผงควบคุม Side-panel Chat UI พัฒนาเสร็จสมบูรณ์                                 |
-| **AI Admin Console**          | ✅ พร้อม | ADR-027 Active — แผงควบคุม Dynamic prompt & model control                                       |
-| **Dynamic Prompt Mgmt**       | ✅ พร้อม | ADR-029 Active — พัฒนาเสร็จสมบูรณ์ทั้ง Entity, API, Sandbox, Cache และ UI                       |
-| **Active Model & OCR Switch** | ✅ พร้อม | ADR-033 Active — สลับโมเดลแบบ Synchronous, GPU VRAM Auto-release และ API Key sidecar protection |
-| **AI Runtime Policy Refactor**| ✅ พร้อม | Feature-235 — `np-dms-ai`/`np-dms-ocr` canonical names, adaptive OCR residency, CPU fallback retrieval, queue policy (ai-realtime concurrency=2) |
+| Component                      | สถานะ    | หมายเหตุ                                                                                                                                         |
+| :----------------------------- | :------- | :----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Infrastructure**             | ✅ พร้อม | NestJS + Next.js + MariaDB + Redis + Elasticsearch                                                                                               |
+| **Workflow Engine**            | ✅ พร้อม | DSL-based, ADR-001/021                                                                                                                           |
+| **AI Boundary**                | ✅ พร้อม | ADR-023A — Ollama isolation, no direct DB access                                                                                                 |
+| **RAG Pipeline**               | ✅ พร้อม | Qdrant service ป้องกันการรั่วไหลระหว่างโปรเจกต์                                                                                                  |
+| **Intent Router**              | ✅ พร้อม | ADR-024 Active — Intent Classifier (Pattern→LLM Fallback) ทำงานเสร็จสมบูรณ์                                                                      |
+| **AI Tool Layer**              | ✅ พร้อม | ADR-025 Active — Tool Layer Bridge functions พัฒนาเสร็จสมบูรณ์                                                                                   |
+| **Document Chat UI**           | ✅ พร้อม | ADR-026 Active — แผงควบคุม Side-panel Chat UI พัฒนาเสร็จสมบูรณ์                                                                                  |
+| **AI Admin Console**           | ✅ พร้อม | ADR-027 Active — แผงควบคุม Dynamic prompt & model control                                                                                        |
+| **Dynamic Prompt Mgmt**        | ✅ พร้อม | ADR-029 Active — พัฒนาเสร็จสมบูรณ์ทั้ง Entity, API, Sandbox, Cache และ UI                                                                        |
+| **Active Model & OCR Switch**  | ✅ พร้อม | ADR-033 Active — สลับโมเดลแบบ Synchronous, GPU VRAM Auto-release และ API Key sidecar protection                                                  |
+| **AI Runtime Policy Refactor** | ✅ พร้อม | Feature-235 — `np-dms-ai`/`np-dms-ocr` canonical names, adaptive OCR residency, CPU fallback retrieval, queue policy (ai-realtime concurrency=2) |
 
 ## Flagged ambiguities
 
@@ -275,19 +284,33 @@ _Avoid_: Throw exception from tool, Untyped error
 - **"`np-dms-ocr` ควรเดินตาม naming policy เดียวกันไหม"** — resolved: ใช้ **Canonical OCR Identity**; `np-dms-ocr` เป็นชื่อ canonical เดียวทุกชั้นเหมือน `np-dms-ai`
 - **"`temperature/topP/maxTokens` ใครคุม"** — resolved: ใช้ **Profile-Only Parameter Governance**; caller ส่งได้แค่ profile ส่วน runtime parameters จริงให้ backend policy คุมทั้งหมด
 - **"BGE GPU uplift อยู่ใน scope เดียวกันไหม"** — resolved: ใช้ **Integrated Retrieval Acceleration Policy**; retrieval acceleration เป็นส่วนหนึ่งของ runtime resource policy เดียวกัน
+- **"ADR-036 system_settings store ใหม่"** — resolved: **ไม่สร้าง** parallel param store ใน `system_settings`; `ai_execution_profiles` คือ setting store เดิมที่ production ดึงค่าอยู่แล้ว (`getProfileParameters()`) — ADR-036 เป็น **enhance** (เติม write/apply path) ไม่ใช่ supersede Profile-Only Parameter Governance
+- **"ADR-036 systemPrompt เก็บที่ไหน"** — resolved: systemPrompt อยู่ใน `ai_prompts` (**Active Prompt**, ADR-029, versioned, มี `{{ocr_text}}`) เท่านั้น — ห้ามเก็บใน `ai_execution_profiles` หรือ `system_settings`
+- **"ADR-036 OCR tunability"** — resolved: OCR tunable params = **`temperature`/`top_p`/`repeat_penalty`** เท่านั้น (ตรงกับ `OcrTyphoonOptions`) เก็บเป็น row `ocr-extract` ใน `ai_execution_profiles` พร้อมเพิ่ม column `canonical_model`; `num_ctx`/`max_tokens` nullable (OCR ไม่ใช้); **`keep_alive` ไม่ tunable** — ใช้ Adaptive OCR Residency (ADR-033) ดู Gap 2
+- **"ADR-036 read semantics (Apply to Production)"** — resolved: คง **Snapshot semantics** — params ถูกแช่แข็งลง job payload ณ เวลา dispatch (`createJobPayload()`); ค่าที่ admin apply มีผลกับงานใหม่เท่านั้น ไม่แทรกงานที่ค้างคิว (รักษา reproducibility + audit `snapshot_params_json`)
+- **"sandbox draft params เก็บที่ไหน / Apply ทำอะไร"** — resolved: ใช้ **2-layer draft→production** — draft persisted ใน **`ai_sandbox_profiles`** (admin iterate ได้ ไม่กระทบ production); **Apply** = UPSERT draft ทับ row ใน `ai_execution_profiles` + DEL redis cache. production อ่านเฉพาะ `ai_execution_profiles` (ไม่เห็น draft); sandbox pipeline อ่าน draft จาก `ai_sandbox_profiles`
+- **"draft ตั้งต้นมาจากไหน"** — resolved: draft ต้อง **seed จาก production row** (`ai_execution_profiles`) เมื่อยังไม่มี draft หรือเมื่อ admin กด "Reset to Production" — `getSandboxParameters()` ถ้าไม่พบ draft ให้ clone จาก production row แล้ว return (ไม่ fallback ไป hardcoded ก่อน); ทำให้ admin เริ่มจากค่า production จริงแล้วปรับ delta
+- **"OCR params ไปถึง production OCR step อย่างไร (Gap 1)"** — resolved: production `OcrService.processWithTyphoon` ปัจจุบันส่ง sidecar แค่ `engine`+`keep_alive` → ต้อง wire ให้ส่ง `temperature/topP/repeatPenalty` ด้วย (sidecar `/ocr-upload` รับ field พวกนี้อยู่แล้ว `app.py:265-273`); เพิ่ม `typhoonOptions?: OcrTyphoonOptions` ใน `OcrDetectionInput` แล้ว `processMigrateDocument` ส่ง `job.data.ocrSnapshotParams`
+- **"keep_alive tunable หรือ adaptive (Gap 2)"** — resolved: ใช้กฎ **quality params freeze / resource params lazy** — temperature/top_p/repeat/num_ctx/max_tokens แช่แข็ง ณ dispatch; **keep_alive มาจาก `calculateOcrResidency()` (Adaptive OCR Residency, ADR-033) ณ process time** ไม่อยู่ใน OCR tunable set (สอดคล้อง `OcrTyphoonOptions` ที่ไม่มี keep_alive)
+- **"dual-model job snapshot กี่ชุด (Gap 3)"** — resolved: `migrate-document`/`auto-fill-document` ใช้ 2 model (OCR+LLM) → `AiJobPayload` คง `snapshotParams` (LLM, backward-compat) + เพิ่ม **`ocrSnapshotParams?: OcrTyphoonOptions`**; populate เมื่อ pipeline รัน OCR; audit row เดียว `{ ...llm, ocr }`
+- **"ocr-extract เป็น ExecutionProfile ไหม (Gap 4)"** — resolved: **ไม่** — `ocr-extract` เป็น **model-defaults row** (key ด้วย `canonical_model`/`profile_name`) ไม่ใช่สมาชิก `ExecutionProfile` union (คง Canonical Profile Set 4 ตัว); ใช้ accessor `getModelDefaults('np-dms-ocr')` แยกจาก `getProfileParameters(profile)`
+- **"OCR Sandbox คืออะไร"** — resolved: **Production Pipeline Sandbox** — `processSandboxExtract`/`processSandboxAiExtract` รันเส้นเดียวกับ `processMigrateDocument` (OCR → Active Prompt → Master Data → LLM) ต่างแค่ไม่ commit DB; ปัจจุบันมี **parity gap** — sandbox hardcode `{ num_ctx: 16384, num_predict: 4096 }` ส่วน production ใช้ `snapshotParams` จาก profile → ADR-036 ต้องให้ sandbox เลิก hardcode แล้วดึง params จาก **`ai_sandbox_profiles`** (Sandbox Draft Profile, schema เดียวกับ `ai_execution_profiles`) เพื่อให้ admin เห็นผลของค่าที่กำลังปรับก่อนกด Apply; หลัง Apply draft จะเท่ากับ production row
+- **"Master Data context parity (Gap 5)"** — resolved: Sandbox (`processSandboxExtract`/`processSandboxAiExtract`) ปัจจุบัน skip master data context ถ้า `projectPublicId='default'` → ทำให้ prompt content ต่างจาก production. Sandbox UI ต้องให้ admin ระบุ `projectPublicId` (และ `contractPublicId`) จริง; `aiPromptsService.resolveContext` ต้องถูกเรียกด้วย ID จริงเสมอ (ไม่ใช้ `'default'` เพื่อ skip); `aiPromptsService` จะคืนค่า empty context ถ้า project/contract ไม่มี master data
+- **"Apply Guardrails (Gap 6)"** — resolved: Apply to Production เป็น critical config change → ต้องมี guardrails ตาม AGENTS.md: (1) **Idempotency-Key** header mandatory สำหรับ `POST /api/ai/profiles/:profileName/apply` (Redis dedupe 5 นาที); (2) **CASL Guard** `@UseGuards(CaslGuard)` + permission `system.manage_ai`; (3) **Param Validation** class-validator (`@Min(0) @Max(1)` สำหรับ temperature/topP); (4) **Audit Trail** `ai_audit_logs` บันทึก `action='APPLY_PROFILE'`, user, old→new values; (5) **Range Guard** service layer throw `BusinessException` ถ้า out of range
+- **"Entity/Service canonicalModel mapping (Gap 7)"** — resolved: `AiExecutionProfileEntity` ไม่มี mapping `canonical_model` column; `getProfileParameters` (`:125`) hardcode `canonicalModel: 'np-dms-ai'` → ต้องเพิ่ม `@Column({ name: 'canonical_model' })` ใน Entity; แก้ `getProfileParameters` อ่านจาก column แทน hardcode; สร้าง accessor `getModelDefaults(canonicalModel)` สำหรับ query ตาม canonical_model โดยตรง
 
 ## ADRs ที่เกี่ยวข้องกับ AI Runtime Layer
 
-| ADR     | หัวข้อ                             | ตัดสินใจอะไร                                                                | สถานะ       |
-| :------ | :--------------------------------- | :-------------------------------------------------------------------------- | :---------- |
-| ADR-024 | Intent Classification Strategy     | Hybrid: Pattern First → LLM Fallback                                        | ✅ Accepted |
-| ADR-025 | AI Tool Layer Architecture         | Bridge pattern, CASL enforcement, response shape                            | ✅ Accepted |
-| ADR-026 | Document Chat UI Pattern           | Side-panel vs modal vs separate page                                        | ✅ Accepted |
-| ADR-027 | AI Admin Console & Dynamic Control | Admin Panel + dynamic model/prompt/intent control                           | ✅ Accepted |
-| ADR-028 | Migration Architecture Refactor    | Staging Queue & post-migration cleanup                                      | ✅ Active   |
-| ADR-029 | Dynamic Prompt Management          | `ai_prompts` table, versioned OCR extraction prompt                         | ✅ Active   |
-| ADR-032 | Typhoon OCR Integration            | Typhoon OCR-3B + typhoon2.1-gemma3-4b on Admin Desktop                      | ✅ Active   |
-| ADR-033 | Active Model & OCR Management      | Synchronous Model switch, GPU VRAM Auto-release, Sidecar API Key protection | ✅ Active   |
+| ADR     | หัวข้อ                             | ตัดสินใจอะไร                                                                    | สถานะ       |
+| :------ | :--------------------------------- | :------------------------------------------------------------------------------ | :---------- |
+| ADR-024 | Intent Classification Strategy     | Hybrid: Pattern First → LLM Fallback                                            | ✅ Accepted |
+| ADR-025 | AI Tool Layer Architecture         | Bridge pattern, CASL enforcement, response shape                                | ✅ Accepted |
+| ADR-026 | Document Chat UI Pattern           | Side-panel vs modal vs separate page                                            | ✅ Accepted |
+| ADR-027 | AI Admin Console & Dynamic Control | Admin Panel + dynamic model/prompt/intent control                               | ✅ Accepted |
+| ADR-028 | Migration Architecture Refactor    | Staging Queue & post-migration cleanup                                          | ✅ Active   |
+| ADR-029 | Dynamic Prompt Management          | `ai_prompts` table, versioned OCR extraction prompt                             | ✅ Active   |
+| ADR-032 | Typhoon OCR Integration            | Typhoon OCR-3B + typhoon2.1-gemma3-4b on Admin Desktop                          | ✅ Active   |
+| ADR-033 | Active Model & OCR Management      | Synchronous Model switch, GPU VRAM Auto-release, Sidecar API Key protection     | ✅ Active   |
 | ADR-034 | Thai Model Stack                   | typhoon2.5-np-dms:latest (Main) + typhoon-np-dms-ocr:latest (OCR, keep_alive:0) | ✅ Active   |
 
 **หมายเหตุ**: ADR-023A ยังคงเป็น canonical สำหรับ infrastructure — ADR-024/025/026/027 เพิ่ม runtime layer; ADR-028 ปรับ Migration Pipeline; ADR-033 จัดระบบโมเดลและ OCR

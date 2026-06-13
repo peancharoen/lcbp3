@@ -2,6 +2,7 @@
 // Change Log:
 // - 2026-06-03: สร้าง unit test สำหรับ OllamaService ครอบคลุม generate() model option,
 //               getOcrModelName(), และ loadModel() keepAlive param ตาม ADR-034
+// - 2026-06-13: ADR-036 — อัปเดต expected model tags เป็น np-dms-ai/np-dms-ocr
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
@@ -15,8 +16,8 @@ describe('OllamaService (ADR-034)', () => {
   let service: OllamaService;
   const configValues: Record<string, unknown> = {
     OLLAMA_URL: 'http://localhost:11434',
-    OLLAMA_MODEL_MAIN: 'typhoon2.5-np-dms:latest',
-    OLLAMA_MODEL_OCR: 'typhoon-np-dms-ocr:latest',
+    OLLAMA_MODEL_MAIN: 'np-dms-ai:latest',
+    OLLAMA_MODEL_OCR: 'np-dms-ocr:latest',
     OLLAMA_MODEL_EMBED: 'nomic-embed-text',
     AI_TIMEOUT_MS: 30000,
   };
@@ -36,13 +37,13 @@ describe('OllamaService (ADR-034)', () => {
     jest.clearAllMocks();
   });
   describe('getMainModelName()', () => {
-    it('ควรคืน typhoon2.5-np-dms:latest เป็น main model (ADR-034)', () => {
-      expect(service.getMainModelName()).toBe('typhoon2.5-np-dms:latest');
+    it('ควรคืน np-dms-ai:latest เป็น main model (ADR-036)', () => {
+      expect(service.getMainModelName()).toBe('np-dms-ai:latest');
     });
   });
   describe('getOcrModelName()', () => {
-    it('ควรคืน typhoon-np-dms-ocr:latest เป็น OCR model (ADR-034)', () => {
-      expect(service.getOcrModelName()).toBe('typhoon-np-dms-ocr:latest');
+    it('ควรคืน np-dms-ocr:latest เป็น OCR model (ADR-036)', () => {
+      expect(service.getOcrModelName()).toBe('np-dms-ocr:latest');
     });
   });
   describe('generate()', () => {
@@ -53,7 +54,7 @@ describe('OllamaService (ADR-034)', () => {
       await service.generate('test prompt');
       expect(mockedAxios.post).toHaveBeenCalledWith(
         expect.stringContaining('/api/generate'),
-        expect.objectContaining({ model: 'typhoon2.5-np-dms:latest' }),
+        expect.objectContaining({ model: 'np-dms-ai:latest' }),
         expect.anything()
       );
     });
@@ -75,11 +76,11 @@ describe('OllamaService (ADR-034)', () => {
         .fn()
         .mockResolvedValueOnce({ data: { response: 'ocr result' } });
       await service.generate('ocr prompt', {
-        model: 'typhoon-np-dms-ocr:latest',
+        model: 'np-dms-ocr:latest',
       });
       expect(mockedAxios.post).toHaveBeenCalledWith(
         expect.stringContaining('/api/generate'),
-        expect.objectContaining({ model: 'typhoon-np-dms-ocr:latest' }),
+        expect.objectContaining({ model: 'np-dms-ocr:latest' }),
         expect.anything()
       );
     });
@@ -90,14 +91,14 @@ describe('OllamaService (ADR-034)', () => {
         data: {
           models: [
             {
-              name: 'typhoon2.5-np-dms:latest',
-              model: 'typhoon2.5-np-dms:latest',
+              name: 'np-dms-ai:latest',
+              model: 'np-dms-ai:latest',
             },
           ],
         },
       });
       mockedAxios.post = jest.fn().mockResolvedValueOnce({ data: {} });
-      await service.loadModel('typhoon2.5-np-dms:latest');
+      await service.loadModel('np-dms-ai:latest');
       expect(mockedAxios.post).toHaveBeenCalledWith(
         expect.stringContaining('/api/generate'),
         expect.objectContaining({ keep_alive: -1 }),
@@ -109,14 +110,14 @@ describe('OllamaService (ADR-034)', () => {
         data: {
           models: [
             {
-              name: 'typhoon-np-dms-ocr:latest',
-              model: 'typhoon-np-dms-ocr:latest',
+              name: 'np-dms-ocr:latest',
+              model: 'np-dms-ocr:latest',
             },
           ],
         },
       });
       mockedAxios.post = jest.fn().mockResolvedValueOnce({ data: {} });
-      await service.loadModel('typhoon-np-dms-ocr:latest', 0);
+      await service.loadModel('np-dms-ocr:latest', 0);
       expect(mockedAxios.post).toHaveBeenCalledWith(
         expect.stringContaining('/api/generate'),
         expect.objectContaining({ keep_alive: 0 }),
@@ -127,7 +128,7 @@ describe('OllamaService (ADR-034)', () => {
       mockedAxios.get = jest.fn().mockResolvedValueOnce({
         data: { models: [{ name: 'other-model', model: 'other-model' }] },
       });
-      const result = await service.loadModel('typhoon-np-dms-ocr:latest', 0);
+      const result = await service.loadModel('np-dms-ocr:latest', 0);
       expect(result).toBe(false);
       expect(mockedAxios.post).not.toHaveBeenCalled();
     });

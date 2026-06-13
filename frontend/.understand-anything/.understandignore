@@ -1,0 +1,21 @@
+# ยกเว้นไฟล์ทดสอบและ specs
+*.spec.ts
+*.test.ts
+*.spec.tsx
+*.test.tsx
+__tests__/
+tests/
+test/
+
+# ยกเว้น Next.js แคชและไฟล์บิลด์
+.next/
+out/
+build/
+coverage/
+tsconfig.tsbuildinfo
+eslint-frontend.json
+npm-audit-frontend.json
+
+# ยกเว้นโฟลเดอร์มีเดียและโมดูล
+public/
+node_modules/

@@ -2,6 +2,8 @@
 // Change Log
 // - 2026-05-25: Created useAiPrompts unified hook for React Query prompt operations (ADR-029)
 // - 2026-05-25: Added useSandboxRun hook to encapsulate submit + polling logic (Obs #2 fix)
+// - 2026-06-13: US4 — อัปเดต submit ใน useSandboxRun ให้สอดคล้องกับ API signature ใหม่
+
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -144,14 +146,14 @@ export function useSandboxRun(onCompleted?: () => void) {
    * ส่ง PDF file เข้า sandbox queue และเริ่ม polling อัตโนมัติ
    * @returns requestPublicId หรือ throw Error เมื่อล้มเหลว
    */
-  const submit = useCallback(async (file: File): Promise<string> => {
+  const submit = useCallback(async (file: File, projectPublicId: string, contractPublicId?: string): Promise<string> => {
     setState({
       isRunning: true,
       progress: 10,
       statusText: 'ai.prompt.uploading',
       result: null,
     });
-    const response = await adminAiService.submitSandboxExtract(file);
+    const response = await adminAiService.submitSandboxExtract(file, projectPublicId, contractPublicId);
     setJobId(response.requestPublicId);
     return response.requestPublicId;
   }, []);
