@@ -1,3 +1,7 @@
+// File: frontend/lib/services/migration.service.ts
+// Change Log:
+// - 2026-06-13: Add support for direct array response in normalizePaginatedResponse and add file header
+
 import api from '../api/client';
 import {
   MigrationReviewQueueItem,
@@ -35,6 +39,16 @@ const normalizePaginatedResponse = <T>(value: unknown): PaginatedResponse<T> => 
       page: 1,
       limit: 0,
       totalPages: 0,
+    };
+  }
+
+  if (Array.isArray(extracted)) {
+    return {
+      items: extracted as T[],
+      total: extracted.length,
+      page: 1,
+      limit: extracted.length,
+      totalPages: 1,
     };
   }
 
