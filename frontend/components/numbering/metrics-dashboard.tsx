@@ -7,7 +7,7 @@ import { documentNumberingService } from '@/lib/services/document-numbering.serv
 import { NumberingMetrics } from '@/types/dto/numbering.dto';
 
 export function MetricsDashboard() {
-  const [metrics, setMetrics] = useState<Partial<NumberingMetrics>>({});
+  const [metrics, setMetrics] = useState<Partial<NumberingMetrics> | undefined>(undefined);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -16,7 +16,7 @@ export function MetricsDashboard() {
         const data = await documentNumberingService.getMetrics();
         setMetrics(data);
       } catch (_error) {
-        setMetrics({});
+        setMetrics(undefined);
       } finally {
         setLoading(false);
       }
