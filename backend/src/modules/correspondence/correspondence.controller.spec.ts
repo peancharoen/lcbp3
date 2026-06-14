@@ -4,6 +4,7 @@ import { CorrespondenceService } from './correspondence.service';
 import { CorrespondenceWorkflowService } from './correspondence-workflow.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../common/guards/rbac.guard';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 
 describe('CorrespondenceController', () => {
   let controller: CorrespondenceController;
@@ -36,6 +37,13 @@ describe('CorrespondenceController', () => {
         {
           provide: CorrespondenceWorkflowService,
           useValue: mockWorkflowService,
+        },
+        {
+          provide: CACHE_MANAGER,
+          useValue: {
+            get: jest.fn(),
+            set: jest.fn(),
+          },
         },
       ],
     })
