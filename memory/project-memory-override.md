@@ -26,21 +26,21 @@
 
 > การตัดสินใจเหล่านี้ **ไม่สามารถเปลี่ยนแปลงได้** โดยไม่ได้รับ Explicit Approval
 
-| ID  | Decision                                                                                                                                                                                                                                               | ADR         |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------- |
-| D1  | n8n = Migration Phase orchestrator เท่านั้น — ห้ามทำ New Correspondence pipeline ผ่าน n8n                                                                                                                                                              | ADR-023A    |
-| D2  | New Correspondence → BullMQ `ai-realtime` queue โดยตรง (ไม่ผ่าน n8n)                                                                                                                                                                                   | ADR-023A    |
-| D3  | n8n ต้อง call `POST /api/ai/jobs` (DMS Backend) เท่านั้น — ห้าม call Ollama/Qdrant โดยตรง                                                                                                                                                              | ADR-023A    |
-| D4  | Excel metadata ส่งไปพร้อม AI job เป็น context (docNumber, title, sender ฯลฯ)                                                                                                                                                                           | Session 2   |
-| D5  | Tag suggestion ใช้ทาง C: แนะนำ existing tags + สร้างใหม่ได้ถ้าไม่มี (`isNew: true` flag)                                                                                                                                                               | Session 2   |
-| D6  | Editable Review Form: AI pre-fill → user approve/edit → submit (human-in-the-loop ทุกครั้ง)                                                                                                                                                            | ADR-023     |
-| D7  | UUID Strategy: `publicId` (UUIDv7) เท่านั้นสำหรับ Public API — INT PK ต้อง `@Exclude()`                                                                                                                                                                | ADR-019     |
-| D8  | Schema changes: แก้ SQL โดยตรง + เพิ่ม `deltas/*.sql` — ห้ามใช้ TypeORM migration files                                                                                                                                                                | ADR-009     |
-| D9  | Qdrant search ต้องส่ง `projectPublicId` เป็น mandatory parameter ทุกครั้ง (compile-time)                                                                                                                                                               | ADR-023A    |
-| D10 | AI model stack: `np-dms-ai:latest` (Main LLM) + `np-dms-ocr:latest` (OCR, keep_alive:0) + `BGE-M3` (Dense 1024 + Sparse Embedding) + `BGE-Reranker-Large` (Reranker) on Admin Desktop — `nomic-embed-text` ถูกแทนที่แล้ว (ADR-034/035) | ADR-034/035 |
-| D11 | RAG Embedding trigger: `syncStatus()` → `enqueueRagPrepare()` เมื่อ status ≠ DRAFT; jobId = `rag-prepare:{documentPublicId}:{revisionNumber}` (BullMQ dedup); delete-before-upsert ทุกครั้ง                                                            | ADR-035     |
-| D12 | Qdrant collection `lcbp3_vectors` = Hybrid schema: `bge_dense` (1024 dims, Cosine) + `bge_sparse` (SPLADE); payload indexes: `project_public_id` (tenant), `doc_public_id`, `status_code`, `doc_type`                                                  | ADR-035     |
-| D13 | **Analysis Phase required** — ต้องอ่าน `docker-compose*.yml`, `deploy.sh`, `main.ts` ก่อนแนะนำ URL/Port/Path — ห้ามเดา                                                                                                                                 | AGENTS.md   |
+| ID  | Decision                                                                                                                                                                                                                                 | ADR         |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| D1  | n8n = Migration Phase orchestrator เท่านั้น — ห้ามทำ New Correspondence pipeline ผ่าน n8n                                                                                                                                                | ADR-023A    |
+| D2  | New Correspondence → BullMQ `ai-realtime` queue โดยตรง (ไม่ผ่าน n8n)                                                                                                                                                                     | ADR-023A    |
+| D3  | n8n ต้อง call `POST /api/ai/jobs` (DMS Backend) เท่านั้น — ห้าม call Ollama/Qdrant โดยตรง                                                                                                                                                | ADR-023A    |
+| D4  | Excel metadata ส่งไปพร้อม AI job เป็น context (docNumber, title, sender ฯลฯ)                                                                                                                                                             | Session 2   |
+| D5  | Tag suggestion ใช้ทาง C: แนะนำ existing tags + สร้างใหม่ได้ถ้าไม่มี (`isNew: true` flag)                                                                                                                                                 | Session 2   |
+| D6  | Editable Review Form: AI pre-fill → user approve/edit → submit (human-in-the-loop ทุกครั้ง)                                                                                                                                              | ADR-023     |
+| D7  | UUID Strategy: `publicId` (UUIDv7) เท่านั้นสำหรับ Public API — INT PK ต้อง `@Exclude()`                                                                                                                                                  | ADR-019     |
+| D8  | Schema changes: แก้ SQL โดยตรง + เพิ่ม `deltas/*.sql` — ห้ามใช้ TypeORM migration files                                                                                                                                                  | ADR-009     |
+| D9  | Qdrant search ต้องส่ง `projectPublicId` เป็น mandatory parameter ทุกครั้ง (compile-time)                                                                                                                                                 | ADR-023A    |
+| D10 | AI model stack: `np-dms-ai:latest` (Main LLM) + `np-dms-ocr:latest` (OCR, keep_alive:0) + `BGE-M3` (Dense 1024 + Sparse Embedding) + `BGE-Reranker-Large` (Reranker) on Admin Desktop — `nomic-embed-text` ถูกแทนที่แล้ว (ADR-034/035)   | ADR-034/035 |
+| D11 | RAG Embedding trigger: `syncStatus()` → `enqueueRagPrepare()` เมื่อ status ≠ DRAFT; jobId = `rag-prepare:{documentPublicId}:{revisionNumber}` (BullMQ dedup); delete-before-upsert ทุกครั้ง                                              | ADR-035     |
+| D12 | Qdrant collection `lcbp3_vectors` = Hybrid schema: `bge_dense` (1024 dims, Cosine) + `bge_sparse` (SPLADE); payload indexes: `project_public_id` (tenant), `doc_public_id`, `status_code`, `doc_type`                                    | ADR-035     |
+| D13 | **Analysis Phase required** — ต้องอ่าน `docker-compose*.yml`, `deploy.sh`, `main.ts` ก่อนแนะนำ URL/Port/Path — ห้ามเดา                                                                                                                   | AGENTS.md   |
 | D14 | Sandbox-Production Parity: บันทึก draft ใน `ai_sandbox_profiles` และปรับใช้ไป production `ai_execution_profiles` ผ่าน apply API (Idempotency-Key + CASL guard); sandbox pipeline ดึง project/contract ID จริงเพื่อ parity prompt context | ADR-036     |
 
 ## Environment & Services
@@ -88,6 +88,17 @@ QDRANT_URL
 - [ ] เพิ่ม unit test สำหรับ `upsertQueueRecord` ใน `ai-migration-checkpoint.service.spec.ts`
 - [ ] เพิ่ม unit test สำหรับ checksum dedup ใน `file-storage.service.spec.ts`
 
+### Feature-303: Frontend Test Coverage — Phase 2 Gate ✅ PASSED
+
+- [x] **Phase 2 coverage gate:** Statements 51.62% (target ≥ 50%)
+- [x] **Verification:** `pnpm --filter lcbp3-frontend exec tsc --noEmit` ผ่าน
+- [x] **Coverage suite:** `pnpm --filter lcbp3-frontend exec vitest run --coverage` ผ่าน 92 files / 692 tests
+- [x] **New/extended coverage:** auth store, i18n utility, Circulation list, OCR sandbox prompt manager, Layout widgets
+- [x] **Plan/tasks updated:** `specs/300-others/303-frontend-test-coverage/plan.md` และ `tasks.md`
+- [ ] **Remaining:** T034 Admin dashboard components
+- [ ] **Remaining polish:** T050-T053 audit (`any`/`console.log`, publicId mock data, file headers, final coverage record)
+- [ ] **Next target:** Phase 3 Statements ≥ 70%
+
 ### Feature-235: AI Runtime Policy Refactor ✅ COMPLETE
 
 - [x] **Phase 1–8 ทุก task เสร็จครบ** รวม T032 (manual validation ผ่านหมดทุก Gate ที่ test ได้)
@@ -112,3 +123,39 @@ QDRANT_URL
 - [x] **Dual-Model Snapshot:** snapshot params แยกส่วน LLM และ OCR บันทึกลง job payload สำเร็จ
 - [x] **Master Data Parity:** sandbox ดึง project/contract master data สำหรับ prompt context
 - **Branch:** `236-unified-ocr-architecture` — พร้อม merge
+
+### Correspondence Module Review Fixes ✅ COMPLETE
+
+- [x] `throw new Error` → `ValidationException` (ADR-007) + `@Audit` บน `processAction`
+- [x] CSV export: force `limit: 10000` override ใน `exportCsv`
+- [x] `escapeCsv`: กัน OWASP formula injection (`=`, `+`, `-`, `@`, `\t`, `\r`)
+- [x] `bulkCancel`: เพิ่ม `this.logger.warn(...)` ใน catch block
+- [x] `update()` re-index: ใช้ status จาก current revision แทน hardcode `'DRAFT'`
+- [x] `RecipientDto`: เพิ่ม nested validation class + `@ValidateNested({ each: true })`
+- [x] `PUT /:uuid`: แก้ permission → `correspondence.edit` (seed id=73)
+- [x] Idempotency: `@UseInterceptors(IdempotencyInterceptor)` บนทุก 7 mutation endpoints
+- [ ] **Verify:** `pnpm --filter backend build` + ทดสอบ CSV export > 10 rows + Idempotency header
+
+### RFA ADR-001/021 Migration ✅ COMPLETE
+
+- [x] ตัด deprecated `CorrespondenceRouting`/`RoutingTemplate`/`RoutingTemplateStep` repos ออก
+- [x] ตัด `RfaWorkflowService` + entities (`RfaWorkflow`, `RfaWorkflowTemplate`, `RfaWorkflowTemplateStep`) ออกจาก `rfa.module.ts`
+- [x] `submit()` + `processAction()` rewired ผ่าน `workflowEngine.processTransition()`
+- [x] EC-RFA-001 check ย้ายเข้า transaction ด้วย `FOR UPDATE` lock (race-safe)
+- [x] `syncRevisionStatus()` helper: map `STATE_TO_STATUS` — ห้าม hardcode
+- [x] `notifyRecipients()` helper: ADR-008 async notify
+- [x] `findOneByUuid()`: expose ADR-021 workflow fields (`workflowInstanceId`, `workflowState`, `availableActions`)
+- [x] เพิ่ม static constants: `WORKFLOW_CODE = 'RFA_APPROVAL'`, `STATE_TO_STATUS` map, `DEFAULT_APPROVED_CODE = '1A'`
+- [x] ตัด `templateId` ออกจาก `SubmitRfaDto` (backend + frontend) + `detail.tsx` UI + tests
+- [x] **Verify:** `tsc --noEmit` (backend) exit 0
+- [x] **Verify:** 26/26 frontend tests pass (`rfa.service.test.ts` + `detail.test.tsx`)
+
+### Feature-237: Unified Prompt Management UX/UI — Code Review ❌ REQUEST CHANGES
+
+- [x] **Review artifact:** `specs/200-fullstacks/237-unified-prompt-management-ux-ui/code-review-report.md`
+- [x] **Frontend verification:** `pnpm --filter lcbp3-frontend exec tsc --noEmit` ผ่าน
+- [x] **Backend blocker (resolved):** RFA migration เสร็จครบ — `tsc --noEmit` exit 0, `templateId` ตัดออกครบ, static constants เพิ่มครบ (ดู session-2026-06-14-rfa-migration-complete.md)
+- [ ] **Security/data isolation:** แก้ prompt context filter ให้ใช้ public UUID (`projectPublicId`/`contractPublicId`) และ resolve เป็น internal IDs ฝั่ง service ห้าม `Number(uuid)`
+- [ ] **Idempotency:** บังคับ `Idempotency-Key` สำหรับ prompt create/activate/context update และ sandbox RAG prep queueing
+- [ ] **Prompt contract:** sync placeholders ระหว่าง seed SQL, validator, และ replacement logic สำหรับ `rag_query_prompt`, `rag_prep_prompt`, `classification_prompt`
+- [ ] **DTO hardening:** nested validation + `@IsUUID()` + max page size/text length สำหรับ context config และ sandbox RAG prep

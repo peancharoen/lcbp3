@@ -1,6 +1,9 @@
 // File: src/modules/rfa/rfa.service.ts
 // Change Log:
 // - 2026-05-13: Invoke TaskCreationService during submit when a review team is selected.
+// - 2026-06-14: ADR-001/021 migration — submit()/processAction() เดินผ่าน Unified Workflow Engine
+//   (เลิกใช้ RoutingTemplate/CorrespondenceRouting), ตัด templateId, ย้าย notification ออกนอก transaction,
+//   ทำ EC-RFA-001 ให้ race-safe (lock FOR UPDATE), เลิก hardcode approve code.
 
 import { Injectable, Logger } from '@nestjs/common';
 import {
@@ -15,14 +18,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 
 // Entities
-import { CorrespondenceRouting } from '../correspondence/entities/correspondence-routing.entity';
 import { CorrespondenceRecipient } from '../correspondence/entities/correspondence-recipient.entity';
 import { Correspondence } from '../correspondence/entities/correspondence.entity';
 import { CorrespondenceRevision } from '../correspondence/entities/correspondence-revision.entity';
 import { CorrespondenceStatus } from '../correspondence/entities/correspondence-status.entity';
 import { CorrespondenceType } from '../correspondence/entities/correspondence-type.entity';
-import { RoutingTemplate } from '../correspondence/entities/routing-template.entity';
-import { RoutingTemplateStep } from '../correspondence/entities/routing-template-step.entity';
 import { AsBuiltDrawingRevision } from '../drawing/entities/asbuilt-drawing-revision.entity';
 import { ShopDrawingRevision } from '../drawing/entities/shop-drawing-revision.entity';
 import { Discipline } from '../master/entities/discipline.entity';
@@ -49,6 +49,10 @@ type CorrRevWithRfa = CorrespondenceRevision & { rfaRevision?: RfaRevision };
 export interface RfaMapped extends Rfa {
   publicId?: string; // ADR-019: top-level publicId from correspondence
   revisions: CorrRevWithRfa[];
+  // ADR-021: expose Unified Workflow Engine state for IntegratedBanner/WorkflowLifecycle
+  workflowInstanceId?: string;
+  workflowState?: string;
+  availableActions?: string[];
 }
 
 // Interfaces & Enums
@@ -66,6 +70,20 @@ import { TaskCreationService } from '../review-team/services/task-creation.servi
 @Injectable()
 export class RfaService {
   private readonly logger = new Logger(RfaService.name);
+
+  /** ADR-001: รหัส Workflow ที่ลงทะเบียนใน seed DSL */
+  static readonly WORKFLOW_CODE = 'RFA_APPROVAL';
+
+  /** แมป Workflow State → RFA Status Code ตาม seed data */
+  static readonly STATE_TO_STATUS: Record<string, string> = {
+    DRAFT: 'DFT',
+    CONSULTANT_REVIEW: 'FRE',
+    OWNER_REVIEW: 'FAP',
+    APPROVED: 'FCO',
+  };
+
+  /** รหัสอนุมัติเริ่มต้นเมื่อถึงสถานะ Terminal */
+  static readonly DEFAULT_APPROVED_CODE = '1A';
 
   private async hasSystemManageAllPermission(userId: number): Promise<boolean> {
     const permissions = await this.userService.getUserPermissions(userId);
@@ -99,12 +117,6 @@ export class RfaService {
     private asBuiltDrawingRevRepo: Repository<AsBuiltDrawingRevision>,
     @InjectRepository(ShopDrawingRevision)
     private shopDrawingRevRepo: Repository<ShopDrawingRevision>,
-    @InjectRepository(CorrespondenceRouting)
-    private routingRepo: Repository<CorrespondenceRouting>,
-    @InjectRepository(RoutingTemplate)
-    private templateRepo: Repository<RoutingTemplate>,
-    @InjectRepository(RoutingTemplateStep)
-    private templateStepRepo: Repository<RoutingTemplateStep>,
     @InjectRepository(Organization)
     private orgRepo: Repository<Organization>,
 
@@ -274,30 +286,6 @@ export class RfaService {
       );
     }
 
-    // EC-RFA-001: Check for existing active RFA per Shop Drawing Revision
-    if (shopDrawingRevisionIds.length > 0) {
-      const conflictingItems = await this.rfaItemRepo
-        .createQueryBuilder('item')
-        .innerJoin('item.rfaRevision', 'rfaRev')
-        .innerJoin('rfaRev.statusCode', 'status')
-        .where('item.shopDrawingRevisionId IN (:...ids)', {
-          ids: shopDrawingRevisionIds,
-        })
-        .andWhere('status.statusCode NOT IN (:...codes)', {
-          codes: ['CC', 'OBS'],
-        })
-        .getMany();
-
-      if (conflictingItems.length > 0) {
-        throw new BusinessException(
-          'EC_RFA_001_ACTIVE_RFA_EXISTS',
-          '[EC-RFA-001] One or more selected Shop Drawing Revisions already have an active RFA.',
-          'Shop Drawing Revision ที่เลือกมี RFA ที่ยังใช้งานอยู่แล้ว',
-          ['ตรวจสอบ RFA ที่มีอยู่', 'เลือก Shop Drawing Revision อื่น']
-        );
-      }
-    }
-
     // Fetch real Organization Code for document numbering
     const userOrg = await this.orgRepo.findOne({
       where: { id: userOrgId },
@@ -310,7 +298,42 @@ export class RfaService {
     await queryRunner.startTransaction();
 
     try {
+      // EC-RFA-001 (race-safe): ล็อกแถว shop_drawing_revisions ที่เลือกด้วย FOR UPDATE
+      // ภายใน transaction เพื่อ serialize การสร้าง RFA พร้อมกันบน drawing เดียวกัน
+      // จากนั้นค่อยตรวจว่ามี RFA ที่ยัง active อยู่หรือไม่ (กัน TOCTOU)
+      if (shopDrawingRevisionIds.length > 0) {
+        await queryRunner.manager.query(
+          `SELECT id FROM shop_drawing_revisions WHERE id IN (${shopDrawingRevisionIds
+            .map(() => '?')
+            .join(',')}) FOR UPDATE`,
+          shopDrawingRevisionIds
+        );
+
+        const conflictingItems = await queryRunner.manager
+          .createQueryBuilder(RfaItem, 'item')
+          .innerJoin('item.rfaRevision', 'rfaRev')
+          .innerJoin('rfaRev.statusCode', 'status')
+          .where('item.shopDrawingRevisionId IN (:...ids)', {
+            ids: shopDrawingRevisionIds,
+          })
+          .andWhere('status.statusCode NOT IN (:...codes)', {
+            codes: ['CC', 'OBS'],
+          })
+          .getMany();
+
+        if (conflictingItems.length > 0) {
+          throw new BusinessException(
+            'EC_RFA_001_ACTIVE_RFA_EXISTS',
+            '[EC-RFA-001] One or more selected Shop Drawing Revisions already have an active RFA.',
+            'Shop Drawing Revision ที่เลือกมี RFA ที่ยังใช้งานอยู่แล้ว',
+            ['ตรวจสอบ RFA ที่มีอยู่', 'เลือก Shop Drawing Revision อื่น']
+          );
+        }
+      }
+
       // [UPDATED] Generate Document Number with Discipline
+      // ADR-002: generateNextNumber ใช้ transaction ของตัวเอง (Redlock + optimistic counter)
+      // จึงรับประกัน "ไม่ซ้ำ" แต่ "อาจมี gap" ได้หาก transaction นี้ rollback — ยอมรับได้ตาม ADR-002
       const docNumber = await this.numberingService.generateNextNumber({
         projectId: internalProjectId,
         originatorOrganizationId: userOrgId,
@@ -443,11 +466,13 @@ export class RfaService {
 
       await queryRunner.commitTransaction();
 
-      // [NEW V1.5.1] Start Unified Workflow Instance
+      // [NEW V1.5.1] Start Unified Workflow Instance (ADR-001)
       // [C2 FIX] Drawing types (DDW/SDW/ADW) are RFA subtypes — all use RFA_APPROVAL
+      // Instance ถูกสร้างใน state DRAFT; submit() จะ transition 'SUBMIT' ต่อ
+      // หาก createInstance ล้มเหลว → log error (ไม่ fatal); submit() จะ self-heal สร้าง instance ให้
       try {
         await this.workflowEngine.createInstance(
-          'RFA_APPROVAL',
+          RfaService.WORKFLOW_CODE,
           'rfa',
           savedRfa.id.toString(),
           {
@@ -459,8 +484,8 @@ export class RfaService {
           }
         );
       } catch (error: unknown) {
-        this.logger.warn(
-          `Workflow not started for ${docNumber.number}: ${(error as Error).message}`
+        this.logger.error(
+          `Workflow instance not started for ${docNumber.number} (will self-heal on submit): ${(error as Error).message}`
         );
       }
 
@@ -494,8 +519,6 @@ export class RfaService {
       await queryRunner.release();
     }
   }
-
-  // ... (ส่วน findOne, submit, processAction คงเดิมจากไฟล์ที่แนบมา แค่ปรับปรุงเล็กน้อยตาม Context) ...
 
   async findAll(query: SearchRfaDto, _user?: User) {
     const {
@@ -552,11 +575,25 @@ export class RfaService {
     }
 
     // RBAC: DFT documents are visible only to the originator org (spec §3.3.10)
-    if (_user?.primaryOrganizationId) {
-      queryBuilder.andWhere(
-        '(rfaRev.id IS NULL OR status.statusCode != :dftCode OR corr.originatorId = :userOrgId)',
-        { dftCode: 'DFT', userOrgId: _user.primaryOrganizationId }
+    // ผู้มีสิทธิ์ system.manage_all เห็นทุก DFT; ผู้อื่นเห็นเฉพาะของ org ตน
+    // ผู้ที่ไม่มี org และไม่มีสิทธิ์ manage_all → ไม่เห็น DFT เลย (กัน data leak)
+    if (_user) {
+      const canViewAllDft = await this.hasSystemManageAllPermission(
+        _user.user_id
       );
+      if (!canViewAllDft) {
+        if (_user.primaryOrganizationId) {
+          queryBuilder.andWhere(
+            '(rfaRev.id IS NULL OR status.statusCode != :dftCode OR corr.originatorId = :userOrgId)',
+            { dftCode: 'DFT', userOrgId: _user.primaryOrganizationId }
+          );
+        } else {
+          queryBuilder.andWhere(
+            '(rfaRev.id IS NULL OR status.statusCode != :dftCode)',
+            { dftCode: 'DFT' }
+          );
+        }
+      }
     }
 
     const [items, total] = await queryBuilder
@@ -599,7 +636,7 @@ export class RfaService {
    * ADR-019: Find RFA by the parent Correspondence publicId (public identifier).
    * Resolves correspondence.publicId → internal rfa.id
    */
-  async findOneByUuid(publicId: string) {
+  async findOneByUuid(publicId: string): Promise<RfaMapped> {
     const correspondence = await this.correspondenceRepo.findOne({
       where: { publicId },
       select: ['id'],
@@ -607,7 +644,17 @@ export class RfaService {
     if (!correspondence) {
       throw new NotFoundException('RFA', publicId);
     }
-    return this.findOne(correspondence.id);
+    const mapped = (await this.findOne(correspondence.id)) as RfaMapped;
+
+    // ADR-021: ดึง Workflow Instance (nullable — DRAFT ที่ยังไม่เริ่ม submit ก็มี instance DRAFT)
+    const wfInstance = await this.workflowEngine.getInstanceByEntity(
+      'rfa',
+      correspondence.id.toString()
+    );
+    mapped.workflowInstanceId = wfInstance?.id;
+    mapped.workflowState = wfInstance?.currentState;
+    mapped.availableActions = wfInstance?.availableActions ?? [];
+    return mapped;
   }
 
   async findOneByUuidRaw(publicId: string) {
@@ -668,11 +715,16 @@ export class RfaService {
     return mappedRfa;
   }
 
+  /**
+   * Submit RFA เข้า Unified Workflow Engine (ADR-001)
+   * - ใช้ Workflow Instance ที่สร้างไว้ตอน create() (state DRAFT); ถ้าไม่มีจะ self-heal
+   * - Engine จัดการ Redlock + pessimistic lock + version CAS ป้องกัน double-submit
+   */
   async submit(
     rfaId: number,
-    templateId: number,
     user: User,
-    reviewTeamPublicId?: string
+    reviewTeamPublicId?: string,
+    roles: string[] = []
   ) {
     const rfa = await this.findOne(rfaId, true);
     const corrRevisions =
@@ -692,109 +744,93 @@ export class RfaService {
       );
     }
 
-    const template = await this.templateRepo.findOne({
-      where: { id: templateId },
-      // relations: ['steps'], // Deprecated relation removed
-    });
-
-    if (!template) {
-      throw new BusinessException(
-        'ROUTING_TEMPLATE_NOT_FOUND',
-        'Invalid routing template',
-        'ไม่พบ Routing Template ที่กำหนด',
-        ['ตรวจสอบ Routing Template ที่ตั้งค่าไว้']
+    // ADR-001: หา Workflow Instance ที่สร้างไว้ตอน create() — ถ้าไม่มีให้ self-heal
+    let instance = await this.workflowEngine.getInstanceByEntity(
+      'rfa',
+      rfaId.toString()
+    );
+    if (instance && instance.currentState !== 'DRAFT') {
+      throw new WorkflowException(
+        'RFA_ALREADY_SUBMITTED',
+        `RFA already submitted (state: ${instance.currentState})`,
+        'RFA นี้ถูกส่งเข้า Workflow ไปแล้ว',
+        ['รีเฟรชหน้าเพื่อดูสถานะล่าสุด']
       );
     }
-
-    // Manual fetch of steps
-    const steps = await this.templateStepRepo.find({
-      where: { templateId: template.id },
-      order: { sequence: 'ASC' },
-    });
-
-    if (steps.length === 0) {
-      throw new BusinessException(
-        'ROUTING_TEMPLATE_EMPTY',
-        'Routing template has no steps',
-        'Routing Template ไม่มีขั้นตอนกำหนดไว้',
-        ['เพิ่ม Step ใน Routing Template']
+    if (!instance) {
+      const created = await this.workflowEngine.createInstance(
+        RfaService.WORKFLOW_CODE,
+        'rfa',
+        rfaId.toString(),
+        {
+          projectId: rfa.correspondence.projectId,
+          originatorId: rfa.correspondence.originatorId,
+          disciplineId: rfa.correspondence.disciplineId,
+          initiatorId: user.user_id,
+        }
       );
+      instance = {
+        id: created.id,
+        currentState: created.currentState,
+        availableActions: [],
+      };
     }
 
-    const statusForApprove = await this.rfaStatusRepo.findOne({
-      where: { statusCode: 'FAP' },
-    });
-    if (!statusForApprove)
-      throw new SystemException('Status FAP not found in Master Data');
+    // ADR-001: transition 'SUBMIT' (DSL ต้องการ role CONTRACTOR ผ่าน context.roles)
+    const result = await this.workflowEngine.processTransition(
+      instance.id,
+      'SUBMIT',
+      user.user_id,
+      'RFA Submitted',
+      { roles },
+      undefined,
+      user.publicId
+    );
 
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+    // Sync สถานะ RFA Revision ตาม state ใหม่ (เช่น CONSULTANT_REVIEW → FRE)
+    await this.syncRevisionStatus(currentRfaRev, result.nextState);
+    currentCorrRev.issuedDate = new Date();
+    await this.corrRevRepo.save(currentCorrRev);
 
-    try {
-      // Update Revision Status
-      currentRfaRev.rfaStatusCodeId = statusForApprove.id;
-      currentCorrRev.issuedDate = new Date();
-      await queryRunner.manager.save(currentRfaRev);
-      await queryRunner.manager.save(currentCorrRev);
-
-      // Create First Routing Step
-      const firstStep = steps[0];
-      const routing = queryRunner.manager.create(CorrespondenceRouting, {
-        correspondenceId: rfa.correspondence.id, // ✅ Use master correspondence id
-        templateId: template.id,
-        sequence: 1,
-        fromOrganizationId: user.primaryOrganizationId,
-        toOrganizationId: firstStep.toOrganizationId,
-        stepPurpose: firstStep.stepPurpose,
-        status: 'SENT',
-        dueDate: new Date(
-          Date.now() + (firstStep.expectedDays || 7) * 24 * 60 * 60 * 1000
-        ),
-        processedByUserId: user.user_id,
-        processedAt: new Date(),
-      });
-      await queryRunner.manager.save(routing);
-
-      if (reviewTeamPublicId) {
+    // FR-003: สร้าง Parallel Review Tasks (ถ้าเลือก Review Team) — transaction ของตัวเอง
+    if (reviewTeamPublicId) {
+      await this.dataSource.transaction(async (manager) => {
         await this.taskCreationService.createParallelTasks(
           currentRfaRev.id,
           currentCorrRev.publicId, // ADR-019: Pass UUID
           reviewTeamPublicId,
-          routing.dueDate ?? new Date(),
-          queryRunner.manager,
+          currentCorrRev.dueDate ?? new Date(),
+          manager,
           rfa.correspondence.projectId,
           rfa.rfaType.typeCode
         );
-      }
-
-      // Notify
-      const recipientUserId = await this.userService.findDocControlIdByOrg(
-        firstStep.toOrganizationId
-      );
-      if (recipientUserId) {
-        await this.notificationService.send({
-          userId: recipientUserId,
-          title: `RFA Submitted: ${currentCorrRev.subject}`,
-          message: `RFA ${rfa.correspondence.correspondenceNumber} submitted for approval.`,
-          type: 'SYSTEM',
-          entityType: 'rfa',
-          entityId: rfa.id,
-        });
-      }
-
-      await queryRunner.commitTransaction();
-      return { message: 'RFA Submitted successfully', routing };
-    } catch (err) {
-      await queryRunner.rollbackTransaction();
-      throw err;
-    } finally {
-      await queryRunner.release();
+      });
     }
+
+    // ADR-008: แจ้งเตือนแบบ fire-and-forget หลังทุกอย่างสำเร็จ (ไม่ค้างใน transaction)
+    void this.notifyRecipients(
+      rfa.correspondence.id,
+      rfa.correspondence.correspondenceNumber,
+      currentCorrRev.subject
+    ).catch((err: unknown) =>
+      this.logger.warn(
+        `RFA submit notification failed: ${err instanceof Error ? err.message : String(err)}`
+      )
+    );
+
+    return { instanceId: instance.id, currentState: result.nextState };
   }
 
-  async processAction(rfaId: number, dto: WorkflowActionDto, user: User) {
-    // Logic คงเดิม: หา Current Routing -> Check Permission -> Call Workflow Engine -> Update DB
+  /**
+   * ดำเนินการ Workflow Action (APPROVE/REJECT) ผ่าน Unified Workflow Engine (ADR-001)
+   * Engine จัดการ pessimistic lock + version CAS ป้องกัน double-approval / TOCTOU
+   */
+  async processAction(
+    rfaId: number,
+    dto: WorkflowActionDto,
+    user: User,
+    roles: string[] = []
+  ) {
     const rfa = await this.findOne(rfaId, true);
     const corrRevisions =
       (rfa.correspondence?.revisions as CorrRevWithRfa[] | undefined) ?? [];
@@ -804,118 +840,107 @@ export class RfaService {
 
     const currentRfaRev = currentCorrRev.rfaRevision;
 
-    const currentRouting = await this.routingRepo.findOne({
-      where: {
-        correspondenceId: rfa.correspondence.id, // ✅ Use master correspondence id
-        status: 'SENT',
-      },
-      order: { sequence: 'DESC' },
-      relations: ['toOrganization'],
-    });
-
-    if (!currentRouting)
+    const instance = await this.workflowEngine.getInstanceByEntity(
+      'rfa',
+      rfaId.toString()
+    );
+    if (!instance) {
       throw new WorkflowException(
         'NO_ACTIVE_WORKFLOW_STEP',
-        'No active workflow step found',
-        'ไม่พบขั้นตอน Workflow ที่ยังเปิดอยู่',
+        'No active workflow instance found',
+        'ไม่พบ Workflow ที่ยังเปิดอยู่',
         ['ตรวจสอบสถานะ Workflow ของเอกสาร']
       );
-    if (currentRouting.toOrganizationId !== user.primaryOrganizationId) {
-      throw new PermissionException('rfa workflow step', 'process');
     }
 
-    const template = await this.templateRepo.findOne({
-      where: { id: currentRouting.templateId },
-      // relations: ['steps'],
-    });
+    const approveCodeStr =
+      typeof dto.payload?.approveCode === 'string'
+        ? dto.payload.approveCode
+        : undefined;
 
-    if (!template)
-      throw new SystemException(
-        'Routing Template not found for workflow processing'
-      );
-
-    // Manual fetch steps
-    const steps = await this.templateStepRepo.find({
-      where: { templateId: template.id },
-      order: { sequence: 'ASC' },
-    });
-
-    if (steps.length === 0)
-      throw new SystemException('Routing Template steps not found');
-
-    // Call Engine to calculate next step
-    const result = this.workflowEngine.processAction(
-      currentRouting.sequence,
-      steps.length,
+    const result = await this.workflowEngine.processTransition(
+      instance.id,
       dto.action,
-      dto.returnToSequence
+      user.user_id,
+      dto.comment ?? dto.comments,
+      { roles, approveCode: approveCodeStr },
+      undefined,
+      user.publicId
     );
 
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+    // Sync RFA Revision status + approve code ตาม state ใหม่
+    await this.syncRevisionStatus(
+      currentRfaRev,
+      result.nextState,
+      dto.action === WorkflowAction.REJECT ? undefined : approveCodeStr,
+      result.isCompleted
+    );
 
-    try {
-      // Update current routing
-      currentRouting.status =
-        dto.action === WorkflowAction.REJECT ? 'REJECTED' : 'ACTIONED';
-      currentRouting.processedByUserId = user.user_id;
-      currentRouting.processedAt = new Date();
-      currentRouting.comments = dto.comments;
-      await queryRunner.manager.save(currentRouting);
+    return { message: 'Action processed', result };
+  }
 
-      // Create next routing if available
-      if (result.nextStepSequence && dto.action !== WorkflowAction.REJECT) {
-        const nextStep = steps.find(
-          (s) => s.sequence === result.nextStepSequence
-        );
-        if (nextStep) {
-          const nextRouting = queryRunner.manager.create(
-            CorrespondenceRouting,
-            {
-              correspondenceId: rfa.correspondence.id, // ✅ Use master correspondence id
-              templateId: template.id,
-              sequence: result.nextStepSequence,
-              fromOrganizationId: user.primaryOrganizationId,
-              toOrganizationId: nextStep.toOrganizationId,
-              stepPurpose: nextStep.stepPurpose,
-              status: 'SENT',
-              dueDate: new Date(
-                Date.now() + (nextStep.expectedDays || 7) * 24 * 60 * 60 * 1000
-              ),
-            }
-          );
-          await queryRunner.manager.save(nextRouting);
-        }
-      } else if (result.nextStepSequence === null) {
-        // Workflow Ended (Completed or Rejected)
-        // Update RFA Status (Approved/Rejected Code)
-        if (dto.action !== WorkflowAction.REJECT) {
-          const approveCode = await this.rfaApproveRepo.findOne({
-            where: {
-              approveCode: dto.action === WorkflowAction.APPROVE ? '1A' : '4X',
-            },
-          }); // Logic Map Code อย่างง่าย
-          if (approveCode) {
-            currentRfaRev.rfaApproveCodeId = approveCode.id;
-            currentRfaRev.approvedDate = new Date();
-          }
-        } else {
-          const rejectCode = await this.rfaApproveRepo.findOne({
-            where: { approveCode: '4X' },
-          });
-          if (rejectCode) currentRfaRev.rfaApproveCodeId = rejectCode.id;
-        }
-        await queryRunner.manager.save(currentRfaRev);
+  /**
+   * Helper: Map Workflow State → RFA Status Code (+ Approve Code เมื่อถึง Terminal) แล้วบันทึก
+   * เลิก hardcode magic string — ใช้ STATE_TO_STATUS map + payload override
+   */
+  private async syncRevisionStatus(
+    revision: RfaRevision,
+    workflowState: string,
+    approveCodeStr?: string,
+    isTerminalApproved = false
+  ): Promise<void> {
+    const targetStatusCode = RfaService.STATE_TO_STATUS[workflowState] ?? 'DFT';
+    const status = await this.rfaStatusRepo.findOne({
+      where: { statusCode: targetStatusCode },
+    });
+    if (status) {
+      revision.rfaStatusCodeId = status.id;
+    }
+
+    if (isTerminalApproved) {
+      const codeToUse = approveCodeStr ?? RfaService.DEFAULT_APPROVED_CODE;
+      const approveCode = await this.rfaApproveRepo.findOne({
+        where: { approveCode: codeToUse },
+      });
+      if (approveCode) {
+        revision.rfaApproveCodeId = approveCode.id;
+        revision.approvedDate = new Date();
       }
+    }
 
-      await queryRunner.commitTransaction();
-      return { message: 'Action processed', result };
-    } catch (err) {
-      await queryRunner.rollbackTransaction();
-      throw err;
-    } finally {
-      await queryRunner.release();
+    await this.rfaRevisionRepo.save(revision);
+    this.logger.log(
+      `Synced RFA Revision ${revision.id}: state=${workflowState} → status=${targetStatusCode}`
+    );
+  }
+
+  /**
+   * ADR-008: แจ้งเตือน Document Controller ของ org ผู้รับ (TO) แบบ async
+   * เรียกหลัง transaction สำเร็จเท่านั้น (ห้ามค้างใน request transaction)
+   */
+  private async notifyRecipients(
+    correspondenceId: number,
+    correspondenceNumber: string,
+    subject?: string
+  ): Promise<void> {
+    const recipients = await this.dataSource.manager.find(
+      CorrespondenceRecipient,
+      { where: { correspondenceId, recipientType: 'TO' } }
+    );
+    for (const r of recipients) {
+      const targetUserId = await this.userService.findDocControlIdByOrg(
+        r.recipientOrganizationId
+      );
+      if (targetUserId) {
+        await this.notificationService.send({
+          userId: targetUserId,
+          title: `RFA Submitted: ${subject ?? correspondenceNumber}`,
+          message: `RFA ${correspondenceNumber} submitted for approval.`,
+          type: 'SYSTEM',
+          entityType: 'rfa',
+          entityId: correspondenceId,
+        });
+      }
     }
   }
 

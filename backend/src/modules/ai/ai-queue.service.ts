@@ -4,6 +4,7 @@
 // - 2026-05-14: เพิ่ม JSDoc idempotency contract สำหรับทุก enqueue method (💡 S3).
 // - 2026-05-21: เพิ่มการลงทะเบียน QUEUE_AI_BATCH และ enqueueSandboxJob สำหรับ Superadmin sandbox.
 // - 2026-05-21: แก้ไข ESLint error โดยการเปลี่ยน Queue<any> เป็น Queue<unknown> สำหรับ batchQueue
+// - 2026-06-14: เพิ่ม sandbox-rag-prep ใน enqueueSandboxJob (T039)
 import { Injectable } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue, JobsOptions } from 'bullmq';
@@ -122,7 +123,8 @@ export class AiQueueService {
       | 'sandbox-rag'
       | 'sandbox-extract'
       | 'sandbox-ocr-only'
-      | 'sandbox-ai-extract',
+      | 'sandbox-ai-extract'
+      | 'sandbox-rag-prep',
     payload: {
       idempotencyKey: string;
       projectPublicId?: string;

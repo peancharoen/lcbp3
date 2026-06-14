@@ -223,11 +223,41 @@ describe('AiPromptsService', () => {
     });
   });
   describe('create', () => {
-    it('ควรปฏิเสธ template ที่ไม่มี {{ocr_text}} placeholder', async () => {
+    it('ควรปฏิเสธ template ที่ไม่มี {{ocr_text}} placeholder สำหรับ ocr_extraction', async () => {
       await expect(
         service.create(
           'ocr_extraction',
           { template: 'Invalid prompt structure' },
+          1
+        )
+      ).rejects.toThrow(ValidationException);
+    });
+    it('ควรปฏิเสธ template ที่ไม่มี {{query}} หรือ {{context}} placeholder สำหรับ rag_query_prompt', async () => {
+      await expect(
+        service.create(
+          'rag_query_prompt',
+          { template: 'Invalid template context' },
+          1
+        )
+      ).rejects.toThrow(ValidationException);
+      await expect(
+        service.create(
+          'rag_query_prompt',
+          { template: 'Invalid template query {{query}}' },
+          1
+        )
+      ).rejects.toThrow(ValidationException);
+    });
+    it('ควรปฏิเสธ template ที่ไม่มี {{text}} placeholder สำหรับ rag_prep_prompt', async () => {
+      await expect(
+        service.create('rag_prep_prompt', { template: 'Invalid template' }, 1)
+      ).rejects.toThrow(ValidationException);
+    });
+    it('ควรปฏิเสธ template ที่ไม่มี {{document_text}} placeholder สำหรับ classification_prompt', async () => {
+      await expect(
+        service.create(
+          'classification_prompt',
+          { template: 'Invalid template' },
           1
         )
       ).rejects.toThrow(ValidationException);
@@ -361,6 +391,86 @@ describe('AiPromptsService', () => {
       const result = await service.getActive('ocr_extraction');
       expect(result).toEqual(dbPrompt);
       expect(mockAiPromptRepo.findOne).toHaveBeenCalled();
+    });
+  });
+
+  describe('contextConfig CRUD', () => {
+    it('ควร getContextConfig สำเร็จ', async () => {
+      const prompt = {
+        id: 1,
+        promptType: 'ocr_extraction',
+        versionNumber: 1,
+        contextConfig: {
+          pageSize: 5,
+          language: 'th',
+          outputLanguage: 'th',
+          filter: null,
+        },
+      };
+      mockAiPromptRepo.findOne.mockResolvedValue(prompt);
+      const result = await service.getContextConfig('ocr_extraction', 1);
+      expect(result).toEqual(prompt.contextConfig);
+    });
+
+    it('ควรโยน NotFoundException เมื่อ getContextConfig ไม่พบเวอร์ชัน', async () => {
+      mockAiPromptRepo.findOne.mockResolvedValue(null);
+      await expect(
+        service.getContextConfig('ocr_extraction', 99)
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('ควร updateContextConfig สำเร็จและตรวจสอบโครงการ/สัญญาสำเร็จ', async () => {
+      const prompt = {
+        id: 1,
+        promptType: 'ocr_extraction',
+        versionNumber: 1,
+        contextConfig: null,
+      };
+      mockAiPromptRepo.findOne.mockResolvedValue(prompt);
+      mockAiPromptRepo.save.mockResolvedValue({
+        ...prompt,
+        contextConfig: {
+          pageSize: 5,
+          language: 'th',
+          outputLanguage: 'th',
+          filter: { projectId: 'p-1', contractId: 'c-1' },
+        },
+      });
+
+      // จำลองให้โครงการและสัญญาถูกต้องใน DB
+      mockQueryBuilder.getRawOne
+        .mockResolvedValueOnce({ id: 10 }) // project check
+        .mockResolvedValueOnce({ id: 20 }); // contract check
+
+      const result = await service.updateContextConfig('ocr_extraction', 1, {
+        pageSize: 5,
+        language: 'th',
+        outputLanguage: 'th',
+        filter: { projectId: 'p-1', contractId: 'c-1' },
+      });
+
+      expect(result.pageSize).toBe(5);
+      expect(mockAiPromptRepo.save).toHaveBeenCalled();
+    });
+
+    it('ควรโยน NotFoundException เมื่อ updateContextConfig ส่ง project UUID ที่ไม่มีอยู่ใน DB', async () => {
+      const prompt = {
+        id: 1,
+        promptType: 'ocr_extraction',
+        versionNumber: 1,
+        contextConfig: null,
+      };
+      mockAiPromptRepo.findOne.mockResolvedValue(prompt);
+      mockQueryBuilder.getRawOne.mockResolvedValueOnce(null); // project not found
+
+      await expect(
+        service.updateContextConfig('ocr_extraction', 1, {
+          pageSize: 5,
+          language: 'th',
+          outputLanguage: 'th',
+          filter: { projectId: 'invalid-proj-uuid', contractId: null },
+        })
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

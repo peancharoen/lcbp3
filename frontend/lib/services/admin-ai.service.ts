@@ -1,5 +1,6 @@
 // File: lib/services/admin-ai.service.ts
 // Change Log
+// - 2026-06-14: เพิ่ม methods สำหรับจัดการ Prompt Versions และ RAG Prep Sandbox (T020, T030, T039)
 // - 2026-05-21: เพิ่ม service สำหรับ AI Admin Console toggle API.
 // - 2026-05-21: เพิ่ม service method `getHealth` สำหรับดึงข้อมูลสุขภาพของระบบ AI (T028).
 // - 2026-05-21: เพิ่ม API service สำหรับ Superadmin Sandbox RAG (T037).
@@ -20,6 +21,7 @@
 
 import api from '../api/client';
 import { AiJobResponse } from '../../types/ai';
+import { PromptType, PromptVersion, ContextConfig } from '../types/ai-prompts';
 
 export interface AiAdminSettings {
   aiFeaturesEnabled: boolean;
@@ -402,6 +404,59 @@ export const adminAiService = {
       projectPublicId,
     });
     return extractData<AiJobResponse>(data);
+  },
+
+  listPrompts: async (type: PromptType): Promise<PromptVersion[]> => {
+    const { data } = await api.get(`/ai/prompts/${type}`);
+    return extractData<PromptVersion[]>(data);
+  },
+
+  createPrompt: async (
+    type: PromptType,
+    updates: { template: string; contextConfig?: ContextConfig | null; manualNote?: string }
+  ): Promise<PromptVersion> => {
+    const { data } = await api.post(`/ai/prompts/${type}`, updates);
+    return extractData<PromptVersion>(data);
+  },
+
+  deletePrompt: async (type: PromptType, versionNumber: number): Promise<void> => {
+    await api.delete(`/ai/prompts/${type}/${versionNumber}`);
+  },
+
+  activatePrompt: async (type: PromptType, versionNumber: number): Promise<PromptVersion> => {
+    const { data } = await api.post(`/ai/prompts/${type}/${versionNumber}/activate`);
+    return extractData<PromptVersion>(data);
+  },
+
+  updatePromptNote: async (
+    type: PromptType,
+    versionNumber: number,
+    manualNote: string
+  ): Promise<PromptVersion> => {
+    const { data } = await api.patch(`/ai/prompts/${type}/${versionNumber}/note`, { manualNote });
+    return extractData<PromptVersion>(data);
+  },
+
+  getContextConfig: async (type: PromptType, versionNumber: number): Promise<ContextConfig> => {
+    const { data } = await api.get(`/ai/prompts/${type}/${versionNumber}/context-config`);
+    return extractData<ContextConfig>(data);
+  },
+
+  updateContextConfig: async (
+    type: PromptType,
+    versionNumber: number,
+    contextConfig: ContextConfig
+  ): Promise<ContextConfig> => {
+    const { data } = await api.put(`/ai/prompts/${type}/${versionNumber}/context-config`, contextConfig);
+    return extractData<ContextConfig>(data);
+  },
+
+  submitSandboxRagPrep: async (
+    text: string,
+    profileId?: string | null
+  ): Promise<{ jobId: string; status: string }> => {
+    const { data } = await api.post('/ai/admin/sandbox/rag-prep', { text, profileId });
+    return extractData<{ jobId: string; status: string }>(data);
   },
 };
 

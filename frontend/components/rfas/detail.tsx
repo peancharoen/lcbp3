@@ -20,7 +20,6 @@ interface RFADetailProps {
 export function RFADetail({ data }: RFADetailProps) {
   const [actionState, setActionState] = useState<'approve' | 'reject' | 'submit' | null>(null);
   const [comments, setComments] = useState('');
-  const [templateId, setTemplateId] = useState<number>(1);
   const [reviewTeamPublicId, setReviewTeamPublicId] = useState<string | undefined>(undefined);
   const processMutation = useProcessRFA();
   const submitMutation = useSubmitRFA();
@@ -84,7 +83,6 @@ export function RFADetail({ data }: RFADetailProps) {
       {
         uuid: data.publicId,
         data: {
-          templateId,
           reviewTeamPublicId,
         },
       },
@@ -156,18 +154,6 @@ export function RFADetail({ data }: RFADetailProps) {
             <CardTitle className="text-lg">Submit RFA to Workflow</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="templateId">Routing Template ID</Label>
-              <input
-                id="templateId"
-                type="number"
-                min={1}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                value={templateId}
-                onChange={(e) => setTemplateId(Number(e.target.value))}
-              />
-              <p className="text-xs text-muted-foreground">Enter the routing template ID for this submission.</p>
-            </div>
             {data.correspondence?.project?.publicId && (
               <ReviewTeamSelector
                 projectPublicId={data.correspondence.project.publicId}

@@ -64,7 +64,7 @@ describe('rfaService', () => {
     it('ควรส่ง RFA เข้า workflow', async () => {
       const mockResponse = { data: { publicId: 'uuid-1', status: 'SUBMITTED' } };
       vi.mocked(apiClient.post).mockResolvedValue(mockResponse);
-      const submitDto = { templateId: 1, reviewTeamPublicId: 'uuid-team' };
+      const submitDto = { reviewTeamPublicId: 'uuid-team' };
       const result = await rfaService.submit('uuid-1', submitDto);
       expect(apiClient.post).toHaveBeenCalledWith('/rfas/uuid-1/submit', submitDto);
       expect(result).toEqual(mockResponse.data);

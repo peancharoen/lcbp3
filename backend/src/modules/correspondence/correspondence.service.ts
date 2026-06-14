@@ -890,6 +890,11 @@ export class CorrespondenceService {
     const updated = await this.findOne(id);
 
     // Re-index updated document in Elasticsearch (fire-and-forget)
+    // ใช้ status จริงจาก current revision แทนการ hardcode 'DRAFT'
+    const currentRevisionStatus =
+      updated.revisions?.find((r) => r.isCurrent)?.status?.statusCode ??
+      updated.revisions?.[0]?.status?.statusCode ??
+      'DRAFT';
     void this.searchService.indexDocument({
       id: updated.id,
       publicId: updated.publicId,
@@ -897,7 +902,7 @@ export class CorrespondenceService {
       docNumber: updated.correspondenceNumber,
       title: updateDto.subject ?? updated.revisions?.[0]?.subject,
       description: updateDto.description ?? updated.revisions?.[0]?.description,
-      status: 'DRAFT',
+      status: currentRevisionStatus,
       projectId: updated.projectId,
       createdAt: updated.createdAt,
     });
@@ -1141,7 +1146,10 @@ export class CorrespondenceService {
       try {
         await this.cancel(publicId, reason, user);
         succeeded.push(publicId);
-      } catch {
+      } catch (err) {
+        this.logger.warn(
+          `Bulk cancel failed for ${publicId}: ${(err as Error).message}`
+        );
         failed.push(publicId);
       }
     }
@@ -1150,7 +1158,12 @@ export class CorrespondenceService {
   }
 
   async exportCsv(searchDto: SearchCorrespondenceDto): Promise<string> {
-    const { data } = await this.findAll(searchDto);
+    // ดึงทุกแถวที่ตรงเงื่อนไข — ไม่ใช้ pagination สำหรับ export
+    const { data } = await this.findAll({
+      ...searchDto,
+      page: 1,
+      limit: 10000,
+    });
 
     const header = [
       'Document No.',
@@ -1182,9 +1195,12 @@ export class CorrespondenceService {
   }
 
   private escapeCsv(value: string): string {
-    if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-      return `"${value.replace(/"/g, '""')}"`;
+    // กัน CSV formula injection (OWASP)
+    let v = value;
+    if (/^[=+\-@\t\r]/.test(v)) v = `'${v}`;
+    if (v.includes(',') || v.includes('"') || v.includes('\n')) {
+      return `"${v.replace(/"/g, '""')}"`;
     }
-    return value;
+    return v;
   }
 }

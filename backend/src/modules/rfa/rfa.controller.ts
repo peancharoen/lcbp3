@@ -1,11 +1,14 @@
 // File: src/modules/rfa/rfa.controller.ts
 // Change Log:
 // - 2026-05-13: Wire submit reviewTeamPublicId through to the submit workflow for parallel review task creation.
+// - 2026-06-14: ADR-016 Idempotency-Key enforcement on mutations; pass RBAC roles to Unified Workflow Engine; drop templateId.
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
   Get,
+  Headers,
   HttpCode,
   HttpStatus,
   Param,
@@ -51,13 +54,34 @@ export class RfaController {
     private readonly uuidResolver: UuidResolverService
   ) {}
 
+  /** ADR-016: บังคับให้ทุก mutation ส่ง Idempotency-Key header */
+  private assertIdempotencyKey(idempotencyKey?: string): void {
+    if (!idempotencyKey) {
+      throw new BadRequestException('Idempotency-Key header is required');
+    }
+  }
+
+  /** ดึง role name จาก user assignments เพื่อส่งให้ Unified Workflow Engine ตรวจ DSL requirements */
+  private extractRoles(user: User): string[] {
+    return (
+      user.assignments
+        ?.map((a) => a.role?.roleName)
+        .filter((name): name is string => Boolean(name)) ?? []
+    );
+  }
+
   @Post()
   @ApiOperation({ summary: 'Create new RFA (Draft)' })
   @ApiBody({ type: CreateRfaDto })
   @ApiResponse({ status: 201, description: 'RFA created successfully' })
   @RequirePermission('rfa.create')
   @Audit('rfa.create', 'rfa')
-  create(@Body() createDto: CreateRfaDto, @CurrentUser() user: User) {
+  create(
+    @Body() createDto: CreateRfaDto,
+    @CurrentUser() user: User,
+    @Headers('Idempotency-Key') idempotencyKey: string
+  ) {
+    this.assertIdempotencyKey(idempotencyKey);
     return this.rfaService.create(createDto, user);
   }
 
@@ -74,15 +98,17 @@ export class RfaController {
   async submit(
     @Param('uuid', ParseUuidPipe) uuid: string,
     @Body() submitDto: SubmitRfaDto,
-    @CurrentUser() user: User
+    @CurrentUser() user: User,
+    @Headers('Idempotency-Key') idempotencyKey: string
   ) {
+    this.assertIdempotencyKey(idempotencyKey);
     // ADR-019: resolve UUID → internal INT id via findOneByUuidRaw
     const rfa = await this.rfaService.findOneByUuidRaw(uuid);
     return this.rfaService.submit(
       rfa.id,
-      submitDto.templateId,
       user,
-      submitDto.reviewTeamPublicId
+      submitDto.reviewTeamPublicId,
+      this.extractRoles(user)
     );
   }
 
@@ -102,11 +128,18 @@ export class RfaController {
   async processAction(
     @Param('uuid', ParseUuidPipe) uuid: string,
     @Body() actionDto: WorkflowActionDto,
-    @CurrentUser() user: User
+    @CurrentUser() user: User,
+    @Headers('Idempotency-Key') idempotencyKey: string
   ) {
+    this.assertIdempotencyKey(idempotencyKey);
     // ADR-019: resolve UUID → internal INT id
     const rfa = await this.rfaService.findOneByUuidRaw(uuid);
-    return this.rfaService.processAction(rfa.id, actionDto, user);
+    return this.rfaService.processAction(
+      rfa.id,
+      actionDto,
+      user,
+      this.extractRoles(user)
+    );
   }
 
   @Get()
@@ -145,8 +178,10 @@ export class RfaController {
   async update(
     @Param('uuid', ParseUuidPipe) uuid: string,
     @Body() updateDto: UpdateRfaDto,
-    @CurrentUser() user: User
+    @CurrentUser() user: User,
+    @Headers('Idempotency-Key') idempotencyKey: string
   ) {
+    this.assertIdempotencyKey(idempotencyKey);
     return this.rfaService.update(uuid, updateDto, user);
   }
 
@@ -159,8 +194,10 @@ export class RfaController {
   @Audit('rfa.cancel', 'rfa')
   async cancel(
     @Param('uuid', ParseUuidPipe) uuid: string,
-    @CurrentUser() user: User
+    @CurrentUser() user: User,
+    @Headers('Idempotency-Key') idempotencyKey: string
   ) {
+    this.assertIdempotencyKey(idempotencyKey);
     return this.rfaService.cancel(uuid, user);
   }
 }

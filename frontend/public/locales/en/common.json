@@ -143,5 +143,13 @@
   "ai.prompt.notePlaceholder": "Write analysis, differences, or suggestions for this prompt version...",
   "ai.prompt.sandboxErrorTitle": "Sandbox Run Failed",
   "ai.prompt.sandboxErrorDefault": "Processing timed out or an error occurred while loading the model.",
-  "ai.prompt.timeoutInfo": "System waits up to 120 seconds — Ollama may take time to load on cold start"
+  "ai.prompt.timeoutInfo": "System waits up to 120 seconds — Ollama may take time to load on cold start",
+  "ai.prompt.title": "AI Prompt Management",
+  "ai.prompt.selectType": "Filter by Prompt Type",
+  "ai.prompt.type.ocr_extraction": "OCR Extraction",
+  "ai.prompt.type.rag_query_prompt": "RAG Query",
+  "ai.prompt.type.rag_prep_prompt": "RAG Prep",
+  "ai.prompt.type.classification_prompt": "Classification",
+  "ai.prompt.contextConfig": "Context Configuration",
+  "ai.prompt.sandboxTitle": "Sandbox Testing"
 }

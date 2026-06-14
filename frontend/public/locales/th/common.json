@@ -143,5 +143,13 @@
   "ai.prompt.notePlaceholder": "เขียนวิเคราะห์ความแตกต่างหรือข้อเสนอแนะเกี่ยวกับผลลัพธ์ของ prompt vนี้...",
   "ai.prompt.sandboxErrorTitle": "รัน Sandbox ล้มเหลว",
   "ai.prompt.sandboxErrorDefault": "ระบบใช้เวลาประมวลผลนานเกินกำหนดหรือเกิดข้อผิดพลาดในการโหลดโมเดล",
-  "ai.prompt.timeoutInfo": "ระบบรอผลสูงสุด 120 วินาที — Ollama อาจใช้เวลาโหลดโมเดลเมื่อเริ่มต้นใหม่"
+  "ai.prompt.timeoutInfo": "ระบบรอผลสูงสุด 120 วินาที — Ollama อาจใช้เวลาโหลดโมเดลเมื่อเริ่มต้นใหม่",
+  "ai.prompt.title": "ระบบจัดการพรอมต์ของ AI (AI Prompt Management)",
+  "ai.prompt.selectType": "กรองตามประเภทพรอมต์ (Filter by Prompt Type)",
+  "ai.prompt.type.ocr_extraction": "สกัดข้อความ OCR (OCR Extraction)",
+  "ai.prompt.type.rag_query_prompt": "ค้นหาข้อมูล RAG (RAG Query)",
+  "ai.prompt.type.rag_prep_prompt": "เตรียมข้อมูล RAG (RAG Prep)",
+  "ai.prompt.type.classification_prompt": "จำแนกประเภทเอกสาร (Classification)",
+  "ai.prompt.contextConfig": "การตั้งค่าบริบทข้อมูล (Context Configuration)",
+  "ai.prompt.sandboxTitle": "การทดสอบ Sandbox (Sandbox Testing)"
 }

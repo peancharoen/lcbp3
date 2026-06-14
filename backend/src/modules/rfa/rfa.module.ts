@@ -1,16 +1,15 @@
 // File: src/modules/rfa/rfa.module.ts
+// Change Log:
+// - 2026-06-14: ตัด deprecated routing-template entities + RfaWorkflowService ออก (ADR-001 migration)
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 // Entities
-import { CorrespondenceRouting } from '../correspondence/entities/correspondence-routing.entity';
 import { Correspondence } from '../correspondence/entities/correspondence.entity';
 import { CorrespondenceRevision } from '../correspondence/entities/correspondence-revision.entity';
 import { CorrespondenceStatus } from '../correspondence/entities/correspondence-status.entity';
 import { CorrespondenceType } from '../correspondence/entities/correspondence-type.entity';
 import { CorrespondenceRecipient } from '../correspondence/entities/correspondence-recipient.entity';
-import { RoutingTemplate } from '../correspondence/entities/routing-template.entity';
-import { RoutingTemplateStep } from '../correspondence/entities/routing-template-step.entity';
 import { Organization } from '../organization/entities/organization.entity';
 import { AsBuiltDrawingRevision } from '../drawing/entities/asbuilt-drawing-revision.entity';
 import { ShopDrawingRevision } from '../drawing/entities/shop-drawing-revision.entity';
@@ -20,13 +19,9 @@ import { RfaItem } from './entities/rfa-item.entity';
 import { RfaRevision } from './entities/rfa-revision.entity';
 import { RfaStatusCode } from './entities/rfa-status-code.entity';
 import { RfaType } from './entities/rfa-type.entity';
-import { RfaWorkflowTemplateStep } from './entities/rfa-workflow-template-step.entity';
-import { RfaWorkflowTemplate } from './entities/rfa-workflow-template.entity';
-import { RfaWorkflow } from './entities/rfa-workflow.entity';
 import { Rfa } from './entities/rfa.entity';
 
 // Services & Controllers
-import { RfaWorkflowService } from './rfa-workflow.service'; // Register Service
 import { RfaController } from './rfa.controller';
 import { RfaService } from './rfa.service';
 
@@ -55,12 +50,6 @@ import { WorkflowEngineModule } from '../workflow-engine/workflow-engine.module'
       AsBuiltDrawingRevision,
       ShopDrawingRevision,
       Discipline,
-      RfaWorkflow,
-      RfaWorkflowTemplate,
-      RfaWorkflowTemplateStep,
-      CorrespondenceRouting,
-      RoutingTemplate,
-      RoutingTemplateStep,
       CorrespondenceRecipient,
       Organization,
     ]),
@@ -72,7 +61,7 @@ import { WorkflowEngineModule } from '../workflow-engine/workflow-engine.module'
     WorkflowEngineModule,
     NotificationModule,
   ],
-  providers: [RfaService, RfaWorkflowService],
+  providers: [RfaService],
   controllers: [RfaController],
   exports: [RfaService],
 })

@@ -6,6 +6,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Delete,
   Patch,
   Body,
@@ -26,6 +27,7 @@ import { AiPrompt } from './ai-prompts.entity';
 import { CreateAiPromptDto } from './dto/create-ai-prompt.dto';
 import { UpdatePromptNoteDto } from './dto/update-prompt-note.dto';
 import { AiPromptResponseDto } from './dto/ai-prompt-response.dto';
+import { ContextConfigDto } from '../dto/context-config.dto';
 import { plainToInstance } from 'class-transformer';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../../common/guards/rbac.guard';
@@ -136,5 +138,43 @@ export class AiPromptsController {
       dto.manualNote
     );
     return { data: this.mapToDto(updated) };
+  }
+
+  @Get(':promptType/:versionNumber/context-config')
+  @RequirePermission('system.manage_all')
+  @ApiOperation({ summary: 'ดึง Context Config ของ Prompt Version ที่กำหนด' })
+  @ApiParam({ name: 'promptType', example: 'ocr_extraction' })
+  @ApiParam({ name: 'versionNumber', type: Number })
+  async getContextConfig(
+    @Param('promptType') promptType: string,
+    @Param('versionNumber', ParseIntPipe) versionNumber: number
+  ): Promise<{ data: Record<string, unknown> | null }> {
+    const config = await this.promptsService.getContextConfig(
+      promptType,
+      versionNumber
+    );
+    return { data: config };
+  }
+
+  @Put(':promptType/:versionNumber/context-config')
+  @RequirePermission('system.manage_all')
+  @Audit('ai_prompt.update_context_config', 'AiPrompt')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'อัปเดต Context Config ของ Prompt Version ที่กำหนด',
+  })
+  @ApiParam({ name: 'promptType', example: 'ocr_extraction' })
+  @ApiParam({ name: 'versionNumber', type: Number })
+  async updateContextConfig(
+    @Param('promptType') promptType: string,
+    @Param('versionNumber', ParseIntPipe) versionNumber: number,
+    @Body() dto: ContextConfigDto
+  ): Promise<{ data: Record<string, unknown> }> {
+    const updated = await this.promptsService.updateContextConfig(
+      promptType,
+      versionNumber,
+      dto
+    );
+    return { data: updated };
   }
 }

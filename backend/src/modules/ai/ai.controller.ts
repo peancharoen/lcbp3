@@ -16,6 +16,7 @@
 // - 2026-06-11: แก้ไขการส่งพารามิเตอร์ให้กับ queueSuggestJob ใน suggestDocumentMetadata
 // - 2026-06-13: T024-T026 — เพิ่ม sandbox parameter endpoints (GET/PUT/POST reset) ตาม ADR-036
 // - 2026-06-13: T036, T037, T039, T040, T041 — เพิ่ม endpoints apply sandbox profile และ get production parameters พร้อม idempotency, CASL, validation และ audit
+// - 2026-06-14: เพิ่ม POST /ai/admin/sandbox/rag-prep endpoint (T033)
 // Controller สำหรับ AI Gateway Endpoints (ADR-023)
 
 import {
@@ -63,6 +64,7 @@ import {
 import { AiRagService } from './ai-rag.service';
 import { AiQueueService } from './ai-queue.service';
 import { AiRagQueryDto } from './dto/ai-rag-query.dto';
+import { SandboxRagPrepDto } from './dto/sandbox-rag-prep.dto';
 import { ExtractDocumentDto } from './dto/extract-document.dto';
 import { AiCallbackDto } from './dto/ai-callback.dto';
 import { CreateAiJobDto } from './dto/create-ai-job.dto';
@@ -430,6 +432,7 @@ export class AiController {
   @ApiBearerAuth()
   @RequirePermission('system.manage_all')
   @HttpCode(HttpStatus.ACCEPTED)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({
     summary:
       'AI Admin Sandbox RAG Query — ส่ง sandbox RAG เข้า queue ai-batch (T035)',
@@ -483,6 +486,7 @@ export class AiController {
   @RequirePermission('system.manage_all')
   @UseInterceptors(FileInterceptor('file'))
   @HttpCode(HttpStatus.ACCEPTED)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({
     summary:
       'AI Admin Sandbox OCR Extract — อัปโหลดไฟล์เพื่อทำ OCR Sandbox (T041 & T042)',
@@ -542,6 +546,7 @@ export class AiController {
   @RequirePermission('system.manage_all')
   @UseInterceptors(FileInterceptor('file'))
   @HttpCode(HttpStatus.ACCEPTED)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({
     summary: 'Step 1: Run OCR Only — สำหรับตรวจคุณภาพ OCR ก่อนทดสอบ AI',
     description:
@@ -636,6 +641,7 @@ export class AiController {
   @Post('admin/sandbox/ai-extract')
   @UseGuards(JwtAuthGuard, RbacGuard)
   @RequirePermission('system.manage_all')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({
     summary: 'Step 2: Run AI Extraction — ใช้ OCR text ที่ cache จาก Step 1',
     description:
@@ -663,6 +669,29 @@ export class AiController {
         projectPublicId,
         contractPublicId,
         extraPayload: { promptVersion },
+      }
+    );
+    return { requestPublicId, jobId, status: 'queued' };
+  }
+
+  @Post('admin/sandbox/rag-prep')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @RequirePermission('system.manage_all')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @ApiOperation({
+    summary: 'Step 3: Run RAG Prep Sandbox testing (T033)',
+    description:
+      'รับข้อความ OCR และ profileId แล้วรัน semantic chunking และ embedding preview',
+  })
+  async submitSandboxRagPrep(
+    @Body() dto: SandboxRagPrepDto
+  ): Promise<{ requestPublicId: string; jobId: string; status: string }> {
+    const requestPublicId = uuidv7();
+    const jobId = await this.aiQueueService.enqueueSandboxJob(
+      'sandbox-rag-prep',
+      {
+        idempotencyKey: requestPublicId,
+        extraPayload: { text: dto.text, profileId: dto.profileId },
       }
     );
     return { requestPublicId, jobId, status: 'queued' };

@@ -1,6 +1,7 @@
 // File: backend/src/modules/ai/tests/vram-monitor.service.spec.ts
 // Change Log:
 // - 2026-06-11: สร้าง unit tests สำหรับ VramMonitorService (US5)
+// - 2026-06-14: เพิ่ม tests สำหรับ getVramStatus และ invalidateCache เพื่อเพิ่ม branch/function coverage
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
@@ -97,6 +98,63 @@ describe('VramMonitorService', () => {
       });
       const result = await service.hasVramCapacity(3000); // query available is 2048MB, required 3000MB
       expect(result).toBe(false);
+    });
+  });
+  describe('getVramStatus', () => {
+    it('ควรคืน status ที่ถูกต้องเมื่อ Ollama คืน models', async () => {
+      mockedAxios.get
+        .mockResolvedValueOnce({
+          // first call: /api/ps ใน getVramStatus
+          data: {
+            models: [
+              { name: 'np-dms-ai:latest', size_vram: 3 * 1024 * 1024 * 1024 },
+            ],
+          },
+        })
+        .mockResolvedValueOnce({
+          // second call: /api/ps ใน getVramHeadroom
+          data: {
+            models: [
+              { name: 'np-dms-ai:latest', size_vram: 3 * 1024 * 1024 * 1024 },
+            ],
+          },
+        });
+      const status = await service.getVramStatus(4000);
+      expect(status.loadedModels).toContain('np-dms-ai:latest');
+      expect(status.totalVramMb).toBe(8192);
+      expect(status.hasCapacity).toBe(true); // 8192MB - 3072MB = 5120MB free > 4000MB required
+    });
+    it('ควรคืน hasCapacity=true เมื่อมี VRAM เหลือเพียงพอ', async () => {
+      mockedAxios.get
+        .mockResolvedValueOnce({
+          data: {
+            models: [
+              { name: 'np-dms-ai:latest', size_vram: 1 * 1024 * 1024 * 1024 },
+            ],
+          },
+        })
+        .mockResolvedValueOnce({
+          data: {
+            models: [
+              { name: 'np-dms-ai:latest', size_vram: 1 * 1024 * 1024 * 1024 },
+            ],
+          },
+        });
+      const status = await service.getVramStatus(4000);
+      // 8192MB total - 1024MB used = 7168MB free > 4000MB
+      expect(status.hasCapacity).toBe(true);
+    });
+    it('ควรคืน fallback (hasCapacity=false) เมื่อ /api/ps ล้มเหลว', async () => {
+      mockedAxios.get.mockRejectedValue(new Error('Network error'));
+      const status = await service.getVramStatus();
+      expect(status.hasCapacity).toBe(false);
+      expect(status.freeVramMb).toBe(0);
+      expect(status.loadedModels).toEqual([]);
+    });
+  });
+  describe('invalidateCache', () => {
+    it('ควร resolve โดยไม่ throw (no-op)', async () => {
+      await expect(service.invalidateCache()).resolves.toBeUndefined();
     });
   });
 });

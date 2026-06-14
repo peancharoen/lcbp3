@@ -245,7 +245,6 @@ describe('RFADetail', () => {
     fireEvent.click(submitButton);
 
     expect(screen.getByText('Submit RFA to Workflow')).toBeInTheDocument();
-    expect(screen.getByText('Routing Template ID')).toBeInTheDocument();
   });
 
   it('should show review team selector when project has publicId', () => {

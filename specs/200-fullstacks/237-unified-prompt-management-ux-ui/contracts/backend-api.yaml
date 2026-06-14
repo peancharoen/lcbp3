@@ -1,0 +1,414 @@
+# Backend API Contracts: Unified Prompt Management UX/UI
+
+**Feature**: 237-unified-prompt-management-ux-ui  
+**Date**: 2026-06-14  
+**Purpose**: Define API endpoints for prompt management with context config and sandbox testing
+
+## Existing Endpoints (from ADR-029)
+
+### GET /api/ai/prompts/:type
+Get all versions of a specific prompt type.
+
+**Parameters**:
+- `type` (path): Prompt type (ocr_extraction, rag_query_prompt, rag_prep_prompt, classification_prompt)
+
+**Response**:
+```json
+{
+  "data": [
+    {
+      "id": "uuid",
+      "promptType": "ocr_extraction",
+      "versionNumber": 1,
+      "template": "string",
+      "contextConfig": { "filter": null, "pageSize": 3, "language": "th" },
+      "isActive": true,
+      "manualNote": "string|null",
+      "createdAt": "2026-06-14T00:00:00Z"
+    }
+  ]
+}
+```
+
+**Guard**: `@UseGuards(JwtAuthGuard, CaslAbilityGuard)`  
+**Ability**: `system.manage_all`
+
+---
+
+### POST /api/ai/prompts/:type
+Create a new version of a prompt type.
+
+**Parameters**:
+- `type` (path): Prompt type
+
+**Request Body**:
+```json
+{
+  "template": "string",
+  "contextConfig": { "filter": null, "pageSize": 3, "language": "th" },
+  "manualNote": "string|null"
+}
+```
+
+**Response**:
+```json
+{
+  "data": {
+    "id": "uuid",
+    "promptType": "ocr_extraction",
+    "versionNumber": 2,
+    "template": "string",
+    "contextConfig": { "filter": null, "pageSize": 3, "language": "th" },
+    "isActive": false,
+    "manualNote": "string|null",
+    "createdAt": "2026-06-14T00:00:00Z"
+  }
+}
+```
+
+**Guard**: `@UseGuards(JwtAuthGuard, CaslAbilityGuard)`  
+**Ability**: `system.manage_all`
+
+---
+
+### DELETE /api/ai/prompts/:type/:version
+Delete a specific version (cannot delete active version).
+
+**Parameters**:
+- `type` (path): Prompt type
+- `version` (path): Version number
+
+**Response**: 204 No Content
+
+**Guard**: `@UseGuards(JwtAuthGuard, CaslAbilityGuard)`  
+**Ability**: `system.manage_all`
+
+---
+
+### POST /api/ai/prompts/:type/:version/activate
+Activate a specific version (deactivates other versions of same type).
+
+**Parameters**:
+- `type` (path): Prompt type
+- `version` (path): Version number
+
+**Response**:
+```json
+{
+  "data": {
+    "id": "uuid",
+    "promptType": "ocr_extraction",
+    "versionNumber": 1,
+    "isActive": true
+  }
+}
+```
+
+**Guard**: `@UseGuards(JwtAuthGuard, CaslAbilityGuard)`  
+**Ability**: `system.manage_all`
+
+---
+
+### PATCH /api/ai/prompts/:type/:version/note
+Update manual note for a version.
+
+**Parameters**:
+- `type` (path): Prompt type
+- `version` (path): Version number
+
+**Request Body**:
+```json
+{
+  "manualNote": "string"
+}
+```
+
+**Response**:
+```json
+{
+  "data": {
+    "id": "uuid",
+    "manualNote": "string"
+  }
+}
+```
+
+**Guard**: `@UseGuards(JwtAuthGuard, CaslAbilityGuard)`  
+**Ability**: `system.manage_all`
+
+---
+
+## New Endpoints (Context Config)
+
+### GET /api/ai/prompts/:type/:version/context-config
+Get context config for a specific version.
+
+**Parameters**:
+- `type` (path): Prompt type
+- `version` (path): Version number
+
+**Response**:
+```json
+{
+  "data": {
+    "filter": {
+      "projectId": "uuid|null",
+      "contractId": "uuid|null"
+    },
+    "pageSize": 3,
+    "language": "th",
+    "outputLanguage": "th"
+  }
+}
+```
+
+**Guard**: `@UseGuards(JwtAuthGuard, CaslAbilityGuard)`  
+**Ability**: `system.manage_all`
+
+---
+
+### PUT /api/ai/prompts/:type/:version/context-config
+Update context config for a specific version.
+
+**Parameters**:
+- `type` (path): Prompt type
+- `version` (path): Version number
+
+**Request Body**:
+```json
+{
+  "filter": {
+    "projectId": "uuid|null",
+    "contractId": "uuid|null"
+  },
+  "pageSize": 3,
+  "language": "th",
+  "outputLanguage": "th"
+}
+```
+
+**Response**:
+```json
+{
+  "data": {
+    "filter": {
+      "projectId": "uuid|null",
+      "contractId": "uuid|null"
+    },
+    "pageSize": 3,
+    "language": "th",
+    "outputLanguage": "th"
+  }
+}
+```
+
+**Guard**: `@UseGuards(JwtAuthGuard, CaslAbilityGuard)`  
+**Ability**: `system.manage_all`
+
+---
+
+## New Endpoints (Runtime Parameters)
+
+### GET /api/ai/execution-profiles
+Get all execution profiles.
+
+**Response**:
+```json
+{
+  "data": [
+    {
+      "id": "uuid",
+      "profileName": "default",
+      "temperature": 0.7,
+      "topP": 0.9,
+      "repeatPenalty": 1.0,
+      "maxTokens": 2048,
+      "ctxSize": 4096,
+      "keepAlive": 300,
+      "isDefault": true
+    }
+  ]
+}
+```
+
+**Guard**: `@UseGuards(JwtAuthGuard, CaslAbilityGuard)`  
+**Ability**: `system.manage_all`
+
+---
+
+### POST /api/ai/execution-profiles
+Create a new execution profile.
+
+**Request Body**:
+```json
+{
+  "profileName": "custom",
+  "temperature": 0.8,
+  "topP": 0.95,
+  "repeatPenalty": 1.1,
+  "maxTokens": 4096,
+  "ctxSize": 8192,
+  "keepAlive": 600
+}
+```
+
+**Response**:
+```json
+{
+  "data": {
+    "id": "uuid",
+    "profileName": "custom",
+    "temperature": 0.8,
+    "topP": 0.95,
+    "repeatPenalty": 1.1,
+    "maxTokens": 4096,
+    "ctxSize": 8192,
+    "keepAlive": 600,
+    "isDefault": false
+  }
+}
+```
+
+**Guard**: `@UseGuards(JwtAuthGuard, CaslAbilityGuard)`  
+**Ability**: `system.manage_all`
+
+---
+
+### PUT /api/ai/execution-profiles/:id
+Update an execution profile.
+
+**Parameters**:
+- `id` (path): Profile public ID
+
+**Request Body**:
+```json
+{
+  "temperature": 0.75,
+  "topP": 0.92
+}
+```
+
+**Response**:
+```json
+{
+  "data": {
+    "id": "uuid",
+    "temperature": 0.75,
+    "topP": 0.92
+  }
+}
+```
+
+**Guard**: `@UseGuards(JwtAuthGuard, CaslAbilityGuard)`  
+**Ability**: `system.manage_all`
+
+---
+
+### DELETE /api/ai/execution-profiles/:id
+Delete an execution profile (cannot delete default profile).
+
+**Parameters**:
+- `id` (path): Profile public ID
+
+**Response**: 204 No Content
+
+**Guard**: `@UseGuards(JwtAuthGuard, CaslAbilityGuard)`  
+**Ability**: `system.manage_all`
+
+---
+
+## New Endpoints (Sandbox - RAG Prep)
+
+### POST /api/ai/admin/sandbox/rag-prep
+Run RAG Prep step in sandbox (semantic chunking + embedding).
+
+**Request Body**:
+```json
+{
+  "text": "string",
+  "profileId": "uuid|null"
+}
+```
+
+**Response**:
+```json
+{
+  "data": {
+    "jobId": "uuid",
+    "status": "pending"
+  }
+}
+```
+
+**Guard**: `@UseGuards(JwtAuthGuard, CaslAbilityGuard)`  
+**Ability**: `system.manage_all`
+
+---
+
+### GET /api/ai/admin/sandbox/job/:jobId
+Get sandbox job status and results.
+
+**Parameters**:
+- `jobId` (path): Job ID
+
+**Response**:
+```json
+{
+  "data": {
+    "jobId": "uuid",
+    "jobType": "rag-prep",
+    "status": "completed",
+    "result": {
+      "ragChunks": [
+        {
+          "text": "string",
+          "summary": "string"
+        }
+      ],
+      "ragVectors": "array",
+      "error": null
+    },
+    "createdAt": "2026-06-14T00:00:00Z",
+    "completedAt": "2026-06-14T00:00:05Z"
+  }
+}
+```
+
+**Guard**: `@UseGuards(JwtAuthGuard, CaslAbilityGuard)`  
+**Ability**: `system.manage_all`
+
+---
+
+## Error Responses
+
+All endpoints follow ADR-007 error handling:
+
+**Validation Error (400)**:
+```json
+{
+  "message": "Validation failed",
+  "userMessage": "Template must contain {{ocr_text}} placeholder",
+  "recoveryAction": "Add the required placeholder to the template",
+  "errorCode": "VALIDATION_ERROR"
+}
+```
+
+**Business Error (400)**:
+```json
+{
+  "message": "Cannot delete active version",
+  "userMessage": "Cannot delete the currently active version. Activate another version first.",
+  "recoveryAction": "Activate a different version before deleting this one",
+  "errorCode": "CANNOT_DELETE_ACTIVE_VERSION"
+}
+```
+
+**Not Found (404)**:
+```json
+{
+  "message": "Prompt version not found",
+  "userMessage": "The requested prompt version does not exist",
+  "recoveryAction": "Check the prompt type and version number",
+  "errorCode": "NOT_FOUND"
+}
+```

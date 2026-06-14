@@ -7,8 +7,31 @@ import {
   IsObject,
   IsDateString,
   IsArray,
+  IsIn,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
+/**
+ * DTO ของผู้รับเอกสาร — ใช้กับ @ValidateNested เพื่อตรวจสอบแต่ละ element ใน recipients array
+ */
+export class RecipientDto {
+  @ApiProperty({
+    description: 'Organization ID or UUID ของผู้รับ',
+    example: '019505a1-7c3e-7000-8000-abc123def456',
+  })
+  @IsNotEmpty()
+  organizationId!: number | string;
+
+  @ApiProperty({
+    description: 'ประเภทผู้รับ: TO หรือ CC',
+    enum: ['TO', 'CC'],
+    example: 'TO',
+  })
+  @IsIn(['TO', 'CC'])
+  type!: 'TO' | 'CC';
+}
 
 export class CreateCorrespondenceDto {
   @ApiProperty({ description: 'Project ID or UUID', example: 1 })
@@ -125,9 +148,15 @@ export class CreateCorrespondenceDto {
 
   @ApiPropertyOptional({
     description: 'Recipients',
-    example: [{ organizationId: 1, type: 'TO' }],
+    example: [
+      { organizationId: '019505a1-7c3e-7000-8000-abc123def456', type: 'TO' },
+    ],
+    type: () => RecipientDto,
+    isArray: true,
   })
   @IsArray()
   @IsOptional()
-  recipients?: { organizationId: number | string; type: 'TO' | 'CC' }[];
+  @ValidateNested({ each: true })
+  @Type(() => RecipientDto)
+  recipients?: RecipientDto[];
 }

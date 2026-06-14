@@ -13,6 +13,7 @@ import { randomUUID } from 'crypto';
 import { AiPrompt } from './ai-prompts.entity';
 import { AuditLog } from '../../../common/entities/audit-log.entity';
 import { CreateAiPromptDto } from './dto/create-ai-prompt.dto';
+import { ContextConfigDto } from '../dto/context-config.dto';
 import {
   BusinessException,
   ValidationException,
@@ -343,8 +344,31 @@ export class AiPromptsService {
     dto: CreateAiPromptDto,
     userId: number
   ): Promise<AiPrompt> {
-    if (!dto.template.includes('{{ocr_text}}')) {
-      throw new ValidationException('template ต้องมี {{ocr_text}} placeholder');
+    if (promptType === 'ocr_extraction') {
+      if (!dto.template.includes('{{ocr_text}}')) {
+        throw new ValidationException(
+          'template ต้องมี {{ocr_text}} placeholder'
+        );
+      }
+    } else if (promptType === 'rag_query_prompt') {
+      if (
+        !dto.template.includes('{{query}}') ||
+        !dto.template.includes('{{context}}')
+      ) {
+        throw new ValidationException(
+          'template ต้องมี {{query}} และ {{context}} placeholder'
+        );
+      }
+    } else if (promptType === 'rag_prep_prompt') {
+      if (!dto.template.includes('{{text}}')) {
+        throw new ValidationException('template ต้องมี {{text}} placeholder');
+      }
+    } else if (promptType === 'classification_prompt') {
+      if (!dto.template.includes('{{document_text}}')) {
+        throw new ValidationException(
+          'template ต้องมี {{document_text}} placeholder'
+        );
+      }
     }
     if (dto.template.length > 4000) {
       throw new ValidationException('Template exceeds 4,000 character limit');
@@ -525,6 +549,76 @@ export class AiPromptsService {
       prompt.lastTestedAt = new Date();
       await this.aiPromptRepo.save(prompt);
     }
+  }
+
+  /**
+   * ดึง Context Config ของ Prompt Version ที่กำหนด
+   */
+  async getContextConfig(
+    promptType: string,
+    versionNumber: number
+  ): Promise<Record<string, unknown> | null> {
+    const prompt = await this.aiPromptRepo.findOne({
+      where: { promptType, versionNumber },
+    });
+    if (!prompt) {
+      throw new NotFoundException('AiPrompt', versionNumber.toString());
+    }
+    return prompt.contextConfig;
+  }
+
+  /**
+   * อัปเดต Context Config ของ Prompt Version ที่กำหนด พร้อมทั้งตรวจเช็คความถูกต้องของโครงการและสัญญาใน DB
+   */
+  async updateContextConfig(
+    promptType: string,
+    versionNumber: number,
+    dto: ContextConfigDto
+  ): Promise<Record<string, unknown>> {
+    const prompt = await this.aiPromptRepo.findOne({
+      where: { promptType, versionNumber },
+    });
+    if (!prompt) {
+      throw new NotFoundException('AiPrompt', versionNumber.toString());
+    }
+
+    // Validation (T027): ตรวจสอบโครงการ/สัญญาใน DB
+    if (dto.filter?.projectId) {
+      const projectExists = (await this.dataSource.manager
+        .createQueryBuilder()
+        .select('p.id')
+        .from('projects', 'p')
+        .where('p.uuid = :uuid', { uuid: dto.filter.projectId })
+        .andWhere('p.deleted_at IS NULL')
+        .getRawOne()) as unknown;
+      if (!projectExists) {
+        throw new NotFoundException('Project', dto.filter.projectId);
+      }
+    }
+
+    if (dto.filter?.contractId) {
+      const contractExists = (await this.dataSource.manager
+        .createQueryBuilder()
+        .select('c.id')
+        .from('contracts', 'c')
+        .where('c.uuid = :uuid', { uuid: dto.filter.contractId })
+        .getRawOne()) as unknown;
+      if (!contractExists) {
+        throw new NotFoundException('Contract', dto.filter.contractId);
+      }
+    }
+
+    // บันทึกลง DB
+    const newContextConfig = {
+      filter: dto.filter || null,
+      pageSize: dto.pageSize,
+      language: dto.language,
+      outputLanguage: dto.outputLanguage,
+    };
+    prompt.contextConfig = newContextConfig;
+    await this.aiPromptRepo.save(prompt);
+
+    return newContextConfig;
   }
 
   /**

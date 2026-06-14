@@ -10,7 +10,6 @@ export interface WorkflowActionDto {
 }
 
 export interface SubmitRfaDto {
-  templateId: number;
   reviewTeamPublicId?: string;
 }
 

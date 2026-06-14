@@ -4,6 +4,7 @@ import {
   Post,
   Body,
   UseGuards,
+  UseInterceptors,
   Request,
   Param,
   Query,
@@ -36,6 +37,8 @@ import { RbacGuard } from '../../common/guards/rbac.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { Audit } from '../../common/decorators/audit.decorator';
 import { ParseUuidPipe } from '../../common/pipes/parse-uuid.pipe';
+import { ValidationException } from '../../common/exceptions';
+import { IdempotencyInterceptor } from '../../common/interceptors/idempotency.interceptor';
 import type { RequestWithUser } from '../../common/interfaces/request-with-user.interface';
 
 @ApiTags('Correspondences')
@@ -52,6 +55,8 @@ export class CorrespondenceController {
   @ApiOperation({ summary: 'Process workflow action (Approve/Reject/Review)' })
   @ApiResponse({ status: 201, description: 'Action processed successfully.' })
   @RequirePermission('workflow.action_review')
+  @Audit('correspondence.workflow_action', 'correspondence')
+  @UseInterceptors(IdempotencyInterceptor)
   processAction(
     @Body() actionDto: WorkflowActionDto,
     @Request() req: RequestWithUser
@@ -62,7 +67,9 @@ export class CorrespondenceController {
 
     // Use Unified Workflow Engine via CorrespondenceWorkflowService
     if (!actionDto.instanceId) {
-      throw new Error('instanceId is required for workflow action');
+      throw new ValidationException(
+        'instanceId is required for workflow action'
+      );
     }
 
     return this.workflowService.processAction(
@@ -85,6 +92,7 @@ export class CorrespondenceController {
   })
   @RequirePermission('correspondence.create')
   @Audit('correspondence.create', 'correspondence')
+  @UseInterceptors(IdempotencyInterceptor)
   create(
     @Body() createDto: CreateCorrespondenceDto,
     @Request() req: RequestWithUser
@@ -125,6 +133,7 @@ export class CorrespondenceController {
   })
   @RequirePermission('correspondence.create')
   @Audit('correspondence.submit', 'correspondence')
+  @UseInterceptors(IdempotencyInterceptor)
   async submit(
     @Param('uuid', ParseUuidPipe) uuid: string,
     @Body() submitDto: SubmitCorrespondenceDto,
@@ -158,8 +167,9 @@ export class CorrespondenceController {
     status: 200,
     description: 'Correspondence updated successfully.',
   })
-  @RequirePermission('correspondence.create') // Assuming create permission is enough for draft update, or add 'correspondence.edit'
+  @RequirePermission('correspondence.edit')
   @Audit('correspondence.update', 'correspondence')
+  @UseInterceptors(IdempotencyInterceptor)
   async update(
     @Param('uuid', ParseUuidPipe) uuid: string,
     @Body() updateDto: UpdateCorrespondenceDto,
@@ -241,6 +251,7 @@ export class CorrespondenceController {
   @ApiOperation({ summary: 'Bulk cancel correspondences (Org Admin+)' })
   @RequirePermission('correspondence.cancel')
   @Audit('correspondence.bulk_cancel', 'correspondence')
+  @UseInterceptors(IdempotencyInterceptor)
   async bulkCancel(
     @Body() dto: BulkCancelDto,
     @Request() req: RequestWithUser
@@ -274,6 +285,7 @@ export class CorrespondenceController {
   })
   @RequirePermission('correspondence.cancel')
   @Audit('correspondence.cancel', 'correspondence')
+  @UseInterceptors(IdempotencyInterceptor)
   async cancel(
     @Param('uuid', ParseUuidPipe) uuid: string,
     @Body() cancelDto: CancelCorrespondenceDto,

@@ -1,6 +1,7 @@
 // File: backend/src/modules/ai/processors/ai-batch.processor.ts
 // Change Log
 // - 2026-06-08: แก้ไขปัญหา LLM JSON response truncated โดยการเพิ่ม num_ctx เป็น 16384 ใน sandbox-extract, sandbox-ai-extract และ migrate-document (แก้ไขโดย AGY Gemini 3.5 Flash (Medium))
+// - 2026-06-14: เพิ่ม case sandbox-rag-prep และ processSandboxRagPrep (T035)
 // - 2026-05-15: เพิ่ม processor สำหรับ ai-batch queue ตาม ADR-023A.
 // - 2026-05-15: เพิ่ม EmbeddingService สำหรับ embed-document logic (T022).
 // - 2026-05-21: เพิ่มการรองรับ sandbox-rag และ sandbox-extract สำหรับ Superadmin sandbox.
@@ -70,6 +71,7 @@ export type AiBatchJobType =
   | 'sandbox-extract'
   | 'sandbox-ocr-only'
   | 'sandbox-ai-extract'
+  | 'sandbox-rag-prep'
   | 'migrate-document'
   | 'rag-prepare'
   | 'ai-suggest'
@@ -294,7 +296,10 @@ export class AiBatchProcessor extends WorkerHost {
   async process(job: Job<AiBatchJobData>): Promise<void> {
     const isSandbox =
       job.data.jobType === 'sandbox-rag' ||
-      job.data.jobType === 'sandbox-extract';
+      job.data.jobType === 'sandbox-extract' ||
+      job.data.jobType === 'sandbox-ocr-only' ||
+      job.data.jobType === 'sandbox-ai-extract' ||
+      job.data.jobType === 'sandbox-rag-prep';
     if (!isSandbox) {
       await this.setAiProcessingStatus(job.data.documentPublicId, 'PROCESSING');
     }
@@ -361,6 +366,12 @@ export class AiBatchProcessor extends WorkerHost {
             `Sandbox AI-Extract job processing — jobId=${String(job.id)}`
           );
           await this.processSandboxAiExtract(job.data);
+          return;
+        case 'sandbox-rag-prep':
+          this.logger.log(
+            `Sandbox RAG Prep job processing — jobId=${String(job.id)}`
+          );
+          await this.processSandboxRagPrep(job.data);
           return;
         case 'migrate-document':
           this.logger.log(
@@ -1529,5 +1540,150 @@ export class AiBatchProcessor extends WorkerHost {
   ): number | undefined {
     const confidence = suggestion['confidenceScore'];
     return typeof confidence === 'number' ? confidence : undefined;
+  }
+
+  private async processSandboxRagPrep(data: AiBatchJobData): Promise<void> {
+    const { idempotencyKey, payload } = data;
+    const text = payload.text as string;
+    const profileId = payload.profileId as string | undefined;
+    await this.redis.setex(
+      `ai:rag:result:${idempotencyKey}`,
+      3600,
+      JSON.stringify({
+        requestPublicId: idempotencyKey,
+        status: 'processing',
+      })
+    );
+    try {
+      if (!text) {
+        throw new Error('text is required for sandbox-rag-prep job');
+      }
+      const activePrompt =
+        await this.aiPromptsService.getActive('rag_prep_prompt');
+      if (!activePrompt) {
+        throw new Error('No active rag_prep_prompt version found');
+      }
+      const promptText = activePrompt.template
+        .replace('{{text}}', text)
+        .replace('{{ocr_text}}', text);
+      let sandboxParams;
+      if (profileId) {
+        try {
+          sandboxParams =
+            await this.aiPolicyService.getSandboxParameters(profileId);
+        } catch (err) {
+          this.logger.warn(
+            `Failed to fetch sandbox parameters for profileId=${profileId}: ${String(err)}`
+          );
+        }
+      }
+      if (!sandboxParams) {
+        try {
+          sandboxParams =
+            await this.aiPolicyService.getSandboxParameters('standard');
+        } catch (err) {
+          this.logger.warn(
+            `Failed to fetch sandbox parameters for standard: ${String(err)}`
+          );
+        }
+      }
+      const generateOptions = {
+        options: {
+          num_ctx: sandboxParams?.numCtx ?? 8192,
+          num_predict: sandboxParams?.maxTokens ?? 4096,
+          temperature: sandboxParams?.temperature,
+          top_p: sandboxParams?.topP,
+          repeat_penalty: sandboxParams?.repeatPenalty,
+        },
+      };
+      const llmOutput = await this.ollamaService.generate(
+        promptText,
+        generateOptions
+      );
+      const parsed = this.parseChunkTags(llmOutput);
+      const chunks =
+        parsed.length > 0 ? parsed : this.fixedSizeChunk(text, 512, 64);
+      const ragChunks: Array<{ text: string; summary: string }> = [];
+      const ragVectors: number[][] = [];
+      for (const chunk of chunks) {
+        try {
+          const embedResult = await this.ocrService.embedViaSidecar(chunk.text);
+          ragChunks.push({
+            text: chunk.text,
+            summary: chunk.topic,
+          });
+          ragVectors.push(embedResult.dense);
+        } catch (err) {
+          this.logger.error(
+            `Sandbox embed failed for chunk: ${chunk.topic}`,
+            err
+          );
+        }
+      }
+      await this.redis.setex(
+        `ai:rag:result:${idempotencyKey}`,
+        3600,
+        JSON.stringify({
+          requestPublicId: idempotencyKey,
+          status: 'completed',
+          ragChunks,
+          ragVectors,
+          completedAt: new Date().toISOString(),
+        })
+      );
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`Sandbox RAG Prep failed: ${errMsg}`);
+      await this.redis.setex(
+        `ai:rag:result:${idempotencyKey}`,
+        3600,
+        JSON.stringify({
+          requestPublicId: idempotencyKey,
+          status: 'failed',
+          errorMessage: errMsg,
+          completedAt: new Date().toISOString(),
+        })
+      );
+      throw err;
+    }
+  }
+
+  private parseChunkTags(
+    llmOutput: string
+  ): Array<{ topic: string; text: string }> {
+    const chunks: Array<{ topic: string; text: string }> = [];
+    const regex = /<chunk\s+topic="([^"]*)"\s*>([\s\S]*?)<\/chunk\s*>/gi;
+    let match;
+    while ((match = regex.exec(llmOutput)) !== null) {
+      const topic = match[1]?.trim() || 'ทั่วไป';
+      const text = match[2]?.trim();
+      if (text) {
+        chunks.push({ topic, text });
+      }
+    }
+    return chunks;
+  }
+
+  private fixedSizeChunk(
+    text: string,
+    chunkSize: number,
+    overlap: number
+  ): Array<{ topic: string; text: string }> {
+    const chunks: Array<{ topic: string; text: string }> = [];
+    const cleanText = text.replace(/\s+/g, ' ').trim();
+    const textLength = cleanText.length;
+    let startIndex = 0;
+    let chunkIndex = 0;
+    while (startIndex < textLength) {
+      const endIndex = Math.min(startIndex + chunkSize, textLength);
+      const chunkText = cleanText.substring(startIndex, endIndex);
+      chunks.push({
+        topic: `ส่วนที่ ${chunkIndex + 1}`,
+        text: chunkText,
+      });
+      startIndex += chunkSize - overlap;
+      chunkIndex += 1;
+    }
+    return chunks;
   }
 }
