@@ -78,7 +78,7 @@ export default function ContextConfigEditor({
             : []
         );
       } catch (_err) {
-        // error handling silently per rules (use NestJS Logger on backend, avoid console.log on frontend)
+        // Error handling silently - backend logs via NestJS Logger
       }
     };
     loadData();
