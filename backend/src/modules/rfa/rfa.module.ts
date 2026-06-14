@@ -20,6 +20,7 @@ import { RfaRevision } from './entities/rfa-revision.entity';
 import { RfaStatusCode } from './entities/rfa-status-code.entity';
 import { RfaType } from './entities/rfa-type.entity';
 import { Rfa } from './entities/rfa.entity';
+import { RfaWorkflow } from './entities/rfa-workflow.entity';
 
 // Services & Controllers
 import { RfaController } from './rfa.controller';
@@ -43,6 +44,7 @@ import { WorkflowEngineModule } from '../workflow-engine/workflow-engine.module'
       RfaType,
       RfaStatusCode,
       RfaApproveCode,
+      RfaWorkflow,
       Correspondence,
       CorrespondenceRevision,
       CorrespondenceStatus,
