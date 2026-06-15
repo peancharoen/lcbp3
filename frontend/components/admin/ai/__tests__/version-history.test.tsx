@@ -1,10 +1,15 @@
 // File: frontend/components/admin/ai/__tests__/version-history.test.tsx
 // Change Log:
 // - 2026-06-14: สร้างใหม่สำหรับ Phase 3 Coverage
+// - 2026-06-15: เพิ่ม i18n mock เพื่อแก้ไข test failure
 
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import VersionHistory from '../VersionHistory';
+
+vi.mock('@/hooks/use-translations', () => ({
+  useTranslations: () => (key: string) => key,
+}));
 
 describe('VersionHistory', () => {
   const mockVersions = [
@@ -30,7 +35,7 @@ describe('VersionHistory', () => {
       />
     );
 
-    expect(screen.getByText('กำลังโหลดประวัติเวอร์ชัน...')).toBeInTheDocument();
+    expect(screen.getByText((content) => content.includes('prompt_management.version_history'))).toBeInTheDocument();
   });
 
   it('ควร render empty state เมื่อไม่มีเวอร์ชัน', () => {
@@ -46,7 +51,7 @@ describe('VersionHistory', () => {
       />
     );
 
-    expect(screen.getByText('ไม่พบเวอร์ชันอื่นในระบบสำหรับประเภทนี้')).toBeInTheDocument();
+    expect(screen.getByText('prompt_management.no_versions')).toBeInTheDocument();
   });
 
   it('ควร render รายการเวอร์ชัน', () => {
