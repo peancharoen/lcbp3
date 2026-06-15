@@ -25,7 +25,7 @@
 
 ```powershell
 # รัน test + generate coverage (ใช้ verify แต่ละ Phase)
-npm run test:coverage
+pnpm run test:coverage
 
 # รัน test แบบ watch (สำหรับพัฒนา)
 npm run test
@@ -40,7 +40,7 @@ npm run test:debug
 thresholds: { global: { branches: 70, functions: 70, lines: 70, statements: 70 } }
 ```
 
-> ⚠️ ตอนนี้ threshold ตั้งไว้ที่ 70% แต่ coverage จริงยังอยู่ที่ 13% ซึ่งหมายความว่า `npm run test:coverage` จะ **fail** เสมอจนกว่า Phase 3 เสร็จ — ไม่ต้องกังวล เพราะเราใช้ manual check ไม่ใช่ CI enforcement (ตาม Q1)
+> ⚠️ ตอนนี้ threshold ตั้งไว้ที่ 70% แต่ coverage จริงยังอยู่ที่ 13% ซึ่งหมายความว่า `pnpm run test:coverage` จะ **fail** เสมอจนกว่า Phase 3 เสร็จ — ไม่ต้องกังวล เพราะเราใช้ manual check ไม่ใช่ CI enforcement (ตาม Q1)
 
 ---
 

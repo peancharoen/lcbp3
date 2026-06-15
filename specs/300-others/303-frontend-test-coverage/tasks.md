@@ -14,7 +14,7 @@
 
 - **Test extension**: `.test.ts` / `.test.tsx` (ไม่ใช่ `.spec.ts`) — ตาม vitest.config.ts include pattern
 - **Test location**: วางใน `__tests__/` subfolder ข้างๆ source (เช่น `hooks/__tests__/use-foo.test.ts`)
-- **Coverage command**: `npm run test:coverage` (ไม่ใช่ `test:cov`)
+- **Coverage command**: `pnpm run test:coverage` (ไม่ใช่ `test:cov`)
 - **Mock helper**: ใช้ `createTestQueryClient()` จาก `@/lib/test-utils` สำหรับ hooks + components
 - **apiClient**: mock ไว้ใน `vitest.setup.ts` แล้ว — ไม่ต้อง mock ซ้ำในแต่ละ service test
 - **publicId**: UUIDv7 เสมอในทุก mock data — ห้ามใช้ `id: 1` (ADR-019)
@@ -26,7 +26,7 @@
 **Purpose**: ตรวจสอบ test environment — helper มีอยู่แล้วใน codebase
 
 - [x] T001 อ่าน `frontend/vitest.config.ts` ยืนยัน include pattern และ coverage config — ไม่ต้องแก้ไข แค่ทำความเข้าใจ
-- [x] T002 รัน `npm run test:coverage` ครั้งแรก เพื่อยืนยันว่า environment พร้อม และดู baseline coverage 13.54%
+- [x] T002 รัน `pnpm run test:coverage` ครั้งแรก เพื่อยืนยันว่า environment พร้อม และดู baseline coverage 13.54%
 - [x] T003 อ่าน `frontend/lib/test-utils.tsx` ทำความเข้าใจ `createTestQueryClient()` pattern
 - [x] T004 อ่าน test file ตัวอย่าง `frontend/hooks/__tests__/use-correspondence.test.ts` เพื่อ internalize pattern
 
@@ -52,7 +52,7 @@
 
 **Goal**: ยก Statement Coverage รวมจาก 13.54% ขึ้นเป็น ≥ 30% โดยเน้น hooks/, lib/services/, components/correspondences/
 
-**Independent Test**: รัน `npm run test:coverage` และดูว่า Statements ≥ 30%
+**Independent Test**: รัน `pnpm run test:coverage` และดูว่า Statements ≥ 30%
 
 ### hooks/ — Custom Hooks (19 ที่ยังขาด)
 
@@ -84,7 +84,7 @@
 - [x] T026 [P] [US1] เขียน test สำหรับ components ใน `frontend/components/common/__tests__/` — ยก coverage จาก 26% ขึ้น ≥ 60%
 - [x] T027 [P] [US1] เขียน test สำหรับ components ใน `frontend/components/ui/__tests__/` — ยก coverage จาก 31% ขึ้น ≥ 60%
 
-**Checkpoint**: รัน `npm run test:coverage` → ยืนยัน Statements ≥ 30% → merge Phase 1 PR
+**Checkpoint**: รัน `pnpm run test:coverage` → ยืนยัน Statements ≥ 30% → merge Phase 1 PR
 
 ---
 
@@ -92,7 +92,7 @@
 
 **Goal**: ยก Statement Coverage รวมจาก 30% ขึ้นเป็น ≥ 50% โดยเน้น rfas/, numbering/, lib/api/, drawings/
 
-**Independent Test**: รัน `npm run test:coverage` และดูว่า Statements ≥ 50%
+**Independent Test**: รัน `pnpm run test:coverage` และดูว่า Statements ≥ 50%
 
 ### components/rfas/ — RFA (Critical Business Feature, 0% → ≥60%)
 
@@ -121,7 +121,7 @@
 - [x] T038 [P] [US2] เขียน test เพิ่มสำหรับ `frontend/components/workflows/__tests__/` — ยก coverage จาก 15% ขึ้น ≥ 60%
 - [x] T039 [P] [US2] เขียน `frontend/hooks/__tests__/use-workflow-history.test.ts` — ครอบ history fetch
 
-**Checkpoint**: รัน `npm run test:coverage` → ยืนยัน Statements ≥ 50% → merge Phase 2 PR
+**Checkpoint**: รัน `pnpm run test:coverage` → ยืนยัน Statements ≥ 50% → merge Phase 2 PR
 
 ---
 
@@ -152,7 +152,7 @@
 - [x] T044 [P] [US3] เขียน test สำหรับ lib/utils/ — ครอบ utility functions ทั้งหมด (เป็น pure function ควร coverage 100%)
 - [x] T045 [P] [US3] เขียน test สำหรับ lib/i18n/ — ครอบ translation loading, fallback
 
-**Checkpoint**: รัน `npm run test:coverage` → ยืนยัน Statements ≥ 70% → merge Phase 3 PR
+**Checkpoint**: รัน `pnpm run test:coverage` → ยืนยัน Statements ≥ 70% → merge Phase 3 PR
 
 ---
 
@@ -163,7 +163,7 @@
 - [ ] T050 ตรวจสอบ test files ทั้งหมดว่าไม่มี `any` type หรือ `console.log`
 - [ ] T051 [P] ตรวจสอบว่า mock data ทุกที่ใช้ `publicId` (UUIDv7) ไม่ใช่ `id` ตัวเลข (ADR-019)
 - [ ] T052 [P] ตรวจสอบว่าทุก test file มี `// File:` header และ `// Change Log` comment
-- [ ] T053 รัน `npm run test:coverage` ครั้งสุดท้าย บันทึกตัวเลขสุดท้ายใน `specs/300-others/303-frontend-test-coverage/plan.md`
+- [ ] T053 รัน `pnpm run test:coverage` ครั้งสุดท้าย บันทึกตัวเลขสุดท้ายใน `specs/300-others/303-frontend-test-coverage/plan.md`
 
 ---
 

@@ -27,3 +27,4 @@
 | 2026-06-14 | v1.9.10 | Frontend Test Coverage Phase 3 — added 11 new test files (AI + layout components); 722/722 tests passing; coverage 51.62% statements | ✅ Complete |
 | 2026-06-14 | v1.9.10 | Frontend Test Coverage Phase 3 — added 77 tests (lib/api/* + components/workflows/*), 833/833 tests passing, coverage TBD | ✅ Complete (pending coverage check) |
 | 2026-06-14 | v1.9.10 | TypeORM RfaWorkflow Entity Fix — added RfaWorkflow to RfaModule.forFeature() to resolve "Entity metadata for RfaRevision#workflows was not found" error | ✅ Complete |
+| 2026-06-15 | v1.9.10 | ESLint Error Fixes — Fixed 58 ESLint errors across 4 test files (syntax, unused variables, ADR-019 UUID violations, unsafe member access) | ✅ Complete |

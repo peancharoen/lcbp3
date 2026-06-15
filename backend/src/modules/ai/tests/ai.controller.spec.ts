@@ -27,6 +27,7 @@ import { FileStorageService } from '../../../common/file-storage/file-storage.se
 import { AiMigrationCheckpointService } from '../ai-migration-checkpoint.service';
 import { OcrService } from '../services/ocr.service';
 import { AiPolicyService } from '../services/ai-policy.service';
+import { AiExecutionProfilesService } from '../services/ai-execution-profiles.service';
 import { RuntimePolicy } from '../interfaces/execution-policy.interface';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../../common/guards/rbac.guard';
@@ -66,6 +67,7 @@ describe('AiController (Integration)', () => {
     getProfileParameters: jest.fn(),
     getModelDefaults: jest.fn(),
   };
+  const mockAiExecutionProfilesService = {};
   beforeEach(async () => {
     jest.clearAllMocks();
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -84,6 +86,10 @@ describe('AiController (Integration)', () => {
         },
         { provide: OcrService, useValue: mockOcrService },
         { provide: AiPolicyService, useValue: mockAiPolicyService },
+        {
+          provide: AiExecutionProfilesService,
+          useValue: mockAiExecutionProfilesService,
+        },
         {
           provide: 'default_IORedisModuleConnectionToken',
           useValue: {

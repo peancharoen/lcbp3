@@ -28,7 +28,25 @@
 - ระบุ // File: path/filename ในบรรทัดแรกของทุกไฟล์
 - ระบุ // บันทึกการแก้ไข, หากมีการแก้ไขเพิ่มในอนาคต ให้เพิ่มบันทึก
 
-### **2.2 Configuration & Secrets Management**
+### **2.2 Package Manager (pnpm)**
+
+โปรเจกต์ใช้ **pnpm** เป็น package manager หลัก (workspace monorepo)
+
+- **ห้ามใช้ `npx`** — ใช้ `pnpm exec` หรือ `pnpm` แทนเพื่อให้แน่ใจว่าใช้ package ที่ติดตั้งใน workspace อย่างถูกต้อง
+- **ตัวอย่างคำสั่งที่ถูกต้อง:**
+  ```bash
+  # ❌ ผิด — ใช้ npx
+  npx eslint "src/**/*.ts"
+
+  # ✅ ถูกต้อง — ใช้ pnpm exec
+  pnpm exec eslint "src/**/*.ts"
+
+  # ✅ ถูกต้อง — ใช้ pnpm (สั้นกว่า)
+  pnpm eslint "src/**/*.ts"
+  ```
+- **เหตุผล:** pnpm workspace จัดการ dependencies แยกกัน การใช้ `npx` อาจใช้ package ที่ไม่ใช่เวอร์ชันที่ workspace ต้องการ
+
+### **2.3 Configuration & Secrets Management**
 
 - **Production/Staging:**
   - ใช้ Docker secrets หรือ environment variables ที่ inject ผ่าน CI/CD
@@ -71,7 +89,7 @@
 - ส่งค่ากลับ (Return) เป็นอ็อบเจกต์ที่มีไทป์กำหนด (typed objects) ไม่ใช่ค่าพื้นฐาน (primitives)
 - รักษาระดับของสิ่งที่เป็นนามธรรม (abstraction level) ให้เป็นระดับเดียวในแต่ละฟังก์ชัน
 
-### 🧱**2.6 การจัดการข้อมูล (Data Handling)**
+### 🧱**2.7 การจัดการข้อมูล (Data Handling)**
 
 - ห่อหุ้มข้อมูล (Encapsulate) ในไทป์แบบผสม (composite types)
 - ใช้ **immutability** (การไม่เปลี่ยนแปลงค่า) ด้วย readonly และ as const
@@ -85,13 +103,13 @@
 - กำหนด **interfaces** สำหรับสัญญา (contracts)
 - ให้คลาสมุ่งเน้นการทำงานเฉพาะอย่างและมีขนาดเล็ก (\< 200 บรรทัด, \< 10 เมธอด, \< 10 properties)
 
-### 🚨**2.8 การจัดการข้อผิดพลาด (Error Handling)**
+### 🚨**2.9 การจัดการข้อผิดพลาด (Error Handling)**
 
 - ใช้ Exceptions สำหรับข้อผิดพลาดที่ไม่คาดคิด
 - ดักจับ (Catch) ข้อผิดพลาดเพื่อแก้ไขหรือเพิ่มบริบท (context) เท่านั้น; หากไม่เช่นนั้น ให้ใช้ global error handlers
 - ระบุข้อความข้อผิดพลาด (error messages) ที่มีความหมายเสมอ
 
-### 🧪**2.9 การทดสอบ (ทั่วไป) (Testing (General))**
+### 🧪**2.10 การทดสอบ (ทั่วไป) (Testing (General))**
 
 - ใช้รูปแบบ **Arrange–Act–Assert**
 - ใช้ชื่อตัวแปรในการทดสอบที่สื่อความหมาย (inputData, expectedOutput)

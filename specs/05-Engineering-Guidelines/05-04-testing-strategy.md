@@ -995,7 +995,7 @@ jobs:
 
       - name: Run unit tests
         working-directory: ./frontend
-        run: npm run test:coverage
+        run: pnpm run test:coverage
 
       - name: Run E2E tests
         working-directory: ./frontend
