@@ -66,6 +66,8 @@ describe('AiPromptsService', () => {
   };
   beforeEach(async () => {
     jest.clearAllMocks();
+    mockQueryBuilder.getRawOne.mockReset();
+    mockQueryBuilder.getRawMany.mockReset();
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AiPromptsService,
@@ -106,6 +108,7 @@ describe('AiPromptsService', () => {
         activatedAt: null,
         createdBy: 1,
         createdAt: new Date(),
+        version: 1,
       } as AiPrompt;
       mockQueryBuilder.getRawMany
         .mockResolvedValueOnce([
@@ -156,6 +159,7 @@ describe('AiPromptsService', () => {
         activatedAt: null,
         createdBy: 1,
         createdAt: new Date(),
+        version: 1,
       } as AiPrompt;
       mockQueryBuilder.getRawOne.mockResolvedValue(null);
       await expect(
@@ -163,6 +167,7 @@ describe('AiPromptsService', () => {
       ).rejects.toThrow(NotFoundException);
     });
     it('ควร throw ForbiddenException เมื่อพยายาม override ข้ามโครงการที่ถูกล็อคไว้ใน template', async () => {
+      const lockedProjectPublicId = '019505a1-7c3e-7000-8000-abc123def111';
       const activePrompt = {
         id: 1,
         publicId: 'prompt-uuid-789',
@@ -173,7 +178,7 @@ describe('AiPromptsService', () => {
         isActive: true,
         contextConfig: {
           filter: {
-            projectId: 1,
+            projectId: lockedProjectPublicId,
           },
         },
         testResultJson: null,
@@ -182,13 +187,17 @@ describe('AiPromptsService', () => {
         activatedAt: null,
         createdBy: 1,
         createdAt: new Date(),
+        version: 1,
       } as AiPrompt;
-      mockQueryBuilder.getRawOne.mockResolvedValue({ id: 2 });
+      mockQueryBuilder.getRawOne
+        .mockResolvedValueOnce({ id: 1 })
+        .mockResolvedValueOnce({ id: 2 });
       await expect(
         service.resolveContext(activePrompt, 'another-project-uuid')
       ).rejects.toThrow(ForbiddenException);
     });
     it('ควรผ่านเมื่อ override project UUID ตรงกับ projectId ที่ล็อคไว้ใน template', async () => {
+      const lockedProjectPublicId = '019505a1-7c3e-7000-8000-abc123def222';
       const activePrompt = {
         id: 1,
         publicId: 'prompt-uuid-abc',
@@ -199,7 +208,7 @@ describe('AiPromptsService', () => {
         isActive: true,
         contextConfig: {
           filter: {
-            projectId: 1,
+            projectId: lockedProjectPublicId,
           },
         },
         testResultJson: null,
@@ -208,8 +217,11 @@ describe('AiPromptsService', () => {
         activatedAt: null,
         createdBy: 1,
         createdAt: new Date(),
+        version: 1,
       } as AiPrompt;
-      mockQueryBuilder.getRawOne.mockResolvedValue({ id: 1 });
+      mockQueryBuilder.getRawOne
+        .mockResolvedValueOnce({ id: 1 })
+        .mockResolvedValueOnce({ id: 1 });
       mockQueryBuilder.getRawMany
         .mockResolvedValueOnce([
           { projectCode: 'LCB3', uuid: 'proj-123', projectName: 'LCP Phase 3' },
@@ -220,6 +232,62 @@ describe('AiPromptsService', () => {
         .mockResolvedValueOnce([]);
       const result = await service.resolveContext(activePrompt, 'matched-uuid');
       expect(result.availableProjects).toBeDefined();
+    });
+
+    it('ควร resolve context filter ด้วย public UUID ก่อนใช้ internal id ใน query', async () => {
+      const projectPublicId = '019505a1-7c3e-7000-8000-abc123def456';
+      const contractPublicId = '019505a1-7c3e-7000-8000-abc123def789';
+      const activePrompt = {
+        id: 1,
+        publicId: 'prompt-uuid-filter',
+        promptType: 'ocr_extraction',
+        versionNumber: 1,
+        template: 'Test template',
+        fieldSchema: null,
+        isActive: true,
+        contextConfig: {
+          filter: {
+            projectId: projectPublicId,
+            contractId: contractPublicId,
+          },
+        },
+        testResultJson: null,
+        manualNote: null,
+        lastTestedAt: null,
+        activatedAt: null,
+        createdBy: 1,
+        createdAt: new Date(),
+        version: 1,
+      } as AiPrompt;
+      mockQueryBuilder.getRawOne
+        .mockResolvedValueOnce({ id: 10 })
+        .mockResolvedValueOnce({ id: 20, projectId: 10 });
+      mockQueryBuilder.getRawMany
+        .mockResolvedValueOnce([
+          {
+            projectCode: 'LCB3',
+            uuid: projectPublicId,
+            projectName: 'LCP Phase 3',
+          },
+        ])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([]);
+      const result = await service.resolveContext(activePrompt);
+      expect(result.availableProjects).toEqual([
+        { code: 'LCB3', uuid: projectPublicId, name: 'LCP Phase 3' },
+      ]);
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith('p.uuid = :uuid', {
+        uuid: projectPublicId,
+      });
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith('c.uuid = :uuid', {
+        uuid: contractPublicId,
+      });
+      expect(mockQueryBuilder.andWhere).not.toHaveBeenCalledWith(
+        'p.id = :projectId',
+        { projectId: Number(projectPublicId) }
+      );
     });
   });
   describe('create', () => {

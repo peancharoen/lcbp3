@@ -59,6 +59,11 @@ describe('AiBatchProcessor', () => {
     processWithAutoDetect: jest.fn().mockResolvedValue({
       text: 'extracted ocr text from document that is long enough to bypass character length check',
     }),
+    embedViaSidecar: jest.fn().mockResolvedValue({
+      dense: [0.1, 0.2, 0.3],
+      sparse: { indices: [0, 1], values: [0.5, 0.7] },
+      device: 'cpu',
+    }),
   };
   const mockSandboxOcrEngineService = {
     detectAndExtract: jest.fn().mockResolvedValue({
@@ -739,6 +744,147 @@ describe('AiBatchProcessor', () => {
           repeatPenalty: 1.15,
         },
       });
+    });
+  });
+
+  describe('Sandbox RAG Prep (T031)', () => {
+    it('ควรประมวลผล sandbox-rag-prep สำเร็จด้วย semantic chunking และ embedding', async () => {
+      mockAiPromptsService.getActive.mockResolvedValue({
+        id: 1,
+        promptType: 'rag_prep_prompt',
+        versionNumber: 1,
+        template: 'Chunk this text: {{text}}',
+        isActive: true,
+        contextConfig: null,
+      });
+      mockOllamaService.generate.mockResolvedValue(
+        '<chunk topic="Introduction">Introduction text</chunk><chunk topic="Main Content">Main content text</chunk>'
+      );
+
+      const job = {
+        id: 'job-sandbox-rag-prep',
+        data: {
+          jobType: 'sandbox-rag-prep',
+          documentPublicId: 'doc-uuid-123',
+          projectPublicId: 'proj-uuid-456',
+          payload: {
+            text: 'This is a test document for RAG preparation. It contains multiple sections.',
+            profileId: 'standard',
+          },
+          idempotencyKey: 'idem-rag-prep-123',
+        },
+      } as unknown as Job<AiBatchJobData>;
+
+      await processor.process(job);
+
+      expect(mockAiPromptsService.getActive).toHaveBeenCalledWith(
+        'rag_prep_prompt'
+      );
+      expect(mockOllamaService.generate).toHaveBeenCalled();
+      expect(ocrService.embedViaSidecar).toHaveBeenCalledTimes(2);
+      expect(redis.setex).toHaveBeenCalledWith(
+        'ai:rag:result:idem-rag-prep-123',
+        3600,
+        expect.stringContaining('"status":"completed"')
+      );
+    });
+
+    it('ควร fallback ไป fixed-size chunking เมื่อ LLM parse chunk tags ล้มเหลว', async () => {
+      mockAiPromptsService.getActive.mockResolvedValue({
+        id: 1,
+        promptType: 'rag_prep_prompt',
+        versionNumber: 1,
+        template: 'Chunk this text: {{text}}',
+        isActive: true,
+        contextConfig: null,
+      });
+      mockOllamaService.generate.mockResolvedValue(
+        'Invalid LLM output without chunk tags'
+      );
+
+      const job = {
+        id: 'job-sandbox-rag-prep-fallback',
+        data: {
+          jobType: 'sandbox-rag-prep',
+          documentPublicId: 'doc-uuid-456',
+          projectPublicId: 'proj-uuid-789',
+          payload: {
+            text: 'This is a test document for RAG preparation fallback.',
+          },
+          idempotencyKey: 'idem-rag-prep-fallback',
+        },
+      } as unknown as Job<AiBatchJobData>;
+
+      await processor.process(job);
+
+      expect(ocrService.embedViaSidecar).toHaveBeenCalled();
+      expect(redis.setex).toHaveBeenCalledWith(
+        'ai:rag:result:idem-rag-prep-fallback',
+        3600,
+        expect.stringContaining('"status":"completed"')
+      );
+    });
+
+    it('ควร throw error เมื่อไม่มี text ใน payload', async () => {
+      const job = {
+        id: 'job-sandbox-rag-prep-error',
+        data: {
+          jobType: 'sandbox-rag-prep',
+          documentPublicId: 'doc-uuid-789',
+          projectPublicId: 'proj-uuid-999',
+          payload: {},
+          idempotencyKey: 'idem-rag-prep-error',
+        },
+      } as unknown as Job<AiBatchJobData>;
+
+      await expect(processor.process(job)).rejects.toThrow(
+        'text is required for sandbox-rag-prep job'
+      );
+    });
+
+    it('ควรใช้ profileId เมื่อระบุใน payload', async () => {
+      mockAiPromptsService.getActive.mockResolvedValue({
+        id: 1,
+        promptType: 'rag_prep_prompt',
+        versionNumber: 1,
+        template: 'Chunk this text: {{text}}',
+        isActive: true,
+        contextConfig: null,
+      });
+      mockAiPolicyService.getSandboxParameters.mockResolvedValueOnce({
+        temperature: 0.2,
+        topP: 0.7,
+        maxTokens: 2048,
+        numCtx: 4096,
+        repeatPenalty: 1.2,
+        keepAliveSeconds: 30,
+      });
+      mockOllamaService.generate.mockResolvedValue(
+        '<chunk topic="Test">Test chunk</chunk>'
+      );
+
+      const job = {
+        id: 'job-sandbox-rag-prep-profile',
+        data: {
+          jobType: 'sandbox-rag-prep',
+          documentPublicId: 'doc-uuid-999',
+          projectPublicId: 'proj-uuid-111',
+          payload: {
+            text: 'Test text with profile',
+            profileId: 'custom-profile',
+          },
+          idempotencyKey: 'idem-rag-prep-profile',
+        },
+      } as unknown as Job<AiBatchJobData>;
+
+      await processor.process(job);
+
+      expect(mockAiPolicyService.getSandboxParameters).toHaveBeenCalledWith(
+        'custom-profile'
+      );
+      expect(mockAiPolicyService.getSandboxParameters).not.toHaveBeenCalledWith(
+        'standard'
+      );
     });
   });
 });

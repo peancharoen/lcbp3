@@ -3,6 +3,7 @@
 // - 2026-05-25: Created AiPromptsService for dynamic prompt management (ADR-029)
 // - 2026-05-25: Fixed BusinessException and NotFoundException constructor signatures
 // - 2026-05-25: Cast getRawOne() to resolve TypeScript type assertion error in ESLint
+// - 2026-06-15: Added optimistic locking error handling for @VersionColumn (T067)
 
 import { Injectable, Logger, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -19,6 +20,7 @@ import {
   ValidationException,
   NotFoundException,
 } from '../../../common/exceptions';
+import { readPromptContextScope } from './prompt-context-scope.util';
 
 /**
  * Service สำหรับจัดการ Prompt Versioning และการดึงข้อมูล Prompt ล่าสุดที่พร้อมใช้งาน
@@ -52,16 +54,45 @@ export class AiPromptsService {
     overrideProjectPublicId?: string,
     overrideContractPublicId?: string
   ): Promise<Record<string, unknown>> {
-    const config = activePrompt.contextConfig || {};
-    const filter =
-      (config.filter as Record<string, number | string | null | undefined>) ||
-      {};
-    let targetProjectId: number | null = filter.projectId
-      ? Number(filter.projectId)
-      : null;
-    const targetContractId: number | null = filter.contractId
-      ? Number(filter.contractId)
-      : null;
+    const scope = readPromptContextScope(activePrompt.contextConfig);
+    let targetProjectId: number | null = null;
+    if (scope.projectPublicId) {
+      const foundProject = await this.dataSource.manager
+        .createQueryBuilder()
+        .select('p.id', 'id')
+        .from('projects', 'p')
+        .where('p.uuid = :uuid', { uuid: scope.projectPublicId })
+        .andWhere('p.deleted_at IS NULL')
+        .getRawOne<{ id: number }>();
+      if (!foundProject) {
+        throw new NotFoundException('Project', scope.projectPublicId);
+      }
+      targetProjectId = Number(foundProject.id);
+    }
+
+    let targetContractId: number | null = null;
+    let targetContractProjectId: number | null = null;
+    if (scope.contractPublicId) {
+      const foundContract = await this.dataSource.manager
+        .createQueryBuilder()
+        .select(['c.id as id', 'c.project_id as projectId'])
+        .from('contracts', 'c')
+        .where('c.uuid = :uuid', { uuid: scope.contractPublicId })
+        .getRawOne<{ id: number; projectId: number }>();
+      if (!foundContract) {
+        throw new NotFoundException('Contract', scope.contractPublicId);
+      }
+      targetContractId = Number(foundContract.id);
+      targetContractProjectId = Number(foundContract.projectId);
+      if (
+        targetProjectId !== null &&
+        targetContractProjectId !== targetProjectId
+      ) {
+        throw new ForbiddenException(
+          `Cross-project boundary violation: Contract belongs to project ID ${targetContractProjectId} but template is restricted to project ID ${targetProjectId}`
+        );
+      }
+    }
 
     // 1. Logic ตรวจสอบ Override และทำหน้าที่ Gatekeeper ป้องกัน Cross-project data leak
     if (overrideProjectPublicId) {
@@ -91,7 +122,7 @@ export class AiPromptsService {
       targetProjectId = overrideProjectId;
     }
 
-    let overrideContractProjectId: number | null = null;
+    let overrideContractProjectId: number | null = targetContractProjectId;
     let overrideContractId: number | null = null;
     if (overrideContractPublicId) {
       const foundContract = await this.dataSource.manager
@@ -255,10 +286,29 @@ export class AiPromptsService {
    * @returns รายการ prompt versions เรียงตาม versionNumber ล่าสุดก่อน
    */
   async findAll(promptType: string): Promise<AiPrompt[]> {
-    return this.aiPromptRepo.find({
+    const cacheKey = `${this.cachePrefix}versions:${promptType}`;
+    try {
+      const cached = await this.redis.get(cacheKey);
+      if (cached) {
+        return JSON.parse(cached) as AiPrompt[];
+      }
+    } catch (err: unknown) {
+      this.logger.warn(
+        `Redis unavailable, falling back to DB query: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
+    const prompts = await this.aiPromptRepo.find({
       where: { promptType },
       order: { versionNumber: 'DESC' },
     });
+    try {
+      await this.redis.setex(cacheKey, 60, JSON.stringify(prompts));
+    } catch (err: unknown) {
+      this.logger.warn(
+        `Failed to set Redis cache: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
+    return prompts;
   }
 
   /**
@@ -397,6 +447,14 @@ export class AiPromptsService {
       });
       const savedPrompt = await queryRunner.manager.save(newPrompt);
       await queryRunner.commitTransaction();
+      try {
+        const cacheKey = `${this.cachePrefix}versions:${promptType}`;
+        await this.redis.del(cacheKey);
+      } catch (err: unknown) {
+        this.logger.warn(
+          `Failed to clear Redis cache after create: ${err instanceof Error ? err.message : String(err)}`
+        );
+      }
       await this.saveAuditLog(
         'AI_PROMPT_CREATED',
         String(savedPrompt.id),
@@ -452,6 +510,8 @@ export class AiPromptsService {
       try {
         const cacheKey = `${this.cachePrefix}${promptType}`;
         await this.redis.del(cacheKey);
+        const versionsCacheKey = `${this.cachePrefix}versions:${promptType}`;
+        await this.redis.del(versionsCacheKey);
       } catch (err: unknown) {
         this.logger.warn(
           `Failed to clear Redis cache after activation: ${err instanceof Error ? err.message : String(err)}`
@@ -499,6 +559,14 @@ export class AiPromptsService {
       );
     }
     await this.aiPromptRepo.remove(prompt);
+    try {
+      const cacheKey = `${this.cachePrefix}versions:${promptType}`;
+      await this.redis.del(cacheKey);
+    } catch (err: unknown) {
+      this.logger.warn(
+        `Failed to clear Redis cache after delete: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
     await this.saveAuditLog(
       'AI_PROMPT_DELETED',
       String(prompt.id),
@@ -514,20 +582,43 @@ export class AiPromptsService {
    * @param note ข้อความ note หรือ null หากต้องการลบ
    * @returns Prompt version ที่อัปเดตแล้ว
    * @throws NotFoundException หากไม่พบ prompt version
+   * @throws BusinessException หากเกิด optimistic locking conflict
    */
   async updateNote(
     promptType: string,
     versionNumber: number,
     note: string | null
   ): Promise<AiPrompt> {
-    const prompt = await this.aiPromptRepo.findOne({
-      where: { promptType, versionNumber },
-    });
-    if (!prompt) {
-      throw new NotFoundException('AiPrompt', versionNumber.toString());
+    try {
+      const prompt = await this.aiPromptRepo.findOne({
+        where: { promptType, versionNumber },
+      });
+      if (!prompt) {
+        throw new NotFoundException('AiPrompt', versionNumber.toString());
+      }
+      prompt.manualNote = note;
+      return this.aiPromptRepo.save(prompt);
+    } catch (err: unknown) {
+      if (err instanceof NotFoundException) {
+        throw err;
+      }
+      // Handle optimistic locking conflict
+      if (err instanceof Error && err.message.includes('optimistic')) {
+        throw new BusinessException(
+          'OPTIMISTIC_LOCK_CONFLICT',
+          'This prompt version was modified by another user. Please refresh and try again.',
+          'ข้อมูลถูกแก้ไขโดยผู้ใช้อื่น กรุณารีเฟรชแล้วลองใหม่'
+        );
+      }
+      this.logger.error(
+        `Failed to update prompt note: ${err instanceof Error ? err.message : String(err)}`
+      );
+      throw new BusinessException(
+        'UPDATE_NOTE_FAILED',
+        'Failed to update prompt note',
+        'ไม่สามารถอัปเดต note ได้ กรุณาลองใหม่'
+      );
     }
-    prompt.manualNote = note;
-    return this.aiPromptRepo.save(prompt);
   }
 
   /**
@@ -569,56 +660,95 @@ export class AiPromptsService {
 
   /**
    * อัปเดต Context Config ของ Prompt Version ที่กำหนด พร้อมทั้งตรวจเช็คความถูกต้องของโครงการและสัญญาใน DB
+   * @throws NotFoundException หากไม่พบ prompt version
+   * @throws BusinessException หากเกิด optimistic locking conflict
+   * @throws ValidationException หาก context config ไม่ถูกต้อง (T068)
    */
   async updateContextConfig(
     promptType: string,
     versionNumber: number,
     dto: ContextConfigDto
   ): Promise<Record<string, unknown>> {
-    const prompt = await this.aiPromptRepo.findOne({
-      where: { promptType, versionNumber },
-    });
-    if (!prompt) {
-      throw new NotFoundException('AiPrompt', versionNumber.toString());
-    }
-
-    // Validation (T027): ตรวจสอบโครงการ/สัญญาใน DB
-    if (dto.filter?.projectId) {
-      const projectExists = (await this.dataSource.manager
-        .createQueryBuilder()
-        .select('p.id')
-        .from('projects', 'p')
-        .where('p.uuid = :uuid', { uuid: dto.filter.projectId })
-        .andWhere('p.deleted_at IS NULL')
-        .getRawOne()) as unknown;
-      if (!projectExists) {
-        throw new NotFoundException('Project', dto.filter.projectId);
+    try {
+      const prompt = await this.aiPromptRepo.findOne({
+        where: { promptType, versionNumber },
+      });
+      if (!prompt) {
+        throw new NotFoundException('AiPrompt', versionNumber.toString());
       }
-    }
 
-    if (dto.filter?.contractId) {
-      const contractExists = (await this.dataSource.manager
-        .createQueryBuilder()
-        .select('c.id')
-        .from('contracts', 'c')
-        .where('c.uuid = :uuid', { uuid: dto.filter.contractId })
-        .getRawOne()) as unknown;
-      if (!contractExists) {
-        throw new NotFoundException('Contract', dto.filter.contractId);
+      // Validation (T068): ตรวจสอบค่าของ context config
+      if (dto.pageSize < 1 || dto.pageSize > 1000) {
+        throw new ValidationException('pageSize must be between 1 and 1000');
       }
+      if (!dto.language || dto.language.trim().length === 0) {
+        throw new ValidationException('language is required');
+      }
+      if (!dto.outputLanguage || dto.outputLanguage.trim().length === 0) {
+        throw new ValidationException('outputLanguage is required');
+      }
+
+      // Validation (T027): ตรวจสอบโครงการ/สัญญาใน DB
+      if (dto.filter?.projectId) {
+        const projectExists = (await this.dataSource.manager
+          .createQueryBuilder()
+          .select('p.id')
+          .from('projects', 'p')
+          .where('p.uuid = :uuid', { uuid: dto.filter.projectId })
+          .andWhere('p.deleted_at IS NULL')
+          .getRawOne()) as unknown;
+        if (!projectExists) {
+          throw new NotFoundException('Project', dto.filter.projectId);
+        }
+      }
+
+      if (dto.filter?.contractId) {
+        const contractExists = (await this.dataSource.manager
+          .createQueryBuilder()
+          .select('c.id')
+          .from('contracts', 'c')
+          .where('c.uuid = :uuid', { uuid: dto.filter.contractId })
+          .getRawOne()) as unknown;
+        if (!contractExists) {
+          throw new NotFoundException('Contract', dto.filter.contractId);
+        }
+      }
+
+      // บันทึกลง DB
+      const newContextConfig = {
+        filter: dto.filter || null,
+        pageSize: dto.pageSize,
+        language: dto.language,
+        outputLanguage: dto.outputLanguage,
+      };
+      prompt.contextConfig = newContextConfig;
+      await this.aiPromptRepo.save(prompt);
+
+      return newContextConfig;
+    } catch (err: unknown) {
+      if (
+        err instanceof NotFoundException ||
+        err instanceof ValidationException
+      ) {
+        throw err;
+      }
+      // Handle optimistic locking conflict
+      if (err instanceof Error && err.message.includes('optimistic')) {
+        throw new BusinessException(
+          'OPTIMISTIC_LOCK_CONFLICT',
+          'This prompt version was modified by another user. Please refresh and try again.',
+          'ข้อมูลถูกแก้ไขโดยผู้ใช้อื่น กรุณารีเฟรชแล้วลองใหม่'
+        );
+      }
+      this.logger.error(
+        `Failed to update context config: ${err instanceof Error ? err.message : String(err)}`
+      );
+      throw new BusinessException(
+        'UPDATE_CONTEXT_CONFIG_FAILED',
+        'Failed to update context config',
+        'ไม่สามารถอัปเดต context config ได้ กรุณาลองใหม่'
+      );
     }
-
-    // บันทึกลง DB
-    const newContextConfig = {
-      filter: dto.filter || null,
-      pageSize: dto.pageSize,
-      language: dto.language,
-      outputLanguage: dto.outputLanguage,
-    };
-    prompt.contextConfig = newContextConfig;
-    await this.aiPromptRepo.save(prompt);
-
-    return newContextConfig;
   }
 
   /**

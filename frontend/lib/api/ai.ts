@@ -50,7 +50,7 @@ interface WrappedData<T> {
   data?: T;
 }
 
-const extractData = <T>(value: unknown): T => {
+export const extractData = <T>(value: unknown): T => {
   let current: unknown = value;
   for (let index = 0; index < 5; index += 1) {
     if (!current || typeof current !== 'object' || !('data' in current)) {

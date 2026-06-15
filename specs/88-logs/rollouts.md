@@ -24,3 +24,6 @@
 | 2026-06-14 | v1.9.10 | Feature-237 Unified Prompt Management UX/UI code review — report saved; frontend tsc passed; backend build blocked by RFA service compile errors plus prompt context/idempotency findings | ❌ Request changes |
 | 2026-06-14 | v1.9.10 | Correspondence Module Review Fixes — ValidationException, CSV row cap (10000), formula injection, bulkCancel logging, dynamic re-index status, RecipientDto nested validation, correspondence.edit permission, IdempotencyInterceptor on all 7 mutation endpoints | ✅ Complete |
 | 2026-06-14 | v1.9.10 | RFA ADR-001/021 Migration — ตัด CorrespondenceRouting/RoutingTemplate repos ออก; ตัด templateId จาก DTO; เพิ่ม static constants (WORKFLOW_CODE/STATE_TO_STATUS/DEFAULT_APPROVED_CODE); tsc --noEmit exit 0; 26/26 frontend tests pass | ✅ Complete |
+| 2026-06-14 | v1.9.10 | Frontend Test Coverage Phase 3 — added 11 new test files (AI + layout components); 722/722 tests passing; coverage 51.62% statements | ✅ Complete |
+| 2026-06-14 | v1.9.10 | Frontend Test Coverage Phase 3 — added 77 tests (lib/api/* + components/workflows/*), 833/833 tests passing, coverage TBD | ✅ Complete (pending coverage check) |
+| 2026-06-14 | v1.9.10 | TypeORM RfaWorkflow Entity Fix — added RfaWorkflow to RfaModule.forFeature() to resolve "Entity metadata for RfaRevision#workflows was not found" error | ✅ Complete |

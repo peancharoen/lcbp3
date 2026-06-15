@@ -18,7 +18,6 @@
 // - 2026-06-13: T042-T043 — เพิ่ม applyProfile และ getProductionDefaults สำหรับปรับใช้และดึงค่า production parameters
 // - 2026-06-13: US4 — อัปเดต submitSandboxExtract และ submitSandboxAiExtract ให้รองรับ project/contract publicId
 
-
 import api from '../api/client';
 import { AiJobResponse } from '../../types/ai';
 import { PromptType, PromptVersion, ContextConfig } from '../types/ai-prompts';
@@ -155,6 +154,21 @@ export interface SandboxProfileParams {
   keepAliveSeconds: number;
 }
 
+export interface ExecutionProfile {
+  id: number;
+  profileName: string;
+  canonicalModel?: 'np-dms-ai' | 'np-dms-ocr';
+  temperature: number;
+  topP: number;
+  repeatPenalty: number;
+  maxTokens: number | null;
+  numCtx: number | null;
+  keepAlive: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 const extractData = <T>(value: unknown): T => {
   if (value && typeof value === 'object' && 'data' in value) {
     return (value as { data: T }).data;
@@ -162,9 +176,7 @@ const extractData = <T>(value: unknown): T => {
   return value as T;
 };
 
-const normalizeLoadedModels = (
-  models: Array<string | LoadedModelInfo> | undefined
-): LoadedModelInfo[] => {
+const normalizeLoadedModels = (models: Array<string | LoadedModelInfo> | undefined): LoadedModelInfo[] => {
   if (!Array.isArray(models)) {
     return [];
   }
@@ -184,9 +196,7 @@ const normalizeVramStatus = (value: unknown): VramStatusResponse => {
   const raw = extractData<RawVramStatusResponse>(value);
   const totalVRAMMB = raw.totalVRAMMB ?? raw.totalVramMb ?? 0;
   const usedVRAMMB = raw.usedVRAMMB ?? raw.usedVramMb ?? 0;
-  const usagePercent =
-    raw.usagePercent ??
-    (totalVRAMMB > 0 ? Math.round((usedVRAMMB / totalVRAMMB) * 100) : 0);
+  const usagePercent = raw.usagePercent ?? (totalVRAMMB > 0 ? Math.round((usedVRAMMB / totalVRAMMB) * 100) : 0);
 
   return {
     totalVRAMMB,
@@ -197,6 +207,10 @@ const normalizeVramStatus = (value: unknown): VramStatusResponse => {
     canLoadModel: raw.canLoadModel ?? raw.hasCapacity ?? false,
     lastUpdated: raw.lastUpdated ?? new Date().toISOString(),
   };
+};
+
+const createIdempotencyKey = (): string => {
+  return globalThis.crypto?.randomUUID?.() ?? `idem-${Date.now()}`;
 };
 
 /** Service สำหรับเรียก AI Admin Console API ผ่าน DMS Backend เท่านั้น */
@@ -356,26 +370,18 @@ export const adminAiService = {
     updates: Partial<SandboxProfileParams>,
     idempotencyKey: string
   ): Promise<SandboxProfileParams> => {
-    const { data } = await api.put(
-      `/ai/sandbox-profiles/${encodeURIComponent(profileName)}`,
-      updates,
-      { headers: { 'Idempotency-Key': idempotencyKey } }
-    );
+    const { data } = await api.put(`/ai/sandbox-profiles/${encodeURIComponent(profileName)}`, updates, {
+      headers: { 'Idempotency-Key': idempotencyKey },
+    });
     return extractData<SandboxProfileParams>(data);
   },
 
   resetSandboxProfile: async (profileName: string): Promise<SandboxProfileParams> => {
-    const { data } = await api.post(
-      `/ai/sandbox-profiles/${encodeURIComponent(profileName)}/reset`,
-      {}
-    );
+    const { data } = await api.post(`/ai/sandbox-profiles/${encodeURIComponent(profileName)}/reset`, {});
     return extractData<SandboxProfileParams>(data);
   },
 
-  applyProfile: async (
-    profileName: string,
-    idempotencyKey: string
-  ): Promise<SandboxProfileParams> => {
+  applyProfile: async (profileName: string, idempotencyKey: string): Promise<SandboxProfileParams> => {
     const { data } = await api.post(
       `/ai/profiles/${encodeURIComponent(profileName)}/apply`,
       {},
@@ -415,7 +421,9 @@ export const adminAiService = {
     type: PromptType,
     updates: { template: string; contextConfig?: ContextConfig | null; manualNote?: string }
   ): Promise<PromptVersion> => {
-    const { data } = await api.post(`/ai/prompts/${type}`, updates);
+    const { data } = await api.post(`/ai/prompts/${type}`, updates, {
+      headers: { 'Idempotency-Key': createIdempotencyKey() },
+    });
     return extractData<PromptVersion>(data);
   },
 
@@ -424,15 +432,15 @@ export const adminAiService = {
   },
 
   activatePrompt: async (type: PromptType, versionNumber: number): Promise<PromptVersion> => {
-    const { data } = await api.post(`/ai/prompts/${type}/${versionNumber}/activate`);
+    const { data } = await api.post(
+      `/ai/prompts/${type}/${versionNumber}/activate`,
+      {},
+      { headers: { 'Idempotency-Key': createIdempotencyKey() } }
+    );
     return extractData<PromptVersion>(data);
   },
 
-  updatePromptNote: async (
-    type: PromptType,
-    versionNumber: number,
-    manualNote: string
-  ): Promise<PromptVersion> => {
+  updatePromptNote: async (type: PromptType, versionNumber: number, manualNote: string): Promise<PromptVersion> => {
     const { data } = await api.patch(`/ai/prompts/${type}/${versionNumber}/note`, { manualNote });
     return extractData<PromptVersion>(data);
   },
@@ -447,16 +455,45 @@ export const adminAiService = {
     versionNumber: number,
     contextConfig: ContextConfig
   ): Promise<ContextConfig> => {
-    const { data } = await api.put(`/ai/prompts/${type}/${versionNumber}/context-config`, contextConfig);
+    const { data } = await api.put(`/ai/prompts/${type}/${versionNumber}/context-config`, contextConfig, {
+      headers: { 'Idempotency-Key': createIdempotencyKey() },
+    });
     return extractData<ContextConfig>(data);
   },
 
-  submitSandboxRagPrep: async (
-    text: string,
-    profileId?: string | null
-  ): Promise<{ jobId: string; status: string }> => {
-    const { data } = await api.post('/ai/admin/sandbox/rag-prep', { text, profileId });
+  submitSandboxRagPrep: async (text: string, profileId?: string | null): Promise<{ jobId: string; status: string }> => {
+    const { data } = await api.post(
+      '/ai/admin/sandbox/rag-prep',
+      { text, profileId },
+      { headers: { 'Idempotency-Key': createIdempotencyKey() } }
+    );
     return extractData<{ jobId: string; status: string }>(data);
+  },
+
+  // --- Execution Profiles (US4 — T051) ---
+
+  getExecutionProfiles: async (): Promise<ExecutionProfile[]> => {
+    const { data } = await api.get('/ai/execution-profiles');
+    return extractData<ExecutionProfile[]>(data);
+  },
+
+  createExecutionProfile: async (
+    profile: Omit<ExecutionProfile, 'id' | 'isActive' | 'createdAt' | 'updatedAt'>
+  ): Promise<ExecutionProfile> => {
+    const { data } = await api.post('/ai/execution-profiles', profile);
+    return extractData<ExecutionProfile>(data);
+  },
+
+  updateExecutionProfile: async (
+    id: number,
+    updates: Partial<Omit<ExecutionProfile, 'id' | 'isActive' | 'createdAt' | 'updatedAt'>>
+  ): Promise<ExecutionProfile> => {
+    const { data } = await api.put(`/ai/execution-profiles/${id}`, updates);
+    return extractData<ExecutionProfile>(data);
+  },
+
+  deleteExecutionProfile: async (id: number): Promise<void> => {
+    await api.delete(`/ai/execution-profiles/${id}`);
   },
 };
 

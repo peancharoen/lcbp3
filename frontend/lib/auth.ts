@@ -17,7 +17,7 @@ const baseUrl =
   'http://localhost:3001/api';
 
 // Helper to parse JWT expiry
-function getJwtExpiry(token: string): number {
+export function getJwtExpiry(token: string): number {
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
     return payload.exp * 1000; // Convert to ms
@@ -44,7 +44,7 @@ interface LoginPayload extends TokenPayload {
   };
 }
 
-function unwrapApiResponse(value: unknown): unknown {
+export function unwrapApiResponse(value: unknown): unknown {
   let current = value;
 
   for (let i = 0; i < 5; i += 1) {
@@ -67,7 +67,7 @@ function unwrapApiResponse(value: unknown): unknown {
   return current;
 }
 
-function isTokenPayload(value: unknown): value is TokenPayload {
+export function isTokenPayload(value: unknown): value is TokenPayload {
   return !!value && typeof value === 'object' && typeof (value as Record<string, unknown>).access_token === 'string';
 }
 

@@ -1,0 +1,848 @@
+2026-06-14T14:01:48.1545954Z asustor-runner(version:v0.4.0) received task 726 of job deploy, be triggered by event: push
+2026-06-14T14:01:48.1550844Z workflow prepared
+2026-06-14T14:01:48.1551945Z evaluating expression 'success()'
+2026-06-14T14:01:48.1552949Z expression 'success()' evaluated to 'true'
+2026-06-14T14:01:48.1553131Z 'runs-on' key not defined in CI / CD Pipeline/build
+2026-06-14T14:01:48.1553287Z No steps found
+2026-06-14T14:01:48.1554367Z evaluating expression 'github.ref == 'refs/heads/main''
+2026-06-14T14:01:48.1555015Z expression 'github.ref == 'refs/heads/main'' evaluated to 'true'
+2026-06-14T14:01:48.1555311Z 🚀  Start image=node:18-bullseye
+2026-06-14T14:01:48.1673785Z   🐳  docker pull image=node:18-bullseye platform= username= forcePull=false
+2026-06-14T14:01:48.1674139Z   🐳  docker pull node:18-bullseye
+2026-06-14T14:01:48.1697859Z Image exists? true
+2026-06-14T14:01:48.1791809Z   🐳  docker create image=node:18-bullseye platform= entrypoint=["/bin/sleep" "10800"] cmd=[] network="bridge"
+2026-06-14T14:01:53.0957391Z Created container name=GITEA-ACTIONS-TASK-726_WORKFLOW-CI-CD-Pipeline_JOB-deploy id=de68ef87ac8a68435216726c34151b4b9***dd77d3fdb04f3ee67325c55a***7c5 from image node:18-bullseye (platform: )
+2026-06-14T14:01:53.0958752Z ENV ==> [RUNNER_TOOL_CACHE=/opt/hostedtoolcache RUNNER_OS=Linux RUNNER_ARCH=X64 RUNNER_TEMP=/tmp LANG=C.UTF-8]
+2026-06-14T14:01:53.0959040Z   🐳  docker run image=node:18-bullseye platform= entrypoint=["/bin/sleep" "10800"] cmd=[] network="bridge"
+2026-06-14T14:01:53.0959303Z Starting container: de68ef87ac8a68435216726c34151b4b9***dd77d3fdb04f3ee67325c55a***7c5
+2026-06-14T14:01:54.9630083Z Started container: de68ef87ac8a68435216726c34151b4b9***dd77d3fdb04f3ee67325c55a***7c5
+2026-06-14T14:01:55.1067086Z Writing entry to tarball workflow/event.json len:7502
+2026-06-14T14:01:55.1067843Z Writing entry to tarball workflow/envs.txt len:0
+2026-06-14T14:01:55.1068159Z Extracting content to '/var/run/act/'
+2026-06-14T14:01:55.1308321Z   ☁  git clone 'https://github.com/actions/checkout' # ref=v4
+2026-06-14T14:01:55.1308846Z   cloning https://github.com/actions/checkout to /root/.cache/act/c3fe249fe73091a17d6638fe1341e7bd0bcc3466ce52323c0688e83e2463a4ab
+2026-06-14T14:01:56.8498409Z Non-terminating error while running 'git clone': some refs were not updated
+2026-06-14T14:01:56.8806992Z evaluating expression ''
+2026-06-14T14:01:56.8808005Z expression '' evaluated to 'true'
+2026-06-14T14:01:56.8808224Z ⭐ Run Main  Checkout
+2026-06-14T14:01:56.8808569Z Writing entry to tarball workflow/outputcmd.txt len:0
+2026-06-14T14:01:56.8808873Z Writing entry to tarball workflow/statecmd.txt len:0
+2026-06-14T14:01:56.8809138Z Writing entry to tarball workflow/pathcmd.txt len:0
+2026-06-14T14:01:56.8809410Z Writing entry to tarball workflow/envs.txt len:0
+2026-06-14T14:01:56.8809621Z Writing entry to tarball workflow/SUMMARY.md len:0
+2026-06-14T14:01:56.8809837Z Extracting content to '/var/run/act'
+2026-06-14T14:01:56.8944369Z expression '${{ github.repository }}' rewritten to 'format('{0}', github.repository)'
+2026-06-14T14:01:56.8944863Z evaluating expression 'format('{0}', github.repository)'
+2026-06-14T14:01:56.8945470Z expression 'format('{0}', github.repository)' evaluated to '%!t(string=np-dms/lcbp3)'
+2026-06-14T14:01:56.8946363Z expression '${{ github.token }}' rewritten to 'format('{0}', github.token)'
+2026-06-14T14:01:56.8946572Z evaluating expression 'format('{0}', github.token)'
+2026-06-14T14:01:56.8946934Z expression 'format('{0}', github.token)' evaluated to '%!t(string=***)'
+2026-06-14T14:01:56.8947419Z type=remote-action actionDir=/root/.cache/act/c3fe249fe73091a17d6638fe1341e7bd0bcc3466ce52323c0688e83e2463a4ab actionPath= workdir=/workspace/np-dms/lcbp3 actionCacheDir=/root/.cache/act actionName=c3fe249fe73091a17d6638fe1341e7bd0bcc3466ce52323c0688e83e2463a4ab containerActionDir=/var/run/act/actions/c3fe249fe73091a17d6638fe1341e7bd0bcc3466ce52323c0688e83e2463a4ab
+2026-06-14T14:01:56.8947740Z /var/run/act/actions/c3fe249fe73091a17d6638fe1341e7bd0bcc3466ce52323c0688e83e2463a4ab
+2026-06-14T14:01:56.8948098Z   🐳  docker cp src=/root/.cache/act/c3fe249fe73091a17d6638fe1341e7bd0bcc3466ce52323c0688e83e2463a4ab/ dst=/var/run/act/actions/c3fe249fe73091a17d6638fe1341e7bd0bcc3466ce52323c0688e83e2463a4ab/
+2026-06-14T14:01:56.8950235Z Writing tarball /tmp/act1851837914 from /root/.cache/act/c3fe249fe73091a17d6638fe1341e7bd0bcc3466ce52323c0688e83e2463a4ab/
+2026-06-14T14:01:56.8950523Z Stripping prefix:/root/.cache/act/c3fe249fe73091a17d6638fe1341e7bd0bcc3466ce52323c0688e83e2463a4ab/ src:/root/.cache/act/c3fe249fe73091a17d6638fe1341e7bd0bcc3466ce52323c0688e83e2463a4ab/
+2026-06-14T14:01:57.1073422Z Extracting content from '/tmp/act1851837914' to '/var/run/act/actions/c3fe249fe73091a17d6638fe1341e7bd0bcc3466ce52323c0688e83e2463a4ab/'
+2026-06-14T14:01:57.4477636Z executing remote job container: [node /var/run/act/actions/c3fe249fe73091a17d6638fe1341e7bd0bcc3466ce52323c0688e83e2463a4ab/dist/index.js]
+2026-06-14T14:01:57.4478456Z   🐳  docker exec cmd=[node /var/run/act/actions/c3fe249fe73091a17d6638fe1341e7bd0bcc3466ce52323c0688e83e2463a4ab/dist/index.js] user= workdir=
+2026-06-14T14:01:57.4478737Z Exec command '[node /var/run/act/actions/c3fe249fe73091a17d6638fe1341e7bd0bcc3466ce52323c0688e83e2463a4ab/dist/index.js]'
+2026-06-14T14:01:57.4479451Z Working directory '/workspace/np-dms/lcbp3'
+2026-06-14T14:01:57.7395473Z ::add-matcher::/run/act/actions/c3fe249fe73091a17d6638fe1341e7bd0bcc3466ce52323c0688e83e2463a4ab/dist/problem-matcher.json
+2026-06-14T14:01:57.7395953Z ::add-matcher::/run/act/actions/c3fe249fe73091a17d6638fe1341e7bd0bcc3466ce52323c0688e83e2463a4ab/dist/problem-matcher.json
+2026-06-14T14:01:57.7431362Z Syncing repository: np-dms/lcbp3
+2026-06-14T14:01:57.7432451Z ::group::Getting Git version info
+2026-06-14T14:01:57.7432681Z Working directory is '/workspace/np-dms/lcbp3'
+2026-06-14T14:01:57.7494470Z [command]/usr/bin/git version
+2026-06-14T14:01:57.7565680Z git version 2.30.2
+2026-06-14T14:01:57.7615604Z ::endgroup::
+2026-06-14T14:01:57.7644523Z Temporarily overriding HOME='/tmp/415ea2af-d581-4aed-bddb-d419e85c3bec' before making global git config changes
+2026-06-14T14:01:57.7645242Z Adding repository directory to the temporary git global config as a safe directory
+2026-06-14T14:01:57.7657414Z [command]/usr/bin/git config --global --add safe.directory /workspace/np-dms/lcbp3
+2026-06-14T14:01:57.7733849Z Deleting the contents of '/workspace/np-dms/lcbp3'
+2026-06-14T14:01:57.7742141Z ::group::Initializing the repository
+2026-06-14T14:01:57.7751162Z [command]/usr/bin/git init /workspace/np-dms/lcbp3
+2026-06-14T14:01:57.7818002Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-06-14T14:01:57.7818717Z hint: is subject to change. To configure the initial branch name to use in all
+2026-06-14T14:01:57.7818942Z hint: of your new repositories, which will suppress this warning, call:
+2026-06-14T14:01:57.7819327Z hint: 
+2026-06-14T14:01:57.7819532Z hint: 	git config --global init.defaultBranch <name>
+2026-06-14T14:01:57.7819799Z hint: 
+2026-06-14T14:01:57.7819973Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-06-14T14:01:57.7820165Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-06-14T14:01:57.7820374Z hint: 
+2026-06-14T14:01:57.7820539Z hint: 	git branch -m <name>
+2026-06-14T14:01:57.7830730Z Initialized empty Git repository in /workspace/np-dms/lcbp3/.git/
+2026-06-14T14:01:57.7852526Z [command]/usr/bin/git remote add origin https://git.np-dms.work/np-dms/lcbp3
+2026-06-14T14:01:57.7924845Z ::endgroup::
+2026-06-14T14:01:57.7925289Z ::group::Disabling automatic garbage collection
+2026-06-14T14:01:57.7935410Z [command]/usr/bin/git config --local gc.auto 0
+2026-06-14T14:01:57.8004385Z ::endgroup::
+2026-06-14T14:01:57.8004859Z ::group::Setting up auth
+2026-06-14T14:01:57.8017049Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-06-14T14:01:57.8082199Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-06-14T14:01:57.8602012Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/git\.np\-dms\.work\/\.extraheader
+2026-06-14T14:01:57.8666067Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/git\.np\-dms\.work\/\.extraheader' && git config --local --unset-all 'http.https://git.np-dms.work/.extraheader' || :"
+2026-06-14T14:01:57.9179666Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-06-14T14:01:57.9252472Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-06-14T14:01:57.9794476Z [command]/usr/bin/git config --local http.https://git.np-dms.work/.extraheader AUTHORIZATION: basic ***
+2026-06-14T14:01:57.9876396Z ::endgroup::
+2026-06-14T14:01:57.9876988Z ::group::Fetching the repository
+2026-06-14T14:01:57.9894346Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +1d246353a81f1a99b46f9ba27e347d1256d438aa:refs/remotes/origin/main
+2026-06-14T14:02:00.0655236Z From https://git.np-dms.work/np-dms/lcbp3
+2026-06-14T14:02:00.0655932Z  * [new ref]         1d246353a81f1a99b46f9ba27e347d1256d438aa -> origin/main
+2026-06-14T14:02:00.0700073Z ::endgroup::
+2026-06-14T14:02:00.0705210Z ::group::Determining the checkout info
+2026-06-14T14:02:00.0705644Z ::endgroup::
+2026-06-14T14:02:00.0713679Z [command]/usr/bin/git sparse-checkout disable
+2026-06-14T14:02:00.0795710Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-06-14T14:02:00.0855427Z ::group::Checking out the ref
+2026-06-14T14:02:00.0865183Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-06-14T14:02:00.5241043Z Switched to a new branch 'main'
+2026-06-14T14:02:00.5243382Z Branch 'main' set up to track remote branch 'main' from 'origin'.
+2026-06-14T14:02:00.5273615Z ::endgroup::
+2026-06-14T14:02:00.5345786Z [command]/usr/bin/git log -1 --format=%H
+2026-06-14T14:02:00.5402968Z 1d246353a81f1a99b46f9ba27e347d1256d438aa
+2026-06-14T14:02:00.5435706Z ::remove-matcher owner=checkout-git::
+2026-06-14T14:02:02.4269930Z From https://git.np-dms.work/np-dms/lcbp3
+2026-06-14T14:02:02.4270938Z  * branch              main       -> FETCH_HEAD
+2026-06-14T14:02:02.4298180Z    56f9544c..1d246353  main       -> origin/main
+2026-06-14T14:02:02.8780874Z HEAD is now at 1d246353 test(frontend): add comprehensive test coverage for Phase 3
+2026-06-14T14:02:02.8971189Z =========================================
+2026-06-14T14:02:02.8971984Z LCBP3-DMS Deployment v2.0
+2026-06-14T14:02:02.8972273Z =========================================
+2026-06-14T14:02:02.9699804Z [1/3] Building Docker images (parallel)...
+2026-06-14T14:02:05.0750365Z #0 building with "default" instance using docker driver
+2026-06-14T14:02:05.0751076Z 
+2026-06-14T14:02:05.0751255Z #1 [internal] load build definition from Dockerfile
+2026-06-14T14:02:05.0751499Z #1 transferring dockerfile:
+2026-06-14T14:02:05.1240339Z #0 building with "default" instance using docker driver
+2026-06-14T14:02:05.1241042Z 
+2026-06-14T14:02:05.1241241Z #1 [internal] load build definition from Dockerfile
+2026-06-14T14:02:05.1357052Z #1 transferring dockerfile:
+2026-06-14T14:02:05.2569996Z #1 transferring dockerfile: 3.41kB 0.0s done
+2026-06-14T14:02:05.2948089Z #1 transferring dockerfile: 5.57kB 0.0s done
+2026-06-14T14:02:05.2998105Z #1 DONE 0.3s
+2026-06-14T14:02:05.4449946Z 
+2026-06-14T14:02:05.4450697Z #2 [internal] load metadata for docker.io/library/node:24-alpine
+2026-06-14T14:02:05.5608848Z #1 DONE 0.6s
+2026-06-14T14:02:05.7557949Z 
+2026-06-14T14:02:05.7558698Z #2 [internal] load metadata for docker.io/library/node:24-alpine
+2026-06-14T14:02:07.5864731Z #2 DONE 2.1s
+2026-06-14T14:02:07.5865474Z #2 DONE 2.0s
+2026-06-14T14:02:07.7209933Z 
+2026-06-14T14:02:07.7210667Z #3 [internal] load .dockerignore
+2026-06-14T14:02:07.7210900Z #3 transferring context:
+2026-06-14T14:02:07.7414998Z 
+2026-06-14T14:02:07.7415711Z #3 [internal] load .dockerignore
+2026-06-14T14:02:07.8059051Z #3 transferring context:
+2026-06-14T14:02:07.8769897Z #3 transferring context: 1.13kB done
+2026-06-14T14:02:07.9363572Z #3 DONE 0.3s
+2026-06-14T14:02:07.9610808Z #3 transferring context: 1.13kB done
+2026-06-14T14:02:08.0495270Z #3 DONE 0.5s
+2026-06-14T14:02:08.0960331Z 
+2026-06-14T14:02:08.0961027Z #4 [deps 1/6] FROM docker.io/library/node:24-alpine@sha256:fb71d01345f11b708a3553c66e7c74074f2d506400ea81973343d915cb64eef0
+2026-06-14T14:02:08.0961356Z #4 DONE 0.0s
+2026-06-14T14:02:08.0961749Z 
+2026-06-14T14:02:08.0961932Z #5 [internal] load build context
+2026-06-14T14:02:08.1545568Z 
+2026-06-14T14:02:08.1546337Z #4 [deps 1/6] FROM docker.io/library/node:24-alpine@sha256:fb71d01345f11b708a3553c66e7c74074f2d506400ea81973343d915cb64eef0
+2026-06-14T14:02:08.1546863Z #4 DONE 0.0s
+2026-06-14T14:02:08.1547058Z 
+2026-06-14T14:02:08.1547235Z #5 [internal] load build context
+2026-06-14T14:02:08.5629460Z #5 transferring context: 1.06MB 0.3s done
+2026-06-14T14:02:08.5756263Z #5 transferring context: 907.67kB 0.2s done
+2026-06-14T14:02:08.7790518Z #5 DONE 0.7s
+2026-06-14T14:02:08.8809761Z #5 DONE 0.7s
+2026-06-14T14:02:08.9684777Z 
+2026-06-14T14:02:08.9685519Z #6 [deps 2/6] RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
+2026-06-14T14:02:08.9685961Z #6 CACHED
+2026-06-14T14:02:08.9686142Z 
+2026-06-14T14:02:08.9686307Z #7 [deps 3/6] WORKDIR /app
+2026-06-14T14:02:08.9686573Z #7 CACHED
+2026-06-14T14:02:09.0564382Z 
+2026-06-14T14:02:09.0565191Z #6 [deps 2/6] RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
+2026-06-14T14:02:09.0565488Z #6 CACHED
+2026-06-14T14:02:09.0565660Z 
+2026-06-14T14:02:09.0565885Z #7 [deps 3/6] WORKDIR /w
+2026-06-14T14:02:09.0566214Z #7 CACHED
+2026-06-14T14:02:09.0566385Z 
+2026-06-14T14:02:09.0566551Z #8 [build  2/14] RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
+2026-06-14T14:02:09.0566876Z #8 CACHED
+2026-06-14T14:02:09.0567047Z 
+2026-06-14T14:02:09.0567206Z #9 [build  3/14] WORKDIR /w
+2026-06-14T14:02:09.1195267Z 
+2026-06-14T14:02:09.1196118Z #8 [deps 4/6] COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+2026-06-14T14:02:09.2068503Z #9 CACHED
+2026-06-14T14:02:09.2069208Z 
+2026-06-14T14:02:09.2069401Z #10 [build  4/14] COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+2026-06-14T14:02:12.0853635Z #10 ...
+2026-06-14T14:02:12.0854398Z 
+2026-06-14T14:02:12.0854659Z #11 [deps 4/6] COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+2026-06-14T14:02:12.0855028Z #11 DONE 3.1s
+2026-06-14T14:02:12.2356206Z 
+2026-06-14T14:02:12.2357009Z #10 [build  4/14] COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+2026-06-14T14:02:12.7810607Z #8 DONE 3.8s
+2026-06-14T14:02:13.0199083Z 
+2026-06-14T14:02:13.0199799Z #9 [deps 5/6] COPY backend/package.json ./backend/
+2026-06-14T14:02:13.2417422Z #10 DONE 4.2s
+2026-06-14T14:02:13.2418133Z 
+2026-06-14T14:02:13.2418319Z #12 [deps 5/6] COPY frontend/package.json ./frontend/
+2026-06-14T14:02:15.4470645Z #12 DONE 3.0s
+2026-06-14T14:02:15.8166169Z 
+2026-06-14T14:02:15.8166908Z #13 [deps 6/6] RUN pnpm install --frozen-lockfile --ignore-scripts --filter lcbp3-frontend...
+2026-06-14T14:02:15.9863663Z #9 DONE 3.1s
+2026-06-14T14:02:16.1966028Z 
+2026-06-14T14:02:16.1966743Z #10 [deps 6/6] RUN pnpm install --frozen-lockfile --filter backend...
+2026-06-14T14:02:21.3458007Z #10 5.300 Lockfile is up to date, resolution step is skipped
+2026-06-14T14:02:21.3903666Z #13 5.574 Lockfile is up to date, resolution step is skipped
+2026-06-14T14:02:21.7086171Z #13 5.893 Progress: resolved 1, reused 0, downloaded 0, added 0
+2026-06-14T14:02:21.7554217Z #10 5.709 Progress: resolved 1, reused 0, downloaded 0, added 0
+2026-06-14T14:02:22.2099861Z #13 6.394 .                                        | +716 ++++++++++++++++++++++++++++++++
+2026-06-14T14:02:22.7507727Z #13 6.934 Progress: resolved 716, reused 0, downloaded 0, added 0
+2026-06-14T14:02:22.9597129Z #10 6.914 .                                        |    +1***7 ++++++++++++++++++++++++++++
+2026-06-14T14:02:23.0816049Z #10 7.035 Progress: resolved 1***7, reused 0, downloaded 0, added 0
+2026-06-14T14:02:23.7562173Z #13 7.940 Progress: resolved 716, reused 0, downloaded 12, added 0
+2026-06-14T14:02:24.0814746Z #10 8.035 Progress: resolved 1***7, reused 0, downloaded 9, added 0
+2026-06-14T14:02:24.4207339Z #13 8.605 
+2026-06-14T14:02:24.4208123Z #13 8.605    ╭──────────────────────────────────────────────╮
+2026-06-14T14:02:24.4208510Z #13 8.605    │                                              │
+2026-06-14T14:02:24.4208864Z #13 8.605    │     Update available! 10.33.0 → 11.6.0.      │
+2026-06-14T14:02:24.4209081Z #13 8.605    │     Changelog: https://pnpm.io/v/11.6.0      │
+2026-06-14T14:02:24.4209283Z #13 8.605    │   To update, run: corepack use pnpm@11.6.0   │
+2026-06-14T14:02:24.4209520Z #13 8.605    │                                              │
+2026-06-14T14:02:24.4209810Z #13 8.605    ╰──────────────────────────────────────────────╯
+2026-06-14T14:02:24.4210040Z #13 8.605 
+2026-06-14T14:02:24.7570443Z #13 8.941 Progress: resolved 716, reused 0, downloaded 36, added 0
+2026-06-14T14:02:25.1084098Z #10 9.062 
+2026-06-14T14:02:25.1084880Z #10 9.062    ╭──────────────────────────────────────────────╮
+2026-06-14T14:02:25.1085178Z #10 9.062    │                                              │
+2026-06-14T14:02:25.1085480Z #10 9.062    │     Update available! 10.33.0 → 11.6.0.      │
+2026-06-14T14:02:25.1085765Z #10 9.062    │     Changelog: https://pnpm.io/v/11.6.0      │
+2026-06-14T14:02:25.1085985Z #10 9.062    │   To update, run: corepack use pnpm@11.6.0   │
+2026-06-14T14:02:25.1086219Z #10 9.062    │                                              │
+2026-06-14T14:02:25.1086433Z #10 9.062    ╰──────────────────────────────────────────────╯
+2026-06-14T14:02:25.1086658Z #10 9.062 
+2026-06-14T14:02:25.2631425Z #10 9.066 Progress: resolved 1***7, reused 0, downloaded 21, added 0
+2026-06-14T14:02:25.7578873Z #13 9.941 Progress: resolved 716, reused 0, downloaded 72, added 24
+2026-06-14T14:02:26.1125833Z #10 10.07 Progress: resolved 1***7, reused 0, downloaded 34, added 0
+2026-06-14T14:02:26.7582517Z #13 10.94 Progress: resolved 716, reused 0, downloaded 95, added 32
+2026-06-14T14:02:27.1130862Z #10 11.07 Progress: resolved 1***7, reused 0, downloaded 56, added 8
+2026-06-14T14:02:27.7596971Z #13 11.94 Progress: resolved 716, reused 0, downloaded 113, added 40
+2026-06-14T14:02:28.1146219Z #10 12.07 Progress: resolved 1***7, reused 0, downloaded 112, added 26
+2026-06-14T14:02:28.7601553Z #13 12.94 Progress: resolved 716, reused 0, downloaded 142, added 52
+2026-06-14T14:02:29.1145493Z #10 13.07 Progress: resolved 1***7, reused 0, downloaded 148, added 39
+2026-06-14T14:02:29.7638171Z #13 13.95 Progress: resolved 716, reused 0, downloaded 145, added 52
+2026-06-14T14:02:30.1154118Z #10 14.07 Progress: resolved 1***7, reused 0, downloaded 161, added 42
+2026-06-14T14:02:30.4981013Z #10 14.45  WARN  Tarball download average speed 26 KiB/s (size 36 KiB) is below 50 KiB/s: https://registry.npmjs.org/type-fest/-/type-fest-0.20.2.tgz (GET)
+2026-06-14T14:02:30.7651069Z #13 14.95 Progress: resolved 716, reused 0, downloaded 152, added 56
+2026-06-14T14:02:31.1152251Z #10 15.07 Progress: resolved 1***7, reused 0, downloaded 177, added 47
+2026-06-14T14:02:31.7654622Z #13 15.95 Progress: resolved 716, reused 0, downloaded 153, added 56
+2026-06-14T14:02:32.1165924Z #10 16.07 Progress: resolved 1***7, reused 0, downloaded 218, added 72
+2026-06-14T14:02:32.7678346Z #13 16.95 Progress: resolved 716, reused 0, downloaded 161, added 60
+2026-06-14T14:02:33.1158866Z #10 17.07 Progress: resolved 1***7, reused 0, downloaded 239, added 83
+2026-06-14T14:02:33.7678029Z #13 17.95 Progress: resolved 716, reused 0, downloaded 183, added 71
+2026-06-14T14:02:34.1158165Z #10 18.07 Progress: resolved 1***7, reused 0, downloaded 252, added 86
+2026-06-14T14:02:34.7687011Z #13 18.95 Progress: resolved 716, reused 0, downloaded 189, added 75
+2026-06-14T14:02:35.1161130Z #10 19.07 Progress: resolved 1***7, reused 0, downloaded 255, added 86
+2026-06-14T14:02:35.7689699Z #13 19.95 Progress: resolved 716, reused 0, downloaded 205, added 83
+2026-06-14T14:02:36.1161736Z #10 20.07 Progress: resolved 1***7, reused 0, downloaded 264, added 89
+2026-06-14T14:02:36.7689940Z #13 20.95 Progress: resolved 716, reused 0, downloaded 212, added 85
+2026-06-14T14:02:37.1167421Z #10 21.07 Progress: resolved 1***7, reused 0, downloaded 272, added 89
+2026-06-14T14:02:37.7692918Z #13 21.95 Progress: resolved 716, reused 0, downloaded ***6, added 85
+2026-06-14T14:02:38.1190354Z #10 ***.07 Progress: resolved 1***7, reused 0, downloaded 275, added 92
+2026-06-14T14:02:38.7687428Z #13 ***.95 Progress: resolved 716, reused 0, downloaded 238, added 87
+2026-06-14T14:02:39.1181165Z #10 23.07 Progress: resolved 1***7, reused 0, downloaded 279, added 92
+2026-06-14T14:02:39.7693248Z #13 23.95 Progress: resolved 716, reused 0, downloaded 262, added 95
+2026-06-14T14:02:40.1179376Z #10 24.07 Progress: resolved 1***7, reused 0, downloaded 290, added 95
+2026-06-14T14:02:40.7688926Z #13 24.95 Progress: resolved 716, reused 0, downloaded 276, added 99
+2026-06-14T14:02:41.1204645Z #10 25.07 Progress: resolved 1***7, reused 0, downloaded 298, added 96
+2026-06-14T14:02:41.7702999Z #13 25.95 Progress: resolved 716, reused 0, downloaded 292, added 106
+2026-06-14T14:02:42.1188644Z #10 26.07 Progress: resolved 1***7, reused 0, downloaded 311, added 100
+2026-06-14T14:02:42.7691030Z #13 26.95 Progress: resolved 716, reused 0, downloaded 327, added 124
+2026-06-14T14:02:43.1195795Z #10 27.07 Progress: resolved 1***7, reused 0, downloaded 330, added 112
+2026-06-14T14:02:43.7688365Z #13 27.95 Progress: resolved 716, reused 0, downloaded 338, added 128
+2026-06-14T14:02:44.1194144Z #10 28.07 Progress: resolved 1***7, reused 0, downloaded 338, added 116
+2026-06-14T14:02:44.7700037Z #13 28.95 Progress: resolved 716, reused 0, downloaded 349, added 132
+2026-06-14T14:02:45.1194043Z #10 29.07 Progress: resolved 1***7, reused 0, downloaded 352, added 120
+2026-06-14T14:02:45.7702458Z #13 29.95 Progress: resolved 716, reused 0, downloaded 389, added 146
+2026-06-14T14:02:46.1201488Z #10 30.07 Progress: resolved 1***7, reused 0, downloaded 380, added 134
+2026-06-14T14:02:46.7698366Z #13 30.95 Progress: resolved 716, reused 0, downloaded 417, added 156
+2026-06-14T14:02:47.1209200Z #10 31.07 Progress: resolved 1***7, reused 0, downloaded 415, added 149
+2026-06-14T14:02:47.7698238Z #13 31.95 Progress: resolved 716, reused 0, downloaded 448, added 169
+2026-06-14T14:02:48.1218426Z #10 32.08 Progress: resolved 1***7, reused 0, downloaded 441, added 171
+2026-06-14T14:02:48.7704028Z #13 32.95 Progress: resolved 716, reused 0, downloaded 479, added 211
+2026-06-14T14:02:49.1222315Z #10 33.08 Progress: resolved 1***7, reused 0, downloaded 476, added 183
+2026-06-14T14:02:49.7707428Z #13 33.95 Progress: resolved 716, reused 0, downloaded 493, added 216
+2026-06-14T14:02:50.1216885Z #10 34.08 Progress: resolved 1***7, reused 0, downloaded 491, added 192
+2026-06-14T14:02:50.7699616Z #13 34.95 Progress: resolved 716, reused 0, downloaded 501, added ***0
+2026-06-14T14:02:51.1223938Z #10 35.08 Progress: resolved 1***7, reused 0, downloaded 498, added 196
+2026-06-14T14:02:51.7700656Z #13 35.95 Progress: resolved 716, reused 0, downloaded 504, added ***0
+2026-06-14T14:02:52.1227524Z #10 36.08 Progress: resolved 1***7, reused 0, downloaded 505, added 196
+2026-06-14T14:02:52.7701223Z #13 36.95 Progress: resolved 716, reused 0, downloaded 519, added ***3
+2026-06-14T14:02:53.3029350Z #10 37.26 Progress: resolved 1***7, reused 0, downloaded 506, added 196
+2026-06-14T14:02:53.6952180Z #10 37.65  WARN  Tarball download average speed 4 KiB/s (size 26 KiB) is below 50 KiB/s: https://registry.npmjs.org/jsonc-parser/-/jsonc-parser-3.3.1.tgz (GET)
+2026-06-14T14:02:53.7703175Z #13 37.95 Progress: resolved 716, reused 0, downloaded 542, added 239
+2026-06-14T14:02:54.3106579Z #10 38.26 Progress: resolved 1***7, reused 0, downloaded 559, added 215
+2026-06-14T14:02:54.7699064Z #13 38.95 Progress: resolved 716, reused 0, downloaded 579, added 252
+2026-06-14T14:02:55.3108728Z #10 39.26 Progress: resolved 1***7, reused 0, downloaded 603, added 234
+2026-06-14T14:02:55.7706709Z #13 39.95 Progress: resolved 716, reused 0, downloaded 613, added 268
+2026-06-14T14:02:56.3115886Z #10 40.27 Progress: resolved 1***7, reused 0, downloaded 662, added 258
+2026-06-14T14:02:56.7701983Z #13 40.95 Progress: resolved 716, reused 0, downloaded 647, added 281
+2026-06-14T14:02:57.3126033Z #10 41.27 Progress: resolved 1***7, reused 0, downloaded 693, added 272
+2026-06-14T14:02:57.7708375Z #13 41.95 Progress: resolved 716, reused 0, downloaded 667, added 290
+2026-06-14T14:02:58.3125199Z #10 42.27 Progress: resolved 1***7, reused 0, downloaded 700, added 275
+2026-06-14T14:02:58.7702423Z #13 42.95 Progress: resolved 716, reused 0, downloaded 677, added 294
+2026-06-14T14:02:59.3226608Z #10 43.28 Progress: resolved 1***7, reused 0, downloaded 739, added 288
+2026-06-14T14:02:59.7702062Z #13 43.95 Progress: resolved 716, reused 0, downloaded 711, added 339
+2026-06-14T14:03:00.3229048Z #10 44.28 Progress: resolved 1***7, reused 0, downloaded 771, added 301
+2026-06-14T14:03:00.7713552Z #13 44.95 Progress: resolved 716, reused 0, downloaded 712, added 448
+2026-06-14T14:03:01.3275346Z #10 45.28 Progress: resolved 1***7, reused 0, downloaded 786, added 309
+2026-06-14T14:03:01.7720427Z #13 45.96 Progress: resolved 716, reused 0, downloaded 712, added 512
+2026-06-14T14:03:02.3283742Z #10 46.28 Progress: resolved 1***7, reused 0, downloaded 811, added 3***
+2026-06-14T14:03:02.7755998Z #13 46.96 Progress: resolved 716, reused 0, downloaded 713, added 538
+2026-06-14T14:03:03.3280131Z #10 47.28 Progress: resolved 1***7, reused 0, downloaded 849, added 327
+2026-06-14T14:03:03.7770323Z #13 47.96 Progress: resolved 716, reused 0, downloaded 713, added 562
+2026-06-14T14:03:04.3293501Z #10 48.28 Progress: resolved 1***7, reused 0, downloaded 880, added 332
+2026-06-14T14:03:04.7772097Z #13 48.96 Progress: resolved 716, reused 0, downloaded 713, added 611
+2026-06-14T14:03:05.3298287Z #10 49.28 Progress: resolved 1***7, reused 0, downloaded 941, added 358
+2026-06-14T14:03:05.7780531Z #13 49.96 Progress: resolved 716, reused 0, downloaded 713, added 709
+2026-06-14T14:03:06.3300904Z #10 50.28 Progress: resolved 1***7, reused 0, downloaded 968, added 362
+2026-06-14T14:03:06.7772423Z #13 50.96 Progress: resolved 716, reused 0, downloaded 713, added 711
+2026-06-14T14:03:07.3308192Z #10 51.28 Progress: resolved 1***7, reused 0, downloaded 1065, added 419
+2026-06-14T14:03:07.7772093Z #13 51.96 Progress: resolved 716, reused 0, downloaded 713, added 713
+2026-06-14T14:03:08.3304601Z #10 52.28 Progress: resolved 1***7, reused 0, downloaded 1130, added 506
+2026-06-14T14:03:09.3306871Z #10 53.28 Progress: resolved 1***7, reused 0, downloaded 1151, added 511
+2026-06-14T14:03:10.3330788Z #10 54.29 Progress: resolved 1***7, reused 0, downloaded 1185, added 526
+2026-06-14T14:03:10.6930997Z #13 54.88 Progress: resolved 716, reused 0, downloaded 714, added 713
+2026-06-14T14:03:11.3342434Z #10 55.29 Progress: resolved 1***7, reused 0, downloaded 1***4, added 583
+2026-06-14T14:03:11.9271332Z #13 56.11 Progress: resolved 716, reused 0, downloaded 714, added 714
+2026-06-14T14:03:12.3349460Z #10 56.29 Progress: resolved 1***7, reused 0, downloaded 1***4, added 661
+2026-06-14T14:03:13.3352853Z #10 57.29 Progress: resolved 1***7, reused 0, downloaded 1***4, added 683
+2026-06-14T14:03:14.3362381Z #10 58.29 Progress: resolved 1***7, reused 0, downloaded 1***5, added 768
+2026-06-14T14:03:15.7472132Z #10 59.70 Progress: resolved 1***7, reused 0, downloaded 1***5, added 769
+2026-06-14T14:03:16.7481499Z #10 60.70 Progress: resolved 1***7, reused 0, downloaded 1***5, added 790
+2026-06-14T14:03:17.6700487Z #13 61.85 Progress: resolved 716, reused 0, downloaded 715, added 714
+2026-06-14T14:03:17.7487922Z #10 61.70 Progress: resolved 1***7, reused 0, downloaded 1***5, added 838
+2026-06-14T14:03:18.7489197Z #10 62.70 Progress: resolved 1***7, reused 0, downloaded 1***5, added 1149
+2026-06-14T14:03:18.9028594Z #13 63.09 Progress: resolved 716, reused 0, downloaded 715, added 715
+2026-06-14T14:03:18.9675766Z #10 62.92 Progress: resolved 1***7, reused 0, downloaded 1***5, added 1***7, done
+2026-06-14T14:03:19.8757195Z #10 63.83 .../node_modules/@scarf/scarf postinstall$ node ./report.js
+2026-06-14T14:03:20.1179390Z #10 63.90 .../node_modules/msgpackr-extract install$ node-gyp-build-optional-packages
+2026-06-14T14:03:20.1180147Z #10 63.92 .../node_modules/@nestjs/core postinstall$ opencollective || exit 0
+2026-06-14T14:03:20.1180848Z #10 63.92 .../bcrypt@6.0.0/node_modules/bcrypt install$ node-gyp-build
+2026-06-14T14:03:20.3538112Z #10 64.31 .../node_modules/msgpackr-extract install: Done
+2026-06-14T14:03:20.4635428Z #10 64.42 .../bcrypt@6.0.0/node_modules/bcrypt install: Done
+2026-06-14T14:03:21.0863932Z #10 65.04 .../node_modules/@nestjs/core postinstall:                            Thanks for installing nest 
+2026-06-14T14:03:21.1980347Z #10 65.04 .../node_modules/@nestjs/core postinstall:                  Please consider donating to our open collective
+2026-06-14T14:03:21.1981125Z #10 65.04 .../node_modules/@nestjs/core postinstall:                         to help us maintain this package.
+2026-06-14T14:03:21.1981360Z #10 65.04 .../node_modules/@nestjs/core postinstall:                                          
+2026-06-14T14:03:21.1981684Z #10 65.04 .../node_modules/@nestjs/core postinstall:                             Number of contributors: 0
+2026-06-14T14:03:21.1981988Z #10 65.04 .../node_modules/@nestjs/core postinstall:                              Number of backers: 1204
+2026-06-14T14:03:21.1982268Z #10 65.10 .../node_modules/@nestjs/core postinstall:                              Annual budget: $136,189
+2026-06-14T14:03:21.1982481Z #10 65.10 .../node_modules/@nestjs/core postinstall:                              Current balance: $11,248
+2026-06-14T14:03:21.1982695Z #10 65.10 .../node_modules/@nestjs/core postinstall:                                          
+2026-06-14T14:03:21.1982891Z #10 65.10 .../node_modules/@nestjs/core postinstall:              Become a partner: https://opencollective.com/nest/donate
+2026-06-14T14:03:21.1983159Z #10 65.10 .../node_modules/@nestjs/core postinstall:                                          
+2026-06-14T14:03:21.1983361Z #10 65.15 .../node_modules/@nestjs/core postinstall: Done
+2026-06-14T14:03:21.5638215Z #13 65.75 Progress: resolved 716, reused 0, downloaded 716, added 715
+2026-06-14T14:03:21.7164399Z #13 65.75 Progress: resolved 716, reused 0, downloaded 716, added 716, done
+2026-06-14T14:03:24.3779214Z #10 68.33 .../node_modules/@scarf/scarf postinstall: Done
+2026-06-14T14:03:29.0119461Z #13 73.19 Done in 1m 9.3s using pnpm v10.33.0
+2026-06-14T14:03:35.0030212Z #13 DONE 79.2s
+2026-06-14T14:03:36.9958530Z #10 80.95 . prepare$ husky
+2026-06-14T14:03:37.1469119Z #10 81.10 . prepare: .git can't be found
+2026-06-14T14:03:37.3531275Z #10 81.10 . prepare: Done
+2026-06-14T14:03:37.3532461Z #10 81.16 Done in 1m 17.5s using pnpm v10.33.0
+2026-06-14T14:03:39.4913888Z #10 DONE 83.4s
+2026-06-14T14:03:58.9408983Z 
+2026-06-14T14:03:58.9409705Z #14 [build  5/14] COPY --from=deps /w/node_modules ./node_modules
+2026-06-14T14:04:07.8247871Z 
+2026-06-14T14:04:07.8249136Z #11 [build  5/10] COPY --from=deps /app/node_modules ./node_modules
+2026-06-14T14:05:08.1474621Z #14 DONE 69.2s
+2026-06-14T14:05:08.3885869Z 
+2026-06-14T14:05:08.3886627Z #15 [build  6/14] WORKDIR /w/frontend
+2026-06-14T14:05:11.7710164Z #15 DONE 3.5s
+2026-06-14T14:05:12.0121747Z 
+2026-06-14T14:05:12.0122557Z #16 [build  7/14] COPY --from=deps /w/frontend/node_modules ./node_modules
+2026-06-14T14:05:18.2596097Z #16 DONE 6.4s
+2026-06-14T14:05:18.4593712Z 
+2026-06-14T14:05:18.4594454Z #17 [build  8/14] COPY frontend/ ./
+2026-06-14T14:05:26.7281805Z #17 DONE 8.4s
+2026-06-14T14:05:26.9362440Z 
+2026-06-14T14:05:26.9363194Z #18 [build  9/14] RUN ls -la /w/frontend/public/ || (echo "WARNING: public directory not found, creating empty one" && mkdir -p /w/frontend/public)
+2026-06-14T14:05:28.9608449Z #18 2.175 total 36
+2026-06-14T14:05:29.1123407Z #18 2.176 drwxrwxrwx    3 root     root          4096 Apr 19 06:21 .
+2026-06-14T14:05:29.1124135Z #18 2.176 drwxr-xr-x    1 root     root          4096 Jun 14 14:02 ..
+2026-06-14T14:05:29.1124345Z #18 2.176 -rw-rw-rw-    1 root     root           130 Apr  1 15:50 favicon.ico
+2026-06-14T14:05:29.1124604Z #18 2.176 drwxrwxrwx    4 root     root          4096 Apr 19 06:21 locales
+2026-06-14T14:05:29.1124836Z #18 2.176 -rw-rw-rw-    1 root     root           140 Apr  1 15:50 robots.txt
+2026-06-14T14:05:32.6409637Z #18 DONE 5.9s
+2026-06-14T14:05:32.8904759Z 
+2026-06-14T14:05:32.8905581Z #19 [build 10/14] RUN set -e;     MONACO_VS=$(find /w/frontend/node_modules /w/node_modules       -path "*/monaco-editor/min/vs" -type d 2>/dev/null | head -1);     if [ -z "$MONACO_VS" ]; then       echo "ERROR: monaco-editor/min/vs not found in node_modules" && exit 1;     fi;     echo "Found Monaco at: $MONACO_VS";     mkdir -p /w/frontend/public;     cp -rL "$MONACO_VS" /w/frontend/public/monaco-vs;     echo "Monaco assets copied successfully"
+2026-06-14T14:05:36.0537669Z #19 3.314 Found Monaco at: /w/node_modules/.pnpm/monaco-editor@0.55.1/node_modules/monaco-editor/min/vs
+2026-06-14T14:05:36.2642489Z #19 3.525 Monaco assets copied successfully
+2026-06-14T14:05:38.8813199Z #19 DONE 6.1s
+2026-06-14T14:05:39.0193603Z 
+2026-06-14T14:05:39.0194371Z #20 [build 11/14] RUN mkdir /n && ln -s /n .next &&     pnpm run build &&     rm .next && mv /n .next
+2026-06-14T14:05:41.7358234Z #20 2.716 ! Corepack is about to download https://registry.npmjs.org/pnpm/-/pnpm-10.33.0.tgz
+2026-06-14T14:05:46.9915935Z #20 7.972 
+2026-06-14T14:05:46.9916715Z #20 7.972 > lcbp3-frontend@1.8.1 build /w/frontend
+2026-06-14T14:05:46.9916939Z #20 7.972 > next build --webpack
+2026-06-14T14:05:46.9917202Z #20 7.972 
+2026-06-14T14:05:48.7450839Z #20 9.726 ▲ Next.js 16.2.6 (webpack)
+2026-06-14T14:05:48.8773924Z #20 9.727 
+2026-06-14T14:05:48.8774674Z #20 9.858   Creating an optimized production build ...
+2026-06-14T14:05:55.2344089Z #11 DONE 107.4s
+2026-06-14T14:05:55.4506091Z 
+2026-06-14T14:05:55.4506888Z #12 [build  6/10] COPY --from=deps /app/backend/node_modules ./backend/node_modules
+2026-06-14T14:05:57.7329846Z #12 DONE 2.4s
+2026-06-14T14:05:57.9294295Z 
+2026-06-14T14:05:57.9294999Z #13 [build  7/10] COPY backend/ ./backend/
+2026-06-14T14:06:04.7776524Z #13 DONE 7.0s
+2026-06-14T14:06:04.9730091Z 
+2026-06-14T14:06:04.9730832Z #14 [build  8/10] RUN cd backend &&     NODE_OPTIONS="--max-old-space-size=4096"     pnpm run build
+2026-06-14T14:06:08.4157912Z #14 3.594 
+2026-06-14T14:06:08.4158673Z #14 3.594 > backend@1.8.1 build /app/backend
+2026-06-14T14:06:08.4158903Z #14 3.594 > nest build
+2026-06-14T14:06:08.4159124Z #14 3.594 
+2026-06-14T14:06:40.7659627Z #14 DONE 35.9s
+2026-06-14T14:06:40.9992945Z 
+2026-06-14T14:06:40.9993727Z #15 [build  9/10] RUN PNPM_IGNORE_SCRIPTS=none     pnpm --filter backend deploy --prod --shamefully-hoist --legacy --no-optional /app/backend-prod
+2026-06-14T14:06:45.8510848Z #15 5.003  WARN  Shared workspace lockfile detected but configuration forces legacy deploy implementation.
+2026-06-14T14:06:46.1136211Z #15 5.266 Packages are copied from the content-addressable store to the virtual store.
+2026-06-14T14:06:46.1137040Z #15 5.266   Content-addressable store is at: /root/.local/share/pnpm/store/v10
+2026-06-14T14:06:46.1137322Z #15 5.266   Virtual store is at:             backend-prod/node_modules/.pnpm
+2026-06-14T14:06:47.1648107Z #15 6.317 Progress: resolved 0, reused 0, downloaded 1, added 0
+2026-06-14T14:06:48.1670877Z #15 7.319 Progress: resolved 2, reused 0, downloaded 2, added 0
+2026-06-14T14:06:49.1682508Z #15 8.321 Progress: resolved 13, reused 0, downloaded 13, added 0
+2026-06-14T14:06:50.1738624Z #15 9.326 Progress: resolved 29, reused 0, downloaded 29, added 0
+2026-06-14T14:06:51.1724760Z #15 10.32 Progress: resolved 51, reused 0, downloaded 51, added 0
+2026-06-14T14:06:52.3509937Z #15 11.50 Progress: resolved 51, reused 0, downloaded 52, added 0
+2026-06-14T14:06:53.3513498Z #15 12.50 Progress: resolved 72, reused 0, downloaded 72, added 0
+2026-06-14T14:06:54.3548805Z #15 13.51 Progress: resolved 81, reused 0, downloaded 81, added 0
+2026-06-14T14:06:55.3558261Z #15 14.51 Progress: resolved 89, reused 0, downloaded 89, added 0
+2026-06-14T14:06:56.3989225Z #15 15.55 Progress: resolved 89, reused 0, downloaded 90, added 0
+2026-06-14T14:06:57.3995825Z #15 16.55 Progress: resolved 90, reused 0, downloaded 90, added 0
+2026-06-14T14:06:58.4006108Z #15 17.55 Progress: resolved 91, reused 0, downloaded 91, added 0
+2026-06-14T14:06:59.4003097Z #15 18.55 Progress: resolved 126, reused 0, downloaded 126, added 0
+2026-06-14T14:07:00.4039029Z #15 19.56 Progress: resolved 156, reused 0, downloaded 156, added 0
+2026-06-14T14:07:01.4044883Z #15 20.56 Progress: resolved 206, reused 0, downloaded 206, added 0
+2026-06-14T14:07:02.4070339Z #15 21.56 Progress: resolved 211, reused 0, downloaded 211, added 0
+2026-06-14T14:07:03.4083308Z #15 ***.56 Progress: resolved ***4, reused 0, downloaded ***4, added 0
+2026-06-14T14:07:04.4090496Z #15 23.56 Progress: resolved ***9, reused 0, downloaded ***9, added 0
+2026-06-14T14:07:05.4096594Z #15 24.56 Progress: resolved 231, reused 0, downloaded 231, added 0
+2026-06-14T14:07:06.4095871Z #15 25.56 Progress: resolved 232, reused 0, downloaded 232, added 0
+2026-06-14T14:07:07.4180441Z #15 26.57 Progress: resolved 255, reused 0, downloaded 255, added 0
+2026-06-14T14:07:08.4400122Z #15 27.59 Progress: resolved 262, reused 0, downloaded 262, added 0
+2026-06-14T14:07:09.4401404Z #15 28.59 Progress: resolved 288, reused 0, downloaded 288, added 0
+2026-06-14T14:07:10.4402128Z #15 29.59 Progress: resolved 350, reused 0, downloaded 350, added 0
+2026-06-14T14:07:11.4408988Z #15 30.59 Progress: resolved 394, reused 0, downloaded 394, added 0
+2026-06-14T14:07:12.4411478Z #15 31.59 Progress: resolved 441, reused 0, downloaded 441, added 0
+2026-06-14T14:07:13.4418168Z #15 32.59 Progress: resolved 553, reused 0, downloaded 553, added 0
+2026-06-14T14:07:14.4427360Z #15 33.59 Progress: resolved 634, reused 0, downloaded 634, added 0
+2026-06-14T14:07:15.4440173Z #15 34.60 Progress: resolved 661, reused 0, downloaded 660, added 0
+2026-06-14T14:07:16.0022863Z #20 96.98 ✓ Compiled successfully in 86s
+2026-06-14T14:07:16.4436241Z #15 35.60 Progress: resolved 668, reused 0, downloaded 666, added 0
+2026-06-14T14:07:16.4555881Z #20 97.44   Running TypeScript ...
+2026-06-14T14:07:17.4440831Z #15 36.60 Progress: resolved 678, reused 0, downloaded 676, added 0
+2026-06-14T14:07:18.4440422Z #15 37.60 Progress: resolved 712, reused 0, downloaded 710, added 0
+2026-06-14T14:07:19.4441060Z #15 38.60 Progress: resolved 824, reused 0, downloaded 823, added 0
+2026-06-14T14:07:20.4447061Z #15 39.60 Progress: resolved 910, reused 0, downloaded 902, added 0
+2026-06-14T14:07:21.4447610Z #15 40.60 Progress: resolved 981, reused 0, downloaded 971, added 0
+2026-06-14T14:07:22.4464796Z #15 41.60 Progress: resolved 1040, reused 0, downloaded 1013, added 0
+2026-06-14T14:07:23.4475578Z #15 42.60 Progress: resolved 1044, reused 0, downloaded 1020, added 0
+2026-06-14T14:07:24.4485809Z #15 43.60 Progress: resolved 1070, reused 0, downloaded 1044, added 0
+2026-06-14T14:07:25.4514673Z #15 44.60 Progress: resolved 1140, reused 0, downloaded 1114, added 0
+2026-06-14T14:07:26.4507562Z #15 45.60 Progress: resolved 1***4, reused 0, downloaded 1200, added 0
+2026-06-14T14:07:27.4510327Z #15 46.60 Progress: resolved 1248, reused 0, downloaded 1***4, added 0
+2026-06-14T14:07:28.4515124Z #15 47.60 Progress: resolved 1253, reused 0, downloaded 1***7, added 0
+2026-06-14T14:07:29.4522091Z #15 48.60 Progress: resolved 1254, reused 0, downloaded 1***9, added 0
+2026-06-14T14:07:30.1933108Z #15 49.35  WARN  3 deprecated subdependencies found: glob@7.2.3, inflight@1.0.6, whatwg-encoding@3.1.1
+2026-06-14T14:07:30.3969313Z #15 49.40 .                                        | +460 ++++++++++++++++++++++++++++++++
+2026-06-14T14:07:30.4526219Z #15 49.60 Progress: resolved 1254, reused 0, downloaded 1230, added 0
+2026-06-14T14:07:31.4530375Z #15 50.61 Progress: resolved 1254, reused 0, downloaded 1230, added ***2
+2026-06-14T14:07:32.4544216Z #15 51.61 Progress: resolved 1254, reused 0, downloaded 1230, added 407
+2026-06-14T14:07:32.8941397Z #15 52.05 Progress: resolved 1254, reused 0, downloaded 1230, added 460, done
+2026-06-14T14:07:34.7635008Z #15 53.92 .../node_modules/@scarf/scarf postinstall$ node ./report.js
+2026-06-14T14:07:35.2109242Z #15 54.36 .../node_modules/@nestjs/core postinstall$ opencollective || exit 0
+2026-06-14T14:07:35.3881963Z #15 54.39 .../bcrypt@6.0.0/node_modules/bcrypt install$ node-gyp-build
+2026-06-14T14:07:35.4326068Z #15 54.58 .../bcrypt@6.0.0/node_modules/bcrypt install: Done
+2026-06-14T14:07:35.9796530Z #15 55.13 .../node_modules/@nestjs/core postinstall:                            Thanks for installing nest 
+2026-06-14T14:07:36.1257302Z #15 55.13 .../node_modules/@nestjs/core postinstall:                  Please consider donating to our open collective
+2026-06-14T14:07:36.1258096Z #15 55.13 .../node_modules/@nestjs/core postinstall:                         to help us maintain this package.
+2026-06-14T14:07:36.1258423Z #15 55.13 .../node_modules/@nestjs/core postinstall:                                          
+2026-06-14T14:07:36.1258751Z #15 55.13 .../node_modules/@nestjs/core postinstall:                             Number of contributors: 0
+2026-06-14T14:07:36.1259073Z #15 55.13 .../node_modules/@nestjs/core postinstall:                              Number of backers: 1204
+2026-06-14T14:07:36.1259281Z #15 55.15 .../node_modules/@nestjs/core postinstall:                              Annual budget: $136,189
+2026-06-14T14:07:36.1259535Z #15 55.17 .../node_modules/@nestjs/core postinstall:                              Current balance: $11,248
+2026-06-14T14:07:36.1259773Z #15 55.17 .../node_modules/@nestjs/core postinstall:                                          
+2026-06-14T14:07:36.1259974Z #15 55.17 .../node_modules/@nestjs/core postinstall:              Become a partner: https://opencollective.com/nest/donate
+2026-06-14T14:07:36.1260305Z #15 55.17 .../node_modules/@nestjs/core postinstall:                                          
+2026-06-14T14:07:36.1260550Z #15 55.28 .../node_modules/@nestjs/core postinstall: Done
+2026-06-14T14:07:38.5240389Z #15 57.68 .../node_modules/@scarf/scarf postinstall: Done
+2026-06-14T14:07:38.6845251Z #15 57.84  WARN  Failed to create bin at /app/backend-prod/node_modules/.pnpm/typeorm@0.3.27_ioredis@5.8.2_mysql2@3.15.3_redis@4.7.1_reflect-metadata@0.2.2_ts-node@1_a2dc5b77c713fab455f1a297d51ed595/node_modules/typeorm/node_modules/.bin/ts-node. ENOENT: no such file or directory, open '/app/backend-prod/node_modules/.pnpm/ts-node@10.9.2_@types+node@25.5.0_typescript@5.9.3/node_modules/ts-node/dist/bin.js'
+2026-06-14T14:07:38.8377213Z #15 57.84  WARN  Failed to create bin at /app/backend-prod/node_modules/.pnpm/typeorm@0.3.27_ioredis@5.8.2_mysql2@3.15.3_redis@4.7.1_reflect-metadata@0.2.2_ts-node@1_a2dc5b77c713fab455f1a297d51ed595/node_modules/typeorm/node_modules/.bin/ts-node-cwd. ENOENT: no such file or directory, open '/app/backend-prod/node_modules/.pnpm/ts-node@10.9.2_@types+node@25.5.0_typescript@5.9.3/node_modules/ts-node/dist/bin-cwd.js'
+2026-06-14T14:07:38.8378139Z #15 57.84  WARN  Failed to create bin at /app/backend-prod/node_modules/.pnpm/typeorm@0.3.27_ioredis@5.8.2_mysql2@3.15.3_redis@4.7.1_reflect-metadata@0.2.2_ts-node@1_a2dc5b77c713fab455f1a297d51ed595/node_modules/typeorm/node_modules/.bin/ts-node-esm. ENOENT: no such file or directory, open '/app/backend-prod/node_modules/.pnpm/ts-node@10.9.2_@types+node@25.5.0_typescript@5.9.3/node_modules/ts-node/dist/bin-esm.js'
+2026-06-14T14:07:38.8378562Z #15 57.84  WARN  Failed to create bin at /app/backend-prod/node_modules/.pnpm/typeorm@0.3.27_ioredis@5.8.2_mysql2@3.15.3_redis@4.7.1_reflect-metadata@0.2.2_ts-node@1_a2dc5b77c713fab455f1a297d51ed595/node_modules/typeorm/node_modules/.bin/ts-node-script. ENOENT: no such file or directory, open '/app/backend-prod/node_modules/.pnpm/ts-node@10.9.2_@types+node@25.5.0_typescript@5.9.3/node_modules/ts-node/dist/bin-script.js'
+2026-06-14T14:07:38.8379000Z #15 57.84  WARN  Failed to create bin at /app/backend-prod/node_modules/.pnpm/typeorm@0.3.27_ioredis@5.8.2_mysql2@3.15.3_redis@4.7.1_reflect-metadata@0.2.2_ts-node@1_a2dc5b77c713fab455f1a297d51ed595/node_modules/typeorm/node_modules/.bin/ts-node-transpile-only. ENOENT: no such file or directory, open '/app/backend-prod/node_modules/.pnpm/ts-node@10.9.2_@types+node@25.5.0_typescript@5.9.3/node_modules/ts-node/dist/bin-transpile.js'
+2026-06-14T14:07:38.8379398Z #15 57.84  WARN  Failed to create bin at /app/backend-prod/node_modules/.pnpm/typeorm@0.3.27_ioredis@5.8.2_mysql2@3.15.3_redis@4.7.1_reflect-metadata@0.2.2_ts-node@1_a2dc5b77c713fab455f1a297d51ed595/node_modules/typeorm/node_modules/.bin/ts-script. ENOENT: no such file or directory, open '/app/backend-prod/node_modules/.pnpm/ts-node@10.9.2_@types+node@25.5.0_typescript@5.9.3/node_modules/ts-node/dist/bin-script-deprecated.js'
+2026-06-14T14:07:39.0272961Z #15 58.18  WARN  Failed to create bin at /app/backend/backend-prod/node_modules/.bin/acorn. ENOENT: no such file or directory, open '/app/backend-prod/node_modules/.pnpm/acorn@8.16.0/node_modules/acorn/bin/acorn'
+2026-06-14T14:07:39.1818506Z #15 58.18  WARN  Failed to create bin at /app/backend/backend-prod/node_modules/.bin/browserslist. ENOENT: no such file or directory, open '/app/backend-prod/node_modules/.pnpm/browserslist@4.28.1/node_modules/browserslist/cli.js'
+2026-06-14T14:07:39.1820037Z #15 58.18  WARN  Failed to create bin at /app/backend/backend-prod/node_modules/.bin/webpack. ENOENT: no such file or directory, open '/app/backend-prod/node_modules/.pnpm/webpack@5.105.4/node_modules/webpack/bin/webpack.js'
+2026-06-14T14:07:39.1820481Z #15 58.18  WARN  Failed to create bin at /app/backend/backend-prod/node_modules/.bin/jiti. ENOENT: no such file or directory, open '/app/backend-prod/node_modules/.pnpm/jiti@2.6.1/node_modules/jiti/lib/jiti-cli.mjs'
+2026-06-14T14:07:39.5068389Z #15 58.66 . prepare$ husky
+2026-06-14T14:07:39.6137713Z #15 58.77 . prepare: .git can't be found
+2026-06-14T14:07:39.7653916Z #15 58.77 . prepare: Done
+2026-06-14T14:07:44.6367623Z #15 DONE 63.8s
+2026-06-14T14:07:44.8360458Z 
+2026-06-14T14:07:44.8361281Z #16 [build 10/10] RUN find /app/backend-prod/node_modules -name "*.md" -delete     && find /app/backend-prod/node_modules -name "*.txt" -delete     && find /app/backend-prod/node_modules -name "LICENSE*" -delete     && find /app/backend-prod/node_modules -name "README*" -delete     && find /app/backend-prod/node_modules -name "CHANGELOG*" -delete
+2026-06-14T14:07:52.3418463Z #16 DONE 7.7s
+2026-06-14T14:07:54.5284740Z 
+2026-06-14T14:07:54.5285499Z #17 [production 2/8] RUN apk add --no-cache curl
+2026-06-14T14:07:54.5285755Z #17 CACHED
+2026-06-14T14:07:54.5286364Z 
+2026-06-14T14:07:54.5286617Z #18 [production 3/8] WORKDIR /app
+2026-06-14T14:07:54.5286801Z #18 CACHED
+2026-06-14T14:07:54.5286980Z 
+2026-06-14T14:07:54.5287256Z #19 [production 4/8] RUN addgroup -g 1001 -S nestjs &&     adduser -S nestjs -u 1001
+2026-06-14T14:07:54.6796619Z #19 CACHED
+2026-06-14T14:07:54.6797321Z 
+2026-06-14T14:07:54.6797507Z #20 [production 5/8] COPY --from=build --chown=nestjs:nestjs /app/backend/dist ./dist
+2026-06-14T14:08:00.5511285Z #20 DONE 6.0s
+2026-06-14T14:08:00.6596844Z 
+2026-06-14T14:08:00.6597619Z #21 [production 6/8] COPY --from=build --chown=nestjs:nestjs /app/backend-prod/package.json ./
+2026-06-14T14:08:01.2222764Z #20 142.2   Finished TypeScript in 45s ...
+2026-06-14T14:08:01.3794522Z #20 142.2   Collecting page data using 7 workers ...
+2026-06-14T14:08:03.5591255Z #21 DONE 2.9s
+2026-06-14T14:08:12.1857089Z #20 153.2   Generating static pages using 7 workers (0/45) ...
+2026-06-14T14:08:13.5570344Z #20 154.5   Generating static pages using 7 workers (11/45) 
+2026-06-14T14:08:13.7081320Z #20 154.5   Generating static pages using 7 workers (***/45) 
+2026-06-14T14:08:13.7082186Z #20 154.5   Generating static pages using 7 workers (33/45) 
+2026-06-14T14:08:13.9670174Z 
+2026-06-14T14:08:13.9670959Z #*** [production 7/8] COPY --from=build --chown=nestjs:nestjs /app/backend-prod/node_modules ./node_modules
+2026-06-14T14:08:14.4189971Z #20 155.4 ✓ Generating static pages using 7 workers (45/45) in 2.2s
+2026-06-14T14:08:17.2765655Z #20 158.3   Finalizing page optimization ...
+2026-06-14T14:08:17.4273295Z #20 158.3   Collecting build traces ...
+2026-06-14T14:08:36.6585609Z #*** DONE ***.7s
+2026-06-14T14:08:36.8610486Z 
+2026-06-14T14:08:36.8611281Z #23 [production 8/8] RUN mkdir -p /app/uploads/temp /app/uploads/permanent &&     chown -R nestjs:nestjs /app/uploads
+2026-06-14T14:08:40.5714165Z #23 DONE 3.9s
+2026-06-14T14:08:41.1347590Z 
+2026-06-14T14:08:41.1348341Z #24 exporting to image
+2026-06-14T14:08:41.1348589Z #24 exporting layers
+2026-06-14T14:08:45.6685508Z #20 186.6 
+2026-06-14T14:08:45.8249762Z #20 186.7 Route (app)
+2026-06-14T14:08:45.8250471Z #20 186.7 ┌ ƒ /
+2026-06-14T14:08:45.8250694Z #20 186.7 ├ ƒ /_not-found
+2026-06-14T14:08:45.8250887Z #20 186.7 ├ ƒ /***
+2026-06-14T14:08:45.8251096Z #20 186.7 ├ ƒ /***/access-control/organizations
+2026-06-14T14:08:45.8251312Z #20 186.7 ├ ƒ /***/access-control/roles
+2026-06-14T14:08:45.8251721Z #20 186.7 ├ ƒ /***/access-control/users
+2026-06-14T14:08:45.8251939Z #20 186.7 ├ ƒ /***/ai
+2026-06-14T14:08:45.8252197Z #20 186.7 ├ ƒ /***/ai/intent-classification
+2026-06-14T14:08:45.8252395Z #20 186.7 ├ ƒ /***/ai/intent-classification/[intentCode]
+2026-06-14T14:08:45.8252590Z #20 186.7 ├ ƒ /***/ai/intent-classification/analytics
+2026-06-14T14:08:45.8252798Z #20 186.7 ├ ƒ /***/ai/intent-classification/test-console
+2026-06-14T14:08:45.8253047Z #20 186.7 ├ ƒ /***/ai/prompt-management
+2026-06-14T14:08:45.8253238Z #20 186.7 ├ ƒ /***/audit-logs
+2026-06-14T14:08:45.8253467Z #20 186.7 ├ ƒ /***/doc-control/contracts
+2026-06-14T14:08:45.8253653Z #20 186.7 ├ ƒ /***/doc-control/drawings
+2026-06-14T14:08:45.8253911Z #20 186.7 ├ ƒ /***/doc-control/drawings/contract/categories
+2026-06-14T14:08:45.8254317Z #20 186.7 ├ ƒ /***/doc-control/drawings/contract/sub-categories
+2026-06-14T14:08:45.8254525Z #20 186.7 ├ ƒ /***/doc-control/drawings/contract/volumes
+2026-06-14T14:08:45.8254786Z #20 186.7 ├ ƒ /***/doc-control/drawings/shop/main-categories
+2026-06-14T14:08:45.8255037Z #20 186.7 ├ ƒ /***/doc-control/drawings/shop/sub-categories
+2026-06-14T14:08:45.8255248Z #20 186.7 ├ ƒ /***/doc-control/numbering
+2026-06-14T14:08:45.8255434Z #20 186.7 ├ ƒ /***/doc-control/numbering/[id]/edit
+2026-06-14T14:08:45.8255713Z #20 186.7 ├ ƒ /***/doc-control/numbering/new
+2026-06-14T14:08:45.8256002Z #20 186.7 ├ ƒ /***/doc-control/projects
+2026-06-14T14:08:45.8256249Z #20 186.7 ├ ƒ /***/doc-control/reference
+2026-06-14T14:08:45.8256504Z #20 186.7 ├ ƒ /***/doc-control/reference/correspondence-types
+2026-06-14T14:08:45.8256759Z #20 186.7 ├ ƒ /***/doc-control/reference/disciplines
+2026-06-14T14:08:45.8256968Z #20 186.7 ├ ƒ /***/doc-control/reference/drawing-categories
+2026-06-14T14:08:45.8257158Z #20 186.7 ├ ƒ /***/doc-control/reference/rfa-types
+2026-06-14T14:08:45.8257399Z #20 186.7 ├ ƒ /***/doc-control/reference/tags
+2026-06-14T14:08:45.8257642Z #20 186.7 ├ ƒ /***/doc-control/workflows
+2026-06-14T14:08:45.8257843Z #20 186.7 ├ ƒ /***/doc-control/workflows/[id]/edit
+2026-06-14T14:08:45.8258035Z #20 186.7 ├ ƒ /***/doc-control/workflows/new
+2026-06-14T14:08:45.8258294Z #20 186.7 ├ ƒ /***/migration
+2026-06-14T14:08:45.8258501Z #20 186.7 ├ ƒ /***/migration/errors
+2026-06-14T14:08:45.8258686Z #20 186.7 ├ ƒ /***/migration/review/[id]
+2026-06-14T14:08:45.8258879Z #20 186.7 ├ ƒ /***/monitoring/audit-logs
+2026-06-14T14:08:45.8259139Z #20 186.7 ├ ƒ /***/monitoring/sessions
+2026-06-14T14:08:45.8259328Z #20 186.7 ├ ƒ /***/monitoring/system-logs/numbering
+2026-06-14T14:08:45.8259509Z #20 186.7 ├ ƒ /***/numbering
+2026-06-14T14:08:45.8259708Z #20 186.7 ├ ƒ /***/numbering/[id]/edit
+2026-06-14T14:08:45.8259955Z #20 186.7 ├ ƒ /***/numbering/new
+2026-06-14T14:08:45.8260139Z #20 186.7 ├ ƒ /***/organizations
+2026-06-14T14:08:45.8260321Z #20 186.7 ├ ƒ /***/settings
+2026-06-14T14:08:45.8260532Z #20 186.7 ├ ƒ /***/users
+2026-06-14T14:08:45.8260774Z #20 186.7 ├ ƒ /***/workflows
+2026-06-14T14:08:45.8260958Z #20 186.7 ├ ƒ /***/workflows/[id]/edit
+2026-06-14T14:08:45.8261143Z #20 186.7 ├ ƒ /***/workflows/new
+2026-06-14T14:08:45.8261323Z #20 186.7 ├ ƒ /ai-staging
+2026-06-14T14:08:45.8261564Z #20 186.7 ├ ƒ /api/ai/chat
+2026-06-14T14:08:45.8261998Z #20 186.7 ├ ƒ /api/auth/[...nextauth]
+2026-06-14T14:08:45.8262210Z #20 186.7 ├ ƒ /circulation
+2026-06-14T14:08:45.8262389Z #20 186.7 ├ ƒ /circulation/[uuid]
+2026-06-14T14:08:45.8262568Z #20 186.7 ├ ƒ /circulation/new
+2026-06-14T14:08:45.8262805Z #20 186.7 ├ ƒ /correspondences
+2026-06-14T14:08:45.8262986Z #20 186.7 ├ ƒ /correspondences/[uuid]
+2026-06-14T14:08:45.8263169Z #20 186.7 ├ ƒ /correspondences/[uuid]/edit
+2026-06-14T14:08:45.8263345Z #20 186.7 ├ ƒ /correspondences/new
+2026-06-14T14:08:45.8263561Z #20 186.7 ├ ƒ /dashboard
+2026-06-14T14:08:45.8263777Z #20 186.7 ├ ƒ /delegation
+2026-06-14T14:08:45.8263997Z #20 186.7 ├ ƒ /distribution-matrices
+2026-06-14T14:08:45.8264431Z #20 186.7 ├ ƒ /drawings
+2026-06-14T14:08:45.8264812Z #20 186.7 ├ ƒ /drawings/[uuid]
+2026-06-14T14:08:45.8265071Z #20 186.7 ├ ƒ /drawings/upload
+2026-06-14T14:08:45.8265286Z #20 186.7 ├ ƒ /login
+2026-06-14T14:08:45.8265585Z #20 186.7 ├ ƒ /migration/review
+2026-06-14T14:08:45.8265794Z #20 186.7 ├ ƒ /profile
+2026-06-14T14:08:45.8265994Z #20 186.7 ├ ƒ /projects
+2026-06-14T14:08:45.8266230Z #20 186.7 ├ ƒ /projects/new
+2026-06-14T14:08:45.8266508Z #20 186.7 ├ ƒ /rag
+2026-06-14T14:08:45.8266745Z #20 186.7 ├ ƒ /response-codes
+2026-06-14T14:08:45.8267019Z #20 186.7 ├ ƒ /rfa
+2026-06-14T14:08:45.8267200Z #20 186.7 ├ ƒ /rfas
+2026-06-14T14:08:45.8267369Z #20 186.7 ├ ƒ /rfas/[uuid]
+2026-06-14T14:08:45.8267540Z #20 186.7 ├ ƒ /rfas/[uuid]/edit
+2026-06-14T14:08:45.8267738Z #20 186.7 ├ ƒ /rfas/new
+2026-06-14T14:08:45.8267992Z #20 186.7 ├ ƒ /search
+2026-06-14T14:08:45.8268173Z #20 186.7 ├ ƒ /settings
+2026-06-14T14:08:45.8268397Z #20 186.7 ├ ƒ /settings/delegation
+2026-06-14T14:08:45.8268585Z #20 186.7 ├ ƒ /settings/reminder-rules
+2026-06-14T14:08:45.8268774Z #20 186.7 ├ ƒ /settings/review-teams
+2026-06-14T14:08:45.8268998Z #20 186.7 ├ ƒ /transmittals
+2026-06-14T14:08:45.8269179Z #20 186.7 ├ ƒ /transmittals/[uuid]
+2026-06-14T14:08:45.8269385Z #20 186.7 └ ƒ /transmittals/new
+2026-06-14T14:08:45.8269567Z #20 186.7 
+2026-06-14T14:08:45.8269737Z #20 186.7 
+2026-06-14T14:08:45.8269904Z #20 186.7 ƒ Proxy (Middleware)
+2026-06-14T14:08:45.8270080Z #20 186.7 
+2026-06-14T14:08:45.8270327Z #20 186.7 ƒ  (Dynamic)  server-rendered on demand
+2026-06-14T14:08:45.8270527Z #20 186.7 
+2026-06-14T14:08:47.7574707Z #20 DONE 188.7s
+2026-06-14T14:08:48.2105058Z 
+2026-06-14T14:08:48.2105787Z #21 [build 12/14] RUN ls -la /w/frontend/.next/ || (echo "ERROR: Build not found!" && exit 1)
+2026-06-14T14:08:50.1622844Z #21 1.952 total 2732
+2026-06-14T14:08:50.3137944Z #21 1.952 drwxr-xr-x    7 root     root          4096 Jun 14 14:08 .
+2026-06-14T14:08:50.3138749Z #21 1.952 drwxr-xr-x    1 root     root          4096 Jun 14 14:08 ..
+2026-06-14T14:08:50.3138964Z #21 1.952 -rw-r--r--    1 root     root            21 Jun 14 14:08 BUILD_ID
+2026-06-14T14:08:50.3139238Z #21 1.952 -rw-r--r--    1 root     root          5949 Jun 14 14:08 app-path-routes-manifest.json
+2026-06-14T14:08:50.3139532Z #21 1.952 -rw-r--r--    1 root     root           511 Jun 14 14:07 build-manifest.json
+2026-06-14T14:08:50.3139807Z #21 1.952 drwxr-xr-x    4 root     root          4096 Jun 14 14:07 cache
+2026-06-14T14:08:50.3140054Z #21 1.952 drwxr-xr-x    2 root     root          4096 Jun 14 14:05 diagnostics
+2026-06-14T14:08:50.3140326Z #21 1.952 -rw-r--r--    1 root     root           111 Jun 14 14:08 export-marker.json
+2026-06-14T14:08:50.3140556Z #21 1.952 -rw-r--r--    1 root     root          1415 Jun 14 14:08 images-manifest.json
+2026-06-14T14:08:50.3140751Z #21 1.952 -rw-r--r--    1 root     root         23279 Jun 14 14:08 next-minimal-server.js.nft.json
+2026-06-14T14:08:50.3141004Z #21 1.952 -rw-r--r--    1 root     root        124123 Jun 14 14:08 next-server.js.nft.json
+2026-06-14T14:08:50.3141286Z #21 1.952 -rw-r--r--    1 root     root            20 Jun 14 14:05 package.json
+2026-06-14T14:08:50.3141506Z #21 1.952 -rw-r--r--    1 root     root          1831 Jun 14 14:08 prerender-manifest.json
+2026-06-14T14:08:50.3141942Z #21 1.952 -rw-r--r--    1 root     root           513 Jun 14 14:07 react-loadable-manifest.json
+2026-06-14T14:08:50.3142223Z #21 1.952 -rw-r--r--    1 root     root          9352 Jun 14 14:08 required-server-files.js
+2026-06-14T14:08:50.3142433Z #21 1.952 -rw-r--r--    1 root     root          9323 Jun 14 14:08 required-server-files.json
+2026-06-14T14:08:50.3142626Z #21 1.952 -rw-r--r--    1 root     root         18015 Jun 14 14:08 routes-manifest.json
+2026-06-14T14:08:50.3142877Z #21 1.952 drwxr-xr-x    5 root     root          4096 Jun 14 14:08 server
+2026-06-14T14:08:50.3143118Z #21 1.952 drwxr-xr-x    5 root     root          4096 Jun 14 14:07 static
+2026-06-14T14:08:50.3143392Z #21 1.952 -rw-r--r--    1 root     root       2528000 Jun 14 14:08 trace
+2026-06-14T14:08:50.3143661Z #21 1.952 -rw-r--r--    1 root     root          1215 Jun 14 14:08 trace-build
+2026-06-14T14:08:50.3143905Z #21 1.952 drwxr-xr-x    3 root     root          4096 Jun 14 14:06 types
+2026-06-14T14:08:51.3654796Z #21 DONE 3.2s
+2026-06-14T14:08:51.6078125Z 
+2026-06-14T14:08:51.6078869Z #*** [build 13/14] WORKDIR /w
+2026-06-14T14:08:53.0327757Z #*** DONE 1.6s
+2026-06-14T14:08:53.2150416Z 
+2026-06-14T14:08:53.2151230Z #23 [build 14/14] RUN pnpm --filter lcbp3-frontend deploy /deploy --prod --legacy
+2026-06-14T14:08:55.2309321Z #24 exporting layers 14.1s done
+2026-06-14T14:08:55.3821243Z #24 writing image sha256:b118b56310c4fcdfdf32a04a00455ec61723bdd94f317c924ad***81a49b56074
+2026-06-14T14:08:55.4188545Z #24 writing image sha256:b118b56310c4fcdfdf32a04a00455ec61723bdd94f317c924ad***81a49b56074 0.2s done
+2026-06-14T14:08:55.4189375Z #24 naming to docker.io/library/lcbp3-backend:latest
+2026-06-14T14:08:55.7189852Z #24 naming to docker.io/library/lcbp3-backend:latest 0.3s done
+2026-06-14T14:08:56.3776245Z #24 DONE 15.2s
+2026-06-14T14:08:59.1844019Z #23 5.970  WARN  Shared workspace lockfile detected but configuration forces legacy deploy implementation.
+2026-06-14T14:08:59.4834197Z #23 6.268 Packages are copied from the content-addressable store to the virtual store.
+2026-06-14T14:08:59.4834937Z #23 6.268   Content-addressable store is at: /root/.local/share/pnpm/store/v10
+2026-06-14T14:08:59.4835181Z #23 6.268   Virtual store is at:             ../deploy/node_modules/.pnpm
+2026-06-14T14:09:00.3217549Z #23 7.107 Progress: resolved 0, reused 0, downloaded 1, added 0
+2026-06-14T14:09:01.3241253Z #23 8.109 Progress: resolved 25, reused 0, downloaded 25, added 0
+2026-06-14T14:09:02.3250143Z #23 9.110 Progress: resolved 36, reused 0, downloaded 36, added 0
+2026-06-14T14:09:03.3274985Z #23 10.11 Progress: resolved 46, reused 0, downloaded 46, added 0
+2026-06-14T14:09:04.3282076Z #23 11.11 Progress: resolved 53, reused 0, downloaded 53, added 0
+2026-06-14T14:09:05.3271345Z #23 12.11 Progress: resolved 60, reused 0, downloaded 60, added 0
+2026-06-14T14:09:06.3271680Z #23 13.11 Progress: resolved 64, reused 0, downloaded 64, added 0
+2026-06-14T14:09:07.3270139Z #23 14.11 Progress: resolved 66, reused 0, downloaded 66, added 0
+2026-06-14T14:09:08.5986628Z #23 15.38 Progress: resolved 66, reused 0, downloaded 67, added 0
+2026-06-14T14:09:09.5985156Z #23 16.38 Progress: resolved 67, reused 0, downloaded 67, added 0
+2026-06-14T14:09:26.6012061Z #23 33.39 Progress: resolved 67, reused 0, downloaded 68, added 0
+2026-06-14T14:09:27.6405493Z #23 34.43 Progress: resolved 114, reused 0, downloaded 110, added 0
+2026-06-14T14:09:28.6402309Z #23 35.43 Progress: resolved 169, reused 0, downloaded 161, added 0
+2026-06-14T14:09:29.6522811Z #23 36.44 Progress: resolved 274, reused 0, downloaded 264, added 0
+2026-06-14T14:09:30.6560223Z #23 37.44 Progress: resolved 402, reused 0, downloaded 393, added 0
+2026-06-14T14:09:31.6569716Z #23 38.44 Progress: resolved 492, reused 0, downloaded 483, added 0
+2026-06-14T14:09:32.6569778Z #23 39.44 Progress: resolved 624, reused 0, downloaded 616, added 0
+2026-06-14T14:09:33.6564978Z #23 40.44 Progress: resolved 648, reused 0, downloaded 619, added 0
+2026-06-14T14:09:34.6569750Z #23 41.44 Progress: resolved 708, reused 0, downloaded 630, added 0
+2026-06-14T14:09:35.6570648Z #23 42.44 Progress: resolved 767, reused 0, downloaded 669, added 0
+2026-06-14T14:09:36.6568089Z #23 43.44 Progress: resolved 773, reused 0, downloaded 673, added 0
+2026-06-14T14:09:37.6565161Z #23 44.44 Progress: resolved 775, reused 0, downloaded 676, added 0
+2026-06-14T14:09:38.6569798Z #23 45.44 Progress: resolved 780, reused 0, downloaded 678, added 0
+2026-06-14T14:09:39.6567064Z #23 46.44 Progress: resolved 786, reused 0, downloaded 686, added 0
+2026-06-14T14:09:40.6563509Z #23 47.44 Progress: resolved 786, reused 0, downloaded 688, added 0
+2026-06-14T14:09:43.3608241Z #23 50.15 Progress: resolved 787, reused 0, downloaded 688, added 0
+2026-06-14T14:09:44.3605038Z #23 51.15 Progress: resolved 791, reused 0, downloaded 692, added 0
+2026-06-14T14:09:45.9635142Z #23 52.75 Progress: resolved 792, reused 0, downloaded 692, added 0
+2026-06-14T14:09:46.9662794Z #23 53.75 Progress: resolved 803, reused 0, downloaded 702, added 0
+2026-06-14T14:09:48.1028844Z #23 54.89 Progress: resolved 828, reused 0, downloaded 718, added 0
+2026-06-14T14:09:48.2649300Z #23 54.90 .                                        | +313 +++++++++++++++++++++++++++++++
+2026-06-14T14:09:49.1032871Z #23 55.89 Progress: resolved 828, reused 0, downloaded 718, added 127
+2026-06-14T14:09:50.1039851Z #23 56.89 Progress: resolved 828, reused 0, downloaded 721, added 178
+2026-06-14T14:09:50.4246177Z #23 57.21 Progress: resolved 828, reused 0, downloaded 721, added 313, done
+2026-06-14T14:09:50.9144341Z #23 57.70 .../sharp@0.34.5/node_modules/sharp install$ node install/check.js || npm run build
+2026-06-14T14:09:51.2662319Z #23 58.05 .../sharp@0.34.5/node_modules/sharp install: Done
+2026-06-14T14:09:51.5119648Z #23 58.12  WARN  Failed to create bin at /deploy/node_modules/.pnpm/tailwindcss-animate@1.0.7_tailwindcss@3.4.3_ts-node@10.9.2_@types+node@25.5.0_typescript@5.9.3__/node_modules/tailwindcss-animate/node_modules/.bin/tailwind. ENOENT: no such file or directory, open '/deploy/node_modules/.pnpm/tailwindcss@3.4.3_ts-node@10.9.2_@types+node@25.5.0_typescript@5.9.3_/node_modules/tailwindcss/lib/cli.js'
+2026-06-14T14:09:51.5120590Z #23 58.12  WARN  Failed to create bin at /deploy/node_modules/.pnpm/tailwindcss-animate@1.0.7_tailwindcss@3.4.3_ts-node@10.9.2_@types+node@25.5.0_typescript@5.9.3__/node_modules/tailwindcss-animate/node_modules/.bin/tailwindcss. ENOENT: no such file or directory, open '/deploy/node_modules/.pnpm/tailwindcss@3.4.3_ts-node@10.9.2_@types+node@25.5.0_typescript@5.9.3_/node_modules/tailwindcss/lib/cli.js'
+2026-06-14T14:09:51.5121000Z #23 58.12  WARN  Failed to create bin at /deploy/node_modules/.pnpm/ts-node@10.9.2_@types+node@25.5.0_typescript@5.9.3/node_modules/ts-node/node_modules/.bin/tsserver. ENOENT: no such file or directory, open '/deploy/node_modules/.pnpm/typescript@5.9.3/node_modules/typescript/bin/tsserver'
+2026-06-14T14:09:51.5121353Z #23 58.12  WARN  Failed to create bin at /deploy/node_modules/.pnpm/ts-node@10.9.2_@types+node@25.5.0_typescript@5.9.3/node_modules/ts-node/node_modules/.bin/tsc. ENOENT: no such file or directory, open '/deploy/node_modules/.pnpm/typescript@5.9.3/node_modules/typescript/bin/tsc'
+2026-06-14T14:09:51.5121830Z #23 58.15  WARN  Failed to create bin at /w/deploy/node_modules/.bin/acorn. ENOENT: no such file or directory, open '/deploy/node_modules/.pnpm/acorn@8.15.0/node_modules/acorn/bin/acorn'
+2026-06-14T14:09:51.5122233Z #23 58.15  WARN  Failed to create bin at /w/deploy/node_modules/.bin/terser. ENOENT: no such file or directory, open '/deploy/node_modules/.pnpm/terser@5.44.1/node_modules/terser/bin/terser'
+2026-06-14T14:09:51.5122532Z #23 58.15  WARN  Failed to create bin at /w/deploy/node_modules/.bin/jiti. ENOENT: no such file or directory, open '/deploy/node_modules/.pnpm/jiti@2.6.1/node_modules/jiti/lib/jiti-cli.mjs'
+2026-06-14T14:09:51.8122620Z #23 58.60 . prepare$ husky
+2026-06-14T14:09:51.9454507Z #23 58.60 frontend postinstall$ npm run copy-monaco-assets
+2026-06-14T14:09:51.9455306Z #23 58.73 . prepare: .git can't be found
+2026-06-14T14:09:52.0929178Z #23 58.73 . prepare: Done
+2026-06-14T14:09:52.0929988Z #23 58.88 frontend postinstall: npm warn config production Use `--omit=dev` instead.
+2026-06-14T14:09:52.2778185Z #23 58.91 frontend postinstall: npm warn Unknown env config "verify-deps-before-run". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+2026-06-14T14:09:52.2778985Z #23 58.91 frontend postinstall: npm warn Unknown env config "npm-globalconfig". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+2026-06-14T14:09:52.2779334Z #23 58.91 frontend postinstall: npm warn Unknown env config "recursive". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+2026-06-14T14:09:52.2779642Z #23 58.91 frontend postinstall: npm warn Unknown env config "_jsr-registry". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+2026-06-14T14:09:52.2779878Z #23 58.91 frontend postinstall: npm warn Unknown env config "force-legacy-deploy". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+2026-06-14T14:09:52.5398546Z #23 59.32 frontend postinstall: > lcbp3-frontend@1.8.1 copy-monaco-assets
+2026-06-14T14:09:52.6704317Z #23 59.32 frontend postinstall: > node -e "const fs=require('fs');const path=require('path');const dst='public/monaco-vs';try{const pkgJson=require.resolve('monaco-editor/package.json');const src=path.join(path.dirname(pkgJson),'min','vs');if(!fs.existsSync(dst)){fs.cpSync(src,dst,{recursive:true});console.log('Monaco assets copied from: '+src)}else{console.log('Monaco assets already exist')}}catch(e){console.warn('WARNING: monaco-editor not found, skipping copy. Run after npm install.');process.exit(0)}"
+2026-06-14T14:09:52.6705308Z #23 59.40 frontend postinstall: WARNING: monaco-editor not found, skipping copy. Run after npm install.
+2026-06-14T14:09:52.6705570Z #23 59.45 frontend postinstall: Done
+2026-06-14T14:09:52.8288213Z #23 59.46  WARN  Issues with peer dependencies found
+2026-06-14T14:09:52.8289005Z #23 59.46 frontend
+2026-06-14T14:09:52.8289281Z #23 59.46 ├─┬ @vitest/coverage-v8 4.1.6
+2026-06-14T14:09:52.8289500Z #23 59.46 │ └── ✕ unmet peer vitest@4.1.6: found 4.1.8
+2026-06-14T14:09:52.8289702Z #23 59.46 └─┬ vitest 4.1.8
+2026-06-14T14:09:52.8289885Z #23 59.46   └── ✕ unmet peer @vitest/coverage-v8@4.1.8: found 4.1.6
+2026-06-14T14:09:59.3851193Z #23 DONE 66.2s
+2026-06-14T14:10:08.3201300Z 
+2026-06-14T14:10:08.3202668Z #24 [production 2/9] WORKDIR /app
+2026-06-14T14:10:08.3202967Z #24 CACHED
+2026-06-14T14:10:08.3203141Z 
+2026-06-14T14:10:08.3203322Z #25 [production 3/9] RUN addgroup -g 1001 -S nextjs &&     adduser -S nextjs -u 1001
+2026-06-14T14:10:08.3203563Z #25 CACHED
+2026-06-14T14:10:08.3203813Z 
+2026-06-14T14:10:08.3204007Z #26 [production 4/9] RUN apk add --no-cache curl
+2026-06-14T14:10:08.4702402Z #26 CACHED
+2026-06-14T14:10:08.4703215Z 
+2026-06-14T14:10:08.4703415Z #27 [production 5/9] COPY --from=build --chown=nextjs:nextjs /deploy/node_modules ./node_modules
+2026-06-14T14:10:39.6120210Z #27 DONE 31.3s
+2026-06-14T14:10:39.8319253Z 
+2026-06-14T14:10:39.8320099Z #28 [production 6/9] COPY --from=build --chown=nextjs:nextjs /w/frontend/.next ./.next
+2026-06-14T14:10:49.7694122Z #28 DONE 10.1s
+2026-06-14T14:10:49.9708381Z 
+2026-06-14T14:10:49.9709113Z #29 [production 7/9] COPY --from=build --chown=nextjs:nextjs /w/frontend/public ./public
+2026-06-14T14:10:51.9035619Z #29 DONE 2.1s
+2026-06-14T14:10:52.1067179Z 
+2026-06-14T14:10:52.1067907Z #30 [production 8/9] COPY --from=build --chown=nextjs:nextjs /w/frontend/package.json ./
+2026-06-14T14:10:53.6064457Z #30 DONE 1.7s
+2026-06-14T14:10:53.8033974Z 
+2026-06-14T14:10:53.8034745Z #31 [production 9/9] RUN ls -la ./node_modules/next/dist/bin/next && ls -la ./.next/ && ls -la ./public/ || (echo "ERROR: Required files not found!" && exit 1)
+2026-06-14T14:10:55.2037886Z #31 1.550 -rwxr-xr-x    1 nextjs   nextjs       17023 Jun 14 14:09 ./node_modules/next/dist/bin/next
+2026-06-14T14:10:55.3583234Z #31 1.552 total 2732
+2026-06-14T14:10:55.3584004Z #31 1.552 drwxr-xr-x    7 nextjs   nextjs        4096 Jun 14 14:08 .
+2026-06-14T14:10:55.3584256Z #31 1.552 drwxr-xr-x    1 root     root          4096 Jun 14 14:10 ..
+2026-06-14T14:10:55.3584507Z #31 1.552 -rw-r--r--    1 nextjs   nextjs          21 Jun 14 14:08 BUILD_ID
+2026-06-14T14:10:55.3584739Z #31 1.552 -rw-r--r--    1 nextjs   nextjs        5949 Jun 14 14:08 app-path-routes-manifest.json
+2026-06-14T14:10:55.3584997Z #31 1.552 -rw-r--r--    1 nextjs   nextjs         511 Jun 14 14:07 build-manifest.json
+2026-06-14T14:10:55.3585317Z #31 1.552 drwxr-xr-x    4 nextjs   nextjs        4096 Jun 14 14:07 cache
+2026-06-14T14:10:55.3585522Z #31 1.552 drwxr-xr-x    2 nextjs   nextjs        4096 Jun 14 14:05 diagnostics
+2026-06-14T14:10:55.3585737Z #31 1.552 -rw-r--r--    1 nextjs   nextjs         111 Jun 14 14:08 export-marker.json
+2026-06-14T14:10:55.3585945Z #31 1.552 -rw-r--r--    1 nextjs   nextjs        1415 Jun 14 14:08 images-manifest.json
+2026-06-14T14:10:55.3586154Z #31 1.552 -rw-r--r--    1 nextjs   nextjs       23279 Jun 14 14:08 next-minimal-server.js.nft.json
+2026-06-14T14:10:55.3586700Z #31 1.552 -rw-r--r--    1 nextjs   nextjs      124123 Jun 14 14:08 next-server.js.nft.json
+2026-06-14T14:10:55.3586985Z #31 1.552 -rw-r--r--    1 nextjs   nextjs          20 Jun 14 14:05 package.json
+2026-06-14T14:10:55.3587200Z #31 1.552 -rw-r--r--    1 nextjs   nextjs        1831 Jun 14 14:08 prerender-manifest.json
+2026-06-14T14:10:55.3587406Z #31 1.552 -rw-r--r--    1 nextjs   nextjs         513 Jun 14 14:07 react-loadable-manifest.json
+2026-06-14T14:10:55.3587717Z #31 1.552 -rw-r--r--    1 nextjs   nextjs        9352 Jun 14 14:08 required-server-files.js
+2026-06-14T14:10:55.3588004Z #31 1.552 -rw-r--r--    1 nextjs   nextjs        9323 Jun 14 14:08 required-server-files.json
+2026-06-14T14:10:55.3588210Z #31 1.552 -rw-r--r--    1 nextjs   nextjs       18015 Jun 14 14:08 routes-manifest.json
+2026-06-14T14:10:55.3588502Z #31 1.552 drwxr-xr-x    5 nextjs   nextjs        4096 Jun 14 14:08 server
+2026-06-14T14:10:55.3588777Z #31 1.552 drwxr-xr-x    5 nextjs   nextjs        4096 Jun 14 14:07 static
+2026-06-14T14:10:55.3588988Z #31 1.552 -rw-r--r--    1 nextjs   nextjs     2528000 Jun 14 14:08 trace
+2026-06-14T14:10:55.3589191Z #31 1.552 -rw-r--r--    1 nextjs   nextjs        1215 Jun 14 14:08 trace-build
+2026-06-14T14:10:55.3589499Z #31 1.552 drwxr-xr-x    3 nextjs   nextjs        4096 Jun 14 14:06 types
+2026-06-14T14:10:55.3589731Z #31 1.554 total 40
+2026-06-14T14:10:55.3589996Z #31 1.554 drwxr-xr-x    4 nextjs   nextjs        4096 Jun 14 14:05 .
+2026-06-14T14:10:55.3590298Z #31 1.554 drwxr-xr-x    1 root     root          4096 Jun 14 14:10 ..
+2026-06-14T14:10:55.3590559Z #31 1.554 -rw-rw-rw-    1 nextjs   nextjs         130 Apr  1 15:50 favicon.ico
+2026-06-14T14:10:55.3590766Z #31 1.554 drwxrwxrwx    4 nextjs   nextjs        4096 Apr 19 06:21 locales
+2026-06-14T14:10:55.3590962Z #31 1.554 drwxr-xr-x    6 nextjs   nextjs        4096 Jun 14 14:05 monaco-vs
+2026-06-14T14:10:55.3591250Z #31 1.554 -rw-rw-rw-    1 nextjs   nextjs         140 Apr  1 15:50 robots.txt
+2026-06-14T14:10:56.1908442Z #31 DONE 2.5s
+2026-06-14T14:10:56.3559069Z 
+2026-06-14T14:10:56.3559840Z #32 exporting to image
+2026-06-14T14:10:56.3560075Z #32 exporting layers
+2026-06-14T14:11:14.4509766Z #32 exporting layers 18.1s done
+2026-06-14T14:11:14.6022579Z #32 writing image sha256:1858d70d3ee61823c2731ad8df84deab5c96e3ead204a24495fbac0712b14d46
+2026-06-14T14:11:14.6814383Z #32 writing image sha256:1858d70d3ee61823c2731ad8df84deab5c96e3ead204a24495fbac0712b14d46 0.2s done
+2026-06-14T14:11:14.6815546Z #32 naming to docker.io/library/lcbp3-frontend:latest
+2026-06-14T14:11:14.9001220Z #32 naming to docker.io/library/lcbp3-frontend:latest 0.1s done
+2026-06-14T14:11:15.0006157Z #32 DONE 18.6s
+2026-06-14T14:11:16.2899748Z ✓ Images built
+2026-06-14T14:11:16.2900481Z [2/3] Starting application stack...
+2026-06-14T14:11:16.8031089Z  Container clamav  Recreate
+2026-06-14T14:11:21.8509523Z  Container clamav  Recreated
+2026-06-14T14:11:21.8510258Z  Container backend  Recreate
+2026-06-14T14:11:34.9592456Z  Container backend  Recreated
+2026-06-14T14:11:34.9593203Z  Container frontend  Recreate
+2026-06-14T14:11:37.8880218Z  Container frontend  Recreated
+2026-06-14T14:11:37.8950762Z  Container clamav  Starting
+2026-06-14T14:11:39.7277074Z  Container clamav  Started
+2026-06-14T14:11:39.7277820Z  Container clamav  Waiting
+2026-06-14T14:12:22.2299105Z  Container clamav  Healthy
+2026-06-14T14:12:22.2300309Z  Container backend  Starting
+2026-06-14T14:12:24.5608338Z  Container backend  Started
+2026-06-14T14:12:24.5609048Z  Container backend  Waiting
+2026-06-14T14:12:56.3561379Z  Container backend  Error
+2026-06-14T14:12:56.3562264Z dependency failed to start: container backend is unhealthy
+2026-06-14T14:12:56.3767089Z   ❌  Failure - Main 🚀 Deploy to QNAP
+2026-06-14T14:12:56.3883840Z exitcode '1': failure
+2026-06-14T14:12:56.4188742Z evaluating expression 'always()'
+2026-06-14T14:12:56.4189614Z expression 'always()' evaluated to 'true'
+2026-06-14T14:12:56.4189838Z ⭐ Run Post  Checkout
+2026-06-14T14:12:56.4190189Z Writing entry to tarball workflow/outputcmd.txt len:0
+2026-06-14T14:12:56.4190475Z Writing entry to tarball workflow/statecmd.txt len:0
+2026-06-14T14:12:56.4190682Z Writing entry to tarball workflow/pathcmd.txt len:0
+2026-06-14T14:12:56.4190897Z Writing entry to tarball workflow/envs.txt len:0
+2026-06-14T14:12:56.4191085Z Writing entry to tarball workflow/SUMMARY.md len:0
+2026-06-14T14:12:56.4191345Z Extracting content to '/var/run/act'
+2026-06-14T14:12:56.4229018Z run post step for ' Checkout'
+2026-06-14T14:12:56.4230337Z executing remote job container: [node /var/run/act/actions/c3fe249fe73091a17d6638fe1341e7bd0bcc3466ce52323c0688e83e2463a4ab/dist/index.js]
+2026-06-14T14:12:56.4230664Z   🐳  docker exec cmd=[node /var/run/act/actions/c3fe249fe73091a17d6638fe1341e7bd0bcc3466ce52323c0688e83e2463a4ab/dist/index.js] user= workdir=
+2026-06-14T14:12:56.4230906Z Exec command '[node /var/run/act/actions/c3fe249fe73091a17d6638fe1341e7bd0bcc3466ce52323c0688e83e2463a4ab/dist/index.js]'
+2026-06-14T14:12:56.4231715Z Working directory '/workspace/np-dms/lcbp3'
+2026-06-14T14:12:56.7129623Z [command]/usr/bin/git version
+2026-06-14T14:12:56.7201246Z git version 2.30.2
+2026-06-14T14:12:56.7254450Z ***
+2026-06-14T14:12:56.7284052Z Temporarily overriding HOME='/tmp/9d5c6e0b-3bb6-4893-ad81-2bdd34682771' before making global git config changes
+2026-06-14T14:12:56.7285667Z Adding repository directory to the temporary git global config as a safe directory
+2026-06-14T14:12:56.7297446Z [command]/usr/bin/git config --global --add safe.directory /workspace/np-dms/lcbp3
+2026-06-14T14:12:56.7376857Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-06-14T14:12:56.7445984Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-06-14T14:12:56.7956853Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/git\.np\-dms\.work\/\.extraheader
+2026-06-14T14:12:56.8006819Z http.https://git.np-dms.work/.extraheader
+2026-06-14T14:12:56.8028483Z [command]/usr/bin/git config --local --unset-all http.https://git.np-dms.work/.extraheader
+2026-06-14T14:12:56.8098642Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/git\.np\-dms\.work\/\.extraheader' && git config --local --unset-all 'http.https://git.np-dms.work/.extraheader' || :"
+2026-06-14T14:12:56.8602366Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-06-14T14:12:56.8670060Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-06-14T14:12:56.9320969Z   ✅  Success - Post  Checkout
+2026-06-14T14:12:56.9443104Z Cleaning up container for job deploy
+2026-06-14T14:12:58.8172104Z Removed container: de68ef87ac8a68435216726c34151b4b9***dd77d3fdb04f3ee67325c55a***7c5
+2026-06-14T14:12:58.8188886Z   🐳  docker volume rm GITEA-ACTIONS-TASK-726_WORKFLOW-CI-CD-Pipeline_JOB-deploy
+2026-06-14T14:12:59.0963144Z   🐳  docker volume rm GITEA-ACTIONS-TASK-726_WORKFLOW-CI-CD-Pipeline_JOB-deploy-env
+2026-06-14T14:12:59.3422452Z 🏁  Job failed
+2026-06-14T14:12:59.3529862Z Job 'deploy' failed

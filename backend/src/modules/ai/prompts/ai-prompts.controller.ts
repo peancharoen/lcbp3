@@ -11,6 +11,7 @@ import {
   Patch,
   Body,
   Param,
+  Headers,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -21,6 +22,7 @@ import {
   ApiOperation,
   ApiBearerAuth,
   ApiParam,
+  ApiHeader,
 } from '@nestjs/swagger';
 import { AiPromptsService } from './ai-prompts.service';
 import { AiPrompt } from './ai-prompts.entity';
@@ -35,6 +37,7 @@ import { RequirePermission } from '../../../common/decorators/require-permission
 import { Audit } from '../../../common/decorators/audit.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { User } from '../../user/entities/user.entity';
+import { ValidationException } from '../../../common/exceptions';
 
 /**
  * Controller สำหรับจัดการ Prompt Versions ของ AI OCR (ADR-029)
@@ -45,6 +48,12 @@ import { User } from '../../user/entities/user.entity';
 @Controller('ai/prompts')
 export class AiPromptsController {
   constructor(private readonly promptsService: AiPromptsService) {}
+
+  private assertIdempotencyKey(idempotencyKey?: string): void {
+    if (!idempotencyKey) {
+      throw new ValidationException('Idempotency-Key header is required');
+    }
+  }
 
   private mapToDto(prompt: AiPrompt): AiPromptResponseDto {
     return plainToInstance(AiPromptResponseDto, prompt, {
@@ -73,11 +82,18 @@ export class AiPromptsController {
     summary: 'สร้าง Prompt Version ใหม่ (เริ่มต้นเป็น inactive)',
   })
   @ApiParam({ name: 'promptType', example: 'ocr_extraction' })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    description: 'Unique key เพื่อป้องกัน duplicate prompt version creation',
+    required: true,
+  })
   async createPromptVersion(
     @Param('promptType') promptType: string,
     @Body() dto: CreateAiPromptDto,
-    @CurrentUser() user: User
+    @CurrentUser() user: User,
+    @Headers('idempotency-key') idempotencyKey: string
   ): Promise<{ data: AiPromptResponseDto }> {
+    this.assertIdempotencyKey(idempotencyKey);
     const newPrompt = await this.promptsService.create(
       promptType,
       dto,
@@ -108,11 +124,18 @@ export class AiPromptsController {
   @ApiOperation({ summary: 'เปิดใช้งาน Prompt Version' })
   @ApiParam({ name: 'promptType', example: 'ocr_extraction' })
   @ApiParam({ name: 'versionNumber', type: Number })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    description: 'Unique key เพื่อป้องกัน duplicate prompt activation',
+    required: true,
+  })
   async activatePromptVersion(
     @Param('promptType') promptType: string,
     @Param('versionNumber', ParseIntPipe) versionNumber: number,
-    @CurrentUser() user: User
+    @CurrentUser() user: User,
+    @Headers('idempotency-key') idempotencyKey: string
   ): Promise<{ data: AiPromptResponseDto }> {
+    this.assertIdempotencyKey(idempotencyKey);
     const activated = await this.promptsService.activate(
       promptType,
       versionNumber,
@@ -165,11 +188,18 @@ export class AiPromptsController {
   })
   @ApiParam({ name: 'promptType', example: 'ocr_extraction' })
   @ApiParam({ name: 'versionNumber', type: Number })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    description: 'Unique key เพื่อป้องกัน duplicate context config update',
+    required: true,
+  })
   async updateContextConfig(
     @Param('promptType') promptType: string,
     @Param('versionNumber', ParseIntPipe) versionNumber: number,
-    @Body() dto: ContextConfigDto
+    @Body() dto: ContextConfigDto,
+    @Headers('idempotency-key') idempotencyKey: string
   ): Promise<{ data: Record<string, unknown> }> {
+    this.assertIdempotencyKey(idempotencyKey);
     const updated = await this.promptsService.updateContextConfig(
       promptType,
       versionNumber,

@@ -106,7 +106,7 @@ interface VisualWorkflowBuilderProps {
   onDslChange?: (dsl: string) => void;
 }
 
-const createNode = (
+export const createNode = (
   name: string,
   yOffset: number,
   options?: {
@@ -148,7 +148,7 @@ const createNode = (
   };
 };
 
-const createEdge = (source: string, target: string, label: string): Edge => ({
+export const createEdge = (source: string, target: string, label: string): Edge => ({
   id: `e-${source}-${label}-${target}`,
   source,
   target,
@@ -156,7 +156,7 @@ const createEdge = (source: string, target: string, label: string): Edge => ({
   markerEnd: { type: MarkerType.ArrowClosed },
 });
 
-function parseDSL(dsl: string): { nodes: Node[]; edges: Edge[] } {
+export function parseDSL(dsl: string): { nodes: Node[]; edges: Edge[] } {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
   let yOffset = 50;

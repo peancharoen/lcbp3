@@ -3,12 +3,14 @@
 // - 2026-05-25: Created TypeORM entity for dynamic prompt management (ADR-029)
 // - 2026-05-25: Added definite assignment assertion operator (!) to satisfy strictPropertyInitialization
 // - 2026-05-27: Added publicId column for ADR-019 compliance
+// - 2026-06-15: Added @VersionColumn for optimistic locking (T066)
 
 import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  VersionColumn,
 } from 'typeorm';
 import { Exclude } from 'class-transformer';
 
@@ -61,4 +63,7 @@ export class AiPrompt {
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
+
+  @VersionColumn({ name: 'version' })
+  version!: number;
 }

@@ -115,4 +115,79 @@ describe('DSLEditor (T054)', () => {
     });
     // ไม่ throw error
   });
+
+  it('calls onChange callback when editor value changes', async () => {
+    const onChange = vi.fn();
+    render(<DSLEditor initialValue="initial" onChange={onChange} />);
+
+    const editor = screen.getByTestId('monaco-editor');
+    await userEvent.type(editor, ' updated');
+
+    // onChange ถูกเรียกแต่ละ character - check ว่าถูกเรียกและค่าสุดท้ายถูกต้อง
+    expect(onChange).toHaveBeenCalled();
+    expect(onChange).toHaveBeenLastCalledWith(' updated');
+  });
+
+  it('disables Validate and Test buttons when readOnly=true', () => {
+    render(<DSLEditor initialValue="test" readOnly={true} />);
+
+    const validateButton = screen.getByRole('button', { name: /validate/i });
+    const testButton = screen.getByRole('button', { name: /test/i });
+
+    expect(validateButton).toBeDisabled();
+    expect(testButton).toBeDisabled();
+  });
+
+  it('enables Validate and Test buttons when readOnly=false', () => {
+    render(<DSLEditor initialValue="test" readOnly={false} />);
+
+    const validateButton = screen.getByRole('button', { name: /validate/i });
+    const testButton = screen.getByRole('button', { name: /test/i });
+
+    expect(validateButton).not.toBeDisabled();
+    expect(testButton).not.toBeDisabled();
+  });
+
+  it('clears validation result when editor value changes', async () => {
+    mockValidateDSL.mockResolvedValue({ valid: true });
+    const onChange = vi.fn();
+
+    render(<DSLEditor initialValue="test" onChange={onChange} onValidationChange={onValidationChange} />);
+
+    // Validate first
+    await userEvent.click(screen.getByRole('button', { name: /validate/i }));
+    await waitFor(() => {
+      expect(screen.getByText(/valid and ready/i)).toBeInTheDocument();
+    });
+
+    // Change editor value
+    const editor = screen.getByTestId('monaco-editor');
+    await userEvent.type(editor, ' updated');
+
+    // Validation result should be cleared
+    expect(screen.queryByText(/valid and ready/i)).not.toBeInTheDocument();
+  });
+
+  it('shows Test result when Test button is clicked', async () => {
+    render(<DSLEditor initialValue="test" />);
+
+    const testButton = screen.getByRole('button', { name: /test/i });
+    await userEvent.click(testButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Workflow simulation completed successfully/i)).toBeInTheDocument();
+    });
+  });
+
+  it('updates internal state when initialValue prop changes', () => {
+    const { rerender } = render(<DSLEditor initialValue="initial" />);
+
+    // Mock Monaco editor ไม่ได้ update value เมื่อ initialValue เปลี่ยน
+    // แต่เราสามารถ test ได้โดย render component ใหม่ด้วย initialValue ต่างกัน
+    rerender(<DSLEditor initialValue="updated" />);
+
+    // Component ควร render ได้โดยไม่ throw error
+    const editor = screen.getByTestId('monaco-editor');
+    expect(editor).toBeInTheDocument();
+  });
 });

@@ -5,35 +5,39 @@
 
 ## Summary
 
-This feature extends ADR-029 Dynamic Prompt Management to support multiple prompt types (OCR extraction, RAG query, RAG preparation, document classification) with a unified single-page UI. The implementation adds context configuration management, a 3-step sandbox workflow (OCR → AI Extract → RAG Prep), and clear separation between Runtime Parameters (AI model behavior) and Context Config (data context). The backend will extend existing AiPromptsService with new endpoints for context config CRUD and RAG Prep sandbox testing, while the frontend will create a unified Prompt Management page with PromptTypeDropdown, VersionHistory, PromptEditor, ContextConfigEditor, and SandboxTabs components.
+This feature extends ADR-029 Dynamic Prompt Management to support multiple prompt types (OCR extraction, RAG query, RAG preparation, document classification) with a unified single-page UI. The implementation adds context configuration management, a required 3-step sandbox workflow (OCR → AI Extract → RAG Prep), and clear separation between Runtime Parameters (AI model behavior) and Context Config (data context). The backend will extend existing AiPromptsService with new endpoints for context config CRUD and RAG Prep sandbox testing, while the frontend will create a unified Prompt Management page with PromptTypeDropdown (including "All Types" view), VersionHistory, PromptEditor, ContextConfigEditor, SandboxTabs, SandboxTestArea, and RuntimeParametersPanel components. The implementation includes optimistic locking for concurrent edits, Redis caching for performance, and responsive design for mobile devices.
 
 ## Technical Context
 
 **Language/Version**: TypeScript 5.6 (Backend: NestJS 11, Frontend: Next.js 16)
-**Primary Dependencies**: 
+**Primary Dependencies**:
 - Backend: @nestjs/common, @nestjs/typeorm, @nestjs/bull, class-validator, class-transformer, redis, ioredis
 - Frontend: next, react, @tanstack/react-query, react-hook-form, zod, shadcn/ui, lucide-react
 **Storage**: MariaDB 11.8 (ai_prompts, ai_execution_profiles tables), Redis (prompt cache, BullMQ queues)
 **Testing**: Jest (backend unit/integration/e2e), Vitest (frontend unit), Playwright (frontend e2e)
 **Target Platform**: Linux server (QNAP NAS) for backend, Web browser for frontend
 **Project Type**: fullstack (backend + frontend)
-**Performance Goals**: 
+**Performance Goals**:
 - Sandbox OCR results within 30s
 - Sandbox AI Extract within 60s
 - Version history load within 1s
 - Context config activation within 5s
-**Constraints**: 
+**Constraints**:
 - ADR-019: No parseInt on UUID, use publicId only
 - ADR-009: No TypeORM migrations, edit SQL directly
 - ADR-016: CASL guards on all mutations, ThrottlerGuard on auth
 - ADR-023/023A: AI boundary enforcement, BullMQ queues (ai-realtime, ai-batch)
 - ADR-029: Prompt templates in DB, Redis cache TTL 60s
 - ADR-007: Layered error handling, user-friendly messages
-**Scale/Scope**: 
-- 4 prompt types with versioning
-- Single page UI with 3-panel layout
-- 3-step sandbox workflow
-- ~10 backend endpoints, ~15 frontend components
+- ADR-037: RAG Prep is required step (not optional), "All Types" view for version history
+**Scale/Scope**:
+- 4 prompt types with versioning (ocr_extraction, rag_query_prompt, rag_prep_prompt, classification_prompt)
+- Single page UI with 2-column layout (Left Panel 50%, Right Panel 50%)
+- Required 3-step sandbox workflow (OCR → AI Extract → RAG Prep)
+- Responsive design (Desktop/Tablet/Mobile breakpoints)
+- Optimistic locking for concurrent edits (@VersionColumn)
+- Redis caching for performance (60s TTL)
+- ~12 backend endpoints, ~18 frontend components
 
 ## Constitution Check
 
@@ -81,7 +85,7 @@ backend/
 │   │       ├── controllers/
 │   │       │   └── ai-prompts.controller.ts (extend with context config endpoints)
 │   │       ├── services/
-│   │       │   ├── ai-prompts.service.ts (extend with context config CRUD)
+│   │       │   ├── ai-prompts.service.ts (extend with context config CRUD, optimistic locking)
 │   │       │   └── ocr.service.ts (extend with RAG Prep endpoint)
 │   │       ├── processors/
 │   │       │   └── ai-batch.processor.ts (extend with sandbox-rag-prep job)
@@ -102,16 +106,17 @@ frontend/
 │       └── admin/
 │           └── ai/
 │               └── prompt-management/
-│                   └── page.tsx (new - unified prompt management page)
+│                   └── page.tsx (new - unified prompt management page with 2-column layout)
 ├── components/
 │   └── admin/
 │       └── ai/
-│           ├── PromptTypeDropdown.tsx (new)
-│           ├── VersionHistory.tsx (extend with type filtering)
-│           ├── PromptEditor.tsx (new)
-│           ├── ContextConfigEditor.tsx (new)
-│           ├── RuntimeParametersPanel.tsx (new)
-│           └── SandboxTabs.tsx (new - 3-step workflow)
+│           ├── PromptTypeDropdown.tsx (new - includes "All Types" option)
+│           ├── VersionHistory.tsx (extend with type filtering, "All Types" view)
+│           ├── PromptEditor.tsx (new - with placeholder validation)
+│           ├── ContextConfigEditor.tsx (new - with field validation)
+│           ├── RuntimeParametersPanel.tsx (new - with "Global" label)
+│           ├── SandboxTabs.tsx (new - 3-step workflow tabs)
+│           └── SandboxTestArea.tsx (new - test workflow UI)
 ├── lib/
 │   ├── services/
 │   │   └── admin-ai.service.ts (extend with context config methods)
@@ -121,7 +126,8 @@ frontend/
     └── components/
         └── admin/
             └── ai/
-                └── prompt-management.test.tsx (new)
+                ├── prompt-management.test.tsx (new)
+                └── responsive-design.test.tsx (new)
 ```
 
 **Structure Decision**: Fullstack web application (backend + frontend) following existing LCBP3-DMS patterns. Backend extends existing ai module, frontend adds new page under (admin)/admin/ai/ consistent with ADR-027 single page layout.

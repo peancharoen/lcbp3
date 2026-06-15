@@ -1,16 +1,19 @@
 // File: frontend/components/admin/ai/ContextConfigEditor.tsx
 // Change Log:
 // - 2026-06-14: Created ContextConfigEditor component with project/contract loaders and selectors (conforming to task T028)
+// - 2026-06-15: Added field validation UI with error messages (T069)
 
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle2, Settings } from 'lucide-react';
+import { CheckCircle2, Settings, AlertCircle } from 'lucide-react';
 import { ContextConfig } from '@/lib/types/ai-prompts';
 import { projectService } from '@/lib/services/project.service';
 import { contractService } from '@/lib/services/contract.service';
+import { cn } from '@/lib/utils';
 
 interface ContextConfigEditorProps {
   initialConfig: ContextConfig | null;
@@ -40,6 +43,7 @@ export default function ContextConfigEditor({
   onSave,
   isSaving,
 }: ContextConfigEditorProps) {
+  const { t } = useTranslation('ai');
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [contracts, setContracts] = useState<ContractOption[]>([]);
   const [filteredContracts, setFilteredContracts] = useState<ContractOption[]>([]);
@@ -50,6 +54,31 @@ export default function ContextConfigEditor({
   const [pageSize, setPageSize] = useState<number>(3);
   const [language, setLanguage] = useState<string>('th');
   const [outputLanguage, setOutputLanguage] = useState<string>('th');
+
+  // Validation errors (T069)
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validate = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    // Validate pageSize
+    if (pageSize < 1 || pageSize > 1000) {
+      newErrors.pageSize = t('prompt_management.pageSize_invalid');
+    }
+
+    // Validate language
+    if (!language || language.trim().length === 0) {
+      newErrors.language = t('prompt_management.language_required');
+    }
+
+    // Validate outputLanguage
+    if (!outputLanguage || outputLanguage.trim().length === 0) {
+      newErrors.outputLanguage = t('prompt_management.output_language_required');
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -117,6 +146,9 @@ export default function ContextConfigEditor({
   }, [projectId, contracts, contractId]);
 
   const handleSave = () => {
+    if (!validate()) {
+      return;
+    }
     const config: ContextConfig = {
       filter: {
         projectId: projectId === 'all' ? null : projectId,
@@ -182,24 +214,36 @@ export default function ContextConfigEditor({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">
-              ประวัติอ้างอิง (Page Size)
+              {t('prompt_management.page_size')}
             </label>
             <Input
               type="number"
               min={1}
-              max={20}
+              max={1000}
               value={pageSize}
-              onChange={(e) => setPageSize(Math.max(1, Number(e.target.value)))}
-              className="bg-background/50 border-border/50 text-sm focus-visible:ring-primary/30"
+              onChange={(e) => {
+                setPageSize(Math.max(1, Number(e.target.value)));
+                setErrors((prev) => ({ ...prev, pageSize: '' }));
+              }}
+              className={cn(
+                'bg-background/50 border-border/50 text-sm focus-visible:ring-primary/30',
+                errors.pageSize && 'border-destructive'
+              )}
             />
+            {errors.pageSize && (
+              <div className="flex items-center gap-1 text-[10px] text-destructive">
+                <AlertCircle className="h-3 w-3" />
+                {errors.pageSize}
+              </div>
+            )}
           </div>
 
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">
-              ภาษาต้นทาง (Language)
+              {t('prompt_management.language')}
             </label>
-            <Select value={language} onValueChange={setLanguage}>
-              <SelectTrigger className="bg-background/50 border-border/50 backdrop-blur-sm">
+            <Select value={language} onValueChange={(val) => { setLanguage(val); setErrors((prev) => ({ ...prev, language: '' })); }}>
+              <SelectTrigger className={cn('bg-background/50 border-border/50 backdrop-blur-sm', errors.language && 'border-destructive')}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -207,14 +251,20 @@ export default function ContextConfigEditor({
                 <SelectItem value="en">English (EN)</SelectItem>
               </SelectContent>
             </Select>
+            {errors.language && (
+              <div className="flex items-center gap-1 text-[10px] text-destructive">
+                <AlertCircle className="h-3 w-3" />
+                {errors.language}
+              </div>
+            )}
           </div>
 
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">
-              ภาษาปลายทาง (Output)
+              {t('prompt_management.output_language')}
             </label>
-            <Select value={outputLanguage} onValueChange={setOutputLanguage}>
-              <SelectTrigger className="bg-background/50 border-border/50 backdrop-blur-sm">
+            <Select value={outputLanguage} onValueChange={(val) => { setOutputLanguage(val); setErrors((prev) => ({ ...prev, outputLanguage: '' })); }}>
+              <SelectTrigger className={cn('bg-background/50 border-border/50 backdrop-blur-sm', errors.outputLanguage && 'border-destructive')}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -222,6 +272,12 @@ export default function ContextConfigEditor({
                 <SelectItem value="en">English (EN)</SelectItem>
               </SelectContent>
             </Select>
+            {errors.outputLanguage && (
+              <div className="flex items-center gap-1 text-[10px] text-destructive">
+                <AlertCircle className="h-3 w-3" />
+                {errors.outputLanguage}
+              </div>
+            )}
           </div>
         </div>
       </CardContent>

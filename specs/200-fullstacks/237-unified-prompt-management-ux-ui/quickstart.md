@@ -140,49 +140,49 @@ http://localhost:3000/admin/ai/prompt-management
 
 ### Backend
 
-- [ ] ai_execution_profiles table created successfully
-- [ ] Execution profiles seeded (default, fast, accurate)
-- [ ] Additional prompt types seeded (rag_query_prompt, rag_prep_prompt, classification_prompt)
-- [ ] GET /api/ai/prompts/:type/:version/context-config returns context config
-- [ ] PUT /api/ai/prompts/:type/:version/context-config updates context config
-- [ ] GET /api/ai/execution-profiles returns all profiles
-- [ ] POST /api/ai/execution-profiles creates new profile
-- [ ] PUT /api/ai/execution-profiles/:id updates profile
-- [ ] DELETE /api/ai/execution-profiles/:id deletes non-default profile
-- [ ] POST /api/ai/admin/sandbox/rag-prep creates sandbox job
-- [ ] GET /api/ai/admin/sandbox/job/:jobId returns job status and results
-- [ ] Placeholder validation works (rejects templates without required placeholders)
-- [ ] Context config validation works (rejects invalid project/contract IDs)
-- [ ] Redis cache invalidated on version activation
-- [ ] CASL guards applied to all mutation endpoints
+- [x] ai_execution_profiles table created successfully
+- [x] Execution profiles seeded (default, fast, accurate)
+- [x] Additional prompt types seeded (rag_query_prompt, rag_prep_prompt, classification_prompt)
+- [x] GET /api/ai/prompts/:type/:version/context-config returns context config
+- [x] PUT /api/ai/prompts/:type/:version/context-config updates context config
+- [x] GET /api/ai/execution-profiles returns all profiles
+- [x] POST /api/ai/execution-profiles creates new profile
+- [x] PUT /api/ai/execution-profiles/:id updates profile
+- [x] DELETE /api/ai/execution-profiles/:id deletes non-default profile
+- [x] POST /api/ai/admin/sandbox/rag-prep creates sandbox job
+- [x] GET /api/ai/admin/sandbox/job/:jobId returns job status and results
+- [x] Placeholder validation works (rejects templates without required placeholders)
+- [x] Context config validation works (rejects invalid project/contract IDs)
+- [x] Redis cache invalidated on version activation
+- [x] CASL guards applied to all mutation endpoints
 
 ### Frontend
 
-- [ ] PromptTypeDropdown switches between prompt types
-- [ ] VersionHistory filters by selected prompt type
-- [ ] Active badge (✅) displays correctly
-- [ ] PromptEditor validates placeholders
-- [ ] ContextConfigEditor saves and displays context config
-- [ ] RuntimeParametersPanel displays sliders
-- [ ] RuntimeParametersPanel applies changes to ai_execution_profiles
-- [ ] SandboxTabs show 3 tabs (OCR, Extract, RAG Prep)
-- [ ] Sandbox OCR step returns raw OCR text
-- [ ] Sandbox AI Extract step returns structured metadata
-- [ ] Sandbox RAG Prep step returns chunks and vectors
-- [ ] "Activate This Version" button works from sandbox
-- [ ] Single page layout consistent with ADR-027
-- [ ] i18n keys used (no hardcoded text)
-- [ ] TypeScript strict mode passes (no any, no console.log)
+- [x] PromptTypeDropdown switches between prompt types
+- [x] VersionHistory filters by selected prompt type
+- [x] Active badge (✅) displays correctly
+- [x] PromptEditor validates placeholders
+- [x] ContextConfigEditor saves and displays context config
+- [x] RuntimeParametersPanel displays sliders
+- [x] RuntimeParametersPanel applies changes to ai_execution_profiles
+- [x] SandboxTabs show 3 tabs (OCR, Extract, RAG Prep)
+- [x] Sandbox OCR step returns raw OCR text
+- [x] Sandbox AI Extract step returns structured metadata
+- [x] Sandbox RAG Prep step returns chunks and vectors
+- [x] "Activate This Version" button works from sandbox
+- [x] Single page layout consistent with ADR-027
+- [x] i18n keys used (no hardcoded text)
+- [x] TypeScript strict mode passes (no any, no console.log)
 
 ### Integration
 
-- [ ] Full 3-step sandbox workflow completes successfully
-- [ ] Sandbox results match production behavior
-- [ ] Context config applied to production jobs within 5 seconds
-- [ ] Runtime parameters applied to sandbox tests immediately
-- [ ] Version history loads within 1 second
-- [ ] Sandbox OCR results within 30 seconds
-- [ ] Sandbox AI Extract results within 60 seconds
+- [x] Full 3-step sandbox workflow completes successfully
+- [x] Sandbox results match production behavior
+- [x] Context config applied to production jobs within 5 seconds
+- [x] Runtime parameters applied to sandbox tests immediately
+- [x] Version history loads within 1 second
+- [x] Sandbox OCR results within 30 seconds
+- [x] Sandbox AI Extract results within 60 seconds
 
 ## Troubleshooting
 

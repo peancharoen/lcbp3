@@ -111,6 +111,9 @@ import {
   RuntimePolicy,
   ExecutionProfile,
 } from './interfaces/execution-policy.interface';
+import { AiExecutionProfilesService } from './services/ai-execution-profiles.service';
+import { CreateExecutionProfileDto } from './dto/create-execution-profile.dto';
+import { UpdateExecutionProfileDto } from './dto/update-execution-profile.dto';
 
 @ApiTags('AI Gateway')
 @Controller('ai')
@@ -125,6 +128,7 @@ export class AiController {
     private readonly fileStorageService: FileStorageService,
     private readonly migrationCheckpointService: AiMigrationCheckpointService,
     private readonly aiPolicyService: AiPolicyService,
+    private readonly aiExecutionProfilesService: AiExecutionProfilesService,
     @InjectRedis() private readonly redis: Redis,
     @Optional() private readonly ocrService?: OcrService
   ) {}
@@ -683,10 +687,19 @@ export class AiController {
     description:
       'รับข้อความ OCR และ profileId แล้วรัน semantic chunking และ embedding preview',
   })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    description: 'Unique key เพื่อป้องกัน duplicate sandbox RAG Prep job',
+    required: true,
+  })
   async submitSandboxRagPrep(
-    @Body() dto: SandboxRagPrepDto
+    @Body() dto: SandboxRagPrepDto,
+    @Headers('idempotency-key') idempotencyKey: string
   ): Promise<{ requestPublicId: string; jobId: string; status: string }> {
-    const requestPublicId = uuidv7();
+    if (!idempotencyKey) {
+      throw new ValidationException('Idempotency-Key header is required');
+    }
+    const requestPublicId = idempotencyKey;
     const jobId = await this.aiQueueService.enqueueSandboxJob(
       'sandbox-rag-prep',
       {
@@ -934,6 +947,73 @@ export class AiController {
     @Param('requestPublicId', ParseUuidPipe) requestPublicId: string
   ): Promise<void> {
     await this.aiRagService.cancelJob(requestPublicId);
+  }
+
+  // ─── Execution Profiles Endpoints (US4 — T045-T048) ───────────────────────
+
+  @Get('execution-profiles')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @ApiOperation({
+    summary: 'AI Execution Profiles — ดึงรายการโปรไฟล์การทำงานทั้งหมด (T045)',
+  })
+  async getExecutionProfiles() {
+    return this.aiExecutionProfilesService.findAll();
+  }
+
+  @Post('execution-profiles')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'AI Create Execution Profile — สร้างโปรไฟล์การทำงานใหม่ (T046)',
+  })
+  async createExecutionProfile(
+    @Body() dto: CreateExecutionProfileDto,
+    @CurrentUser() user: User
+  ) {
+    return this.aiExecutionProfilesService.create(dto, user.user_id);
+  }
+
+  @Put('execution-profiles/:id')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @ApiOperation({
+    summary: 'AI Update Execution Profile — อัปเดตโปรไฟล์การทำงาน (T047)',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ID ของโปรไฟล์ (INT)',
+  })
+  async updateExecutionProfile(
+    @Param('id') id: string,
+    @Body() dto: UpdateExecutionProfileDto,
+    @CurrentUser() user: User
+  ) {
+    return this.aiExecutionProfilesService.update(
+      Number(id),
+      dto,
+      user.user_id
+    );
+  }
+
+  @Delete('execution-profiles/:id')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'AI Delete Execution Profile — ลบโปรไฟล์การทำงาน (T048)',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ID ของโปรไฟล์ (INT)',
+  })
+  async deleteExecutionProfile(@Param('id') id: string): Promise<void> {
+    await this.aiExecutionProfilesService.delete(Number(id));
   }
 
   @Post('legacy-migration/ingest')

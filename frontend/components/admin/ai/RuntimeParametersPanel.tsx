@@ -1,8 +1,10 @@
 // File: frontend/components/admin/ai/RuntimeParametersPanel.tsx
 // Change Log:
 // - 2026-06-14: Created RuntimeParametersPanel component for managing sandbox parameters (conforming to task T048)
+// - 2026-06-15: Added i18n support for Runtime Parameters label (T072)
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -26,6 +28,7 @@ const PROFILE_OPTIONS = [
 ];
 
 export default function RuntimeParametersPanel({ onProfileChange }: RuntimeParametersPanelProps) {
+  const { t } = useTranslation('ai');
   const [selectedProfile, setSelectedProfile] = useState<string>('standard');
   const [params, setParams] = useState<SandboxProfileParams | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -132,7 +135,7 @@ export default function RuntimeParametersPanel({ onProfileChange }: RuntimeParam
           <div className="space-y-1">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold tracking-wide text-foreground">
               <Sliders className="h-4 w-4 text-primary" />
-              จัดการพารามิเตอร์รันไทม์ (Runtime Parameters)
+              {t('sandbox_test.runtime_parameters')}
             </CardTitle>
             <CardDescription className="text-xs">
               ปรับเปลี่ยนพารามิเตอร์การทำงานของโมเดล AI ในระบบทดสอบ Sandbox

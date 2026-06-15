@@ -88,16 +88,18 @@ QDRANT_URL
 - [ ] เพิ่ม unit test สำหรับ `upsertQueueRecord` ใน `ai-migration-checkpoint.service.spec.ts`
 - [ ] เพิ่ม unit test สำหรับ checksum dedup ใน `file-storage.service.spec.ts`
 
-### Feature-303: Frontend Test Coverage — Phase 2 Gate ✅ PASSED
+### Feature-303: Frontend Test Coverage — Phase 3 🔄 IN PROGRESS
 
 - [x] **Phase 2 coverage gate:** Statements 51.62% (target ≥ 50%)
 - [x] **Verification:** `pnpm --filter lcbp3-frontend exec tsc --noEmit` ผ่าน
 - [x] **Coverage suite:** `pnpm --filter lcbp3-frontend exec vitest run --coverage` ผ่าน 92 files / 692 tests
 - [x] **New/extended coverage:** auth store, i18n utility, Circulation list, OCR sandbox prompt manager, Layout widgets
 - [x] **Plan/tasks updated:** `specs/300-others/303-frontend-test-coverage/plan.md` และ `tasks.md`
+- [x] **Phase 3 (Part 1):** Added 11 new test files (AI + layout components); 722/722 tests passing; coverage 51.62% statements
+- [x] **Phase 3 (Part 2):** Added 77 tests (lib/api/_ + components/workflows/_); 833/833 tests passing; coverage TBD
+- [ ] **Check coverage:** Verify coverage % from browser report (target ≥ 70%)
 - [ ] **Remaining:** T034 Admin dashboard components
 - [ ] **Remaining polish:** T050-T053 audit (`any`/`console.log`, publicId mock data, file headers, final coverage record)
-- [ ] **Next target:** Phase 3 Statements ≥ 70%
 
 ### Feature-235: AI Runtime Policy Refactor ✅ COMPLETE
 

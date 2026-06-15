@@ -65,7 +65,9 @@
 - [x] T016 [US1] Create PromptTypeDropdown component in frontend/components/admin/ai/PromptTypeDropdown.tsx
 - [x] T017 [US1] Extend VersionHistory component with prompt_type filtering in frontend/components/admin/ai/VersionHistory.tsx
 - [x] T018 [US1] Create PromptEditor component with placeholder validation in frontend/components/admin/ai/PromptEditor.tsx
-- [x] T019 [US1] Create unified prompt management page in frontend/app/(admin)/admin/ai/prompt-management/page.tsx
+- [x] T019 [US1] Create unified prompt management page with 2-column layout in frontend/app/(admin)/admin/ai/prompt-management/page.tsx
+  - Left Panel: VersionHistory component
+  - Right Panel: PromptEditor + ContextConfigEditor (stacked vertically)
 - [x] T020 [US1] Extend admin-ai.service.ts with prompt type filtering methods in frontend/lib/services/admin-ai.service.ts
 - [x] T021 [US1] Add i18n keys for prompt management UI in frontend/public/locales/th/common.json and en/common.json
 
@@ -100,9 +102,9 @@
 
 ## Phase 5: User Story 3 - Three-Step Sandbox Testing (Priority: P1)
 
-**Goal**: Admin users can test the full AI pipeline (OCR → AI Extract → RAG Prep) in sandbox to validate prompt versions before activation.
+**Goal**: Admin users can test the full AI pipeline (OCR → AI Extract → RAG Prep) in sandbox to validate prompt versions before activation. RAG Prep is required to ensure production parity.
 
-**Independent Test**: Upload a PDF, run all three sandbox steps sequentially, and verify that each step produces expected outputs (OCR text, extracted metadata, RAG chunks).
+**Independent Test**: Upload a PDF, run all three sandbox steps sequentially (OCR → Extract → RAG Prep), and verify that each step produces expected outputs (OCR text, extracted metadata, RAG chunks).
 
 ### Tests for User Story 3
 
@@ -116,9 +118,14 @@
 - [x] T035 [US3] Extend ai-batch.processor with sandbox-rag-prep job handler in backend/src/modules/ai/processors/ai-batch.processor.ts
 - [x] T036 [US3] Extend OcrService with RAG Prep integration (semantic chunking + embedding) in backend/src/modules/ai/services/ocr.service.ts
 - [x] T037 [US3] Create SandboxTabs component with 3-step workflow in frontend/components/admin/ai/SandboxTabs.tsx
-- [x] T038 [US3] Integrate SandboxTabs into prompt management page in frontend/app/(admin)/admin/ai/prompt-management/page.tsx
-- [x] T039 [US3] Extend admin-ai.service.ts with sandbox RAG Prep API methods in frontend/lib/services/admin-ai.service.ts
-- [x] T040 [US3] Add "Activate This Version" button in sandbox results in frontend/components/admin/ai/SandboxTabs.tsx
+- [x] T038 [US3] Create SandboxTestArea component with UI elements in frontend/components/admin/ai/SandboxTestArea.tsx
+  - Upload PDF file input
+  - Select Project/Contract dropdowns
+  - Run Test button
+  - View Results display area (OCR text, extracted metadata, RAG chunks)
+- [x] T039 [US3] Integrate SandboxTabs into prompt management page in frontend/app/(admin)/admin/ai/prompt-management/page.tsx
+- [x] T040 [US3] Extend admin-ai.service.ts with sandbox RAG Prep API methods in frontend/lib/services/admin-ai.service.ts
+- [x] T041 [US3] Add "Activate This Version" button in sandbox results in frontend/components/admin/ai/SandboxTabs.tsx
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -132,20 +139,20 @@
 
 ### Tests for User Story 4
 
-- [x] T041 [P] [US4] Unit test for execution profile CRUD in AiExecutionProfilesService in backend/test/unit/ai/ai-execution-profiles.service.spec.ts
-- [x] T042 [P] [US4] Integration test for runtime parameters application to sandbox in backend/test/integration/ai/execution-profiles.spec.ts
+- [x] T042 [P] [US4] Unit test for execution profile CRUD in AiExecutionProfilesService in backend/test/unit/ai/ai-execution-profiles.service.spec.ts
+- [x] T043 [P] [US4] Integration test for runtime parameters application to sandbox in backend/test/integration/ai/execution-profiles.spec.ts
 
 ### Implementation for User Story 4
 
-- [x] T043 [US4] Create AiExecutionProfilesService in backend/src/modules/ai/services/ai-execution-profiles.service.ts
-- [x] T044 [US4] Add GET /api/ai/execution-profiles endpoint in backend/src/modules/ai/controllers/ai.controller.ts
-- [x] T045 [US4] Add POST /api/ai/execution-profiles endpoint in backend/src/modules/ai/controllers/ai.controller.ts
-- [x] T046 [US4] Add PUT /api/ai/execution-profiles/:id endpoint in backend/src/modules/ai/controllers/ai.controller.ts
-- [x] T047 [US4] Add DELETE /api/ai/execution-profiles/:id endpoint in backend/src/modules/ai/controllers/ai.controller.ts
-- [x] T048 [US4] Create RuntimeParametersPanel component in frontend/components/admin/ai/RuntimeParametersPanel.tsx
-- [x] T049 [US4] Integrate RuntimeParametersPanel into SandboxTabs in frontend/components/admin/ai/SandboxTabs.tsx
-- [x] T050 [US4] Extend admin-ai.service.ts with execution profile API methods in frontend/lib/services/admin-ai.service.ts
-- [x] T051 [US4] Add "Apply to Production" button in RuntimeParametersPanel in frontend/components/admin/ai/RuntimeParametersPanel.tsx
+- [x] T044 [US4] Create AiExecutionProfilesService in backend/src/modules/ai/services/ai-execution-profiles.service.ts
+- [x] T045 [US4] Add GET /api/ai/execution-profiles endpoint in backend/src/modules/ai/controllers/ai.controller.ts
+- [x] T046 [US4] Add POST /api/ai/execution-profiles endpoint in backend/src/modules/ai/controllers/ai.controller.ts
+- [x] T047 [US4] Add PUT /api/ai/execution-profiles/:id endpoint in backend/src/modules/ai/controllers/ai.controller.ts
+- [x] T048 [US4] Add DELETE /api/ai/execution-profiles/:id endpoint in backend/src/modules/ai/controllers/ai.controller.ts
+- [x] T049 [US4] Create RuntimeParametersPanel component in frontend/components/admin/ai/RuntimeParametersPanel.tsx
+- [x] T050 [US4] Integrate RuntimeParametersPanel into SandboxTabs in frontend/components/admin/ai/SandboxTabs.tsx
+- [x] T051 [US4] Extend admin-ai.service.ts with execution profile API methods in frontend/lib/services/admin-ai.service.ts
+- [x] T052 [US4] Add "Apply to Production" button in RuntimeParametersPanel in frontend/components/admin/ai/RuntimeParametersPanel.tsx
 
 **Checkpoint**: All user stories including US4 should now be independently functional
 
@@ -155,17 +162,39 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [x] T052 [P] Add error handling following ADR-007 (BusinessException hierarchy) in backend/src/modules/ai/services/ai-prompts.service.ts
-- [x] T053 [P] Add error handling following ADR-007 in backend/src/modules/ai/services/ai-execution-profiles.service.ts
-- [x] T054 [P] Add CASL guards to all new mutation endpoints in backend/src/modules/ai/controllers/ai-prompts.controller.ts
-- [x] T055 [P] Add CASL guards to all new mutation endpoints in backend/src/modules/ai/controllers/ai.controller.ts
-- [x] T056 [P] Add ThrottlerGuard to sandbox endpoints in backend/src/modules/ai/controllers/ai.controller.ts
-- [x] T057 [P] Add Redis cache invalidation on version activation in backend/src/modules/ai/services/ai-prompts.service.ts
-- [x] T058 [P] Add i18n keys for all new UI components in frontend/public/locales/th/common.json and en/common.json
-- [x] T059 [P] Add TypeScript strict mode compliance checks (no any, no console.log) in backend/src/modules/ai/ and frontend/components/admin/ai/
-- [x] T060 [P] Add E2E test for full prompt management workflow in frontend/e2e/prompt-management.spec.ts
-- [x] T061 Run quickstart.md validation checklist
-- [x] T062 Update ADR-037 with implementation status
+- [x] T053 [P] Add error handling following ADR-007 (BusinessException hierarchy) in backend/src/modules/ai/services/ai-prompts.service.ts
+- [x] T054 [P] Add error handling following ADR-007 in backend/src/modules/ai/services/ai-execution-profiles.service.ts
+- [x] T055 [P] Add CASL guards to all new mutation endpoints in backend/src/modules/ai/controllers/ai-prompts.controller.ts
+- [x] T056 [P] Add CASL guards to all new mutation endpoints in backend/src/modules/ai/controllers/ai.controller.ts
+- [x] T057 [P] Add ThrottlerGuard to sandbox endpoints in backend/src/modules/ai/controllers/ai.controller.ts
+- [x] T058 [P] Add Redis cache invalidation on version activation in backend/src/modules/ai/services/ai-prompts.service.ts
+- [x] T059 [P] Add i18n keys for all new UI components in frontend/public/locales/th/common.json and en/common.json
+- [x] T060 [P] Add TypeScript strict mode compliance checks (no any, no console.log) in backend/src/modules/ai/ and frontend/components/admin/ai/
+- [x] T061 [P] Add E2E test for full prompt management workflow in backend/tests/e2e/prompt-management.e2e-spec.ts
+- [x] T062 Run quickstart.md validation checklist
+- [x] T063 Update ADR-037 with implementation status
+
+---
+
+## Phase 8: Grilling Session Resolutions (ADR-037 Clarifications)
+
+**Purpose**: Implement decisions from grilling session 2026-06-15
+
+- [x] T064 [P] Add "All Types" option to PromptTypeDropdown in frontend/components/admin/ai/PromptTypeDropdown.tsx
+- [x] T065 [P] Add "All Types" view to VersionHistory (grouped by type with labels) in frontend/components/admin/ai/VersionHistory.tsx
+- [x] T066 [P] Add @VersionColumn to AiPrompt entity for optimistic locking in backend/src/modules/ai/entities/ai-prompt.entity.ts
+- [x] T067 [P] Add optimistic locking error handling in AiPromptsService (detect version mismatch) in backend/src/modules/ai/services/ai-prompts.service.ts
+- [x] T068 [P] Add context config field validation (Project/Contract UUID existence, Page Size int range, Language enum) in backend/src/modules/ai/services/ai-prompts.service.ts
+- [x] T069 [P] Add context config field validation UI (dropdown valid options, inline errors) in frontend/components/admin/ai/ContextConfigEditor.tsx
+- [x] T070 [P] Add responsive design breakpoints (Desktop/Tablet/Mobile) to prompt management page in frontend/app/(admin)/admin/ai/prompt-management/page.tsx
+- [x] T071 [P] Add collapsible Left Panel accordion for mobile in frontend/components/admin/ai/VersionHistory.tsx
+- [x] T072 [P] Add "Runtime Parameters (Global - Applies to All AI Jobs)" label to RuntimeParametersPanel in frontend/components/admin/ai/RuntimeParametersPanel.tsx
+- [x] T073 [P] Add layered error handling (Toast/Inline/Modal) to prompt management UI in frontend/app/(admin)/admin/ai/prompt-management/page.tsx
+- [x] T074 [P] Add Redis cache (60s TTL) for version history in backend/src/modules/ai/services/ai-prompts.service.ts
+- [x] T075 [P] Add pagination (20 versions/page) to version history in frontend/components/admin/ai/VersionHistory.tsx
+- [x] T076 [P] Add database locking (SELECT FOR UPDATE) for concurrent activation in backend/src/modules/ai/services/ai-prompts.service.ts
+- [x] T077 [P] Add block deletion of active version in backend/src/modules/ai/services/ai-prompts.service.ts
+- [x] T078 [P] Add Redis TTL (60m) for sandbox job results in backend/src/modules/ai/processors/ai-batch.processor.ts
 
 ---
 
@@ -179,6 +208,7 @@
   - User stories can then proceed in parallel (if staffed)
   - Or sequentially in priority order (US1 → US2 → US3 → US4)
 - **Polish (Phase 7)**: Depends on all desired user stories being complete
+- **Grilling Resolutions (Phase 8)**: Depends on all user stories being complete (cross-cutting improvements)
 
 ### User Story Dependencies
 

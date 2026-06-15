@@ -47,6 +47,7 @@ import { AiAvailableModel } from './entities/ai-available-model.entity';
 import { AiExecutionProfile } from './entities/ai-execution-profile.entity';
 import { AiSandboxProfile } from './entities/ai-sandbox-profile.entity';
 import { AiMigrationCheckpointService } from './ai-migration-checkpoint.service';
+import { AiExecutionProfilesService } from './services/ai-execution-profiles.service';
 import { AiEnabledGuard } from './guards/ai-enabled.guard';
 import { UserModule } from '../user/user.module';
 import { MigrationModule } from '../migration/migration.module';
@@ -200,6 +201,8 @@ import {
     // ADR-032: Typhoon OCR + LLM sequential processors (concurrency=1)
     TyphoonOcrProcessor,
     TyphoonLlmProcessor,
+    // US4: Execution Profiles Service (T044)
+    AiExecutionProfilesService,
     // RbacGuard ต้องการ UserService จาก UserModule
     RbacGuard,
     AiEnabledGuard,

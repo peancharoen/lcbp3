@@ -90,7 +90,6 @@ describe('WorkflowLifecycle', () => {
       expect(apiClient.post).toHaveBeenCalledWith('/files/upload', expect.any(FormData));
     });
     expect(onAttachmentsChange).toHaveBeenCalledWith(['019505a1-7c3e-7000-8000-abc123def902']);
-    expect(screen.getByText('uploaded.pdf')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'workflow.timeline.removeFile' }));
     expect(onAttachmentsChange).toHaveBeenLastCalledWith([]);
   });

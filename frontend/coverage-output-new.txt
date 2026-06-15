@@ -1,0 +1,719 @@
+Loaded  vitest@4.1.8  and  @vitest/coverage-v8@4.1.6 .
+Running mixed versions is not supported and may lead into bugs
+Update your dependencies and make sure the versions match.
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.8 [39m[90mE:/np-dms/lcbp3/frontend[39m
+      [2mCoverage enabled with [22m[33mv8[39m
+
+ [32m✓[39m lib/api/__tests__/admin.test.ts [2m([22m[2m10 tests[22m[2m)[22m[33m 6025[2mms[22m[39m
+       [33m[2m✓[22m[39m ควร return array of users [33m 538[2mms[22m[39m
+       [33m[2m✓[22m[39m ควร return users ที่มี publicId, username, email [33m 602[2mms[22m[39m
+       [33m[2m✓[22m[39m ควร create user ใหม่และ return user object [33m 903[2mms[22m[39m
+       [33m[2m✓[22m[39m ควร assign userId ใหม่ให้ user [33m 810[2mms[22m[39m
+       [33m[2m✓[22m[39m ควร return array of organizations [33m 511[2mms[22m[39m
+       [33m[2m✓[22m[39m ควร return organizations ที่มี publicId, orgCode, orgName [33m 512[2mms[22m[39m
+       [33m[2m✓[22m[39m ควร create organization ใหม่และ return org object [33m 609[2mms[22m[39m
+       [33m[2m✓[22m[39m ควร assign orgId ใหม่ให้ organization [33m 603[2mms[22m[39m
+       [33m[2m✓[22m[39m ควร return array of audit logs [33m 484[2mms[22m[39m
+       [33m[2m✓[22m[39m ควร return logs ที่มี publicId, userName, action [33m 444[2mms[22m[39m
+stderr | components/admin/__tests__/user-dialog.test.tsx > UserDialog > creates a user with required fields and selected role
+Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+
+ [32m✓[39m components/workflow/__tests__/integrated-banner.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 19140[2mms[22m[39m
+     [33m[2m✓[22m[39m renders metadata, priority, workflow state, and legacy actions [33m 5616[2mms[22m[39m
+     [33m[2m✓[22m[39m requires comment for reject action [33m 12129[2mms[22m[39m
+     [33m[2m✓[22m[39m uses workflow mutation when instanceId is provided [33m 1186[2mms[22m[39m
+stderr | components/admin/__tests__/user-dialog.test.tsx > UserDialog > pre-fills existing user and submits update without empty password
+Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+
+ [32m✓[39m components/correspondences/detail.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 16897[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรเรนเดอร์รายละเอียดเอกสารและข้อมูลพื้นฐานได้ถูกต้อง [33m 3087[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรแสดงปุ่มและส่งคำขอเมื่อกด Submit for Review ในกรณีที่เป็น DRAFT [33m 7163[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรแสดงข้อความเตือนภัยและซ่อนปุ่มการกระทำบางอย่างหากเอกสารถูกยกเลิก [33m 1607[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรแสดงปุ่ม Approve และ Reject ในกรณีที่เอกสารเป็น IN_REVIEW [33m 1246[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรเปิดการกดยืนยันการอนุมัติและส่งความคิดเห็นได้ถูกต้อง [33m 1858[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรเปิดส่วนยกเลิกเอกสารและส่งเหตุผลการยกเลิกได้ถูกต้อง [33m 1776[2mms[22m[39m
+ [32m✓[39m components/correspondences/form.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 20803[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps edit prefilled values after mount (no reset on initial render) [33m 15496[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps dependent fields intact after async effects (reset guard) [33m 5297[2mms[22m[39m
+stderr | components/admin/__tests__/user-dialog.test.tsx > UserDialog > closes when cancel is clicked
+Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+
+ [32m✓[39m components/admin/__tests__/user-dialog.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 30378[2mms[22m[39m
+     [33m[2m✓[22m[39m creates a user with required fields and selected role [33m 21875[2mms[22m[39m
+     [33m[2m✓[22m[39m pre-fills existing user and submits update without empty password [33m 5818[2mms[22m[39m
+     [33m[2m✓[22m[39m closes when cancel is clicked [33m 2671[2mms[22m[39m
+ [32m✓[39m components/rfas/__tests__/form.test.tsx [2m([22m[2m27 tests[22m[2m)[22m[33m 35172[2mms[22m[39m
+       [33m[2m✓[22m[39m should render form with all required fields [33m 5058[2mms[22m[39m
+       [33m[2m✓[22m[39m should render optional fields [33m 2348[2mms[22m[39m
+       [33m[2m✓[22m[39m should render submit button [33m 2899[2mms[22m[39m
+       [33m[2m✓[22m[39m should render AI suggestion button [33m 2001[2mms[22m[39m
+       [33m[2m✓[22m[39m should show validation error for empty project [33m 4178[2mms[22m[39m
+       [33m[2m✓[22m[39m should show validation error for empty contract [33m 1506[2mms[22m[39m
+       [33m[2m✓[22m[39m should show validation error for empty discipline [33m 2037[2mms[22m[39m
+       [33m[2m✓[22m[39m should show validation error for empty type [33m 1504[2mms[22m[39m
+       [33m[2m✓[22m[39m should show validation error for short subject [33m 2441[2mms[22m[39m
+       [33m[2m✓[22m[39m should show validation error for empty to organization [33m 2348[2mms[22m[39m
+       [33m[2m✓[22m[39m should allow subject input [33m 343[2mms[22m[39m
+       [33m[2m✓[22m[39m should allow description input [33m 926[2mms[22m[39m
+       [33m[2m✓[22m[39m should allow body input [33m 640[2mms[22m[39m
+       [33m[2m✓[22m[39m should allow remarks input [33m 691[2mms[22m[39m
+       [33m[2m✓[22m[39m should render shop drawing section [33m 1140[2mms[22m[39m
+       [33m[2m✓[22m[39m should render as-built drawing section [33m 584[2mms[22m[39m
+       [33m[2m✓[22m[39m should show search input for shop drawings [33m 478[2mms[22m[39m
+       [33m[2m✓[22m[39m should show search input for as-built drawings [33m 812[2mms[22m[39m
+       [33m[2m✓[22m[39m should show preview section when form is valid [33m 1128[2mms[22m[39m
+       [33m[2m✓[22m[39m should display preview number [33m 1163[2mms[22m[39m
+       [33m[2m✓[22m[39m should call create mutation on valid submit [33m 570[2mms[22m[39m
+       [33m[2m✓[22m[39m should show loading state during submission [33m 331[2mms[22m[39m
+stderr | components/layout/__tests__/user-nav.test.tsx > UserNav Component > ควรแสดงรายละเอียดผู้ใช้ใน DropdownMenuContent (forceMount)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+
+stderr | components/layout/__tests__/user-nav.test.tsx > UserNav Component > ควรแสดงรายละเอียดผู้ใช้ใน DropdownMenuContent (forceMount)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+
+stderr | components/layout/__tests__/user-nav.test.tsx > UserNav Component > ควรเปลี่ยนเส้นทางไปหน้า Profile เมื่อคลิกเมนู Profile
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+
+stderr | components/layout/__tests__/user-nav.test.tsx > UserNav Component > ควรเปลี่ยนเส้นทางไปหน้า Profile เมื่อคลิกเมนู Profile
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+
+stderr | components/layout/__tests__/user-nav.test.tsx > UserNav Component > ควรเปลี่ยนเส้นทางไปหน้า Profile เมื่อคลิกเมนู Profile
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+
+stderr | components/layout/__tests__/user-nav.test.tsx > UserNav Component > ควรเปลี่ยนเส้นทางไปหน้า Profile เมื่อคลิกเมนู Profile
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+
+stderr | components/layout/__tests__/user-nav.test.tsx > UserNav Component > ควรเปลี่ยนเส้นทางไปหน้า Settings เมื่อคลิกเมนู Settings
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+
+stderr | components/layout/__tests__/user-nav.test.tsx > UserNav Component > ควรเปลี่ยนเส้นทางไปหน้า Settings เมื่อคลิกเมนู Settings
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+
+ [31m❯[39m components/transmittal/__tests__/transmittal-form.test.tsx [2m([22m[2m3 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[33m 48965[2mms[22m[39m
+     [33m[2m✓[22m[39m renders main sections and supports cancel navigation [33m 13809[2mms[22m[39m
+     [33m[2m✓[22m[39m shows validation errors when required fields are missing [33m 5018[2mms[22m[39m
+[31m     [31m×[31m submits cleaned transmittal payload and navigates to created record[39m[33m 30129[2mms[22m[39m
+stderr | components/layout/__tests__/user-nav.test.tsx > UserNav Component > ควรเปลี่ยนเส้นทางไปหน้า Settings เมื่อคลิกเมนู Settings
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+
+stderr | components/layout/__tests__/user-nav.test.tsx > UserNav Component > ควรเปลี่ยนเส้นทางไปหน้า Settings เมื่อคลิกเมนู Settings
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+
+stderr | components/layout/__tests__/user-nav.test.tsx > UserNav Component > ควรออกจากระบบและเปลี่ยนเส้นทางไปหน้า Login เมื่อคลิกเมนู Log out
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+
+stderr | components/layout/__tests__/user-nav.test.tsx > UserNav Component > ควรออกจากระบบและเปลี่ยนเส้นทางไปหน้า Login เมื่อคลิกเมนู Log out
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+
+stderr | components/layout/__tests__/user-nav.test.tsx > UserNav Component > ควรออกจากระบบและเปลี่ยนเส้นทางไปหน้า Login เมื่อคลิกเมนู Log out
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+
+stderr | components/layout/__tests__/user-nav.test.tsx > UserNav Component > ควรออกจากระบบและเปลี่ยนเส้นทางไปหน้า Login เมื่อคลิกเมนู Log out
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+
+ [32m✓[39m components/layout/__tests__/user-nav.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 21541[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรเรนเดอร์อักษรย่อชื่อผู้ใช้ได้อย่างถูกต้อง [33m 1077[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรแสดงรายละเอียดผู้ใช้ใน DropdownMenuContent (forceMount) [33m 8143[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรเปลี่ยนเส้นทางไปหน้า Profile เมื่อคลิกเมนู Profile [33m 5057[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรเปลี่ยนเส้นทางไปหน้า Settings เมื่อคลิกเมนู Settings [33m 4686[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรออกจากระบบและเปลี่ยนเส้นทางไปหน้า Login เมื่อคลิกเมนู Log out [33m 2491[2mms[22m[39m
+ [32m✓[39m components/admin/__tests__/organization-dialog.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 18755[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรเรนเดอร์ Dialog เมื่อ open เป็น true [33m 3223[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรแสดง title "New Organization" เมื่อไม่มี organization prop [33m 905[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรแสดง title "Edit Organization" เมื่อมี organization prop [33m 1902[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรแสดงปุ่ม Cancel และ Create Organization สำหรับ New [33m 6580[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรแสดงปุ่ม Save Changes สำหรับ Edit [33m 1732[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรเรียก onOpenChange(false) เมื่อคลิก Cancel [33m 955[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรแสดง validation error เมื่อ submit form ว่างเปล่า [33m 3236[2mms[22m[39m
+stderr | components/admin/reference/__tests__/generic-crud-table.test.tsx > GenericCrudTable > creates a new item from dialog form
+Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+
+stderr | components/admin/reference/__tests__/generic-crud-table.test.tsx > GenericCrudTable > creates a new item from dialog form
+Checkbox is changing from controlled to uncontrolled. Components should not switch from controlled to uncontrolled (or vice versa). Decide between using a controlled or uncontrolled value for the lifetime of the component.
+
+ [32m✓[39m components/admin/reference/__tests__/generic-crud-table.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 12930[2mms[22m[39m
+     [33m[2m✓[22m[39m renders data rows returned by fetchFn [33m 1758[2mms[22m[39m
+     [33m[2m✓[22m[39m renders empty state for wrapped empty data [33m 328[2mms[22m[39m
+     [33m[2m✓[22m[39m creates a new item from dialog form [33m 10815[2mms[22m[39m
+ [32m✓[39m components/common/__tests__/file-preview-modal.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 13060[2mms[22m[39m
+     [33m[2m✓[22m[39m renders iframe for PDF MIME type [33m 5917[2mms[22m[39m
+     [33m[2m✓[22m[39m renders img for image MIME type [33m 1926[2mms[22m[39m
+     [33m[2m✓[22m[39m shows download link for unsupported MIME type (no iframe or img) [33m 1416[2mms[22m[39m
+     [33m[2m✓[22m[39m calls onClose when close button is clicked [33m 2343[2mms[22m[39m
+     [33m[2m✓[22m[39m calls onUnavailable when API returns 404 [33m 1288[2mms[22m[39m
+stderr | components/admin/__tests__/sidebar.test.tsx > AdminMobileSidebar > opens mobile navigation from trigger button
+Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+
+ [32m✓[39m components/admin/__tests__/sidebar.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 12514[2mms[22m[39m
+     [33m[2m✓[22m[39m auto-expands the active menu and renders child links [33m 6461[2mms[22m[39m
+     [33m[2m✓[22m[39m toggles a collapsed menu on click [33m 3158[2mms[22m[39m
+     [33m[2m✓[22m[39m opens mobile navigation from trigger button [33m 2844[2mms[22m[39m
+ [32m✓[39m components/numbering/__tests__/manual-override-form.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 13994[2mms[22m[39m
+     [33m[2m✓[22m[39m should render form with all required fields [33m 2276[2mms[22m[39m
+     [33m[2m✓[22m[39m should render with default projectId from props [33m 634[2mms[22m[39m
+     [33m[2m✓[22m[39m should show validation error for empty project [33m 1628[2mms[22m[39m
+     [33m[2m✓[22m[39m should show validation error for empty originator [33m 599[2mms[22m[39m
+     [33m[2m✓[22m[39m should show validation error for empty recipient [33m 847[2mms[22m[39m
+     [33m[2m✓[22m[39m should show validation error for empty type [33m 1086[2mms[22m[39m
+     [33m[2m✓[22m[39m should show validation error for empty new number [33m 429[2mms[22m[39m
+     [33m[2m✓[22m[39m should show validation error for short reason [33m 888[2mms[22m[39m
+     [33m[2m✓[22m[39m should submit form with valid data [33m 2684[2mms[22m[39m
+     [33m[2m✓[22m[39m should show error toast on submission failure [33m 1762[2mms[22m[39m
+     [33m[2m✓[22m[39m should disable submit button while loading [33m 330[2mms[22m[39m
+     [33m[2m✓[22m[39m should reset form after successful submission [33m 634[2mms[22m[39m
+ [32m✓[39m components/admin/ai/__tests__/prompt-version-history.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 4778[2mms[22m[39m
+     [33m[2m✓[22m[39m renders loading and empty states [33m 499[2mms[22m[39m
+     [33m[2m✓[22m[39m renders versions and triggers version actions [33m 4250[2mms[22m[39m
+ [32m✓[39m components/layout/__tests__/sidebar.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 4149[2mms[22m[39m
+     [33m[2m✓[22m[39m ควร render sidebar พร้อม navigation items [33m 678[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรแสดง Admin Panel เมื่อ user เป็น ADMIN [33m 606[2mms[22m[39m
+     [33m[2m✓[22m[39m ควร render mobile sidebar พร้อม navigation items [33m 2650[2mms[22m[39m
+ [32m✓[39m components/admin/security/__tests__/rbac-matrix.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 5971[2mms[22m[39m
+     [33m[2m✓[22m[39m renders roles and permissions from API data [33m 2818[2mms[22m[39m
+     [33m[2m✓[22m[39m saves pending permission changes [33m 2860[2mms[22m[39m
+ [32m✓[39m components/admin/ai/__tests__/ocr-engine-selector.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 5278[2mms[22m[39m
+     [33m[2m✓[22m[39m renders OCR engine data from admin service [33m 1398[2mms[22m[39m
+     [33m[2m✓[22m[39m selects a non-active OCR engine and refreshes list [33m 3766[2mms[22m[39m
+ [32m✓[39m components/workflows/__tests__/dsl-editor.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 8361[2mms[22m[39m
+     [33m[2m✓[22m[39m calls workflowApi.validateDSL when Validate button is clicked [33m 5000[2mms[22m[39m
+     [33m[2m✓[22m[39m calls onValidationChange(true) when validation returns errors [33m 1652[2mms[22m[39m
+     [33m[2m✓[22m[39m calls onValidationChange(false) when validation returns valid [33m 551[2mms[22m[39m
+     [33m[2m✓[22m[39m calls onValidationChange(true) on server error [33m 672[2mms[22m[39m
+     [33m[2m✓[22m[39m does not call onValidationChange when prop is not provided [33m 459[2mms[22m[39m
+stderr | components/layout/__tests__/layout-widgets.test.tsx > layout widgets > ProjectSwitcher ควรเลือก project และ global ได้
+In HTML, <div> cannot be a child of <select>.
+This will cause a hydration error.
+
+  <ProjectSwitcher>
+    <Select value="global" onValueChange={function onValueChange}>
+>     <select data-testid="project-select" value="global" onChange={function onChange}>
+        <SelectTrigger className="w-[200px] ...">
+>         <div className="flex items-center gap-2 truncate">
+        ...
+
+<select> cannot contain a nested <div>.
+See this log for the ancestor stack trace.
+
+ [32m✓[39m components/layout/__tests__/layout-widgets.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 7287[2mms[22m[39m
+     [33m[2m✓[22m[39m Sidebar ควรแสดงเมนู admin และ collapse label ได้ [33m 3921[2mms[22m[39m
+     [33m[2m✓[22m[39m GlobalSearch ควร submit query และเปิด suggestion route ได้ [33m 1746[2mms[22m[39m
+     [33m[2m✓[22m[39m ProjectSwitcher ควร auto-select เมื่อมี project เดียวและแสดง loading/empty state ได้ [33m 544[2mms[22m[39m
+     [33m[2m✓[22m[39m NotificationsDropdown ควรแสดง loading และ empty state ได้ [33m 424[2mms[22m[39m
+     [33m[2m✓[22m[39m UserMenu ควรแสดงข้อมูล session และ logout กลับ login [33m 386[2mms[22m[39m
+ [32m✓[39m components/common/__tests__/pagination.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 7973[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรเรนเดอร์ข้อมูลหน้าปัจจุบัน หน้าทั้งหมด และรายการทั้งหมดสำเร็จ [33m 4676[2mms[22m[39m
+     [33m[2m✓[22m[39m ควร disable ปุ่ม Previous เมื่ออยู่หน้าแรก [33m 983[2mms[22m[39m
+     [33m[2m✓[22m[39m ควร disable ปุ่ม Next เมื่ออยู่หน้าสุดท้าย [33m 346[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรเปลี่ยนหน้าเมื่อคลิกปุ่ม Previous [33m 698[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรเปลี่ยนหน้าเมื่อคลิกหมายเลขหน้าโดยตรง [33m 996[2mms[22m[39m
+ [32m✓[39m components/layout/__tests__/user-menu.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 3815[2mms[22m[39m
+     [33m[2m✓[22m[39m ควร render user menu เมื่อมี user [33m 3599[2mms[22m[39m
+ [32m✓[39m components/workflow/__tests__/workflow-lifecycle.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 4447[2mms[22m[39m
+     [33m[2m✓[22m[39m renders loading, error, and empty states [33m 333[2mms[22m[39m
+     [33m[2m✓[22m[39m renders history steps and opens available attachments [33m 2651[2mms[22m[39m
+     [33m[2m✓[22m[39m uploads and removes pending workflow step attachments [33m 1264[2mms[22m[39m
+ [32m✓[39m components/ui/__tests__/button.test.tsx [2m([22m[2m17 tests[22m[2m)[22m[33m 4053[2mms[22m[39m
+       [33m[2m✓[22m[39m should render with default variant and size [33m 1614[2mms[22m[39m
+       [33m[2m✓[22m[39m should render destructive variant [33m 483[2mms[22m[39m
+       [33m[2m✓[22m[39m should render outline variant [33m 418[2mms[22m[39m
+ [32m✓[39m components/layout/__tests__/navbar.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 3423[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรเรนเดอร์ header ได้ถูกต้อง [33m 1714[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรเรียก toggleSidebar เมื่อคลิกปุ่ม menu [33m 1184[2mms[22m[39m
+ [32m✓[39m components/common/__tests__/confirm-dialog.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 3786[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรเรนเดอร์เนื้อหาและปุ่มต่างๆ ได้อย่างถูกต้องเมื่อเปิดใช้งาน [33m 2595[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรเรียก onConfirm เมื่อกดปุ่มยืนยันสำเร็จ [33m 1182[2mms[22m[39m
+ [32m✓[39m components/layout/__tests__/global-search.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 3811[2mms[22m[39m
+     [33m[2m✓[22m[39m ควร render search input [33m 414[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรแสดง loading spinner เมื่อกำลังโหลด [33m 3025[2mms[22m[39m
+ [32m✓[39m components/drawings/__tests__/card.test.tsx [2m([22m[2m19 tests[22m[2m)[22m[33m 3428[2mms[22m[39m
+     [33m[2m✓[22m[39m should render drawing card with data [33m 565[2mms[22m[39m
+     [33m[2m✓[22m[39m should display revision [33m 561[2mms[22m[39m
+     [33m[2m✓[22m[39m should display volume page when present [33m 389[2mms[22m[39m
+ [32m✓[39m components/numbering/__tests__/sequence-viewer.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 3967[2mms[22m[39m
+     [33m[2m✓[22m[39m should render loading state initially [33m 1194[2mms[22m[39m
+     [33m[2m✓[22m[39m should render sequences after successful fetch [33m 566[2mms[22m[39m
+     [33m[2m✓[22m[39m should handle wrapped response with data property [33m 349[2mms[22m[39m
+     [33m[2m✓[22m[39m should filter sequences by year [33m 395[2mms[22m[39m
+     [33m[2m✓[22m[39m should filter sequences by type [33m 371[2mms[22m[39m
+     [33m[2m✓[22m[39m should display discipline badge when disciplineId > 0 [33m 335[2mms[22m[39m
+ [32m✓[39m components/rfas/__tests__/detail.test.tsx [2m([22m[2m19 tests[22m[2m)[22m[33m 4725[2mms[22m[39m
+     [33m[2m✓[22m[39m should render RFA detail with data [33m 867[2mms[22m[39m
+     [33m[2m✓[22m[39m should render RFA items table [33m 304[2mms[22m[39m
+     [33m[2m✓[22m[39m should show empty state when no items [33m 493[2mms[22m[39m
+     [33m[2m✓[22m[39m should handle missing project name [33m 358[2mms[22m[39m
+     [33m[2m✓[22m[39m should open approve dialog when Approve clicked [33m 606[2mms[22m[39m
+     [33m[2m✓[22m[39m should handle missing correspondence number [33m 334[2mms[22m[39m
+ [32m✓[39m components/layout/__tests__/notifications-dropdown.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 2903[2mms[22m[39m
+     [33m[2m✓[22m[39m ควร render notification bell icon [33m 2148[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรแสดง "No new notifications" เมื่อไม่มี notification [33m 562[2mms[22m[39m
+ [32m✓[39m components/layout/__tests__/header.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 4183[2mms[22m[39m
+     [33m[2m✓[22m[39m renders application title and composed controls [33m 4174[2mms[22m[39m
+ [32m✓[39m components/admin/ai/__tests__/ocr-sandbox-prompt-manager.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 4438[2mms[22m[39m
+     [33m[2m✓[22m[39m ควร render sandbox tab พร้อม project, contract, engine และ history [33m 2876[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรสลับไป editor และบันทึก prompt version ได้ [33m 706[2mms[22m[39m
+     [33m[2m✓[22m[39m ควร load template จาก history เข้า editor [33m 766[2mms[22m[39m
+ [32m✓[39m components/ai/__tests__/ai-chat-panel.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 2184[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรเรนเดอร์คอมโพเนนต์อย่างถูกต้อง [33m 1077[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรซ่อนปุ่มล้างประวัติการสนทนาเมื่อไม่มีข้อความ [33m 301[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรแสดงปุ่มล้างประวัติการสนทนาเมื่อมีข้อความในประวัติและคลิกเพื่อล้างข้อมูลได้ [33m 338[2mms[22m[39m
+ [32m✓[39m components/admin/ai/__tests__/sandbox-tabs.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 3324[2mms[22m[39m
+     [33m[2m✓[22m[39m ควร render 3-step sandbox testing interface [33m 2352[2mms[22m[39m
+     [33m[2m✓[22m[39m ควร disabled ปุ่ม Run OCR เมื่อไม่มีไฟล์ [33m 879[2mms[22m[39m
+ [32m✓[39m components/admin/ai/__tests__/prompt-type-dropdown.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 4407[2mms[22m[39m
+     [33m[2m✓[22m[39m ควร render dropdown สำหรับเลือกประเภทพรอมต์ [33m 3238[2mms[22m[39m
+     [33m[2m✓[22m[39m ควร disabled dropdown เมื่อ disabled=true [33m 1161[2mms[22m[39m
+ [32m✓[39m components/layout/__tests__/project-switcher.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 3060[2mms[22m[39m
+     [33m[2m✓[22m[39m ควร render skeleton เมื่อกำลังโหลด [33m 2667[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรแสดง project name เป็น text เมื่อมี project เดียว [33m 378[2mms[22m[39m
+ [32m✓[39m components/rfas/__tests__/list.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 3147[2mms[22m[39m
+     [33m[2m✓[22m[39m should render RFA list with data [33m 1161[2mms[22m[39m
+     [33m[2m✓[22m[39m should display formatted dates [33m 369[2mms[22m[39m
+     [33m[2m✓[22m[39m should display status badges [33m 458[2mms[22m[39m
+     [33m[2m✓[22m[39m should render action buttons for each row [33m 506[2mms[22m[39m
+stderr | components/admin/ai/__tests__/context-config-editor.test.tsx > ContextConfigEditor > ควร render form สำหรับตั้งค่าบริบทข้อมูล
+An update to ContextConfigEditor inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+stderr | components/admin/ai/__tests__/context-config-editor.test.tsx > ContextConfigEditor > ควร render form สำหรับตั้งค่าบริบทข้อมูล
+An update to ContextConfigEditor inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ [32m✓[39m hooks/__tests__/use-master-data.test.ts [2m([22m[2m15 tests[22m[2m)[22m[33m 2145[2mms[22m[39m
+       [33m[2m✓[22m[39m ควรดึงข้อมูลองค์กรสำเร็จ [33m 403[2mms[22m[39m
+stderr | components/admin/ai/__tests__/context-config-editor.test.tsx > ContextConfigEditor > ควร disabled ปุ่มบันทึกเมื่อ isSaving=true
+An update to ContextConfigEditor inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+stderr | components/admin/ai/__tests__/context-config-editor.test.tsx > ContextConfigEditor > ควร disabled ปุ่มบันทึกเมื่อ isSaving=true
+An update to ContextConfigEditor inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ [32m✓[39m components/admin/ai/__tests__/context-config-editor.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 2786[2mms[22m[39m
+     [33m[2m✓[22m[39m ควร render form สำหรับตั้งค่าบริบทข้อมูล [33m 1814[2mms[22m[39m
+     [33m[2m✓[22m[39m ควร disabled ปุ่มบันทึกเมื่อ isSaving=true [33m 962[2mms[22m[39m
+ [32m✓[39m hooks/ai/__tests__/use-intent-classification.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 1382[2mms[22m[39m
+       [33m[2m✓[22m[39m ควรดึง definitions สำเร็จ [33m 445[2mms[22m[39m
+ [32m✓[39m components/response-code/ResponseCodeSelector.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 3248[2mms[22m[39m
+     [33m[2m✓[22m[39m renders the trigger with placeholder text [33m 2677[2mms[22m[39m
+     [33m[2m✓[22m[39m renders a custom placeholder when provided [33m 561[2mms[22m[39m
+ [32m✓[39m components/numbering/__tests__/metrics-dashboard.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 1577[2mms[22m[39m
+     [33m[2m✓[22m[39m should render metrics after successful fetch [33m 333[2mms[22m[39m
+ [32m✓[39m components/ai/__tests__/ai-suggestion-button.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 2198[2mms[22m[39m
+     [33m[2m✓[22m[39m ควร disable และแสดงข้อความ fallback เมื่อ AI ถูกปิด [33m 2066[2mms[22m[39m
+ [32m✓[39m components/search/__tests__/filters.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 9346[2mms[22m[39m
+     [33m[2m✓[22m[39m ควร render filters card [33m 1293[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรแสดง Document Type checkboxes [33m 928[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรแสดง active count badge เมื่อมี filters [33m 3774[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรไม่แสดง active count badge เมื่อไม่มี filters [33m 1088[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรแสดง Clear all filters button เมื่อมี active filters [33m 1181[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรไม่แสดง Clear all filters button เมื่อไม่มี active filters [33m 757[2mms[22m[39m
+ [32m✓[39m components/common/__tests__/status-badge.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 1029[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรเรนเดอร์ Draft สำหรับสถานะ DRAFT ได้อย่างถูกต้อง [33m 603[2mms[22m[39m
+ [32m✓[39m hooks/__tests__/use-delegation.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 881[2mms[22m[39m
+       [33m[2m✓[22m[39m ควรดึงข้อมูล delegations ของฉันสำเร็จ [33m 623[2mms[22m[39m
+ [32m✓[39m components/correspondences/tag-manager.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 4994[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรแสดง loading state เมื่อกำลังโหลดข้อมูล tag [33m 408[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรเรียก remove mutation เมื่อคลิกปุ่มลบ tag และมีสิทธิ์แก้ไข [33m 3006[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรเปิดส่วนเลือก tag และแสดง tag ที่พร้อมให้เพิ่มเมื่อคลิก Add Tag [33m 1371[2mms[22m[39m
+ [32m✓[39m components/layout/__tests__/theme-toggle.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 921[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรเรียก setTheme("light") เมื่อคลิกขณะ theme เป็น dark [33m 380[2mms[22m[39m
+ [32m✓[39m hooks/__tests__/use-workflow-action.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 1399[2mms[22m[39m
+     [33m[2m✓[22m[39m Q2 (503): should show "ระบบยุ่ง" toast when Redlock Fail-closed [33m 390[2mms[22m[39m
+ [32m✓[39m components/correspondences/list.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 1017[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรเรนเดอร์รายชื่อเอกสารและหัวตารางได้ถูกต้อง [33m 543[2mms[22m[39m
+ [32m✓[39m components/circulation/__tests__/circulation-list.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 1182[2mms[22m[39m
+     [33m[2m✓[22m[39m ควรเรนเดอร์ DataTable ได้ถูกต้อง [33m 380[2mms[22m[39m
+ [32m✓[39m hooks/__tests__/use-drawing.test.ts [2m([22m[2m10 tests[22m[2m)[22m[33m 1056[2mms[22m[39m
+       [33m[2m✓[22m[39m should fetch CONTRACT drawings successfully [33m 346[2mms[22m[39m
+ [32m✓[39m hooks/__tests__/use-numbering.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 750[2mms[22m[39m
+       [33m[2m✓[22m[39m ควรดึงข้อมูล metrics สำเร็จ [33m 344[2mms[22m[39m
+ [32m✓[39m hooks/__tests__/use-correspondence.test.ts [2m([22m[2m12 tests[22m[2m)[22m[33m 735[2mms[22m[39m
+       [33m[2m✓[22m[39m should fetch correspondences successfully [33m 349[2mms[22m[39m
+ [32m✓[39m hooks/__tests__/use-workflows.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 681[2mms[22m[39m
+ [32m✓[39m hooks/__tests__/use-rfa.test.ts [2m([22m[2m10 tests[22m[2m)[22m[33m 804[2mms[22m[39m
+ [32m✓[39m hooks/__tests__/use-workflow-history.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 826[2mms[22m[39m
+ [32m✓[39m components/drawings/__tests__/list.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 405[2mms[22m[39m
+ [32m✓[39m components/search/__tests__/results.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 1713[2mms[22m[39m
+     [33m[2m✓[22m[39m ควร render loading state เมื่อ loading=true [33m 1269[2mms[22m[39m
+ [32m✓[39m components/admin/ai/__tests__/version-history.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 391[2mms[22m[39m
+ [32m✓[39m hooks/__tests__/use-projects.test.ts [2m([22m[2m10 tests[22m[2m)[22m[33m 442[2mms[22m[39m
+ [32m✓[39m hooks/__tests__/use-users.test.ts [2m([22m[2m10 tests[22m[2m)[22m[33m 558[2mms[22m[39m
+ [32m✓[39m hooks/__tests__/use-review-teams.test.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 470[2mms[22m[39m
+ [32m✓[39m hooks/__tests__/use-ai-prompts.test.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 627[2mms[22m[39m
+ [32m✓[39m components/correspondences/circulation-status-card.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 484[2mms[22m[39m
+ [32m✓[39m components/common/__tests__/workflow-error-boundary.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 221[2mms[22m[39m
+ [32m✓[39m components/common/__tests__/error-display.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 358[2mms[22m[39m
+ [32m✓[39m hooks/__tests__/use-circulation.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 297[2mms[22m[39m
+ [32m✓[39m components/admin/ai/__tests__/prompt-editor.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 414[2mms[22m[39m
+     [33m[2m✓[22m[39m ควร render editor สำหรับแก้ไขพรอมต์เทมเพลต [33m 306[2mms[22m[39m
+ [32m✓[39m hooks/__tests__/use-dashboard.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 368[2mms[22m[39m
+ [32m✓[39m hooks/__tests__/use-transmittal.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 299[2mms[22m[39m
+ [32m✓[39m components/transmittal/__tests__/transmittal-list.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 339[2mms[22m[39m
+ [32m✓[39m components/auth/__tests__/auth-sync.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 304[2mms[22m[39m
+ [32m✓[39m components/common/__tests__/can.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 312[2mms[22m[39m
+ [32m✓[39m lib/stores/__tests__/auth-store.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 197[2mms[22m[39m
+ [32m✓[39m hooks/__tests__/use-ai-chat.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 373[2mms[22m[39m
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+Error: Something removed the coverage directory "E:/np-dms/lcbp3/frontend/coverage/.tmp" Vitest created earlier. Make sure you are not running multiple Vitests with the same "coverage.reportsDirectory" at the same time.
+ ❯ V8CoverageProvider.normalizeCoverageFileError ../node_modules/.pnpm/vitest@4.1.8_@opentelemetry_fead2092ffa2420d46ccc7b523d0a1ee/node_modules/vitest/dist/chunks/coverage.DM_a_rWm.js:729:128
+ ❯ ../node_modules/.pnpm/vitest@4.1.8_@opentelemetry_fead2092ffa2420d46ccc7b523d0a1ee/node_modules/vitest/dist/chunks/coverage.DM_a_rWm.js:745:15
+
+Caused by: Error: ENOENT: no such file or directory, open 'E:\np-dms\lcbp3\frontend\coverage\.tmp\coverage-75.json'
+ ❯ open node:internal/fs/promises:640:25
+ ❯ Object.writeFile node:internal/fs/promises:1257:14
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { errno: -4058, code: 'ENOENT', syscall: 'open', path: 'E:\np-dms\lcbp3\frontend\coverage\.tmp\coverage-75.json' }
+
+
+
