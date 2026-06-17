@@ -852,16 +852,16 @@ export class CorrespondenceService {
 
     try {
       // 4a. Update Correspondence Entity if needed
-      const correspondenceUpdate: Partial<Correspondence> = {};
-      if (newNumber) correspondenceUpdate.correspondenceNumber = newNumber;
+      const correspondenceUpdate: Record<string, unknown> = {};
+      if (newNumber) correspondenceUpdate['correspondenceNumber'] = newNumber;
       if (updateDto.disciplineId)
-        correspondenceUpdate.disciplineId = updateDto.disciplineId;
+        correspondenceUpdate['disciplineId'] = updateDto.disciplineId;
       if (updResolvedProjectId)
-        correspondenceUpdate.projectId = updResolvedProjectId;
+        correspondenceUpdate['projectId'] = updResolvedProjectId;
       if (updResolvedOriginatorId)
-        correspondenceUpdate.originatorId = updResolvedOriginatorId;
+        correspondenceUpdate['originatorId'] = updResolvedOriginatorId;
       if (updateDto.typeId)
-        correspondenceUpdate.correspondenceTypeId = updateDto.typeId;
+        correspondenceUpdate['correspondenceTypeId'] = updateDto.typeId;
 
       if (Object.keys(correspondenceUpdate).length > 0) {
         await queryRunner.manager
@@ -870,21 +870,21 @@ export class CorrespondenceService {
       }
 
       // 4b. Update Revision Entity
-      const revisionUpdate: Partial<CorrespondenceRevision> = {};
-      if (updateDto.subject) revisionUpdate.subject = updateDto.subject;
-      if (updateDto.body) revisionUpdate.body = updateDto.body;
-      if (updateDto.remarks) revisionUpdate.remarks = updateDto.remarks;
+      const revisionUpdate: Record<string, unknown> = {};
+      if (updateDto.subject) revisionUpdate['subject'] = updateDto.subject;
+      if (updateDto.body) revisionUpdate['body'] = updateDto.body;
+      if (updateDto.remarks) revisionUpdate['remarks'] = updateDto.remarks;
       if (updateDto.dueDate)
-        revisionUpdate.dueDate = new Date(updateDto.dueDate);
+        revisionUpdate['dueDate'] = new Date(updateDto.dueDate);
       if (updateDto.documentDate)
-        revisionUpdate.documentDate = new Date(updateDto.documentDate);
+        revisionUpdate['documentDate'] = new Date(updateDto.documentDate);
       if (updateDto.issuedDate)
-        revisionUpdate.issuedDate = new Date(updateDto.issuedDate);
+        revisionUpdate['issuedDate'] = new Date(updateDto.issuedDate);
       if (updateDto.receivedDate)
-        revisionUpdate.receivedDate = new Date(updateDto.receivedDate);
+        revisionUpdate['receivedDate'] = new Date(updateDto.receivedDate);
       if (updateDto.description)
-        revisionUpdate.description = updateDto.description;
-      if (updateDto.details) revisionUpdate.details = updateDto.details;
+        revisionUpdate['description'] = updateDto.description;
+      if (updateDto.details) revisionUpdate['details'] = updateDto.details;
 
       if (Object.keys(revisionUpdate).length > 0) {
         await queryRunner.manager

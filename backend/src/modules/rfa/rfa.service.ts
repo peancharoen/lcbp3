@@ -4,6 +4,8 @@
 // - 2026-06-14: ADR-001/021 migration — submit()/processAction() เดินผ่าน Unified Workflow Engine
 //   (เลิกใช้ RoutingTemplate/CorrespondenceRouting), ตัด templateId, ย้าย notification ออกนอก transaction,
 //   ทำ EC-RFA-001 ให้ race-safe (lock FOR UPDATE), เลิก hardcode approve code.
+// - 2026-06-17: Refactor: extract constants, getCurrentRevision() helper, narrow UpdateRfaDto,
+//   break up create(), fix cancel() workflow termination, add CorrespondenceRecipient repo injection.
 
 import { Injectable, Logger } from '@nestjs/common';
 import {
@@ -41,6 +43,9 @@ import { CreateRfaDto } from './dto/create-rfa.dto';
 import { SearchRfaDto } from './dto/search-rfa.dto';
 import { UpdateRfaDto } from './dto/update-rfa.dto';
 
+// Constants
+import * as RFA from './constants/rfa.constants';
+
 // ------- Local type helpers (no-any ADR-019) -------
 /** CorrespondenceRevision with the rfaRevision relation loaded at runtime */
 type CorrRevWithRfa = CorrespondenceRevision & { rfaRevision?: RfaRevision };
@@ -72,22 +77,83 @@ export class RfaService {
   private readonly logger = new Logger(RfaService.name);
 
   /** ADR-001: รหัส Workflow ที่ลงทะเบียนใน seed DSL */
-  static readonly WORKFLOW_CODE = 'RFA_APPROVAL';
+  static readonly WORKFLOW_CODE = RFA.RFA_WORKFLOW_CODE;
 
   /** แมป Workflow State → RFA Status Code ตาม seed data */
-  static readonly STATE_TO_STATUS: Record<string, string> = {
-    DRAFT: 'DFT',
-    CONSULTANT_REVIEW: 'FRE',
-    OWNER_REVIEW: 'FAP',
-    APPROVED: 'FCO',
-  };
+  static readonly STATE_TO_STATUS: Record<string, string> =
+    RFA.STATE_TO_STATUS_MAP;
 
   /** รหัสอนุมัติเริ่มต้นเมื่อถึงสถานะ Terminal */
-  static readonly DEFAULT_APPROVED_CODE = '1A';
+  static readonly DEFAULT_APPROVED_CODE = RFA.DEFAULT_APPROVED_CODE;
 
   private async hasSystemManageAllPermission(userId: number): Promise<boolean> {
     const permissions = await this.userService.getUserPermissions(userId);
     return permissions.includes('system.manage_all');
+  }
+
+  /**
+   * ดึง Revision ปัจจุบันจาก RFA entity (DRY helper)
+   * คืนค่า { currentCorrRev, currentRfaRev } หรือ throw NotFoundException
+   */
+  private getCurrentRevision(rfa: Rfa): {
+    currentCorrRev: CorrespondenceRevision;
+    currentRfaRev: RfaRevision;
+  } {
+    const corrRevisions =
+      (rfa.correspondence?.revisions as CorrRevWithRfa[] | undefined) ?? [];
+    const currentCorrRev = corrRevisions.find((r) => r.isCurrent);
+    if (!currentCorrRev?.rfaRevision)
+      throw new NotFoundException('Current revision');
+    return {
+      currentCorrRev,
+      currentRfaRev: currentCorrRev.rfaRevision,
+    };
+  }
+
+  /**
+   * ตรวจสอบข้อจำกัดประเภท RFA กับ Drawing Revisions ที่เลือก
+   * - DDW/SDW: ต้องมี Shop Drawing, ห้ามมี As-Built
+   * - ADW: ต้องมี As-Built, ห้ามมี Shop Drawing
+   * - ประเภทอื่น: ห้ามมี Drawing Reference ใดๆ
+   */
+  private validateRfaTypeDrawingConstraints(
+    rfaTypeCode: string,
+    shopDrawingRefs: Array<number | string>,
+    asBuiltDrawingRefs: Array<number | string>
+  ): void {
+    if (
+      RFA.DRAWING_RFA_TYPES.includes(
+        rfaTypeCode as (typeof RFA.DRAWING_RFA_TYPES)[number]
+      )
+    ) {
+      if (shopDrawingRefs.length === 0) {
+        throw new ValidationException(
+          'Selected RFA Type requires at least one Shop Drawing Revision'
+        );
+      }
+
+      if (asBuiltDrawingRefs.length > 0) {
+        throw new ValidationException(
+          'Selected RFA Type cannot reference As-Built Drawing Revisions'
+        );
+      }
+    } else if (rfaTypeCode === RFA.RFA_TYPE_CODE_ADW) {
+      if (asBuiltDrawingRefs.length === 0) {
+        throw new ValidationException(
+          'Selected RFA Type requires at least one As-Built Drawing Revision'
+        );
+      }
+
+      if (shopDrawingRefs.length > 0) {
+        throw new ValidationException(
+          'Selected RFA Type cannot reference Shop Drawing Revisions'
+        );
+      }
+    } else if (shopDrawingRefs.length > 0 || asBuiltDrawingRefs.length > 0) {
+      throw new ValidationException(
+        'Selected RFA Type does not support drawing revision items'
+      );
+    }
   }
 
   constructor(
@@ -119,6 +185,8 @@ export class RfaService {
     private shopDrawingRevRepo: Repository<ShopDrawingRevision>,
     @InjectRepository(Organization)
     private orgRepo: Repository<Organization>,
+    @InjectRepository(CorrespondenceRecipient)
+    private corrRecipientRepo: Repository<CorrespondenceRecipient>,
 
     private numberingService: DocumentNumberingService,
     private userService: UserService,
@@ -146,38 +214,11 @@ export class RfaService {
     const rawShopDrawingRefs = createDto.shopDrawingRevisionIds ?? [];
     const rawAsBuiltDrawingRefs = createDto.asBuiltDrawingRevisionIds ?? [];
 
-    if (['DDW', 'SDW'].includes(rfaTypeCode)) {
-      if (rawShopDrawingRefs.length === 0) {
-        throw new ValidationException(
-          'Selected RFA Type requires at least one Shop Drawing Revision'
-        );
-      }
-
-      if (rawAsBuiltDrawingRefs.length > 0) {
-        throw new ValidationException(
-          'Selected RFA Type cannot reference As-Built Drawing Revisions'
-        );
-      }
-    } else if (rfaTypeCode === 'ADW') {
-      if (rawAsBuiltDrawingRefs.length === 0) {
-        throw new ValidationException(
-          'Selected RFA Type requires at least one As-Built Drawing Revision'
-        );
-      }
-
-      if (rawShopDrawingRefs.length > 0) {
-        throw new ValidationException(
-          'Selected RFA Type cannot reference Shop Drawing Revisions'
-        );
-      }
-    } else if (
-      rawShopDrawingRefs.length > 0 ||
-      rawAsBuiltDrawingRefs.length > 0
-    ) {
-      throw new ValidationException(
-        'Selected RFA Type does not support drawing revision items'
-      );
-    }
+    this.validateRfaTypeDrawingConstraints(
+      rfaTypeCode,
+      rawShopDrawingRefs,
+      rawAsBuiltDrawingRefs
+    );
 
     const shopDrawingRevisionIds = Array.from(
       new Set(
@@ -214,7 +255,7 @@ export class RfaService {
 
     if (rfaType.contractId !== internalContractId) {
       throw new BusinessException(
-        'RFA_TYPE_CONTRACT_MISMATCH',
+        RFA.ERROR_RFA_TYPE_CONTRACT_MISMATCH,
         'Selected RFA Type does not belong to the selected contract',
         'ประเภท RFA ที่เลือกไม่ตรงกับสัญญาที่ระบุ',
         ['เลือกประเภท RFA ที่ตรงกับสัญญา']
@@ -235,7 +276,7 @@ export class RfaService {
 
       if (discipline.contractId !== internalContractId) {
         throw new BusinessException(
-          'DISCIPLINE_CONTRACT_MISMATCH',
+          RFA.ERROR_DISCIPLINE_CONTRACT_MISMATCH,
           'Selected Discipline does not belong to the selected contract',
           'Discipline ที่เลือกไม่ตรงกับสัญญาที่ระบุ',
           ['เลือก Discipline ที่ตรงกับสัญญา']
@@ -250,7 +291,7 @@ export class RfaService {
       : undefined;
 
     const statusDraft = await this.rfaStatusRepo.findOne({
-      where: { statusCode: 'DFT' },
+      where: { statusCode: RFA.RFA_STATUS_DRAFT },
     });
     if (!statusDraft) {
       throw new SystemException('Status DFT (Draft) not found in Master Data');
@@ -273,7 +314,7 @@ export class RfaService {
       );
       if (!canManageAll) {
         throw new PermissionException(
-          'rfa',
+          RFA.ENTITY_TYPE_RFA,
           'create on behalf of other organization'
         );
       }
@@ -317,13 +358,13 @@ export class RfaService {
             ids: shopDrawingRevisionIds,
           })
           .andWhere('status.statusCode NOT IN (:...codes)', {
-            codes: ['CC', 'OBS'],
+            codes: [RFA.RFA_STATUS_CANCELLED, RFA.RFA_STATUS_OBSOLETE],
           })
           .getMany();
 
         if (conflictingItems.length > 0) {
           throw new BusinessException(
-            'EC_RFA_001_ACTIVE_RFA_EXISTS',
+            RFA.ERROR_EC_RFA_001,
             '[EC-RFA-001] One or more selected Shop Drawing Revisions already have an active RFA.',
             'Shop Drawing Revision ที่เลือกมี RFA ที่ยังใช้งานอยู่แล้ว',
             ['ตรวจสอบ RFA ที่มีอยู่', 'เลือก Shop Drawing Revision อื่น']
@@ -340,7 +381,7 @@ export class RfaService {
         recipientOrganizationId: internalRecipientOrgId,
         typeId: correspondenceType.id,
         rfaTypeId: createDto.rfaTypeId,
-        disciplineId: createDto.disciplineId ?? 0, // ✅ ส่ง disciplineId ไปด้วย (0 ถ้าไม่มี)
+        disciplineId: createDto.disciplineId,
         year: new Date().getFullYear(),
         customTokens: {
           TYPE_CODE: rfaType.typeCode,
@@ -352,7 +393,7 @@ export class RfaService {
       const corrStatusDraft = await queryRunner.manager.findOne(
         CorrespondenceStatus,
         {
-          where: { statusCode: 'DRAFT' },
+          where: { statusCode: RFA.CORR_STATUS_DRAFT },
         }
       );
       if (!corrStatusDraft)
@@ -376,7 +417,7 @@ export class RfaService {
         const recipient = queryRunner.manager.create(CorrespondenceRecipient, {
           correspondenceId: savedCorr.id,
           recipientOrganizationId: internalRecipientOrgId,
-          recipientType: 'TO',
+          recipientType: RFA.RECIPIENT_TYPE_TO,
         });
         await queryRunner.manager.save(recipient);
       }
@@ -473,7 +514,7 @@ export class RfaService {
       try {
         await this.workflowEngine.createInstance(
           RfaService.WORKFLOW_CODE,
-          'rfa',
+          RFA.ENTITY_TYPE_RFA,
           savedRfa.id.toString(),
           {
             projectId: internalProjectId,
@@ -494,11 +535,11 @@ export class RfaService {
         .indexDocument({
           id: savedCorr.id,
           publicId: savedCorr.publicId, // ADR-019: index publicId for search
-          type: 'rfa',
+          type: RFA.SEARCH_TYPE_RFA,
           docNumber: docNumber.number,
           title: createDto.subject,
           description: createDto.description ?? '',
-          status: 'DRAFT',
+          status: RFA.SEARCH_STATUS_DRAFT,
           projectId: internalProjectId,
           createdAt: new Date(),
         })
@@ -585,12 +626,15 @@ export class RfaService {
         if (_user.primaryOrganizationId) {
           queryBuilder.andWhere(
             '(rfaRev.id IS NULL OR status.statusCode != :dftCode OR corr.originatorId = :userOrgId)',
-            { dftCode: 'DFT', userOrgId: _user.primaryOrganizationId }
+            {
+              dftCode: RFA.RFA_STATUS_DRAFT,
+              userOrgId: _user.primaryOrganizationId,
+            }
           );
         } else {
           queryBuilder.andWhere(
             '(rfaRev.id IS NULL OR status.statusCode != :dftCode)',
-            { dftCode: 'DFT' }
+            { dftCode: RFA.RFA_STATUS_DRAFT }
           );
         }
       }
@@ -648,7 +692,7 @@ export class RfaService {
 
     // ADR-021: ดึง Workflow Instance (nullable — DRAFT ที่ยังไม่เริ่ม submit ก็มี instance DRAFT)
     const wfInstance = await this.workflowEngine.getInstanceByEntity(
-      'rfa',
+      RFA.ENTITY_TYPE_RFA,
       correspondence.id.toString()
     );
     mapped.workflowInstanceId = wfInstance?.id;
@@ -727,17 +771,11 @@ export class RfaService {
     roles: string[] = []
   ) {
     const rfa = await this.findOne(rfaId, true);
-    const corrRevisions =
-      (rfa.correspondence?.revisions as CorrRevWithRfa[] | undefined) ?? [];
-    const currentCorrRev = corrRevisions.find((r) => r.isCurrent);
-    if (!currentCorrRev || !currentCorrRev.rfaRevision)
-      throw new NotFoundException('Current revision');
+    const { currentCorrRev, currentRfaRev } = this.getCurrentRevision(rfa);
 
-    const currentRfaRev = currentCorrRev.rfaRevision;
-
-    if (currentRfaRev.statusCode.statusCode !== 'DFT') {
+    if (currentRfaRev.statusCode.statusCode !== RFA.RFA_STATUS_DRAFT) {
       throw new WorkflowException(
-        'RFA_INVALID_SUBMIT_STATUS',
+        RFA.ERROR_RFA_INVALID_SUBMIT_STATUS,
         'Only DRAFT documents can be submitted',
         'สามารถส่งได้เฉพาะเอกสารสถานะ DRAFT เท่านั้น',
         ['ตรวจสอบสถานะเอกสารปัจจุบัน']
@@ -746,12 +784,12 @@ export class RfaService {
 
     // ADR-001: หา Workflow Instance ที่สร้างไว้ตอน create() — ถ้าไม่มีให้ self-heal
     let instance = await this.workflowEngine.getInstanceByEntity(
-      'rfa',
+      RFA.ENTITY_TYPE_RFA,
       rfaId.toString()
     );
-    if (instance && instance.currentState !== 'DRAFT') {
+    if (instance && instance.currentState !== RFA.RFA_WORKFLOW_STATE_DRAFT) {
       throw new WorkflowException(
-        'RFA_ALREADY_SUBMITTED',
+        RFA.ERROR_RFA_ALREADY_SUBMITTED,
         `RFA already submitted (state: ${instance.currentState})`,
         'RFA นี้ถูกส่งเข้า Workflow ไปแล้ว',
         ['รีเฟรชหน้าเพื่อดูสถานะล่าสุด']
@@ -760,7 +798,7 @@ export class RfaService {
     if (!instance) {
       const created = await this.workflowEngine.createInstance(
         RfaService.WORKFLOW_CODE,
-        'rfa',
+        RFA.ENTITY_TYPE_RFA,
         rfaId.toString(),
         {
           projectId: rfa.correspondence.projectId,
@@ -832,21 +870,15 @@ export class RfaService {
     roles: string[] = []
   ) {
     const rfa = await this.findOne(rfaId, true);
-    const corrRevisions =
-      (rfa.correspondence?.revisions as CorrRevWithRfa[] | undefined) ?? [];
-    const currentCorrRev = corrRevisions.find((r) => r.isCurrent);
-    if (!currentCorrRev || !currentCorrRev.rfaRevision)
-      throw new NotFoundException('Current revision not found');
-
-    const currentRfaRev = currentCorrRev.rfaRevision;
+    const { currentRfaRev } = this.getCurrentRevision(rfa);
 
     const instance = await this.workflowEngine.getInstanceByEntity(
-      'rfa',
+      RFA.ENTITY_TYPE_RFA,
       rfaId.toString()
     );
     if (!instance) {
       throw new WorkflowException(
-        'NO_ACTIVE_WORKFLOW_STEP',
+        RFA.ERROR_NO_ACTIVE_WORKFLOW,
         'No active workflow instance found',
         'ไม่พบ Workflow ที่ยังเปิดอยู่',
         ['ตรวจสอบสถานะ Workflow ของเอกสาร']
@@ -889,7 +921,8 @@ export class RfaService {
     approveCodeStr?: string,
     isTerminalApproved = false
   ): Promise<void> {
-    const targetStatusCode = RfaService.STATE_TO_STATUS[workflowState] ?? 'DFT';
+    const targetStatusCode =
+      RfaService.STATE_TO_STATUS[workflowState] ?? RFA.RFA_STATUS_DRAFT;
     const status = await this.rfaStatusRepo.findOne({
       where: { statusCode: targetStatusCode },
     });
@@ -923,10 +956,9 @@ export class RfaService {
     correspondenceNumber: string,
     subject?: string
   ): Promise<void> {
-    const recipients = await this.dataSource.manager.find(
-      CorrespondenceRecipient,
-      { where: { correspondenceId, recipientType: 'TO' } }
-    );
+    const recipients = await this.corrRecipientRepo.find({
+      where: { correspondenceId, recipientType: RFA.RECIPIENT_TYPE_TO },
+    });
     for (const r of recipients) {
       const targetUserId = await this.userService.findDocControlIdByOrg(
         r.recipientOrganizationId
@@ -937,7 +969,7 @@ export class RfaService {
           title: `RFA Submitted: ${subject ?? correspondenceNumber}`,
           message: `RFA ${correspondenceNumber} submitted for approval.`,
           type: 'SYSTEM',
-          entityType: 'rfa',
+          entityType: RFA.ENTITY_TYPE_RFA,
           entityId: correspondenceId,
         });
       }
@@ -950,17 +982,11 @@ export class RfaService {
    */
   async update(publicId: string, dto: UpdateRfaDto, _user: User) {
     const rfa = await this.findOneByUuidRaw(publicId);
-    const corrRevisions =
-      (rfa.correspondence?.revisions as CorrRevWithRfa[] | undefined) ?? [];
-    const currentCorrRev = corrRevisions.find((r) => r.isCurrent);
-    if (!currentCorrRev || !currentCorrRev.rfaRevision)
-      throw new NotFoundException('Current revision');
+    const { currentCorrRev, currentRfaRev } = this.getCurrentRevision(rfa);
 
-    const currentRfaRev = currentCorrRev.rfaRevision;
-
-    if (currentRfaRev.statusCode.statusCode !== 'DFT') {
+    if (currentRfaRev.statusCode.statusCode !== RFA.RFA_STATUS_DRAFT) {
       throw new WorkflowException(
-        'RFA_EDIT_NON_DRAFT',
+        RFA.ERROR_RFA_EDIT_NON_DRAFT,
         'Only DRAFT documents can be edited',
         'สามารถแก้ไขได้เฉพาะเอกสารสถานะ DRAFT เท่านั้น',
         ['ส่งเอกสารเพื่อสร้าง Revision ใหม่สำหรับเอกสารที่ไม่ใช่ DRAFT']
@@ -994,17 +1020,11 @@ export class RfaService {
    */
   async cancel(publicId: string, user: User) {
     const rfa = await this.findOneByUuidRaw(publicId);
-    const corrRevisions =
-      (rfa.correspondence?.revisions as CorrRevWithRfa[] | undefined) ?? [];
-    const currentCorrRev = corrRevisions.find((r) => r.isCurrent);
-    if (!currentCorrRev || !currentCorrRev.rfaRevision)
-      throw new NotFoundException('Current revision');
+    const { currentRfaRev } = this.getCurrentRevision(rfa);
 
-    const currentRfaRev = currentCorrRev.rfaRevision;
-
-    if (currentRfaRev.statusCode.statusCode !== 'DFT') {
+    if (currentRfaRev.statusCode.statusCode !== RFA.RFA_STATUS_DRAFT) {
       throw new WorkflowException(
-        'RFA_CANCEL_NON_DRAFT',
+        RFA.ERROR_RFA_CANCEL_NON_DRAFT,
         'Only DRAFT documents can be cancelled',
         'สามารถยกเลิกได้เฉพาะเอกสารสถานะ DRAFT เท่านั้น',
         ['ติดต่อ Org Admin เพื่อยกเลิกเอกสารที่ส่งแล้ว']
@@ -1012,7 +1032,7 @@ export class RfaService {
     }
 
     const statusCC = await this.rfaStatusRepo.findOne({
-      where: { statusCode: 'CC' },
+      where: { statusCode: RFA.RFA_STATUS_CANCELLED },
     });
     if (!statusCC)
       throw new SystemException(
@@ -1021,6 +1041,18 @@ export class RfaService {
 
     currentRfaRev.rfaStatusCodeId = statusCC.id;
     await this.rfaRevisionRepo.save(currentRfaRev);
+
+    // Terminate workflow instance ถ้ามี
+    const instance = await this.workflowEngine.getInstanceByEntity(
+      RFA.ENTITY_TYPE_RFA,
+      rfa.id.toString()
+    );
+    if (instance) {
+      await this.workflowEngine.terminateInstance(
+        instance.id,
+        `RFA cancelled by user ${user.user_id}`
+      );
+    }
 
     this.logger.log(
       `RFA ${rfa.correspondence?.correspondenceNumber} cancelled by user ${user.user_id}`

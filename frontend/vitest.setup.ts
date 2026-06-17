@@ -76,6 +76,16 @@ class ResizeObserverMock {
 
 vi.stubGlobal('ResizeObserver', ResizeObserverMock);
 
+class IntersectionObserverMock {
+  observe() {}
+
+  unobserve() {}
+
+  disconnect() {}
+}
+
+vi.stubGlobal('IntersectionObserver', IntersectionObserverMock);
+
 if (!Element.prototype.hasPointerCapture) {
   Element.prototype.hasPointerCapture = () => false;
 }

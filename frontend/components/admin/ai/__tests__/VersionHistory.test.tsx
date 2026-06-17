@@ -75,7 +75,7 @@ describe('VersionHistory', () => {
         isDeleting={false}
       />
     );
-    
+
     expect(screen.getByText('v1')).toBeInTheDocument();
     expect(screen.getByText('v2')).toBeInTheDocument();
     expect(screen.getByText('Note 1')).toBeInTheDocument();
@@ -83,9 +83,8 @@ describe('VersionHistory', () => {
   });
 
   it('handles pagination', async () => {
-    const user = userEvent.setup();
     const versions = generateVersions(25); // Page size is 20
-    
+
     render(
       <VersionHistory
         versions={versions}
@@ -97,21 +96,15 @@ describe('VersionHistory', () => {
         isDeleting={false}
       />
     );
-    
-    // Page 1 should have v1 to v20
+
+    // Infinite scroll: initial render shows first PAGE_SIZE (20) items
     expect(screen.getByText('v1')).toBeInTheDocument();
     expect(screen.getByText('v20')).toBeInTheDocument();
+    // Items beyond PAGE_SIZE are not yet rendered (IntersectionObserver not triggered in jsdom)
     expect(screen.queryByText('v21')).not.toBeInTheDocument();
+    expect(screen.queryByText('v25')).not.toBeInTheDocument();
 
-    // Next page button is the right chevron
-    const nextBtn = document.querySelector('button .lucide-chevron-right')?.closest('button');
-    if (nextBtn) {
-      await user.click(nextBtn);
-    }
-
-    // Page 2 should have v21 to v25
-    expect(screen.queryByText('v1')).not.toBeInTheDocument();
-    expect(screen.getByText('v21')).toBeInTheDocument();
-    expect(screen.getByText('v25')).toBeInTheDocument();
+    // "Load more" indicator is shown when there are hidden items
+    expect(screen.getByText(/แสดง 20 จาก 25 เวอร์ชัน/)).toBeInTheDocument();
   });
 });

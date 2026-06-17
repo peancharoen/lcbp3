@@ -390,6 +390,29 @@ export class WorkflowEngineService {
   }
 
   /**
+   * บังคับยุติ Workflow Instance (ADR-021) — ใช้เมื่อยกเลิกเอกสารก่อนเริ่ม workflow จริง
+   * ตั้ง status = CANCELLED และ currentState = CANCELLED
+   */
+  async terminateInstance(instanceId: string, reason?: string): Promise<void> {
+    const instance = await this.instanceRepo.findOne({
+      where: { id: instanceId },
+      select: ['id', 'versionNo'],
+    });
+    if (!instance) {
+      throw new NotFoundException('Workflow Instance', instanceId);
+    }
+
+    await this.instanceRepo.update(instanceId, {
+      status: WorkflowStatus.CANCELLED,
+      currentState: 'CANCELLED',
+    });
+
+    this.logger.log(
+      `Workflow Instance ${instanceId} terminated${reason ? `: ${reason}` : ''}`
+    );
+  }
+
+  /**
    * ดำเนินการเปลี่ยนสถานะ (Transition) ของ Instance จริงแบบ Transactional
    */
   async processTransition(

@@ -30,3 +30,4 @@
 | 2026-06-15 | v1.9.10 | ESLint Error Fixes — Fixed 58 ESLint errors across 4 test files (syntax, unused variables, ADR-019 UUID violations, unsafe member access) | ✅ Complete |
 | 2026-06-15 | v1.9.10 | Backend Test Fixes — Added AiExecutionProfilesService mock, skipped integration tests (requires e2e infra), deleted fake e2e test, updated tasks.md npm→pnpm | ✅ Complete |
 | 2026-06-17 | v1.9.10 | Correspondence Service Refactor — UUID helpers, transaction for update(), .catch() on fire-and-forget, cancel notification fix (REJECTED→PENDING), Partial<T> types, workflow fields in findOne(), permission cache, exportCsv paginated, 26/26 tests pass | ✅ Complete |
+| 2026-06-17 | v1.9.10 | RFA Service Code Review Refactor — constants extraction (type/status/error codes), getCurrentRevision() DRY helper, validateRfaTypeDrawingConstraints() extracted, narrow UpdateRfaDto (6 fields), cancel() terminates workflow via terminateInstance(), tsc --noEmit 0 errors | ✅ Complete |
