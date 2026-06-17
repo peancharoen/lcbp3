@@ -191,7 +191,7 @@
 - [x] T072 [P] Add "Runtime Parameters (Global - Applies to All AI Jobs)" label to RuntimeParametersPanel in frontend/components/admin/ai/RuntimeParametersPanel.tsx
 - [x] T073 [P] Add layered error handling (Toast/Inline/Modal) to prompt management UI in frontend/app/(admin)/admin/ai/prompt-management/page.tsx
 - [x] T074 [P] Add Redis cache (60s TTL) for version history in backend/src/modules/ai/services/ai-prompts.service.ts
-- [x] T075 [P] Add pagination (20 versions/page) to version history in frontend/components/admin/ai/VersionHistory.tsx
+- [x] T075 [P] Add infinite scroll (20 versions/batch, IntersectionObserver sentinel) to version history in frontend/components/admin/ai/VersionHistory.tsx
 - [x] T076 [P] Add database locking (SELECT FOR UPDATE) for concurrent activation in backend/src/modules/ai/services/ai-prompts.service.ts
 - [x] T077 [P] Add block deletion of active version in backend/src/modules/ai/services/ai-prompts.service.ts
 - [x] T078 [P] Add Redis TTL (60m) for sandbox job results in backend/src/modules/ai/processors/ai-batch.processor.ts

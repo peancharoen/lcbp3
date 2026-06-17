@@ -120,7 +120,7 @@ VALUES ('classification_prompt', 1, '<template for document classification>',
 
 **Sandbox Endpoints (อัปเดตจาก ADR-035):**
 - `POST /api/ai/admin/sandbox/ocr` - Step 1: OCR (มีอยู่แล้ว)
-- `POST /api/ai/admin/sandbox/ai-extract` - Step 2: AI Extract (มีอยู่แล้ว)
+- `POST /api/ai/admin/sandbox/extract` - Step 2: AI Extract (มีอยู่แล้ว)
 - `POST /api/ai/admin/sandbox/rag-prep` - Step 3: RAG Prep (ใหม่)
 
 ### 3. Frontend UX/UI Layout
@@ -180,7 +180,8 @@ VALUES ('classification_prompt', 1, '<template for document classification>',
 - **Project Filter:** Optional, UUID (publicId), must exist in projects table
 - **Contract Filter:** Optional, UUID (publicId), must exist in contracts table
 - **Page Size:** Optional, integer, min=1, max=1000, default=null (process all pages)
-- **Language:** Optional, enum (TH, EN, MIXED), default=MIXED
+- **Language:** Optional, enum (`th`, `en`, `mixed`), default=`th`
+- **Output Language:** Optional, enum (`th`, `en`, `mixed`), default=`th`
 
 ### 4. Sandbox Workflow (Hybrid Flow)
 
@@ -189,17 +190,17 @@ VALUES ('classification_prompt', 1, '<template for document classification>',
 Admin Upload PDF
   → POST /api/ai/admin/sandbox/ocr
   → BullMQ (ai-realtime) job type: "sandbox-ocr-only"
-  → OcrService → Sidecar (typhoon-np-dms-ocr)
+  → OcrService → Sidecar (np-dms-ocr, Canonical OCR Identity)
   → Raw OCR text
 ```
 
 **Step 2: AI Extract**
 ```
 Admin Select Prompt Version
-  → POST /api/ai/admin/sandbox/ai-extract
-  → BullMQ (ai-realtime) job type: "sandbox-ai-extract"
+  → POST /api/ai/admin/sandbox/extract
+  → BullMQ (ai-batch) job type: "sandbox-extract"
   → Load prompt from ai_prompts (selected version)
-  → OllamaService → typhoon2.5-np-dms
+  → OllamaService → np-dms-ai (Canonical Model Identity)
   → Structured metadata (JSON)
 ```
 
@@ -207,10 +208,12 @@ Admin Select Prompt Version
 ```
 Admin Click "Test RAG Prep" (required)
   → POST /api/ai/admin/sandbox/rag-prep
-  → BullMQ (ai-realtime) job type: "sandbox-rag-prep"
-  → OllamaService → typhoon2.5-np-dms (Semantic Chunking)
-  → Sidecar → BGE-M3 (Embedding)
-  → Chunks + Vectors
+  → BullMQ (ai-batch) job type: "sandbox-rag-prep"
+  → Always uses ACTIVE rag_prep_prompt (not the version under test)
+    — RAG Prep is a global chunking operation, not version-specific
+  → OllamaService → np-dms-ai (Semantic Chunking → XML <chunk> tags)
+  → OcrService.embedViaSidecar() per chunk (OCR Sidecar /embed endpoint)
+  → Chunks + Vectors (stored in Redis 60min TTL, NOT committed to Qdrant)
 ```
 
 **Activate to Production:**

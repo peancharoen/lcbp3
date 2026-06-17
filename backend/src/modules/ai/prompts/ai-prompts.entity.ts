@@ -4,6 +4,7 @@
 // - 2026-05-25: Added definite assignment assertion operator (!) to satisfy strictPropertyInitialization
 // - 2026-05-27: Added publicId column for ADR-019 compliance
 // - 2026-06-15: Added @VersionColumn for optimistic locking (T066)
+// - 2026-06-15: Fixed publicId column name mapping to public_id (snake_case); removed @VersionColumn until schema delta adds version column
 
 import {
   Entity,
@@ -24,7 +25,7 @@ export class AiPrompt {
   @Exclude() // ADR-019: INT PK ไม่ expose ใน API
   id!: number;
 
-  @Column({ type: 'uuid', unique: true })
+  @Column({ name: 'public_id', type: 'uuid', unique: true })
   publicId!: string;
 
   @Column({ name: 'prompt_type', length: 50 })

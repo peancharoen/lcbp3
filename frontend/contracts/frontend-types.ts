@@ -86,7 +86,7 @@ export interface UpdateContextConfigDto {
 }
 
 export const PLACEHOLDER_REQUIREMENTS: Record<PromptType, string[]> = {
-  ocr_extraction: ['{{ocr_text}}', '{{master_data_context}}'],
+  ocr_extraction: ['{{ocr_text}}'],
   rag_query_prompt: ['{{query}}', '{{context}}'],
   rag_prep_prompt: ['{{text}}'],
   classification_prompt: ['{{document_text}}'],

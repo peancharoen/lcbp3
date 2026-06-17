@@ -54,6 +54,15 @@ describe('CorrespondenceService', () => {
     })),
   });
 
+  const mockManager = {
+    create: jest.fn(),
+    save: jest.fn(),
+    findOne: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    getRepository: jest.fn(() => createMockRepository()),
+  };
+
   const mockDataSource = {
     createQueryRunner: jest.fn(() => ({
       connect: jest.fn(),
@@ -61,11 +70,7 @@ describe('CorrespondenceService', () => {
       commitTransaction: jest.fn(),
       rollbackTransaction: jest.fn(),
       release: jest.fn(),
-      manager: {
-        create: jest.fn(),
-        save: jest.fn(),
-        findOne: jest.fn(),
-      },
+      manager: mockManager,
     })),
     getRepository: jest.fn(() => createMockRepository()),
     manager: {
@@ -123,7 +128,10 @@ describe('CorrespondenceService', () => {
         },
         {
           provide: WorkflowEngineService,
-          useValue: { createInstance: jest.fn() },
+          useValue: {
+            createInstance: jest.fn(),
+            getInstanceByEntity: jest.fn().mockResolvedValue(null),
+          },
         },
         {
           provide: UserService,
@@ -138,7 +146,7 @@ describe('CorrespondenceService', () => {
         },
         {
           provide: SearchService,
-          useValue: { indexDocument: jest.fn() },
+          useValue: { indexDocument: jest.fn().mockResolvedValue(undefined) },
         },
         {
           provide: FileStorageService,

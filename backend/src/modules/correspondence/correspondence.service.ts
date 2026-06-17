@@ -1,4 +1,9 @@
 // File: src/modules/correspondence/correspondence.service.ts
+// Change Log:
+// 2026-06-17 | Refactor: Extract UUID resolution helpers; wrap update() in transaction;
+//             fix fire-and-forget with .catch(); fix cancel notification status (REJECTED→PENDING);
+//             add Partial<T> types; add workflow fields to findOne(); cache permission check;
+//             extract type code constants; fix exportCsv type safety
 
 import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import {
@@ -55,7 +60,7 @@ export class CorrespondenceService {
   private readonly logger = new Logger(CorrespondenceService.name);
 
   private async hasSystemManageAllPermission(userId: number): Promise<boolean> {
-    const permissions = await this.userService.getUserPermissions(userId);
+    const permissions = await this.getCachedPermissions(userId);
     return permissions.includes('system.manage_all');
   }
 
@@ -65,11 +70,53 @@ export class CorrespondenceService {
    * - Other types (LETTER, MEMO, etc.): Use numeric (null for first, then 1, 2, 3...)
    */
   private getInitialRevisionLabel(typeCode: string): string | undefined {
-    const alphabetTypes = ['RFA', 'RFI'];
-    if (alphabetTypes.includes(typeCode.toUpperCase())) {
-      return 'A'; // Alphabet for RFA, RFI
+    if (
+      CorrespondenceService.ALPHABET_REVISION_TYPES.has(typeCode.toUpperCase())
+    ) {
+      return 'A';
     }
-    return undefined; // Numeric (no label for revision 0)
+    return undefined;
+  }
+
+  // ประเภทเอกสารที่ใช้ alphabet revision label (แทน hardcode ใน method)
+  private static readonly ALPHABET_REVISION_TYPES = new Set(['RFA', 'RFI']);
+
+  // In-memory cache สำหรับ permission check (clear เมื่อมีการเปลี่ยนแปลง permission)
+  private readonly permissionCache = new Map<
+    number,
+    { permissions: string[]; timestamp: number }
+  >();
+  private static readonly PERMISSION_CACHE_TTL = 30_000; // 30 seconds
+
+  private async getCachedPermissions(userId: number): Promise<string[]> {
+    const cached = this.permissionCache.get(userId);
+    if (
+      cached &&
+      Date.now() - cached.timestamp < CorrespondenceService.PERMISSION_CACHE_TTL
+    ) {
+      return cached.permissions;
+    }
+    const permissions = await this.userService.getUserPermissions(userId);
+    this.permissionCache.set(userId, { permissions, timestamp: Date.now() });
+    return permissions;
+  }
+
+  private invalidatePermissionCache(userId: number): void {
+    this.permissionCache.delete(userId);
+  }
+
+  // Extract UUID resolution helpers เพื่อลด duplicate code
+  private async resolveRecipients(
+    recipients: Array<{ organizationId: number | string; type: 'TO' | 'CC' }>
+  ): Promise<ResolvedRecipient[]> {
+    return Promise.all(
+      recipients.map(async (r) => ({
+        organizationId: await this.uuidResolver.resolveOrganizationId(
+          r.organizationId
+        ),
+        type: r.type,
+      }))
+    );
   }
 
   constructor(
@@ -196,16 +243,7 @@ export class CorrespondenceService {
       ? await this.uuidResolver.resolveOrganizationId(createDto.originatorId)
       : undefined;
     const resolvedRecipients = createDto.recipients
-      ? await Promise.all(
-          createDto.recipients.map(
-            async (r): Promise<ResolvedRecipient> => ({
-              organizationId: await this.uuidResolver.resolveOrganizationId(
-                r.organizationId
-              ),
-              type: r.type,
-            })
-          )
-        )
+      ? await this.resolveRecipients(createDto.recipients)
       : undefined;
     const type = await this.typeRepo.findOne({
       where: { id: createDto.typeId },
@@ -381,8 +419,8 @@ export class CorrespondenceService {
 
       await queryRunner.commitTransaction();
 
-      // Start Workflow Instance (non-blocking)
-      // All correspondence types use CORRESPONDENCE_FLOW_V1 (type code is NOT a separate workflow)
+      // Start Workflow Instance (non-blocking — transaction already committed)
+      // All correspondence types use CORRESPONDENCE_FLOW_V1
       try {
         let corrContractId: number | null = null;
         if (createDto.disciplineId) {
@@ -406,23 +444,29 @@ export class CorrespondenceService {
           } as Record<string, unknown>
         );
       } catch (error: unknown) {
-        this.logger.warn(
-          `Workflow not started for ${docNumber.number}: ${(error as Error).message}`
+        this.logger.error(
+          `Workflow failed to start for ${docNumber.number}: ${(error as Error).message}`
         );
       }
 
-      // Fire-and-forget search indexing (non-blocking, void intentional)
-      void this.searchService.indexDocument({
-        id: savedCorr.id,
-        publicId: savedCorr.publicId,
-        type: 'correspondence',
-        docNumber: docNumber.number,
-        title: createDto.subject,
-        description: createDto.description,
-        status: 'DRAFT',
-        projectId: resolvedProjectId,
-        createdAt: new Date(),
-      });
+      // Fire-and-forget search indexing (non-blocking)
+      Promise.resolve(
+        this.searchService.indexDocument({
+          id: savedCorr.id,
+          publicId: savedCorr.publicId,
+          type: 'correspondence',
+          docNumber: docNumber.number,
+          title: createDto.subject,
+          description: createDto.description,
+          status: 'DRAFT',
+          projectId: resolvedProjectId,
+          createdAt: new Date(),
+        })
+      ).catch((err: Error) =>
+        this.logger.error(
+          `Search indexing failed for ${docNumber.number}: ${err.message}`
+        )
+      );
 
       return {
         ...savedCorr,
@@ -519,7 +563,7 @@ export class CorrespondenceService {
         'project',
         'originator',
         'recipients',
-        'recipients.recipientOrganization', // [v1.5.1] Fixed relation name
+        'recipients.recipientOrganization',
         'discipline',
         'discipline.contract',
       ],
@@ -528,7 +572,19 @@ export class CorrespondenceService {
     if (!correspondence) {
       throw new NotFoundException('Correspondence', String(id));
     }
-    return correspondence;
+
+    // ADR-021: expose live workflow state for consistency with findOneByUuid
+    const workflowInstance = await this.workflowEngine.getInstanceByEntity(
+      'correspondence',
+      correspondence.publicId
+    );
+
+    return {
+      ...correspondence,
+      workflowInstanceId: workflowInstance?.id ?? null,
+      workflowState: workflowInstance?.currentState ?? null,
+      availableActions: workflowInstance?.availableActions ?? [],
+    };
   }
 
   async findOneByUuid(publicId: string) {
@@ -694,9 +750,7 @@ export class CorrespondenceService {
       });
 
       if (status && status.statusCode !== 'DRAFT') {
-        const permissions = await this.userService.getUserPermissions(
-          user.user_id
-        );
+        const permissions = await this.getCachedPermissions(user.user_id);
         const canEditSubmittedOrLater =
           permissions.includes('correspondence.cancel') ||
           permissions.includes('system.manage_all');
@@ -715,16 +769,7 @@ export class CorrespondenceService {
       ? await this.uuidResolver.resolveOrganizationId(updateDto.originatorId)
       : undefined;
     const updResolvedRecipients = updateDto.recipients
-      ? await Promise.all(
-          updateDto.recipients.map(
-            async (r): Promise<ResolvedRecipient> => ({
-              organizationId: await this.uuidResolver.resolveOrganizationId(
-                r.organizationId
-              ),
-              type: r.type,
-            })
-          )
-        )
+      ? await this.resolveRecipients(updateDto.recipients)
       : undefined;
 
     // 3. Check if number regeneration is needed (only for DRAFT status)
@@ -748,19 +793,16 @@ export class CorrespondenceService {
 
     let newNumber: string | undefined;
     if (needsNumberRegen) {
-      // Check if current status is DRAFT - only regenerate for drafts
       const currentStatus = await this.statusRepo.findOne({
         where: { id: revision.statusId },
       });
 
       if (currentStatus?.statusCode === 'DRAFT') {
-        // Resolve originator for number generation
         const originatorId =
           updResolvedOriginatorId ||
           oldCorr.originatorId ||
           user.primaryOrganizationId;
 
-        // Get type info for number generation
         const typeId = updateDto.typeId || oldCorr.correspondenceTypeId;
         const type = await this.typeRepo.findOne({ where: { id: typeId } });
 
@@ -768,7 +810,6 @@ export class CorrespondenceService {
           throw new NotFoundException('Document Type', String(typeId));
         }
 
-        // Get recipient org code for number generation
         const recipientOrgId = newRecipientOrgId || oldRecipientOrgId;
         let _recipientCode = '';
         if (recipientOrgId) {
@@ -804,108 +845,136 @@ export class CorrespondenceService {
       }
     }
 
-    // 4. Update Correspondence Entity if needed
-    const correspondenceUpdate: Record<string, unknown> = {};
-    if (newNumber) correspondenceUpdate.correspondenceNumber = newNumber;
-    if (updateDto.disciplineId)
-      correspondenceUpdate.disciplineId = updateDto.disciplineId;
-    if (updResolvedProjectId)
-      correspondenceUpdate.projectId = updResolvedProjectId;
-    if (updResolvedOriginatorId)
-      correspondenceUpdate.originatorId = updResolvedOriginatorId;
-    if (updateDto.typeId)
-      correspondenceUpdate.correspondenceTypeId = updateDto.typeId;
+    // 4. Wrap all mutations in a transaction
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    if (Object.keys(correspondenceUpdate).length > 0) {
-      await this.correspondenceRepo.update(id, correspondenceUpdate);
-    }
+    try {
+      // 4a. Update Correspondence Entity if needed
+      const correspondenceUpdate: Partial<Correspondence> = {};
+      if (newNumber) correspondenceUpdate.correspondenceNumber = newNumber;
+      if (updateDto.disciplineId)
+        correspondenceUpdate.disciplineId = updateDto.disciplineId;
+      if (updResolvedProjectId)
+        correspondenceUpdate.projectId = updResolvedProjectId;
+      if (updResolvedOriginatorId)
+        correspondenceUpdate.originatorId = updResolvedOriginatorId;
+      if (updateDto.typeId)
+        correspondenceUpdate.correspondenceTypeId = updateDto.typeId;
 
-    // 4. Update Revision Entity
-    const revisionUpdate: Record<string, unknown> = {};
-    if (updateDto.subject) revisionUpdate.subject = updateDto.subject;
-    if (updateDto.body) revisionUpdate.body = updateDto.body;
-    if (updateDto.remarks) revisionUpdate.remarks = updateDto.remarks;
-    // Format Date correctly if string
-    if (updateDto.dueDate) revisionUpdate.dueDate = new Date(updateDto.dueDate);
-    if (updateDto.documentDate)
-      revisionUpdate.documentDate = new Date(updateDto.documentDate);
-    if (updateDto.issuedDate)
-      revisionUpdate.issuedDate = new Date(updateDto.issuedDate);
-    if (updateDto.receivedDate)
-      revisionUpdate.receivedDate = new Date(updateDto.receivedDate);
-    if (updateDto.description)
-      revisionUpdate.description = updateDto.description;
-    if (updateDto.details) revisionUpdate.details = updateDto.details;
+      if (Object.keys(correspondenceUpdate).length > 0) {
+        await queryRunner.manager
+          .getRepository(Correspondence)
+          .update(id, correspondenceUpdate);
+      }
 
-    if (Object.keys(revisionUpdate).length > 0) {
-      await this.revisionRepo.update(revision.id, revisionUpdate);
-    }
+      // 4b. Update Revision Entity
+      const revisionUpdate: Partial<CorrespondenceRevision> = {};
+      if (updateDto.subject) revisionUpdate.subject = updateDto.subject;
+      if (updateDto.body) revisionUpdate.body = updateDto.body;
+      if (updateDto.remarks) revisionUpdate.remarks = updateDto.remarks;
+      if (updateDto.dueDate)
+        revisionUpdate.dueDate = new Date(updateDto.dueDate);
+      if (updateDto.documentDate)
+        revisionUpdate.documentDate = new Date(updateDto.documentDate);
+      if (updateDto.issuedDate)
+        revisionUpdate.issuedDate = new Date(updateDto.issuedDate);
+      if (updateDto.receivedDate)
+        revisionUpdate.receivedDate = new Date(updateDto.receivedDate);
+      if (updateDto.description)
+        revisionUpdate.description = updateDto.description;
+      if (updateDto.details) revisionUpdate.details = updateDto.details;
 
-    // 4.5 Commit new attachments from Temp → Permanent (Two-Phase Storage)
-    if (updateDto.attachmentTempIds?.length) {
-      const issueDate = updateDto.issuedDate
-        ? new Date(updateDto.issuedDate)
-        : updateDto.documentDate
-          ? new Date(updateDto.documentDate)
-          : revision.issuedDate || revision.documentDate || undefined;
+      if (Object.keys(revisionUpdate).length > 0) {
+        await queryRunner.manager
+          .getRepository(CorrespondenceRevision)
+          .update(revision.id, revisionUpdate);
+      }
 
-      // [FIX v1.8.1] commit ได้ Attachment records กลับมา → บันทึก junction
-      const committed = await this.fileStorageService.commit(
-        updateDto.attachmentTempIds,
-        {
-          issueDate: issueDate ? new Date(issueDate) : undefined,
-          documentType: 'Correspondence',
+      // 4c. Commit new attachments from Temp → Permanent
+      if (updateDto.attachmentTempIds?.length) {
+        const issueDate = updateDto.issuedDate
+          ? new Date(updateDto.issuedDate)
+          : updateDto.documentDate
+            ? new Date(updateDto.documentDate)
+            : revision.issuedDate || revision.documentDate || undefined;
+
+        const committed = await this.fileStorageService.commit(
+          updateDto.attachmentTempIds,
+          {
+            issueDate: issueDate ? new Date(issueDate) : undefined,
+            documentType: 'Correspondence',
+          }
+        );
+
+        if (committed.length > 0) {
+          const links = committed.map((att) =>
+            queryRunner.manager.create(CorrespondenceRevisionAttachment, {
+              correspondenceRevisionId: revision.id,
+              attachmentId: att.id,
+              isMainDocument: false,
+            })
+          );
+          await queryRunner.manager.save(
+            CorrespondenceRevisionAttachment,
+            links
+          );
         }
-      );
+      }
 
-      if (committed.length > 0) {
-        const links = committed.map((att) =>
-          this.revAttachRepo.create({
-            correspondenceRevisionId: revision.id,
-            attachmentId: att.id,
-            isMainDocument: false, // ไฟล์ที่ upload เพิ่มเติมไม่ใช่ main
+      // 4d. Update Recipients if provided
+      if (updResolvedRecipients) {
+        await queryRunner.manager
+          .getRepository(CorrespondenceRecipient)
+          .delete({ correspondenceId: id });
+
+        const newRecipients = updResolvedRecipients.map((r) =>
+          queryRunner.manager.create(CorrespondenceRecipient, {
+            correspondenceId: id,
+            recipientOrganizationId: r.organizationId,
+            recipientType: r.type,
           })
         );
-        await this.revAttachRepo.save(links);
+        await queryRunner.manager.save(CorrespondenceRecipient, newRecipients);
       }
-    }
 
-    // 5. Update Recipients if provided
-    if (updResolvedRecipients) {
-      const recipientRepo = this.dataSource.getRepository(
-        CorrespondenceRecipient
+      await queryRunner.commitTransaction();
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      this.logger.error(
+        `Failed to update correspondence ${id}: ${(err as Error).message}`
       );
-      await recipientRepo.delete({ correspondenceId: id });
-
-      const newRecipients = updResolvedRecipients.map((r) =>
-        recipientRepo.create({
-          correspondenceId: id,
-          recipientOrganizationId: r.organizationId,
-          recipientType: r.type,
-        })
-      );
-      await recipientRepo.save(newRecipients);
+      throw err;
+    } finally {
+      await queryRunner.release();
     }
 
     const updated = await this.findOne(id);
 
-    // Re-index updated document in Elasticsearch (fire-and-forget)
-    // ใช้ status จริงจาก current revision แทนการ hardcode 'DRAFT'
+    // Re-index updated document (fire-and-forget)
     const currentRevisionStatus =
       updated.revisions?.find((r) => r.isCurrent)?.status?.statusCode ??
       updated.revisions?.[0]?.status?.statusCode ??
       'DRAFT';
-    void this.searchService.indexDocument({
-      id: updated.id,
-      publicId: updated.publicId,
-      type: 'correspondence',
-      docNumber: updated.correspondenceNumber,
-      title: updateDto.subject ?? updated.revisions?.[0]?.subject,
-      description: updateDto.description ?? updated.revisions?.[0]?.description,
-      status: currentRevisionStatus,
-      projectId: updated.projectId,
-      createdAt: updated.createdAt,
-    });
+    Promise.resolve(
+      this.searchService.indexDocument({
+        id: updated.id,
+        publicId: updated.publicId,
+        type: 'correspondence',
+        docNumber: updated.correspondenceNumber,
+        title: updateDto.subject ?? updated.revisions?.[0]?.subject,
+        description:
+          updateDto.description ?? updated.revisions?.[0]?.description,
+        status: currentRevisionStatus,
+        projectId: updated.projectId,
+        createdAt: updated.createdAt,
+      })
+    ).catch((err: Error) =>
+      this.logger.error(
+        `Search re-index failed for correspondence ${id}: ${err.message}`
+      )
+    );
 
     return updated;
   }
@@ -919,16 +988,7 @@ export class CorrespondenceService {
       ? await this.uuidResolver.resolveOrganizationId(createDto.originatorId)
       : undefined;
     const previewRecipients = createDto.recipients
-      ? await Promise.all(
-          createDto.recipients.map(
-            async (r): Promise<ResolvedRecipient> => ({
-              organizationId: await this.uuidResolver.resolveOrganizationId(
-                r.organizationId
-              ),
-              type: r.type,
-            })
-          )
-        )
+      ? await this.resolveRecipients(createDto.recipients)
       : undefined;
 
     const type = await this.typeRepo.findOne({
@@ -1056,24 +1116,29 @@ export class CorrespondenceService {
             );
 
             // T012: Enqueue BullMQ notification for affected assignees
-            // CirculationService.forceClose already updates status, we just need to notify.
-            // Ideally we'd notify the people who were pending.
-            const circWithRoutings = await this.dataSource
+            // แจ้งเฉพาะ users ที่ยัง pending/open (ยังไม่ได้ตอบ) ว่า circulation ถูกปิดแบบบังคับ
+            const pendingRoutings = await this.dataSource
               .getRepository(CirculationRouting)
               .find({
-                where: { circulationId: circ.id, status: 'REJECTED' },
+                where: { circulationId: circ.id, status: 'PENDING' },
               });
-            for (const r of circWithRoutings) {
+            for (const r of pendingRoutings) {
               if (r.assignedTo) {
-                void this.notificationService.send({
-                  userId: r.assignedTo,
-                  title: 'Circulation Force Closed',
-                  message: `ใบเวียน ${circ.circulationNo} ถูกปิดแบบบังคับ เนื่องจากเอกสารต้นทางถูกยกเลิก`,
-                  type: 'EMAIL',
-                  entityType: 'circulation',
-                  entityId: circ.id,
-                  link: `/circulations/${circ.publicId}`,
-                });
+                Promise.resolve(
+                  this.notificationService.send({
+                    userId: r.assignedTo,
+                    title: 'Circulation Force Closed',
+                    message: `ใบเวียน ${circ.circulationNo} ถูกปิดแบบบังคับ เนื่องจากเอกสารต้นทางถูกยกเลิก`,
+                    type: 'EMAIL',
+                    entityType: 'circulation',
+                    entityId: circ.id,
+                    link: `/circulations/${circ.publicId}`,
+                  })
+                ).catch((err: Error) =>
+                  this.logger.error(
+                    `Cancel notification failed for routing: ${err.message}`
+                  )
+                );
               }
             }
           } catch (e) {
@@ -1085,16 +1150,20 @@ export class CorrespondenceService {
       }
 
       // Re-index cancelled status in Elasticsearch (fire-and-forget)
-      void this.searchService.indexDocument({
-        id: correspondence.id,
-        publicId: correspondence.publicId,
-        type: 'correspondence',
-        docNumber: correspondence.correspondenceNumber,
-        title: currentRevision.subject,
-        status: 'CANCELLED',
-        projectId: correspondence.projectId,
-        createdAt: correspondence.createdAt,
-      });
+      Promise.resolve(
+        this.searchService.indexDocument({
+          id: correspondence.id,
+          publicId: correspondence.publicId,
+          type: 'correspondence',
+          docNumber: correspondence.correspondenceNumber,
+          title: currentRevision.subject,
+          status: 'CANCELLED',
+          projectId: correspondence.projectId,
+          createdAt: correspondence.createdAt,
+        })
+      ).catch((err: Error) =>
+        this.logger.error(`Search re-index failed after cancel: ${err.message}`)
+      );
 
       // Notify originator's doc-control user about cancellation (fire-and-forget)
       if (correspondence.originatorId) {
@@ -1102,15 +1171,21 @@ export class CorrespondenceService {
           .findDocControlIdByOrg(correspondence.originatorId)
           .then((targetUserId) => {
             if (targetUserId) {
-              void this.notificationService.send({
-                userId: targetUserId,
-                title: 'Correspondence Cancelled',
-                message: `${correspondence.correspondenceNumber} — ${currentRevision.subject} has been cancelled. Reason: ${reason}`,
-                type: 'EMAIL',
-                entityType: 'correspondence',
-                entityId: correspondence.id,
-                link: `/correspondences/${correspondence.publicId}`,
-              });
+              void this.notificationService
+                .send({
+                  userId: targetUserId,
+                  title: 'Correspondence Cancelled',
+                  message: `${correspondence.correspondenceNumber} — ${currentRevision.subject} has been cancelled. Reason: ${reason}`,
+                  type: 'EMAIL',
+                  entityType: 'correspondence',
+                  entityId: correspondence.id,
+                  link: `/correspondences/${correspondence.publicId}`,
+                })
+                .catch((err: Error) =>
+                  this.logger.error(
+                    `Cancel notification send failed: ${err.message}`
+                  )
+                );
             }
           })
           .catch((err: Error) =>
@@ -1158,12 +1233,22 @@ export class CorrespondenceService {
   }
 
   async exportCsv(searchDto: SearchCorrespondenceDto): Promise<string> {
-    // ดึงทุกแถวที่ตรงเงื่อนไข — ไม่ใช้ pagination สำหรับ export
-    const { data } = await this.findAll({
-      ...searchDto,
-      page: 1,
-      limit: 10000,
-    });
+    // ดึงทุกแถวที่ตรงเงื่อนไข — ใช้ paginated query แทน hardcode limit
+    const pageSize = 1000;
+    let page = 1;
+    let allData: CorrespondenceRevision[] = [];
+    let hasMore = true;
+
+    while (hasMore) {
+      const { data, meta } = await this.findAll({
+        ...searchDto,
+        page,
+        limit: pageSize,
+      });
+      allData = allData.concat(data);
+      hasMore = page < meta.totalPages;
+      page++;
+    }
 
     const header = [
       'Document No.',
@@ -1176,16 +1261,17 @@ export class CorrespondenceService {
       'Due Date',
       'Created At',
     ];
-    const rows = data.map((rev) => {
-      const corr = rev.correspondence ?? (rev as unknown as Correspondence);
+    const rows = allData.map((rev) => {
+      // TypeORM loads relation via leftJoinAndSelect — safely access via correspondence relation
+      const corr = rev.correspondence;
       return [
-        this.escapeCsv(corr.correspondenceNumber ?? ''),
+        this.escapeCsv(corr?.correspondenceNumber ?? ''),
         this.escapeCsv(rev.revisionLabel ?? String(rev.revisionNumber ?? 0)),
         this.escapeCsv(rev.subject ?? ''),
-        this.escapeCsv(corr.type?.typeCode ?? ''),
+        this.escapeCsv(corr?.type?.typeCode ?? ''),
         this.escapeCsv(rev.status?.statusCode ?? ''),
-        this.escapeCsv(corr.project?.projectCode ?? ''),
-        this.escapeCsv(corr.originator?.organizationCode ?? ''),
+        this.escapeCsv(corr?.project?.projectCode ?? ''),
+        this.escapeCsv(corr?.originator?.organizationCode ?? ''),
         rev.dueDate ? new Date(rev.dueDate).toISOString().split('T')[0] : '',
         new Date(rev.createdAt).toISOString().split('T')[0],
       ].join(',');

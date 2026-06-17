@@ -3,13 +3,14 @@
 // - 2026-06-14: Created VersionHistory component with type filtering and nice badges (conforming to task T017)
 // - 2026-06-15: Added All Types view grouped by prompt type (T065)
 // - 2026-06-15: Added pagination (20 versions/page) (T075)
+// - 2026-06-15: เปลี่ยน button pagination เป็น infinite scroll ตาม spec FR (T075)
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle2, Trash2, BookOpen, Clock, StickyNote, Folder, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CheckCircle2, Trash2, BookOpen, Clock, StickyNote, Folder } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { PromptVersion } from '@/lib/types/ai-prompts';
 import { cn } from '@/lib/utils';
 
@@ -40,17 +41,9 @@ export default function VersionHistory({
   showAllTypes = false,
 }: VersionHistoryProps) {
   const { t } = useTranslation('ai');
-  const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 20; // T075: 20 versions per page
-
-  if (isLoading) {
-    return (
-      <div className="flex h-[300px] items-center justify-center text-sm text-muted-foreground">
-        <Clock className="mr-2 h-4 w-4 animate-spin text-primary" />
-        {t('prompt_management.version_history')}...
-      </div>
-    );
-  }
+  const PAGE_SIZE = 20;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   // Group versions by prompt type when showing all types
   const groupedVersions = showAllTypes
@@ -74,19 +67,40 @@ export default function VersionHistory({
     return labels[type] || type;
   };
 
-  // Pagination logic (T075)
-  const totalPages = Math.ceil(versions.length / PAGE_SIZE);
-  const startIndex = (currentPage - 1) * PAGE_SIZE;
-  const endIndex = startIndex + PAGE_SIZE;
-  const paginatedVersions = versions.slice(startIndex, endIndex);
+  // รีเซ็ต visible count เมื่อ versions เปลี่ยน (เช่น เปลี่ยน prompt type)
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [versions, PAGE_SIZE]);
 
-  const handlePreviousPage = () => {
-    setCurrentPage((prev) => Math.max(1, prev - 1));
-  };
+  // Infinite scroll ด้วย IntersectionObserver
+  const handleObserver = useCallback(
+    (entries: IntersectionObserverEntry[]) => {
+      const target = entries[0];
+      if (target.isIntersecting && visibleCount < versions.length) {
+        setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, versions.length));
+      }
+    },
+    [visibleCount, versions.length, PAGE_SIZE]
+  );
 
-  const handleNextPage = () => {
-    setCurrentPage((prev) => Math.min(totalPages, prev + 1));
-  };
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(handleObserver, { threshold: 0.1 });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [handleObserver]);
+
+  const visibleVersions = versions.slice(0, visibleCount);
+
+  if (isLoading) {
+    return (
+      <div className="flex h-[300px] items-center justify-center text-sm text-muted-foreground">
+        <Clock className="mr-2 h-4 w-4 animate-spin text-primary" />
+        {t('prompt_management.version_history')}...
+      </div>
+    );
+  }
 
   return (
     <Card className="border border-border/50 bg-background/30 backdrop-blur-md transition-all duration-300 hover:shadow-md">
@@ -102,16 +116,16 @@ export default function VersionHistory({
             {t('prompt_management.no_versions')}
           </div>
         ) : showAllTypes && groupedVersions ? (
-          // Grouped view by prompt type (with pagination applied to each group)
+          // Grouped view by prompt type — infinite scroll applies across all groups
           Object.entries(groupedVersions).map(([promptType, typeVersions]) => {
-            const paginatedGroupVersions = typeVersions.slice(startIndex, endIndex);
+            const visibleGroupVersions = typeVersions.slice(0, visibleCount);
             return (
               <div key={promptType} className="space-y-2">
                 <div className="flex items-center gap-2 text-xs font-semibold text-foreground/80 bg-muted/30 px-2 py-1.5 rounded">
                   <Folder className="h-3.5 w-3.5 text-primary" />
                   {getPromptTypeLabel(promptType)}
                 </div>
-                {paginatedGroupVersions.map((version) => {
+                {visibleGroupVersions.map((version) => {
                   const isActive = version.isActive === true;
                   return (
                     <div
@@ -191,8 +205,8 @@ export default function VersionHistory({
             );
           })
         ) : (
-          // Single type view with pagination (T075)
-          paginatedVersions.map((version) => {
+          // Single type view — infinite scroll (T075)
+          visibleVersions.map((version) => {
             const isActive = version.isActive === true;
             return (
               <div
@@ -269,32 +283,11 @@ export default function VersionHistory({
             );
           })
         )}
-        {/* Pagination controls (T075) */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between pt-3 border-t border-border/10 mt-3">
-            <div className="text-[10px] text-muted-foreground">
-              หน้า {currentPage} จาก {totalPages} ({versions.length} เวอร์ชัน)
-            </div>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePreviousPage}
-                disabled={currentPage === 1}
-                className="h-7 px-2 text-[10px] border-border/50 bg-background/50"
-              >
-                <ChevronLeft className="h-3 w-3" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleNextPage}
-                disabled={currentPage === totalPages}
-                className="h-7 px-2 text-[10px] border-border/50 bg-background/50"
-              >
-                <ChevronRight className="h-3 w-3" />
-              </Button>
-            </div>
+        {/* Sentinel สำหรับ infinite scroll — IntersectionObserver จะโหลดเพิ่มเมื่อ scroll ถึง */}
+        <div ref={sentinelRef} className="py-1" />
+        {visibleCount < versions.length && (
+          <div className="text-center text-[10px] text-muted-foreground py-2">
+            แสดง {visibleCount} จาก {versions.length} เวอร์ชัน
           </div>
         )}
       </CardContent>

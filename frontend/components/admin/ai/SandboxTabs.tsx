@@ -1,6 +1,8 @@
 // File: frontend/components/admin/ai/SandboxTabs.tsx
 // Change Log:
 // - 2026-06-14: Created SandboxTabs component with 3-step testing (OCR -> AI Extract -> RAG Prep) (conforming to task T037)
+// - 2026-06-15: ลบ Tesseract ออกจาก OCR Engine dropdown — canonical engines: auto + np-dms-ocr เท่านั้น (ADR-034)
+// - 2026-06-15: เพิ่ม read-only prompt info banner แสดง version + template snippet ที่กำลังทดสอบ
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -26,6 +28,7 @@ import {
 interface SandboxTabsProps {
   promptType: string;
   selectedVersionNumber?: number;
+  selectedTemplate?: string;
   onActivateVersion?: (versionNumber: number) => void;
 }
 
@@ -53,6 +56,7 @@ interface SandboxJobResult {
 export default function SandboxTabs({
   promptType: _promptType,
   selectedVersionNumber,
+  selectedTemplate,
   onActivateVersion,
 }: SandboxTabsProps) {
   // Master data state
@@ -215,6 +219,26 @@ export default function SandboxTabs({
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-5 space-y-6">
+        {/* Prompt info banner — read-only, แสดง version + template snippet ที่กำลังทดสอบ */}
+        <div className="rounded-lg border border-primary/20 bg-primary/[0.03] px-4 py-3 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-primary">
+              พรอมต์ที่ใช้ทดสอบ (Prompt Under Test)
+            </span>
+            {selectedVersionNumber ? (
+              <span className="font-mono text-[11px] font-bold text-foreground">v{selectedVersionNumber}</span>
+            ) : (
+              <span className="text-[11px] text-muted-foreground italic">ยังไม่ได้เลือกเวอร์ชัน — จะใช้เวอร์ชัน Active</span>
+            )}
+          </div>
+          {selectedTemplate ? (
+            <p className="text-[10px] text-muted-foreground font-mono leading-relaxed line-clamp-3 whitespace-pre-wrap select-text">
+              {selectedTemplate.slice(0, 300)}{selectedTemplate.length > 300 ? '…' : ''}
+            </p>
+          ) : (
+            <p className="text-[10px] text-muted-foreground italic">โหลดเวอร์ชันจาก Version History เพื่อดู template</p>
+          )}
+        </div>
         <div className="flex flex-wrap items-center gap-4 border-b border-border/10 pb-4">
           <div className="flex-1 min-w-[200px] space-y-1">
             <Label className="text-[11px] font-semibold text-muted-foreground">โครงการสำหรับสกัดบริบท</Label>
@@ -253,9 +277,8 @@ export default function SandboxTabs({
                 <SelectValue placeholder="เลือกเอนจิน..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="auto" className="text-xs">Auto (Baseline)</SelectItem>
-                <SelectItem value="tesseract" className="text-xs">Tesseract (CPU)</SelectItem>
-                <SelectItem value="np-dms-ocr" className="text-xs">Typhoon OCR (GPU)</SelectItem>
+                <SelectItem value="auto" className="text-xs">Auto (np-dms-ocr อัตโนมัติ)</SelectItem>
+                <SelectItem value="np-dms-ocr" className="text-xs">np-dms-ocr (Force GPU)</SelectItem>
               </SelectContent>
             </Select>
           </div>

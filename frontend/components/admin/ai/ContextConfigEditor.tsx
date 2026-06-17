@@ -249,6 +249,7 @@ export default function ContextConfigEditor({
               <SelectContent>
                 <SelectItem value="th">ไทย (TH)</SelectItem>
                 <SelectItem value="en">English (EN)</SelectItem>
+                <SelectItem value="mixed">ไทย + อังกฤษ (MIXED)</SelectItem>
               </SelectContent>
             </Select>
             {errors.language && (
@@ -270,6 +271,7 @@ export default function ContextConfigEditor({
               <SelectContent>
                 <SelectItem value="th">ไทย (TH)</SelectItem>
                 <SelectItem value="en">English (EN)</SelectItem>
+                <SelectItem value="mixed">ไทย + อังกฤษ (MIXED)</SelectItem>
               </SelectContent>
             </Select>
             {errors.outputLanguage && (

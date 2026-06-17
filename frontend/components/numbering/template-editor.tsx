@@ -164,8 +164,9 @@ export function TemplateEditor({
         {/* Format Column */}
         <div className="space-y-4">
           <div>
-            <Label>Template Format *</Label>
+            <Label htmlFor="template-format">Template Format *</Label>
             <Input
+              id="template-format"
               value={format}
               onChange={(e) => setFormat(e.target.value)}
               placeholder="{ORG}-{TYPE}-{SEQ:4}"

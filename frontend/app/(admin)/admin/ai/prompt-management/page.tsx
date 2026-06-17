@@ -244,6 +244,7 @@ export default function UnifiedPromptManagementPage() {
               <SandboxTabs
                 promptType={selectedType}
                 selectedVersionNumber={selectedVersion?.versionNumber}
+                selectedTemplate={selectedVersion?.template}
                 onActivateVersion={(v) => activateMutation.mutate(v)}
               />
             </TabsContent>

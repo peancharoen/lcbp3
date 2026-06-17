@@ -114,13 +114,13 @@ Admin users need clear separation between Runtime Parameters (AI model behavior 
 - **FR-017**: System MUST display Runtime Parameters with label "Runtime Parameters (Global - Applies to All AI Jobs)" to clarify scope
 - **FR-018**: System MUST save Runtime Parameters to ai_execution_profiles (global per profile)
 - **FR-019**: System MUST save Context Config to ai_prompts (per prompt version)
-- **FR-020**: System MUST validate Context Config fields: Project Filter (UUID, validate existence), Contract Filter (UUID, validate existence), Page Size (int, min=1, max=1000, optional), Language (enum: TH/EN/MIXED, default=MIXED, optional)
+- **FR-020**: System MUST validate Context Config fields: Project Filter (UUID, validate existence), Contract Filter (UUID, validate existence), Page Size (int, min=1, max=1000, optional), Language (enum: th/en/mixed, default=th, optional), Output Language (enum: th/en/mixed, default=th, optional)
 - **FR-021**: System MUST support responsive design: Desktop (2-column 50/50), Tablet (2-column 40/60), Mobile (stack vertical with collapsible Left Panel)
 - **FR-022**: System MUST display errors using layered approach: Toast (primary, Thai), Inline (field-level, Thai), Modal (critical, Thai + English technical details)
-- **FR-023**: System MUST validate that OCR extraction templates contain {{ocr_text}} placeholder (required) and {{master_data_context}} (optional)
-- **FR-024**: System MUST validate that RAG query prompt templates contain {{user_query}} (required) and {{retrieved_chunks}} (required)
-- **FR-025**: System MUST validate that RAG prep prompt templates contain {{document_text}} (required)
-- **FR-026**: System MUST validate that classification prompt templates contain {{document_metadata}} (required) and {{document_text}} (optional)
+- **FR-023**: System MUST validate that OCR extraction templates contain `{{ocr_text}}` placeholder (required); `{{master_data_context}}` is available but optional — backend does NOT block save if absent
+- **FR-024**: System MUST validate that RAG query prompt templates contain `{{query}}` (required) and `{{context}}` (required)
+- **FR-025**: System MUST validate that RAG prep prompt templates contain `{{text}}` (required)
+- **FR-026**: System MUST validate that classification prompt templates contain `{{document_text}}` (required)
 - **FR-027**: System MUST provide manual_note field for version annotations
 - **FR-028**: System MUST allow admins to delete non-active versions
 - **FR-029**: System MUST use single page layout consistent with ADR-027 AI Admin Console
@@ -139,7 +139,7 @@ Admin users need clear separation between Runtime Parameters (AI model behavior 
 
 ### Edge Case Resolutions (from Grilling Session 2026-06-15)
 
-- **Placeholder Validation**: System validates placeholders in both frontend (real-time) and backend (data integrity). Placeholders per type: OCR ({{ocr_text}} required, {{master_data_context}} optional), RAG Query ({{user_query}}, {{retrieved_chunks}} required), RAG Prep ({{document_text}} required), Classification ({{document_metadata}} required, {{document_text}} optional)
+- **Placeholder Validation**: System validates placeholders in both frontend (real-time) and backend (data integrity). Canonical placeholder names per type: OCR (`{{ocr_text}}` required, `{{master_data_context}}` available but optional — does not block save), RAG Query (`{{query}}` required, `{{context}}` required), RAG Prep (`{{text}}` required), Classification (`{{document_text}}` required). Note: these are the names used by the processor at runtime and must match exactly.
 - **Concurrent Edits**: Optimistic locking with TypeORM @VersionColumn - second editor gets error "Version was modified by another user, please reload"
 - **Context Config Invalid References**: Frontend validates dropdown options (valid only), backend validates UUID existence before save (block if invalid)
 - **Delete Active Version**: Block deletion with error "Cannot delete active version. Please activate another version first."

@@ -28,3 +28,5 @@
 | 2026-06-14 | v1.9.10 | Frontend Test Coverage Phase 3 — added 77 tests (lib/api/* + components/workflows/*), 833/833 tests passing, coverage TBD | ✅ Complete (pending coverage check) |
 | 2026-06-14 | v1.9.10 | TypeORM RfaWorkflow Entity Fix — added RfaWorkflow to RfaModule.forFeature() to resolve "Entity metadata for RfaRevision#workflows was not found" error | ✅ Complete |
 | 2026-06-15 | v1.9.10 | ESLint Error Fixes — Fixed 58 ESLint errors across 4 test files (syntax, unused variables, ADR-019 UUID violations, unsafe member access) | ✅ Complete |
+| 2026-06-15 | v1.9.10 | Backend Test Fixes — Added AiExecutionProfilesService mock, skipped integration tests (requires e2e infra), deleted fake e2e test, updated tasks.md npm→pnpm | ✅ Complete |
+| 2026-06-17 | v1.9.10 | Correspondence Service Refactor — UUID helpers, transaction for update(), .catch() on fire-and-forget, cancel notification fix (REJECTED→PENDING), Partial<T> types, workflow fields in findOne(), permission cache, exportCsv paginated, 26/26 tests pass | ✅ Complete |
