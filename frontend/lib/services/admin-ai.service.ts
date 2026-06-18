@@ -200,12 +200,15 @@ const normalizeVramStatus = (value: unknown): VramStatusResponse => {
   const usedVRAMMB = raw.usedVRAMMB ?? raw.usedVramMb ?? 0;
   const usagePercent = raw.usagePercent ?? (totalVRAMMB > 0 ? Math.round((usedVRAMMB / totalVRAMMB) * 100) : 0);
 
+  // Backend now sends loadedModels with vramUsageMB directly
+  const loadedModels = normalizeLoadedModels(raw.loadedModels);
+
   return {
     totalVRAMMB,
     usedVRAMMB,
     usagePercent,
     thresholdPercent: raw.thresholdPercent ?? 90,
-    loadedModels: normalizeLoadedModels(raw.loadedModels),
+    loadedModels,
     canLoadModel: raw.canLoadModel ?? raw.hasCapacity ?? false,
     lastUpdated: raw.lastUpdated ?? new Date().toISOString(),
   };

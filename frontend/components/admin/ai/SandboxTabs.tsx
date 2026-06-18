@@ -3,8 +3,9 @@
 // - 2026-06-14: Created SandboxTabs component with 3-step testing (OCR -> AI Extract -> RAG Prep) (conforming to task T037)
 // - 2026-06-15: ลบ Tesseract ออกจาก OCR Engine dropdown — canonical engines: auto + np-dms-ocr เท่านั้น (ADR-034)
 // - 2026-06-15: เพิ่ม read-only prompt info banner แสดง version + template snippet ที่กำลังทดสอบ
+// - 2026-06-18: อัปเดตให้รองรับ prompt_type='ocr_system' และ 'ocr_extraction' แยกกันตาม spec 238 (FR-006, FR-007)
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -12,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { adminAiService } from '@/lib/services/admin-ai.service';
+import { adminAiPromptService } from '@/lib/services/admin-ai-prompt.service';
 import { useProjects, useContracts } from '@/hooks/use-master-data';
 import { toast } from 'sonner';
 import {
@@ -26,7 +28,7 @@ import {
 } from 'lucide-react';
 
 interface SandboxTabsProps {
-  promptType: string;
+  promptType?: string;
   selectedVersionNumber?: number;
   selectedTemplate?: string;
   onActivateVersion?: (versionNumber: number) => void;
@@ -54,9 +56,9 @@ interface SandboxJobResult {
 }
 
 export default function SandboxTabs({
-  promptType: _promptType,
+  promptType: _promptType = 'ocr_system',
   selectedVersionNumber,
-  selectedTemplate,
+  selectedTemplate: _selectedTemplate,
   onActivateVersion,
 }: SandboxTabsProps) {
   // Master data state
@@ -87,6 +89,37 @@ export default function SandboxTabs({
   const [step2Complete, setStep2Complete] = useState<boolean>(false);
   const [step3Complete, setStep3Complete] = useState<boolean>(false);
   const allStepsComplete = step1Complete && step2Complete && step3Complete;
+
+  // Load active prompt templates from service (FR-009, FR-010)
+  const [activeOcrSystemTemplate, setActiveOcrSystemTemplate] = useState<string>('');
+  const [activeOcrSystemVersion, setActiveOcrSystemVersion] = useState<number | null>(null);
+  const [activeExtractionTemplate, setActiveExtractionTemplate] = useState<string>('');
+  const [activeExtractionVersion, setActiveExtractionVersion] = useState<number | null>(null);
+
+  useEffect(() => {
+    const loadActivePrompts = async () => {
+      try {
+        // Load OCR system prompt (Step 1)
+        const ocrSystemPrompts = await adminAiPromptService.getPrompts('ocr_system');
+        const ocrSystemActive = ocrSystemPrompts.find((p) => p.isActive);
+        if (ocrSystemActive) {
+          setActiveOcrSystemTemplate(ocrSystemActive.template);
+          setActiveOcrSystemVersion(ocrSystemActive.versionNumber);
+        }
+
+        // Load AI extraction prompt (Step 2)
+        const extractionPrompts = await adminAiPromptService.getPrompts('ocr_extraction');
+        const extractionActive = extractionPrompts.find((p) => p.isActive);
+        if (extractionActive) {
+          setActiveExtractionTemplate(extractionActive.template);
+          setActiveExtractionVersion(extractionActive.versionNumber);
+        }
+      } catch {
+        // Silent fail - will use default warning banner
+      }
+    };
+    loadActivePrompts();
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -173,7 +206,7 @@ export default function SandboxTabs({
     try {
       const res = await adminAiService.submitSandboxAiExtract(
         requestPublicId,
-        selectedVersionNumber,
+        activeExtractionVersion || undefined,
         selectedProject,
         selectedContract || undefined
       );
@@ -233,37 +266,57 @@ export default function SandboxTabs({
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-5 space-y-6">
-        {/* Prompt info banner — read-only, แสดง version + template snippet ที่กำลังทดสอบ */}
+        {/* Prompt info banner — read-only, แสดง version + template snippet ที่กำลังทดสอบ (FR-009, FR-010) */}
         <div className="rounded-lg border border-primary/20 bg-primary/[0.03] px-4 py-3 space-y-1.5">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold text-primary">
               พรอมต์ที่ใช้ทดสอบ (Prompt Under Test)
             </span>
-            {selectedVersionNumber ? (
-              <span className="font-mono text-[11px] font-bold text-foreground">v{selectedVersionNumber}</span>
-            ) : (
-              <span className="text-[11px] text-muted-foreground italic">ยังไม่ได้เลือกเวอร์ชัน — จะใช้เวอร์ชัน Active</span>
+          </div>
+          <div className="space-y-2">
+            {/* Step 1: OCR System Prompt */}
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-muted-foreground">Step 1 (OCR):</span>
+              {activeOcrSystemVersion ? (
+                <span className="font-mono text-[10px] font-bold text-foreground">v{activeOcrSystemVersion}</span>
+              ) : (
+                <span className="text-[10px] text-amber-600 dark:text-amber-400 italic">ไม่มี Active</span>
+              )}
+            </div>
+            {activeOcrSystemTemplate && (
+              <p className="text-[10px] text-muted-foreground font-mono leading-relaxed line-clamp-2 whitespace-pre-wrap select-text bg-background/50 p-2 rounded">
+                {activeOcrSystemTemplate.slice(0, 200)}{activeOcrSystemTemplate.length > 200 ? '…' : ''}
+              </p>
+            )}
+            {/* Step 2: AI Extraction Prompt */}
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-muted-foreground">Step 2 (AI Extract):</span>
+              {activeExtractionVersion ? (
+                <span className="font-mono text-[10px] font-bold text-foreground">v{activeExtractionVersion}</span>
+              ) : (
+                <span className="text-[10px] text-amber-600 dark:text-amber-400 italic">ไม่มี Active</span>
+              )}
+            </div>
+            {activeExtractionTemplate && (
+              <p className="text-[10px] text-muted-foreground font-mono leading-relaxed line-clamp-2 whitespace-pre-wrap select-text bg-background/50 p-2 rounded">
+                {activeExtractionTemplate.slice(0, 200)}{activeExtractionTemplate.length > 200 ? '…' : ''}
+              </p>
             )}
           </div>
-          {selectedTemplate ? (
-            <p className="text-[10px] text-muted-foreground font-mono leading-relaxed line-clamp-3 whitespace-pre-wrap select-text">
-              {selectedTemplate.slice(0, 300)}{selectedTemplate.length > 300 ? '…' : ''}
-            </p>
-          ) : (
-            <p className="text-[10px] text-muted-foreground italic">โหลดเวอร์ชันจาก Version History เพื่อดู template</p>
-          )}
         </div>
 
-        {/* UI fallback warning when no active OCR system prompt (gap-3) */}
-        {_promptType === 'ocr_system' && !selectedTemplate && (
+        {/* UI fallback warning when no active prompts (gap-3) */}
+        {(!activeOcrSystemTemplate || !activeExtractionTemplate) && (
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/[0.05] px-4 py-3 space-y-1.5">
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">
-                ⚠️ คำเตือน: ไม่มี OCR System Prompt ที่เปิดใช้งาน
+                ⚠️ คำเตือน: ไม่มี Prompt ที่เปิดใช้งานครบถ้วน
               </span>
             </div>
             <p className="text-[10px] text-amber-700 dark:text-amber-300 leading-relaxed">
-              ระบบจะใช้ค่าเริ่มต้น (default) ในการสกัดข้อความ OCR แนะนำให้สร้างและเปิดใช้งาน OCR System Prompt เพื่อปรับแต่งความแม่นยำของการสกัดข้อความ
+              {!activeOcrSystemTemplate && '• ไม่มี OCR System Prompt (Step 1) '}
+              {!activeExtractionTemplate && '• ไม่มี AI Extraction Prompt (Step 2) '}
+              ระบบจะใช้ค่าเริ่มต้น (default) แนะนำให้สร้างและเปิดใช้งาน Prompt เพื่อปรับแต่งความแม่นยำ
             </p>
           </div>
         )}

@@ -120,7 +120,13 @@ describe('VramMonitorService', () => {
           },
         });
       const status = await service.getVramStatus(4000);
-      expect(status.loadedModels).toContain('np-dms-ai:latest');
+      expect(status.loadedModels).toEqual([
+        {
+          modelId: 'np-dms-ai:latest',
+          modelName: 'np-dms-ai:latest',
+          vramUsageMB: 3072,
+        },
+      ]);
       expect(status.totalVramMb).toBe(8192);
       expect(status.hasCapacity).toBe(true); // 8192MB - 3072MB = 5120MB free > 4000MB required
     });

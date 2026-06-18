@@ -10,12 +10,27 @@
 // - 2026-06-02: เพิ่มตัวบ่งชี้โมเดลหลักที่กำลังใช้งาน (Active Global Model badge) บนการ์ด System Toggle (T010, ADR-033)
 // - 2026-06-13: [235] ลบ AI Model Management (ADR-027) และ OCR Engine Selector ออก; แก้ System Toggle แสดง canonical names (np-dms-ai/np-dms-ocr); แก้ label OCR Sidecar
 // - 2026-06-13: ADR-036 — ใช้ canonical model constants สำหรับหน้า AI Admin Console
+// - 2026-06-18: อัปเดต OCR Sandbox tab ให้ใช้ PromptManagementTabs และ SandboxTabs ตาม spec 238 (FR-006, FR-011, FR-013)
+// - 2026-06-18: [239] ปรับ AI Console UX ให้ health/system controls แสดงทุก tab และเปลี่ยนชื่อ sandbox tab ให้ตรงกับ 3-step pipeline.
 
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Brain, Loader2, Power, ShieldCheck, Cpu, Database, Activity, Search, Info, HelpCircle, AlertCircle, ScanText } from 'lucide-react';
+import {
+  Brain,
+  Loader2,
+  Power,
+  ShieldCheck,
+  Cpu,
+  Database,
+  Activity,
+  Search,
+  Info,
+  HelpCircle,
+  AlertCircle,
+  ScanText,
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,13 +41,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { useAiStatus, useToggleAiFeatures, useAiHealth } from '@/hooks/use-ai-status';
 import { projectService } from '@/lib/services/project.service';
-import {
-  adminAiService,
-  AiSandboxJobResult,
-  AiRagCitation,
-} from '@/lib/services/admin-ai.service';
+import { adminAiService, AiSandboxJobResult, AiRagCitation } from '@/lib/services/admin-ai.service';
 import { toast } from 'sonner';
-import OcrSandboxPromptManager from '@/components/admin/ai/OcrSandboxPromptManager';
+import { PromptManagementTabs } from '@/components/admin/ai/PromptManagementTabs';
+import SandboxTabs from '@/components/admin/ai/SandboxTabs';
 
 interface SandboxProject {
   publicId: string;
@@ -137,18 +149,20 @@ export default function AiAdminConsolePage() {
     },
   });
   const rawHealthOllamaModels = ensureArray<string>(health?.ollama?.models);
-  const healthOllamaModels = Array.from(new Set(rawHealthOllamaModels.map((m) => {
-    const name = m.toLowerCase();
-    if (name.includes('ocr') || name.includes('typhoon-np-dms-ocr')) return OCR_MODEL_NAME;
-    if (name.includes('typhoon') || name.includes(MAIN_MODEL_NAME)) return MAIN_MODEL_NAME;
-    return m;
-  })));
+  const healthOllamaModels = Array.from(
+    new Set(
+      rawHealthOllamaModels.map((m) => {
+        const name = m.toLowerCase();
+        if (name.includes('ocr') || name.includes('typhoon-np-dms-ocr')) return OCR_MODEL_NAME;
+        if (name.includes('typhoon') || name.includes(MAIN_MODEL_NAME)) return MAIN_MODEL_NAME;
+        return m;
+      })
+    )
+  );
   const healthQdrantCollections = ensureArray<string>(health?.qdrant?.collections);
   const vramLoadedModels = normalizeLoadedModels(vramStatus?.loadedModels);
   const sandboxProjects = ensureArray<SandboxProject>(projects);
-  const sandboxCitations = ensureArray<AiRagCitation>(
-    sandboxJobResult?.citations
-  );
+  const sandboxCitations = ensureArray<AiRagCitation>(sandboxJobResult?.citations);
 
   const handleToggle = async (enabled: boolean): Promise<void> => {
     await toggleMutation.mutateAsync(enabled);
@@ -234,9 +248,15 @@ export default function AiAdminConsolePage() {
     if (!status) return <Badge variant="outline">Unknown</Badge>;
     switch (status) {
       case 'HEALTHY':
-        return <Badge className="border-emerald-500/20 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20">Healthy</Badge>;
+        return (
+          <Badge className="border-emerald-500/20 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20">
+            Healthy
+          </Badge>
+        );
       case 'DEGRADED':
-        return <Badge className="border-amber-500/20 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20">Degraded</Badge>;
+        return (
+          <Badge className="border-amber-500/20 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20">Degraded</Badge>
+        );
       default:
         return <Badge variant="destructive">Down</Badge>;
     }
@@ -250,291 +270,320 @@ export default function AiAdminConsolePage() {
             <Brain className="h-6 w-6" />
             AI Console
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">ควบคุมสถานะ AI features สำหรับผู้ใช้ทั่วไป</p>
+          <p className="mt-1 text-sm text-muted-foreground">ควบคุมและตรวจสอบระบบ AI สำหรับ Superadmin</p>
         </div>
         <Badge variant={aiEnabled ? 'default' : 'destructive'} className="w-fit">
           {aiEnabled ? 'AI Enabled' : 'AI Disabled'}
         </Badge>
       </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card className="relative overflow-hidden border border-border/50 bg-background/50 backdrop-blur-md">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium">
+              <Cpu className="h-4 w-4 text-primary" />
+              Ollama AI Engine
+            </CardTitle>
+            {isHealthLoading ? (
+              <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+            ) : (
+              renderStatusBadge(health?.ollama?.status)
+            )}
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>ความเร็วตอบสนอง</span>
+              <span className="font-semibold text-foreground">
+                {health?.ollama?.latencyMs !== undefined ? `${health.ollama.latencyMs} ms` : '-'}
+              </span>
+            </div>
+            <div className="space-y-1">
+              <span className="text-xs text-muted-foreground">โมเดลที่โหลดอยู่:</span>
+              <div className="flex flex-wrap gap-1">
+                {healthOllamaModels.length > 0 ? (
+                  healthOllamaModels.map((m) => (
+                    <Badge key={m} variant="secondary" className="text-[10px] py-0 px-1">
+                      {m}
+                    </Badge>
+                  ))
+                ) : (
+                  <span className="text-[10px] text-muted-foreground italic">ไม่มีโมเดลที่โหลดอยู่</span>
+                )}
+              </div>
+            </div>
+            {health?.ollama?.error && (
+              <p className="mt-1 text-[10px] text-destructive line-clamp-2">{health.ollama.error}</p>
+            )}
+          </CardContent>
+        </Card>
+        <Card className="relative overflow-hidden border border-border/50 bg-background/50 backdrop-blur-md">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium">
+              <Database className="h-4 w-4 text-primary" />
+              Qdrant Vector DB
+            </CardTitle>
+            {isHealthLoading ? (
+              <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+            ) : (
+              renderStatusBadge(health?.qdrant?.status)
+            )}
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>ความเร็วตอบสนอง</span>
+              <span className="font-semibold text-foreground">
+                {health?.qdrant?.latencyMs !== undefined ? `${health.qdrant.latencyMs} ms` : '-'}
+              </span>
+            </div>
+            <div className="space-y-1">
+              <span className="text-xs text-muted-foreground">คอลเลกชัน:</span>
+              <div className="flex flex-wrap gap-1">
+                {healthQdrantCollections.length > 0 ? (
+                  healthQdrantCollections.map((c) => (
+                    <Badge key={c} variant="outline" className="text-[10px] py-0 px-1 bg-background/30">
+                      {c}
+                    </Badge>
+                  ))
+                ) : (
+                  <span className="text-[10px] text-muted-foreground italic">ไม่มีคอลเลกชัน</span>
+                )}
+              </div>
+            </div>
+            {health?.qdrant?.error && (
+              <p className="mt-1 text-[10px] text-destructive line-clamp-2">{health.qdrant.error}</p>
+            )}
+          </CardContent>
+        </Card>
+        <Card className="relative overflow-hidden border border-border/50 bg-background/50 backdrop-blur-md">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium">
+              <ScanText className="h-4 w-4 text-primary" />
+              OCR Sidecar (np-dms-ocr)
+            </CardTitle>
+            {isHealthLoading ? (
+              <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+            ) : (
+              renderStatusBadge(health?.ocr?.status)
+            )}
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>ความเร็วตอบสนอง</span>
+              <span className="font-semibold text-foreground">
+                {health?.ocr?.latencyMs !== undefined ? `${health.ocr.latencyMs} ms` : '-'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>URL</span>
+              <span className="font-mono text-[10px] text-foreground truncate max-w-[160px]">
+                {health?.ocr?.url ?? '-'}
+              </span>
+            </div>
+            {health?.ocr?.error && <p className="mt-1 text-[10px] text-destructive line-clamp-2">{health.ocr.error}</p>}
+          </CardContent>
+        </Card>
+        <Card className="relative overflow-hidden border border-border/50 bg-background/50 backdrop-blur-md">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium">
+              <Activity className="h-4 w-4 text-primary" />
+              BullMQ Queue Health
+            </CardTitle>
+            {isHealthLoading ? (
+              <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+            ) : (
+              <Badge variant="outline" className="text-[10px]">
+                {health?.timestamp ? new Date(health.timestamp).toLocaleTimeString() : 'N/A'}
+              </Badge>
+            )}
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="space-y-1 text-xs">
+              <div className="flex items-center justify-between font-medium text-[11px] border-b pb-1 mb-1">
+                <span>คิว / สถานะงาน</span>
+                <span>Active / Waiting / Failed</span>
+              </div>
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span className="flex items-center gap-1 font-mono">
+                  realtime
+                  {health?.queues?.realtime?.isPaused && (
+                    <span className="text-[9px] text-amber-500 font-sans">(Paused)</span>
+                  )}
+                </span>
+                <span className="font-semibold text-foreground">
+                  {health?.queues?.realtime?.active ?? 0} / {health?.queues?.realtime?.waiting ?? 0} /{' '}
+                  <span className={(health?.queues?.realtime?.failed ?? 0) > 0 ? 'text-destructive' : ''}>
+                    {health?.queues?.realtime?.failed ?? 0}
+                  </span>
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span className="flex items-center gap-1 font-mono">
+                  batch
+                  {health?.queues?.batch?.isPaused && (
+                    <span className="text-[9px] text-amber-500 font-sans">(Paused)</span>
+                  )}
+                </span>
+                <span className="font-semibold text-foreground">
+                  {health?.queues?.batch?.active ?? 0} / {health?.queues?.batch?.waiting ?? 0} /{' '}
+                  <span className={(health?.queues?.batch?.failed ?? 0) > 0 ? 'text-destructive' : ''}>
+                    {health?.queues?.batch?.failed ?? 0}
+                  </span>
+                </span>
+              </div>
+            </div>
+            {(health?.queues?.realtime?.error || health?.queues?.batch?.error) && (
+              <p className="mt-1 text-[10px] text-destructive line-clamp-1">
+                {health.queues.realtime.error || health.queues.batch.error}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+        <Card className="relative overflow-hidden border border-border/50 bg-background/50 backdrop-blur-md md:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium">
+              <Cpu className="h-4 w-4 text-primary" />
+              VRAM GPU Monitor
+            </CardTitle>
+            {vramStatus ? (
+              <Badge variant={vramStatus.usagePercent > 85 ? 'destructive' : 'secondary'} className="text-[10px]">
+                {vramStatus.usagePercent}% Used
+              </Badge>
+            ) : (
+              <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+            )}
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {vramStatus ? (
+              <>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">GPU VRAM Usage</span>
+                    <span className="font-semibold text-foreground">
+                      {vramStatus.usedVRAMMB} MB / {vramStatus.totalVRAMMB} MB
+                    </span>
+                  </div>
+                  <Progress value={vramStatus.usagePercent} className="h-2" />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-1 text-xs">
+                    <span className="text-muted-foreground block">โมเดลที่โหลดบน GPU ในปัจจุบัน:</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {vramLoadedModels.length > 0 ? (
+                        vramLoadedModels.map((m) => (
+                          <Badge
+                            key={m.modelId}
+                            className="bg-primary/10 text-primary border-none hover:bg-primary/20 text-[10px]"
+                          >
+                            {m.modelName}
+                            {typeof m.vramUsageMB === 'number' ? ` (${m.vramUsageMB} MB)` : ''}
+                          </Badge>
+                        ))
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground italic">
+                          ไม่มีโมเดลที่โหลดค้างในหน่วยความจำ
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-1 text-xs sm:text-right">
+                    <span className="text-muted-foreground block">ความสามารถในการโหลดโมเดลใหม่:</span>
+                    <Badge variant={vramStatus.canLoadModel ? 'default' : 'destructive'} className="mt-1 text-[10px]">
+                      {vramStatus.canLoadModel ? 'พร้อมโหลดโมเดลหลัก' : 'หน่วยความจำไม่เพียงพอ (OOM Guard)'}
+                    </Badge>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground italic text-center py-4">กำลังดึงข้อมูลสถานะ GPU VRAM...</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Power className="h-5 w-5" />
+            System Toggle
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <div className="text-base font-medium">
+                {aiEnabled ? 'AI พร้อมให้ผู้ใช้ทั่วไปใช้งาน' : 'AI ถูกปิดสำหรับผู้ใช้ทั่วไป'}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Superadmin ยังสามารถเข้าถึงส่วนทดสอบและดูแลระบบได้ตามสิทธิ์
+              </div>
+              <div className="text-xs text-muted-foreground flex items-center gap-1.5 pt-1 flex-wrap">
+                <span>Active Models:</span>
+                <Badge
+                  variant="outline"
+                  className="text-[10px] py-0 px-1.5 border-primary/20 text-primary bg-primary/5 font-semibold"
+                >
+                  {isHealthLoading ? 'Loading...' : toCanonicalModel(health?.activeModels?.main ?? 'np-dms-ai')}
+                </Badge>
+                <span className="text-muted-foreground/50">+</span>
+                <Badge
+                  variant="outline"
+                  className="text-[10px] py-0 px-1.5 border-purple-500/20 text-purple-600 dark:text-purple-400 bg-purple-500/5 font-semibold"
+                >
+                  {isHealthLoading ? 'Loading...' : toCanonicalModel(health?.activeModels?.ocr ?? 'np-dms-ocr')}
+                </Badge>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+              <Switch
+                checked={aiEnabled}
+                disabled={busy || isError}
+                aria-label="Toggle AI features"
+                onCheckedChange={handleToggle}
+              />
+            </div>
+          </div>
+          {isError && (
+            <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+              ไม่สามารถโหลดสถานะ AI ได้ กรุณาลองใหม่อีกครั้ง
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ShieldCheck className="h-5 w-5" />
+              Protection
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            เมื่อปิด AI ระบบจะบล็อก AI inference endpoints สำหรับผู้ใช้ทั่วไปด้วย HTTP 503
+            และให้ผู้ใช้กรอกข้อมูลเองชั่วคราว
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Polling</CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
+            <span>
+              อัปเดตสถานะทุก 30 วินาที
+              {(isFetching || isHealthLoading) && !(isLoading || isHealthLoading) ? ' (กำลังรีเฟรช)' : ''}
+            </span>
+            <Button type="button" variant="outline" size="sm" onClick={() => void handleRefreshAll()}>
+              Refresh
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
       <Tabs defaultValue="overview" className="w-full space-y-6">
         <TabsList className="grid w-full grid-cols-3 max-w-[500px]">
-          <TabsTrigger value="overview">Overview & Health</TabsTrigger>
+          <TabsTrigger value="overview">System Toggle</TabsTrigger>
           <TabsTrigger value="playground">RAG Playground</TabsTrigger>
-          <TabsTrigger value="ocr">OCR Sandbox</TabsTrigger>
+          <TabsTrigger value="sandbox">3-Step Pipeline Sandbox</TabsTrigger>
         </TabsList>
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card className="relative overflow-hidden border border-border/50 bg-background/50 backdrop-blur-md">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                  <Cpu className="h-4 w-4 text-primary" />
-                  Ollama AI Engine
-                </CardTitle>
-                {isHealthLoading ? <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" /> : renderStatusBadge(health?.ollama?.status)}
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>ความเร็วตอบสนอง</span>
-                  <span className="font-semibold text-foreground">{health?.ollama?.latencyMs !== undefined ? `${health.ollama.latencyMs} ms` : '-'}</span>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-xs text-muted-foreground">โมเดลที่โหลดอยู่:</span>
-                  <div className="flex flex-wrap gap-1">
-                    {healthOllamaModels.length > 0 ? (
-                      healthOllamaModels.map((m) => (
-                        <Badge key={m} variant="secondary" className="text-[10px] py-0 px-1">
-                          {m}
-                        </Badge>
-                      ))
-                    ) : (
-                      <span className="text-[10px] text-muted-foreground italic">ไม่มีโมเดลที่โหลดอยู่</span>
-                    )}
-                  </div>
-                </div>
-                {health?.ollama?.error && (
-                  <p className="mt-1 text-[10px] text-destructive line-clamp-2">{health.ollama.error}</p>
-                )}
-              </CardContent>
-            </Card>
-            <Card className="relative overflow-hidden border border-border/50 bg-background/50 backdrop-blur-md">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                  <Database className="h-4 w-4 text-primary" />
-                  Qdrant Vector DB
-                </CardTitle>
-                {isHealthLoading ? <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" /> : renderStatusBadge(health?.qdrant?.status)}
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>ความเร็วตอบสนอง</span>
-                  <span className="font-semibold text-foreground">{health?.qdrant?.latencyMs !== undefined ? `${health.qdrant.latencyMs} ms` : '-'}</span>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-xs text-muted-foreground">คอลเลกชัน:</span>
-                  <div className="flex flex-wrap gap-1">
-                    {healthQdrantCollections.length > 0 ? (
-                      healthQdrantCollections.map((c) => (
-                        <Badge key={c} variant="outline" className="text-[10px] py-0 px-1 bg-background/30">
-                          {c}
-                        </Badge>
-                      ))
-                    ) : (
-                      <span className="text-[10px] text-muted-foreground italic">ไม่มีคอลเลกชัน</span>
-                    )}
-                  </div>
-                </div>
-                {health?.qdrant?.error && (
-                  <p className="mt-1 text-[10px] text-destructive line-clamp-2">{health.qdrant.error}</p>
-                )}
-              </CardContent>
-            </Card>
-            <Card className="relative overflow-hidden border border-border/50 bg-background/50 backdrop-blur-md">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                  <ScanText className="h-4 w-4 text-primary" />
-                  OCR Sidecar (np-dms-ocr)
-                </CardTitle>
-                {isHealthLoading ? <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" /> : renderStatusBadge(health?.ocr?.status)}
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>ความเร็วตอบสนอง</span>
-                  <span className="font-semibold text-foreground">{health?.ocr?.latencyMs !== undefined ? `${health.ocr.latencyMs} ms` : '-'}</span>
-                </div>
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>URL</span>
-                  <span className="font-mono text-[10px] text-foreground truncate max-w-[160px]">{health?.ocr?.url ?? '-'}</span>
-                </div>
-                {health?.ocr?.error && (
-                  <p className="mt-1 text-[10px] text-destructive line-clamp-2">{health.ocr.error}</p>
-                )}
-              </CardContent>
-            </Card>
-            <Card className="relative overflow-hidden border border-border/50 bg-background/50 backdrop-blur-md">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                  <Activity className="h-4 w-4 text-primary" />
-                  BullMQ Queue Health
-                </CardTitle>
-                {isHealthLoading ? (
-                  <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                ) : (
-                  <Badge variant="outline" className="text-[10px]">
-                    {health?.timestamp ? new Date(health.timestamp).toLocaleTimeString() : 'N/A'}
-                  </Badge>
-                )}
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="space-y-1 text-xs">
-                  <div className="flex items-center justify-between font-medium text-[11px] border-b pb-1 mb-1">
-                    <span>คิว / สถานะงาน</span>
-                    <span>Active / Waiting / Failed</span>
-                  </div>
-                  <div className="flex items-center justify-between text-muted-foreground">
-                    <span className="flex items-center gap-1 font-mono">
-                      realtime
-                      {health?.queues?.realtime?.isPaused && <span className="text-[9px] text-amber-500 font-sans">(Paused)</span>}
-                    </span>
-                    <span className="font-semibold text-foreground">
-                      {health?.queues?.realtime?.active ?? 0} / {health?.queues?.realtime?.waiting ?? 0} /{' '}
-                      <span className={(health?.queues?.realtime?.failed ?? 0) > 0 ? 'text-destructive' : ''}>
-                        {health?.queues?.realtime?.failed ?? 0}
-                      </span>
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-muted-foreground">
-                    <span className="flex items-center gap-1 font-mono">
-                      batch
-                      {health?.queues?.batch?.isPaused && <span className="text-[9px] text-amber-500 font-sans">(Paused)</span>}
-                    </span>
-                    <span className="font-semibold text-foreground">
-                      {health?.queues?.batch?.active ?? 0} / {health?.queues?.batch?.waiting ?? 0} /{' '}
-                      <span className={(health?.queues?.batch?.failed ?? 0) > 0 ? 'text-destructive' : ''}>
-                        {health?.queues?.batch?.failed ?? 0}
-                      </span>
-                    </span>
-                  </div>
-                </div>
-                {(health?.queues?.realtime?.error || health?.queues?.batch?.error) && (
-                  <p className="mt-1 text-[10px] text-destructive line-clamp-1">
-                    {health.queues.realtime.error || health.queues.batch.error}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-            <Card className="relative overflow-hidden border border-border/50 bg-background/50 backdrop-blur-md md:col-span-2">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                  <Cpu className="h-4 w-4 text-primary" />
-                  VRAM GPU Monitor
-                </CardTitle>
-                {vramStatus ? (
-                  <Badge variant={vramStatus.usagePercent > 85 ? 'destructive' : 'secondary'} className="text-[10px]">
-                    {vramStatus.usagePercent}% Used
-                  </Badge>
-                ) : (
-                  <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                )}
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {vramStatus ? (
-                  <>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">GPU VRAM Usage</span>
-                        <span className="font-semibold text-foreground">
-                          {vramStatus.usedVRAMMB} MB / {vramStatus.totalVRAMMB} MB
-                        </span>
-                      </div>
-                      <Progress value={vramStatus.usagePercent} className="h-2" />
-                    </div>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-1 text-xs">
-                        <span className="text-muted-foreground block">โมเดลที่โหลดบน GPU ในปัจจุบัน:</span>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {vramLoadedModels.length > 0 ? (
-                            vramLoadedModels.map((m) => (
-                              <Badge key={m.modelId} className="bg-primary/10 text-primary border-none hover:bg-primary/20 text-[10px]">
-                                {m.modelName}
-                                {typeof m.vramUsageMB === 'number'
-                                  ? ` (${m.vramUsageMB} MB)`
-                                  : ''}
-                              </Badge>
-                            ))
-                          ) : (
-                            <span className="text-[10px] text-muted-foreground italic">ไม่มีโมเดลที่โหลดค้างในหน่วยความจำ</span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="space-y-1 text-xs sm:text-right">
-                        <span className="text-muted-foreground block">ความสามารถในการโหลดโมเดลใหม่:</span>
-                        <Badge variant={vramStatus.canLoadModel ? 'default' : 'destructive'} className="mt-1 text-[10px]">
-                          {vramStatus.canLoadModel ? 'พร้อมโหลดโมเดลหลัก' : 'หน่วยความจำไม่เพียงพอ (OOM Guard)'}
-                        </Badge>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-xs text-muted-foreground italic text-center py-4">กำลังดึงข้อมูลสถานะ GPU VRAM...</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Power className="h-5 w-5" />
-                System Toggle
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-                <div className="space-y-1">
-                  <div className="text-base font-medium">
-                    {aiEnabled ? 'AI พร้อมให้ผู้ใช้ทั่วไปใช้งาน' : 'AI ถูกปิดสำหรับผู้ใช้ทั่วไป'}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Superadmin ยังสามารถเข้าถึงส่วนทดสอบและดูแลระบบได้ตามสิทธิ์
-                  </div>
-                  <div className="text-xs text-muted-foreground flex items-center gap-1.5 pt-1 flex-wrap">
-                    <span>Active Models:</span>
-                    <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-primary/20 text-primary bg-primary/5 font-semibold">
-                      {isHealthLoading ? 'Loading...' : toCanonicalModel(health?.activeModels?.main ?? 'np-dms-ai')}
-                    </Badge>
-                    <span className="text-muted-foreground/50">+</span>
-                    <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-purple-500/20 text-purple-600 dark:text-purple-400 bg-purple-500/5 font-semibold">
-                      {isHealthLoading ? 'Loading...' : toCanonicalModel(health?.activeModels?.ocr ?? 'np-dms-ocr')}
-                    </Badge>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-                  <Switch
-                    checked={aiEnabled}
-                    disabled={busy || isError}
-                    aria-label="Toggle AI features"
-                    onCheckedChange={handleToggle}
-                  />
-                </div>
-              </div>
-              {isError && (
-                <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-                  ไม่สามารถโหลดสถานะ AI ได้ กรุณาลองใหม่อีกครั้ง
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <ShieldCheck className="h-5 w-5" />
-                  Protection
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
-                เมื่อปิด AI ระบบจะบล็อก AI inference endpoints สำหรับผู้ใช้ทั่วไปด้วย HTTP 503
-                และให้ผู้ใช้กรอกข้อมูลเองชั่วคราว
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Polling</CardTitle>
-              </CardHeader>
-              <CardContent className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
-                <span>
-                  อัปเดตสถานะทุก 30 วินาที
-                  {(isFetching || isHealthLoading) && !(isLoading || isHealthLoading) ? ' (กำลังรีเฟรช)' : ''}
-                </span>
-                <Button type="button" variant="outline" size="sm" onClick={() => void handleRefreshAll()}>
-                  Refresh
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
 
         <TabsContent value="playground" className="space-y-6">
           <Card className="border border-border/50 bg-background/50 backdrop-blur-md">
@@ -544,7 +593,8 @@ export default function AiAdminConsolePage() {
                 RAG Sandbox Playground (isolated)
               </CardTitle>
               <p className="text-sm text-muted-foreground">
-                พื้นที่ทดสอบสืบค้นเอกสารและสรุปผลด้วย Retrieval-Augmented Generation (RAG) คิวงานใช้ระดับความสำคัญพิเศษ (Priority 1)
+                พื้นที่ทดสอบสืบค้นเอกสารและสรุปผลด้วย Retrieval-Augmented Generation (RAG) คิวงานใช้ระดับความสำคัญพิเศษ
+                (Priority 1)
               </p>
             </CardHeader>
             <CardContent>
@@ -586,9 +636,7 @@ export default function AiAdminConsolePage() {
                     rows={4}
                     className="resize-none border border-input bg-background/50"
                   />
-                  <div className="text-right text-[11px] text-muted-foreground">
-                    {question.length} ตัวอักษร
-                  </div>
+                  <div className="text-right text-[11px] text-muted-foreground">{question.length} ตัวอักษร</div>
                 </div>
                 <div className="flex justify-end gap-3 pt-2">
                   <Button
@@ -641,7 +689,10 @@ export default function AiAdminConsolePage() {
                         คำตอบที่ประมวลผลได้ (RAG Sandbox Answer)
                       </CardTitle>
                       {sandboxJobResult.usedFallbackModel && (
-                        <Badge variant="outline" className="text-[10px] text-amber-500 border-amber-500/20 bg-amber-500/5">
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] text-amber-500 border-amber-500/20 bg-amber-500/5"
+                        >
                           โมเดลสำรอง (Fallback)
                         </Badge>
                       )}
@@ -681,7 +732,10 @@ export default function AiAdminConsolePage() {
                                     {cite.docNumber || 'ไม่มีเลขที่เอกสาร'}
                                   </span>
                                 </div>
-                                <Badge variant="outline" className="text-[10px] py-0 border-border/50 text-muted-foreground">
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] py-0 border-border/50 text-muted-foreground"
+                                >
                                   Score Match: {(cite.score * 100).toFixed(1)}%
                                 </Badge>
                               </div>
@@ -710,7 +764,8 @@ export default function AiAdminConsolePage() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      {sandboxJobResult.errorMessage || 'เกิดข้อผิดพลาดในการเรียกใช้ Local LLM หรือ Vector DB ใน Sandbox Sandbox process ล้มเหลว กรุณาตรวจสอบสถานะสุขภาพของ Ollama Engine/Qdrant DB ใน Overview Tab'}
+                      {sandboxJobResult.errorMessage ||
+                        'เกิดข้อผิดพลาดในการเรียกใช้ Local LLM หรือ Vector DB ใน Sandbox Sandbox process ล้มเหลว กรุณาตรวจสอบสถานะสุขภาพของ Ollama Engine/Qdrant DB ใน Overview Tab'}
                     </p>
                   </CardContent>
                 </Card>
@@ -719,8 +774,11 @@ export default function AiAdminConsolePage() {
           )}
         </TabsContent>
 
-        <TabsContent value="ocr" className="space-y-6">
-          <OcrSandboxPromptManager />
+        <TabsContent value="sandbox" className="space-y-6">
+          <PromptManagementTabs />
+          <div className="mt-8">
+            <SandboxTabs />
+          </div>
         </TabsContent>
       </Tabs>
     </div>

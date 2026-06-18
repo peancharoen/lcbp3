@@ -17,7 +17,11 @@ export interface VramStatus {
   totalVramMb: number;
   usedVramMb: number;
   freeVramMb: number;
-  loadedModels: string[];
+  loadedModels: Array<{
+    modelId: string;
+    modelName: string;
+    vramUsageMB: number;
+  }>;
   hasCapacity: boolean;
 }
 
@@ -102,7 +106,11 @@ export class VramMonitorService {
         }>;
       }>(`${this.ollamaUrl}/api/ps`, { timeout: 3000 });
       const models = response.data?.models ?? [];
-      const loadedModels = models.map((m) => m.name);
+      const loadedModels = models.map((m) => ({
+        modelId: m.name,
+        modelName: m.name,
+        vramUsageMB: Math.round((m.size_vram || 0) / (1024 * 1024)),
+      }));
       const headroom = await this.getVramHeadroom();
       return {
         totalVramMb: headroom.totalMb,
