@@ -88,6 +88,8 @@ export interface AiSandboxJobResult {
   usedFallbackModel?: boolean;
   errorMessage?: string;
   completedAt?: string;
+  ragChunks?: Array<{ text: string; summary: string }>;
+  ragVectors?: number[][];
 }
 
 export interface LoadedModelInfo {
@@ -431,10 +433,11 @@ export const adminAiService = {
     await api.delete(`/ai/prompts/${type}/${versionNumber}`);
   },
 
-  activatePrompt: async (type: PromptType, versionNumber: number): Promise<PromptVersion> => {
+  activatePrompt: async (type: PromptType, versionNumber: number, expectedVersion?: number): Promise<PromptVersion> => {
+    const body = expectedVersion === undefined ? {} : { expectedVersion };
     const { data } = await api.post(
       `/ai/prompts/${type}/${versionNumber}/activate`,
-      {},
+      body,
       { headers: { 'Idempotency-Key': createIdempotencyKey() } }
     );
     return extractData<PromptVersion>(data);

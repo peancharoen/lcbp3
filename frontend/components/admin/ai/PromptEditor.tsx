@@ -51,6 +51,8 @@ export default function PromptEditor({
 
   const getFriendlyTypeName = (type: PromptType) => {
     switch (type) {
+      case 'ocr_system':
+        return 'คำสั่งระบบ OCR (OCR System Prompt)';
       case 'ocr_extraction':
         return 'สกัดข้อความ OCR (OCR Extraction)';
       case 'rag_query_prompt':

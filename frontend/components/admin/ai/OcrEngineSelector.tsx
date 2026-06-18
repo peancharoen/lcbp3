@@ -1,6 +1,7 @@
 // File: frontend/components/admin/ai/OcrEngineSelector.tsx
 // Change Log
 // - 2026-05-30: สร้าง OcrEngineSelector สำหรับดึงและสลับ OCR Engine แบบไดนามิก (T019, T020, US1)
+// - 2026-06-17: ลบ Tesseract ออกจาก UI ตาม ADR-035 (เปลี่ยนเป็น Fast Path: PyMuPDF Text Layer)
 
 'use client';
 
@@ -9,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { ScanText, Server, AlertCircle, CheckCircle2, Cpu } from 'lucide-react';
+import { ScanText, Server, CheckCircle2, Cpu } from 'lucide-react';
 import { adminAiService, OcrEngineResponse } from '@/lib/services/admin-ai.service';
 
 /** Component สำหรับเลือกและจัดการ OCR Engine ในระบบ */
@@ -116,9 +117,9 @@ export default function OcrEngineSelector() {
                         <Cpu className="h-3 w-3" />
                         ต้องการ VRAM: {(engine.vramRequirementMB / 1024).toFixed(1)} GB
                       </span>
-                      <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
-                        <AlertCircle className="h-3 w-3" />
-                        เอนจินสำรอง: Tesseract OCR
+                      <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Fast Path: PyMuPDF Text Layer
                       </span>
                     </>
                   )}

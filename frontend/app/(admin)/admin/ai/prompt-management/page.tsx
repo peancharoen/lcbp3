@@ -22,6 +22,8 @@ export default function UnifiedPromptManagementPage() {
   const queryClient = useQueryClient();
   const [selectedType, setSelectedType] = useState<PromptType | 'all'>('ocr_extraction');
   const [selectedVersion, setSelectedVersion] = useState<PromptVersion | null>(null);
+  const promptSeparationTabValue =
+    selectedType === 'ocr_system' || selectedType === 'ocr_extraction' ? selectedType : 'other';
 
   // ดึงข้อมูลประวัติเวอร์ชันทั้งหมดของ prompt_type ที่เลือก
   const { data: versions = [], isLoading } = useQuery<PromptVersion[]>({
@@ -77,7 +79,8 @@ export default function UnifiedPromptManagementPage() {
   const activateMutation = useMutation({
     mutationFn: async (versionNumber: number) => {
       if (selectedType === 'all') throw new Error('Cannot activate prompt for "All Types"');
-      return await adminAiService.activatePrompt(selectedType, versionNumber);
+      const promptVersion = versions.find((version) => version.versionNumber === versionNumber);
+      return await adminAiService.activatePrompt(selectedType, versionNumber, promptVersion?.version);
     },
     onSuccess: () => {
       toast.success('เปิดใช้งาน Prompt Version สำเร็จ');
@@ -168,8 +171,27 @@ export default function UnifiedPromptManagementPage() {
             จัดการเทมเพลตพรอมต์และตัวกรองข้อมูล Master Data เพื่อส่งให้ระบบ AI ประมวลผลอย่างแม่นยำ
           </p>
         </div>
-        <div className="w-full sm:w-[280px] md:w-[320px] bg-background/40 p-2 sm:p-2.5 rounded-lg border border-border/50">
-          <PromptTypeDropdown value={selectedType} onChange={setSelectedType} />
+        <div className="w-full sm:w-[360px] md:w-[420px] space-y-2">
+          <Tabs
+            value={promptSeparationTabValue}
+            onValueChange={(value) => {
+              if (value === 'ocr_system' || value === 'ocr_extraction') {
+                setSelectedType(value);
+              }
+            }}
+          >
+            <TabsList className="grid w-full grid-cols-2 bg-background/40 border border-border/50 p-1">
+              <TabsTrigger value="ocr_system" className="text-xs font-semibold whitespace-nowrap">
+                OCR System Prompt
+              </TabsTrigger>
+              <TabsTrigger value="ocr_extraction" className="text-xs font-semibold whitespace-nowrap">
+                AI Extraction Prompt
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <div className="bg-background/40 p-2 sm:p-2.5 rounded-lg border border-border/50">
+            <PromptTypeDropdown value={selectedType} onChange={setSelectedType} />
+          </div>
         </div>
       </div>
 

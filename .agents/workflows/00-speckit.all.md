@@ -70,6 +70,12 @@ This meta-workflow orchestrates the **complete development lifecycle**, from spe
 /speckit.all "Build a user authentication system with OAuth2 support"
 ```
 
+For OCR & AI Extraction prompt management (ADR-037 3-Step Pipeline), use the specialized workflow:
+
+```
+/speckit.ocr-prompt-management
+```
+
 ## Pipeline Comparison
 
 | Pipeline           | Steps                     | Use When                               |

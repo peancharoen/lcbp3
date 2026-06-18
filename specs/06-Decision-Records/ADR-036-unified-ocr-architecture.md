@@ -161,7 +161,8 @@ Sidecar จะรวม parameters จาก request เข้ากับ defau
 → `{{master_data_context}}` ใน prompt **ต่างกัน** แม้ params ถูกต้อง → Production Pipeline Sandbox **ไม่สมบูรณ์**
 
 **แก้:**
-- Sandbox UI ให้ admin เลือก `projectPublicId` (และ `contractPublicId` optional) ก่อนรันทดสอบ — ไม่อนุญาต `'default'`
+- **Step 1 (OCR-only):** ไม่ต้องเลือก project — OCR เป็นแค่ text extraction ไม่ต้องใช้ master data context
+- **Step 2 (AI Extraction):** ต้องเลือก `projectPublicId` (และ `contractPublicId` optional) — เพราะต้องส่ง master data context ให้ AI สกัด metadata
 - `processSandboxExtract`/`processSandboxAiExtract` ส่ง ID จริงไป `resolveContext` เสมอ — ไม่มี special case `'default'` → `undefined`
 - `aiPromptsService.resolveContext` จะคืนค่า empty context (`{}`) ถ้า project/contract ไม่มี master data (production-ready behavior)
 
@@ -371,7 +372,7 @@ CREATE TABLE ai_sandbox_profiles (
 | `backend/src/modules/ai/services/sandbox-ocr-engine.service.ts` | **KEEP** (ephemeral override) |
 | `backend/src/modules/ai/services/ollama.service.ts` | MODIFY (ENV/Modelfile tag เท่านั้น — runtime detail) |
 | `frontend/lib/services/admin-ai.service.ts` | MODIFY |
-| `frontend/components/admin/ai/OcrSandboxPromptManager.tsx` | MODIFY (เพิ่ม apply runtime params; **Gap 5:** เพิ่ม project/contract selector ไม่อนุญาต 'default') |
+| `frontend/components/admin/ai/OcrSandboxPromptManager.tsx` | MODIFY (เพิ่ม apply runtime params; **Gap 5:** Step 1 (OCR) ไม่ต้องเลือก project; Step 2 (AI Extract) ต้องเลือก project/contract — ไม่อนุญาต 'default') |
 | `specs/03-Data-and-Storage/deltas/2026-06-13-extend-ai-execution-profiles-ocr.sql` (+rollback) | NEW |
 | `CONTEXT.md` | MODIFY (Glossary + Flagged ambiguities — **done**) |
 | `specs/06-Decision-Records/ADR-034-AI-model-change.md` | MODIFY (canonical names) |

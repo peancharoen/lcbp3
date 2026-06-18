@@ -26,3 +26,15 @@ This workflow orchestrates the sequential execution of the Speckit preparation p
 5. **Step 5: Analyze (Skill 06)**
    - Goal: Validate consistency across all design artifacts (spec, plan, tasks).
    - Action: Read and execute `.agents/skills/speckit-analyze/SKILL.md`.
+
+## OCR-Specific Considerations
+
+For OCR & AI Extraction prompt management features (ADR-037), consider:
+
+- **Infrastructure**: Verify OCR sidecar (Desk-5439) and `/embed` endpoint availability
+- **Database**: Check for `ai_prompts` table with `version` column and required deltas
+- **Sidecar Integration**: Plan for system prompt threading through OCR endpoints
+- **3-Step Pipeline**: Design for sequential execution (OCR → AI Extract → RAG Prep)
+- **Optimistic Locking**: Include version conflict handling in prompt activation flows
+
+For specialized OCR workflows, use `/speckit.ocr-prompt-management` instead.

@@ -28,6 +28,7 @@ import { AiPromptsService } from './ai-prompts.service';
 import { AiPrompt } from './ai-prompts.entity';
 import { CreateAiPromptDto } from './dto/create-ai-prompt.dto';
 import { UpdatePromptNoteDto } from './dto/update-prompt-note.dto';
+import { ActivatePromptDto } from './dto/activate-prompt.dto';
 import { AiPromptResponseDto } from './dto/ai-prompt-response.dto';
 import { ContextConfigDto } from '../dto/context-config.dto';
 import { plainToInstance } from 'class-transformer';
@@ -132,6 +133,7 @@ export class AiPromptsController {
   async activatePromptVersion(
     @Param('promptType') promptType: string,
     @Param('versionNumber', ParseIntPipe) versionNumber: number,
+    @Body() dto: ActivatePromptDto,
     @CurrentUser() user: User,
     @Headers('idempotency-key') idempotencyKey: string
   ): Promise<{ data: AiPromptResponseDto }> {
@@ -139,7 +141,8 @@ export class AiPromptsController {
     const activated = await this.promptsService.activate(
       promptType,
       versionNumber,
-      user.user_id
+      user.user_id,
+      dto.expectedVersion
     );
     return { data: this.mapToDto(activated) };
   }

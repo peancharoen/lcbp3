@@ -404,6 +404,21 @@ describe('AiPromptsService', () => {
         NotFoundException
       );
     });
+    it('ควร throw ConflictException เมื่อ optimistic lock version mismatch (T046)', async () => {
+      const targetPrompt = {
+        id: 2,
+        publicId: 'prompt-uuid-target',
+        promptType: 'ocr_extraction',
+        versionNumber: 2,
+        version: 5, // Current version in DB
+        isActive: false,
+      };
+      mockQueryRunner.manager.findOne.mockResolvedValue(targetPrompt);
+      // Simulate version mismatch: expectedVersion=3 but current=5
+      await expect(service.activate('ocr_extraction', 2, 1, 3)).rejects.toThrow(
+        'Version mismatch: expected 3, but current is 5'
+      );
+    });
   });
   describe('delete', () => {
     it('ควร throw error เมื่อลบ active version', async () => {

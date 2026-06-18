@@ -1,7 +1,7 @@
 # NAP-DMS Project Context & Rules
 
-- For: Gemini (Google AI Studio, Vertex AI, Antigravity, Gemini CLI)
-- Version: 1.9.10 | Last synced from AGENTS.md: 2026-06-11
+- For: Windsurf Cascade (and compatible: Codex CLI, opencode, Amp, Antigravity, AGENTS.md tools)
+- Version: 1.9.10 | Last synced from repo: 2026-06-06
 - Repo: [https://git.np-dms.work/np-dms/lcbp3](https://git.np-dms.work/np-dms/lcbp3)
 - Skill pack: `.agents/skills/` (v1.9.0, 21 skills) — see [`skills/README.md`](../.agents/skills/README.md) + [`skills/_LCBP3-CONTEXT.md`](../.agents/skills/_LCBP3-CONTEXT.md)
 
@@ -138,7 +138,7 @@ Spec priority: **`06-Decision-Records`** > **`05-Engineering-Guidelines`** > oth
 | **ADR-021 Workflow Context**   | `specs/06-Decision-Records/ADR-021-workflow-context.md`                     | ✅ Active | Integrated workflow & step attachments                                                 |
 | **ADR-023 AI Architecture**    | `specs/06-Decision-Records/ADR-023-unified-ai-architecture.md`              | ✅ Active | Unified AI boundaries and pipeline (base architecture)                                 |
 | **ADR-023A AI Model Rev.**     | `specs/06-Decision-Records/ADR-023A-unified-ai-architecture.md`             | ✅ Active | 2-queue, RAG embed scope, OCR auto-detect (model stack superseded by ADR-034)          |
-| **ADR-034 Thai Model Stack**   | `specs/06-Decision-Records/ADR-034-AI-model-change.md`                      | ✅ Active | typhoon2.5-np-dms:latest (Main) + typhoon-np-dms-ocr:latest (OCR, keep_alive:0)        |
+| **ADR-034 Thai Model Stack**   | `specs/06-Decision-Records/ADR-034-AI-model-change.md`                      | ✅ Active | np-dms-ai:latest (Main) + np-dms-ocr:latest (OCR, keep_alive:0)                        |
 | **ADR-024 Intent Class.**      | `specs/06-Decision-Records/ADR-024-intent-classification-strategy.md`       | ✅ Active | Hybrid Pattern→LLM Fallback; ai_intent_patterns DB; Redis cache 5 min                  |
 | **ADR-025 AI Tool Layer**      | `specs/06-Decision-Records/ADR-025-ai-tool-layer-architecture.md`           | ✅ Active | Server-side Tool dispatch; CASL-guarded bridge; ToolResult uses publicId only          |
 | **ADR-026 Chat UI**            | `specs/06-Decision-Records/ADR-026-document-chat-ui-pattern.md`             | ✅ Active | Side-panel Document Chat UI; useAiChat() hook; streaming response support              |
@@ -255,7 +255,7 @@ Read `specs/05-Engineering-Guidelines/05-07-hybrid-uuid-implementation-plan.md` 
 5. **Password:** bcrypt 12 salt rounds, min 8 chars, rotate every 90 days
 6. **Rate Limiting:** `ThrottlerGuard` on all auth endpoints
 7. **File Upload:** Whitelist PDF/DWG/DOCX/XLSX/ZIP, max 50MB, ClamAV scan
-8. **AI Isolation (ADR-023/023A/034):** Ollama on Admin Desktop ONLY — NO direct DB/storage access; model stack `typhoon2.5-np-dms:latest` (main) + `typhoon-np-dms-ocr:latest` (OCR, keep_alive:0) + `nomic-embed-text`; all inference via BullMQ (`ai-realtime` / `ai-batch`)
+8. **AI Isolation (ADR-023/023A/034):** Ollama on Admin Desktop ONLY — NO direct DB/storage access; model stack `np-dms-ai:latest` (main) + `np-dms-ocr:latest` (OCR, keep_alive:0) + `nomic-embed-text`; all inference via BullMQ (`ai-realtime` / `ai-batch`)
 9. **Error Handling (ADR-007):** Use layered error classification with user-friendly messages
 10. **AI Integration (ADR-023/023A):** RFA-First approach; n8n orchestrates Migration Phase only via DMS API — never calls Ollama directly; `QdrantService.search()` requires `projectPublicId` as mandatory param
 
@@ -415,7 +415,7 @@ Full details: `specs/06-Decision-Records/ADR-016-security-authentication.md`
 
 **For AI Runtime Layer (ADR-024/025/026/027):**
 
-- ADR-024: Pattern Layer first (ai_intent_patterns DB + Redis cache 5 min) → LLM Fallback (gemma4:e4b Q8_0, semaphore max=3)
+- ADR-024: Pattern Layer first (ai_intent_patterns DB + Redis cache 5 min) → LLM Fallback (np-dms-ai:latest, semaphore max=3)
 - ADR-025: Tool Registry dispatch — AI Gateway → Tool → Business Service; ToolResult DTO must use publicId only
 - ADR-026: useAiChat() hook + side-panel UI; streaming response via SSE; TanStack Query cache
 - ADR-027: Admin Console — dynamic model/prompt/intent control; CASL-guarded admin-only endpoints

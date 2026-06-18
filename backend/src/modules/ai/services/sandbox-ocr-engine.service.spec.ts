@@ -8,6 +8,7 @@ import axios from 'axios';
 import * as fs from 'fs';
 import { SandboxOcrEngineService } from './sandbox-ocr-engine.service';
 import { OcrService } from './ocr.service';
+import { AiPromptsService } from '../prompts/ai-prompts.service';
 
 jest.mock('axios');
 jest.mock('fs');
@@ -18,6 +19,11 @@ const mockedFs = fs as jest.Mocked<typeof fs>;
 /** OcrService mock สำหรับ tesseract/fast-path */
 const mockOcrService = {
   detectAndExtract: jest.fn(),
+};
+
+/** AiPromptsService mock สำหรับ ocr_system prompt */
+const mockAiPromptsService = {
+  getActive: jest.fn(),
 };
 
 /** ConfigService mock */
@@ -41,6 +47,7 @@ describe('SandboxOcrEngineService', () => {
         SandboxOcrEngineService,
         { provide: ConfigService, useValue: mockConfigService },
         { provide: OcrService, useValue: mockOcrService },
+        { provide: AiPromptsService, useValue: mockAiPromptsService },
       ],
     }).compile();
     service = module.get<SandboxOcrEngineService>(SandboxOcrEngineService);

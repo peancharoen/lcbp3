@@ -47,6 +47,9 @@ export default function PromptTypeDropdown({
               {t('prompt_management.all_types')}
             </SelectItem>
           )}
+          <SelectItem value="ocr_system">
+            คำสั่งระบบ OCR (OCR System Prompt)
+          </SelectItem>
           <SelectItem value="ocr_extraction">
             สกัดข้อความ OCR (OCR Extraction)
           </SelectItem>

@@ -1,6 +1,7 @@
 // File: frontend/components/admin/ai/SandboxTestArea.tsx
 // Change Log:
 // - 2026-06-15: Created SandboxTestArea component with UI elements for 3-step sandbox testing (T038)
+// - 2026-06-17: ลบ Tesseract ออกจาก OCR Engine dropdown ตาม ADR-035 (ใช้ Typhoon OCR ผ่าน Ollama)
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -253,9 +254,8 @@ export default function SandboxTestArea({
                 <SelectValue placeholder="เลือกเอนจิน..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="auto" className="text-xs">Auto (Baseline)</SelectItem>
-                <SelectItem value="tesseract" className="text-xs">Tesseract (CPU)</SelectItem>
-                <SelectItem value="np-dms-ocr" className="text-xs">Typhoon OCR (GPU)</SelectItem>
+                <SelectItem value="auto" className="text-xs">Auto (Fast Path / Typhoon OCR)</SelectItem>
+                <SelectItem value="np-dms-ocr" className="text-xs">Typhoon OCR (AI Vision)</SelectItem>
               </SelectContent>
             </Select>
           </div>

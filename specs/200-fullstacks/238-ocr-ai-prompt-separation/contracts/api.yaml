@@ -1,0 +1,349 @@
+openapi: 3.0.3
+info:
+  title: OCR & AI Extraction Prompt Management API
+  version: 1.0.0
+  description: >
+    Admin endpoints for managing OCR system prompts and AI extraction prompts.
+    หมายเหตุ: route จริง map กับ controller ที่มีอยู่แล้ว `@Controller('ai/prompts')`
+    (ADR-029) + global prefix `/api` → base path `/api/ai/prompts`.
+    `promptType` และ `versionNumber` เป็น path params. create/activate/update
+    ต้องมี header `Idempotency-Key` (ADR-016). ไม่มี publicId-based routes
+    และไม่มี pagination/query filter ในของจริง (filter ตาม promptType ผ่าน path).
+
+paths:
+  /api/ai/prompts/{promptType}:
+    get:
+      summary: List all versions for a prompt type
+      tags: [AI Prompts]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/PromptTypePath"
+      responses:
+        "200":
+          description: List of prompt versions (newest versionNumber first)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AiPromptDto"
+    post:
+      summary: Create new prompt version (starts inactive)
+      tags: [AI Prompts]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/PromptTypePath"
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePromptDto"
+      responses:
+        "201":
+          description: Prompt version created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/AiPromptDto"
+        "400":
+          description: Validation error (missing required placeholder, >4000 chars, or missing Idempotency-Key)
+
+  /api/ai/prompts/{promptType}/{versionNumber}:
+    delete:
+      summary: Delete a prompt version (cannot delete active version)
+      tags: [AI Prompts]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/PromptTypePath"
+        - $ref: "#/components/parameters/VersionNumberPath"
+      responses:
+        "204":
+          description: Prompt version deleted
+        "404":
+          description: Prompt version not found
+        "400":
+          description: Cannot delete active prompt (BusinessException CANNOT_DELETE_ACTIVE_PROMPT)
+
+  /api/ai/prompts/{promptType}/{versionNumber}/activate:
+    post:
+      summary: Activate this prompt version (pessimistic lock + deactivates others)
+      description: >
+        ของจริงใช้ pessimistic_write lock ใน transaction และไม่รับ expectedVersion.
+        @VersionColumn มีไว้ดักการแก้ไขซ้อนตอน save เท่านั้น — ยังไม่มี 409 flow ตาม spec.
+      tags: [AI Prompts]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/PromptTypePath"
+        - $ref: "#/components/parameters/VersionNumberPath"
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+      responses:
+        "200":
+          description: Prompt activated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/AiPromptDto"
+        "404":
+          description: Prompt version not found
+
+  /api/ai/prompts/{promptType}/{versionNumber}/note:
+    patch:
+      summary: Update manual note for a prompt version
+      tags: [AI Prompts]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/PromptTypePath"
+        - $ref: "#/components/parameters/VersionNumberPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePromptNoteDto"
+      responses:
+        "200":
+          description: Note updated
+
+  /api/ai/prompts/{promptType}/{versionNumber}/context-config:
+    get:
+      summary: Get context config for a prompt version
+      tags: [AI Prompts]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/PromptTypePath"
+        - $ref: "#/components/parameters/VersionNumberPath"
+      responses:
+        "200":
+          description: Context config object (or null)
+    put:
+      summary: Update context config (project/contract scope) for a prompt version
+      tags: [AI Prompts]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/PromptTypePath"
+        - $ref: "#/components/parameters/VersionNumberPath"
+        - $ref: "#/components/parameters/IdempotencyKeyHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContextConfigDto"
+      responses:
+        "200":
+          description: Context config updated
+
+  # --- AI Sandbox (มีอยู่แล้วใน AiController @Controller('ai')) ---
+  /api/ai/admin/sandbox/ocr:
+    post:
+      summary: Submit OCR sandbox job (Step 1 — uses active ocr_system prompt)
+      tags: [AI Sandbox]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: PDF file to OCR
+                engineType:
+                  type: string
+                  enum: [auto, np-dms-ocr]
+                  default: auto
+      responses:
+        "202":
+          description: OCR job accepted (poll GET /api/ai/admin/sandbox/job/{id})
+
+  /api/ai/admin/sandbox/extract:
+    post:
+      summary: Submit AI extraction sandbox job (Step 2 — uses active ocr_extraction prompt)
+      tags: [AI Sandbox]
+      security:
+        - bearerAuth: []
+      responses:
+        "202":
+          description: Extraction job accepted
+
+  /api/ai/admin/sandbox/rag-prep:
+    post:
+      summary: Submit RAG Prep sandbox job (Step 3 — มีอยู่แล้ว, SandboxRagPrepDto)
+      tags: [AI Sandbox]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SandboxRagPrepDto"
+      responses:
+        "202":
+          description: RAG Prep job accepted
+
+components:
+  schemas:
+    AiPromptDto:
+      type: object
+      properties:
+        publicId:
+          type: string
+          format: uuid
+        promptType:
+          type: string
+          enum:
+            [
+              ocr_system,
+              ocr_extraction,
+              rag_query_prompt,
+              rag_prep_prompt,
+              classification_prompt,
+            ]
+        versionNumber:
+          type: integer
+        template:
+          type: string
+        contextConfig:
+          type: object
+          properties:
+            temperature:
+              type: number
+            topP:
+              type: number
+            maxTokens:
+              type: integer
+            modelName:
+              type: string
+        isActive:
+          type: boolean
+        testResultJson:
+          type: object
+          nullable: true
+        manualNote:
+          type: string
+          nullable: true
+        lastTestedAt:
+          type: string
+          format: date-time
+          nullable: true
+        activatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      # หมายเหตุ: AiPromptResponseDto จริงไม่ expose `version`, `createdBy`, `id`
+      # (createdBy เป็น INT FK ถูก @Exclude ตาม ADR-019)
+
+    CreatePromptDto:
+      type: object
+      required: [template]
+      description: >
+        ตรงกับ CreateAiPromptDto จริง — promptType เป็น path param ไม่ใช่ body.
+        template สูงสุด 4000 ตัวอักษร (@MaxLength). ตรวจ placeholder ตาม promptType.
+      properties:
+        template:
+          type: string
+          maxLength: 4000
+          description: Prompt template content (ต้องมี placeholder ตาม promptType เช่น {{ocr_text}})
+        contextConfig:
+          type: object
+          nullable: true
+
+    UpdatePromptNoteDto:
+      type: object
+      properties:
+        manualNote:
+          type: string
+          nullable: true
+
+    ContextConfigDto:
+      type: object
+      description: ตรงกับ ContextConfigDto จริง (pageSize/language/outputLanguage/filter)
+      properties:
+        pageSize:
+          type: integer
+          minimum: 1
+          maximum: 1000
+        language:
+          type: string
+        outputLanguage:
+          type: string
+        filter:
+          type: object
+          nullable: true
+          properties:
+            projectId:
+              type: string
+              format: uuid
+              description: project publicId (UUID) — resolve เป็น internal id ภายหลัง
+            contractId:
+              type: string
+              format: uuid
+
+    SandboxRagPrepDto:
+      type: object
+      description: ตรงกับ backend/src/modules/ai/dto/sandbox-rag-prep.dto.ts (มีอยู่แล้ว)
+
+  parameters:
+    PromptTypePath:
+      name: promptType
+      in: path
+      required: true
+      description: ประเภท prompt (เช่น ocr_system, ocr_extraction)
+      schema:
+        type: string
+        enum:
+          [
+            ocr_system,
+            ocr_extraction,
+            rag_query_prompt,
+            rag_prep_prompt,
+            classification_prompt,
+          ]
+    VersionNumberPath:
+      name: versionNumber
+      in: path
+      required: true
+      description: เลข version (ParseIntPipe)
+      schema:
+        type: integer
+    IdempotencyKeyHeader:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Unique key เพื่อป้องกัน duplicate operation (ADR-016)
+      schema:
+        type: string
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >
+        JWT + RbacGuard. ทุก endpoint ต้องการ permission `system.manage_all`
+        (JwtAuthGuard + RbacGuard + @RequirePermission).

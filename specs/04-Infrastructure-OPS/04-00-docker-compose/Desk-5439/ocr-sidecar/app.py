@@ -1,28 +1,32 @@
 # File: specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py
-# Typhoon OCR HTTP Sidecar API — รับ POST /ocr แล้วคืนข้อความที่สกัดจาก PDF/Image
-# ตาม ADR-023A (revised 2026-06-11): ใช้ typhoon_ocr library + np-dms-ocr (Ollama) แทน Tesseract
+# OCR HTTP Sidecar API — รับ POST /ocr แล้วคืนข้อความที่สกัดจาก PDF/Image
+# ตาม ADR-023A (revised 2026-06-11): ใช้ np-dms-ocr (Ollama) แทน Tesseract
 # Change Log:
 # - 2026-05-25: Initial FastAPI server สำหรับ Tesseract OCR sidecar
 # - 2026-05-30: เปลี่ยน lang='en' เป็น lang='ch' (CTJK) เพื่อรองรับภาษาไทย
 # - 2026-05-30: เปลี่ยนจาก PaddleOCR เป็น Tesseract OCR เพื่อความเข้ากันได้กับ CPU เก่า
 # - 2026-05-30: เพิ่ม OpenCV preprocessing (threshold, denoise) และ DPI 300 เพื่อเพิ่มความแม่นยำ
 # - 2026-06-01: เพิ่ม POST /ocr-upload รับ multipart file โดยตรง ไม่ต้องพึ่ง shared volume mount
-# - 2026-06-01: เปลี่ยน TYPHOON_OCR_MODEL default เป็น scb10x/typhoon-ocr1.5-3b
-# - 2026-06-02: เพิ่มตัวเลือกสลับโมเดลใน process_with_typhoon_ocr ตามพารามิเตอร์ engine และตั้ง engineUsed ให้ตรงตามจริง (T015, ADR-033)
-# - 2026-06-04: ADR-034 — เพิ่ม typhoon-np-dms-ocr เป็น canonical engine key; default TYPHOON_OCR_MODEL เปวน typhoon-np-dms-ocr:latest; alias โมเดลเก่ายังคงไว้
+# - 2026-06-01: เปลี่ยน OCR_MODEL default เป็น scb10x/typhoon-ocr1.5-3b
+# - 2026-06-02: เพิ่มตัวเลือกสลับโมเดลใน process_ocr ตามพารามิเตอร์ engine และตั้ง engineUsed ให้ตรงตามจริง (T015, ADR-033)
+# - 2026-06-04: ADR-034 — เพิ่ม np-dms-ocr เป็น canonical engine key; default OCR_MODEL เป็น np-dms-ocr:latest; alias โมเดลเก่ายังคงไว้
 # - 2026-06-04: ให้ SYSTEM ใน Modelfile ทำงานแทน — ลบ prompt ซ้าซ้อน; sync options ให้ตรงกับ Modelfile (temperature 0.1, top_p 0.1, repeat_penalty 1.1)
 # - 2026-06-04: รับค่า temperature/top_p/repeat_penalty จาก frontend sandbox ได้ (optional override)
 # - 2026-06-04: แก้ bug prompt="" ทำให้ Ollama ไม่ generate — เปลี่ยนเป็น minimal trigger prompt
-# - 2026-06-04: เพิ่ม alias normalization สำหรับ engine name เก่า (typhoon-ocr1.5-3b → typhoon-np-dms-ocr)
-# - 2026-06-04: เพิ่ม TYPHOON_OCR_DPI=150 (แยกจาก Tesseract DPI=300) — ลด image token count 4x เพื่อเร่ง CPU inference (model >8GB ไม่พอ VRAM)
-# - 2026-06-04: ส่ง color image (ไม่ผ่าน preprocess_image) ไปยัง Typhoon OCR — vision model ต้องการ color ไม่ใช่ binarized grayscale
+# - 2026-06-04: เพิ่ม alias normalization สำหรับ engine name เก่า (typhoon-ocr1.5-3b → np-dms-ocr)
+# - 2026-06-04: เพิ่ม OCR_DPI=150 (แยกจาก Tesseract DPI=300) — ลด image token count 4x เพื่อเร่ง CPU inference (model >8GB ไม่พอ VRAM)
+# - 2026-06-04: ส่ง color image (ไม่ผ่าน preprocess_image) ไปยัง np-dms-ocr — vision model ต้องการ color ไม่ใช่ binarized grayscale
 # - 2026-06-04: เพิ่ม num_gpu:99 ใน Ollama options เพื่อบังคับ GPU layers (แก้ device=CPU ทั้งที่ VRAM พอ)
 # - 2026-06-02: เพิ่มการตรวจสอบ API Key (X-API-Key Header) สำหรับ endpoints หลัก เพื่อความมั่นคงปลอดภัยตามข้อเสนอแนะ Code Review
 # - 2026-06-05: เพิ่ม Option 2 (aggressive preprocessing: deskew + Otsu threshold + morphology) และ Option 3 (smart post-processing: regex-based hallucination removal) เพื่อลด Tesseract noise/hallucination (T025)
-# - 2026-06-06: เปลี่ยน keep_alive จาก 300s เป็น 0 เพื่อ unload model ทันทีหลังเสร็จงาน (แก้ปัญหา VRAM ไม่พอเมื่อ typhoon2.5-np-dms load พร้อมกัน)
-# - 2026-06-11: เปลี่ยน process_with_typhoon_ocr ให้ใช้ prepare_ocr_messages จาก typhoon_ocr library + inject DMS tags; เปลี่ยน endpoint เป็น /v1/chat/completions
+# - 2026-06-06: เปลี่ยน keep_alive จาก 300s เป็น 0 เพื่อ unload model ทันทีหลังเสร็จงาน (แก้ปัญหา VRAM ไม่พอเมื่อ np-dms-ai load พร้อมกัน)
+# - 2026-06-11: เปลี่ยน process_ocr ให้ใช้ prepare_ocr_messages จาก typhoon_ocr library + inject DMS tags; เปลี่ยน endpoint เป็น /v1/chat/completions
 # - 2026-06-11: US2 & US3 - เพิ่ม keep_alive parameter และ CPU fallback สำหรับ /embed และ /rerank
 # - 2026-06-13: ADR-036 — เปลี่ยน canonical engine/model เป็น np-dms-ocr และคง legacy aliases
+# - 2026-06-17: เปลี่ยนชื่อ environment variable จาก TYPHOON_OCR_MODEL → OCR_MODEL และ TYPHOON_OCR_TIMEOUT → OCR_TIMEOUT เพื่อ consistency กับ ADR-036
+# - 2026-06-17: ลบชื่อ Typhoon ออกจากทุกส่วน: process_with_typhoon_ocr → process_ocr, FastAPI title, comments, ตัวแปรต่างๆ
+# - 2026-06-17: เพิ่ม systemPrompt parameter ใน /ocr-upload, _process_pdf_doc, process_ocr เพื่อรองรับ dynamic OCR system prompt injection (T026-T028)
+# - 2026-06-18: เพิ่ม MAX_SYSTEM_PROMPT_LENGTH environment variable สำหรับ configurable validation (fix-3)
 
 import os
 import logging
@@ -37,7 +41,7 @@ from pathlib import Path
 from typing import Optional
 from PIL import Image
 import io
-from typhoon_ocr import prepare_ocr_messages
+from typhoon_ocr import prepare_ocr_messages  # External library from SCB10X (PyPI) — provides OCR message preparation for np-dms-ocr
 from services.vram_monitor import get_vram_headroom
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends, Security, status
@@ -51,7 +55,7 @@ from FlagEmbedding import BGEM3FlagModel, FlagReranker
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ocr-sidecar")
 
-app = FastAPI(title="Typhoon OCR Sidecar", version="2.0.0")
+app = FastAPI(title="OCR Sidecar", version="2.0.0")
 
 # Initialize BGE-M3 and Reranker singletons
 bge_model = None
@@ -73,6 +77,9 @@ def load_bge_models():
 
 # กำหนดค่าโทเค็นความปลอดภัยของ Sidecar ตามข้อเสนอแนะในการรักษาความมั่นคงปลอดภัย
 OCR_SIDECAR_API_KEY = os.getenv("OCR_SIDECAR_API_KEY", "lcbp3-dms-ocr-sidecar-secure-token-2026")
+
+# กำหนดค่าความยาวสูงสุดของ systemPrompt (fix-3: configurable validation)
+MAX_SYSTEM_PROMPT_LENGTH = int(os.getenv("MAX_SYSTEM_PROMPT_LENGTH", "10000"))
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 async def get_api_key(api_key: str = Security(api_key_header)):
     if not api_key:
@@ -85,10 +92,10 @@ async def get_api_key(api_key: str = Security(api_key_header)):
 OCR_CHAR_THRESHOLD = int(os.getenv("OCR_CHAR_THRESHOLD", "100"))
 MAX_PAGES = int(os.getenv("OCR_MAX_PAGES", "0"))  # 0 = ทุกหน้า
 OLLAMA_API_URL = os.getenv("OLLAMA_API_URL", "http://host.docker.internal:11434")
-TYPHOON_OCR_MODEL = os.getenv("TYPHOON_OCR_MODEL", "np-dms-ocr:latest")
-TYPHOON_OCR_TIMEOUT = int(os.getenv("TYPHOON_OCR_TIMEOUT", "360"))  # รองรับ cold-start ~65s + inference ~30s/page
+OCR_MODEL = os.getenv("OCR_MODEL", "np-dms-ocr:latest")
+OCR_TIMEOUT = int(os.getenv("OCR_TIMEOUT", "360"))  # รองรับ cold-start ~65s + inference ~30s/page
 
-logger.info(f"Typhoon OCR Sidecar initialized (model={TYPHOON_OCR_MODEL}, ollama={OLLAMA_API_URL})")
+logger.info(f"OCR Sidecar initialized (model={OCR_MODEL}, ollama={OLLAMA_API_URL})")
 
 def filter_ocr_noise(text: str) -> str:
     """กรองสัญลักษณ์ที่ไม่มีความหมายออกจาก Markdown output"""
@@ -122,21 +129,12 @@ def health():
     return {
         "status": "ok",
         "engine": "np-dms-ocr",
-        "typhoonModel": TYPHOON_OCR_MODEL,
+        "ocrModel": OCR_MODEL,
         "ollamaUrl": OLLAMA_API_URL,
     }
 
-# alias map สำหรับ engine name เก่า → canonical name
-_ENGINE_ALIASES: dict[str, str] = {
-    "typhoon-ocr1.5-3b": "np-dms-ocr",
-    "typhoon-ocr-3b": "np-dms-ocr",
-    "typhoon_ocr": "np-dms-ocr",
-    "typhoon-np-dms-ocr": "np-dms-ocr",
-}
-
-def _process_pdf_doc(doc: fitz.Document, selected_engine: str, max_pages: int, typhoon_options: dict = {}, pdf_path: str | None = None) -> OcrResponse:
+def _process_pdf_doc(doc: fitz.Document, selected_engine: str, max_pages: int, ocr_options: dict = {}, pdf_path: str | None = None, system_prompt: Optional[str] = None) -> OcrResponse:
     """ประมวลผล fitz.Document ด้วย engine ที่เลือก — shared logic สำหรับ /ocr และ /ocr-upload"""
-    selected_engine = _ENGINE_ALIASES.get(selected_engine, selected_engine)
     pages_to_process = list(range(min(len(doc), max_pages) if max_pages > 0 else len(doc)))
     page_count = len(pages_to_process)
 
@@ -163,15 +161,15 @@ def _process_pdf_doc(doc: fitz.Document, selected_engine: str, max_pages: int, t
         resolved_path = pdf_path or (str(doc.name) if hasattr(doc, 'name') and doc.name else None)
         if not resolved_path:
             raise ValueError("ไม่สามารถหา PDF path — ต้องส่ง pdf_path เข้ามาด้วย")
-        typhoon_text_parts = []
+        ocr_text_parts = []
         for i in pages_to_process:
-            typhoon_text_parts.append(process_with_typhoon_ocr(resolved_path, page_num=i + 1, options_override=typhoon_options))
-        typhoon_text = filter_ocr_noise("\n".join(typhoon_text_parts).strip())
+            ocr_text_parts.append(process_ocr(resolved_path, page_num=i + 1, options_override=ocr_options, system_prompt=system_prompt))
+        ocr_text = filter_ocr_noise("\n".join(ocr_text_parts).strip())
         return OcrResponse(
-            text=typhoon_text,
+            text=ocr_text,
             ocrUsed=True,
             pageCount=page_count,
-            charCount=len(typhoon_text),
+            charCount=len(ocr_text),
             engineUsed=selected_engine,
         )
 
@@ -182,7 +180,7 @@ def _process_pdf_doc(doc: fitz.Document, selected_engine: str, max_pages: int, t
         raise ValueError("ไม่สามารถหา PDF path — ต้องส่ง pdf_path เข้ามาด้วย")
     fallback_parts = []
     for i in pages_to_process:
-        fallback_parts.append(process_with_typhoon_ocr(resolved_path, page_num=i + 1, options_override=typhoon_options))
+        fallback_parts.append(process_ocr(resolved_path, page_num=i + 1, options_override=ocr_options, system_prompt=system_prompt))
     fallback_text = filter_ocr_noise("\n".join(fallback_parts).strip())
     return OcrResponse(
         text=fallback_text,
@@ -192,11 +190,14 @@ def _process_pdf_doc(doc: fitz.Document, selected_engine: str, max_pages: int, t
         engineUsed="np-dms-ocr",
     )
 
-def process_with_typhoon_ocr(pdf_path: str, page_num: int = 1, options_override: dict = {}) -> str:
-    """เรียก Typhoon OCR ผ่าน Ollama /v1/chat/completions — รับ PDF path โดยตรง ไม่ต้องแปลง PIL Image"""
-    model_name = TYPHOON_OCR_MODEL
+def process_ocr(pdf_path: str, page_num: int = 1, options_override: dict = {}, system_prompt: Optional[str] = None) -> str:
+    """เรียก np-dms-ocr ผ่าน Ollama /v1/chat/completions — รับ PDF path โดยตรง ไม่ต้องแปลง PIL Image"""
+    model_name = OCR_MODEL
     # prepare_ocr_messages จัดการ PDF → image ผ่าน poppler/pdftoppm ภายใน
     messages = prepare_ocr_messages(pdf_path, task_type="structure", page_num=page_num)
+    # inject system prompt ถ้ามี (ก่อน DMS tags)
+    if system_prompt:
+        messages[0]["content"].append({"type": "text", "text": system_prompt})
     # inject DMS-specific extraction tags ต่อท้าย content
     messages[0]["content"].append({
         "type": "text",
@@ -220,7 +221,7 @@ def process_with_typhoon_ocr(pdf_path: str, page_num: int = 1, options_override:
         "keep_alive": options_override.get("keep_alive", 0),  # Unload model ทันทีหลังเสร็จงานเพื่อคืน VRAM ให้ np-dms-ai ใช้งานได้
     }
     # ใช้ Ollama OpenAI-compatible endpoint (/v1/chat/completions)
-    with httpx.Client(timeout=TYPHOON_OCR_TIMEOUT) as client:
+    with httpx.Client(timeout=OCR_TIMEOUT) as client:
         response = client.post(
             f"{OLLAMA_API_URL}/v1/chat/completions",
             json=payload,
@@ -255,14 +256,14 @@ def ocr_extract(req: OcrRequest):
         raise HTTPException(status_code=404, detail=f"ไม่พบไฟล์: {req.pdfPath}")
     selected_engine = (req.engine or "auto").strip().lower()
     max_pages = req.maxPages or MAX_PAGES
-    typhoon_options = {}
+    ocr_options = {}
     if req.keep_alive is not None:
-        typhoon_options["keep_alive"] = req.keep_alive
+        ocr_options["keep_alive"] = req.keep_alive
     try:
         doc = fitz.open(str(pdf_path))
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"เปิดไฟล์ PDF ล้มเหลว: {e}")
-    return _process_pdf_doc(doc, selected_engine, max_pages, typhoon_options)
+    return _process_pdf_doc(doc, selected_engine, max_pages, ocr_options)
 
 @app.post("/ocr-upload", response_model=OcrResponse, dependencies=[Depends(get_api_key)])
 def ocr_upload(
@@ -273,20 +274,34 @@ def ocr_upload(
     topP: Optional[float] = Form(default=None),
     repeatPenalty: Optional[float] = Form(default=None),
     keep_alive: Optional[int] = Form(default=None),
+    systemPrompt: Optional[str] = Form(default=None),
 ):
     """OCR จาก multipart file upload — ไม่ต้องการ shared volume mount"""
+    # Validate systemPrompt ถ้ามีส่งมา (gap-1: sidecar validation)
+    if systemPrompt is not None:
+        systemPrompt = systemPrompt.strip()
+        if not systemPrompt:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="systemPrompt cannot be empty if provided"
+            )
+        if len(systemPrompt) > MAX_SYSTEM_PROMPT_LENGTH:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"systemPrompt exceeds maximum length of {MAX_SYSTEM_PROMPT_LENGTH} characters"
+            )
     selected_engine = engine.strip().lower()
     max_pages = maxPages or MAX_PAGES
-    # รวม options override สำหรับ Typhoon OCR (ถ้า frontend ส่งมา)
-    typhoon_options: dict = {}
+    # รวม options override สำหรับ np-dms-ocr (ถ้า frontend ส่งมา)
+    ocr_options: dict = {}
     if temperature is not None:
-        typhoon_options["temperature"] = temperature
+        ocr_options["temperature"] = temperature
     if topP is not None:
-        typhoon_options["top_p"] = topP
+        ocr_options["top_p"] = topP
     if repeatPenalty is not None:
-        typhoon_options["repeat_penalty"] = repeatPenalty
+        ocr_options["repeat_penalty"] = repeatPenalty
     if keep_alive is not None:
-        typhoon_options["keep_alive"] = keep_alive
+        ocr_options["keep_alive"] = keep_alive
     pdf_bytes = file.file.read()
     import tempfile
     tmp_pdf_path: str | None = None
@@ -299,8 +314,8 @@ def ocr_upload(
             doc = fitz.open(stream=pdf_bytes, filetype="pdf")
         except Exception as e:
             raise HTTPException(status_code=422, detail=f"เปิดไฟล์ PDF ล้มเหลว: {e}")
-        logger.info(f"OCR upload: {file.filename} engine={selected_engine} options={typhoon_options or 'modelfile-defaults'}")
-        return _process_pdf_doc(doc, selected_engine, max_pages, typhoon_options, pdf_path=tmp_pdf_path)
+        logger.info(f"OCR upload: {file.filename} engine={selected_engine} options={ocr_options or 'modelfile-defaults'}")
+        return _process_pdf_doc(doc, selected_engine, max_pages, ocr_options, pdf_path=tmp_pdf_path, system_prompt=systemPrompt)
     finally:
         if tmp_pdf_path:
             Path(tmp_pdf_path).unlink(missing_ok=True)

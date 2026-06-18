@@ -16,6 +16,7 @@
 // - 2026-06-13: US4 — เพิ่ม project/contract selectors สำหรับ sandbox context parity
 // - 2026-06-13: US5 — เพิ่มลิงก์สลับไปยังหน้าจัดการ Prompt Version (Editor tab) จากส่วนเลือกเวอร์ชันใน Sandbox
 // - 2026-06-13: US9 — แก้ไข ESLint errors: ลบ parseInt และแก้ไข unsafe any type casting ของ projects/contracts
+// - 2026-06-17: ADR-036 Gap 5 — แก้ไขให้ Step 1 (OCR) ไม่ต้องเลือก project (OCR เป็นแค่ text extraction); Step 2 (AI Extract) เท่านั้นที่ต้องเลือก project
 
 'use client';
 
@@ -343,13 +344,9 @@ export default function OcrSandboxPromptManager() {
       toast.error(error.response?.data?.message || t('ai.prompt.saveNoteError'));
     }
   };
-  // Step 1: OCR-only handler
+  // Step 1: OCR-only handler (ไม่ต้องเลือก project - OCR เป็นแค่ text extraction)
   const handleStep1Ocr = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedProjectPublicId) {
-      toast.error('Please select a project first');
-      return;
-    }
     if (!ocrFile) {
       toast.error(t('ai.prompt.noFile'));
       return;
@@ -780,7 +777,7 @@ export default function OcrSandboxPromptManager() {
                     <div className="flex justify-end gap-3 pt-2">
                       <Button
                         type="submit"
-                        disabled={sandboxState.isRunning || !ocrFile || !selectedProjectPublicId}
+                        disabled={sandboxState.isRunning || !ocrFile}
                         className="flex items-center gap-2"
                       >
                         {sandboxState.isRunning ? (

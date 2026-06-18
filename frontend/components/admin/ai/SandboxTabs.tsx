@@ -50,7 +50,7 @@ interface SandboxJobResult {
   status?: string;
   errorMessage?: string;
   ragChunks?: Array<{ text: string; summary: string }>;
-  ragVectors?: unknown[];
+  ragVectors?: number[][];
 }
 
 export default function SandboxTabs({
@@ -80,7 +80,13 @@ export default function SandboxTabs({
   const [ocrText, setOcrText] = useState<string>('');
   const [extractedMetadata, setExtractedMetadata] = useState<Record<string, unknown> | null>(null);
   const [ragChunks, setRagChunks] = useState<Array<{ text: string; summary: string }> | null>(null);
-  const [ragVectorsCount, setRagVectorsCount] = useState<number>(0);
+  const [ragVectors, setRagVectors] = useState<number[][] | null>(null);
+
+  // Track step completion status for activation gating (gap-2)
+  const [step1Complete, setStep1Complete] = useState<boolean>(false);
+  const [step2Complete, setStep2Complete] = useState<boolean>(false);
+  const [step3Complete, setStep3Complete] = useState<boolean>(false);
+  const allStepsComplete = step1Complete && step2Complete && step3Complete;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -92,6 +98,10 @@ export default function SandboxTabs({
       setCurrentStep(1);
       setJobStatus('idle');
       setProgress(0);
+      // Reset step completion flags (gap-2)
+      setStep1Complete(false);
+      setStep2Complete(false);
+      setStep3Complete(false);
     }
   };
 
@@ -103,6 +113,10 @@ export default function SandboxTabs({
           clearInterval(interval);
           setJobStatus('completed');
           setProgress(100);
+          // Mark step as complete (gap-2)
+          if (step === 1) setStep1Complete(true);
+          if (step === 2) setStep2Complete(true);
+          if (step === 3) setStep3Complete(true);
           onSuccess(res as SandboxJobResult);
         } else if (res.status === 'failed') {
           clearInterval(interval);
@@ -192,7 +206,7 @@ export default function SandboxTabs({
       const res = await adminAiService.submitSandboxRagPrep(ocrText);
       pollJobStatus(res.jobId, 3, (result) => {
         setRagChunks(result.ragChunks || []);
-        setRagVectorsCount(result.ragVectors ? result.ragVectors.length : 0);
+        setRagVectors(result.ragVectors || null);
         toast.success('วิเคราะห์การเตรียมข้อมูล RAG สำเร็จ');
       });
     } catch (_err) {
@@ -239,6 +253,20 @@ export default function SandboxTabs({
             <p className="text-[10px] text-muted-foreground italic">โหลดเวอร์ชันจาก Version History เพื่อดู template</p>
           )}
         </div>
+
+        {/* UI fallback warning when no active OCR system prompt (gap-3) */}
+        {_promptType === 'ocr_system' && !selectedTemplate && (
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/[0.05] px-4 py-3 space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+                ⚠️ คำเตือน: ไม่มี OCR System Prompt ที่เปิดใช้งาน
+              </span>
+            </div>
+            <p className="text-[10px] text-amber-700 dark:text-amber-300 leading-relaxed">
+              ระบบจะใช้ค่าเริ่มต้น (default) ในการสกัดข้อความ OCR แนะนำให้สร้างและเปิดใช้งาน OCR System Prompt เพื่อปรับแต่งความแม่นยำของการสกัดข้อความ
+            </p>
+          </div>
+        )}
         <div className="flex flex-wrap items-center gap-4 border-b border-border/10 pb-4">
           <div className="flex-1 min-w-[200px] space-y-1">
             <Label className="text-[11px] font-semibold text-muted-foreground">โครงการสำหรับสกัดบริบท</Label>
@@ -422,10 +450,12 @@ export default function SandboxTabs({
                       variant="outline"
                       size="sm"
                       onClick={handleActivate}
-                      className="h-8 text-xs border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10"
+                      disabled={!allStepsComplete}
+                      className="h-8 text-xs border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title={!allStepsComplete ? "ต้องทำครบทั้ง 3 ขั้นตอน (OCR → AI Extract → RAG Prep) ก่อนเปิดใช้งาน" : ""}
                     >
                       <CheckCircle className="mr-1.5 h-3.5 w-3.5" />
-                      เปิดใช้งานเวอร์ชัน v{selectedVersionNumber} ทันที
+                      เปิดใช้งานเวอร์ชัน v{selectedVersionNumber} {allStepsComplete ? 'ทันที' : '(ต้องทำครบ 3 ขั้นตอน)'}
                     </Button>
                   )}
                   <div className="flex-1 text-right">
@@ -459,7 +489,7 @@ export default function SandboxTabs({
                     <div className="flex justify-between items-center bg-secondary/40 border border-border/50 px-3 py-2 rounded text-xs select-none">
                       <span className="font-semibold text-foreground flex items-center gap-1">
                         <CheckCircle className="h-4 w-4 text-emerald-500" />
-                        ทำเวกเตอร์สำเร็จ: {ragVectorsCount} เวกเตอร์
+                        ทำเวกเตอร์สำเร็จ: {ragVectors ? ragVectors.length : 0} เวกเตอร์
                       </span>
                       <Badge variant="outline" className="text-[10px] border-border/50"> chunks: {ragChunks.length}</Badge>
                     </div>
@@ -471,6 +501,13 @@ export default function SandboxTabs({
                             <Badge className="text-[8px] py-0 px-1 select-none">{chunk.summary || 'หัวข้อหลัก'}</Badge>
                           </div>
                           <p className="leading-relaxed text-muted-foreground">{chunk.text}</p>
+                          {ragVectors && ragVectors[idx] && (
+                            <div className="mt-2 pt-2 border-t border-border/20">
+                              <span className="text-[9px] text-muted-foreground font-mono">
+                                Vector (first 5 dims): [{ragVectors[idx].slice(0, 5).map(v => v.toFixed(3)).join(', ')}...]
+                              </span>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>

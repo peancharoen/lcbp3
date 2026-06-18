@@ -21,6 +21,9 @@ export class AiPromptResponseDto {
   versionNumber!: number;
 
   @Expose()
+  version!: number;
+
+  @Expose()
   template!: string;
 
   @Expose()

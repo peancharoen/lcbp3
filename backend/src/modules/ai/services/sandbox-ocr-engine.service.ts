@@ -6,12 +6,14 @@
 // - 2026-06-04: ADR-034 — เพิ่ม 'typhoon-np-dms-ocr' เป็น canonical SandboxOcrEngineType; legacy aliases ยังรองรับ
 // - 2026-06-04: เพิ่ม OcrTyphoonOptions interface; รับ temperature/topP/repeatPenalty จาก frontend sandbox เพื่อ override Modelfile defaults
 // - 2026-06-13: ADR-036 — เปลี่ยน canonical SandboxOcrEngineType เป็น np-dms-ocr และคง legacy alias
+// - 2026-06-17: เพิ่ม AiPromptsService injection และส่ง systemPrompt form field จาก active ocr_system prompt (T028)
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import * as fs from 'fs';
 import { OcrService } from './ocr.service';
+import { AiPromptsService } from '../prompts/ai-prompts.service';
 
 export type SandboxOcrEngineType =
   | 'auto'
@@ -47,7 +49,8 @@ export class SandboxOcrEngineService {
   private readonly ocrSidecarApiKey: string;
   constructor(
     private readonly configService: ConfigService,
-    private readonly ocrService: OcrService
+    private readonly ocrService: OcrService,
+    private readonly aiPromptsService: AiPromptsService
   ) {
     this.ocrApiUrl = this.configService.get<string>(
       'OCR_API_URL',
@@ -115,6 +118,21 @@ export class SandboxOcrEngineService {
       }
       if (typhoonOptions?.repeatPenalty !== undefined) {
         form.append('repeatPenalty', String(typhoonOptions.repeatPenalty));
+      }
+      // ดึง active ocr_system prompt และส่งไป sidecar
+      try {
+        const activeOcrSystemPrompt =
+          await this.aiPromptsService.getActive('ocr_system');
+        if (activeOcrSystemPrompt && activeOcrSystemPrompt.template) {
+          form.append('systemPrompt', activeOcrSystemPrompt.template);
+          this.logger.log(
+            `Injected active ocr_system prompt (version ${activeOcrSystemPrompt.versionNumber})`
+          );
+        }
+      } catch (promptErr: unknown) {
+        this.logger.warn(
+          `Failed to retrieve active ocr_system prompt, proceeding without: ${promptErr instanceof Error ? promptErr.message : String(promptErr)}`
+        );
       }
       this.logger.log(
         `Sending to sidecar — engine=${engineType} options=${JSON.stringify(typhoonOptions ?? {})}`

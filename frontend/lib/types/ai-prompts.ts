@@ -2,7 +2,7 @@
 // Change Log:
 // - 2026-06-14: Created frontend types for AI prompt management (conforming to task T010)
 
-export type PromptType = 'ocr_extraction' | 'rag_query_prompt' | 'rag_prep_prompt' | 'classification_prompt';
+export type PromptType = 'ocr_system' | 'ocr_extraction' | 'rag_query_prompt' | 'rag_prep_prompt' | 'classification_prompt';
 
 export interface ContextConfig {
   filter: {
@@ -18,6 +18,7 @@ export interface PromptVersion {
   publicId: string;
   promptType: PromptType;
   versionNumber: number;
+  version: number;
   template: string;
   contextConfig: ContextConfig | null;
   isActive: boolean;

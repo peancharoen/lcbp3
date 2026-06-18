@@ -5,7 +5,12 @@
 // - 2026-05-25: Cast getRawOne() to resolve TypeScript type assertion error in ESLint
 // - 2026-06-15: Added optimistic locking error handling for @VersionColumn (T067)
 
-import { Injectable, Logger, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  ForbiddenException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { InjectRedis } from '@nestjs-modules/ioredis';
@@ -394,7 +399,10 @@ export class AiPromptsService {
     dto: CreateAiPromptDto,
     userId: number
   ): Promise<AiPrompt> {
-    if (promptType === 'ocr_extraction') {
+    // ocr_system: free-form system prompt, no required placeholders
+    if (promptType === 'ocr_system') {
+      // No validation required - system prompt is free-form
+    } else if (promptType === 'ocr_extraction') {
       if (!dto.template.includes('{{ocr_text}}')) {
         throw new ValidationException(
           'template ต้องมี {{ocr_text}} placeholder'
@@ -475,13 +483,16 @@ export class AiPromptsService {
    * @param promptType ประเภทของ prompt
    * @param versionNumber เลขเวอร์ชันที่ต้องการเปิดใช้งาน
    * @param userId ID ของผู้ดำเนินการ
+   * @param expectedVersion เวอร์ชันที่คาดหวังสำหรับ optimistic locking (optional)
    * @returns Prompt version ที่เปิดใช้งานแล้ว
    * @throws NotFoundException หากไม่พบ prompt version
+   * @throws ConflictException หาก version mismatch (optimistic locking)
    */
   async activate(
     promptType: string,
     versionNumber: number,
-    userId: number
+    userId: number,
+    expectedVersion?: number
   ): Promise<AiPrompt> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -494,6 +505,17 @@ export class AiPromptsService {
       if (!promptToActivate) {
         throw new NotFoundException('AiPrompt', versionNumber.toString());
       }
+
+      // Optimistic locking check
+      if (
+        expectedVersion !== undefined &&
+        promptToActivate.version !== expectedVersion
+      ) {
+        throw new ConflictException(
+          `Version mismatch: expected ${expectedVersion}, but current is ${promptToActivate.version}. Data was modified by another user.`
+        );
+      }
+
       await queryRunner.manager.find(AiPrompt, {
         where: { promptType, isActive: true },
         lock: { mode: 'pessimistic_write' },
