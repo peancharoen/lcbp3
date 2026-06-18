@@ -32,23 +32,21 @@ fi
 
 cd "$SOURCE_DIR"
 
-# เปิด BuildKit เพื่อ layer cache และ parallel build
+# เปิด BuildKit เพื่อ layer cache
 export DOCKER_BUILDKIT=1
 
-# [1/3] Build images (parallel)
-echo "[1/3] Building Docker images (parallel)..."
+# [1/3] Build images (sequential to reduce resource contention)
+echo "[1/3] Building Docker images (sequential)..."
 
-docker build -f backend/Dockerfile -t lcbp3-backend:latest . &
-BACKEND_PID=$!
+echo "  Building backend..."
+docker build -f backend/Dockerfile -t lcbp3-backend:latest . || { echo "✗ Backend build failed!"; exit 1; }
 
+echo "  Building frontend..."
 docker build -f frontend/Dockerfile \
     --build-arg NEXT_PUBLIC_API_URL="$API_URL" \
     --build-arg AUTH_URL="$AUTH_URL" \
-    -t lcbp3-frontend:latest . &
-FRONTEND_PID=$!
+    -t lcbp3-frontend:latest . || { echo "✗ Frontend build failed!"; exit 1; }
 
-wait $BACKEND_PID  || { echo "✗ Backend build failed!";  exit 1; }
-wait $FRONTEND_PID || { echo "✗ Frontend build failed!"; exit 1; }
 echo "✓ Images built"
 
 # [2/3] Start / restart stack with new images
