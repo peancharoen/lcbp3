@@ -125,12 +125,13 @@ export class VramMonitorService {
       this.logger.warn(
         `Failed to get VRAM status: ${err instanceof Error ? err.message : String(err)}`
       );
+      // เปลี่ยนจาก pessimistic เป็น optimistic: สมมติว่าไม่มี model load เมื่อ query ล้มเหลว
       return {
         totalVramMb: this.totalVramMb,
-        usedVramMb: this.totalVramMb,
-        freeVramMb: 0,
+        usedVramMb: 0,
+        freeVramMb: this.totalVramMb,
         loadedModels: [],
-        hasCapacity: false,
+        hasCapacity: true, // สมมติว่ามี capacity เมื่อ query ล้มเหลว
       };
     }
   }

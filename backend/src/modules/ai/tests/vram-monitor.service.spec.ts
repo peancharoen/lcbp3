@@ -59,12 +59,13 @@ describe('VramMonitorService', () => {
       expect(headroom.mainModelVramMb).toBe(4096); // 4GB main model (4096MB)
     });
 
-    it('ควรคำนวณ headroom เป็น safe default (0 available) เมื่อ Ollama query ล้มเหลว', async () => {
+    it('ควรคำนวณ headroom เป็น optimistic fallback (full available) เมื่อ Ollama query ล้มเหลว', async () => {
       mockedAxios.get.mockRejectedValue(new Error('Connection timeout'));
       const headroom = await service.getVramHeadroom();
       expect(headroom.querySuccess).toBe(false);
-      expect(headroom.availableMb).toBe(0);
-      expect(headroom.usedMb).toBe(8192);
+      // เปลี่ยนจาก pessimistic เป็น optimistic: สมมติว่าไม่มี model load เมื่อ query ล้มเหลว
+      expect(headroom.availableMb).toBe(8192);
+      expect(headroom.usedMb).toBe(0);
       expect(headroom.mainModelVramMb).toBe(0);
     });
   });
