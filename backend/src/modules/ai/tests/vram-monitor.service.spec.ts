@@ -100,6 +100,22 @@ describe('VramMonitorService', () => {
       const result = await service.hasVramCapacity(3000); // query available is 2048MB, required 3000MB
       expect(result).toBe(false);
     });
+
+    it('ควรคืน true เมื่อไม่มีโมเดลโหลดอยู่เลย (ป้องกัน false positive)', async () => {
+      mockedAxios.get.mockResolvedValue({
+        data: {
+          models: [], // ไม่มีโมเดลโหลด
+        },
+      });
+      const result = await service.hasVramCapacity(5000); // ต้องการ 5GB แม้ availableMb = 8192MB
+      expect(result).toBe(true);
+    });
+
+    it('ควรคืน true เมื่อ query ล้มเหลว (optimistic fallback)', async () => {
+      mockedAxios.get.mockRejectedValue(new Error('Connection timeout'));
+      const result = await service.hasVramCapacity(5000);
+      expect(result).toBe(true);
+    });
   });
   describe('getVramStatus', () => {
     it('ควรคืน status ที่ถูกต้องเมื่อ Ollama คืน models', async () => {

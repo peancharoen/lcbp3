@@ -138,10 +138,31 @@ export class VramMonitorService {
 
   /**
    * ตรวจสอบว่า VRAM เพียงพอสำหรับความต้องการโหลดโมเดลหรือไม่
+   * ถ้าไม่มีโมเดลโหลดอยู่เลย จะอนุญาตให้โหลดโมเดลใหม่ได้เสมอ (ป้องกัน false positive)
    */
   async hasVramCapacity(requiredMb: number): Promise<boolean> {
     const headroom = await this.getVramHeadroom();
-    return headroom.availableMb >= requiredMb;
+    // ถ้าไม่มีโมเดลโหลดอยู่เลย อนุญาตให้โหลดโมเดลใหม่ได้เสมอ
+    if (headroom.usedMb === 0 && headroom.querySuccess) {
+      this.logger.log(
+        `No models loaded in VRAM, allowing model load (required=${requiredMb}MB)`
+      );
+      return true;
+    }
+    // ถ้า query ล้มเหลว ใช้ optimistic fallback (assume no VRAM used)
+    if (!headroom.querySuccess) {
+      this.logger.log(
+        `VRAM query failed, using optimistic fallback (required=${requiredMb}MB)`
+      );
+      return true;
+    }
+    const hasCapacity = headroom.availableMb >= requiredMb;
+    if (!hasCapacity) {
+      this.logger.warn(
+        `VRAM insufficient: available=${headroom.availableMb}MB, required=${requiredMb}MB`
+      );
+    }
+    return hasCapacity;
   }
 
   /**
