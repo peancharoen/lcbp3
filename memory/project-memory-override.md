@@ -44,6 +44,7 @@
 | D14 | Sandbox-Production Parity: บันทึก draft ใน `ai_sandbox_profiles` และปรับใช้ไป production `ai_execution_profiles` ผ่าน apply API (Idempotency-Key + CASL guard); sandbox pipeline ดึง project/contract ID จริงเพื่อ parity prompt context | ADR-036            |
 | D15 | SandboxTabs ต้องโหลด active prompts ทั้ง ocr_system และ ocr_extraction จาก service เพื่อแสดง prompt info ทั้ง 2 steps ตาม FR-009, FR-010 (Feature-238)                                                                                   | Feature-238        |
 | D16 | Backend VRAM service ต้องส่ง loadedModels พร้อม vramUsageMB (bytes → MB) เพื่อให้ frontend แสดงผล VRAM usage ของแต่ละ model ได้ถูกต้อง                                                                                                   | Session 2026-06-18 |
+| D17 | สถานะพับ/คลี่ของการ์ดและเซกชันในหน้า AI Admin Console จะเก็บลงใน localStorage เพื่อรักษาสถานะ และการพับไม่มีผลต่อ background query polling                                                                                           | Feature-240        |
 
 ## Environment & Services
 
@@ -163,3 +164,13 @@ QDRANT_URL
 - [ ] **Idempotency:** บังคับ `Idempotency-Key` สำหรับ prompt create/activate/context update และ sandbox RAG prep queueing
 - [ ] **Prompt contract:** sync placeholders ระหว่าง seed SQL, validator, และ replacement logic สำหรับ `rag_query_prompt`, `rag_prep_prompt`, `classification_prompt`
 - [ ] **DTO hardening:** nested validation + `@IsUUID()` + max page size/text length สำหรับ context config และ sandbox RAG prep
+
+### Feature-240: AI Admin Console Collapsible Cards ✅ COMPLETE
+
+- [x] **Master Section Collapse:** เพิ่มปุ่ม Toggle เพื่อพับ/คลี่ทั้งเซกชัน Monitoring ในหน้าจอเดียว
+- [x] **Individual Card Collapse:** เพิ่มปุ่ม Toggle สำหรับการ์ดทั้ง 5 ใบ (Ollama, Qdrant, OCR Sidecar, BullMQ, VRAM GPU Monitor)
+- [x] **Local Storage Persistence:** บันทึกสถานะล่าสุดและโหลดกลับคืนข้ามการรีเฟรชหรือการสลับแท็บอย่างปลอดภัย (กัน Hydration Mismatch)
+- [x] **Background Polling:** การพับเก็บไม่มีผลกระทบต่อการดึงข้อมูลสถานะในพื้นหลังผ่าน TanStack Query
+- [x] **Validation & Quality:** ผ่านการตรวจสอบประเภท (tsc) และ Lint (eslint) พร้อมสร้างรายงาน validation-report.md
+- **Branch:** `240-ai-console-collapsible-cards`
+
