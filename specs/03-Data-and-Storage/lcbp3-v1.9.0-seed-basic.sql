@@ -18,6 +18,43 @@
 --      2.1 username = migration_bot
 --      2.2
 -- ==========================================================
+-- System Settings
+INSERT INTO system_settings (
+    setting_key,
+    setting_value,
+    data_type,
+    category,
+    description,
+    is_public
+  )
+VALUES (
+    'AI_FEATURES_ENABLED',
+    'true',
+    'boolean',
+    'ai',
+    'สถานะเปิด/ปิดการใช้งานฟีเจอร์ AI ทั้งระบบ สำหรับผู้ใช้ทั่วไป',
+    1
+  ) ON DUPLICATE KEY
+UPDATE setting_key = setting_key;
+
+INSERT INTO system_settings (
+    setting_key,
+    setting_value,
+    data_type,
+    category,
+    description,
+    is_public
+  )
+VALUES (
+    'AI_ACTIVE_MODEL',
+    'typhoon2.5-np-dms:latest',
+    'string',
+    'ai',
+    'โมเดล AI ที่ใช้งานอยู่ในระบบ (global)',
+    1
+  ) ON DUPLICATE KEY
+UPDATE setting_key = setting_key;
+
 INSERT INTO organization_roles (id, role_name)
 VALUES (1, 'OWNER'),
   (2, 'DESIGNER'),
@@ -2645,6 +2682,159 @@ VALUES (
       )
     ),
     TRUE,
+    NOW(),
+    NOW()
+  );
+
+-- ==========================================================
+-- AI Seed Data (ADR-027, ADR-029, ADR-034)
+-- ==========================================================
+-- AI Available Models
+INSERT INTO ai_available_models (
+    model_name,
+    model_version,
+    description,
+    vram_gb,
+    is_active,
+    is_default,
+    created_at,
+    updated_at
+  )
+VALUES (
+    'typhoon2.5-np-dms:latest',
+    'latest',
+    'Thai-optimized main AI model based on typhoon2.5-qwen3-4b (~2.5GB VRAM, standby mode) — ADR-034',
+    2.50,
+    1,
+    1,
+    NOW(3),
+    NOW(3)
+  ),
+  (
+    'typhoon-np-dms-ocr:latest',
+    'latest',
+    'Thai OCR model based on typhoon-ocr1.5-3b (~3.2GB VRAM, unloads after each job) — ADR-034',
+    3.20,
+    1,
+    0,
+    NOW(3),
+    NOW(3)
+  );
+
+-- AI Execution Profiles
+INSERT INTO ai_execution_profiles (
+    profile_name,
+    canonical_model,
+    temperature,
+    top_p,
+    max_tokens,
+    num_ctx,
+    repeat_penalty,
+    keep_alive_seconds,
+    is_active,
+    created_at,
+    updated_at
+  )
+VALUES (
+    'interactive',
+    'np-dms-ai',
+    0.7,
+    0.9,
+    2048,
+    4096,
+    1.1,
+    300,
+    1,
+    NOW(),
+    NOW()
+  ),
+  (
+    'standard',
+    'np-dms-ai',
+    0.5,
+    0.8,
+    4096,
+    8192,
+    1.15,
+    300,
+    1,
+    NOW(),
+    NOW()
+  ),
+  (
+    'quality',
+    'np-dms-ai',
+    0.3,
+    0.7,
+    8192,
+    16384,
+    1.2,
+    300,
+    1,
+    NOW(),
+    NOW()
+  ),
+  (
+    'deep-analysis',
+    'np-dms-ai',
+    0.2,
+    0.6,
+    16384,
+    32768,
+    1.25,
+    300,
+    1,
+    NOW(),
+    NOW()
+  ),
+  (
+    'ocr-extract',
+    'np-dms-ocr',
+    0.1,
+    0.5,
+    NULL,
+    8192,
+    1.0,
+    0,
+    1,
+    NOW(),
+    NOW()
+  );
+
+-- AI Sandbox Profiles
+INSERT INTO ai_sandbox_profiles (
+    profile_name,
+    canonical_model,
+    temperature,
+    top_p,
+    max_tokens,
+    num_ctx,
+    repeat_penalty,
+    keep_alive_seconds,
+    created_at,
+    updated_at
+  )
+VALUES (
+    'ocr-extract',
+    'np-dms-ocr',
+    0.1,
+    0.5,
+    NULL,
+    8192,
+    1.0,
+    0,
+    NOW(),
+    NOW()
+  ),
+  (
+    'standard',
+    'np-dms-ai',
+    0.5,
+    0.8,
+    4096,
+    8192,
+    1.15,
+    300,
     NOW(),
     NOW()
   );

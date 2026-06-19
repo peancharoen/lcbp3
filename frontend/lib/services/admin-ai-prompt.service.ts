@@ -1,6 +1,7 @@
 // File: frontend/lib/services/admin-ai-prompt.service.ts
 // Change Log
 // - 2026-06-17: Created adminAiPromptService for prompt management UI (Feature 238)
+// - 2026-06-19: Normalize prompt response envelopes to prevent non-array prompt history crashes
 
 import client from '../api/client';
 
@@ -18,6 +19,23 @@ export interface AiPromptVersion {
   createdBy?: number;
 }
 
+const extractData = <T>(value: unknown): T => {
+  let current = value;
+  for (let depth = 0; depth < 3; depth += 1) {
+    if (current && typeof current === 'object' && 'data' in current) {
+      current = (current as { data: unknown }).data;
+      continue;
+    }
+    break;
+  }
+  return current as T;
+};
+
+const normalizePromptList = (value: unknown): AiPromptVersion[] => {
+  const data = extractData<unknown>(value);
+  return Array.isArray(data) ? (data as AiPromptVersion[]) : [];
+};
+
 /**
  * Service สำหรับจัดการ AI Prompt Versions ใน Admin Console
  */
@@ -26,10 +44,10 @@ export const adminAiPromptService = {
    * ดึงรายการ prompt versions ทั้งหมดสำหรับ prompt_type ที่กำหนด
    */
   async getPrompts(promptType: string): Promise<AiPromptVersion[]> {
-    const response = await client.get<{ data: AiPromptVersion[] }>(
+    const response = await client.get<unknown>(
       `/ai/prompts/${promptType}`
     );
-    return response.data.data;
+    return normalizePromptList(response.data);
   },
 
   /**
@@ -41,7 +59,7 @@ export const adminAiPromptService = {
     contextConfig?: Record<string, unknown>
   ): Promise<AiPromptVersion> {
     const idempotencyKey = crypto.randomUUID();
-    const response = await client.post<{ data: AiPromptVersion }>(
+    const response = await client.post<unknown>(
       `/ai/prompts/${promptType}`,
       { template, contextConfig },
       {
@@ -50,7 +68,7 @@ export const adminAiPromptService = {
         },
       }
     );
-    return response.data.data;
+    return extractData<AiPromptVersion>(response.data);
   },
 
   /**
@@ -62,7 +80,7 @@ export const adminAiPromptService = {
     expectedVersion?: number
   ): Promise<AiPromptVersion> {
     const idempotencyKey = crypto.randomUUID();
-    const response = await client.post<{ data: AiPromptVersion }>(
+    const response = await client.post<unknown>(
       `/ai/prompts/${promptType}/${versionNumber}/activate`,
       expectedVersion !== undefined ? { expectedVersion } : {},
       {
@@ -71,7 +89,7 @@ export const adminAiPromptService = {
         },
       }
     );
-    return response.data.data;
+    return extractData<AiPromptVersion>(response.data);
   },
 
   /**
@@ -91,10 +109,10 @@ export const adminAiPromptService = {
     versionNumber: number,
     manualNote: string | null
   ): Promise<AiPromptVersion> {
-    const response = await client.patch<{ data: AiPromptVersion }>(
+    const response = await client.patch<unknown>(
       `/ai/prompts/${promptType}/${versionNumber}/note`,
       { manualNote }
     );
-    return response.data.data;
+    return extractData<AiPromptVersion>(response.data);
   },
 };

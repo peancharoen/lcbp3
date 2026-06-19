@@ -44,7 +44,10 @@
 | D14 | Sandbox-Production Parity: บันทึก draft ใน `ai_sandbox_profiles` และปรับใช้ไป production `ai_execution_profiles` ผ่าน apply API (Idempotency-Key + CASL guard); sandbox pipeline ดึง project/contract ID จริงเพื่อ parity prompt context | ADR-036            |
 | D15 | SandboxTabs ต้องโหลด active prompts ทั้ง ocr_system และ ocr_extraction จาก service เพื่อแสดง prompt info ทั้ง 2 steps ตาม FR-009, FR-010 (Feature-238)                                                                                   | Feature-238        |
 | D16 | Backend VRAM service ต้องส่ง loadedModels พร้อม vramUsageMB (bytes → MB) เพื่อให้ frontend แสดงผล VRAM usage ของแต่ละ model ได้ถูกต้อง                                                                                                   | Session 2026-06-18 |
-| D17 | สถานะพับ/คลี่ของการ์ดและเซกชันในหน้า AI Admin Console จะเก็บลงใน localStorage เพื่อรักษาสถานะ และการพับไม่มีผลต่อ background query polling                                                                                           | Feature-240        |
+| D17 | สถานะพับ/คลี่ของการ์ดและเซกชันในหน้า AI Admin Console จะเก็บลงใน localStorage เพื่อรักษาสถานะ และการพับไม่มีผลต่อ background query polling                                                                                               | Feature-240        |
+| D18 | Deploy script ต้องตรวจสอบ ClamAV health status ก่อน recreation — ถ้า healthy ให้ recreate เฉพาะ backend/frontend (skip 5-minute healthcheck delay)                                                                                       | Session 2026-06-19 |
+| D19 | CI timeout ต้องอย่างน้อย 30 minutes เพื่อรองรับ ClamAV startup กรณีต้อง recreate full stack                                                                                                                                              | Session 2026-06-19 |
+| D20 | AI Admin frontend services ต้อง normalize API response envelope ที่อาจซ้อน `data` ก่อน render; VRAM `totalVRAMMB = 0` คือ unknown capacity ไม่ใช่ OOM Guard                                                                              | Session 2026-06-19 |
 
 ## Environment & Services
 
@@ -173,4 +176,3 @@ QDRANT_URL
 - [x] **Background Polling:** การพับเก็บไม่มีผลกระทบต่อการดึงข้อมูลสถานะในพื้นหลังผ่าน TanStack Query
 - [x] **Validation & Quality:** ผ่านการตรวจสอบประเภท (tsc) และ Lint (eslint) พร้อมสร้างรายงาน validation-report.md
 - **Branch:** `240-ai-console-collapsible-cards`
-

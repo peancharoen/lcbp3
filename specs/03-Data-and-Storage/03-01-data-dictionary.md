@@ -1,9 +1,9 @@
 ---
 title: 'Data & Storage: Data Dictionary and Data Model Architecture'
-version: 1.9.1
+version: 1.9.2
 status: released
 owner: Nattanin Peancharoen
-last_updated: 2026-05-16
+last_updated: 2026-06-19
 related:
   - specs/01-requirements/02-architecture.md
   - specs/01-requirements/03-functional-requirements.md
@@ -2345,8 +2345,14 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 | `document_public_id` | UUID | YES | Imported document publicId when available |
 | `ai_model` | VARCHAR(50) | NO | Legacy AI model column used by current gateway service (default: gemma4) |
 | `model_name` | VARCHAR(100) | NO | Local model name used by ADR-023 AI pipeline |
-| `ai_suggestion_json` | JSON | YES | AI suggested metadata |
-| `human_override_json` | JSON | YES | Human approved or overridden metadata |
+| `effective_profile` | VARCHAR(50) | YES | ExecutionProfile ที่ backend กำหนด: interactive\|standard\|quality\|deep-analysis (Feature-235) |
+| `canonical_model` | VARCHAR(50) | YES | Canonical model identity: np-dms-ai หรือ np-dms-ocr (Feature-235, ADR-023) |
+| `snapshot_params_json` | LONGTEXT | YES | Runtime parameters snapshot ณ เวลา dispatch — ใช้จริงใน Ollama call (FR-A09, Feature-235) |
+| `model_type` | VARCHAR(50) | YES | ประเภท OCR/LLM model ที่ใช้ เช่น tesseract, typhoon-ocr-3b |
+| `vram_usage_mb` | INT | YES | VRAM ที่ใช้จริง (MB) ณ เวลาประมวลผล |
+| `cache_hit` | TINYINT(1) | NO | 1 = ผลลัพธ์มาจาก Redis cache, 0 = OCR ใหม่ |
+| `ai_suggestion_json` | LONGTEXT | YES | AI suggested metadata |
+| `human_override_json` | LONGTEXT | YES | Human approved or overridden metadata |
 | `processing_time_ms` | INT | YES | Legacy processing duration field |
 | `confidence_score` | DECIMAL(4,3) | YES | AI confidence score 0.000-1.000 |
 | `input_hash` | VARCHAR(64) | YES | Legacy SHA-256 input hash |
@@ -2365,6 +2371,9 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 - KEY idx_ai_audit_model_name (model_name)
 - KEY idx_ai_audit_status (status)
 - KEY idx_ai_audit_confirmed_by (confirmed_by_user_id)
+- KEY idx_ai_audit_model_type (model_type)
+- KEY idx_ai_audit_effective_profile (effective_profile)
+- KEY idx_ai_audit_canonical_model (canonical_model)
 - CONSTRAINT fk_ai_audit_confirmed_by_user FOREIGN KEY (confirmed_by_user_id) REFERENCES users (user_id) ON DELETE SET NULL
 
 #### Business Rules
@@ -2375,7 +2384,145 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 
 ---
 
-### 19.3 `document_chunks`
+### 19.3 `ai_available_models`
+
+**วัตถุประสงค์:** เก็บรายการโมเดล AI ที่ให้เลือกใช้งานในระบบ (ADR-027, ADR-034)
+
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | INT AUTO_INCREMENT | NO | ID ของตาราง |
+| `model_name` | VARCHAR(100) | NO | ชื่อโมเดล เช่น gemma4:e2b, gemma4:e4b |
+| `model_version` | VARCHAR(50) | NO | เวอร์ชั่นของโมเดล |
+| `description` | VARCHAR(500) | YES | รายละเอียดโมเดล |
+| `vram_gb` | DECIMAL(4,2) | YES | VRAM ที่ใช้โดยประมาณ (GB) |
+| `is_active` | TINYINT(1) | NO | สถานะใช้งาน |
+| `is_default` | TINYINT(1) | NO | โมเดลเริ่มต้น |
+| `created_by` | INT | YES | ผู้สร้าง |
+| `updated_by` | INT | YES | ผู้แก้ไขล่าสุด |
+| `created_at` | DATETIME(3) | NO | วันที่สร้าง |
+| `updated_at` | DATETIME(3) | NO | วันที่แก้ไขล่าสุด |
+| `deleted_at` | DATETIME(3) | YES | วันที่ลบ (Soft Delete) |
+
+**Indexes**:
+- PRIMARY KEY (id)
+- UNIQUE KEY uk_model_name (model_name)
+- KEY idx_is_active (is_active)
+- KEY idx_is_default (is_default)
+
+---
+
+### 19.4 `ai_prompts`
+
+**วัตถุประสงค์:** ตาราง versioned prompt templates สำหรับ OCR extraction (ADR-029)
+
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | INT AUTO_INCREMENT | NO | ID ภายใน (ไม่ expose ใน API) |
+| `public_id` | UUID | NO | UUID Public Identifier (ADR-019) |
+| `prompt_type` | VARCHAR(50) | NO | ประเภท prompt เช่น ocr_extraction |
+| `version_number` | INT | NO | เลข version ต่อเนื่องต่อ prompt_type (1, 2, 3...) |
+| `template` | TEXT | NO | prompt template ที่มี {{ocr_text}} placeholder บังคับ |
+| `field_schema` | LONGTEXT | YES | definition ของ fields ที่คาดหวังในผลลัพธ์ JSON |
+| `is_active` | TINYINT(1) | NO | 1 = version นี้ใช้งานจริงทั้ง sandbox และ migrate-document (1 per prompt_type) |
+| `test_result_json` | LONGTEXT | YES | ผลลัพธ์ JSON จาก sandbox run ล่าสุด (auto-save โดย processor) |
+| `manual_note` | TEXT | YES | หมายเหตุ/annotation จาก admin (manual input) |
+| `last_tested_at` | TIMESTAMP | YES | เวลาที่ sandbox รันครั้งล่าสุดสำหรับ version นี้ |
+| `activated_at` | TIMESTAMP | YES | เวลาที่ version นี้ถูก activate เป็น active |
+| `created_by` | INT | NO | user_id ของผู้สร้าง version นี้ |
+| `created_at` | TIMESTAMP | NO | วันที่สร้าง |
+| `context_config` | LONGTEXT | YES | Configuration สำหรับ context ที่ backend ต้องส่งให้ AI (filter, pageSize, language, etc.) |
+| `version` | INT | NO | Optimistic locking version |
+
+**Indexes**:
+- PRIMARY KEY (id)
+- UNIQUE KEY uk_type_version (prompt_type, version_number)
+- KEY idx_prompt_type_active (prompt_type, is_active)
+- KEY created_by (created_by)
+- CONSTRAINT ai_prompts_ibfk_1 FOREIGN KEY (created_by) REFERENCES users (user_id)
+
+---
+
+### 19.5 `ai_execution_profiles`
+
+**วัตถุประสงค์:** ตาราง execution profile parameters สำหรับ np-dms-ai (ADR-025, ADR-027)
+
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | INT AUTO_INCREMENT | NO | ID ภายใน |
+| `profile_name` | VARCHAR(50) | NO | ชื่อ profile |
+| `canonical_model` | VARCHAR(20) | NO | Model identity (default: np-dms-ai) |
+| `temperature` | DECIMAL(4,3) | NO | LLM temperature |
+| `top_p` | DECIMAL(4,3) | NO | LLM top_p |
+| `max_tokens` | INT | YES | Maximum tokens |
+| `num_ctx` | INT | YES | Context window size |
+| `repeat_penalty` | DECIMAL(5,3) | NO | Repeat penalty |
+| `keep_alive_seconds` | INT | NO | Model keep_alive in seconds |
+| `is_active` | TINYINT(1) | NO | 1 = active; 0 = disabled |
+| `updated_by` | INT | YES | user_id |
+| `updated_at` | TIMESTAMP | NO | วันที่แก้ไขล่าสุด |
+| `created_at` | TIMESTAMP | NO | วันที่สร้าง |
+
+**Indexes**:
+- PRIMARY KEY (id)
+- UNIQUE KEY uk_profile_name (profile_name)
+- KEY idx_profile_active (profile_name, is_active)
+- KEY updated_by (updated_by)
+- CONSTRAINT ai_execution_profiles_ibfk_1 FOREIGN KEY (updated_by) REFERENCES users (user_id)
+
+---
+
+### 19.6 `ai_sandbox_profiles`
+
+**วัตถุประสงค์:** ตาราง sandbox profile parameters
+
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | INT AUTO_INCREMENT | NO | ID ภายใน |
+| `profile_name` | VARCHAR(50) | NO | ชื่อ profile |
+| `canonical_model` | VARCHAR(20) | NO | Model identity (default: np-dms-ai) |
+| `temperature` | DECIMAL(4,3) | NO | LLM temperature |
+| `top_p` | DECIMAL(4,3) | NO | LLM top_p |
+| `max_tokens` | INT | YES | Maximum tokens |
+| `num_ctx` | INT | NO | Context window size |
+| `repeat_penalty` | DECIMAL(5,3) | NO | Repeat penalty |
+| `keep_alive_seconds` | INT | NO | Model keep_alive in seconds |
+| `updated_by` | INT | YES | user_id |
+| `updated_at` | TIMESTAMP | NO | วันที่แก้ไขล่าสุด |
+| `created_at` | TIMESTAMP | NO | วันที่สร้าง |
+
+**Indexes**:
+- PRIMARY KEY (id)
+- UNIQUE KEY uk_profile_name (profile_name)
+- KEY idx_ai_sandbox_profile_model (canonical_model)
+- KEY updated_by (updated_by)
+- CONSTRAINT ai_sandbox_profiles_ibfk_1 FOREIGN KEY (updated_by) REFERENCES users (user_id)
+
+---
+
+### 19.7 `migration_errors`
+
+**วัตถุประสงค์:** ตาราง Error Log สำหรับ Migration (ลบได้หลัง Migration เสร็จ) (ADR-028)
+
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | INT AUTO_INCREMENT | NO | ID |
+| `batch_id` | VARCHAR(50) | YES | n8n batch identifier |
+| `document_number` | VARCHAR(100) | YES | เลขที่เอกสาร |
+| `error_type` | ENUM | YES | FILE_NOT_FOUND, MISSING_FILENAME, FILE_ERROR, AI_PARSE_ERROR, API_ERROR, DB_ERROR, SECURITY, UNKNOWN |
+| `error_message` | TEXT | YES | ข้อความ error |
+| `job_id` | VARCHAR(100) | YES | BullMQ Job ID |
+| `raw_ai_response` | TEXT | YES | AI response ดิบ |
+| `created_at` | TIMESTAMP | NO | วันที่สร้าง |
+
+**Indexes**:
+- PRIMARY KEY (id)
+- KEY idx_batch_id (batch_id)
+- KEY idx_job_id (job_id)
+- KEY idx_error_type (error_type)
+
+---
+
+### 19.8 `document_chunks`
 
 **วัตถุประสงค์:** เก็บ vector metadata สำหรับ RAG ingestion ตาม ADR-022
 

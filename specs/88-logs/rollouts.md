@@ -34,4 +34,6 @@
 | 2026-06-18 | v1.9.10 | Feature-238 OCR AI Prompt Separation — SandboxTabs โหลด active prompts ทั้ง ocr_system + ocr_extraction, แสดง prompt info ทั้ง 2 steps, ส่ง active version ที่ถูกต้อง | ✅ Complete |
 | 2026-06-18 | v1.9.10 | VRAM Monitor Fix — Backend ส่ง loadedModels พร้อม vramUsageMB, frontend รองรับ format ใหม่, แสดง VRAM usage ถูกต้อง | ✅ Complete |
 | 2026-06-19 | v1.9.10 | Feature-240 AI Admin Console Collapsible Cards — เพิ่มปุ่มและฟังก์ชันพับ/คลี่การ์ดและเซกชัน พร้อมบันทึกสถานะลง localStorage และรักษา background query polling | ✅ Complete |
+| 2026-06-19 | v1.9.10 | Deployment Timeout Fix — Added clamav health check before recreation (skip if healthy), increased CI timeout 20→30 min | ✅ Complete |
+| 2026-06-19 | v1.9.10 | AI Admin Response Normalization — recursive data unwrap for VRAM/prompt payloads, fixed Sandbox `.map()` crash and false OOM Guard | ✅ Complete |
 

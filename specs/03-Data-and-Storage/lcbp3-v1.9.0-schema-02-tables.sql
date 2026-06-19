@@ -124,28 +124,11 @@ CREATE TABLE system_settings (
   updated_by INT COMMENT 'ผู้แก้ไขล่าสุด',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (updated_by) REFERENCES users(user_id) ON DELETE SET NULL,
-  INDEX idx_system_settings_category (category),
-  INDEX idx_system_settings_is_public (is_public)
+  FOREIGN KEY (updated_by) REFERENCES users(user_id) ON DELETE
+  SET NULL,
+    INDEX idx_system_settings_category (category),
+    INDEX idx_system_settings_is_public (is_public)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางเก็บข้อมูลการตั้งค่าระบบไดนามิก';
-
-INSERT INTO system_settings (
-  setting_key,
-  setting_value,
-  data_type,
-  category,
-  description,
-  is_public
-)
-VALUES (
-  'AI_FEATURES_ENABLED',
-  'true',
-  'boolean',
-  'ai',
-  'สถานะเปิด/ปิดการใช้งานฟีเจอร์ AI ทั้งระบบ สำหรับผู้ใช้ทั่วไป',
-  1
-)
-ON DUPLICATE KEY UPDATE setting_key = setting_key;
 
 -- ตาราง Master เก็บ "บทบาท" ของผู้ใช้ในระบบ
 CREATE TABLE roles (
@@ -395,31 +378,37 @@ CREATE TABLE correspondence_revisions (
 -- ตาราง Master เก็บ Tags ทั้งหมดที่ใช้ในระบบ
 CREATE TABLE tags (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
+  public_id CHAR(36) NOT NULL UNIQUE COMMENT 'UUIDv7 สำหรับการใช้งานภายนอก (ADR-019)',
   project_id INT NULL COMMENT 'ID โครงการ (NULL = Global Tag)',
-  tag_name VARCHAR(100) NOT NULL COMMENT 'ชื่อ Tag',
-  color_code VARCHAR(30) DEFAULT 'default' COMMENT 'รหัสสี หรือชื่อคลาสสำหรับ UI',
-  description TEXT COMMENT 'คำอธิบายแท็ก',
+  tag_name VARCHAR(100) NOT NULL COMMENT 'ชื่อแท็ก',
+  color_code VARCHAR(30) DEFAULT 'default' COMMENT 'รหัสสีสำหรับ UI',
+  description TEXT COMMENT 'คำอธิบายเพิ่มเติม',
+  created_by INT COMMENT 'ผู้สร้างแท็ก',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
-  created_by INT COMMENT 'ผู้สร้าง',
-  deleted_at DATETIME NULL COMMENT 'ลบแบบ Soft Delete',
-  -- Constraints & Indexes
+  deleted_at TIMESTAMP NULL COMMENT 'วันที่ลบ (Soft Delete)',
   FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE,
   FOREIGN KEY (created_by) REFERENCES users (user_id) ON DELETE
   SET NULL,
-    UNIQUE KEY ux_tag_project (project_id, tag_name),
+    UNIQUE KEY uq_tag_project (project_id, tag_name),
     INDEX idx_tags_deleted_at (deleted_at)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บ Tags ย่อยตาม Project';
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางเก็บข้อมูลแท็กจัดหมวดหมู่เอกสาร';
 
 -- ตารางเชื่อมระหว่าง correspondences และ tags (M:N)
 CREATE TABLE correspondence_tags (
-  correspondence_id INT COMMENT 'ID ของเอกสาร',
-  tag_id INT COMMENT 'ID ของ Tag',
+  correspondence_id INT NOT NULL COMMENT 'ID ของเอกสาร',
+  tag_id INT NOT NULL COMMENT 'ID ของแท็ก',
+  is_ai_suggested BOOLEAN DEFAULT FALSE COMMENT 'แท็กนี้แนะนำโดย AI หรือไม่',
+  confidence DECIMAL(4, 3) NULL COMMENT 'ค่าความมั่นใจของ AI (0.000–1.000)',
+  created_by INT COMMENT 'ผู้เชื่อมโยงแท็ก',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่เชื่อมโยง',
   PRIMARY KEY (correspondence_id, tag_id),
   FOREIGN KEY (correspondence_id) REFERENCES correspondences (id) ON DELETE CASCADE,
   FOREIGN KEY (tag_id) REFERENCES tags (id) ON DELETE CASCADE,
-  INDEX idx_tag_lookup (tag_id)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางเชื่อมระหว่าง correspondences และ tags (M:N)';
+  FOREIGN KEY (created_by) REFERENCES users (user_id) ON DELETE
+  SET NULL,
+    INDEX idx_correspondence_tags_lookup (tag_id)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางเชื่อมโยงความสัมพันธ์แบบ M:N ระหว่างเอกสารและแท็ก';
 
 -- ตารางเชื่อมการอ้างอิงระหว่างเอกสาร (M:N)
 CREATE TABLE correspondence_references (
@@ -1017,10 +1006,7 @@ CREATE TABLE contract_drawing_attachments (
     'OTHER '
   ) COMMENT 'ประเภทไฟล์',
   is_main_document BOOLEAN DEFAULT FALSE COMMENT '(1 = ไฟล์หลัก)',
-  PRIMARY KEY (
-    contract_drawing_id,
-    attachment_id
-  ),
+  PRIMARY KEY (contract_drawing_id, attachment_id),
   FOREIGN KEY (contract_drawing_id) REFERENCES contract_drawings (id) ON DELETE CASCADE,
   FOREIGN KEY (attachment_id) REFERENCES attachments (id) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางเชื่อม contract_drawings กับ attachments (M :N)';
@@ -1042,10 +1028,7 @@ CREATE TABLE document_number_formats (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
   FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE,
   FOREIGN KEY (correspondence_type_id) REFERENCES correspondence_types (id) ON DELETE CASCADE,
-  UNIQUE KEY unique_format (
-    project_id,
-    correspondence_type_id
-  )
+  UNIQUE KEY unique_format (project_id, correspondence_type_id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บ "รูปแบบ" Template ของเลขที่เอกสาร';
 
 -- ==========================================================
@@ -1395,11 +1378,7 @@ CREATE TABLE backup_logs (
   backup_type ENUM('DATABASE', 'FILES', 'FULL') NOT NULL COMMENT 'ประเภท (DATABASE, FILES, FULL)',
   backup_path VARCHAR(500) NOT NULL COMMENT 'ตำแหน่งไฟล์สำรอง',
   file_size BIGINT COMMENT 'ขนาดไฟล์',
-  STATUS ENUM(
-    'STARTED',
-    'COMPLETED',
-    'FAILED'
-  ) NOT NULL COMMENT 'สถานะ',
+  STATUS ENUM('STARTED', 'COMPLETED', 'FAILED') NOT NULL COMMENT 'สถานะ',
   started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'เวลาเริ่มต้น',
   completed_at TIMESTAMP NULL COMMENT 'เวลาเสร็จสิ้น',
   error_message TEXT COMMENT 'ข้อความผิดพลาด (ถ้ามี)'
@@ -1508,10 +1487,16 @@ CREATE TABLE migration_review_queue (
   idempotency_key VARCHAR(200) NOT NULL COMMENT 'Idempotency-Key สำหรับป้องกัน queue ซ้ำ',
   original_filename VARCHAR(500) NOT NULL COMMENT 'ชื่อไฟล์ต้นฉบับจาก legacy source',
   storage_temp_path VARCHAR(1000) NOT NULL COMMENT 'temp storage path ก่อน import',
-  ai_metadata_json JSON NOT NULL COMMENT 'AI suggestion payload เต็มสำหรับ human review',
+  ai_job_id VARCHAR(36) NULL COMMENT 'BullMQ Job ID สำหรับงานประมวลผล AI',
+  ai_metadata_json LONGTEXT NOT NULL COMMENT 'AI suggestion payload เต็มสำหรับ human review' CHECK (json_valid(`ai_metadata_json`)),
   confidence_score DECIMAL(5, 4) NOT NULL COMMENT 'AI confidence score 0.0000-1.0000',
   ocr_used TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'ระบุว่าใช้ OCR path หรือไม่',
-  STATUS ENUM('PENDING', 'APPROVED', 'IMPORTED', 'REJECTED') NOT NULL DEFAULT 'PENDING',
+  STATUS ENUM(
+    'PENDING',
+    'PENDING_REVIEW',
+    'IMPORTED',
+    'REJECTED'
+  ) NOT NULL DEFAULT 'PENDING',
   temp_attachment_id INT NULL COMMENT 'Temporary attachment ID referencing attachments.id (ADR-028)',
   reviewed_by INT NULL COMMENT 'Internal users.user_id ของผู้ review',
   reviewed_at DATETIME NULL COMMENT 'เวลาที่ review record',
@@ -1536,8 +1521,14 @@ CREATE TABLE ai_audit_logs (
   document_public_id UUID NULL COMMENT 'Imported document publicId when available',
   ai_model VARCHAR(50) NOT NULL DEFAULT 'gemma4' COMMENT 'Legacy AI model column used by current gateway service',
   model_name VARCHAR(100) NOT NULL COMMENT 'Local model name used by ADR-023 AI pipeline',
-  ai_suggestion_json JSON NULL COMMENT 'AI suggested metadata',
-  human_override_json JSON NULL COMMENT 'Human approved or overridden metadata',
+  effective_profile VARCHAR(50) NULL COMMENT 'ExecutionProfile ที่ backend กำหนด: interactive|standard|quality|deep-analysis (Feature-235)',
+  canonical_model VARCHAR(50) NULL COMMENT 'Canonical model identity: np-dms-ai หรือ np-dms-ocr (Feature-235, ADR-023)',
+  snapshot_params_json LONGTEXT NULL COMMENT 'Runtime parameters snapshot ณ เวลา dispatch — ใช้จริงใน Ollama call (FR-A09, Feature-235)' CHECK (json_valid(`snapshot_params_json`)),
+  model_type VARCHAR(50) NULL COMMENT 'ประเภท OCR/LLM model ที่ใช้ เช่น tesseract, typhoon-ocr-3b',
+  vram_usage_mb INT NULL COMMENT 'VRAM ที่ใช้จริง (MB) ณ เวลาประมวลผล',
+  cache_hit TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 = ผลลัพธ์มาจาก Redis cache, 0 = OCR ใหม่',
+  ai_suggestion_json LONGTEXT NULL COMMENT 'AI suggested metadata' CHECK (json_valid(`ai_suggestion_json`)),
+  human_override_json LONGTEXT NULL COMMENT 'Human approved or overridden metadata' CHECK (json_valid(`human_override_json`)),
   processing_time_ms INT NULL COMMENT 'Legacy processing duration field',
   confidence_score DECIMAL(4, 3) NULL COMMENT 'AI confidence score 0.000-1.000',
   input_hash VARCHAR(64) NULL COMMENT 'Legacy SHA-256 input hash',
@@ -1552,12 +1543,132 @@ CREATE TABLE ai_audit_logs (
   KEY idx_ai_audit_model_name (model_name),
   KEY idx_ai_audit_status (STATUS),
   KEY idx_ai_audit_confirmed_by (confirmed_by_user_id),
+  KEY idx_ai_audit_model_type (model_type),
+  KEY idx_ai_audit_effective_profile (effective_profile),
+  KEY idx_ai_audit_canonical_model (canonical_model),
   CONSTRAINT fk_ai_audit_confirmed_by_user FOREIGN KEY (confirmed_by_user_id) REFERENCES users (user_id) ON DELETE
   SET NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'ADR-023 AI development feedback log';
 
 -- =====================================================
--- 13. 🤖 Intent Classification (ADR-024)
+-- 13. 🤖 AI Available Models (ADR-027, ADR-034)
+-- =====================================================
+-- ตารางเก็บรายการโมเดล AI ที่ให้เลือกใช้งานในระบบ
+CREATE TABLE ai_available_models (
+  id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'ID ของตาราง',
+  model_name VARCHAR(100) NOT NULL UNIQUE COMMENT 'ชื่อโมเดล เช่น gemma4:e2b, gemma4:e4b',
+  model_version VARCHAR(50) NOT NULL COMMENT 'เวอร์ชั่นของโมเดล',
+  description VARCHAR(500) NULL COMMENT 'รายละเอียดโมเดล',
+  vram_gb DECIMAL(4, 2) NULL COMMENT 'VRAM ที่ใช้โดยประมาณ (GB)',
+  is_active TINYINT(1) DEFAULT 1 COMMENT 'สถานะใช้งาน',
+  is_default TINYINT(1) DEFAULT 0 COMMENT 'โมเดลเริ่มต้น',
+  created_by INT NULL,
+  updated_by INT NULL,
+  created_at DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  deleted_at DATETIME(3) NULL,
+  UNIQUE KEY uk_model_name (model_name),
+  KEY idx_is_active (is_active),
+  KEY idx_is_default (is_default)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'ตารางเก็บรายการโมเดล AI ที่ให้เลือกใช้งานในระบบ (ADR-027)';
+
+-- =====================================================
+-- 14. 🤖 AI Prompts (ADR-029)
+-- =====================================================
+-- ตาราง versioned prompt templates สำหรับ OCR extraction
+CREATE TABLE ai_prompts (
+  id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'ID ภายใน (ไม่ expose ใน API)',
+  public_id UUID NOT NULL UNIQUE COMMENT 'UUID Public Identifier (ADR-019)',
+  prompt_type VARCHAR(50) NOT NULL COMMENT 'ประเภท prompt เช่น ocr_extraction',
+  version_number INT NOT NULL COMMENT 'เลข version ต่อเนื่องต่อ prompt_type (1, 2, 3...)',
+  template TEXT NOT NULL COMMENT 'prompt template ที่มี {{ocr_text}} placeholder บังคับ',
+  field_schema LONGTEXT NULL COMMENT 'definition ของ fields ที่คาดหวังในผลลัพธ์ JSON' CHECK (json_valid(`field_schema`)),
+  is_active TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 = version นี้ใช้งานจริงทั้ง sandbox และ migrate-document (1 per prompt_type)',
+  test_result_json LONGTEXT NULL COMMENT 'ผลลัพธ์ JSON จาก sandbox run ล่าสุด (auto-save โดย processor)' CHECK (json_valid(`test_result_json`)),
+  manual_note TEXT NULL COMMENT 'หมายเหตุ/annotation จาก admin (manual input)',
+  last_tested_at TIMESTAMP NULL COMMENT 'เวลาที่ sandbox รันครั้งล่าสุดสำหรับ version นี้',
+  activated_at TIMESTAMP NULL COMMENT 'เวลาที่ version นี้ถูก activate เป็น active',
+  created_by INT NOT NULL COMMENT 'user_id ของผู้สร้าง version นี้',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  context_config LONGTEXT NULL COMMENT 'Configuration สำหรับ context ที่ backend ต้องส่งให้ AI (filter, pageSize, language, etc.)' CHECK (json_valid(`context_config`)),
+  version INT NOT NULL DEFAULT 1,
+  UNIQUE KEY uk_type_version (prompt_type, version_number),
+  KEY idx_prompt_type_active (prompt_type, is_active),
+  KEY created_by (created_by),
+  CONSTRAINT ai_prompts_ibfk_1 FOREIGN KEY (created_by) REFERENCES users (user_id)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'ตาราง versioned prompt templates สำหรับ OCR extraction (ADR-029)';
+
+-- =====================================================
+-- 15. 🤖 AI Execution Profiles (ADR-025, ADR-027)
+-- =====================================================
+-- ตาราง execution profile parameters สำหรับ np-dms-ai
+CREATE TABLE ai_execution_profiles (
+  id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'ID ภายใน',
+  profile_name VARCHAR(50) NOT NULL UNIQUE COMMENT 'ชื่อ profile',
+  canonical_model VARCHAR(20) NOT NULL DEFAULT 'np-dms-ai' COMMENT 'Model identity',
+  temperature DECIMAL(4, 3) NOT NULL COMMENT 'LLM temperature',
+  top_p DECIMAL(4, 3) NOT NULL COMMENT 'LLM top_p',
+  max_tokens INT NULL COMMENT 'Maximum tokens',
+  num_ctx INT NULL COMMENT 'Context window size',
+  repeat_penalty DECIMAL(5, 3) NOT NULL COMMENT 'Repeat penalty',
+  keep_alive_seconds INT NOT NULL COMMENT 'Model keep_alive in seconds',
+  is_active TINYINT(1) NOT NULL DEFAULT 1 COMMENT '1 = active; 0 = disabled',
+  updated_by INT NULL COMMENT 'user_id',
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_profile_active (profile_name, is_active),
+  KEY updated_by (updated_by),
+  CONSTRAINT ai_execution_profiles_ibfk_1 FOREIGN KEY (updated_by) REFERENCES users (user_id)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'ตาราง execution profile parameters สำหรับ np-dms-ai';
+
+-- ตาราง sandbox profile parameters
+CREATE TABLE ai_sandbox_profiles (
+  id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'ID ภายใน',
+  profile_name VARCHAR(50) NOT NULL UNIQUE COMMENT 'ชื่อ profile',
+  canonical_model VARCHAR(20) NOT NULL DEFAULT 'np-dms-ai' COMMENT 'Model identity',
+  temperature DECIMAL(4, 3) NOT NULL COMMENT 'LLM temperature',
+  top_p DECIMAL(4, 3) NOT NULL COMMENT 'LLM top_p',
+  max_tokens INT NULL COMMENT 'Maximum tokens',
+  num_ctx INT NOT NULL COMMENT 'Context window size',
+  repeat_penalty DECIMAL(5, 3) NOT NULL COMMENT 'Repeat penalty',
+  keep_alive_seconds INT NOT NULL COMMENT 'Model keep_alive in seconds',
+  updated_by INT NULL COMMENT 'user_id',
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_ai_sandbox_profile_model (canonical_model),
+  KEY updated_by (updated_by),
+  CONSTRAINT ai_sandbox_profiles_ibfk_1 FOREIGN KEY (updated_by) REFERENCES users (user_id)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'ตาราง sandbox profile parameters';
+
+-- =====================================================
+-- 16. 🤖 Migration Errors (ADR-028)
+-- =====================================================
+-- ตาราง Error Log สำหรับ Migration (ลบได้หลัง Migration เสร็จ)
+CREATE TABLE migration_errors (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  batch_id VARCHAR(50) NULL,
+  document_number VARCHAR(100) NULL,
+  error_type ENUM(
+    'FILE_NOT_FOUND',
+    'MISSING_FILENAME',
+    'FILE_ERROR',
+    'AI_PARSE_ERROR',
+    'API_ERROR',
+    'DB_ERROR',
+    'SECURITY',
+    'UNKNOWN'
+  ) NULL,
+  error_message TEXT NULL,
+  job_id VARCHAR(100) NULL,
+  raw_ai_response TEXT NULL,
+  created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_batch_id (batch_id),
+  KEY idx_job_id (job_id),
+  KEY idx_error_type (error_type)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Migration: Error Log (ลบได้หลัง Migration เสร็จ)';
+
+-- =====================================================
+-- 17. 🤖 Intent Classification (ADR-024)
 -- =====================================================
 -- Intent Definitions Table
 CREATE TABLE IF NOT EXISTS ai_intent_definitions (

@@ -17,6 +17,7 @@
 // - 2026-06-13: T027-T029 — เพิ่ม getSandboxProfile, saveSandboxProfile, resetSandboxProfile สำหรับ sandbox parameter management
 // - 2026-06-13: T042-T043 — เพิ่ม applyProfile และ getProductionDefaults สำหรับปรับใช้และดึงค่า production parameters
 // - 2026-06-13: US4 — อัปเดต submitSandboxExtract และ submitSandboxAiExtract ให้รองรับ project/contract publicId
+// - 2026-06-19: แก้ response envelope ซ้อนกันเพื่อป้องกัน VRAM แสดง 0/0 และ OOM Guard ผิดพลาด
 
 import api from '../api/client';
 import { AiJobResponse } from '../../types/ai';
@@ -172,10 +173,15 @@ export interface ExecutionProfile {
 }
 
 const extractData = <T>(value: unknown): T => {
-  if (value && typeof value === 'object' && 'data' in value) {
-    return (value as { data: T }).data;
+  let current = value;
+  for (let depth = 0; depth < 3; depth += 1) {
+    if (current && typeof current === 'object' && 'data' in current) {
+      current = (current as { data: unknown }).data;
+      continue;
+    }
+    break;
   }
-  return value as T;
+  return current as T;
 };
 
 const normalizeLoadedModels = (models: Array<string | LoadedModelInfo> | undefined): LoadedModelInfo[] => {
@@ -199,6 +205,7 @@ const normalizeVramStatus = (value: unknown): VramStatusResponse => {
   const totalVRAMMB = raw.totalVRAMMB ?? raw.totalVramMb ?? 0;
   const usedVRAMMB = raw.usedVRAMMB ?? raw.usedVramMb ?? 0;
   const usagePercent = raw.usagePercent ?? (totalVRAMMB > 0 ? Math.round((usedVRAMMB / totalVRAMMB) * 100) : 0);
+  const hasKnownCapacity = totalVRAMMB > 0;
 
   // Backend now sends loadedModels with vramUsageMB directly
   const loadedModels = normalizeLoadedModels(raw.loadedModels);
@@ -209,7 +216,7 @@ const normalizeVramStatus = (value: unknown): VramStatusResponse => {
     usagePercent,
     thresholdPercent: raw.thresholdPercent ?? 90,
     loadedModels,
-    canLoadModel: raw.canLoadModel ?? raw.hasCapacity ?? false,
+    canLoadModel: hasKnownCapacity ? (raw.canLoadModel ?? raw.hasCapacity ?? false) : true,
     lastUpdated: raw.lastUpdated ?? new Date().toISOString(),
   };
 };
