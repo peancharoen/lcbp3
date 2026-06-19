@@ -70,10 +70,10 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: self-hosted
     steps:
-      - name: ' Checkout'
+      - name: " Checkout"
         uses: actions/checkout@v4
 
-      - name: '🚀 Deploy to QNAP'
+      - name: "🚀 Deploy to QNAP"
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
@@ -100,4 +100,4 @@ jobs:
 
             ./scripts/deploy.sh
           REMOTE_EOF
-        timeout-minutes: 30
+        timeout-minutes: 20
