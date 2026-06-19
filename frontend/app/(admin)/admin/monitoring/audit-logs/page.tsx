@@ -8,6 +8,7 @@ import { Loader2 } from 'lucide-react';
 
 export default function AuditLogsPage() {
   const { data: logs, isLoading } = useAuditLogs();
+  const logList = Array.isArray(logs) ? logs : [];
 
   return (
     <div className="space-y-6">
@@ -22,10 +23,10 @@ export default function AuditLogsPage() {
         </div>
       ) : (
         <div className="space-y-2">
-          {!logs || logs.length === 0 ? (
+          {logList.length === 0 ? (
             <div className="text-center text-muted-foreground py-10">No logs found</div>
           ) : (
-            logs.map((log: import('@/lib/services/audit-log.service').AuditLog) => (
+            logList.map((log: import('@/lib/services/audit-log.service').AuditLog) => (
               <Card key={log.publicId} className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">

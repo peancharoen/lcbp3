@@ -150,11 +150,13 @@ describe('VramMonitorService', () => {
       // 8192MB total - 1024MB used = 7168MB free > 4000MB
       expect(status.hasCapacity).toBe(true);
     });
-    it('ควรคืน fallback (hasCapacity=false) เมื่อ /api/ps ล้มเหลว', async () => {
+    it('ควรคืน fallback optimistic (hasCapacity=true) เมื่อ /api/ps ล้มเหลว', async () => {
       mockedAxios.get.mockRejectedValue(new Error('Network error'));
       const status = await service.getVramStatus();
-      expect(status.hasCapacity).toBe(false);
-      expect(status.freeVramMb).toBe(0);
+      // เปลี่ยนจาก pessimistic เป็น optimistic: สมมติว่าไม่มี model load เมื่อ query ล้มเหลว
+      expect(status.hasCapacity).toBe(true);
+      expect(status.freeVramMb).toBe(8192); // total VRAM ทั้งหมด (8192MB default)
+      expect(status.usedVramMb).toBe(0);
       expect(status.loadedModels).toEqual([]);
     });
   });

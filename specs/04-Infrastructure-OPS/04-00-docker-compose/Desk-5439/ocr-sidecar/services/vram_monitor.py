@@ -40,4 +40,6 @@ def get_vram_headroom() -> VramHeadroom:
         return VramHeadroom(total_vram_mb, used_mb, available_mb, True)
     except Exception as e:
         logger.warning(f"Failed to query Ollama VRAM: {str(e)}")
-        return VramHeadroom(total_vram_mb, total_vram_mb, 0.0, False)
+        # เปลี่ยนจาก pessimistic (assume all VRAM used) เป็น optimistic (assume no VRAM used)
+        # เพื่อป้องกัน false positive OOM Guard เมื่อ query ล้มเหลวแต่ไม่มี model load จริง
+        return VramHeadroom(total_vram_mb, 0.0, total_vram_mb, False)

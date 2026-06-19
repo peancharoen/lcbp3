@@ -83,10 +83,12 @@ export class VramMonitorService {
       this.logger.warn(
         `Failed to query Ollama /api/ps: ${err instanceof Error ? err.message : String(err)}`
       );
+      // เปลี่ยนจาก pessimistic (assume all VRAM used) เป็น optimistic (assume no VRAM used)
+      // เพื่อป้องกัน false positive OOM Guard เมื่อ query ล้มเหลวแต่ไม่มี model load จริง
       return {
         totalMb: this.totalVramMb,
-        usedMb: this.totalVramMb, // บังคับให้ used = total เพื่อให้ available = 0
-        availableMb: 0,
+        usedMb: 0, // สมมติว่าไม่มี model load เมื่อ query ล้มเหลว
+        availableMb: this.totalVramMb,
         querySuccess: false,
         mainModelVramMb: 0,
       };
