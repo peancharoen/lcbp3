@@ -100,4 +100,4 @@ jobs:
 
             ./scripts/deploy.sh
           REMOTE_EOF
-        timeout-minutes: 20
+        timeout-minutes: 30

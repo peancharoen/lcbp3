@@ -51,7 +51,15 @@ echo "✓ Images built"
 
 # [2/3] Start / restart stack with new images
 echo "[2/3] Starting application stack..."
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --force-recreate
+
+# Check if clamav is already healthy to avoid 5-minute healthcheck delay
+if docker ps --filter "name=clamav" --filter "status=running" --format "{{.Status}}" 2>/dev/null | grep -q "healthy"; then
+  echo "  ClamAV already healthy, skipping recreation"
+  docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --force-recreate backend frontend
+else
+  echo "  ClamAV not healthy or not running, recreating full stack"
+  docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --force-recreate
+fi
 echo "✓ Stack started"
 
 # [3/3] Health check
