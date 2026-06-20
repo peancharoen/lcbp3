@@ -100,7 +100,7 @@ vi.mock('@/lib/services/admin-ai.service', () => ({
   adminAiService: {
     getOcrEngines: vi.fn().mockResolvedValue([
       {
-        engineType: 'typhoon_ocr',
+        engineType: 'np_dms_ocr',
         engineName: 'np-dms-ocr',
         vramRequirementMB: 4096,
         isCurrentActive: true,

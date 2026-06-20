@@ -9,15 +9,17 @@
 #              Container รันบน CPU เท่านั้น ไม่ต้องการ CUDA/GPU ใน container
 # - 2026-06-11: เพิ่ม typhoon-ocr ใน requirements.txt — poppler-utils มีอยู่แล้ว (ใช้โดย prepare_ocr_messages)
 # - 2026-06-11: ตัด tesseract-ocr, tesseract-ocr-tha, tesseract-ocr-eng, libsm6, libxext6, libxrender1, libfontconfig1, libx11-6 — ไม่ใช้ Tesseract อีกต่อไป
+# - 2026-06-20: ADR-040 Phase 6+8 — เพิ่ม curl สำหรับ HEALTHCHECK; ลด start_period เป็น 10s (async startup ไม่ block)
 
-FROM python:3.10-slim
+FROM python:3.11-slim
 
-# ติดตั้ง system dependencies สำหรับ PDF processing และ PyMuPDF
+# ติดตั้ง system dependencies สำหรับ PDF processing, PyMuPDF และ curl สำหรับ healthcheck
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     libgl1 \
     libgomp1 \
     poppler-utils \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

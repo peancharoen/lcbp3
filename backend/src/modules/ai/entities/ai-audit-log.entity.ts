@@ -41,7 +41,7 @@ export class AiAuditLog extends UuidBaseEntity {
   @Column({ name: 'model_name', type: 'varchar', length: 100, nullable: true })
   modelName?: string;
 
-  // ประเภท OCR/LLM model ที่ใช้ เช่น tesseract, typhoon-ocr-3b, typhoon2.1-gemma3-4b (ADR-032)
+  // ประเภท OCR/LLM model ที่ใช้ เช่น fast-path, np-dms-ocr, np-dms-ai (ADR-032)
   @Index('idx_ai_audit_model_type')
   @Column({ name: 'model_type', type: 'varchar', length: 50, nullable: true })
   modelType?: string;

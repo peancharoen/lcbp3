@@ -26,42 +26,50 @@
 
 > การตัดสินใจเหล่านี้ **ไม่สามารถเปลี่ยนแปลงได้** โดยไม่ได้รับ Explicit Approval
 
-| ID  | Decision                                                                                                                                                                                                                                 | ADR                |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
-| D1  | n8n = Migration Phase orchestrator เท่านั้น — ห้ามทำ New Correspondence pipeline ผ่าน n8n                                                                                                                                                | ADR-023A           |
-| D2  | New Correspondence → BullMQ `ai-realtime` queue โดยตรง (ไม่ผ่าน n8n)                                                                                                                                                                     | ADR-023A           |
-| D3  | n8n ต้อง call `POST /api/ai/jobs` (DMS Backend) เท่านั้น — ห้าม call Ollama/Qdrant โดยตรง                                                                                                                                                | ADR-023A           |
-| D4  | Excel metadata ส่งไปพร้อม AI job เป็น context (docNumber, title, sender ฯลฯ)                                                                                                                                                             | Session 2          |
-| D5  | Tag suggestion ใช้ทาง C: แนะนำ existing tags + สร้างใหม่ได้ถ้าไม่มี (`isNew: true` flag)                                                                                                                                                 | Session 2          |
-| D6  | Editable Review Form: AI pre-fill → user approve/edit → submit (human-in-the-loop ทุกครั้ง)                                                                                                                                              | ADR-023            |
-| D7  | UUID Strategy: `publicId` (UUIDv7) เท่านั้นสำหรับ Public API — INT PK ต้อง `@Exclude()`                                                                                                                                                  | ADR-019            |
-| D8  | Schema changes: แก้ SQL โดยตรง + เพิ่ม `deltas/*.sql` — ห้ามใช้ TypeORM migration files                                                                                                                                                  | ADR-009            |
-| D9  | Qdrant search ต้องส่ง `projectPublicId` เป็น mandatory parameter ทุกครั้ง (compile-time)                                                                                                                                                 | ADR-023A           |
-| D10 | AI model stack: `np-dms-ai:latest` (Main LLM) + `np-dms-ocr:latest` (OCR, keep_alive:0) + `BGE-M3` (Dense 1024 + Sparse Embedding) + `BGE-Reranker-Large` (Reranker) on Admin Desktop — `nomic-embed-text` ถูกแทนที่แล้ว (ADR-034/035)   | ADR-034/035        |
-| D11 | RAG Embedding trigger: `syncStatus()` → `enqueueRagPrepare()` เมื่อ status ≠ DRAFT; jobId = `rag-prepare:{documentPublicId}:{revisionNumber}` (BullMQ dedup); delete-before-upsert ทุกครั้ง                                              | ADR-035            |
-| D12 | Qdrant collection `lcbp3_vectors` = Hybrid schema: `bge_dense` (1024 dims, Cosine) + `bge_sparse` (SPLADE); payload indexes: `project_public_id` (tenant), `doc_public_id`, `status_code`, `doc_type`                                    | ADR-035            |
-| D13 | **Analysis Phase required** — ต้องอ่าน `docker-compose*.yml`, `deploy.sh`, `main.ts` ก่อนแนะนำ URL/Port/Path — ห้ามเดา                                                                                                                   | AGENTS.md          |
-| D14 | Sandbox-Production Parity: บันทึก draft ใน `ai_sandbox_profiles` และปรับใช้ไป production `ai_execution_profiles` ผ่าน apply API (Idempotency-Key + CASL guard); sandbox pipeline ดึง project/contract ID จริงเพื่อ parity prompt context | ADR-036            |
-| D15 | SandboxTabs ต้องโหลด active prompts ทั้ง ocr_system และ ocr_extraction จาก service เพื่อแสดง prompt info ทั้ง 2 steps ตาม FR-009, FR-010 (Feature-238)                                                                                   | Feature-238        |
-| D16 | Backend VRAM service ต้องส่ง loadedModels พร้อม vramUsageMB (bytes → MB) เพื่อให้ frontend แสดงผล VRAM usage ของแต่ละ model ได้ถูกต้อง                                                                                                   | Session 2026-06-18 |
-| D17 | สถานะพับ/คลี่ของการ์ดและเซกชันในหน้า AI Admin Console จะเก็บลงใน localStorage เพื่อรักษาสถานะ และการพับไม่มีผลต่อ background query polling                                                                                               | Feature-240        |
-| D18 | Deploy script ต้องตรวจสอบ ClamAV health status ก่อน recreation — ถ้า healthy ให้ recreate เฉพาะ backend/frontend (skip 5-minute healthcheck delay)                                                                                       | Session 2026-06-19 |
-| D19 | CI timeout ต้องอย่างน้อย 30 minutes เพื่อรองรับ ClamAV startup กรณีต้อง recreate full stack                                                                                                                                              | Session 2026-06-19 |
-| D20 | AI Admin frontend services ต้อง normalize API response envelope ที่อาจซ้อน `data` ก่อน render; VRAM `totalVRAMMB = 0` คือ unknown capacity ไม่ใช่ OOM Guard                                                                              | Session 2026-06-19 |
+| ID  | Decision                                                                                                                                                                                                                                         | ADR                |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------ |
+| D1  | n8n = Migration Phase orchestrator เท่านั้น — ห้ามทำ New Correspondence pipeline ผ่าน n8n                                                                                                                                                        | ADR-023A           |
+| D2  | New Correspondence → BullMQ `ai-realtime` queue โดยตรง (ไม่ผ่าน n8n)                                                                                                                                                                             | ADR-023A           |
+| D3  | n8n ต้อง call `POST /api/ai/jobs` (DMS Backend) เท่านั้น — ห้าม call Ollama/Qdrant โดยตรง                                                                                                                                                        | ADR-023A           |
+| D4  | Excel metadata ส่งไปพร้อม AI job เป็น context (docNumber, title, sender ฯลฯ)                                                                                                                                                                     | Session 2          |
+| D5  | Tag suggestion ใช้ทาง C: แนะนำ existing tags + สร้างใหม่ได้ถ้าไม่มี (`isNew: true` flag)                                                                                                                                                         | Session 2          |
+| D6  | Editable Review Form: AI pre-fill → user approve/edit → submit (human-in-the-loop ทุกครั้ง)                                                                                                                                                      | ADR-023            |
+| D7  | UUID Strategy: `publicId` (UUIDv7) เท่านั้นสำหรับ Public API — INT PK ต้อง `@Exclude()`                                                                                                                                                          | ADR-019            |
+| D8  | Schema changes: แก้ SQL โดยตรง + เพิ่ม `deltas/*.sql` — ห้ามใช้ TypeORM migration files                                                                                                                                                          | ADR-009            |
+| D9  | Qdrant search ต้องส่ง `projectPublicId` เป็น mandatory parameter ทุกครั้ง (compile-time)                                                                                                                                                         | ADR-023A           |
+| D10 | AI model stack: `np-dms-ai:latest` (Main LLM) + `np-dms-ocr:latest` (OCR, keep_alive:0) + `BGE-M3` (Dense 1024 + Sparse Embedding) + `BGE-Reranker-Large` (Reranker) on Admin Desktop — `nomic-embed-text` ถูกแทนที่แล้ว (ADR-034/035)           | ADR-034/035        |
+| D11 | RAG Embedding trigger: `syncStatus()` → `enqueueRagPrepare()` เมื่อ status ≠ DRAFT; jobId = `rag-prepare:{documentPublicId}:{revisionNumber}` (BullMQ dedup); delete-before-upsert ทุกครั้ง                                                      | ADR-035            |
+| D12 | Qdrant collection `lcbp3_vectors` = Hybrid schema: `bge_dense` (1024 dims, Cosine) + `bge_sparse` (SPLADE); payload indexes: `project_public_id` (tenant), `doc_public_id`, `status_code`, `doc_type`                                            | ADR-035            |
+| D13 | **Analysis Phase required** — ต้องอ่าน `docker-compose*.yml`, `deploy.sh`, `main.ts` ก่อนแนะนำ URL/Port/Path — ห้ามเดา                                                                                                                           | AGENTS.md          |
+| D14 | Sandbox-Production Parity: บันทึก draft ใน `ai_sandbox_profiles` และปรับใช้ไป production `ai_execution_profiles` ผ่าน apply API (Idempotency-Key + CASL guard); sandbox pipeline ดึง project/contract ID จริงเพื่อ parity prompt context         | ADR-036            |
+| D15 | SandboxTabs ต้องโหลด active prompts ทั้ง ocr_system และ ocr_extraction จาก service เพื่อแสดง prompt info ทั้ง 2 steps ตาม FR-009, FR-010 (Feature-238)                                                                                           | Feature-238        |
+| D16 | Backend VRAM service ต้องส่ง loadedModels พร้อม vramUsageMB (bytes → MB) เพื่อให้ frontend แสดงผล VRAM usage ของแต่ละ model ได้ถูกต้อง                                                                                                           | Session 2026-06-18 |
+| D17 | สถานะพับ/คลี่ของการ์ดและเซกชันในหน้า AI Admin Console จะเก็บลงใน localStorage เพื่อรักษาสถานะ และการพับไม่มีผลต่อ background query polling                                                                                                       | Feature-240        |
+| D18 | Deploy script ต้องตรวจสอบ ClamAV health status ก่อน recreation — ถ้า healthy ให้ recreate เฉพาะ backend/frontend (skip 5-minute healthcheck delay)                                                                                               | Session 2026-06-19 |
+| D19 | CI timeout ต้องอย่างน้อย 30 minutes เพื่อรองรับ ClamAV startup กรณีต้อง recreate full stack                                                                                                                                                      | Session 2026-06-19 |
+| D20 | AI Admin frontend services ต้อง normalize API response envelope ที่อาจซ้อน `data` ก่อน render; VRAM `totalVRAMMB = 0` คือ unknown capacity ไม่ใช่ OOM Guard                                                                                      | Session 2026-06-19 |
+| D21 | OCR Sidecar = Pure Compute Worker — orchestration/params อยู่ใน backend existing services (reject PromptBuilderService, OcrNoiseFilterService, OcrOrchestratorService)                                                                           | ADR-040 D1         |
+| D22 | Wire `calculate_ocr_residency()` ใน `process_ocr` — keep_alive เป็น lazy resource param (ADR-036 Gap-2), ห้าม fixed value                                                                                                                        | ADR-040 D3         |
+| D23 | Retain vram_monitor + CPU-fallback for `/embed`,`/rerank` — ห้าม force BGE+Reranker GPU-resident, เคารณะ LLM-First GPU Ownership + CPU Fallback Retrieval                                                                                        | ADR-040 D4         |
+| D24 | Remove X-API-Key from sidecar — auth = network isolation (supersedes ADR-033 §7), sequencing: ลบเฉพาะหลัง ADR-041 cutover (single Docker host)                                                                                                   | ADR-040 D5         |
+| D25 | Server Consolidation — co-locate ทุก services บน single Docker host (Ryzen 5 5600 / 32GB / RTX 5060 Ti 16GB), retire Desk-5439                                                                                                                   | ADR-041 D1         |
+| D26 | ASUSTOR (192.168.10.9) = Primary NAS (CIFS share np-dms-as), QNAP = Backup server เท่านั้น                                                                                                                                                       | ADR-041 D2         |
+| D27 | Docker-internal network only for sidecar/Ollama — enables ADR-040 D5 network-only auth, QNAP backend → new host consolidation                                                                                                                    | ADR-041 D3         |
+| D28 | Canonical naming enforced: `np-dms-ai` (LLM), `np-dms-ocr` (OCR), `fast-path` (PyMuPDF) — ลบ `typhoon-llm`, `tesseract`, `Typhoon OCR` ออกจาก code; `OCR_SIDECAR_API_KEY` mandatory (no default); backend ไม่ส่ง `keep_alive` (sidecar คำนวณเอง) | ADR-040/034        |
 
 ## Environment & Services
 
-| Service          | Local URL / Port              | Production                        | Notes                                                                                      |
-| ---------------- | ----------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------ |
-| **Backend API**  | `http://localhost:3001`       | `https://backend.np-dms.work/api` | NestJS — port 3000 in container, exposed via Nginx Proxy Manager                           |
-| **Frontend**     | `http://localhost:3000`       | QNAP `192.168.10.8`               | Next.js                                                                                    |
-| **MariaDB**      | `localhost:3307`              | QNAP internal                     | DB: `lcbp3`, root via docker                                                               |
-| **Redis**        | `localhost:6379`              | QNAP internal                     | BullMQ + session store                                                                     |
-| **Ollama**       | `http://192.168.10.100:11434` | Admin Desktop (Desk-5439)         | typhoon2.5-np-dms:latest (main) + typhoon-np-dms-ocr:latest (OCR, keep_alive:0)            |
-| **Qdrant**       | `http://localhost:6333`       | Admin Desktop (Desk-5439)         | Vector DB — requires projectPublicId                                                       |
-| **OCR Sidecar**  | `http://192.168.10.100:8765`  | Admin Desktop (Desk-5439)         | Tesseract (fallback) / Typhoon OCR-3B (primary) + BGE-M3 `/embed` + BGE-Reranker `/rerank` |
-| **Gitea**        | `https://git.np-dms.work`     | QNAP `192.168.10.8`               | Source + CI/CD                                                                             |
-| **Gitea Runner** | ASUSTOR `192.168.10.9`        | —                                 | CI runner                                                                                  |
+| Service          | Local URL / Port              | Production                        | Notes                                                                                              |
+| ---------------- | ----------------------------- | --------------------------------- | -------------------------------------------------------------------------------------------------- |
+| **Backend API**  | `http://localhost:3001`       | `https://backend.np-dms.work/api` | NestJS — port 3000 in container, exposed via Nginx Proxy Manager                                   |
+| **Frontend**     | `http://localhost:3000`       | QNAP `192.168.10.8`               | Next.js                                                                                            |
+| **MariaDB**      | `localhost:3307`              | QNAP internal                     | DB: `lcbp3`, root via docker                                                                       |
+| **Redis**        | `localhost:6379`              | QNAP internal                     | BullMQ + session store                                                                             |
+| **Ollama**       | `http://192.168.10.100:11434` | Admin Desktop (Desk-5439)         | typhoon2.5-np-dms:latest (main) + typhoon-np-dms-ocr:latest (OCR, keep_alive:0)                    |
+| **Qdrant**       | `http://localhost:6333`       | Admin Desktop (Desk-5439)         | Vector DB — requires projectPublicId                                                               |
+| **OCR Sidecar**  | `http://192.168.10.100:8765`  | Admin Desktop (Desk-5439)         | np-dms-ocr (Ollama) + BGE-M3 `/embed` + BGE-Reranker `/rerank`; async I/O, lifespan, no /normalize |
+| **Gitea**        | `https://git.np-dms.work`     | QNAP `192.168.10.8`               | Source + CI/CD                                                                                     |
+| **Gitea Runner** | ASUSTOR `192.168.10.9`        | —                                 | CI runner                                                                                          |
 
 ### Key Environment Variables
 
@@ -74,6 +82,36 @@ QDRANT_URL
 ```
 
 ## Next Session Focus
+
+### OCR Backend Cleanup (Session 2026-06-20) ✅ COMPLETE
+
+- [x] **P1-1:** ลบ `keep_alive` จาก backend form data
+- [x] **P1-2:** ลบ hardcoded API key defaults (ocr.service.ts + sandbox-ocr-engine.service.ts)
+- [x] **P2-1:** Align env var `OCR_SIDECAR_API_KEY` ใน `.env.example`
+- [x] **P2-2:** Fix OCR URL + ลบ `THAI_PREPROCESS_URL` ใน `.env.example`
+- [x] **P2-5:** Bump Dockerfile เป็น `python:3.11-slim`
+- [x] **P3-1/P3-2:** Wrap sync VRAM calls ใน `asyncio.to_thread()`
+- [x] **Rename typhoon-llm → np-dms-ai:** สร้าง `np-dms-ai.processor.ts`, ลบ `typhoon-llm.processor.ts`, อัปเดต `ai.module.ts`
+- [x] **Tesseract cleanup:** enum, entity, controller, service, audit log, tests
+- [x] **User renamed:** `typhoon-ocr.processor.ts` → `np-dms-ocr-processor.ts`
+- [x] **Rename TyphoonOcr → NpDmsOcr:** `TyphoonOcrProcessor` → `NpDmsOcrProcessor`, `QUEUE_TYPHOON_OCR` → `QUEUE_NP_DMS_OCR`, `OcrTyphoonOptions` → `OcrNpDmsOptions`, `typhoonOptions` → `ocrOptions` (backend 7 files + 3 tests)
+- [x] **Frontend cleanup:** `isTyphoon` → `isAiPowered`, state vars `typhoon*` → `ocr*`, Tesseract mocks → Fast Path, dead `typhoon_ocr` checks removed, `page.tsx` model name constants
+- [ ] **Verify:** `tsc --noEmit` หลัง rename ครบ (backend + frontend)
+
+### ADR-040/041 Implementation
+
+- [x] **OCR Sidecar Refactor (Speckit-140):** Phases 1-6, 8, 9 complete (T001-T046, T054-T063)
+  - [x] Phase 1-2: Setup + Foundational (T001-T006)
+  - [x] Phase 3: US1 Security Hardening (T007-T015) — path traversal, API key fail-fast
+  - [x] Phase 4: US2 GPU Resource Management (T016-T025) — residency wiring, CPU fallback
+  - [x] Phase 5: US3 Parameter Governance (T026-T040) — backend param resolution
+  - [x] Phase 6: US4 Async I/O (T041-T046) — async def, lifespan context manager, AsyncClient
+  - [x] Phase 8: Remove /normalize endpoint (T054-T055)
+  - [x] Phase 9: Polish & validation (T056-T063) — Dockerfile, docker-compose, README, quickstart
+  - [ ] Phase 7: US5 Network Isolation Auth (T047-T053) — BLOCKED until ADR-041 cutover
+- [ ] **ADR-041 Infrastructure:** Provision new host, mount ASUSTOR CIFS, deploy docker-compose
+- [ ] **ADR-040 Auth Removal:** Remove X-API-Key from sidecar + backend (T048-T053) — **ONLY AFTER ADR-041 cutover**
+- [ ] **ADR-041 Cutover:** Migrate DB/ES, update DNS, smoke tests, retire Desk-5439
 
 ### N8N Migration & E2E Testing
 

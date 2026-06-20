@@ -36,4 +36,11 @@
 | 2026-06-19 | v1.9.10 | Feature-240 AI Admin Console Collapsible Cards — เพิ่มปุ่มและฟังก์ชันพับ/คลี่การ์ดและเซกชัน พร้อมบันทึกสถานะลง localStorage และรักษา background query polling | ✅ Complete |
 | 2026-06-19 | v1.9.10 | Deployment Timeout Fix — Added clamav health check before recreation (skip if healthy), increased CI timeout 20→30 min | ✅ Complete |
 | 2026-06-19 | v1.9.10 | AI Admin Response Normalization — recursive data unwrap for VRAM/prompt payloads, fixed Sandbox `.map()` crash and false OOM Guard | ✅ Complete |
+| 2026-06-19 | v1.9.2  | SQL Delta Consolidation — merged applied deltas into schema/seed files, updated data dictionary to v1.9.2, cleaned up deltas directory, moved INSERT statements from schema to seed file | ✅ Complete |
+| 2026-06-20 | v1.9.10 | ADR-040 OCR Sidecar Refactor — Pure compute worker, async I/O, residency wiring, path hardening, network isolation (supersedes ADR-033 §7) | ✅ Proposed |
+| 2026-06-20 | v1.9.10 | ADR-041 Server Consolidation — Single Docker host (Ryzen 5 5600/32GB/RTX 5060 Ti 16GB), ASUSTOR as Primary NAS, QNAP as backup | ✅ Proposed |
+| 2026-06-20 | v1.9.10 | OCR Sidecar Refactor (Speckit-140) — spec.md, plan.md, tasks.md generated, 5 analysis issues fixed, ready for implementation | ✅ Ready for Implement |
+| 2026-06-20 | v1.9.10 | OCR Sidecar Refactor Phase 6+8+9 — async I/O (lifespan + AsyncClient + asyncio.to_thread), ลบ /normalize endpoint, Dockerfile curl, docker-compose stale config cleanup, README.md, quickstart.md fix — 19/19 Python tests pass | ✅ Complete (Phase 7 blocked by ADR-041) |
+| 2026-06-20 | v1.9.10 | OCR Backend Cleanup — typhoon-llm → np-dms-ai (processor+queue+module), tesseract → fast-path (enum+entity+controller+service+tests), P1-P3 fixes (keep_alive removal, hardcoded API key removal, env var alignment, Dockerfile 3.11, asyncio.to_thread VRAM calls) | ✅ Complete (pending tsc verify) |
+| 2026-06-20 | v1.9.10 | OCR Naming Refactor — TyphoonOcr → NpDmsOcr (processor/queue/Redis key/aiModel), OcrTyphoonOptions → OcrNpDmsOptions, typhoonOptions → ocrOptions (backend 7 files + 3 tests), frontend typhoon state vars → ocr, isTyphoon → isAiPowered, Tesseract mocks → Fast Path, dead typhoon_ocr checks removed, page.tsx model name constants | ✅ Complete (pending tsc verify) |
 

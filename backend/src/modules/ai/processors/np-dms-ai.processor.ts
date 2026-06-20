@@ -1,8 +1,9 @@
-// File: src/modules/ai/processors/typhoon-llm.processor.ts
+// File: backend/src/modules/ai/processors/np-dms-ai.processor.ts
 // Change Log
-// - 2026-05-30: Initial processor สำหรับ Typhoon LLM sequential jobs (T009d, ADR-032)
+// - 2026-05-30: Initial processor สำหรับ np-dms-ai sequential jobs (T009d, ADR-032)
 //   รันด้วย concurrency=1 เพื่อป้องกัน VRAM overflow บน RTX 2060 Super (8GB)
 //   ใช้ keep_alive=0 ผ่าน Ollama API เพื่อ unload model หลังประมวลผล
+// - 2026-06-20: เปลี่ยนชื่อจาก typhoon-llm.processor.ts เป็น np-dms-ai.processor.ts
 
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
@@ -16,14 +17,14 @@ import axios from 'axios';
 import { AiAuditLog, AiAuditStatus } from '../entities/ai-audit-log.entity';
 import { VramMonitorService } from '../services/vram-monitor.service';
 
-/** ชื่อ queue สำหรับ Typhoon LLM jobs */
-export const QUEUE_TYPHOON_LLM = 'typhoon-llm';
+/** ชื่อ queue สำหรับ np-dms-ai LLM jobs */
+export const QUEUE_NP_DMS_AI = 'np-dms-ai';
 
-/** รูปแบบข้อมูล job ใน Typhoon LLM queue */
-export interface TyphoonLlmJobData {
-  /** prompt ที่จะส่งให้ Typhoon LLM */
+/** รูปแบบข้อมูล job ใน np-dms-ai LLM queue */
+export interface NpDmsAiJobData {
+  /** prompt ที่จะส่งให้ np-dms-ai LLM */
   prompt: string;
-  /** ชื่อ model เช่น scb10x/typhoon2.1-gemma3-4b */
+  /** ชื่อ model เช่น typhoon2.5-np-dms:latest */
   model?: string;
   /** idempotencyKey สำหรับ Redis result key */
   idempotencyKey: string;
@@ -39,19 +40,19 @@ interface OllamaGenerateResponse {
   done: boolean;
 }
 
-// VRAM ที่ Typhoon 2.1 Gemma3 4B ต้องการ (MB) — ตาม ADR-032
-const TYPHOON_LLM_REQUIRED_VRAM_MB = 4500;
+// VRAM ที่ np-dms-ai ต้องการ (MB) — ตาม ADR-032
+const NP_DMS_AI_REQUIRED_VRAM_MB = 4500;
 // Timeout 120 วินาทีสำหรับ LLM generation
-const TYPHOON_LLM_TIMEOUT_MS = 120000;
+const NP_DMS_AI_TIMEOUT_MS = 120000;
 
 /**
- * Processor สำหรับ Typhoon LLM jobs ที่รันแบบ sequential (concurrency=1)
+ * Processor สำหรับ np-dms-ai LLM jobs ที่รันแบบ sequential (concurrency=1)
  * เพื่อป้องกัน VRAM overflow เมื่อรัน LLM หลายงานพร้อมกันบน RTX 2060 Super
  * ตาม ADR-032: lockDuration=180000ms รองรับ 120s timeout + buffer
  */
-@Processor(QUEUE_TYPHOON_LLM, { concurrency: 1, lockDuration: 180000 })
-export class TyphoonLlmProcessor extends WorkerHost {
-  private readonly logger = new Logger(TyphoonLlmProcessor.name);
+@Processor(QUEUE_NP_DMS_AI, { concurrency: 1, lockDuration: 180000 })
+export class NpDmsAiProcessor extends WorkerHost {
+  private readonly logger = new Logger(NpDmsAiProcessor.name);
   private readonly ollamaUrl: string;
   private readonly defaultModel: string;
 
@@ -68,25 +69,25 @@ export class TyphoonLlmProcessor extends WorkerHost {
       this.configService.get<string>('AI_HOST_URL', 'http://localhost:11434')
     );
     this.defaultModel = this.configService.get<string>(
-      'OLLAMA_MODEL_TYPHOON',
-      'scb10x/typhoon2.1-gemma3-4b'
+      'OLLAMA_MODEL_MAIN',
+      'typhoon2.5-np-dms:latest'
     );
   }
 
-  /** ประมวลผล Typhoon LLM job ทีละงาน */
-  async process(job: Job<TyphoonLlmJobData>): Promise<void> {
+  /** ประมวลผล np-dms-ai LLM job ทีละงาน */
+  async process(job: Job<NpDmsAiJobData>): Promise<void> {
     const { prompt, model, idempotencyKey, documentPublicId } = job.data;
     const startTime = Date.now();
     const targetModel = model ?? this.defaultModel;
     this.logger.log(
-      `Typhoon LLM job started — idempotencyKey=${idempotencyKey}, model=${targetModel}`
+      `np-dms-ai LLM job started — idempotencyKey=${idempotencyKey}, model=${targetModel}`
     );
     // ตรวจสอบ VRAM ก่อนโหลด model
     const hasCapacity = await this.vramMonitorService.hasVramCapacity(
-      TYPHOON_LLM_REQUIRED_VRAM_MB
+      NP_DMS_AI_REQUIRED_VRAM_MB
     );
     if (!hasCapacity) {
-      const errMsg = `VRAM ไม่เพียงพอสำหรับ ${targetModel} (ต้องการ ${TYPHOON_LLM_REQUIRED_VRAM_MB}MB) — retry ภายหลัง`;
+      const errMsg = `VRAM ไม่เพียงพอสำหรับ ${targetModel} (ต้องการ ${NP_DMS_AI_REQUIRED_VRAM_MB}MB) — retry ภายหลัง`;
       this.logger.warn(errMsg);
       await this.saveResult(idempotencyKey, {
         status: 'failed',
@@ -117,7 +118,7 @@ export class TyphoonLlmProcessor extends WorkerHost {
           },
           keep_alive: 0,
         },
-        { timeout: TYPHOON_LLM_TIMEOUT_MS }
+        { timeout: NP_DMS_AI_TIMEOUT_MS }
       );
       const processingTimeMs = Date.now() - startTime;
       const generatedText = response.data.response ?? '';
@@ -136,11 +137,11 @@ export class TyphoonLlmProcessor extends WorkerHost {
         processingTimeMs,
       });
       this.logger.log(
-        `Typhoon LLM completed — ${generatedText.length} chars, ${processingTimeMs}ms`
+        `np-dms-ai LLM completed — ${generatedText.length} chars, ${processingTimeMs}ms`
       );
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
-      this.logger.error(`Typhoon LLM job failed: ${errMsg}`);
+      this.logger.error(`np-dms-ai LLM job failed: ${errMsg}`);
       await this.saveResult(idempotencyKey, {
         status: 'failed',
         errorMessage: errMsg,
@@ -169,7 +170,7 @@ export class TyphoonLlmProcessor extends WorkerHost {
     }
   ): Promise<void> {
     await this.redis.setex(
-      `ai:typhoon:llm:${idempotencyKey}`,
+      `ai:np-dms-ai:llm:${idempotencyKey}`,
       3600,
       JSON.stringify({
         idempotencyKey,
@@ -179,7 +180,7 @@ export class TyphoonLlmProcessor extends WorkerHost {
     );
   }
 
-  /** บันทึก audit log สำหรับ Typhoon LLM interaction */
+  /** บันทึก audit log สำหรับ np-dms-ai LLM interaction */
   private async writeAuditLog(params: {
     documentPublicId?: string;
     model: string;
@@ -189,7 +190,7 @@ export class TyphoonLlmProcessor extends WorkerHost {
   }): Promise<void> {
     const log = this.auditLogRepo.create({
       documentPublicId: params.documentPublicId,
-      aiModel: 'typhoon-llm',
+      aiModel: 'np-dms-ai',
       modelName: params.model,
       modelType: 'llm',
       status: params.status,

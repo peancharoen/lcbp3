@@ -133,9 +133,9 @@ export default function OcrSandboxPromptManager() {
   // 2-step flow states
   const [sandboxStep, setSandboxStep] = useState<'ocr' | 'ai'>('ocr');
   const [selectedOcrEngine, setSelectedOcrEngine] = useState<string>('auto');
-  const [typhoonTemperature, setTyphoonTemperature] = useState<number>(0.1);
-  const [typhoonTopP, setTyphoonTopP] = useState<number>(0.1);
-  const [typhoonRepeatPenalty, setTyphoonRepeatPenalty] = useState<number>(1.1);
+  const [ocrTemperature, setOcrTemperature] = useState<number>(0.1);
+  const [ocrTopP, setOcrTopP] = useState<number>(0.1);
+  const [ocrRepeatPenalty, setOcrRepeatPenalty] = useState<number>(1.1);
   const { data: ocrEnginesData } = useQuery<OcrEngineResponse[]>({
     queryKey: ['ocr-engines'],
     queryFn: () => adminAiService.getOcrEngines(),
@@ -250,9 +250,9 @@ export default function OcrSandboxPromptManager() {
     if (!ocrEnginesData) return base;
     const mapped = ocrEnginesData.map((e: OcrEngineResponse) => {
       const value =
-        e.engineType === 'tesseract'
-          ? 'tesseract'
-          : e.engineType === 'typhoon_ocr'
+        e.engineType === 'fast_path'
+          ? 'auto'
+          : e.engineType === 'np_dms_ocr'
           ? 'np-dms-ocr'
           : e.engineType;
       const vramLabel =
@@ -354,13 +354,13 @@ export default function OcrSandboxPromptManager() {
     try {
       resetSandbox();
       setSandboxStep('ocr');
-      const typhoonOptions = selectedOcrEngine === 'np-dms-ocr'
-        ? { temperature: typhoonTemperature, topP: typhoonTopP, repeatPenalty: typhoonRepeatPenalty }
+      const ocrOptions = selectedOcrEngine === 'np-dms-ocr'
+        ? { temperature: ocrTemperature, topP: ocrTopP, repeatPenalty: ocrRepeatPenalty }
         : undefined;
       const { requestPublicId } = await adminAiService.submitSandboxOcr(
         ocrFile,
         selectedOcrEngine,
-        typhoonOptions
+        ocrOptions
       );
       toast.success(t('ai.prompt.uploadSuccess'));
       // Poll สำหรับผลลัพธ์ OCR
@@ -429,9 +429,9 @@ export default function OcrSandboxPromptManager() {
     setOcrResult(null);
     setSelectedPromptVersion(undefined);
     setSelectedOcrEngine('auto');
-    setTyphoonTemperature(0.1);
-    setTyphoonTopP(0.1);
-    setTyphoonRepeatPenalty(1.1);
+    setOcrTemperature(0.1);
+    setOcrTopP(0.1);
+    setOcrRepeatPenalty(1.1);
     setOcrFile(null);
     setSelectedProjectPublicId('');
     setSelectedContractPublicId('');
@@ -677,37 +677,37 @@ export default function OcrSandboxPromptManager() {
                       </div>
                       {selectedOcrEngine === 'np-dms-ocr' && (
                         <div className="space-y-3 rounded-md border border-dashed border-amber-500/30 bg-amber-500/5 p-3">
-                          <p className="text-xs font-medium text-amber-600 dark:text-amber-400">Typhoon OCR Options <span className="font-normal text-muted-foreground">(override Modelfile defaults)</span></p>
+                          <p className="text-xs font-medium text-amber-600 dark:text-amber-400">OCR Options <span className="font-normal text-muted-foreground">(override Modelfile defaults)</span></p>
                           <div className="space-y-1">
                             <div className="flex justify-between text-xs">
                               <label>Temperature</label>
-                              <span className="font-mono text-muted-foreground">{typhoonTemperature.toFixed(2)}</span>
+                              <span className="font-mono text-muted-foreground">{ocrTemperature.toFixed(2)}</span>
                             </div>
                             <input type="range" min={0} max={1} step={0.01}
-                              value={typhoonTemperature}
-                              onChange={(e) => setTyphoonTemperature(parseFloat(e.target.value))}
+                              value={ocrTemperature}
+                              onChange={(e) => setOcrTemperature(parseFloat(e.target.value))}
                               className="w-full h-1.5 accent-amber-500"
                             />
                           </div>
                           <div className="space-y-1">
                             <div className="flex justify-between text-xs">
                               <label>Top-P</label>
-                              <span className="font-mono text-muted-foreground">{typhoonTopP.toFixed(2)}</span>
+                              <span className="font-mono text-muted-foreground">{ocrTopP.toFixed(2)}</span>
                             </div>
                             <input type="range" min={0} max={1} step={0.01}
-                              value={typhoonTopP}
-                              onChange={(e) => setTyphoonTopP(parseFloat(e.target.value))}
+                              value={ocrTopP}
+                              onChange={(e) => setOcrTopP(parseFloat(e.target.value))}
                               className="w-full h-1.5 accent-amber-500"
                             />
                           </div>
                           <div className="space-y-1">
                             <div className="flex justify-between text-xs">
                               <label>Repeat Penalty</label>
-                              <span className="font-mono text-muted-foreground">{typhoonRepeatPenalty.toFixed(2)}</span>
+                              <span className="font-mono text-muted-foreground">{ocrRepeatPenalty.toFixed(2)}</span>
                             </div>
                             <input type="range" min={1} max={2} step={0.01}
-                              value={typhoonRepeatPenalty}
-                              onChange={(e) => setTyphoonRepeatPenalty(parseFloat(e.target.value))}
+                              value={ocrRepeatPenalty}
+                              onChange={(e) => setOcrRepeatPenalty(parseFloat(e.target.value))}
                               className="w-full h-1.5 accent-amber-500"
                             />
                           </div>
@@ -864,14 +864,14 @@ export default function OcrSandboxPromptManager() {
                     {ocrResult.engineUsed === 'np-dms-ocr'
                       ? 'np-dms-ocr'
                       : ocrResult.ocrUsed
-                        ? 'Tesseract'
+                        ? 'Fast Path (OCR)'
                         : 'Fast Path (Text Layer)'}
                   </Badge>
                 </CardHeader>
                 <CardContent className="pt-4">
                   {ocrResult.fallbackUsed && (
                     <div className="mb-3 rounded-md border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-600 dark:text-amber-400">
-                      np-dms-ocr unavailable. Fallback to Tesseract was used for this run.
+                      np-dms-ocr unavailable. Fallback to Fast Path was used for this run.
                     </div>
                   )}
                   <div className="relative rounded-md bg-muted p-4 font-mono text-xs overflow-auto max-h-[200px] border border-border/10">

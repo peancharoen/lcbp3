@@ -75,9 +75,9 @@ function normalizeLoadedModels(value: unknown): VramLoadedModelView[] {
     if (typeof item === 'string') {
       const name = item.toLowerCase();
       let normName = item;
-      if (name.includes('ocr') || name.includes('typhoon-np-dms-ocr')) {
+      if (name.includes(OCR_MODEL_NAME)) {
         normName = OCR_MODEL_NAME;
-      } else if (name.includes('typhoon') || name.includes(MAIN_MODEL_NAME)) {
+      } else if (name.includes(MAIN_MODEL_NAME)) {
         normName = MAIN_MODEL_NAME;
       }
       return {
@@ -95,9 +95,9 @@ function normalizeLoadedModels(value: unknown): VramLoadedModelView[] {
       const rawName = model.modelName ?? model.name ?? `model-${index + 1}`;
       const name = rawName.toLowerCase();
       let normName = rawName;
-      if (name.includes('ocr') || name.includes('typhoon-np-dms-ocr')) {
+      if (name.includes(OCR_MODEL_NAME)) {
         normName = OCR_MODEL_NAME;
-      } else if (name.includes('typhoon') || name.includes(MAIN_MODEL_NAME)) {
+      } else if (name.includes(MAIN_MODEL_NAME)) {
         normName = MAIN_MODEL_NAME;
       }
       return {
@@ -115,8 +115,8 @@ function normalizeLoadedModels(value: unknown): VramLoadedModelView[] {
 
 function toCanonicalModel(rawName: string): string {
   const name = rawName.toLowerCase();
-  if (name.includes('ocr') || name.includes('typhoon-np-dms-ocr')) return OCR_MODEL_NAME;
-  if (name.includes('typhoon') || name.includes(MAIN_MODEL_NAME)) return MAIN_MODEL_NAME;
+  if (name.includes(OCR_MODEL_NAME)) return OCR_MODEL_NAME;
+  if (name.includes(MAIN_MODEL_NAME)) return MAIN_MODEL_NAME;
   return rawName;
 }
 
@@ -193,8 +193,8 @@ export default function AiAdminConsolePage() {
     new Set(
       rawHealthOllamaModels.map((m) => {
         const name = m.toLowerCase();
-        if (name.includes('ocr') || name.includes('typhoon-np-dms-ocr')) return OCR_MODEL_NAME;
-        if (name.includes('typhoon') || name.includes(MAIN_MODEL_NAME)) return MAIN_MODEL_NAME;
+        if (name.includes(OCR_MODEL_NAME)) return OCR_MODEL_NAME;
+        if (name.includes(MAIN_MODEL_NAME)) return MAIN_MODEL_NAME;
         return m;
       })
     )

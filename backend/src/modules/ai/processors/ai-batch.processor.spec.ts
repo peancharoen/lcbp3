@@ -738,7 +738,7 @@ describe('AiBatchProcessor', () => {
       expect(ocrService.detectAndExtract).toHaveBeenCalledWith({
         pdfPath: '/files/test.pdf',
         activeProfile: 'quality',
-        typhoonOptions: {
+        ocrOptions: {
           temperature: 0.15,
           topP: 0.65,
           repeatPenalty: 1.15,

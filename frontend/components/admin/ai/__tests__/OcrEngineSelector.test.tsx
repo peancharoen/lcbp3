@@ -28,16 +28,16 @@ vi.mock('sonner', () => ({
 const mockEngines = [
   {
     engineId: 'engine-1',
-    engineName: 'Tesseract OCR',
-    engineType: 'tesseract',
+    engineName: 'Fast Path (PyMuPDF)',
+    engineType: 'fast_path',
     isCurrentActive: true,
-    concurrentLimit: 4,
+    concurrentLimit: 10,
     vramRequirementMB: 0,
   },
   {
     engineId: 'engine-2',
-    engineName: 'Typhoon OCR',
-    engineType: 'typhoon_ocr',
+    engineName: 'np-dms-ocr',
+    engineType: 'np_dms_ocr',
     isCurrentActive: false,
     concurrentLimit: 1,
     vramRequirementMB: 4096,
@@ -52,7 +52,7 @@ describe('OcrEngineSelector', () => {
   it('renders loading state initially', () => {
     // Return a promise that doesn't resolve immediately to keep it in loading state
     (adminAiService.getOcrEngines as any).mockReturnValue(new Promise(() => {}));
-    
+
     const { container } = render(<OcrEngineSelector />);
     // Card with animate-pulse
     expect(container.querySelector('.animate-pulse')).toBeInTheDocument();
@@ -60,24 +60,24 @@ describe('OcrEngineSelector', () => {
 
   it('renders engines list successfully after loading', async () => {
     (adminAiService.getOcrEngines as any).mockResolvedValue(mockEngines);
-    
+
     render(<OcrEngineSelector />);
 
     await waitFor(() => {
       expect(screen.getByText('ระบบจัดการ OCR Engine')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Tesseract OCR')).toBeInTheDocument();
-    expect(screen.getByText('Typhoon OCR')).toBeInTheDocument();
+    expect(screen.getByText('Fast Path (PyMuPDF)')).toBeInTheDocument();
+    expect(screen.getByText('np-dms-ocr')).toBeInTheDocument();
     expect(screen.getByText('กำลังใช้งาน')).toBeInTheDocument(); // Badge for active engine
-    expect(screen.getByText('AI Powered')).toBeInTheDocument(); // Badge for typhoon
+    expect(screen.getByText('AI Powered')).toBeInTheDocument(); // Badge for np-dms-ocr
   });
 
   it('calls selectOcrEngine and shows success toast when changing engine', async () => {
     const user = userEvent.setup();
     (adminAiService.getOcrEngines as any).mockResolvedValue(mockEngines);
     (adminAiService.selectOcrEngine as any).mockResolvedValue({});
-    
+
     render(<OcrEngineSelector />);
 
     await waitFor(() => {
@@ -86,21 +86,21 @@ describe('OcrEngineSelector', () => {
 
     // The active engine will have "เลือกอยู่แล้ว", the inactive will have "สลับใช้งาน"
     const switchButton = screen.getByRole('button', { name: /สลับใช้งาน/i });
-    
+
     await act(async () => {
       await user.click(switchButton);
     });
 
     expect(adminAiService.selectOcrEngine).toHaveBeenCalledWith('engine-2');
-    expect(toast.success).toHaveBeenCalledWith('เปลี่ยนเอนจิน OCR หลักเป็น Typhoon OCR สำเร็จ');
-    
+    expect(toast.success).toHaveBeenCalledWith('เปลี่ยนเอนจิน OCR หลักเป็น np-dms-ocr สำเร็จ');
+
     // It should fetch engines again
     expect(adminAiService.getOcrEngines).toHaveBeenCalledTimes(2);
   });
 
   it('shows error toast if fetching fails', async () => {
     (adminAiService.getOcrEngines as any).mockRejectedValue(new Error('Network error'));
-    
+
     render(<OcrEngineSelector />);
 
     await waitFor(() => {
@@ -112,7 +112,7 @@ describe('OcrEngineSelector', () => {
     const user = userEvent.setup();
     (adminAiService.getOcrEngines as any).mockResolvedValue(mockEngines);
     (adminAiService.selectOcrEngine as any).mockRejectedValue(new Error('Select error'));
-    
+
     render(<OcrEngineSelector />);
 
     await waitFor(() => {
@@ -120,7 +120,7 @@ describe('OcrEngineSelector', () => {
     });
 
     const switchButton = screen.getByRole('button', { name: /สลับใช้งาน/i });
-    
+
     await act(async () => {
       await user.click(switchButton);
     });

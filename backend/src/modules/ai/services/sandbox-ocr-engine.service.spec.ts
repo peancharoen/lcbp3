@@ -1,14 +1,17 @@
 // File: src/modules/ai/services/sandbox-ocr-engine.service.spec.ts
 // Change Log:
 // - 2026-06-14: สร้าง unit tests สำหรับ SandboxOcrEngineService ครอบคลุม detectAndExtract ทุก engine
+// - 2026-06-20: เพิ่ม mock getRepositoryToken(AiExecutionProfile) สำหรับทดสอบ parameter governance
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
+import { getRepositoryToken } from '@nestjs/typeorm';
 import axios from 'axios';
 import * as fs from 'fs';
 import { SandboxOcrEngineService } from './sandbox-ocr-engine.service';
 import { OcrService } from './ocr.service';
 import { AiPromptsService } from '../prompts/ai-prompts.service';
+import { AiExecutionProfile } from '../entities/ai-execution-profile.entity';
 
 jest.mock('axios');
 jest.mock('fs');
@@ -16,14 +19,31 @@ jest.mock('fs');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 const mockedFs = fs as jest.Mocked<typeof fs>;
 
-/** OcrService mock สำหรับ tesseract/fast-path */
+/** OcrService mock สำหรับ fast-path */
 const mockOcrService = {
   detectAndExtract: jest.fn(),
 };
 
 /** AiPromptsService mock สำหรับ ocr_system prompt */
 const mockAiPromptsService = {
-  getActive: jest.fn(),
+  getActive: jest.fn().mockResolvedValue({
+    template: 'mock active system prompt',
+    contextConfig: {
+      dmsTags: ['tag1', 'tag2'],
+    },
+  }),
+};
+
+/** AiExecutionProfile mock repository */
+const mockProfile = {
+  profileName: 'ocr-extract',
+  temperature: 0.1,
+  topP: 0.5,
+  repeatPenalty: 1.0,
+  maxTokens: 16000,
+};
+const mockProfileRepository = {
+  findOne: jest.fn().mockResolvedValue(mockProfile),
 };
 
 /** ConfigService mock */
@@ -48,6 +68,10 @@ describe('SandboxOcrEngineService', () => {
         { provide: ConfigService, useValue: mockConfigService },
         { provide: OcrService, useValue: mockOcrService },
         { provide: AiPromptsService, useValue: mockAiPromptsService },
+        {
+          provide: getRepositoryToken(AiExecutionProfile),
+          useValue: mockProfileRepository,
+        },
       ],
     }).compile();
     service = module.get<SandboxOcrEngineService>(SandboxOcrEngineService);
@@ -65,7 +89,7 @@ describe('SandboxOcrEngineService', () => {
       });
       const result = await service.detectAndExtract('/tmp/file.pdf', 'auto');
       expect(result.text).toBe('auto extracted text');
-      expect(result.engineUsed).toBe('tesseract');
+      expect(result.engineUsed).toBe('fast-path');
       expect(result.fallbackUsed).toBe(false);
       expect(mockOcrService.detectAndExtract).toHaveBeenCalledWith({
         pdfPath: '/tmp/file.pdf',
@@ -79,42 +103,6 @@ describe('SandboxOcrEngineService', () => {
       });
       const result = await service.detectAndExtract('/tmp/file.pdf', 'auto');
       expect(result.engineUsed).toBe('fast-path');
-      expect(result.fallbackUsed).toBe(false);
-    });
-  });
-
-  describe('detectAndExtract() — engine=tesseract', () => {
-    it('ควร route ไปยัง OcrService เมื่อ engine=tesseract', async () => {
-      mockOcrService.detectAndExtract.mockResolvedValueOnce({
-        text: 'tesseract text',
-        ocrUsed: true,
-      });
-      const result = await service.detectAndExtract(
-        '/tmp/file.pdf',
-        'tesseract'
-      );
-      expect(result.engineUsed).toBe('tesseract');
-      expect(result.fallbackUsed).toBe(false);
-    });
-  });
-
-  describe('detectAndExtract() — engine=typhoon-np-dms-ocr (legacy alias)', () => {
-    it('ควรแปลง typhoon-np-dms-ocr เป็น np-dms-ocr และส่งไปยัง sidecar', async () => {
-      const mockBuffer = Buffer.from('pdf content');
-      (mockedFs.readFileSync as jest.Mock).mockReturnValueOnce(mockBuffer);
-      mockedAxios.post = jest.fn().mockResolvedValueOnce({
-        data: {
-          text: 'ocr text via alias',
-          ocrUsed: true,
-          engineUsed: 'np-dms-ocr',
-        },
-      });
-      const result = await service.detectAndExtract(
-        '/tmp/file.pdf',
-        'typhoon-np-dms-ocr'
-      );
-      expect(result.text).toBe('ocr text via alias');
-      expect(result.engineUsed).toBe('np-dms-ocr');
       expect(result.fallbackUsed).toBe(false);
     });
   });
@@ -149,7 +137,7 @@ describe('SandboxOcrEngineService', () => {
       );
     });
 
-    it('ควรส่ง typhoonOptions (temperature, topP, repeatPenalty) ไปใน form data', async () => {
+    it('ควรส่ง ocrOptions (temperature, topP, repeatPenalty) ไปใน form data', async () => {
       const mockBuffer = Buffer.from('pdf data');
       (mockedFs.readFileSync as jest.Mock).mockReturnValueOnce(mockBuffer);
       mockedAxios.post = jest.fn().mockResolvedValueOnce({
@@ -178,13 +166,13 @@ describe('SandboxOcrEngineService', () => {
       expect(result.engineUsed).toBe('np-dms-ocr'); // resolvedEngineType fallback
     });
 
-    it('ควร fallback ไปยัง Tesseract เมื่อ fs.readFileSync ล้มเหลว (outer catch fallback)', async () => {
+    it('ควร fallback ไปยัง fast-path เมื่อ fs.readFileSync ล้มเหลว (outer catch fallback)', async () => {
       (mockedFs.readFileSync as jest.Mock).mockImplementationOnce(() => {
         throw new Error('ENOENT: file not found');
       });
-      // service จะ catch error และ fallback ไปยัง Tesseract
+      // service จะ catch error และ fallback ไปยัง fast-path
       mockOcrService.detectAndExtract.mockResolvedValueOnce({
-        text: 'tesseract fallback text',
+        text: 'fast-path fallback text',
         ocrUsed: true,
       });
       const result = await service.detectAndExtract(
@@ -192,10 +180,10 @@ describe('SandboxOcrEngineService', () => {
         'np-dms-ocr'
       );
       expect(result.fallbackUsed).toBe(true);
-      expect(result.engineUsed).toBe('tesseract');
+      expect(result.engineUsed).toBe('fast-path');
     });
 
-    it('ควร fallback ไปยัง Tesseract เมื่อ sidecar HTTP error เกิดขึ้น', async () => {
+    it('ควร fallback ไปยัง fast-path เมื่อ sidecar HTTP error เกิดขึ้น', async () => {
       const mockBuffer = Buffer.from('pdf data');
       (mockedFs.readFileSync as jest.Mock).mockReturnValueOnce(mockBuffer);
       mockedAxios.post = jest.fn().mockRejectedValueOnce(
@@ -204,16 +192,16 @@ describe('SandboxOcrEngineService', () => {
         })
       );
       mockOcrService.detectAndExtract.mockResolvedValueOnce({
-        text: 'tesseract fallback result',
+        text: 'fast-path fallback result',
         ocrUsed: true,
       });
       const result = await service.detectAndExtract(
         '/tmp/doc.pdf',
         'np-dms-ocr'
       );
-      expect(result.text).toBe('tesseract fallback result');
+      expect(result.text).toBe('fast-path fallback result');
       expect(result.fallbackUsed).toBe(true);
-      expect(result.engineUsed).toBe('tesseract');
+      expect(result.engineUsed).toBe('fast-path');
     });
 
     it('ควร fallback ไปยัง fast-path เมื่อ sidecar error และ OcrService ส่ง ocrUsed=false', async () => {

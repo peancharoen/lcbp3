@@ -97,7 +97,7 @@ export class AiPolicyService {
    */
   getCanonicalModelName(modelName: string): 'np-dms-ai' | 'np-dms-ocr' {
     const name = modelName.toLowerCase();
-    if (name.includes('ocr') || name.includes('typhoon-np-dms-ocr')) {
+    if (name.includes('ocr')) {
       return 'np-dms-ocr';
     }
     return 'np-dms-ai';

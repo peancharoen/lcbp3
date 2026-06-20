@@ -567,7 +567,7 @@ export class AiController {
         },
         engineType: {
           type: 'string',
-          enum: ['auto', 'tesseract', 'np-dms-ocr', 'typhoon-np-dms-ocr'],
+          enum: ['auto', 'np-dms-ocr'],
           description: 'OCR engine ที่ต้องการใช้ (default: auto)',
         },
         temperature: {
@@ -607,19 +607,14 @@ export class AiController {
     const attachment = await this.fileStorageService.upload(file, user.user_id);
     const requestPublicId = uuidv7();
     // ตรวจสอบและ normalize engineType ให้เป็นค่าที่ valid
-    const validEngineTypes = [
-      'auto',
-      'tesseract',
-      'np-dms-ocr',
-      'typhoon-np-dms-ocr',
-    ] as const;
+    const validEngineTypes = ['auto', 'np-dms-ocr'] as const;
     const resolvedEngineType: SandboxOcrEngineType = validEngineTypes.includes(
       engineType as SandboxOcrEngineType
     )
       ? (engineType as SandboxOcrEngineType)
       : 'auto';
     // แปลง string จาก multipart form เป็น number (optional override)
-    const typhoonOptions = {
+    const ocrOptions = {
       ...(temperature !== undefined && {
         temperature: parseFloat(temperature),
       }),
@@ -634,7 +629,7 @@ export class AiController {
         idempotencyKey: requestPublicId,
         pdfPath: attachment.filePath,
         engineType: resolvedEngineType,
-        ...(Object.keys(typhoonOptions).length > 0 && { typhoonOptions }),
+        ...(Object.keys(ocrOptions).length > 0 && { ocrOptions }),
       }
     );
     return { requestPublicId, jobId, status: 'queued' };

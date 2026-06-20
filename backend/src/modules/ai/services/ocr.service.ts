@@ -4,13 +4,13 @@
 // - 2026-05-25: แก้ไข AggregateError (empty message) จาก axios โดย wrap เป็น Error พร้อม context ที่ชัดเจน.
 // - 2026-05-25: เพิ่ม path remapping (OCR_UPLOAD_BASE_PATH) เพื่อแปลง local upload path เป็น path ที่ sidecar เห็นผ่าน CIFS.
 // - 2026-05-29: เพิ่ม checkHealth() เพื่อตรวจสอบสุขภาพของ OCR sidecar สำหรับ getSystemHealth() (ADR-027)
-// - 2026-05-30: เปลี่ยนจาก PaddleOCR เป็น Tesseract OCR เพื่อความเข้ากันได้กับ CPU เก่า
+// - 2026-05-30: เปลี่ยนจาก PaddleOCR เป็น fast-path (PyMuPDF text layer) เพื่อความเข้ากันได้กับ CPU เก่า
 // - 2026-05-30: เพิ่ม VRAM insufficiency guard สำหรับ Typhoon OCR engine (T016a, ADR-032)
 // - 2026-05-30: ปรับปรุงสำหรับ Dynamic OCR Engine selection, Caching, และ Graceful Fallback (T013, T014, T016, T022, T023, US1)
 // - 2026-06-01: ปรับปรุง remapPath ให้รองรับ Windows absolute และ relative path ได้แม่นยำ 100%
-// - 2026-06-01: เปลี่ยน processWithTesseract/processWithTyphoon ให้ส่ง file content ผ่าน multipart ไปยัง /ocr-upload แทนการส่ง path
+// - 2026-06-01: เปลี่ยน processWithFastPath/processWithNpDmsOcr ให้ส่ง file content ผ่าน multipart ไปยัง /ocr-upload แทนการส่ง path
 // - 2026-06-02: ส่งค่า X-API-Key ใน request headers ไปยัง ocr-sidecar เพื่อความมั่นคงปลอดภัยสูงสุด (ADR-033, Suggestion 2)
-// - 2026-06-04: ADR-034 — เปลี่ยน TYPHOON_ENGINE.engineName เป็น typhoon-np-dms-ocr:latest ตรงกับชื่อโมเดลใน Ollama
+// - 2026-06-04: ADR-034 — เปลี่ยน TYPHOON_ENGINE.engineName เป็น np-dms-ocr:latest ตรงกับชื่อโมเดลใน Ollama
 // - 2026-06-11: US2 - คำนวณ OCR residency keep_alive แบบ dynamic ตาม VRAM headroom และ active profile
 // - 2026-06-13: US5 - เพิ่มการส่ง temperature, topP และ repeatPenalty ไปยัง OCR sidecar ผ่าน multipart form (T070)
 
@@ -28,6 +28,9 @@ import {
 } from '../entities/ocr-engine-configuration.entity';
 import { OcrEngineResponseDto } from '../dto/ocr-engine-response.dto';
 import { SystemSetting } from '../entities/system-setting.entity';
+import { AiExecutionProfile } from '../entities/ai-execution-profile.entity';
+import { AiPromptsService } from '../prompts/ai-prompts.service';
+import { BusinessException } from '../../../common/exceptions';
 import { AiAuditLog, AiAuditStatus } from '../entities/ai-audit-log.entity';
 import { OcrCacheService } from './ocr-cache.service';
 import { VramMonitorService } from './vram-monitor.service';
@@ -41,7 +44,7 @@ export interface OcrDetectionInput {
   pdfPath?: string;
   documentPublicId?: string; // เพิ่มเพื่อการทำ audit logs
   activeProfile?: ExecutionProfile;
-  typhoonOptions?: {
+  ocrOptions?: {
     temperature?: number;
     topP?: number;
     repeatPenalty?: number;
@@ -68,16 +71,16 @@ const OCR_ACTIVE_ENGINE_KEY = 'OCR_ACTIVE_ENGINE';
 const OCR_ACTIVE_ENGINE_CACHE_KEY = 'system_settings:OCR_ACTIVE_ENGINE';
 const OCR_ACTIVE_ENGINE_TTL_SECONDS = 30;
 
-const TESSERACT_ENGINE_ID = '019505a1-7c3e-7000-8000-abc123def001';
-const TYPHOON_ENGINE_ID = '019505a1-7c3e-7000-8000-abc123def002';
+const FAST_PATH_ENGINE_ID = '019505a1-7c3e-7000-8000-abc123def001';
+const OCR_ENGINE_ID = '019505a1-7c3e-7000-8000-abc123def002';
 
-// VRAM ที่ Typhoon OCR-3B ต้องการ (MB)
-const TYPHOON_OCR_REQUIRED_VRAM_MB = 4000;
+// VRAM ที่ np-dms-ocr ต้องการ (MB)
+const OCR_REQUIRED_VRAM_MB = 4000;
 
-const TESSERACT_ENGINE: OcrEngineConfiguration = {
-  engineId: TESSERACT_ENGINE_ID,
-  engineName: 'Tesseract OCR',
-  engineType: OcrEngineType.TESSERACT,
+const FAST_PATH_ENGINE: OcrEngineConfiguration = {
+  engineId: FAST_PATH_ENGINE_ID,
+  engineName: 'Fast Path (PyMuPDF)',
+  engineType: OcrEngineType.FAST_PATH,
   isActive: true,
   vramRequirementMB: 0,
   processingTimeLimitSeconds: 30,
@@ -87,25 +90,25 @@ const TESSERACT_ENGINE: OcrEngineConfiguration = {
   updatedAt: new Date('2026-05-30T00:00:00Z'),
 };
 
-const TYPHOON_ENGINE: OcrEngineConfiguration = {
-  engineId: TYPHOON_ENGINE_ID,
-  engineName: 'typhoon-np-dms-ocr:latest',
-  engineType: OcrEngineType.TYPHOON_OCR,
+const OCR_ENGINE: OcrEngineConfiguration = {
+  engineId: OCR_ENGINE_ID,
+  engineName: 'np-dms-ocr:latest',
+  engineType: OcrEngineType.NP_DMS_OCR,
   isActive: true,
-  vramRequirementMB: TYPHOON_OCR_REQUIRED_VRAM_MB,
+  vramRequirementMB: OCR_REQUIRED_VRAM_MB,
   processingTimeLimitSeconds: 60,
   concurrentLimit: 1,
-  fallbackEngineId: TESSERACT_ENGINE_ID,
+  fallbackEngineId: FAST_PATH_ENGINE_ID,
   createdAt: new Date('2026-05-30T00:00:00Z'),
   updatedAt: new Date('2026-05-30T00:00:00Z'),
 };
 
 const ENGINES_MAP = new Map<string, OcrEngineConfiguration>([
-  [TESSERACT_ENGINE_ID, TESSERACT_ENGINE],
-  [TYPHOON_ENGINE_ID, TYPHOON_ENGINE],
+  [FAST_PATH_ENGINE_ID, FAST_PATH_ENGINE],
+  [OCR_ENGINE_ID, OCR_ENGINE],
 ]);
 
-/** บริการเลือก fast path หรือ OCR sidecar (Tesseract/Typhoon) พร้อมความสามารถในสลับ Engine และ Caching */
+/** บริการเลือก fast path หรือ OCR sidecar (np-dms-ocr) พร้อมความสามารถในสลับ Engine และ Caching */
 @Injectable()
 export class OcrService {
   private readonly logger = new Logger(OcrService.name);
@@ -121,6 +124,9 @@ export class OcrService {
     private readonly settingRepo: Repository<SystemSetting>,
     @InjectRepository(AiAuditLog)
     private readonly auditLogRepo: Repository<AiAuditLog>,
+    @InjectRepository(AiExecutionProfile)
+    private readonly profileRepo: Repository<AiExecutionProfile>,
+    private readonly aiPromptsService: AiPromptsService,
     private readonly ocrCacheService: OcrCacheService,
     private readonly vramMonitorService: VramMonitorService,
     private readonly aiPolicyService: AiPolicyService,
@@ -131,10 +137,15 @@ export class OcrService {
       'OCR_API_URL',
       'http://localhost:8765'
     );
-    this.ocrSidecarApiKey = this.configService.get<string>(
-      'OCR_SIDECAR_API_KEY',
-      'lcbp3-dms-ocr-sidecar-secure-token-2026'
+    const ocrSidecarApiKey = this.configService.get<string>(
+      'OCR_SIDECAR_API_KEY'
     );
+    if (!ocrSidecarApiKey) {
+      throw new Error(
+        'OCR_SIDECAR_API_KEY is required — กรุณาตั้งค่า environment variable'
+      );
+    }
+    this.ocrSidecarApiKey = ocrSidecarApiKey;
     this.vramHeadroomThresholdMb = this.configService.get<number>(
       'VRAM_HEADROOM_THRESHOLD_MB',
       this.configService.get<number>('AI_VRAM_HEADROOM_THRESHOLD_MB', 3000)
@@ -272,7 +283,7 @@ export class OcrService {
         where: { settingKey: OCR_ACTIVE_ENGINE_KEY },
       });
 
-      const activeEngine = setting?.settingValue ?? TESSERACT_ENGINE_ID;
+      const activeEngine = setting?.settingValue ?? FAST_PATH_ENGINE_ID;
       await this.redis.set(
         OCR_ACTIVE_ENGINE_CACHE_KEY,
         activeEngine,
@@ -284,7 +295,7 @@ export class OcrService {
       this.logger.error(
         `Failed to get active OCR engine: ${error instanceof Error ? error.message : String(error)}`
       );
-      return TESSERACT_ENGINE_ID;
+      return FAST_PATH_ENGINE_ID;
     }
   }
 
@@ -330,20 +341,20 @@ export class OcrService {
 
     const activeEngineId = await this.getActiveEngineId();
 
-    if (activeEngineId === TYPHOON_ENGINE_ID) {
-      return this.processWithTyphoon(input);
+    if (activeEngineId === OCR_ENGINE_ID) {
+      return this.processWithNpDmsOcr(input);
     } else {
-      return this.processWithTesseract(input);
+      return this.processWithFastPath(input);
     }
   }
 
-  /** ประมวลผลผ่าน Tesseract OCR โดยส่ง file content ผ่าน multipart */
-  private async processWithTesseract(
+  /** ประมวลผลผ่าน Fast Path (PyMuPDF text layer) โดยส่ง file content ผ่าน multipart */
+  private async processWithFastPath(
     input: OcrDetectionInput
   ): Promise<OcrDetectionResult> {
     const startTime = Date.now();
     try {
-      this.logger.debug(`Tesseract OCR processing: ${input.pdfPath}`);
+      this.logger.debug(`Fast Path processing: ${input.pdfPath}`);
       const fileBuffer = fs.readFileSync(input.pdfPath!);
       const form = new FormData();
       form.append(
@@ -364,9 +375,9 @@ export class OcrService {
       const durationMs = Date.now() - startTime;
       await this.writeAuditLog({
         documentPublicId: input.documentPublicId,
-        aiModel: 'tesseract',
-        modelName: 'tesseract-ocr',
-        modelType: 'tesseract',
+        aiModel: 'fast-path',
+        modelName: 'pymupdf',
+        modelType: 'fast-path',
         status: AiAuditStatus.SUCCESS,
         processingTimeMs: durationMs,
         cacheHit: false,
@@ -384,36 +395,70 @@ export class OcrService {
             : String(err);
       await this.writeAuditLog({
         documentPublicId: input.documentPublicId,
-        aiModel: 'tesseract',
-        modelName: 'tesseract-ocr',
-        modelType: 'tesseract',
+        aiModel: 'fast-path',
+        modelName: 'pymupdf',
+        modelType: 'fast-path',
         status: AiAuditStatus.FAILED,
         processingTimeMs: durationMs,
         errorMessage: cause,
         cacheHit: false,
       });
-      throw new Error(`Tesseract OCR Sidecar failed: ${cause}`);
+      throw new Error(`Fast Path OCR Sidecar failed: ${cause}`);
     }
   }
 
-  /** ประมวลผลผ่าน Typhoon OCR */
-  private async processWithTyphoon(
+  /** ประมวลผลผ่าน np-dms-ocr (Ollama) */
+  private async processWithNpDmsOcr(
     input: OcrDetectionInput
   ): Promise<OcrDetectionResult> {
     const startTime = Date.now();
     try {
-      const hasCapacity = await this.vramMonitorService.hasVramCapacity(
-        TYPHOON_OCR_REQUIRED_VRAM_MB
-      );
+      const hasCapacity =
+        await this.vramMonitorService.hasVramCapacity(OCR_REQUIRED_VRAM_MB);
       if (!hasCapacity) {
         this.logger.warn(
-          `VRAM insufficient for Typhoon OCR. Falling back to Tesseract baseline.`
+          `VRAM insufficient for np-dms-ocr. Falling back to fast-path.`
         );
-        return this.processWithTesseract(input);
+        return this.processWithFastPath(input);
       }
-      const residency = await this.calculateOcrResidency(input.activeProfile);
-      const keepAlive = residency.keepAliveSeconds;
-      this.logger.debug(`Typhoon OCR processing: ${input.pdfPath}`);
+      await this.calculateOcrResidency(input.activeProfile);
+
+      // Resolve runtime parameters from DB (ocr-extract profile)
+      const profile = await this.profileRepo.findOne({
+        where: { profileName: 'ocr-extract' },
+      });
+      const runtimeParams = {
+        temperature: profile ? Number(profile.temperature) : 0.1,
+        top_p: profile ? Number(profile.topP) : 0.5,
+        repeat_penalty: profile ? Number(profile.repeatPenalty) : 1.0,
+        max_tokens: profile?.maxTokens ?? 16000,
+      };
+
+      // Override with input ocrOptions if provided
+      if (input.ocrOptions?.temperature !== undefined) {
+        runtimeParams.temperature = input.ocrOptions.temperature;
+      }
+      if (input.ocrOptions?.topP !== undefined) {
+        runtimeParams.top_p = input.ocrOptions.topP;
+      }
+      if (input.ocrOptions?.repeatPenalty !== undefined) {
+        runtimeParams.repeat_penalty = input.ocrOptions.repeatPenalty;
+      }
+
+      // Resolve Active Prompt from DB (ocr_extraction)
+      const activePrompt =
+        await this.aiPromptsService.getActive('ocr_extraction');
+      if (!activePrompt) {
+        throw new BusinessException(
+          'NO_ACTIVE_PROMPT',
+          'No active ocr_extraction prompt found',
+          'ไม่พบ Prompt OCR สำหรับดึงข้อมูลที่เปิดใช้งาน'
+        );
+      }
+      const systemPrompt = activePrompt.template;
+      const dmsTags = activePrompt.contextConfig?.dmsTags;
+
+      this.logger.debug(`np-dms-ocr processing: ${input.pdfPath}`);
       const fileBuffer = fs.readFileSync(input.pdfPath!);
       const form = new FormData();
       form.append(
@@ -421,20 +466,18 @@ export class OcrService {
         new Blob([fileBuffer], { type: 'application/pdf' }),
         'upload.pdf'
       );
-      form.append('engine', 'typhoon-np-dms-ocr');
-      form.append('keep_alive', String(keepAlive));
-      if (input.typhoonOptions?.temperature !== undefined) {
-        form.append('temperature', String(input.typhoonOptions.temperature));
+      form.append('engine', 'np-dms-ocr');
+      form.append('systemPrompt', systemPrompt);
+      if (dmsTags) {
+        form.append('dmsTags', JSON.stringify(dmsTags));
       }
-      if (input.typhoonOptions?.topP !== undefined) {
-        form.append('topP', String(input.typhoonOptions.topP));
-      }
-      if (input.typhoonOptions?.repeatPenalty !== undefined) {
-        form.append(
-          'repeatPenalty',
-          String(input.typhoonOptions.repeatPenalty)
-        );
-      }
+      form.append('runtimeParams', JSON.stringify(runtimeParams));
+
+      // Append individual overrides for backward compatibility
+      form.append('temperature', String(runtimeParams.temperature));
+      form.append('topP', String(runtimeParams.top_p));
+      form.append('repeatPenalty', String(runtimeParams.repeat_penalty));
+
       const response = await axios.post<OcrSidecarResponse>(
         `${this.ocrApiUrl}/ocr-upload`,
         form,
@@ -447,9 +490,9 @@ export class OcrService {
       const durationMs = Date.now() - startTime;
       await this.writeAuditLog({
         documentPublicId: input.documentPublicId,
-        aiModel: 'typhoon-ocr',
-        modelName: 'typhoon-np-dms-ocr:latest',
-        modelType: 'typhoon-ocr',
+        aiModel: 'np-dms-ocr',
+        modelName: 'np-dms-ocr:latest',
+        modelType: 'np-dms-ocr',
         status: AiAuditStatus.SUCCESS,
         processingTimeMs: durationMs,
         cacheHit: false,
@@ -460,9 +503,9 @@ export class OcrService {
       };
     } catch (err: unknown) {
       this.logger.warn(
-        `Typhoon OCR failed, trying fallback baseline (Tesseract): ${err instanceof Error ? err.message : String(err)}`
+        `np-dms-ocr failed, trying fallback to fast-path: ${err instanceof Error ? err.message : String(err)}`
       );
-      return this.processWithTesseract(input);
+      return this.processWithFastPath(input);
     }
   }
 

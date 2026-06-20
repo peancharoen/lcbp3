@@ -54,7 +54,7 @@ describe('AiPolicyService', () => {
 
   describe('getCanonicalModelName', () => {
     it('ควรคืนค่า np-dms-ocr สำหรับชื่อโมเดลที่มีคำว่า ocr', () => {
-      expect(service.getCanonicalModelName('typhoon-np-dms-ocr:latest')).toBe(
+      expect(service.getCanonicalModelName('np-dms-ocr:latest')).toBe(
         'np-dms-ocr'
       );
       expect(service.getCanonicalModelName('my-ocr-model')).toBe('np-dms-ocr');

@@ -1,6 +1,7 @@
 // File: backend/src/modules/ai/tests/ocr-residency.spec.ts
 // Change Log:
 // - 2026-06-11: Initial unit tests for adaptive OCR residency
+// - 2026-06-20: เพิ่ม mock สำหรับ AiExecutionProfile repository และ AiPromptsService เพื่อรองรับ parameter governance
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
@@ -11,6 +12,8 @@ import { AiPolicyService } from '../services/ai-policy.service';
 import { OcrCacheService } from '../services/ocr-cache.service';
 import { SystemSetting } from '../entities/system-setting.entity';
 import { AiAuditLog } from '../entities/ai-audit-log.entity';
+import { AiExecutionProfile } from '../entities/ai-execution-profile.entity';
+import { AiPromptsService } from '../prompts/ai-prompts.service';
 
 describe('OcrService Adaptive Residency (US2)', () => {
   let service: OcrService;
@@ -35,6 +38,23 @@ describe('OcrService Adaptive Residency (US2)', () => {
   const mockAiAuditLogRepo = {
     create: jest.fn().mockReturnValue({}),
     save: jest.fn().mockResolvedValue({}),
+  };
+  const mockProfileRepo = {
+    findOne: jest.fn().mockResolvedValue({
+      profileName: 'ocr-extract',
+      temperature: 0.1,
+      topP: 0.5,
+      repeatPenalty: 1.0,
+      maxTokens: 16000,
+    }),
+  };
+  const mockAiPromptsService = {
+    getActive: jest.fn().mockResolvedValue({
+      template: 'mock active system prompt',
+      contextConfig: {
+        dmsTags: ['tag1', 'tag2'],
+      },
+    }),
   };
   const mockOcrCacheService = {};
   const mockVramMonitorService = {
@@ -61,6 +81,11 @@ describe('OcrService Adaptive Residency (US2)', () => {
           provide: getRepositoryToken(AiAuditLog),
           useValue: mockAiAuditLogRepo,
         },
+        {
+          provide: getRepositoryToken(AiExecutionProfile),
+          useValue: mockProfileRepo,
+        },
+        { provide: AiPromptsService, useValue: mockAiPromptsService },
         { provide: OcrCacheService, useValue: mockOcrCacheService },
         { provide: VramMonitorService, useValue: mockVramMonitorService },
         { provide: AiPolicyService, useValue: mockAiPolicyService },

@@ -34,7 +34,7 @@ import { OcrService } from '../services/ocr.service';
 import {
   SandboxOcrEngineService,
   SandboxOcrEngineType,
-  OcrTyphoonOptions,
+  OcrNpDmsOptions,
 } from '../services/sandbox-ocr-engine.service';
 import {
   OllamaService,
@@ -562,7 +562,7 @@ export class AiBatchProcessor extends WorkerHost {
       })
     );
     try {
-      let ocrParams: OcrTyphoonOptions | undefined = undefined;
+      let ocrParams: OcrNpDmsOptions | undefined = undefined;
       if (engineType === 'np-dms-ocr') {
         try {
           const ocrDraft =
@@ -705,7 +705,7 @@ export class AiBatchProcessor extends WorkerHost {
     const { idempotencyKey, payload } = data;
     const pdfPath = payload.pdfPath as string;
     const engineType = (payload.engineType as SandboxOcrEngineType) || 'auto';
-    const typhoonOptions = payload.typhoonOptions as
+    const ocrOptions = payload.ocrOptions as
       | { temperature?: number; topP?: number; repeatPenalty?: number }
       | undefined;
 
@@ -722,7 +722,7 @@ export class AiBatchProcessor extends WorkerHost {
       })
     );
 
-    let ocrParams = typhoonOptions;
+    let ocrParams = ocrOptions;
     if (!ocrParams && engineType === 'np-dms-ocr') {
       try {
         const ocrDraft =
@@ -1078,7 +1078,7 @@ export class AiBatchProcessor extends WorkerHost {
       ocrResult = await this.ocrService.detectAndExtract({
         pdfPath: attachment.filePath,
         activeProfile: job.data.effectiveProfile,
-        typhoonOptions: job.data.ocrSnapshotParams,
+        ocrOptions: job.data.ocrSnapshotParams,
       });
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);

@@ -1,8 +1,9 @@
-// File: src/modules/ai/processors/typhoon-ocr.processor.ts
+// File: src/modules/ai/processors/np-dms-ocr-processor.ts
 // Change Log
 // - 2026-05-30: Initial processor สำหรับ Typhoon OCR sequential jobs (T009c, ADR-032)
 //   รันด้วย concurrency=1 เพื่อป้องกัน VRAM overflow บน RTX 2060 Super (8GB)
 //   ใช้ keep_alive=0 ผ่าน sidecar Ollama API เพื่อ unload model หลังประมวลผล
+// - 2026-06-20: เปลี่ยนชื่อไฟล์จาก typhoon-ocr.processor.ts → np-dms-ocr-processor.ts
 
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
@@ -17,24 +18,24 @@ import { VramMonitorService } from '../services/vram-monitor.service';
 import {
   SandboxOcrEngineService,
   SandboxOcrEngineType,
-  OcrTyphoonOptions,
+  OcrNpDmsOptions,
 } from '../services/sandbox-ocr-engine.service';
 
-/** ชื่อ queue สำหรับ Typhoon OCR jobs */
-export const QUEUE_TYPHOON_OCR = 'typhoon-ocr';
+/** ชื่อ queue สำหรับ np-dms-ocr jobs */
+export const QUEUE_NP_DMS_OCR = 'np-dms-ocr';
 
-/** รูปแบบข้อมูล job ใน Typhoon OCR queue */
-export interface TyphoonOcrJobData {
+/** รูปแบบข้อมูล job ใน np-dms-ocr queue */
+export interface NpDmsOcrJobData {
   /** public path ของไฟล์ PDF ที่ต้องการ OCR */
   pdfPath: string;
-  /** engineType: 'typhoon-np-dms-ocr' สำหรับ queue นี้ */
+  /** engineType: 'np-dms-ocr' สำหรับ queue นี้ */
   engineType: SandboxOcrEngineType;
   /** idempotencyKey สำหรับ Redis result key */
   idempotencyKey: string;
   /** documentPublicId สำหรับ audit log (optional) */
   documentPublicId?: string;
-  /** Typhoon OCR options จาก sandbox UI เพื่อ override Modelfile defaults (optional) */
-  typhoonOptions?: OcrTyphoonOptions;
+  /** np-dms-ocr options จาก sandbox UI เพื่อ override Modelfile defaults (optional) */
+  ocrOptions?: OcrNpDmsOptions;
 }
 
 // VRAM ที่ Typhoon OCR-3B ต้องการ (MB) — ตาม ADR-032
@@ -45,9 +46,9 @@ const TYPHOON_OCR_REQUIRED_VRAM_MB = 4000;
  * เพื่อป้องกัน VRAM overflow เมื่อทำ OCR หลายงานพร้อมกันบน RTX 2060 Super
  * ตาม ADR-032: lockDuration=180000ms รองรับ 120s timeout + buffer
  */
-@Processor(QUEUE_TYPHOON_OCR, { concurrency: 1, lockDuration: 180000 })
-export class TyphoonOcrProcessor extends WorkerHost {
-  private readonly logger = new Logger(TyphoonOcrProcessor.name);
+@Processor(QUEUE_NP_DMS_OCR, { concurrency: 1, lockDuration: 180000 })
+export class NpDmsOcrProcessor extends WorkerHost {
+  private readonly logger = new Logger(NpDmsOcrProcessor.name);
 
   constructor(
     @InjectRedis() private readonly redis: Redis,
@@ -61,13 +62,13 @@ export class TyphoonOcrProcessor extends WorkerHost {
   }
 
   /** ประมวลผล Typhoon OCR job ทีละงาน */
-  async process(job: Job<TyphoonOcrJobData>): Promise<void> {
+  async process(job: Job<NpDmsOcrJobData>): Promise<void> {
     const {
       pdfPath,
       engineType,
       idempotencyKey,
       documentPublicId,
-      typhoonOptions,
+      ocrOptions,
     } = job.data;
     const startTime = Date.now();
     this.logger.log(
@@ -116,7 +117,7 @@ export class TyphoonOcrProcessor extends WorkerHost {
       const result = await this.sandboxOcrEngineService.detectAndExtract(
         pdfPath,
         engineType,
-        typhoonOptions
+        ocrOptions
       );
       const processingTimeMs = Date.now() - startTime;
       // บันทึกผลลัพธ์ใน Redis cache (24h TTL)
@@ -171,7 +172,7 @@ export class TyphoonOcrProcessor extends WorkerHost {
     }
   ): Promise<void> {
     await this.redis.setex(
-      `ai:typhoon:ocr:${idempotencyKey}`,
+      `ai:np-dms-ocr:${idempotencyKey}`,
       3600,
       JSON.stringify({
         idempotencyKey,
@@ -193,8 +194,8 @@ export class TyphoonOcrProcessor extends WorkerHost {
   }): Promise<void> {
     const log = this.auditLogRepo.create({
       documentPublicId: params.documentPublicId,
-      aiModel: 'typhoon-ocr',
-      modelName: 'typhoon-np-dms-ocr:latest',
+      aiModel: 'np-dms-ocr',
+      modelName: 'np-dms-ocr:latest',
       modelType: params.engineType,
       status: params.status,
       processingTimeMs: params.processingTimeMs,

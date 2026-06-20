@@ -8,7 +8,7 @@
 // - 2026-05-22: นำเข้าและลงทะเบียน CleanupTempFilesWorker (T016) เพื่อลบไฟล์แนบชั่วคราวหมดอายุ
 // - 2026-05-23: ลงทะเบียน MigrationProgress + AiMigrationCheckpointService (ADR-023A)
 // - 2026-05-25: ลงทะเบียน AiAvailableModel สำหรับ AI Model Management (ADR-027).
-// - 2026-05-30: ลงทะเบียน VramMonitorService, OcrCacheService, TyphoonOcrProcessor, TyphoonLlmProcessor (ADR-032).
+// - 2026-05-30: ลงทะเบียน VramMonitorService, OcrCacheService, NpDmsOcrProcessor, NpDmsAiProcessor (ADR-032).
 // - 2026-06-13: ลงทะเบียน AiSandboxProfile สำหรับ ADR-036 sandbox-production parity
 // Module สำหรับ AI Gateway — ลงทะเบียน Services และ Controllers (ADR-023)
 
@@ -75,13 +75,13 @@ import {
   QUEUE_AI_VECTOR_DELETION,
 } from '../common/constants/queue.constants';
 import {
-  TyphoonOcrProcessor,
-  QUEUE_TYPHOON_OCR,
-} from './processors/typhoon-ocr.processor';
+  NpDmsOcrProcessor,
+  QUEUE_NP_DMS_OCR,
+} from './processors/np-dms-ocr-processor';
 import {
-  TyphoonLlmProcessor,
-  QUEUE_TYPHOON_LLM,
-} from './processors/typhoon-llm.processor';
+  NpDmsAiProcessor,
+  QUEUE_NP_DMS_AI,
+} from './processors/np-dms-ai.processor';
 
 @Module({
   imports: [
@@ -129,7 +129,7 @@ import {
       { name: QUEUE_AI_VECTOR_DELETION },
       // Typhoon OCR + LLM queues: concurrency=1 เพื่อป้องกัน VRAM overflow (ADR-032)
       {
-        name: QUEUE_TYPHOON_OCR,
+        name: QUEUE_NP_DMS_OCR,
         defaultJobOptions: {
           attempts: 2,
           backoff: { type: 'exponential', delay: 5000 },
@@ -138,7 +138,7 @@ import {
         },
       },
       {
-        name: QUEUE_TYPHOON_LLM,
+        name: QUEUE_NP_DMS_AI,
         defaultJobOptions: {
           attempts: 2,
           backoff: { type: 'exponential', delay: 5000 },
@@ -198,9 +198,9 @@ import {
     AiRagProcessor,
     // Phase 5: Vector Deletion async processor (ADR-023 FR-008)
     AiVectorDeletionProcessor,
-    // ADR-032: Typhoon OCR + LLM sequential processors (concurrency=1)
-    TyphoonOcrProcessor,
-    TyphoonLlmProcessor,
+    // ADR-032: np-dms-ocr + np-dms-ai sequential processors (concurrency=1)
+    NpDmsOcrProcessor,
+    NpDmsAiProcessor,
     // US4: Execution Profiles Service (T044)
     AiExecutionProfilesService,
     // RbacGuard ต้องการ UserService จาก UserModule

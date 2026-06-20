@@ -18,17 +18,17 @@ vi.mock('@/lib/services/admin-ai.service', () => ({
 
 const engines: OcrEngineResponse[] = [
   {
-    engineId: 'tesseract',
-    engineName: 'Tesseract OCR',
-    engineType: 'tesseract',
+    engineId: 'fast-path',
+    engineName: 'Fast Path (PyMuPDF)',
+    engineType: 'fast_path',
     isCurrentActive: true,
-    concurrentLimit: 4,
+    concurrentLimit: 10,
     vramRequirementMB: 0,
   },
   {
-    engineId: 'typhoon',
-    engineName: 'Typhoon OCR',
-    engineType: 'typhoon_ocr',
+    engineId: 'np-dms-ocr',
+    engineName: 'np-dms-ocr',
+    engineType: 'np_dms_ocr',
     isCurrentActive: false,
     concurrentLimit: 1,
     vramRequirementMB: 6144,
@@ -44,8 +44,8 @@ describe('OcrEngineSelector', () => {
 
   it('renders OCR engine data from admin service', async () => {
     render(<OcrEngineSelector />);
-    expect(await screen.findByText('Tesseract OCR')).toBeInTheDocument();
-    expect(screen.getByText('Typhoon OCR')).toBeInTheDocument();
+    expect(await screen.findByText('Fast Path (PyMuPDF)')).toBeInTheDocument();
+    expect(screen.getByText('np-dms-ocr')).toBeInTheDocument();
     expect(screen.getByText('AI Powered')).toBeInTheDocument();
     expect(adminAiService.getOcrEngines).toHaveBeenCalledTimes(1);
   });
@@ -55,9 +55,9 @@ describe('OcrEngineSelector', () => {
     render(<OcrEngineSelector />);
     await user.click(await screen.findByRole('button', { name: 'สลับใช้งาน' }));
     await waitFor(() => {
-      expect(adminAiService.selectOcrEngine).toHaveBeenCalledWith('typhoon');
+      expect(adminAiService.selectOcrEngine).toHaveBeenCalledWith('np-dms-ocr');
     });
-    expect(toast.success).toHaveBeenCalledWith('เปลี่ยนเอนจิน OCR หลักเป็น Typhoon OCR สำเร็จ');
+    expect(toast.success).toHaveBeenCalledWith('เปลี่ยนเอนจิน OCR หลักเป็น np-dms-ocr สำเร็จ');
     expect(adminAiService.getOcrEngines).toHaveBeenCalledTimes(2);
   });
 

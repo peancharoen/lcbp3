@@ -17,7 +17,7 @@ class OcrResidencyDecision:
 
 def calculate_ocr_residency(active_profile: str = None) -> OcrResidencyDecision:
     """
-    คำนวณ keep_alive สำหรับ Typhoon OCR จาก VRAM headroom และ active profile ของโมเดลหลัก
+    คำนวณ keep_alive สำหรับ np-dms-ocr จาก VRAM headroom และ active profile ของโมเดลหลัก
     """
     threshold_mb = float(os.getenv("VRAM_HEADROOM_THRESHOLD_MB", "3000.0"))
     residency_window = int(os.getenv("OCR_RESIDENCY_WINDOW_SECONDS", "120"))

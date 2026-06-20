@@ -76,7 +76,7 @@ export default function OcrEngineSelector() {
       </CardHeader>
       <CardContent className="space-y-4">
         {engines.map((engine) => {
-          const isTyphoon = engine.engineType === 'typhoon_ocr';
+          const isAiPowered = engine.engineType === 'np_dms_ocr';
           return (
             <div
               key={engine.engineId}
@@ -95,14 +95,14 @@ export default function OcrEngineSelector() {
                       กำลังใช้งาน
                     </Badge>
                   )}
-                  {isTyphoon && (
+                  {isAiPowered && (
                     <Badge variant="secondary" className="text-[10px] h-4 bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20">
                       AI Powered
                     </Badge>
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  {isTyphoon
+                  {isAiPowered
                     ? 'สกัดภาษาไทยความแม่นยำสูง (95%+) เหมาะสำหรับภาษาไทยผสมอังกฤษ'
                     : 'เอนจินมาตรฐานเบสไลน์ ประมวลผลรวดเร็วและใช้ทรัพยากรต่ำ'}
                 </p>
@@ -111,7 +111,7 @@ export default function OcrEngineSelector() {
                     <Server className="h-3 w-3" />
                     จำกัดพร้อมกัน: {engine.concurrentLimit} งาน
                   </span>
-                  {isTyphoon && (
+                  {isAiPowered && (
                     <>
                       <span className="flex items-center gap-1 text-purple-600 dark:text-purple-400">
                         <Cpu className="h-3 w-3" />

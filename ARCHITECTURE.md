@@ -518,6 +518,7 @@ graph TB
 - **np-dms-ai** - Main LLM for classification, tagging, extraction, RAG answers
 - **np-dms-ocr** - OCR model through the sidecar, with adaptive residency from ADR-033
 - **BGE-M3 + BGE Reranker** - Retrieval stack served by the OCR sidecar
+- **OCR Sidecar Phase 1 hardening** - ADR-040 keeps X-API-Key before ADR-041 cutover, enforces upload-base path canonicalization, and verifies adaptive residency/CPU fallback with `tests/unit/ocr-sidecar/` plus `tests/integration/ocr-sidecar/`.
 
 ---
 

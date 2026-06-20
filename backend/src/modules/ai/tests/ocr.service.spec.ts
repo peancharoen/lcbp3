@@ -1,6 +1,8 @@
 // File: backend/src/modules/ai/tests/ocr.service.spec.ts
 // Change Log:
 // - 2026-06-13: Initial unit tests for OCR parameter wiring (T066)
+// - 2026-06-20: เพิ่ม mock สำหรับ AiExecutionProfile repository และ AiPromptsService เพื่อรองรับ parameter governance
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { getRepositoryToken } from '@nestjs/typeorm';
@@ -10,12 +12,17 @@ import { AiPolicyService } from '../services/ai-policy.service';
 import { OcrCacheService } from '../services/ocr-cache.service';
 import { SystemSetting } from '../entities/system-setting.entity';
 import { AiAuditLog } from '../entities/ai-audit-log.entity';
+import { AiExecutionProfile } from '../entities/ai-execution-profile.entity';
+import { AiPromptsService } from '../prompts/ai-prompts.service';
 import axios from 'axios';
 import * as fs from 'fs';
+
 jest.mock('axios');
 jest.mock('fs');
+
 describe('OcrService Parameter Wiring (T066)', () => {
   let service: OcrService;
+
   const mockConfigService = {
     get: jest.fn((key: string, defaultValue?: unknown): unknown => {
       const config: Record<string, unknown> = {
@@ -29,16 +36,39 @@ describe('OcrService Parameter Wiring (T066)', () => {
       return config[key] ?? defaultValue;
     }),
   };
+
   const mockSystemSettingRepo = {
     findOne: jest.fn().mockResolvedValue({
       settingValue: '019505a1-7c3e-7000-8000-abc123def002',
     }),
   };
+
   const mockAiAuditLogRepo = {
     create: jest.fn().mockReturnValue({}),
     save: jest.fn().mockResolvedValue({}),
   };
+
+  const mockProfileRepo = {
+    findOne: jest.fn().mockResolvedValue({
+      profileName: 'ocr-extract',
+      temperature: 0.1,
+      topP: 0.5,
+      repeatPenalty: 1.0,
+      maxTokens: 16000,
+    }),
+  };
+
+  const mockAiPromptsService = {
+    getActive: jest.fn().mockResolvedValue({
+      template: 'mock active system prompt',
+      contextConfig: {
+        dmsTags: ['tag1', 'tag2'],
+      },
+    }),
+  };
+
   const mockOcrCacheService = {};
+
   const mockVramMonitorService = {
     getVramHeadroom: jest.fn().mockResolvedValue({
       totalMb: 16384,
@@ -49,12 +79,15 @@ describe('OcrService Parameter Wiring (T066)', () => {
     }),
     hasVramCapacity: jest.fn().mockResolvedValue(true),
   };
+
   const mockAiPolicyService = {};
+
   const mockRedis = {
     get: jest.fn().mockResolvedValue(null),
     set: jest.fn().mockResolvedValue('OK'),
     del: jest.fn().mockResolvedValue(1),
   };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -68,6 +101,11 @@ describe('OcrService Parameter Wiring (T066)', () => {
           provide: getRepositoryToken(AiAuditLog),
           useValue: mockAiAuditLogRepo,
         },
+        {
+          provide: getRepositoryToken(AiExecutionProfile),
+          useValue: mockProfileRepo,
+        },
+        { provide: AiPromptsService, useValue: mockAiPromptsService },
         { provide: OcrCacheService, useValue: mockOcrCacheService },
         { provide: VramMonitorService, useValue: mockVramMonitorService },
         { provide: AiPolicyService, useValue: mockAiPolicyService },
@@ -88,7 +126,7 @@ describe('OcrService Parameter Wiring (T066)', () => {
     await service.detectAndExtract({
       pdfPath: '/path/to/test.pdf',
       documentPublicId: 'doc-123',
-      typhoonOptions: {
+      ocrOptions: {
         temperature: 0.15,
         topP: 0.65,
         repeatPenalty: 1.15,
@@ -104,7 +142,7 @@ describe('OcrService Parameter Wiring (T066)', () => {
     const formData = postCallArgs[1];
     expect(url).toBe('http://localhost:8765/ocr-upload');
     expect(formData).toBeInstanceOf(FormData);
-    expect(formData.get('engine')).toBe('typhoon-np-dms-ocr');
+    expect(formData.get('engine')).toBe('np-dms-ocr');
     expect(formData.get('temperature')).toBe('0.15');
     expect(formData.get('topP')).toBe('0.65');
     expect(formData.get('repeatPenalty')).toBe('1.15');

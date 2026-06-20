@@ -3,26 +3,26 @@
 // - 2026-05-30: แยก SandboxOcrEngineService ออกจาก OcrService เพื่อรองรับการเลือก Typhoon OCR เฉพาะ sandbox โดยไม่กระทบ core OCR flow
 // - 2026-06-01: เปลี่ยนจาก remapPath + pdfPath ไปเป็น multipart file upload ไปยัง /ocr-upload (แก้ปัญหา Docker WSL2 mount)
 // - 2026-06-02: ส่งค่า X-API-Key ใน request headers ไปยัง ocr-sidecar เพื่อความมั่นคงปลอดภัยสูงสุด (ADR-033, Suggestion 2)
-// - 2026-06-04: ADR-034 — เพิ่ม 'typhoon-np-dms-ocr' เป็น canonical SandboxOcrEngineType; legacy aliases ยังรองรับ
-// - 2026-06-04: เพิ่ม OcrTyphoonOptions interface; รับ temperature/topP/repeatPenalty จาก frontend sandbox เพื่อ override Modelfile defaults
-// - 2026-06-13: ADR-036 — เปลี่ยน canonical SandboxOcrEngineType เป็น np-dms-ocr และคง legacy alias
+// - 2026-06-04: ADR-034 — เพิ่ม 'np-dms-ocr' เป็น canonical SandboxOcrEngineType
+// - 2026-06-04: เพิ่ม OcrNpDmsOptions interface; รับ temperature/topP/repeatPenalty จาก frontend sandbox เพื่อ override Modelfile defaults
+// - 2026-06-13: ADR-036 — เปลี่ยน canonical SandboxOcrEngineType เป็น np-dms-ocr
 // - 2026-06-17: เพิ่ม AiPromptsService injection และส่ง systemPrompt form field จาก active ocr_system prompt (T028)
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import axios from 'axios';
 import * as fs from 'fs';
 import { OcrService } from './ocr.service';
 import { AiPromptsService } from '../prompts/ai-prompts.service';
+import { AiExecutionProfile } from '../entities/ai-execution-profile.entity';
+import { BusinessException } from '../../../common/exceptions';
 
-export type SandboxOcrEngineType =
-  | 'auto'
-  | 'tesseract'
-  | 'np-dms-ocr'
-  | 'typhoon-np-dms-ocr';
+export type SandboxOcrEngineType = 'auto' | 'np-dms-ocr';
 
-/** ค่า parameter สำหรับ Typhoon OCR ที่ override Modelfile defaults ได้จาก sandbox UI */
-export interface OcrTyphoonOptions {
+/** ค่า parameter สำหรับ np-dms-ocr ที่ override Modelfile defaults ได้จาก sandbox UI */
+export interface OcrNpDmsOptions {
   temperature?: number;
   topP?: number;
   repeatPenalty?: number;
@@ -50,7 +50,9 @@ export class SandboxOcrEngineService {
   constructor(
     private readonly configService: ConfigService,
     private readonly ocrService: OcrService,
-    private readonly aiPromptsService: AiPromptsService
+    private readonly aiPromptsService: AiPromptsService,
+    @InjectRepository(AiExecutionProfile)
+    private readonly profileRepo: Repository<AiExecutionProfile>
   ) {
     this.ocrApiUrl = this.configService.get<string>(
       'OCR_API_URL',
@@ -62,26 +64,23 @@ export class SandboxOcrEngineService {
     );
   }
 
-  /** รัน OCR ตาม engine ที่เลือก โดย fallback กลับไป Tesseract baseline เมื่อ Typhoon ล้มเหลว */
+  /** รัน OCR ตาม engine ที่เลือก โดย fallback กลับไป fast-path เมื่อ np-dms-ocr ล้มเหลว */
   async detectAndExtract(
     pdfPath: string,
     engineType: SandboxOcrEngineType = 'auto',
-    typhoonOptions?: OcrTyphoonOptions
+    ocrOptions?: OcrNpDmsOptions
   ): Promise<SandboxOcrResult> {
-    const resolvedEngineType =
-      engineType === 'typhoon-np-dms-ocr' ? 'np-dms-ocr' : engineType;
+    const resolvedEngineType = engineType;
     this.logger.log(
-      `detectAndExtract called — engine="${resolvedEngineType}" pdfPath="${pdfPath}" typhoonOptions=${JSON.stringify(typhoonOptions ?? null)}`
+      `detectAndExtract called — engine="${resolvedEngineType}" pdfPath="${pdfPath}" ocrOptions=${JSON.stringify(ocrOptions ?? null)}`
     );
-    if (resolvedEngineType === 'auto' || resolvedEngineType === 'tesseract') {
-      this.logger.log(
-        `engine="${resolvedEngineType}" → routing to Tesseract/fast-path`
-      );
+    if (resolvedEngineType === 'auto') {
+      this.logger.log(`engine="${resolvedEngineType}" → routing to fast-path`);
       const result = await this.ocrService.detectAndExtract({ pdfPath });
       return {
         text: result.text,
         ocrUsed: result.ocrUsed,
-        engineUsed: result.ocrUsed ? 'tesseract' : 'fast-path',
+        engineUsed: result.ocrUsed ? 'fast-path' : 'fast-path',
         fallbackUsed: false,
       };
     }
@@ -103,6 +102,42 @@ export class SandboxOcrEngineService {
         );
         throw fsErr;
       }
+
+      // Resolve runtime parameters from DB (ocr-extract profile)
+      const profile = await this.profileRepo.findOne({
+        where: { profileName: 'ocr-extract' },
+      });
+      const runtimeParams = {
+        temperature: profile ? Number(profile.temperature) : 0.1,
+        top_p: profile ? Number(profile.topP) : 0.5,
+        repeat_penalty: profile ? Number(profile.repeatPenalty) : 1.0,
+        max_tokens: profile?.maxTokens ?? 16000,
+      };
+
+      // Override with sandbox options if provided
+      if (ocrOptions?.temperature !== undefined) {
+        runtimeParams.temperature = ocrOptions.temperature;
+      }
+      if (ocrOptions?.topP !== undefined) {
+        runtimeParams.top_p = ocrOptions.topP;
+      }
+      if (ocrOptions?.repeatPenalty !== undefined) {
+        runtimeParams.repeat_penalty = ocrOptions.repeatPenalty;
+      }
+
+      // Resolve Active Prompt from DB (ocr_extraction)
+      const activePrompt =
+        await this.aiPromptsService.getActive('ocr_extraction');
+      if (!activePrompt) {
+        throw new BusinessException(
+          'NO_ACTIVE_PROMPT',
+          'No active ocr_extraction prompt found',
+          'ไม่พบ Prompt OCR สำหรับดึงข้อมูลที่เปิดใช้งาน'
+        );
+      }
+      const systemPrompt = activePrompt.template;
+      const dmsTags = activePrompt.contextConfig?.dmsTags;
+
       const form = new FormData();
       form.append(
         'file',
@@ -110,32 +145,19 @@ export class SandboxOcrEngineService {
         'upload.pdf'
       );
       form.append('engine', resolvedEngineType);
-      if (typhoonOptions?.temperature !== undefined) {
-        form.append('temperature', String(typhoonOptions.temperature));
+      form.append('systemPrompt', systemPrompt);
+      if (dmsTags) {
+        form.append('dmsTags', JSON.stringify(dmsTags));
       }
-      if (typhoonOptions?.topP !== undefined) {
-        form.append('topP', String(typhoonOptions.topP));
-      }
-      if (typhoonOptions?.repeatPenalty !== undefined) {
-        form.append('repeatPenalty', String(typhoonOptions.repeatPenalty));
-      }
-      // ดึง active ocr_system prompt และส่งไป sidecar
-      try {
-        const activeOcrSystemPrompt =
-          await this.aiPromptsService.getActive('ocr_system');
-        if (activeOcrSystemPrompt && activeOcrSystemPrompt.template) {
-          form.append('systemPrompt', activeOcrSystemPrompt.template);
-          this.logger.log(
-            `Injected active ocr_system prompt (version ${activeOcrSystemPrompt.versionNumber})`
-          );
-        }
-      } catch (promptErr: unknown) {
-        this.logger.warn(
-          `Failed to retrieve active ocr_system prompt, proceeding without: ${promptErr instanceof Error ? promptErr.message : String(promptErr)}`
-        );
-      }
+      form.append('runtimeParams', JSON.stringify(runtimeParams));
+
+      // Append individual overrides for backward compatibility
+      form.append('temperature', String(runtimeParams.temperature));
+      form.append('topP', String(runtimeParams.top_p));
+      form.append('repeatPenalty', String(runtimeParams.repeat_penalty));
+
       this.logger.log(
-        `Sending to sidecar — engine=${engineType} options=${JSON.stringify(typhoonOptions ?? {})}`
+        `Sending to sidecar — engine=${engineType} options=${JSON.stringify(ocrOptions ?? {})}`
       );
       const response = await axios.post<SandboxOcrSidecarResponse>(
         `${this.ocrApiUrl}/ocr-upload`,
@@ -183,9 +205,9 @@ export class SandboxOcrEngineService {
         ? `HTTP ${axiosStatus} — ${cause} — sidecar detail: ${axiosDetail}`
         : `HTTP ${axiosStatus} — ${cause}`;
       this.logger.error(
-        `[DIAG] Typhoon OCR FAILED — engine="${engineType}" url="${this.ocrApiUrl}/ocr-upload" error: ${fullCause}`
+        `[DIAG] np-dms-ocr FAILED — engine="${engineType}" url="${this.ocrApiUrl}/ocr-upload" error: ${fullCause}`
       );
-      this.logger.warn(`Falling back to Tesseract due to: ${fullCause}`);
+      this.logger.warn(`Falling back to fast-path due to: ${fullCause}`);
 
       const fallbackResult = await this.ocrService.detectAndExtract({
         pdfPath,
@@ -193,7 +215,7 @@ export class SandboxOcrEngineService {
       return {
         text: fallbackResult.text,
         ocrUsed: fallbackResult.ocrUsed,
-        engineUsed: fallbackResult.ocrUsed ? 'tesseract' : 'fast-path',
+        engineUsed: fallbackResult.ocrUsed ? 'fast-path' : 'fast-path',
         fallbackUsed: true,
       };
     }

@@ -134,7 +134,7 @@ export class AiQueueService {
       filePublicId?: string;
       pdfPath?: string;
       engineType?: string;
-      typhoonOptions?: {
+      ocrOptions?: {
         temperature?: number;
         topP?: number;
         repeatPenalty?: number;
@@ -154,7 +154,7 @@ export class AiQueueService {
           filePublicId: payload.filePublicId,
           pdfPath: payload.pdfPath,
           engineType: payload.engineType,
-          typhoonOptions: payload.typhoonOptions,
+          ocrOptions: payload.ocrOptions,
           contractPublicId: payload.contractPublicId,
           ...payload.extraPayload,
         },

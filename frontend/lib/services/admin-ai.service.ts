@@ -281,19 +281,19 @@ export const adminAiService = {
   submitSandboxOcr: async (
     file: File,
     engineType: string = 'auto',
-    typhoonOptions?: { temperature?: number; topP?: number; repeatPenalty?: number }
+    ocrOptions?: { temperature?: number; topP?: number; repeatPenalty?: number }
   ): Promise<{ requestPublicId: string; jobId: string; status: string }> => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('engineType', engineType);
-    if (typhoonOptions?.temperature !== undefined) {
-      formData.append('temperature', String(typhoonOptions.temperature));
+    if (ocrOptions?.temperature !== undefined) {
+      formData.append('temperature', String(ocrOptions.temperature));
     }
-    if (typhoonOptions?.topP !== undefined) {
-      formData.append('topP', String(typhoonOptions.topP));
+    if (ocrOptions?.topP !== undefined) {
+      formData.append('topP', String(ocrOptions.topP));
     }
-    if (typhoonOptions?.repeatPenalty !== undefined) {
-      formData.append('repeatPenalty', String(typhoonOptions.repeatPenalty));
+    if (ocrOptions?.repeatPenalty !== undefined) {
+      formData.append('repeatPenalty', String(ocrOptions.repeatPenalty));
     }
     const { data } = await api.post('/ai/admin/sandbox/ocr', formData, {
       headers: {
