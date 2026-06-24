@@ -5,10 +5,8 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import VersionHistory from '../VersionHistory';
 
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key: string) => key,
-  }),
+vi.mock('@/hooks/use-translations', () => ({
+  useTranslations: () => (key: string) => key,
 }));
 
 describe('VersionHistory', () => {

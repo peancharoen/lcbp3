@@ -5,10 +5,8 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import PromptTypeDropdown from '../PromptTypeDropdown';
 
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key: string) => key,
-  }),
+vi.mock('@/hooks/use-translations', () => ({
+  useTranslations: () => (key: string) => key,
 }));
 
 // ResizeObserver mock is needed for Radix UI select
@@ -28,9 +26,9 @@ describe('PromptTypeDropdown', () => {
 
   it('renders correctly with default options', async () => {
     render(<PromptTypeDropdown value="ocr_extraction" onChange={vi.fn()} />);
-    
+
     expect(screen.getByText('prompt_management.prompt_type')).toBeInTheDocument();
-    
+
     const trigger = screen.getByRole('combobox');
     expect(trigger).toHaveTextContent('สกัดข้อความ OCR (OCR Extraction)');
   });
@@ -38,12 +36,12 @@ describe('PromptTypeDropdown', () => {
   it('renders all options when showAllOption is true', async () => {
     const user = userEvent.setup();
     render(<PromptTypeDropdown value="all" onChange={vi.fn()} showAllOption />);
-    
+
     const trigger = screen.getByRole('combobox');
     expect(trigger).toHaveTextContent('prompt_management.all_types');
 
     await user.click(trigger);
-    
+
     await waitFor(() => {
       expect(screen.getByRole('option', { name: 'prompt_management.all_types' })).toBeInTheDocument();
       expect(screen.getByRole('option', { name: 'สกัดข้อความ OCR (OCR Extraction)' })).toBeInTheDocument();
@@ -57,10 +55,10 @@ describe('PromptTypeDropdown', () => {
     const user = userEvent.setup();
     const onChangeMock = vi.fn();
     render(<PromptTypeDropdown value="ocr_extraction" onChange={onChangeMock} />);
-    
+
     const trigger = screen.getByRole('combobox');
     await user.click(trigger);
-    
+
     await waitFor(() => {
       expect(screen.getByRole('option', { name: 'ค้นหาข้อมูล RAG (RAG Query)' })).toBeInTheDocument();
     });

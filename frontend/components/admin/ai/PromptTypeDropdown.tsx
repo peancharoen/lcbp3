@@ -4,7 +4,7 @@
 // - 2026-06-15: Added "All Types" option (T064)
 
 import React from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from '@/hooks/use-translations';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PromptType } from '@/lib/types/ai-prompts';
 
@@ -26,7 +26,7 @@ export default function PromptTypeDropdown({
   disabled = false,
   showAllOption = false,
 }: PromptTypeDropdownProps) {
-  const { t } = useTranslation('ai');
+  const t = useTranslations();
 
   return (
     <div className="flex flex-col gap-1.5 w-full">

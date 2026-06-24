@@ -1,0 +1,40 @@
+# File: specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/Dockerfile
+# Typhoon OCR Sidecar — HTTP API server สำหรับสกัดข้อความจาก PDF ผ่าน np-dms-ocr (Ollama)
+# รันบน Desk-5439 ตาม ADR-023A
+# Change Log:
+# - 2026-05-25: Initial Dockerfile สำหรับ OCR sidecar (port 8765)
+# - 2026-05-30: เปลี่ยนจาก PaddleOCR เป็น Tesseract OCR เพื่อความเข้ากันได้กับ CPU เก่า
+# - 2026-05-30: เพิ่ม system dependencies สำหรับ OpenCV (libsm6, libxext6, libxrender1, libfontconfig1, libx11-6)
+# - 2026-05-30: Typhoon OCR ใช้ httpx เรียก Ollama ผ่าน OLLAMA_API_URL (T009a, ADR-032)
+#              Container รันบน CPU เท่านั้น ไม่ต้องการ CUDA/GPU ใน container
+# - 2026-06-11: เพิ่ม typhoon-ocr ใน requirements.txt — poppler-utils มีอยู่แล้ว (ใช้โดย prepare_ocr_messages)
+# - 2026-06-11: ตัด tesseract-ocr, tesseract-ocr-tha, tesseract-ocr-eng, libsm6, libxext6, libxrender1, libfontconfig1, libx11-6 — ไม่ใช้ Tesseract อีกต่อไป
+# - 2026-06-20: ADR-040 Phase 6+8 — เพิ่ม curl สำหรับ HEALTHCHECK; ลด start_period เป็น 10s (async startup ไม่ block)
+
+FROM python:3.11-slim
+
+# ติดตั้ง system dependencies สำหรับ PDF processing, PyMuPDF และ curl สำหรับ healthcheck
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libglib2.0-0 \
+    libgl1 \
+    libgomp1 \
+    poppler-utils \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# ติดตั้ง Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy source code
+COPY app.py .
+COPY services/ ./services/
+
+EXPOSE 8765
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8765/health || exit 1
+
+CMD ["python", "app.py"]

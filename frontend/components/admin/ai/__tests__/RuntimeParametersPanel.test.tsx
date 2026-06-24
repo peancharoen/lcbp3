@@ -5,10 +5,8 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import RuntimeParametersPanel from '../RuntimeParametersPanel';
 
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key: string) => key,
-  }),
+vi.mock('@/hooks/use-translations', () => ({
+  useTranslations: () => (key: string) => key,
 }));
 
 const mockGetSandboxProfile = vi.fn();
@@ -67,17 +65,17 @@ describe('RuntimeParametersPanel', () => {
     mockGetSandboxProfile.mockReturnValue(new Promise((resolve) => {
       resolvePromise = resolve;
     }));
-    
+
     render(<RuntimeParametersPanel />);
     expect(screen.getByText(/กำลังโหลดพารามิเตอร์/)).toBeInTheDocument();
-    
+
     // Resolve to avoid act warnings
     resolvePromise(mockParams);
   });
 
   it('renders parameters after loading', async () => {
     render(<RuntimeParametersPanel />);
-    
+
     await waitFor(() => {
       expect(screen.getByText('sandbox_test.runtime_parameters')).toBeInTheDocument();
     });
@@ -91,9 +89,9 @@ describe('RuntimeParametersPanel', () => {
   it('calls save draft correctly', async () => {
     const user = userEvent.setup();
     mockSaveSandboxProfile.mockResolvedValue(mockParams);
-    
+
     render(<RuntimeParametersPanel />);
-    
+
     await waitFor(() => {
       expect(screen.getByText('sandbox_test.runtime_parameters')).toBeInTheDocument();
     });
@@ -102,7 +100,7 @@ describe('RuntimeParametersPanel', () => {
     await user.click(saveButton);
 
     expect(mockSaveSandboxProfile).toHaveBeenCalledWith('standard', mockParams, 'mock-uuid-v7');
-    
+
     const { toast } = await import('sonner');
     expect(toast.success).toHaveBeenCalledWith('บันทึกแบบร่าง Sandbox สำเร็จ');
   });
@@ -110,9 +108,9 @@ describe('RuntimeParametersPanel', () => {
   it('calls apply to production correctly', async () => {
     const user = userEvent.setup();
     mockApplyProfile.mockResolvedValue(true);
-    
+
     render(<RuntimeParametersPanel />);
-    
+
     await waitFor(() => {
       expect(screen.getByText('sandbox_test.runtime_parameters')).toBeInTheDocument();
     });
@@ -121,7 +119,7 @@ describe('RuntimeParametersPanel', () => {
     await user.click(applyButton);
 
     expect(mockApplyProfile).toHaveBeenCalledWith('standard', 'mock-uuid-v7');
-    
+
     const { toast } = await import('sonner');
     expect(toast.success).toHaveBeenCalledWith('ปรับใช้พารามิเตอร์จริงสำเร็จ');
   });

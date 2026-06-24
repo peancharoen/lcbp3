@@ -6,7 +6,7 @@
 // - 2026-06-15: เปลี่ยน button pagination เป็น infinite scroll ตาม spec FR (T075)
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from '@/hooks/use-translations';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle2, Trash2, BookOpen, Clock, StickyNote, Folder } from 'lucide-react';
@@ -40,7 +40,7 @@ export default function VersionHistory({
   isDeleting,
   showAllTypes = false,
 }: VersionHistoryProps) {
-  const { t } = useTranslation('ai');
+  const t = useTranslations();
   const PAGE_SIZE = 20;
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const sentinelRef = useRef<HTMLDivElement>(null);

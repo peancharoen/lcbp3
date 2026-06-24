@@ -24,10 +24,8 @@ vi.mock('@/lib/services/contract.service', () => ({
 }));
 
 // Mock i18n
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key: string) => key,
-  }),
+vi.mock('@/hooks/use-translations', () => ({
+  useTranslations: () => (key: string) => key,
 }));
 
 const mockProjects = [
@@ -60,7 +58,7 @@ describe('ContextConfigEditor', () => {
     });
 
     expect(screen.getByText('การตั้งค่าบริบทข้อมูล (Context Configuration)')).toBeInTheDocument();
-    
+
     // Check default input value
     const pageSizeInput = screen.getByRole('spinbutton');
     expect(pageSizeInput).toHaveValue(3);
@@ -93,7 +91,7 @@ describe('ContextConfigEditor', () => {
     render(<ContextConfigEditor initialConfig={null} onSave={mockOnSave} isSaving={false} />);
 
     const pageSizeInput = screen.getByRole('spinbutton');
-    
+
     // Set invalid value
     await user.clear(pageSizeInput);
     await user.type(pageSizeInput, '2000');

@@ -4,7 +4,7 @@
 // - 2026-06-15: Added field validation UI with error messages (T069)
 
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from '@/hooks/use-translations';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,7 +43,7 @@ export default function ContextConfigEditor({
   onSave,
   isSaving,
 }: ContextConfigEditorProps) {
-  const { t } = useTranslation('ai');
+  const t = useTranslations();
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [contracts, setContracts] = useState<ContractOption[]>([]);
   const [filteredContracts, setFilteredContracts] = useState<ContractOption[]>([]);

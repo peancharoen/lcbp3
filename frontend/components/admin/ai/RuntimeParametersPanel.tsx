@@ -4,7 +4,7 @@
 // - 2026-06-15: Added i18n support for Runtime Parameters label (T072)
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from '@/hooks/use-translations';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -28,7 +28,7 @@ const PROFILE_OPTIONS = [
 ];
 
 export default function RuntimeParametersPanel({ onProfileChange }: RuntimeParametersPanelProps) {
-  const { t } = useTranslation('ai');
+  const t = useTranslations();
   const [selectedProfile, setSelectedProfile] = useState<string>('standard');
   const [params, setParams] = useState<SandboxProfileParams | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
