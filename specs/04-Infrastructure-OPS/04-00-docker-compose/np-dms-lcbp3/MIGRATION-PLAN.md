@@ -567,12 +567,14 @@
   docker compose ps
   ```
 
-- [ ] **0.24** ทดสอบ MariaDB
+- [X] **0.24** ทดสอบ MariaDB
   ```bash
   # รอ container healthy
   docker exec mariadb healthcheck.sh --connect --innodb_initialized
   # login (ใช้ root password จาก .env)
   docker exec -it mariadb mariadb -u root -p
+  # หรือ
+  docker exec -it mariadb bash -c 'mariadb -u root -p"$MARIADB_ROOT_PASSWORD"'
   # ตรวจสอบ
   SHOW DATABASES;
   SELECT @@version;
@@ -582,7 +584,7 @@
   -- ควรเห็น: utf8mb4
   ```
 
-- [ ] **0.25** ทดสอบ Redis
+- [X] **0.25** ทดสอบ Redis
   ```bash
   docker exec cache redis-cli -a '<REDIS_PASSWORD>' ping
   # ควรตอบ: PONG
@@ -590,7 +592,7 @@
   # ตรวจสอบ used_memory < 2G
   ```
 
-- [ ] **0.26** ทดสอบ Elasticsearch
+- [X] **0.26** ทดสอบ Elasticsearch
   ```bash
   curl -s http://192.168.10.11:9200/_cluster/health | jq .
   # ควรเห็น: status: "green" หรือ "yellow"
@@ -601,17 +603,24 @@
   > ⚠️ ES ใช้ `expose` ไม่ใช่ `ports` — ตรวจสอบจากภายใน Docker network:
   ```bash
   docker exec search curl -s http://localhost:9200/_cluster/health | jq .
+  docker exec search curl -s http://localhost:9200 | jq .version.number
   ```
 
-- [ ] **0.27** ทดสอบ Qdrant
+- [)] **0.27** ทดสอบ Qdrant
   ```bash
   docker exec qdrant curl -s http://localhost:6333/healthz
   # ควรตอบ: healthz check passed
   docker exec qdrant curl -s http://localhost:6333/collections | jq .
   # ควรเห็น: { "result": { "collections": [] } }
+
+  # หรือ
+  docker run --rm --network $(docker inspect qdrant -f '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}{{end}}') curlimages/curl curl -s http://qdrant:6333/healthz
+
+  docker run --rm --network $(docker inspect qdrant -f '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}{{end}}') curlimages/curl curl -s http://qdrant:6333/collections | jq .
+
   ```
 
-- [ ] **0.28** ทดสอบ phpMyAdmin
+- [X] **0.28** ทดสอบ phpMyAdmin
   ```bash
   curl -s -o /dev/null -w "%{http_code}" http://192.168.10.11:8080/
   # ควรได้: 200 หรือ 302
