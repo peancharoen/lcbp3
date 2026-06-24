@@ -606,7 +606,7 @@
   docker exec search curl -s http://localhost:9200 | jq .version.number
   ```
 
-- [)] **0.27** ทดสอบ Qdrant
+- [X] **0.27** ทดสอบ Qdrant
   ```bash
   docker exec qdrant curl -s http://localhost:6333/healthz
   # ควรตอบ: healthz check passed
@@ -628,12 +628,19 @@
 
 #### 0J. Connectivity Tests
 
-- [ ] **0.29** ทดสอบ SSH จาก New Server → QNAP
+> ตรวจสอบ New Server สามารถเข้าถึงทุก node ที่เกี่ยวข้องกับ migration ได้
+> - **QNAP** (192.168.10.8) = แหล่งข้อมูลที่จะ migrate (MariaDB, Gitea, n8n, Redis, ES, Qdrant)
+> - **ASUSTOR** (192.168.10.9) = Primary NAS (uploads + legacy files — backend จะอ่าน/เขียนที่นี่)
+> - **Desk-5439** (192.168.10.100) = แหล่ง OCR sidecar build context
+
+##### 0J.1 — QNAP (Migration Source)
+
+- [X] **0.29** ทดสอบ SSH จาก New Server → QNAP
   ```bash
   ssh np-dms@192.168.10.8 "echo 'SSH OK'"
   ```
 
-- [ ] **0.30** ทดสอบ MariaDB จาก New Server → QNAP (สำหรับ mysqldump)
+- [X] **0.30** ทดสอบ MariaDB จาก New Server → QNAP (สำหรับ mysqldump)
   ```bash
   # ใช้ migration_bot หรือ root (ชั่วคราว)
   mysql -h 192.168.10.8 -u root -p -e "SELECT 1"
@@ -654,9 +661,77 @@
   # ควรเห็น phpMyAdmin page
   ```
 
+##### 0J.2 — ASUSTOR (Primary NAS — ปลายทาง file storage)
+
+> CIFS mount ถูกตั้งใน 0E แล้ว — ส่วนนี้ตรวจเชิงลึกเพิ่ม
+
+- [ ] **0.33** ตรวจสอบ CIFS mount ยังอยู่ (persistent หลัง reboot)
+  ```bash
+  df -h | grep asustor
+  # ควรเห็น 3 mounts:
+  #   //192.168.10.9/np-dms-as/data/uploads/temp
+  #   //192.168.10.9/np-dms-as/data/uploads/permanent
+  #   //192.168.10.9/np-dms-as/Legacy
+  ```
+
+- [ ] **0.34** ทดสอบ write ไปยัง uploads/temp (backend จะเขียนไฟล์ที่นี่)
+  ```bash
+  echo "test $(date)" > /mnt/asustor-uploads/temp/.connectivity-test
+  cat /mnt/asustor-uploads/temp/.connectivity-test
+  rm /mnt/asustor-uploads/temp/.connectivity-test
+  ```
+
+- [ ] **0.35** ทดสอบ write ไปยัง uploads/permanent (backend จะย้ายไฟล์จาก temp มาที่นี่)
+  ```bash
+  echo "test $(date)" > /mnt/asustor-uploads/permanent/.connectivity-test
+  cat /mnt/asustor-uploads/permanent/.connectivity-test
+  rm /mnt/asustor-uploads/permanent/.connectivity-test
+  ```
+
+- [ ] **0.36** ตรวจสอบ legacy files สำหรับ migration (read-only)
+  ```bash
+  ls -la /mnt/asustor-legacy/
+  # ควรเห็นโครงสร้าง legacy migration files
+  # ตรวจสอบว่าอ่านได้แต่เขียนไม่ได้:
+  touch /mnt/asustor-legacy/.test 2>&1 | grep -i "read-only"
+  # ควรได้: Read-only file system
+  ```
+
+- [ ] **0.37** ทดสอบ CIFS performance (เช็ค throughput ขั้นต่ำ)
+  ```bash
+  # write test — 10MB file
+  dd if=/dev/zero of=/mnt/asustor-uploads/temp/.perf-test bs=1M count=10 2>&1 | tail -1
+  # ควรได้ throughput ≥ 10 MB/s (CIFS บน LAN 1Gbps)
+  rm /mnt/asustor-uploads/temp/.perf-test
+
+  # read test
+  dd if=/dev/zero of=/mnt/asustor-uploads/temp/.perf-test bs=1M count=10 2>/dev/null
+  dd if=/mnt/asustor-uploads/temp/.perf-test of=/dev/null bs=1M 2>&1 | tail -1
+  rm /mnt/asustor-uploads/temp/.perf-test
+  ```
+
+- [ ] **0.38** ทดสอบ ping จาก New Server → ASUSTOR (network latency)
+  ```bash
+  ping -c 5 192.168.10.9
+  # ควรได้ avg latency < 1ms (LAN เดียวกัน)
+  ```
+
+##### 0J.3 — Desk-5439 (OCR Sidecar Source)
+
+- [ ] **0.39** ทดสอบ SSH จาก New Server → Desk-5439
+  ```bash
+  ssh user@192.168.10.100 "echo 'SSH OK'"
+  ```
+
+- [ ] **0.40** ทดสอบ scp จาก Desk-5439 (สำหรับ copy OCR sidecar files)
+  ```bash
+  scp --dry-run -r user@192.168.10.100:/path/to/ocr-sidecar/ /tmp/ocr-test/
+  # ตรวจสอบ file list แสดงถูกต้อง
+  ```
+
 #### 0K. Ollama Models (Pull ล่วงหน้า)
 
-- [ ] **0.33** Deploy Layer 4 (AI) — เฉพาะ Ollama เพื่อ pull models
+- [ ] **0.41** Deploy Layer 4 (AI) — เฉพาะ Ollama เพื่อ pull models
   ```bash
   cd /opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai
   docker compose --env-file .env up -d ollama
@@ -664,7 +739,7 @@
   docker compose ps ollama
   ```
 
-- [ ] **0.34** Pull Ollama models (ใช้เวลานาน — ทำล่วงหน้า)
+- [ ] **0.42** Pull Ollama models (ใช้เวลานาน — ทำล่วงหน้า)
   ```bash
   docker exec ollama ollama pull np-dms-ai:latest
   docker exec ollama ollama pull np-dms-ocr:latest
@@ -676,28 +751,30 @@
   docker exec ollama ollama ps
   ```
 
-- [ ] **0.35** หยุด Ollama (ปล่อย VRAM — จะ start ใหม่วันย้าย)
+- [ ] **0.43** หยุด Ollama (ปล่อย VRAM — จะ start ใหม่วันย้าย)
   ```bash
   docker compose down
   ```
 
 #### 0L. Final Pre-Migration Checklist
 
-- [ ] **0.36** ยืนยันทุก image ถูก pull แล้ว (`docker images`)
-- [ ] **0.37** ยืนยัน CIFS mounts ทำงานหลัง reboot (`sudo reboot` → `df -h | grep asustor`)
-- [ ] **0.38** ยืนยัน GPU ทำงานหลัง reboot (`nvidia-smi`)
-- [ ] **0.39** ยืนยัน Docker daemon ทำงานหลัง reboot (`systemctl status docker`)
-- [ ] **0.40** ยืนยัน Docker networks ยังอยู่ (`docker network ls | grep -E 'lcbp3|gitnet'`)
-- [ ] **0.41** ยืนยัน `.env` ทุก layer ไม่มี `CHANGE_ME_*` เหลืออยู่
+- [ ] **0.44** ยืนยันทุก image ถูก pull แล้ว (`docker images`)
+- [ ] **0.45** ยืนยัน CIFS mounts ทำงานหลัง reboot (`sudo reboot` → `df -h | grep asustor`)
+- [ ] **0.46** ยืนยัน GPU ทำงานหลัง reboot (`nvidia-smi`)
+- [ ] **0.47** ยืนยัน Docker daemon ทำงานหลัง reboot (`systemctl status docker`)
+- [ ] **0.48** ยืนยัน Docker networks ยังอยู่ (`docker network ls | grep -E 'lcbp3|gitnet'`)
+- [ ] **0.49** ยืนยัน `.env` ทุก layer ไม่มี `CHANGE_ME_*` เหลืออยู่
   ```bash
   grep -r 'CHANGE_ME' /opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/*/.env
   # ควรไม่มี output
   ```
-- [ ] **0.42** ยืนยัน `my.cnf` อยู่ที่ `/opt/np-dms/mariadb/my.cnf`
-- [ ] **0.43** ยืนยัน OCR sidecar build สำเร็จ (`docker images | grep ocr-sidecar`)
-- [ ] **0.44** ยืนยัน Ollama models ถูก pull แล้ว (`docker exec ollama ollama list` — ถ้ายัง up อยู่)
-- [ ] **0.45** ยืนยัน SSH key จาก New Server → QNAP ทำงาน (passwordless)
-- [ ] **0.46** สำรอง `.env` ทุก layer ไปที่เดียวกัน (เช่น `/opt/np-dms-lcbp3/.env.backup/`)
+- [ ] **0.50** ยืนยัน `my.cnf` อยู่ที่ `/opt/np-dms/mariadb/my.cnf`
+- [ ] **0.51** ยืนยัน OCR sidecar build สำเร็จ (`docker images | grep ocr-sidecar`)
+- [ ] **0.52** ยืนยัน Ollama models ถูก pull แล้ว (`docker exec ollama ollama list` — ถ้ายัง up อยู่)
+- [ ] **0.53** ยืนยัน SSH key จาก New Server → QNAP ทำงาน (passwordless)
+- [ ] **0.54** ยืนยัน SSH key จาก New Server → Desk-5439 ทำงาน (passwordless)
+- [ ] **0.55** ยืนยัน ASUSTOR CIFS write ทำงาน (`touch /mnt/asustor-uploads/temp/.test && rm /mnt/asustor-uploads/temp/.test`)
+- [ ] **0.56** สำรอง `.env` ทุก layer ไปที่เดียวกัน (เช่น `/opt/np-dms-lcbp3/.env.backup/`)
 
 ### Phase 1: Backup (วันย้าย — หยุดระบบ)
 
