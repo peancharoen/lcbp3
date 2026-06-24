@@ -44,7 +44,7 @@ describe('VramMonitorService', () => {
         data: {
           models: [
             {
-              name: 'typhoon2.5-np-dms:latest',
+              name: 'np-dms-ai:latest',
               size_vram: 4 * 1024 * 1024 * 1024,
             }, // 4GB
             { name: 'other-model', size_vram: 2 * 1024 * 1024 * 1024 }, // 2GB
@@ -76,7 +76,7 @@ describe('VramMonitorService', () => {
         data: {
           models: [
             {
-              name: 'typhoon2.5-np-dms:latest',
+              name: 'np-dms-ai:latest',
               size_vram: 4 * 1024 * 1024 * 1024,
             },
           ],
@@ -91,7 +91,7 @@ describe('VramMonitorService', () => {
         data: {
           models: [
             {
-              name: 'typhoon2.5-np-dms:latest',
+              name: 'np-dms-ai:latest',
               size_vram: 6 * 1024 * 1024 * 1024,
             }, // 6GB used
           ],

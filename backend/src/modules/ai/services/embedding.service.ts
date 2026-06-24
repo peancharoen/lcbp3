@@ -1,7 +1,7 @@
 // File: backend/src/modules/ai/services/embedding.service.ts
 // Change Log
 // - 2026-05-15: เพิ่ม EmbeddingService สำหรับ full-document chunked embedding ตาม ADR-023A T021.
-// - 2026-06-05: ปรับปรุงเป็น Hybrid Embedding และเพิ่ม Semantic Chunking ผ่าน typhoon2.5 (T025-T027)
+// - 2026-06-05: ปรับปรุงเป็น Hybrid Embedding และเพิ่ม Semantic Chunking ผ่าน np-dms-ai (T025-T027)
 // - 2026-06-11: US3 - เพิ่มการคืนค่า device (cpu/gpu) จาก embedding
 
 import { Injectable, Logger } from '@nestjs/common';
@@ -147,14 +147,14 @@ export class EmbeddingService {
   }
 
   /**
-   * แบ่งข้อความโดยใช้ typhoon2.5 และ Prompt 'rag_chunking' (T025, T026)
+   * แบ่งข้อความโดยใช้ np-dms-ai และ Prompt 'rag_chunking' (T025, T026)
    * หากล้มเหลวหรือ LLM ไม่ตอบกลับในรูปแบบแท็ก <chunk> ให้ fallback เป็นแบบ fixed-size
    */
   private async semanticChunkTextWithFallback(
     ocrText: string
   ): Promise<Array<{ topic: string; text: string }>> {
     try {
-      this.logger.log('Attempting semantic chunking via typhoon2.5...');
+      this.logger.log('Attempting semantic chunking via np-dms-ai...');
       // ดึง prompt จาก ai_prompts ที่เป็น active version
       const resolved = await this.aiPromptsService.resolveActive(
         'rag_chunking',

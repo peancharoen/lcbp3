@@ -1,6 +1,6 @@
 // File: src/modules/ai/processors/np-dms-ocr-processor.ts
 // Change Log
-// - 2026-05-30: Initial processor สำหรับ Typhoon OCR sequential jobs (T009c, ADR-032)
+// - 2026-05-30: Initial processor สำหรับ np-dms-ocr sequential jobs (T009c, ADR-032)
 //   รันด้วย concurrency=1 เพื่อป้องกัน VRAM overflow บน RTX 2060 Super (8GB)
 //   ใช้ keep_alive=0 ผ่าน sidecar Ollama API เพื่อ unload model หลังประมวลผล
 // - 2026-06-20: เปลี่ยนชื่อไฟล์จาก typhoon-ocr.processor.ts → np-dms-ocr-processor.ts
@@ -38,11 +38,11 @@ export interface NpDmsOcrJobData {
   ocrOptions?: OcrNpDmsOptions;
 }
 
-// VRAM ที่ Typhoon OCR-3B ต้องการ (MB) — ตาม ADR-032
-const TYPHOON_OCR_REQUIRED_VRAM_MB = 4000;
+// VRAM ที่ np-dms-ocr ต้องการ (MB) — ตาม ADR-032
+const NP_DMS_OCR_REQUIRED_VRAM_MB = 4000;
 
 /**
- * Processor สำหรับ Typhoon OCR jobs ที่รันแบบ sequential (concurrency=1)
+ * Processor สำหรับ np-dms-ocr jobs ที่รันแบบ sequential (concurrency=1)
  * เพื่อป้องกัน VRAM overflow เมื่อทำ OCR หลายงานพร้อมกันบน RTX 2060 Super
  * ตาม ADR-032: lockDuration=180000ms รองรับ 120s timeout + buffer
  */
@@ -61,7 +61,7 @@ export class NpDmsOcrProcessor extends WorkerHost {
     super();
   }
 
-  /** ประมวลผล Typhoon OCR job ทีละงาน */
+  /** ประมวลผล np-dms-ocr job ทีละงาน */
   async process(job: Job<NpDmsOcrJobData>): Promise<void> {
     const {
       pdfPath,
@@ -72,7 +72,7 @@ export class NpDmsOcrProcessor extends WorkerHost {
     } = job.data;
     const startTime = Date.now();
     this.logger.log(
-      `Typhoon OCR job started — idempotencyKey=${idempotencyKey}, engine=${engineType}`
+      `np-dms-ocr job started — idempotencyKey=${idempotencyKey}, engine=${engineType}`
     );
     // ตรวจสอบ Redis cache ก่อน — ถ้ามีผลลัพธ์แล้วไม่ต้องรัน OCR ซ้ำ
     const cached = await this.ocrCacheService.get(pdfPath, engineType);
@@ -97,10 +97,10 @@ export class NpDmsOcrProcessor extends WorkerHost {
     }
     // ตรวจสอบ VRAM ก่อนโหลด model
     const hasCapacity = await this.vramMonitorService.hasVramCapacity(
-      TYPHOON_OCR_REQUIRED_VRAM_MB
+      NP_DMS_OCR_REQUIRED_VRAM_MB
     );
     if (!hasCapacity) {
-      const errMsg = `VRAM ไม่เพียงพอสำหรับ Typhoon OCR-3B (ต้องการ ${TYPHOON_OCR_REQUIRED_VRAM_MB}MB) — retry ภายหลัง`;
+      const errMsg = `VRAM ไม่เพียงพอสำหรับ np-dms-ocr (ต้องการ ${NP_DMS_OCR_REQUIRED_VRAM_MB}MB) — retry ภายหลัง`;
       this.logger.warn(errMsg);
       await this.writeAuditLog({
         documentPublicId,
@@ -143,11 +143,11 @@ export class NpDmsOcrProcessor extends WorkerHost {
         cacheHit: false,
       });
       this.logger.log(
-        `Typhoon OCR completed — ${result.text.length} chars, ${processingTimeMs}ms`
+        `np-dms-ocr completed — ${result.text.length} chars, ${processingTimeMs}ms`
       );
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
-      this.logger.error(`Typhoon OCR job failed: ${errMsg}`);
+      this.logger.error(`np-dms-ocr job failed: ${errMsg}`);
       await this.writeAuditLog({
         documentPublicId,
         engineType,
@@ -183,7 +183,7 @@ export class NpDmsOcrProcessor extends WorkerHost {
     );
   }
 
-  /** บันทึก audit log สำหรับ Typhoon OCR interaction */
+  /** บันทึก audit log สำหรับ np-dms-ocr interaction */
   private async writeAuditLog(params: {
     documentPublicId?: string;
     engineType: string;

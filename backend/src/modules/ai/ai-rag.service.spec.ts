@@ -29,7 +29,7 @@ describe('AiRagService (US1 — Chat Q&A)', () => {
     get: jest.fn((key: string, defaultValue?: unknown): unknown => {
       const values: Record<string, unknown> = {
         OLLAMA_URL: 'http://localhost:11434',
-        OLLAMA_RAG_MODEL: 'typhoon2.5-np-dms:latest',
+        OLLAMA_RAG_MODEL: 'np-dms-ai:latest',
         RAG_TIMEOUT_MS: 30000,
         RAG_CONTEXT_LIMIT_CHARS: 3000,
       };
@@ -137,7 +137,7 @@ describe('AiRagService (US1 — Chat Q&A)', () => {
       expect(mockedAxios.post).toHaveBeenCalledWith(
         expect.stringContaining('/api/generate'),
         expect.objectContaining({
-          model: 'typhoon2.5-np-dms:latest',
+          model: 'np-dms-ai:latest',
           prompt: expect.stringContaining(
             'เนื้อหาเอกสารหน้าที่ 1 สำหรับทดสอบ RAG pipeline'
           ),

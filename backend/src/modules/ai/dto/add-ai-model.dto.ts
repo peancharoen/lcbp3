@@ -15,7 +15,7 @@ import { AiModelType } from '../entities/ai-model-configuration.entity';
 /** DTO สำหรับเพิ่มโมเดล AI ใหม่ */
 export class AddAiModelDto {
   @ApiProperty({
-    description: 'ชื่อของโมเดล AI (เช่น gemma4:e4b, typhoon2.1-gemma3-4b)',
+    description: 'ชื่อของโมเดล AI (เช่น np-dms-ai:latest, np-dms-ocr:latest)',
   })
   @IsString()
   modelName!: string;

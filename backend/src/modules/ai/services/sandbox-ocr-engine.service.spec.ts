@@ -113,7 +113,7 @@ describe('SandboxOcrEngineService', () => {
       (mockedFs.readFileSync as jest.Mock).mockReturnValueOnce(mockBuffer);
       mockedAxios.post = jest.fn().mockResolvedValueOnce({
         data: {
-          text: 'extracted from typhoon',
+          text: 'extracted from np-dms-ocr',
           ocrUsed: true,
           engineUsed: 'np-dms-ocr',
         },
@@ -122,7 +122,7 @@ describe('SandboxOcrEngineService', () => {
         '/tmp/doc.pdf',
         'np-dms-ocr'
       );
-      expect(result.text).toBe('extracted from typhoon');
+      expect(result.text).toBe('extracted from np-dms-ocr');
       expect(result.ocrUsed).toBe(true);
       expect(result.engineUsed).toBe('np-dms-ocr');
       expect(result.fallbackUsed).toBe(false);

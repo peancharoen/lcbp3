@@ -1,6 +1,6 @@
 // File: src/modules/ai/services/ocr-cache.service.ts
 // Change Log
-// - 2026-05-30: Initial implementation สำหรับ Typhoon OCR 24-hour result caching (T007, ADR-032)
+// - 2026-05-30: Initial implementation สำหรับ np-dms-ocr 24-hour result caching (T007, ADR-032)
 
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
@@ -21,7 +21,7 @@ const OCR_CACHE_TTL_SECONDS = 24 * 60 * 60;
 const OCR_CACHE_PREFIX = 'ai:ocr:result:';
 
 /**
- * บริการ cache ผลลัพธ์ OCR ใน Redis สำหรับ Typhoon OCR
+ * บริการ cache ผลลัพธ์ OCR ใน Redis สำหรับ np-dms-ocr
  * Key: SHA-256(pdfPath + engineType) เพื่อป้องกัน key collision ระหว่าง engine ต่างๆ
  * TTL: 24 ชั่วโมง ตาม ADR-032
  */

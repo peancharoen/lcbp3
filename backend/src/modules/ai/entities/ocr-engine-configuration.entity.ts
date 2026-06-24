@@ -1,7 +1,7 @@
 // File: src/modules/ai/entities/ocr-engine-configuration.entity.ts
 // Change Log
 // - 2026-05-30: สร้าง OcrEngineConfiguration class สำหรับเก็บข้อมูลการตั้งค่า OCR Engine (T010, US1)
-// - 2026-06-20: เปลี่ยน TESSERACT → FAST_PATH, TYPHOON_OCR → NP_DMS_OCR ตามการทำความสะอาด legacy references
+// - 2026-06-20: เปลี่ยน TESSERACT → FAST_PATH, TYPHOON_OCR → NP_DMS_OCR ตามการทำความสะอาด legacy references (canonical naming: np-dms-ocr)
 
 import { ApiProperty } from '@nestjs/swagger';
 

@@ -1,0 +1,237 @@
+# File: specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/02-platform/docker-compose.yml
+# DMS Container v1.9.x — Layer 2: Platform (DevOps Services)
+# Host: np-dms-lcbp3 (192.168.10.11)
+# Change Log:
+# - 2026-06-23: Initial creation — Server consolidation (ADR-041)
+#   Migrated from QNAP: gitea/ + n8n/ (without tika — legacy, rejected)
+#   Changes: volume paths → /opt/np-dms/, OLLAMA_API_URL → Docker internal
+# ============================================================
+# 🔒 SECURITY (ADR-016, Tier-1):
+#   - Gitea: expose 192.168.10.11:3003:3000 + 192.168.10.11:2222:22
+#   - n8n: expose 192.168.10.11:5678:5678
+#   - n8n-db (PostgreSQL): internal only
+#   - docker-socket-proxy: internal only (read-only API)
+#   - Tika: ไม่รวม (legacy — rejected ใน ADR-028 research.md)
+# ============================================================
+
+x-restart: &restart_policy
+  restart: unless-stopped
+
+x-logging: &default_logging
+  logging:
+    driver: 'json-file'
+    options:
+      max-size: '10m'
+      max-file: '5'
+
+name: lcbp3-platform
+
+networks:
+  lcbp3:
+    external: true
+  giteanet:
+    external: true
+    name: gitnet
+
+services:
+  # ----------------------------------------------------------------
+  # 1. Gitea — Git Server + Package Registry
+  # Expose: 192.168.10.11:3003 (HTTP) + 192.168.10.11:2222 (SSH)
+  # DB: MariaDB 'gitea' database (Docker internal DNS 'mariadb:3306')
+  # ----------------------------------------------------------------
+  gitea:
+    <<: [*restart_policy, *default_logging]
+    image: gitea/gitea:1.26.0-rootless
+    container_name: gitea
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.25'
+          memory: 512M
+    env_file:
+      - ../.env
+    environment:
+      USER_UID: '1000'
+      USER_GID: '1000'
+      TZ: Asia/Bangkok
+      GITEA__server__ROOT_URL: https://git.np-dms.work/
+      GITEA__server__DOMAIN: git.np-dms.work
+      GITEA__server__SSH_DOMAIN: git.np-dms.work
+      GITEA__server__START_SSH_SERVER: 'true'
+      GITEA__server__SSH_PORT: '22'
+      GITEA__server__SSH_LISTEN_PORT: '22'
+      GITEA__server__LFS_START_SERVER: 'true'
+      GITEA__server__HTTP_ADDR: '0.0.0.0'
+      GITEA__server__HTTP_PORT: '3000'
+      GITEA__server__TRUSTED_PROXIES: '127.0.0.1/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16'
+      GITEA__database__DB_TYPE: mysql
+      GITEA__database__HOST: mariadb:3306
+      GITEA__database__NAME: 'gitea'
+      GITEA__database__USER: 'gitea'
+      GITEA__database__PASSWD: ${GITEA_DB_PASSWORD:?GITEA_DB_PASSWORD required}
+      GITEA__repository__ROOT: /var/lib/gitea/git/repositories
+      DISABLE_HTTP_GIT: 'false'
+      ENABLE_BASIC_AUTHENTICATION: 'true'
+      GITEA__packages__ENABLED: 'true'
+      GITEA__packages__REGISTRY__ENABLED: 'true'
+      GITEA__packages__REGISTRY__STORAGE_TYPE: local
+      GITEA__packages__REGISTRY__STORAGE_PATH: /data/registry
+      GITEA__security__INSTALL_LOCK: 'true'
+    volumes:
+      - '/opt/np-dms/gitea/backup:/backup'
+      - '/opt/np-dms/gitea/etc:/etc/gitea'
+      - '/opt/np-dms/gitea/lib:/var/lib/gitea'
+      - '/opt/np-dms/gitea/gitea_repos:/var/lib/gitea/git/repositories'
+      - '/opt/np-dms/gitea/gitea_registry:/data/registry'
+      - '/etc/timezone:/etc/timezone:ro'
+      - '/etc/localtime:/etc/localtime:ro'
+    ports:
+      - '192.168.10.11:3003:3000'
+      - '192.168.10.11:2222:22'
+    networks:
+      - lcbp3
+      - giteanet
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/api/healthz']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ----------------------------------------------------------------
+  # 2. n8n-db — PostgreSQL (n8n workflow data)
+  # Internal only (no host port)
+  # ----------------------------------------------------------------
+  n8n-db:
+    <<: [*restart_policy, *default_logging]
+    image: postgres:16.4-alpine
+    container_name: n8n-db
+    env_file:
+      - ../.env
+    environment:
+      - POSTGRES_USER=n8n
+      - POSTGRES_PASSWORD=${N8N_DB_PASSWORD:?N8N_DB_PASSWORD required}
+      - POSTGRES_DB=n8n
+    volumes:
+      - '/opt/np-dms/n8n/postgres-data:/var/lib/postgresql/data'
+    networks:
+      - lcbp3
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -h localhost -U n8n -d n8n']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ----------------------------------------------------------------
+  # 3. Docker Socket Proxy — read-only API สำหรับ n8n (H3)
+  # Internal only (no host port)
+  # ----------------------------------------------------------------
+  docker-socket-proxy:
+    <<: [*restart_policy, *default_logging]
+    image: tecnativa/docker-socket-proxy:0.2
+    container_name: docker-socket-proxy
+    environment:
+      TZ: 'Asia/Bangkok'
+      CONTAINERS: '1'
+      IMAGES: '1'
+      INFO: '1'
+      VERSION: '1'
+      POST: '0'
+      DELETE: '0'
+      EXEC: '0'
+      VOLUMES: '0'
+      NETWORKS: '0'
+      SERVICES: '0'
+      TASKS: '0'
+      SWARM: '0'
+      SYSTEM: '0'
+      AUTH: '0'
+      SECRETS: '0'
+      NODES: '0'
+      CONFIGS: '0'
+      DISTRIBUTION: '0'
+      PLUGINS: '0'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - lcbp3
+    expose:
+      - '2375'
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:2375/version || exit 1']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ----------------------------------------------------------------
+  # 4. n8n — Workflow Orchestrator (Migration Phase only — ADR-023A)
+  # Expose: 192.168.10.11:5678 (HTTP)
+  # DB: PostgreSQL (Docker internal DNS 'n8n-db:5432')
+  # ----------------------------------------------------------------
+  n8n:
+    <<: [*restart_policy, *default_logging]
+    image: n8nio/n8n:2.16.1
+    container_name: n8n
+    depends_on:
+      n8n-db:
+        condition: service_healthy
+      docker-socket-proxy:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 2G
+        reservations:
+          cpus: '0.25'
+          memory: 512M
+    env_file:
+      - ../.env
+    environment:
+      TZ: 'Asia/Bangkok'
+      NODE_ENV: 'production'
+      N8N_PUBLIC_URL: 'https://n8n.np-dms.work/'
+      WEBHOOK_URL: 'https://n8n.np-dms.work/'
+      N8N_EDITOR_BASE_URL: 'https://n8n.np-dms.work/'
+      N8N_PROTOCOL: 'https'
+      N8N_HOST: 'n8n.np-dms.work'
+      N8N_PORT: 5678
+      N8N_PROXY_HOPS: '1'
+      N8N_DIAGNOSTICS_ENABLED: 'false'
+      N8N_SECURE_COOKIE: 'true'
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:?N8N_ENCRYPTION_KEY required}
+      N8N_RESTRICT_FILE_ACCESS_TO: '/home/node/.n8n-files'
+      N8N_BLOCK_FILE_ACCESS_TO_N8N_FILES: 'false'
+      GENERIC_TIMEZONE: 'Asia/Bangkok'
+      NODE_FUNCTION_ALLOW_BUILTIN: '*'
+      NODES_EXCLUDE: '[]'
+      DOCKER_HOST: 'tcp://docker-socket-proxy:2375'
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_DATABASE: n8n
+      DB_POSTGRESDB_HOST: n8n-db
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_USER: n8n
+      DB_POSTGRESDB_PASSWORD: ${N8N_DB_PASSWORD:?N8N_DB_PASSWORD required}
+      EXECUTIONS_DATA_PRUNE: 'true'
+      EXECUTIONS_DATA_MAX_AGE: 168
+    ports:
+      - '192.168.10.11:5678:5678'
+    networks:
+      - lcbp3
+    volumes:
+      - '/opt/np-dms/n8n:/home/node/.n8n'
+      - '/opt/np-dms/n8n/cache:/home/node/.cache'
+      - '/opt/np-dms/n8n/scripts:/scripts'
+      - '/opt/np-dms/n8n/data:/data'
+      # ASUSTOR CIFS — Legacy migration files (read-only)
+      - '/mnt/asustor-legacy:/home/node/.n8n-files/staging_ai:ro'
+      - '/opt/np-dms/n8n/migration_logs:/home/node/.n8n-files/migration_logs:rw'
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO http://127.0.0.1:5678/healthz || exit 1']
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 5

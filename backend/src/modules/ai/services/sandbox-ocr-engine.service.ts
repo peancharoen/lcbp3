@@ -1,6 +1,6 @@
 // File: src/modules/ai/services/sandbox-ocr-engine.service.ts
 // Change Log
-// - 2026-05-30: แยก SandboxOcrEngineService ออกจาก OcrService เพื่อรองรับการเลือก Typhoon OCR เฉพาะ sandbox โดยไม่กระทบ core OCR flow
+// - 2026-05-30: แยก SandboxOcrEngineService ออกจาก OcrService เพื่อรองรับการเลือก np-dms-ocr เฉพาะ sandbox โดยไม่กระทบ core OCR flow
 // - 2026-06-01: เปลี่ยนจาก remapPath + pdfPath ไปเป็น multipart file upload ไปยัง /ocr-upload (แก้ปัญหา Docker WSL2 mount)
 // - 2026-06-02: ส่งค่า X-API-Key ใน request headers ไปยัง ocr-sidecar เพื่อความมั่นคงปลอดภัยสูงสุด (ADR-033, Suggestion 2)
 // - 2026-06-04: ADR-034 — เพิ่ม 'np-dms-ocr' เป็น canonical SandboxOcrEngineType
@@ -58,10 +58,15 @@ export class SandboxOcrEngineService {
       'OCR_API_URL',
       'http://localhost:8765'
     );
-    this.ocrSidecarApiKey = this.configService.get<string>(
-      'OCR_SIDECAR_API_KEY',
-      'lcbp3-dms-ocr-sidecar-secure-token-2026'
+    const ocrSidecarApiKey = this.configService.get<string>(
+      'OCR_SIDECAR_API_KEY'
     );
+    if (!ocrSidecarApiKey) {
+      throw new Error(
+        'OCR_SIDECAR_API_KEY is required — กรุณาตั้งค่า environment variable'
+      );
+    }
+    this.ocrSidecarApiKey = ocrSidecarApiKey;
   }
 
   /** รัน OCR ตาม engine ที่เลือก โดย fallback กลับไป fast-path เมื่อ np-dms-ocr ล้มเหลว */

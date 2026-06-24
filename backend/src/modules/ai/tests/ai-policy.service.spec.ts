@@ -61,7 +61,7 @@ describe('AiPolicyService', () => {
     });
 
     it('ควรคืนค่า np-dms-ai สำหรับโมเดลอื่นๆ', () => {
-      expect(service.getCanonicalModelName('typhoon2.5-np-dms:latest')).toBe(
+      expect(service.getCanonicalModelName('np-dms-ai:latest')).toBe(
         'np-dms-ai'
       );
       expect(service.getCanonicalModelName('gemma')).toBe('np-dms-ai');

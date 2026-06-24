@@ -5,12 +5,12 @@
 // - 2026-05-25: เพิ่ม path remapping (OCR_UPLOAD_BASE_PATH) เพื่อแปลง local upload path เป็น path ที่ sidecar เห็นผ่าน CIFS.
 // - 2026-05-29: เพิ่ม checkHealth() เพื่อตรวจสอบสุขภาพของ OCR sidecar สำหรับ getSystemHealth() (ADR-027)
 // - 2026-05-30: เปลี่ยนจาก PaddleOCR เป็น fast-path (PyMuPDF text layer) เพื่อความเข้ากันได้กับ CPU เก่า
-// - 2026-05-30: เพิ่ม VRAM insufficiency guard สำหรับ Typhoon OCR engine (T016a, ADR-032)
+// - 2026-05-30: เพิ่ม VRAM insufficiency guard สำหรับ np-dms-ocr engine (T016a, ADR-032)
 // - 2026-05-30: ปรับปรุงสำหรับ Dynamic OCR Engine selection, Caching, และ Graceful Fallback (T013, T014, T016, T022, T023, US1)
 // - 2026-06-01: ปรับปรุง remapPath ให้รองรับ Windows absolute และ relative path ได้แม่นยำ 100%
 // - 2026-06-01: เปลี่ยน processWithFastPath/processWithNpDmsOcr ให้ส่ง file content ผ่าน multipart ไปยัง /ocr-upload แทนการส่ง path
 // - 2026-06-02: ส่งค่า X-API-Key ใน request headers ไปยัง ocr-sidecar เพื่อความมั่นคงปลอดภัยสูงสุด (ADR-033, Suggestion 2)
-// - 2026-06-04: ADR-034 — เปลี่ยน TYPHOON_ENGINE.engineName เป็น np-dms-ocr:latest ตรงกับชื่อโมเดลใน Ollama
+// - 2026-06-04: ADR-034 — เปลี่ยน engineName เป็น np-dms-ocr:latest ตรงกับชื่อโมเดลใน Ollama
 // - 2026-06-11: US2 - คำนวณ OCR residency keep_alive แบบ dynamic ตาม VRAM headroom และ active profile
 // - 2026-06-13: US5 - เพิ่มการส่ง temperature, topP และ repeatPenalty ไปยัง OCR sidecar ผ่าน multipart form (T070)
 

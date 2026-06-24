@@ -5,8 +5,8 @@
 import { ExecutionProfile } from './execution-policy.interface';
 
 /**
- * OCR runtime parameters based on SCB10X Typhoon OCR model.
- * พารามิเตอร์ของระบบ OCR สำหรับ Typhoon OCR
+ * OCR runtime parameters based on np-dms-ocr model.
+ * พารามิเตอร์ของระบบ OCR สำหรับ np-dms-ocr
  */
 export interface OcrRuntimePolicy {
   canonicalModel: 'np-dms-ocr';

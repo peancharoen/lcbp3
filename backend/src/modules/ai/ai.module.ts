@@ -127,7 +127,7 @@ import {
       },
       { name: QUEUE_AI_RAG },
       { name: QUEUE_AI_VECTOR_DELETION },
-      // Typhoon OCR + LLM queues: concurrency=1 เพื่อป้องกัน VRAM overflow (ADR-032)
+      // np-dms-ocr + np-dms-ai queues: concurrency=1 เพื่อป้องกัน VRAM overflow (ADR-032)
       {
         name: QUEUE_NP_DMS_OCR,
         defaultJobOptions: {
@@ -188,7 +188,7 @@ import {
     OcrService,
     SandboxOcrEngineService,
     EmbeddingService,
-    // ADR-032: Typhoon OCR VRAM monitoring + result caching
+    // ADR-032: np-dms-ocr VRAM monitoring + result caching
     VramMonitorService,
     OcrCacheService,
     AiRealtimeProcessor,

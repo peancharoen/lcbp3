@@ -62,10 +62,7 @@ export class VramMonitorService {
       let mainModelUsedBytes = 0;
       for (const model of models) {
         totalUsedBytes += model.size_vram || 0;
-        if (
-          model.name.includes('np-dms-ai') ||
-          model.name.includes('typhoon2.5-np-dms')
-        ) {
+        if (model.name.includes('np-dms-ai')) {
           mainModelUsedBytes += model.size_vram || 0;
         }
       }

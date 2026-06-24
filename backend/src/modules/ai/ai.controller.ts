@@ -573,17 +573,17 @@ export class AiController {
         temperature: {
           type: 'number',
           description:
-            'Typhoon OCR temperature (0.0-1.0) — override Modelfile default (0.1)',
+            'np-dms-ocr temperature (0.0-1.0) — override Modelfile default (0.1)',
         },
         topP: {
           type: 'number',
           description:
-            'Typhoon OCR top_p (0.0-1.0) — override Modelfile default (0.1)',
+            'np-dms-ocr top_p (0.0-1.0) — override Modelfile default (0.1)',
         },
         repeatPenalty: {
           type: 'number',
           description:
-            'Typhoon OCR repeat_penalty — override Modelfile default (1.1)',
+            'np-dms-ocr repeat_penalty — override Modelfile default (1.1)',
         },
       },
     },

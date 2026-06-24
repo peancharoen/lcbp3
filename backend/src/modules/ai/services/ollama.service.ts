@@ -3,9 +3,9 @@
 // - 2026-05-15: เพิ่ม Ollama service สำหรับ ADR-023A 2-model stack.
 // - 2026-05-21: เพิ่ม checkHealth สำหรับตรวจสอบสุขภาพและความเร็ว (Latency) ของ Ollama
 // - 2026-06-02: เพิ่ม loadModel() preloading, ดึงจริงจาก /api/ps และเพิ่ม unloadModel() เพื่อล้างหน่วยความจำ GPU/VRAM (ADR-033, Suggestion 1)
-// - 2026-06-03: ADR-034 — เปลี่ยน default model เป็น typhoon2.5-np-dms; เพิ่ม ocrModel field, keepAlive param ใน loadModel(), model option ใน OllamaGenerateOptions, getOcrModelName()
-// - 2026-06-06: เพิ่ม system prompt support ใน OllamaGenerateOptions และ generate() method เพื่อรองรับ Typhoon model ที่ต้องการ system prompt แยกต่างหาก
-// - 2026-06-06: [T036] แก้ไข default URL เป็น http://192.168.10.100:11434 (Desk-5439) แทน localhost; เพิ่ม options และ keepAlive ใน OllamaGenerateOptions เพื่อรองรับ Typhoon model parameters
+// - 2026-06-03: ADR-034 — เปลี่ยน default model เป็น np-dms-ai; เพิ่ม ocrModel field, keepAlive param ใน loadModel(), model option ใน OllamaGenerateOptions, getOcrModelName()
+// - 2026-06-06: เพิ่ม system prompt support ใน OllamaGenerateOptions และ generate() method เพื่อรองรับ np-dms-ai model ที่ต้องการ system prompt แยกต่างหาก
+// - 2026-06-06: [T036] แก้ไข default URL เป็น http://192.168.10.100:11434 (Desk-5439) แทน localhost; เพิ่ม options และ keepAlive ใน OllamaGenerateOptions เพื่อรองรับ np-dms-ai model parameters
 // - 2026-06-08: เพิ่ม num_predict ใน OllamaGenerateOptions.options — ป้องกัน JSON truncation เมื่อ LLM สร้าง structured output
 // - 2026-06-13: ADR-036 — เปลี่ยน default model tags เป็น np-dms-ai/np-dms-ocr
 
@@ -18,7 +18,7 @@ export interface OllamaGenerateOptions {
   signal?: AbortSignal;
   /** ชื่อ model ที่ต้องการใช้ — ถ้าไม่ระบุ จะใช้ mainModel เป็นค่าเริ่มต้น (ADR-034) */
   model?: string;
-  /** System prompt สำหรับ Typhoon model ที่ต้องการ system prompt แยกต่างหาก (ใช้ triple quotes) */
+  /** System prompt สำหรับ np-dms-ai model ที่ต้องการ system prompt แยกต่างหาก (ใช้ triple quotes) */
   system?: string;
   /** บังคับ structured output จาก Ollama สำหรับงานที่ต้อง parse JSON */
   format?: 'json';

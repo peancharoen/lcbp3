@@ -24,7 +24,7 @@ export const QUEUE_NP_DMS_AI = 'np-dms-ai';
 export interface NpDmsAiJobData {
   /** prompt ที่จะส่งให้ np-dms-ai LLM */
   prompt: string;
-  /** ชื่อ model เช่น typhoon2.5-np-dms:latest */
+  /** ชื่อ model เช่น np-dms-ai:latest */
   model?: string;
   /** idempotencyKey สำหรับ Redis result key */
   idempotencyKey: string;
@@ -70,7 +70,7 @@ export class NpDmsAiProcessor extends WorkerHost {
     );
     this.defaultModel = this.configService.get<string>(
       'OLLAMA_MODEL_MAIN',
-      'typhoon2.5-np-dms:latest'
+      'np-dms-ai:latest'
     );
   }
 

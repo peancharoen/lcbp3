@@ -77,7 +77,7 @@ export type AiBatchJobType =
   | 'ai-suggest'
   | 'rag-query';
 
-/** รายการ job types ที่ต้องใช้ Typhoon OCR model — จะ trigger model switching (ADR-034) */
+/** รายการ job types ที่ต้องใช้ np-dms-ocr model — จะ trigger model switching (ADR-034) */
 export const OCR_JOB_TYPES: ReadonlyArray<AiBatchJobType> = [
   'ocr-extract',
 ] as const;
@@ -313,7 +313,7 @@ export class AiBatchProcessor extends WorkerHost {
           return;
         case 'ocr-extract':
           this.logger.log(
-            `OCR-extract (Typhoon OCR) job processing — jobId=${String(job.id)}`
+            `OCR-extract (np-dms-ocr) job processing — jobId=${String(job.id)}`
           );
           await this.processOcrExtract(job.data);
           await this.setAiProcessingStatus(job.data.documentPublicId, 'DONE');
@@ -500,7 +500,7 @@ export class AiBatchProcessor extends WorkerHost {
     );
   }
 
-  /** ประมวลผล ocr-extract job ด้วย Typhoon OCR model — model switching ตาม ADR-034:
+  /** ประมวลผล ocr-extract job ด้วย np-dms-ocr model — model switching ตาม ADR-034:
    *  unload main → load OCR (keep_alive:0) → generate OCR → OCR auto-unloads → reload main */
   private async processOcrExtract(data: AiBatchJobData): Promise<void> {
     const { documentPublicId, payload } = data;
