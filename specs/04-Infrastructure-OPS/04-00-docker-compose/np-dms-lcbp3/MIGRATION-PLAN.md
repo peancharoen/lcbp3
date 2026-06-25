@@ -1140,7 +1140,7 @@
 
 #### 3C. Prepare File Data (permissions + paths)
 
-- [ ] **3.9** ตั้ง permissions สำหรับ Gitea file data:
+- [X] **3.9** ตั้ง permissions สำหรับ Gitea file data:
   ```bash
   chown -R 1000:1000 /opt/np-dms/gitea/
   chmod -R 755 /opt/np-dms/gitea/
