@@ -741,7 +741,7 @@
 > **D11:** Ollama รันเป็น native systemd service บน New Server — ไม่ใช่ Docker container
 > เหตุผล: GPU passthrough ใน Docker ซับซ้อน, systemd ใช้ GPU ตรง, จัดการง่าย, auto-restart ในตัว
 
-- [ ] **0.41** ติดตั้ง Ollama เป็น native systemd service
+- [X] **0.41** ติดตั้ง Ollama เป็น native systemd service
   ```bash
   # ติดตั้งผ่าน official script (สร้าง ollama user + systemd service อัตโนมัติ)
   curl -fsSL https://ollama.com/install.sh | sh
