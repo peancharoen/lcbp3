@@ -4,7 +4,7 @@
 # Change Log:
 # - 2026-06-23: Initial creation — Server consolidation (ADR-041)
 #   Migrated from QNAP: gitea/ + n8n/ (without tika — legacy, rejected)
-#   Changes: volume paths → /opt/np-dms/, OLLAMA_API_URL → Docker internal
+#   Changes: volume paths → /opt/np-dms/, OLLAMA_API_URL → host IP (native systemd — D11)
 # ============================================================
 # 🔒 SECURITY (ADR-016, Tier-1):
 #   - Gitea: expose 192.168.10.11:3003:3000 + 192.168.10.11:2222:22
@@ -116,7 +116,7 @@ services:
       - POSTGRES_PASSWORD=${N8N_DB_PASSWORD:?N8N_DB_PASSWORD required}
       - POSTGRES_DB=n8n
     volumes:
-      - '/opt/np-dms/n8n/postgres-data:/var/lib/postgresql/data'
+      - '/data/n8n/postgres-data:/var/lib/postgresql/data'
     networks:
       - lcbp3
     healthcheck:

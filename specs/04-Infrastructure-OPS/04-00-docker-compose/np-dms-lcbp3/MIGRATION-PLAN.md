@@ -20,6 +20,7 @@
 | D8 | MariaDB RAM | 8G (ลดจาก 16G) | DB ยังเล็ก (~10MB), อัปเกรดได้ภายหลัง |
 | D9 | ES heap | 2G (ลดจาก 4G) | RAM budget 32GB tight |
 | D10 | ASUSTOR | Primary NAS (CIFS direct) | ADR-041 D2 — uploads อยู่ ASUSTOR อยู่แล้ว |
+| D11 | Ollama | native systemd service (ไม่ใช่ Docker) | GPU passthrough ซับซ้อนใน Docker; systemd ใช้ GPU ตรง, จัดการง่าย, auto-restart ในตัว |
 
 ---
 
@@ -38,9 +39,11 @@
                     │             │  │  RTX 5060 Ti   │
                     │  ┌────────┐ │  │  ┌───────────┐ │
                     │  │  NPM   │ │  │  │ 04-ai     │ │
-                    │  │ (edge  │◄├──┤  │ ollama    │ │
-                    │  │ proxy) │ │  │  │ ocr-sidecar│ │
-                    │  └────────┘ │  │  │ metrics   │ │
+                    │  │ (edge  │◄├──┤  │ ocr-sidecar│ │
+                    │  │ proxy) │ │  │  │ metrics   │ │
+                    │  └────────┘ │  │  ├───────────┤ │
+                    │             │  │  │ ollama    │ │
+                    │             │  │  │ (systemd) │ │
                     │             │  │  ├───────────┤ │
                     │             │  │  │ 01-infra  │ │
                     │             │  │  │ mariadb   │ │
@@ -100,7 +103,7 @@
 | n8n | 2G | workflow orchestrator |
 | n8n-db (PostgreSQL) | ~1G | estimated |
 | docker-socket-proxy | ~256M | |
-| Ollama | 4G | system RAM (VRAM แยก) |
+| Ollama (systemd) | 4G | system RAM (VRAM แยก) — native service ไม่ใช่ Docker |
 | OCR Sidecar | 1G | |
 | ollama-metrics | ~256M | |
 | PMA | 256M | |
@@ -115,17 +118,17 @@
 
 | QNAP Path | New Server Path | Storage Type |
 |---|---|---|
-| `/share/np-dms/mariadb/data` | `/opt/np-dms/mariadb/data` | local SSD |
-| `/share/np-dms/services/cache/data` | `/opt/np-dms/redis/data` | local SSD |
-| `/share/np-dms/services/search/data` | `/opt/np-dms/elasticsearch/data` | local SSD |
-| `/share/np-dms/services/qdrant/storage` | `/opt/np-dms/qdrant/storage` | local SSD |
-| `/share/np-dms/gitea/*` | `/opt/np-dms/gitea/*` | local SSD |
+| `/share/np-dms/mariadb/data` | `/opt/np-dms/mariadb/data` | SSD 2 (1TB) |
+| `/share/np-dms/services/cache/data` | `/opt/np-dms/redis/data` | SSD 2 (1TB) |
+| `/share/np-dms/services/search/data` | `/opt/np-dms/elasticsearch/data` | SSD 2 (1TB) |
+| `/share/np-dms/services/qdrant/storage` | `/opt/np-dms/qdrant/storage` | SSD 2 (1TB) |
+| `/share/np-dms/gitea/*` | `/opt/np-dms/gitea/*` | SSD 2 (1TB) |
 | `/share/Container/npm/*` | (stays on QNAP) | QNAP local |
-| `/share/np-dms/n8n/*` | `/opt/np-dms/n8n/*` | local SSD |
-| `/share/np-dms/data/logs/*` | `/opt/np-dms/logs/*` | local SSD |
+| `/share/np-dms/n8n/*` | `/opt/np-dms/n8n/*` | SSD 2 (1TB) |
+| `/share/np-dms/data/logs/*` | `/opt/np-dms/logs/*` | SSD 2 (1TB) |
 | `/share/np-dms-as/data/uploads/*` | `/mnt/asustor-uploads/*` | CIFS from ASUSTOR |
 | `/share/np-dms-as/Legacy` | `/mnt/asustor-legacy` | CIFS from ASUSTOR (ro) |
-| Desk-5439 Ollama models | `/opt/np-dms/ollama/models` | local SSD |
+| Desk-5439 Ollama models | `/opt/np-dms/ollama/models` | SSD 2 (1TB) — systemd OLLAMA_MODELS |
 
 ---
 
@@ -139,7 +142,7 @@
 
 - [X] **0.1** ติดตั้ง Ubuntu Server 26.04 LTS บน New Server
   - ดาวน์โหลด ISO: `ubuntu-26.04-live-server-amd64.iso`
-  - ติดตั้งบน SSD (OS disk) — แยกจาก HDD (data disk)
+  - ติดตั้งบน SSD 1 (OS disk) — แยกจาก SSD 2 (data disk 1TB)
   - ตั้งค่า static IP: `192.168.10.11/24`, gateway: `192.168.10.1`, DNS: `192.168.10.1`
   - ตั้งค่า timezone: `Asia/Bangkok`
   - สร้าง user: `np-dms` (ไม่ใช้ root โดยตรง — เพิ่มใน sudo group)
@@ -155,11 +158,11 @@
     jq unzip
   ```
 
-- [X] **0.3** ตั้งค่า HDD (data disk) สำหรับ `/opt/np-dms/`
+- [X] **0.3** ตั้งค่า SSD 2 (data disk 1TB) สำหรับ `/opt/np-dms/`
   ```bash
-  # ตรวจสอบ disk
+  # ตรวจสอบ disk — SSD 2 ควรเป็น /dev/sdb (SSD 1 = OS = /dev/sda)
   lsblk
-  # format (สมมติ /dev/sdb เป็น HDD)
+  # format SSD 2
   sudo mkfs.ext4 /dev/sdb
   # mount
   sudo mkdir -p /opt/np-dms
@@ -167,6 +170,8 @@
   # เพิ่มใน /etc/fstab
   echo '/dev/sdb /opt/np-dms ext4 defaults,noatime 0 2' | sudo tee -a /etc/fstab
   ```
+  - SSD 2 (1TB) เก็บ: MariaDB, Redis, ES, Qdrant, Gitea, n8n, Ollama models, Docker volumes
+  - พื้นที่เพียงพอ — DB ~10MB, Ollama models ~15GB, ที่เหลือสำหรับ Docker images + logs
 
 - [X] **0.4** ตั้งค่า swap space (RAM 32GB tight — 33.5G budget)
   ```bash
@@ -260,7 +265,9 @@
   ```bash
   sudo mkdir -p /opt/np-dms/{mariadb/{data,backup,init},redis/data,elasticsearch/data,qdrant/storage,gitea/{etc,lib,gitea_repos,gitea_registry,backup},n8n/{postgres-data,cache,scripts,data,migration_logs},clamav/data,ollama/models,logs/{backend,clamav,pma},pma/{tmp}}
   # ตั้งค่า ownership (UID/GID 1000 สำหรับ application containers)
-  sudo chown -R 1000:1000 /opt/np-dms/{gitea,n8n,ollama}
+  sudo chown -R 1000:1000 /opt/np-dms/{gitea,n8n}
+  # Ollama models — เป็น native systemd service ใช้ ollama user (UID 1000 บน Ubuntu)
+  sudo chown -R 1000:1000 /opt/np-dms/ollama
   sudo chown -R 999:999 /opt/np-dms/mariadb/data
   sudo chown -R 1000:1000 /opt/np-dms/redis/data
   sudo chown -R 1000:1000 /opt/np-dms/elasticsearch/data
@@ -372,7 +379,7 @@
   sudo chown -R 33:33 /opt/np-dms/pma/
   ```
 
-- [ ] **0.18** สร้าง `.env` จาก `.env.template` สำหรับทุก layer
+- [X] **0.18** สร้าง `.env` จาก `.env.template` สำหรับทุก layer
 
   > Docker Compose อ่าน `.env` จากโฟลเดอร์เดียวกับ `docker-compose.yml` — แต่ละ layer ต้องมี `.env` ของตัวเอง
 
@@ -517,7 +524,7 @@
 
 #### 0G. OCR Sidecar Build Context
 
-- [ ] **0.20** Copy OCR sidecar files จาก Desk-5439
+- [X] **0.20** Copy OCR sidecar files จาก Desk-5439
   ```bash
   # จาก Desk-5439 (192.168.10.100)
   scp -r user@192.168.10.100:/path/to/ocr-sidecar/ \
@@ -529,7 +536,7 @@
   #   - services/ (residency_policy.py, etc.)
   ```
 
-- [ ] **0.21** ทดสอบ OCR sidecar build
+- [X] **0.21** ทดสอบ OCR sidecar build
   ```bash
   cd /opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai
   docker build -t lcbp3-ocr-sidecar:test ./ocr-sidecar/
@@ -539,7 +546,7 @@
 
 #### 0H. Pull Docker Images (ลด downtime วันย้าย)
 
-- [ ] **0.22** Pull ทุก image ล่วงหน้า
+- [X] **0.22** Pull ทุก image ล่วงหน้า
   ```bash
   docker pull mariadb:11.8
   docker pull redis:7-alpine
@@ -550,16 +557,16 @@
   docker pull postgres:16.4-alpine
   docker pull tecnativa/docker-socket-proxy:0.2
   docker pull clamav/clamav:1.4.4
-  docker pull ollama/ollama:latest
+  # หมายเหตุ: Ollama ไม่ใช้ Docker — ติดตั้งเป็น native systemd service (ดู 0K)
   docker pull phpmyadmin:5-apache
   docker pull ghcr.io/norskhelsenett/ollama-metrics:latest
   # ตรวจสอบ
-  docker images | grep -E 'mariadb|redis|elasticsearch|qdrant|gitea|n8n|postgres|clamav|ollama|phpmyadmin|docker-socket'
+  docker images | grep -E 'mariadb|redis|elasticsearch|qdrant|gitea|n8n|postgres|clamav|phpmyadmin|docker-socket'
   ```
 
 #### 0I. Deploy Layer 1 (Infrastructure — ทดสอบ)
 
-- [ ] **0.23** Deploy Layer 1 (infrastructure)
+- [X] **0.23** Deploy Layer 1 (infrastructure)
   ```bash
   cd /opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/01-infrastructure
   docker compose --env-file .env up -d
@@ -729,31 +736,62 @@
   # ตรวจสอบ file list แสดงถูกต้อง
   ```
 
-#### 0K. Ollama Models (Pull ล่วงหน้า)
+#### 0K. Ollama — Native systemd Service (Pull Models ล่วงหน้า)
 
-- [ ] **0.41** Deploy Layer 4 (AI) — เฉพาะ Ollama เพื่อ pull models
+> **D11:** Ollama รันเป็น native systemd service บน New Server — ไม่ใช่ Docker container
+> เหตุผล: GPU passthrough ใน Docker ซับซ้อน, systemd ใช้ GPU ตรง, จัดการง่าย, auto-restart ในตัว
+
+- [ ] **0.41** ติดตั้ง Ollama เป็น native systemd service
   ```bash
-  cd /opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai
-  docker compose --env-file .env up -d ollama
-  # รอ healthy
-  docker compose ps ollama
+  # ติดตั้งผ่าน official script (สร้าง ollama user + systemd service อัตโนมัติ)
+  curl -fsSL https://ollama.com/install.sh | sh
+
+  # ตรวจสอบ service
+  systemctl status ollama
+  # ควรเห็น: active (running)
+
+  # ตรวจสอบ GPU access
+  ollama ps  # ควรไม่ error
+  nvidia-smi  # ควรเห็น GPU
+  ```
+
+- [ ] **0.41a** ตั้งค่า OLLAMA_MODELS path (ใช้ SSD 2 — ไม่ใช่ default ~/.ollama)
+  ```bash
+  # สร้าง systemd override
+  sudo mkdir -p /etc/systemd/system/ollama.service.d
+  sudo tee /etc/systemd/system/ollama.service.d/override.conf <<'EOF'
+  [Service]
+  Environment="OLLAMA_MODELS=/opt/np-dms/ollama/models"
+  Environment="OLLAMA_HOST=0.0.0.0:11434"
+  EOF
+
+  # ตั้งค่า ownership (ollama user = UID 1000 บน Ubuntu)
+  sudo chown -R ollama:ollama /opt/np-dms/ollama/models
+
+  # reload + restart
+  sudo systemctl daemon-reload
+  sudo systemctl restart ollama
+  systemctl status ollama
   ```
 
 - [ ] **0.42** Pull Ollama models (ใช้เวลานาน — ทำล่วงหน้า)
   ```bash
-  docker exec ollama ollama pull np-dms-ai:latest
-  docker exec ollama ollama pull np-dms-ocr:latest
-  docker exec ollama ollama pull nomic-embed-text
+  # pull ผ่าน CLI โดยตรง (ไม่ต้อง docker exec)
+  sudo -u ollama ollama pull np-dms-ai:latest
+  sudo -u ollama ollama pull np-dms-ocr:latest
+  sudo -u ollama ollama pull nomic-embed-text
   # ตรวจสอบ
-  docker exec ollama ollama list
+  sudo -u ollama ollama list
   # ควรเห็น 3 models
   # ตรวจสอบ VRAM usage
-  docker exec ollama ollama ps
+  sudo -u ollama ollama ps
   ```
 
 - [ ] **0.43** หยุด Ollama (ปล่อย VRAM — จะ start ใหม่วันย้าย)
   ```bash
-  docker compose down
+  sudo systemctl stop ollama
+  # ตรวจสอบ VRAM ปล่อยแล้ว
+  nvidia-smi
   ```
 
 #### 0L. Final Pre-Migration Checklist
@@ -770,7 +808,7 @@
   ```
 - [X] **0.50** ยืนยัน `my.cnf` อยู่ที่ `/opt/np-dms/mariadb/my.cnf`
 - [X] **0.51** ยืนยัน OCR sidecar build สำเร็จ (`docker images | grep ocr-sidecar`)
-- [ ] **0.52** ยืนยัน Ollama models ถูก pull แล้ว (`docker exec ollama ollama list` — ถ้ายัง up อยู่)
+- [ ] **0.52** ยืนยัน Ollama models ถูก pull แล้ว (`sudo -u ollama ollama list` — native systemd)
 - [X] **0.53** ยืนยัน SSH key จาก New Server → QNAP ทำงาน (passwordless)
 - [X] **0.54** ยืนยัน SSH key จาก New Server → Desk-5439 ทำงาน (passwordless)
 - [X] **0.55** ยืนยัน ASUSTOR CIFS write ทำงาน (`touch /mnt/asustor-uploads/temp/.test && rm /mnt/asustor-uploads/temp/.test`)
@@ -1013,6 +1051,8 @@
 
 #### 2C. Transfer Ollama Models (Desk-5439 → New Server)
 
+> **D11:** Ollama บน New Server รันเป็น native systemd service — models เก็บที่ `/opt/np-dms/ollama/models/`
+
 - [ ] **2.8** Copy Ollama models จาก Desk-5439:
   ```bash
   # Ollama บน Desk-5439 เก็บ models ที่ C:\Users\<user>\.ollama\models\ (Windows)
@@ -1023,7 +1063,7 @@
     /opt/np-dms/ollama/models/
 
   # วิธีที่ 2 (ถ้า rsync ไม่ได้): pull ใหม่บน New Server (ช้ากว่า — ต้อง download)
-  # ทำใน Phase 4 หลัง deploy Ollama container
+  # ทำใน Phase 4 หลัง start Ollama systemd service
   ```
 
 - [ ] **2.9** ตรวจสอบ Ollama model files:
@@ -1162,9 +1202,13 @@
 
 - [X] **3.13** ~~ตั้ง permissions Qdrant data~~ — **Skip: ไม่มี data ย้าย** (Qdrant จะ re-embed ใหม่)
 
-- [ ] **3.14** ตั้ง permissions สำหรับ Ollama models:
+- [ ] **3.14** ตั้ง permissions สำหรับ Ollama models (native systemd service):
   ```bash
-  chown -R 1000:1000 /opt/np-dms/ollama/models/
+  # ollama user สร้างโดย install script (ปกติ UID 1000 บน Ubuntu)
+  chown -R ollama:ollama /opt/np-dms/ollama/models/
+  # ตรวจสอบ systemd override ตั้ง OLLAMA_MODELS ถูกต้อง
+  cat /etc/systemd/system/ollama.service.d/override.conf
+  # ควรเห็น: Environment="OLLAMA_MODELS=/opt/np-dms/ollama/models"
   ```
 
 - [ ] **3.15** สร้าง directories ที่ขาด:
@@ -1331,31 +1375,46 @@
   # ควรเห็น: ClamAV version + signature date
   ```
 
-#### 4D. Layer 4 — AI (Ollama + OCR Sidecar + Metrics)
+#### 4D. Layer 4 — AI (Ollama systemd + OCR Sidecar + Metrics)
 
-- [ ] **4.13** Deploy Layer 4 (AI) — ollama, ocr-sidecar, ollama-metrics:
+> **D11:** Ollama รันเป็น native systemd service — ไม่ได้ deploy ผ่าน Docker Compose
+> Docker Compose ใน Layer 4 มีเฉพาะ: ocr-sidecar + ollama-metrics
+
+- [ ] **4.13a** เริ่ม Ollama systemd service:
   ```bash
-  cd /opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai
-  docker compose --env-file ../.env up -d
+  sudo systemctl start ollama
+  # รอ healthy
+  systemctl status ollama
+  # ควรเห็น: active (running)
+
+  # ตรวจสอบ API
+  curl -s http://192.168.10.11:11434/api/tags | python3 -m json.tool
+  # ควรเห็น models list
+  ```
+
+- [ ] **4.13b** Deploy Layer 4 (AI) — ocr-sidecar + ollama-metrics (Docker):
+  ```bash
+  cd /opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar
+  docker compose --env-file ../../.env up -d
   # รอ healthy
   docker compose ps
-  # ควรเห็น: ollama (healthy), ocr-sidecar (healthy), ollama-metrics (healthy)
+  # ควรเห็น: ocr-sidecar (healthy), ollama-metrics (healthy)
   ```
 
 - [ ] **4.14** ตรวจสอบ Ollama: API + models:
   ```bash
-  # API check
+  # API check (native systemd — ไม่ใช่ docker exec)
   curl -s http://192.168.10.11:11434/api/tags | python3 -m json.tool
   # ควรเห็น models list
 
   # ถ้า models ว่าง (จาก 2.8 ไม่ได้ copy ไฟล์) → pull ใหม่:
-  docker exec ollama ollama pull np-dms-ai:latest
-  docker exec ollama ollama pull np-dms-ocr:latest
-  docker exec ollama ollama pull nomic-embed-text
+  sudo -u ollama ollama pull np-dms-ai:latest
+  sudo -u ollama ollama pull np-dms-ocr:latest
+  sudo -u ollama ollama pull nomic-embed-text
   # ใช้เวลานาน (10-30 นาที ต่อ model — ขึ้นกับ network)
 
   # ยืนยัน models ครบ
-  docker exec ollama ollama list
+  sudo -u ollama ollama list
   # ควรเห็น 3 models:
   #   np-dms-ai:latest
   #   np-dms-ocr:latest
@@ -1364,11 +1423,11 @@
 
 - [ ] **4.15** ตรวจสอบ Ollama GPU access:
   ```bash
-  docker exec ollama nvidia-smi
+  nvidia-smi
   # ควรเห็น GPU (RTX 5060 Ti) + VRAM usage
 
   # Test inference (quick test)
-  docker exec ollama ollama run np-dms-ai:latest "Hello, test response"
+  sudo -u ollama ollama run np-dms-ai:latest "Hello, test response"
   # ควรได้ response ภายใน 10-30 วินาที
   ```
 
@@ -1377,9 +1436,9 @@
   curl -s http://192.168.10.11:8765/health
   # ควรเห็น: {"status":"healthy",...}
 
-  # ตรวจสอบ Ollama connection จาก OCR sidecar
-  docker exec ocr-sidecar curl -s http://ollama:11434/api/tags
-  # ควรเห็น models list (ผ่าน Docker internal DNS)
+  # ตรวจสอบ Ollama connection จาก OCR sidecar (ผ่าน host.docker.internal)
+  docker exec ocr-sidecar curl -s http://host.docker.internal:11434/api/tags
+  # ควรเห็น models list (host.docker.internal → host gateway → systemd Ollama)
   ```
 
 - [ ] **4.17** ตรวจสอบ Ollama metrics:
@@ -1395,14 +1454,16 @@
   ```bash
   # ทุก container ควรอยู่ใน lcbp3 network
   docker network inspect lcbp3 --format '{{range .Containers}}{{.Name}} {{end}}'
-  # ควรเห็น: mariadb pma cache search qdrant gitea n8n n8n-db docker-socket-proxy clamav backend frontend ollama ocr-sidecar ollama-metrics
+  # ควรเห็น: mariadb pma cache search qdrant gitea n8n n8n-db docker-socket-proxy clamav backend frontend ocr-sidecar ollama-metrics
+  # หมายเหตุ: ollama ไม่อยู่ใน Docker network — เป็น native systemd service
 
   # Test internal DNS resolution
   docker exec backend curl -s http://mariadb:3306 2>&1 | head -1
   docker exec backend curl -s http://cache:6379 2>&1 | head -1
   docker exec backend curl -s http://search:9200/_cluster/health
   docker exec backend curl -s http://qdrant:6333/collections
-  docker exec backend curl -s http://ollama:11434/api/tags
+  # Ollama: ใช้ host IP (ไม่ใช่ Docker DNS) — เพราะเป็น native systemd service
+  docker exec backend curl -s http://192.168.10.11:11434/api/tags
   docker exec backend curl -s http://ocr-sidecar:8765/health
   ```
 
@@ -1418,8 +1479,8 @@
   nvidia-smi --query-gpu=memory.used,memory.total --format=csv
   # ควรเห็น: memory.used < 16GB (RTX 5060 Ti)
   # ถ้า models ยังไม่โหลด → จะใช้ VRAM น้อย
-  docker exec ollama ollama ps
-  # แสดง models ที่โหลดอยู่ใน VRAM
+  sudo -u ollama ollama ps
+  # แสดง models ที่โหลดอยู่ใน VRAM (native systemd — ไม่ใช่ docker exec)
   ```
 
 ### Phase 5: NPM Cutover (QNAP)
@@ -1488,7 +1549,7 @@
   # ควรเห็น notAfter ในอนาคต (อย่างน้อย 30 วัน)
   ```
 
-- [ ] **5.6** ทดสอบ Gitea SSH (ผ่าน NPM domain):
+- [X] **5.6** ทดสอบ Gitea SSH (ผ่าน NPM domain):
   ```bash
   ssh -p 2222 git@git.np-dms.work
   # หมายเหตุ: SSH port 2222 ไม่ผ่าน NPM proxy — ใช้ direct IP
@@ -1591,8 +1652,8 @@
   # VRAM usage
   nvidia-smi --query-gpu=memory.used,memory.total --format=csv
 
-  # ตรวจสอบ Ollama models ใน VRAM
-  docker exec ollama ollama ps
+  # ตรวจสอบ Ollama models ใน VRAM (native systemd — ไม่ใช่ docker exec)
+  sudo -u ollama ollama ps
 
   # ตรวจสอบไม่มี OOM kills
   dmesg | grep -i "oom\|out of memory"

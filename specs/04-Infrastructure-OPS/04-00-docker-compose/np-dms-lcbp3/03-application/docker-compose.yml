@@ -8,7 +8,7 @@
 #     - volume paths → /opt/np-dms/ (local SSD)
 #     - uploads → CIFS mount from ASUSTOR (Primary NAS — ADR-041 D2)
 #     - OCR_API_URL → http://ocr-sidecar:8765 (Docker internal — ADR-040 D5)
-#     - OLLAMA via Docker internal (not LAN)
+#     - OLLAMA via host IP (native systemd service — D11, ไม่ใช่ Docker)
 #     - QDRANT_HOST → qdrant (Docker internal)
 #     - CLAMAV_HOST → clamav (Docker internal)
 # ============================================================
@@ -80,7 +80,7 @@ services:
   # Qdrant: Docker internal 'qdrant:6333'
   # ClamAV: Docker internal 'clamav:3310'
   # OCR: Docker internal 'ocr-sidecar:8765' (ADR-040 D5)
-  # Ollama: Docker internal 'ollama:11434' (ADR-041 D1)
+  # Ollama: native systemd service on host (D11) — http://192.168.10.11:11434
   # ----------------------------------------------------------------
   backend:
     <<: [*restart_policy, *default_logging]
@@ -130,6 +130,8 @@ services:
       OCR_CHAR_THRESHOLD: ${OCR_CHAR_THRESHOLD:-100}
       OCR_SIDECAR_UPLOAD_BASE: ${OCR_SIDECAR_UPLOAD_BASE:-/mnt/uploads}
       OCR_SIDECAR_API_KEY: ${OCR_SIDECAR_API_KEY:?OCR_SIDECAR_API_KEY required}
+      # --- Ollama (native systemd — D11, ไม่ใช่ Docker internal) ---
+      OLLAMA_API_URL: 'http://192.168.10.11:11434'
       # --- Numbering ---
       NUMBERING_LOCK_TIMEOUT: '5000'
       NUMBERING_RESERVATION_TTL: '300'

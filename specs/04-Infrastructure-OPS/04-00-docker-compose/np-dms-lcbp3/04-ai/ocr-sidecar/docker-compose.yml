@@ -1,4 +1,4 @@
-# File: specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/docker-compose.yml
+# File: specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/docker-compose.yml
 # OCR Sidecar — รันบน Desk-5439 (AI Isolation Host) ตาม ADR-023A/ADR-040
 # Change Log:
 # - 2026-05-25: Initial compose file สำหรับ Tesseract OCR HTTP sidecar
@@ -36,6 +36,10 @@ services:
     restart: unless-stopped
     ports:
       - "8765:8765"
+    extra_hosts:
+      # Linux: map host.docker.internal → host gateway (Windows Docker Desktop มีอยู่แล้ว)
+      # จำเป็นสำหรับ Ollama ที่รันเป็น native systemd service บน host (D11)
+      - "host.docker.internal:host-gateway"
     environment:
       OCR_CHAR_THRESHOLD: "100"
       OCR_PORT: "8765"
@@ -87,20 +91,21 @@ services:
   #   ollama_model_ram_mb              — VRAM usage (MB) ต่อ model
   #
   # Prometheus (ASUSTOR 192.168.10.8) scrape จาก:
-  #   http://192.168.10.100:9924/metrics
+  #   http://192.168.10.11:9924/metrics
   ollama-metrics:
     image: ghcr.io/norskhelsenett/ollama-metrics:latest
     container_name: ollama-metrics
     restart: unless-stopped
     environment:
-      # ชี้ไปที่ Ollama ที่รันบน Desk-5439 (host network หรือ LAN IP)
-      # ถ้า Ollama รันบน host (ไม่ใช่ container) ให้ใช้ host.docker.internal
+      # ชี้ไปที่ Ollama ที่รันเป็น native systemd service บน host (D11)
+      # host.docker.internal → host gateway → systemd Ollama on port 11434
       OLLAMA_HOST: "http://host.docker.internal:11434"
       PORT: "9924"
     ports:
       - "9924:9924"
     extra_hosts:
-      # Windows Docker Desktop: map host.docker.internal → host IP
+      # Linux: map host.docker.internal → host gateway (Windows Docker Desktop มีอยู่แล้ว)
+      # จำเป็นสำหรับ Ollama ที่รันเป็น native systemd service บน host (D11)
       - "host.docker.internal:host-gateway"
     logging:
       driver: "json-file"

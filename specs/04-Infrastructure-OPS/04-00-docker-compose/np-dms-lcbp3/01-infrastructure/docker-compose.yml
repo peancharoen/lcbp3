@@ -65,7 +65,7 @@ services:
     networks:
       - lcbp3
     volumes:
-      - '/opt/np-dms/mariadb/data:/var/lib/mysql'
+      - '/data/mariadb:/var/lib/mysql'
       - '/opt/np-dms/mariadb/my.cnf:/etc/mysql/conf.d/my.cnf:ro'
       - '/opt/np-dms/mariadb/init:/docker-entrypoint-initdb.d:ro'
       - '/opt/np-dms/mariadb/backup:/backup'
@@ -184,7 +184,7 @@ services:
     networks:
       - lcbp3
     volumes:
-      - '/opt/np-dms/elasticsearch/data:/usr/share/elasticsearch/data'
+      - '/data/elasticsearch:/usr/share/elasticsearch/data'
     healthcheck:
       test:
         [
@@ -221,7 +221,7 @@ services:
       - '6333'
       - '6334'
     volumes:
-      - '/opt/np-dms/qdrant/storage:/qdrant/storage'
+      - '/data/qdrant:/qdrant/storage'
     healthcheck:
       test: ['CMD-SHELL', 'bash -c "exec 3<>/dev/tcp/localhost/6333 && echo -e \"GET /healthz HTTP/1.0\r\nHost: localhost\r\n\r\n\" >&3 && grep -q \"200 OK\" <&3"']
       interval: 30s
