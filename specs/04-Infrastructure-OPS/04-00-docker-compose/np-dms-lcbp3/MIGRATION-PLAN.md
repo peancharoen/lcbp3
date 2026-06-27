@@ -1294,7 +1294,7 @@
   # ควรเห็น: gitea (healthy), n8n (healthy), n8n-db (healthy), docker-socket-proxy (healthy)
   ```
 
-- [)] **4.7** ตรวจสอบ Gitea: healthz, repo count, SSH:
+- [ ] **4.7** ตรวจสอบ Gitea: healthz, repo count, SSH:
   ```bash
   # Health check
   curl -s http://192.168.10.11:3003/api/healthz
