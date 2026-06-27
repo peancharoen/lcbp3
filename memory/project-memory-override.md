@@ -58,6 +58,7 @@
 | D28 | Canonical naming enforced: `np-dms-ai` (LLM), `np-dms-ocr` (OCR), `fast-path` (PyMuPDF) — ลบ `typhoon-llm`, `tesseract`, `Typhoon OCR` ออกจาก code; `OCR_SIDECAR_API_KEY` mandatory (no default); backend ไม่ส่ง `keep_alive` (sidecar คำนวณเอง)                                          | ADR-040/034        |
 | D29 | Canonical naming cleanup ครบทุก Typhoon reference ใน backend `src/` — `TYPHOON_OCR_REQUIRED_VRAM_MB` → `NP_DMS_OCR_REQUIRED_VRAM_MB`, `typhoon2.5-np-dms` → `np-dms-ai` (defaults/mocks/Swagger/JSDoc/logs); เหลือเฉพาะ historical change log comments (ไม่ต้องแก้); tsc + 299 tests ผ่าน | ADR-040/034        |
 | D30 | API Contract ต้อง match actual implementation — ห้ามเขียน contract ที่ field naming หรือ response schema ไม่ตรง Pydantic models จริง; `/ocr-upload` เป็น primary production endpoint, `/ocr` เป็น legacy; `/ocr-upload` ปลอดภัยจาก path traversal โดย design (รับ file bytes ไม่ใช่ path) | ADR-040            |
+| D31 | Gitea SSH ผ่าน Cloudflare Tunnel — ใช้ domain `git-ssh.np-dms.work` (แยกจาก `git.np-dms.work` สำหรับ HTTP/HTTPS) เพราะ Cloudflare proxy ไม่รองรับ SSH port; client ต้องใช้ `ProxyCommand cloudflared access ssh --hostname %h` ใน SSH config; docker-compose port mapping `192.168.10.11:2222:22` ถูกต้อง (Docker ให้ CAP_NET_BIND_SERVICE) | ADR-041            |
 
 ## Environment & Services
 
@@ -70,7 +71,7 @@
 | **Ollama**       | `http://192.168.10.100:11434` | Admin Desktop (Desk-5439)         | np-dms-ai:latest (main) + np-dms-ocr:latest (OCR, keep_alive:0)                                    |
 | **Qdrant**       | `http://localhost:6333`       | Admin Desktop (Desk-5439)         | Vector DB — requires projectPublicId                                                               |
 | **OCR Sidecar**  | `http://192.168.10.100:8765`  | Admin Desktop (Desk-5439)         | np-dms-ocr (Ollama) + BGE-M3 `/embed` + BGE-Reranker `/rerank`; async I/O, lifespan, no /normalize |
-| **Gitea**        | `https://git.np-dms.work`     | QNAP `192.168.10.8`               | Source + CI/CD                                                                                     |
+| **Gitea**        | `https://git.np-dms.work`     | New Server `192.168.10.11:3003`   | Source + CI/CD; SSH via `git-ssh.np-dms.work:2222` (Cloudflare Tunnel)                             |
 | **Gitea Runner** | ASUSTOR `192.168.10.9`        | —                                 | CI runner                                                                                          |
 
 ### Key Environment Variables

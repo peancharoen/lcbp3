@@ -46,4 +46,5 @@
 | 2026-06-20 | v1.9.10 | Canonical Naming Cleanup — ลบ Typhoon references ที่เหลือใน backend src (15+ ไฟล์): TYPHOON_OCR_REQUIRED_VRAM_MB → NP_DMS_OCR_REQUIRED_VRAM_MB, typhoon2.5-np-dms → np-dms-ai (defaults/mocks/Swagger/JSDoc/logs), ลบ duplicate vram-monitor condition; tsc --noEmit exit 0; 32 suites/299 tests pass | ✅ Complete |
 | 2026-06-20 | v1.9.10 | OCR Sidecar Review Fixes — ลบ hardcoded API key ใน SandboxOcrEngineService (FR-001), rewrite API contract v1.1 (เพิ่ม /ocr-upload, /embed, /rerank; แก้ camelCase fields, response schema, error format, path traversal doc) | ✅ Complete (pending tsc verify) |
 | 2026-06-22 | v1.9.10 | OCR Sidecar Refactor Validation (Speckit-140) — speckit-validate: 17/17 active FRs pass, 13/14 active ACs, 8/8 edge cases, 41 tests, 3 FRs blocked by ADR-041, 2 minor gaps (benchmarks) | ✅ PASS (with minor gaps) |
+| 2026-06-27 | v1.9.10 | ADR-041 Migration Step 4.7 — Gitea SSH via Cloudflare Tunnel (`git-ssh.np-dms.work`), แก้ Network is unreachable จาก Cloudflare proxy ไม่รองรับ SSH port; SSH config + known_hosts + git remote updated | ✅ Complete (SSH verified) |
 
