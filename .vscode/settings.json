@@ -1,5 +1,12 @@
 {
   "editor.fontSize": 16,
   "npm.packageManager": "pnpm",
-  "chatgpt.runCodexInWindowsSubsystemForLinux": true
+  "chatgpt.runCodexInWindowsSubsystemForLinux": true,
+  "remote.SSH.useLocalServer": false,
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/.git/**": true,
+    "**/dist/**": true
+  },
+  "search.followSymlinks": false
 }

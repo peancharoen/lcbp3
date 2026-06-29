@@ -12,6 +12,7 @@
 #   - Elasticsearch: internal only (no host port)
 #   - Qdrant: internal only (no host port)
 #   - PMA: expose 192.168.10.11:8080 → NPM proxy (pma.np-dms.work)
+#   - Portainer: expose 192.168.10.11:9443 → NPM proxy (portainer.np-dms.work)
 # ============================================================
 
 x-restart: &restart_policy
@@ -228,3 +229,40 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+  # ----------------------------------------------------------------
+  # 6. Portainer — Docker Management UI
+  # Expose: 192.168.10.11:9443 → NPM proxy (portainer.np-dms.work)
+  # ต้อง mount docker.sock เพื่อจัดการ containers ทุกตัว
+  # ----------------------------------------------------------------
+  portainer:
+    <<: [*restart_policy, *default_logging]
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    environment:
+      TZ: 'Asia/Bangkok'
+    ports:
+      - '192.168.10.11:9443:9443'
+    networks:
+      - lcbp3
+    volumes:
+      - '/var/run/docker.sock:/var/run/docker.sock'
+      - 'portainer_data:/data'
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -sk https://localhost:9443 || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  portainer_data:
+    driver: local

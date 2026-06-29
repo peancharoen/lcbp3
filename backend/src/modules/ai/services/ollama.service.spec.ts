@@ -4,6 +4,7 @@
 //               getOcrModelName(), และ loadModel() keepAlive param ตาม ADR-034
 // - 2026-06-13: ADR-036 — อัปเดต expected model tags เป็น np-dms-ai/np-dms-ocr
 // - 2026-06-14: เพิ่ม tests สำหรับ generateEmbedding, checkHealth, unloadModel เพื่อเพิ่ม branch coverage
+// - 2026-06-29: ADR-035 — อัปเดต embedModel default เป็นค่าว่าง (BGE-M3 ใน Sidecar แทน nomic-embed-text)
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
@@ -19,7 +20,7 @@ describe('OllamaService (ADR-034)', () => {
     OLLAMA_URL: 'http://localhost:11434',
     OLLAMA_MODEL_MAIN: 'np-dms-ai:latest',
     OLLAMA_MODEL_OCR: 'np-dms-ocr:latest',
-    OLLAMA_MODEL_EMBED: 'nomic-embed-text',
+    OLLAMA_MODEL_EMBED: 'nomic-embed-text', // ยังตั้งค่าใน test เพื่อทดสอบ generateEmbedding path
     AI_TIMEOUT_MS: 30000,
   };
   const mockConfigService = {
@@ -142,7 +143,7 @@ describe('OllamaService (ADR-034)', () => {
     });
   });
   describe('getEmbeddingModelName()', () => {
-    it('ควรคืน nomic-embed-text เป็น embedding model', () => {
+    it('ควรคืนค่า ENV ที่กำหนด เป็น embedding model', () => {
       expect(service.getEmbeddingModelName()).toBe('nomic-embed-text');
     });
   });

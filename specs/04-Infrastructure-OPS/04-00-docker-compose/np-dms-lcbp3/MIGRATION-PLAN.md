@@ -143,14 +143,87 @@
 
 #### 0A. OS Installation & Base Config
 
-- [X] **0.1** ติดตั้ง Ubuntu Server 26.04 LTS บน New Server
+- [ ] **0.1** ติดตั้ง Ubuntu Server 26.04 LTS บน New Server
   - ดาวน์โหลด ISO: `ubuntu-26.04-live-server-amd64.iso`
   - ติดตั้งบน SSD 1 (OS disk) — แยกจาก SSD 2 (data disk 1TB)
   - ตั้งค่า static IP: `192.168.10.11/24`, gateway: `192.168.10.1`, DNS: `192.168.10.1`
   - ตั้งค่า timezone: `Asia/Bangkok`
   - สร้าง user: `np-dms` (ไม่ใช้ root โดยตรง — เพิ่มใน sudo group)
+    ```bash
+    # สร้าง user พร้อม home directory
+    sudo adduser np-dms
+    # เพิ่มใน sudo group
+    sudo usermod -aG sudo np-dms
+    # ย้าย ownership ของ /opt/np-dms จาก user เดิม (ถ้ามี)
+    sudo chown -R np-dms:np-dms /opt/np-dms
+    # ย้าย ownership ของ /opt/ollama (ถ้ามี — Ollama รันเป็น systemd แยก)
+    # sudo chown -R np-dms:np-dms /opt/ollama
+    ```
   - เปิด SSH server (เฉพาะ key-based auth — ห้าม password auth)
+    ```bash
+    # สร้าง SSH key สำหรับ admin (บนเครื่อง admin/เครื่องที่ใช้ ssh เข้ามา)
+    # ถ้ายังไม่มี key:
+    ssh-keygen -t ed25519 -C "admin@np-dms-lcbp3"
+
+    # ถ้ามี key อยู่แล้ว (~/.ssh/id_ed25519) ข้ามขั้นนี้ได้
+
+    # copy public key ไปยัง New Server สำหรับ user np-dms
+    ssh-copy-id np-dms@192.168.10.11
+    # บน powrshell
+    type ~/.ssh/id_ed25519.pub | ssh np-dms@192.168.10.11 "cat >> ~/.ssh/authorized_keys"
+
+    # หรือ copy ด้วยตนเอง (กรณี ssh-copy-id ไม่ได้)
+    # บนเครื่อง admin: cat ~/.ssh/id_ed25519.pub
+    # บน New Server (login ด้วย nattanin ก่อน แล้ว sudo):
+    sudo mkdir -p /home/np-dms/.ssh
+    sudo tee /home/np-dms/.ssh/authorized_keys <<'EOF'
+    <วาง public key ที่นี่>
+    EOF
+    sudo chown -R np-dms:np-dms /home/np-dms/.ssh
+    sudo chmod 700 /home/np-dms/.ssh
+    sudo chmod 600 /home/np-dms/.ssh/authorized_keys
+
+    # ตั้งค่า SSH config บนเครื่อง admin (~/.ssh/config)
+    # เพิ่ม entry สำหรับ np-dms (ถ้ามี nattanin อยู่แล้ว ให้เพิ่มแยก)
+    cat >> ~/.ssh/config <<'EOF'
+
+    Host np-dms-lcbp3-np
+        HostName 192.168.10.11
+        User np-dms
+        IdentityFile ~/.ssh/id_ed25519
+    EOF
+
+    # ตั้งค่า sshd: key-based auth เท่านั้น
+    sudo tee -a /etc/ssh/sshd_config <<'EOF'
+    PasswordAuthentication no
+    PubkeyAuthentication yes
+    PermitRootLogin no
+    EOF
+    sudo systemctl restart sshd
+    ```
+  - ทดสอบ SSH เข้า New Server ในฐานะ `np-dms`
+    ```bash
+    # จากเครื่อง admin (ใช้ SSH config alias)
+    ssh np-dms-lcbp3-np "echo 'SSH OK as np-dms'"
+    # ควรตอบ: SSH OK as np-dms (ไม่ต้องใส่ password — ใช้ key)
+
+    # หรือระบุ user ตรงๆ
+    ssh np-dms@192.168.10.11 "echo 'SSH OK as np-dms'"
+
+    # ทดสอบ sudo
+    ssh np-dms@192.168.10.11 "sudo whoami"
+    # ควรตอบ: root
+
+    # ทดสอบจาก QNAP (สำหรับ rsync migration)
+    ssh np-dms@192.168.10.11 "hostname"
+    # ควรตอบ: np-dms-lcbp3
+    ```
   - ตั้งค่า `hostname`: `np-dms-lcbp3`
+    ```bash
+    sudo hostnamectl set-hostname np-dms-lcbp3
+    # ตรวจสอบ
+    hostnamectl
+    ```
 
 - [X] **0.2** อัปเดต OS + ติดตั้ง base packages
   ```bash
@@ -161,7 +234,7 @@
     jq unzip
   ```
 
-- [X] **0.3** ตั้งค่า NVMe disks + LVM (2x NVMe 931.5G ตาม lsblk จริง)
+- [ป] **0.3** ตั้งค่า NVMe disks + LVM (2x NVMe 931.5G ตาม lsblk จริง)
   ```
   nvme0n1 (OS disk, 931.5G) — VG: ubuntu-vg
   ├─ ubuntu-lv     100G → /
@@ -286,7 +359,7 @@
 
   # ตั้งค่า ownership (UID/GID สำหรับ application containers)
   sudo chown -R 1000:1000 /opt/np-dms/{gitea,n8n}
-  sudo chown -R 1000:1000 /opt/ollama
+  sudo chown -R ollama:ollama /opt/ollama
   sudo chown -R 999:999 /data/mariadb
   sudo chown -R 1000:1000 /opt/np-dms/redis/data
   sudo chown -R 1000:1000 /data/elasticsearch
@@ -296,7 +369,7 @@
   sudo chmod -R 755 /opt/np-dms/
   ```
 
-- [ ] **0.11a** ทำความสะอาด stale data directories (จากการรัน compose เก่าก่อน LVM migration)
+- [X] **0.11a** ทำความสะอาด stale data directories (จากการรัน compose เก่าก่อน LVM migration)
   ```bash
   # stale dirs ใน /opt/np-dms/ — data ย้ายไป dedicated LVs แล้ว
   # เกิดจาก compose เก่าที่ map volume ไป /opt/np-dms/{mariadb,elasticsearch,qdrant}/data
@@ -566,9 +639,9 @@
   # /opt/np-dms/
   # ├── .env                    # master env (สร้างใน Step 3)
   # ├── 01-infrastructure/      # docker-compose.yml (runtime)
-  # ├── 02-platform/            # docker-compose.yml (runtime)
+  # ├── 02-platform02-platform/            # docker-compose.yml (runtime)
   # ├── 03-application/         # docker-compose.yml (runtime)
-  # ├── 04-ai/ocr-sidecar/      # docker-compose.yml + build context (runtime)
+  # ├── 04-ai/ocr-sidecar/ 04-ai/ocr-sidecar/      # docker-compose.yml + build context (runtime)
   # └── np-dms-lcbp3/           # source repo (git clone — สำหรับ update)
   #
   # หลัง git pull ใน source repo → copy compose files ใหม่อีกครั้ง
@@ -624,6 +697,7 @@
   docker compose --env-file .env up -d
   # รอ healthcheck ผ่าน
   docker compose ps
+  # ควรเห็น: mariadb, pma, cache, search, qdrant, portainer
   ```
 
 - [X] **0.24** ทดสอบ MariaDB
@@ -807,17 +881,20 @@
   nvidia-smi  # ควรเห็น GPU
   ```
 
-- [ ] **0.41a** ตั้งค่า OLLAMA_MODELS path (ใช้ SSD 2 — ไม่ใช่ default ~/.ollama)
+- [X] **0.41a** ตั้งค่า OLLAMA_MODELS path (ใช้ SSD 2 — ไม่ใช่ default ~/.ollama)
   ```bash
   # สร้าง systemd override
   sudo mkdir -p /etc/systemd/system/ollama.service.d
   sudo tee /etc/systemd/system/ollama.service.d/override.conf <<'EOF'
   [Service]
-  Environment="OLLAMA_MODELS=/opt/ollama"
+  Environment="OLLAMA_MODELS=/opt/ollama/models"
   Environment="OLLAMA_HOST=0.0.0.0:11434"
+  Environment="OLLAMA_KEEP_ALIVE=10m"
+  Environment="OLLAMA_NUM_PARALLEL=2"
+  Environment="OLLAMA_FLASH_ATTENTION=0"
   EOF
 
-  # ตั้งค่า ownership (ollama user = UID 1000 บน Ubuntu)
+  # ตั้งค่า ownership (ollama = system user UID 999, สร้างโดย install script)
   sudo chown -R ollama:ollama /opt/ollama
 
   # reload + restart
@@ -826,15 +903,31 @@
   systemctl status ollama
   ```
 
-- [ ] **0.42** Pull Ollama models (ใช้เวลานาน — ทำล่วงหน้า)
+- [ ] **0.42** สร้าง custom Ollama models จาก Modelfiles (ADR-034)
+  > **สำคัญ:** `np-dms-ai` และ `np-dms-ocr` เป็น custom models ที่สร้างจาก Modelfiles — ไม่ใช่ pull จาก registry
+  > Modelfiles อยู่ใน repo: `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/`
+  > Base models (`scb10x/typhoon2.5-qwen3-4b:latest`, `scb10x/typhoon-ocr1.5-3b:latest`) มีอยู่แล้วบนเครื่อง
   ```bash
-  # pull ผ่าน CLI โดยตรง (ไม่ต้อง docker exec)
-  sudo -u ollama ollama pull np-dms-ai:latest
-  sudo -u ollama ollama pull np-dms-ocr:latest
-  sudo -u ollama ollama pull nomic-embed-text
+  # ตรวจสอบ base models มีครบ
+  ollama list
+  # ควรเห็น: scb10x/typhoon2.5-qwen3-4b:latest, scb10x/typhoon-ocr1.5-3b:latest
+
+  # สร้าง custom models จาก Modelfiles (ADR-034)
+  # Modelfiles อยู่ที่: specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/
+  sudo -u ollama ollama create np-dms-ai -f \
+    /opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/typhoon2.5-np-dms.model.md
+  sudo -u ollama ollama create np-dms-ocr -f \
+    /opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/typhoon-np-dms-ocr.model.md
+
   # ตรวจสอบ
   sudo -u ollama ollama list
-  # ควรเห็น 3 models
+  # ควรเห็น 2 custom models + base models:
+  #   np-dms-ai:latest
+  #   np-dms-ocr:latest
+  #   scb10x/typhoon2.5-qwen3-4b:latest
+  #   scb10x/typhoon-ocr1.5-3b:latest
+  #   (gemma4:e4b, qwen3.6:27b — base models เดิม)
+
   # ตรวจสอบ VRAM usage
   sudo -u ollama ollama ps
   ```
@@ -860,10 +953,10 @@
   ```
 - [X] **0.50** ยืนยัน `my.cnf` อยู่ที่ `/opt/np-dms/mariadb/my.cnf`
 - [X] **0.51** ยืนยัน OCR sidecar build สำเร็จ (`docker images | grep ocr-sidecar`)
-- [ ] **0.52** ยืนยัน Ollama models ถูก pull แล้ว (`sudo -u ollama ollama list` — native systemd)
-- [X] **0.53** ยืนยัน SSH key จาก New Server → QNAP ทำงาน (passwordless)
-- [X] **0.54** ยืนยัน SSH key จาก New Server → Desk-5439 ทำงาน (passwordless)
-- [X] **0.55** ยืนยัน ASUSTOR CIFS write ทำงาน (`touch /mnt/asustor-uploads/temp/.test && rm /mnt/asustor-uploads/temp/.test`)
+- [X] **0.52** ยืนยัน Ollama custom models สร้างแล้ว (`sudo -u ollama ollama list` — ต้องเห็น np-dms-ai:latest, np-dms-ocr:latest)
+- [ ] **0.53** ยืนยัน SSH key จาก New Server → QNAP ทำงาน (passwordless)
+- [-] **0.54** ยืนยัน SSH key จาก New Server → Desk-5439 ทำงาน (passwordless)
+- [ ] **0.55** ยืนยัน ASUSTOR CIFS write ทำงาน (`touch /mnt/asustor-uploads/temp/.test && rm /mnt/asustor-uploads/temp/.test`)
 - [ ] **0.56** สำรอง `.env` ทุก layer ไปที่เดียวกัน (เช่น `/opt/np-dms/backup/.env.backup/`)
 
 ### Phase 1: Backup (วันย้าย — หยุดระบบ)
@@ -1103,27 +1196,30 @@
 
 #### 2C. Transfer Ollama Models (Desk-5439 → New Server)
 
-> **D11:** Ollama บน New Server รันเป็น native systemd service — models เก็บที่ `/opt/ollama/`
+> **D11:** Ollama บน New Server รันเป็น native systemd service — models เก็บที่ `/opt/ollama/models/`
+> **ADR-034:** `np-dms-ai` และ `np-dms-ocr` เป็น custom models สร้างจาก Modelfiles — ไม่ใช่ pull จาก registry
+> ถ้า copy ไฟล์ model โดยตรง (วิธีที่ 1) จะได้ทั้ง base models และ custom models
+> ถ้าไม่ copy ได้ ให้สร้างใหม่จาก Modelfiles ใน repo (วิธีที่ 2 — step 0.42/4.14)
 
 - [ ] **2.8** Copy Ollama models จาก Desk-5439:
   ```bash
   # Ollama บน Desk-5439 เก็บ models ที่ C:\Users\<user>\.ollama\models\ (Windows)
   # หรือ /usr/share/ollama/.ollama/models/ (Linux)
-  # วิธีที่ 1: rsync ไฟล์ model โดยตรง (เร็ว — ไม่ต้อง re-download)
+  # วิธีที่ 1: rsync ไฟล์ model โดยตรง (เร็ว — ไม่ต้อง re-download หรือ recreate)
   rsync -avz --progress \
     user@192.168.10.100:/path/to/.ollama/models/ \
-    /opt/ollama/
+    /opt/ollama/models/
 
-  # วิธีที่ 2 (ถ้า rsync ไม่ได้): pull ใหม่บน New Server (ช้ากว่า — ต้อง download)
-  # ทำใน Phase 4 หลัง start Ollama systemd service
+  # วิธีที่ 2 (ถ้า rsync ไม่ได้): สร้างใหม่จาก Modelfiles ใน repo (ADR-034)
+  # ทำใน Phase 0 (step 0.42) หรือ Phase 4 (step 4.14) หลัง start Ollama systemd service
   ```
 
 - [ ] **2.9** ตรวจสอบ Ollama model files:
   ```bash
-  ls -la /opt/ollama/
+  ls -la /opt/ollama/models/
   # ควรเห็น blob files และ manifests/
-  du -sh /opt/ollama/
-  # ขนาดรวมควร > 10GB (3 models)
+  du -sh /opt/ollama/models/
+  # ขนาดรวมควร > 8GB (2 custom models + base models)
   ```
 
 #### 2D. Transfer NPM Data (QNAP → ASUSTOR backup)
@@ -1289,7 +1385,7 @@
   docker compose --env-file ../.env up -d
   # รอทุก container healthy
   docker compose ps
-  # ควรเห็น: mariadb (healthy), pma (healthy), cache (healthy), search (healthy), qdrant (healthy)
+  # ควรเห็น: mariadb (healthy), pma (healthy), cache (healthy), search (healthy), qdrant (healthy), portainer (healthy)
   ```
 
 - [X] **4.2** ตรวจสอบ MariaDB: table count, row counts, views:
@@ -1460,18 +1556,18 @@
   curl -s http://192.168.10.11:11434/api/tags | python3 -m json.tool
   # ควรเห็น models list
 
-  # ถ้า models ว่าง (จาก 2.8 ไม่ได้ copy ไฟล์) → pull ใหม่:
-  sudo -u ollama ollama pull np-dms-ai:latest
-  sudo -u ollama ollama pull np-dms-ocr:latest
-  sudo -u ollama ollama pull nomic-embed-text
-  # ใช้เวลานาน (10-30 นาที ต่อ model — ขึ้นกับ network)
+  # ถ้า models ว่าง (จาก 2.8 ไม่ได้ copy ไฟล์) → สร้างใหม่จาก Modelfiles (ADR-034):
+  # หมายเหตุ: nomic-embed-text ถูกแทนที่ด้วย BGE-M3 ใน OCR Sidecar (ADR-035) — ไม่ต้อง pull ใน Ollama อีกต่อไป
+  sudo -u ollama ollama create np-dms-ai -f \
+    /opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/typhoon2.5-np-dms.model.md
+  sudo -u ollama ollama create np-dms-ocr -f \
+    /opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/typhoon-np-dms-ocr.model.md
 
   # ยืนยัน models ครบ
   sudo -u ollama ollama list
-  # ควรเห็น 3 models:
+  # ควรเห็น 2 custom models:
   #   np-dms-ai:latest
   #   np-dms-ocr:latest
-  #   nomic-embed-text
   ```
 
 - [ ] **4.15** ตรวจสอบ Ollama GPU access:

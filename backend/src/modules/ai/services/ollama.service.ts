@@ -8,6 +8,7 @@
 // - 2026-06-06: [T036] แก้ไข default URL เป็น http://192.168.10.100:11434 (Desk-5439) แทน localhost; เพิ่ม options และ keepAlive ใน OllamaGenerateOptions เพื่อรองรับ np-dms-ai model parameters
 // - 2026-06-08: เพิ่ม num_predict ใน OllamaGenerateOptions.options — ป้องกัน JSON truncation เมื่อ LLM สร้าง structured output
 // - 2026-06-13: ADR-036 — เปลี่ยน default model tags เป็น np-dms-ai/np-dms-ocr
+// - 2026-06-29: ADR-035 — embedModel default เปลี่ยนจาก nomic-embed-text เป็นค่าว่าง (embedding ย้ายไป BGE-M3 ใน OCR Sidecar แล้ว)
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -64,7 +65,7 @@ export class OllamaService {
     );
     this.embedModel = this.configService.get<string>(
       'OLLAMA_MODEL_EMBED',
-      this.configService.get<string>('OLLAMA_EMBED_MODEL', 'nomic-embed-text')
+      this.configService.get<string>('OLLAMA_EMBED_MODEL', '')
     );
     this.timeoutMs = this.configService.get<number>('AI_TIMEOUT_MS', 30000);
   }
@@ -101,7 +102,7 @@ export class OllamaService {
     }
   }
 
-  /** สร้าง embedding ด้วย nomic-embed-text หรือค่า ENV ที่กำหนด */
+  /** สร้าง embedding ด้วย Ollama embeddings API (ค่า ENV ที่กำหนด — ADR-035: BGE-M3 ใน Sidecar แทน) */
   async generateEmbedding(text: string): Promise<number[]> {
     try {
       const response = await axios.post<{ embedding: number[] }>(
@@ -159,7 +160,9 @@ export class OllamaService {
         );
       }
       if (loadedModels.length === 0) {
-        loadedModels = [this.mainModel, this.embedModel];
+        loadedModels = this.embedModel
+          ? [this.mainModel, this.embedModel]
+          : [this.mainModel];
       }
       return {
         status: 'HEALTHY',
@@ -177,7 +180,9 @@ export class OllamaService {
       return {
         status: isTimeout ? 'DEGRADED' : 'DOWN',
         latencyMs,
-        models: [this.mainModel, this.embedModel],
+        models: this.embedModel
+          ? [this.mainModel, this.embedModel]
+          : [this.mainModel],
         error,
       };
     }
