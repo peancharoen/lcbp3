@@ -118,17 +118,20 @@
 
 | QNAP Path | New Server Path | Storage Type |
 |---|---|---|
-| `/share/np-dms/mariadb/data` | `/opt/np-dms/mariadb/data` | SSD 2 (1TB) |
-| `/share/np-dms/services/cache/data` | `/opt/np-dms/redis/data` | SSD 2 (1TB) |
-| `/share/np-dms/services/search/data` | `/opt/np-dms/elasticsearch/data` | SSD 2 (1TB) |
-| `/share/np-dms/services/qdrant/storage` | `/opt/np-dms/qdrant/storage` | SSD 2 (1TB) |
-| `/share/np-dms/gitea/*` | `/opt/np-dms/gitea/*` | SSD 2 (1TB) |
+| `/share/np-dms/mariadb/data` | `/data/mariadb` | nvme1n1 LV 200G (data-vg) |
+| `/share/np-dms/mariadb/backup,init,my.cnf` | `/opt/np-dms/mariadb/{backup,init,my.cnf}` | nvme0n1 LV 300G (ubuntu-vg) |
+| `/share/np-dms/services/cache/data` | `/opt/np-dms/redis/data` | nvme0n1 LV 300G (ubuntu-vg) |
+| `/share/np-dms/services/search/data` | `/data/elasticsearch` | nvme1n1 LV 300G (data-vg) |
+| `/share/np-dms/services/qdrant/storage` | `/data/qdrant` | nvme1n1 LV 100G (data-vg) |
+| `/share/np-dms/gitea/*` | `/opt/np-dms/gitea/*` | nvme0n1 LV 300G (ubuntu-vg) |
 | `/share/Container/npm/*` | (stays on QNAP) | QNAP local |
-| `/share/np-dms/n8n/*` | `/opt/np-dms/n8n/*` | SSD 2 (1TB) |
-| `/share/np-dms/data/logs/*` | `/opt/np-dms/logs/*` | SSD 2 (1TB) |
+| `/share/np-dms/n8n/*` | `/opt/np-dms/n8n/*` | nvme0n1 LV 300G (ubuntu-vg) |
+| n8n-db (PostgreSQL) | `/data/postgres` | nvme1n1 LV 100G (data-vg) |
+| `/share/np-dms/data/logs/*` | `/opt/np-dms/logs/*` | nvme0n1 LV 300G (ubuntu-vg) |
 | `/share/np-dms-as/data/uploads/*` | `/mnt/asustor-uploads/*` | CIFS from ASUSTOR |
 | `/share/np-dms-as/Legacy` | `/mnt/asustor-legacy` | CIFS from ASUSTOR (ro) |
-| Desk-5439 Ollama models | `/opt/np-dms/ollama/models` | SSD 2 (1TB) — systemd OLLAMA_MODELS |
+| Desk-5439 Ollama models | `/opt/ollama` | nvme0n1 LV 100G (ubuntu-vg) — systemd OLLAMA_MODELS |
+| Docker images + layers | `/var/lib/docker` | nvme0n1 LV 100G (ubuntu-vg) |
 
 ---
 
@@ -158,20 +161,26 @@
     jq unzip
   ```
 
-- [X] **0.3** ตั้งค่า SSD 2 (data disk 1TB) สำหรับ `/opt/np-dms/`
-  ```bash
-  # ตรวจสอบ disk — SSD 2 ควรเป็น /dev/sdb (SSD 1 = OS = /dev/sda)
-  lsblk
-  # format SSD 2
-  sudo mkfs.ext4 /dev/sdb
-  # mount
-  sudo mkdir -p /opt/np-dms
-  sudo mount /dev/sdb /opt/np-dms
-  # เพิ่มใน /etc/fstab
-  echo '/dev/sdb /opt/np-dms ext4 defaults,noatime 0 2' | sudo tee -a /etc/fstab
+- [X] **0.3** ตั้งค่า NVMe disks + LVM (2x NVMe 931.5G ตาม lsblk จริง)
   ```
-  - SSD 2 (1TB) เก็บ: MariaDB, Redis, ES, Qdrant, Gitea, n8n, Ollama models, Docker volumes
-  - พื้นที่เพียงพอ — DB ~10MB, Ollama models ~15GB, ที่เหลือสำหรับ Docker images + logs
+  nvme0n1 (OS disk, 931.5G) — VG: ubuntu-vg
+  ├─ ubuntu-lv     100G → /
+  ├─ docker-lv     100G → /var/lib/docker
+  ├─ np-dms-lv     300G → /opt/np-dms
+  └─ ollama-lv     100G → /opt/ollama
+
+  nvme1n1 (Data disk, 931.5G) — VG: data-vg
+  ├─ mariadb-lv        200G → /data/mariadb
+  ├─ elasticsearch-lv  300G → /data/elasticsearch
+  ├─ qdrant-lv         100G → /data/qdrant
+  └─ postgres-lv       100G → /data/postgres
+  ```
+  - ตั้งค่าระหว่าง Ubuntu installation (LVM auto-partition)
+  - แยก data LVs ให้แต่ละ service มี isolation + independent resizing
+  - `/opt/np-dms/` (300G) เก็บ: Redis, Gitea, n8n, ClamAV, logs, PMA, MariaDB config/backup
+  - `/data/...` (700G total) เก็บ: MariaDB data, ES data, Qdrant data, PostgreSQL data
+  - `/opt/ollama/` (100G) เก็บ: Ollama models (native systemd)
+  - `/var/lib/docker/` (100G) เก็บ: Docker images + container layers
 
 - [X] **0.4** ตั้งค่า swap space (RAM 32GB tight — 33.5G budget)
   ```bash
@@ -263,17 +272,46 @@
 
 - [X] **0.11** สร้าง directory structure สำหรับทุก layer
   ```bash
-  sudo mkdir -p /opt/np-dms/{mariadb/{data,backup,init},redis/data,elasticsearch/data,qdrant/storage,gitea/{etc,lib,gitea_repos,gitea_registry,backup},n8n/{postgres-data,cache,scripts,data,migration_logs},clamav/data,ollama/models,logs/{backend,clamav,pma},pma/{tmp}}
-  # ตั้งค่า ownership (UID/GID 1000 สำหรับ application containers)
+  # Data dirs บน dedicated LVs (nvme1n1 — data-vg)
+  sudo mkdir -p /data/mariadb
+  sudo mkdir -p /data/elasticsearch
+  sudo mkdir -p /data/qdrant
+  sudo mkdir -p /data/postgres
+
+  # Config/backup/logs dirs บน /opt/np-dms (nvme0n1 — ubuntu-vg, 300G)
+  sudo mkdir -p /opt/np-dms/{mariadb/{backup,init},redis/data,qdrant/storage,gitea/{etc,lib,gitea_repos,gitea_registry,backup},n8n/{cache,scripts,data,migration_logs},clamav/data,logs/{backend,clamav,pma},pma/{tmp}}
+
+  # Ollama models บน /opt/ollama (nvme0n1 — ubuntu-vg, 100G)
+  sudo mkdir -p /opt/ollama
+
+  # ตั้งค่า ownership (UID/GID สำหรับ application containers)
   sudo chown -R 1000:1000 /opt/np-dms/{gitea,n8n}
-  # Ollama models — เป็น native systemd service ใช้ ollama user (UID 1000 บน Ubuntu)
-  sudo chown -R 1000:1000 /opt/np-dms/ollama
-  sudo chown -R 999:999 /opt/np-dms/mariadb/data
+  sudo chown -R 1000:1000 /opt/ollama
+  sudo chown -R 999:999 /data/mariadb
   sudo chown -R 1000:1000 /opt/np-dms/redis/data
-  sudo chown -R 1000:1000 /opt/np-dms/elasticsearch/data
-  sudo chown -R 1000:1000 /opt/np-dms/qdrant/storage
+  sudo chown -R 1000:1000 /data/elasticsearch
+  sudo chown -R 1000:1000 /data/qdrant
+  sudo chown -R 999:999 /data/postgres
   sudo chown -R 100:100 /opt/np-dms/clamav/data
   sudo chmod -R 755 /opt/np-dms/
+  ```
+
+- [ ] **0.11a** ทำความสะอาด stale data directories (จากการรัน compose เก่าก่อน LVM migration)
+  ```bash
+  # stale dirs ใน /opt/np-dms/ — data ย้ายไป dedicated LVs แล้ว
+  # เกิดจาก compose เก่าที่ map volume ไป /opt/np-dms/{mariadb,elasticsearch,qdrant}/data
+  sudo rm -rf /opt/np-dms/mariadb/data
+  sudo rm -rf /opt/np-dms/elasticsearch
+  sudo rm -rf /opt/np-dms/qdrant
+  sudo rm -rf /opt/np-dms/n8n/postgres-data
+  sudo rm -rf /opt/np-dms/ollama        # models ย้ายไป /opt/ollama แล้ว
+
+  # stale dir ใน /data/ — จาก compose เก่าที่ map n8n-db ไป /data/n8n/postgres-data
+  sudo rm -rf /data/n8n
+
+  # ตรวจสอบหลังลบ
+  tree -L 2 -d /opt/np-dms  # ไม่ควรเห็น mariadb/data, elasticsearch, qdrant, ollama
+  tree -L 2 -d /data        # ไม่ควรเห็น n8n
   ```
 
 #### 0E. ASUSTOR CIFS Mounts
@@ -385,8 +423,8 @@
 
   **Step 1: Clone repo จาก Gitea (QNAP)**
   ```bash
-  # clone ไปที่ /opt/np-dms-lcbp3
-  cd /opt
+  # clone ไปที่ /opt/np-dms/np-dms-lcbp3 (source repo)
+  cd /opt/np-dms
   git clone ssh://git@192.168.10.8:2222/np-dms/lcbp3.git np-dms-lcbp3
   cd np-dms-lcbp3
 
@@ -402,10 +440,21 @@
   # ควรเห็น: .env.template, README.md, MIGRATION-PLAN.md, 01-infrastructure/ ... 04-ai/
   ```
 
-  **Step 2: กำหนด base path**
+  **Step 2: Copy compose files ไปยัง runtime dirs**
   ```bash
-  COMPOSE_BASE="/opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3"
-  cd "$COMPOSE_BASE"
+  COMPOSE_SRC="/opt/np-dms/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3"
+  COMPOSE_BASE="/opt/np-dms"
+
+  # Copy แต่ละ layer ไป runtime dir
+  cp -r "$COMPOSE_SRC/01-infrastructure" "$COMPOSE_BASE/"
+  cp -r "$COMPOSE_SRC/02-platform" "$COMPOSE_BASE/"
+  cp -r "$COMPOSE_SRC/03-application" "$COMPOSE_BASE/"
+  cp -r "$COMPOSE_SRC/04-ai" "$COMPOSE_BASE/"
+  cp "$COMPOSE_SRC/.env.template" "$COMPOSE_BASE/"
+
+  # ตรวจสอบ
+  ls -la "$COMPOSE_BASE"/{01-infrastructure,02-platform,03-application,04-ai/ocr-sidecar}/docker-compose.yml
+  # ควรเห็น docker-compose.yml ในทุก layer
   ```
 
   **Step 3: สร้าง secrets ทั้งหมด (generate ครั้งเดียว — ใช้ทุก layer)**
@@ -483,7 +532,7 @@
 
   **Step 5: Copy `.env` ไปทุก layer**
   ```bash
-  for layer in 01-infrastructure 02-platform 03-application 04-ai; do
+  for layer in 01-infrastructure 02-platform 03-application 04-ai/ocr-sidecar; do
     cp .env "${layer}/.env"
   done
   ```
@@ -511,15 +560,18 @@
   | **03-application** | `DB_PASSWORD`, `REDIS_PASSWORD`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, `AUTH_SECRET`, `CLAMAV_HOST`, `OCR_*`, `OLLAMA_API_URL`, `QDRANT_*` |
   | **04-ai** | `OCR_SIDECAR_API_KEY`, `OCR_MODEL`, `GPU_*`, `VRAM_*`, `OCR_RESIDENCY_*` |
 
-- [ ] **0.19** Copy compose files ไปยัง New Server
+- [X] **0.19** Copy compose files ไปยัง runtime dirs (ทำใน Step 2 ของ 0.18 แล้ว)
   ```bash
-  # จากเครื่อง dev (หรือ git clone)
-  scp -r np-dms-lcbp3/ np-dms@192.168.10.11:/opt/np-dms-lcbp3/
-  # หรือ git clone จาก Gitea
-  git clone ssh://git@192.168.10.8:2222/np-dms/lcbp3.git /opt/np-dms-lcbp3
-  cd /opt/np-dms-lcbp3
-  # ไปที่ folder ที่มี compose files
-  cd specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/
+  # โครงสร้าง runtime บน New Server:
+  # /opt/np-dms/
+  # ├── .env                    # master env (สร้างใน Step 3)
+  # ├── 01-infrastructure/      # docker-compose.yml (runtime)
+  # ├── 02-platform/            # docker-compose.yml (runtime)
+  # ├── 03-application/         # docker-compose.yml (runtime)
+  # ├── 04-ai/ocr-sidecar/      # docker-compose.yml + build context (runtime)
+  # └── np-dms-lcbp3/           # source repo (git clone — สำหรับ update)
+  #
+  # หลัง git pull ใน source repo → copy compose files ใหม่อีกครั้ง
   ```
 
 #### 0G. OCR Sidecar Build Context
@@ -528,7 +580,7 @@
   ```bash
   # จาก Desk-5439 (192.168.10.100)
   scp -r user@192.168.10.100:/path/to/ocr-sidecar/ \
-    np-dms@192.168.10.11:/opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/
+    np-dms@192.168.10.11:/opt/np-dms/04-ai/ocr-sidecar/
   # ไฟล์ที่ต้องมี:
   #   - Dockerfile
   #   - app.py
@@ -538,7 +590,7 @@
 
 - [X] **0.21** ทดสอบ OCR sidecar build
   ```bash
-  cd /opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai
+  cd /opt/np-dms/04-ai
   docker build -t lcbp3-ocr-sidecar:test ./ocr-sidecar/
   # ตรวจสอบ image สร้างสำเร็จ
   docker images | grep ocr-sidecar
@@ -568,7 +620,7 @@
 
 - [X] **0.23** Deploy Layer 1 (infrastructure)
   ```bash
-  cd /opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/01-infrastructure
+  cd /opt/np-dms/01-infrastructure
   docker compose --env-file .env up -d
   # รอ healthcheck ผ่าน
   docker compose ps
@@ -761,12 +813,12 @@
   sudo mkdir -p /etc/systemd/system/ollama.service.d
   sudo tee /etc/systemd/system/ollama.service.d/override.conf <<'EOF'
   [Service]
-  Environment="OLLAMA_MODELS=/opt/np-dms/ollama/models"
+  Environment="OLLAMA_MODELS=/opt/ollama"
   Environment="OLLAMA_HOST=0.0.0.0:11434"
   EOF
 
   # ตั้งค่า ownership (ollama user = UID 1000 บน Ubuntu)
-  sudo chown -R ollama:ollama /opt/np-dms/ollama/models
+  sudo chown -R ollama:ollama /opt/ollama
 
   # reload + restart
   sudo systemctl daemon-reload
@@ -803,7 +855,7 @@
 - [X] **0.48** ยืนยัน Docker networks ยังอยู่ (`docker network ls | grep -E 'lcbp3|gitnet'`)
 - [X] **0.49** ยืนยัน `.env` ทุก layer ไม่มี `CHANGE_ME_*` เหลืออยู่
   ```bash
-  grep -r 'CHANGE_ME' /opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/*/.env
+  grep -r 'CHANGE_ME' /opt/np-dms/*/.env
   # ควรไม่มี output
   ```
 - [X] **0.50** ยืนยัน `my.cnf` อยู่ที่ `/opt/np-dms/mariadb/my.cnf`
@@ -812,7 +864,7 @@
 - [X] **0.53** ยืนยัน SSH key จาก New Server → QNAP ทำงาน (passwordless)
 - [X] **0.54** ยืนยัน SSH key จาก New Server → Desk-5439 ทำงาน (passwordless)
 - [X] **0.55** ยืนยัน ASUSTOR CIFS write ทำงาน (`touch /mnt/asustor-uploads/temp/.test && rm /mnt/asustor-uploads/temp/.test`)
-- [ ] **0.56** สำรอง `.env` ทุก layer ไปที่เดียวกัน (เช่น `/opt/np-dms-lcbp3/.env.backup/`)
+- [ ] **0.56** สำรอง `.env` ทุก layer ไปที่เดียวกัน (เช่น `/opt/np-dms/backup/.env.backup/`)
 
 ### Phase 1: Backup (วันย้าย — หยุดระบบ)
 
@@ -1051,7 +1103,7 @@
 
 #### 2C. Transfer Ollama Models (Desk-5439 → New Server)
 
-> **D11:** Ollama บน New Server รันเป็น native systemd service — models เก็บที่ `/opt/np-dms/ollama/models/`
+> **D11:** Ollama บน New Server รันเป็น native systemd service — models เก็บที่ `/opt/ollama/`
 
 - [ ] **2.8** Copy Ollama models จาก Desk-5439:
   ```bash
@@ -1060,7 +1112,7 @@
   # วิธีที่ 1: rsync ไฟล์ model โดยตรง (เร็ว — ไม่ต้อง re-download)
   rsync -avz --progress \
     user@192.168.10.100:/path/to/.ollama/models/ \
-    /opt/np-dms/ollama/models/
+    /opt/ollama/
 
   # วิธีที่ 2 (ถ้า rsync ไม่ได้): pull ใหม่บน New Server (ช้ากว่า — ต้อง download)
   # ทำใน Phase 4 หลัง start Ollama systemd service
@@ -1068,9 +1120,9 @@
 
 - [ ] **2.9** ตรวจสอบ Ollama model files:
   ```bash
-  ls -la /opt/np-dms/ollama/models/
+  ls -la /opt/ollama/
   # ควรเห็น blob files และ manifests/
-  du -sh /opt/np-dms/ollama/models/
+  du -sh /opt/ollama/
   # ขนาดรวมควร > 10GB (3 models)
   ```
 
@@ -1093,7 +1145,7 @@
 
 - [ ] **3.1** Start MariaDB container บน New Server (Layer 1 เฉพาะ mariadb):
   ```bash
-  cd /opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/01-infrastructure
+  cd /opt/np-dms/01-infrastructure
   docker compose --env-file ../.env up -d mariadb
   # รอ healthy
   docker compose ps mariadb
@@ -1205,10 +1257,10 @@
 - [ ] **3.14** ตั้ง permissions สำหรับ Ollama models (native systemd service):
   ```bash
   # ollama user สร้างโดย install script (ปกติ UID 1000 บน Ubuntu)
-  chown -R ollama:ollama /opt/np-dms/ollama/models/
+  chown -R ollama:ollama /opt/ollama/
   # ตรวจสอบ systemd override ตั้ง OLLAMA_MODELS ถูกต้อง
   cat /etc/systemd/system/ollama.service.d/override.conf
-  # ควรเห็น: Environment="OLLAMA_MODELS=/opt/np-dms/ollama/models"
+  # ควรเห็น: Environment="OLLAMA_MODELS=/opt/ollama"
   ```
 
 - [ ] **3.15** สร้าง directories ที่ขาด:
@@ -1220,6 +1272,7 @@
   mkdir -p /opt/np-dms/pma/tmp
   mkdir -p /opt/np-dms/n8n/cache
   mkdir -p /opt/np-dms/n8n/migration_logs
+  # data LVs ถูกสร้างใน 0.11 แล้ว — ไม่ต้องสร้างซ้ำ
   ```
 
 ### Phase 4: Deploy Services (บน New Server)
@@ -1232,7 +1285,7 @@
 
 - [X] **4.1** Deploy Layer 1 (infrastructure) — restart เพื่ออ่าน restored data:
   ```bash
-  cd /opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/01-infrastructure
+  cd /opt/np-dms/01-infrastructure
   docker compose --env-file ../.env up -d
   # รอทุก container healthy
   docker compose ps
@@ -1287,7 +1340,7 @@
 
 - [X] **4.6** Deploy Layer 2 (platform) — gitea, n8n, n8n-db, docker-socket-proxy:
   ```bash
-  cd /opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/02-platform
+  cd /opt/np-dms/02-platform
   docker compose --env-file ../.env up -d
   # รอ healthy
   docker compose ps
@@ -1334,7 +1387,7 @@
 
 - [ ] **4.9** Deploy Layer 3 (application) — backend, frontend, clamav:
   ```bash
-  cd /opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/03-application
+  cd /opt/np-dms/03-application
   docker compose --env-file ../.env up -d
   # รอ healthy (ClamAV ใช้เวลา start นาน ~5 นาที — โหลด virus definitions)
   docker compose ps
@@ -1394,7 +1447,7 @@
 
 - [ ] **4.13b** Deploy Layer 4 (AI) — ocr-sidecar + ollama-metrics (Docker):
   ```bash
-  cd /opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar
+  cd /opt/np-dms/04-ai/ocr-sidecar
   docker compose --env-file ../../.env up -d
   # รอ healthy
   docker compose ps
@@ -1800,7 +1853,7 @@
 | `np-dms-lcbp3/01-infrastructure/docker-compose.yml` | MariaDB, PMA, Redis, ES, Qdrant |
 | `np-dms-lcbp3/02-platform/docker-compose.yml` | Gitea, n8n, n8n-db, docker-socket-proxy |
 | `np-dms-lcbp3/03-application/docker-compose.yml` | Backend, Frontend, ClamAV |
-| `np-dms-lcbp3/04-ai/docker-compose.yml` | Ollama, OCR Sidecar, Ollama Metrics |
+| `np-dms-lcbp3/04-ai/ocr-sidecar/docker-compose.yml` | OCR Sidecar + Ollama Metrics (Ollama = native systemd, not Docker) |
 
 ---
 

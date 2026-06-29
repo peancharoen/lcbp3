@@ -116,7 +116,7 @@ services:
       - POSTGRES_PASSWORD=${N8N_DB_PASSWORD:?N8N_DB_PASSWORD required}
       - POSTGRES_DB=n8n
     volumes:
-      - '/data/n8n/postgres-data:/var/lib/postgresql/data'
+      - '/data/postgres:/var/lib/postgresql/data'
     networks:
       - lcbp3
     healthcheck:

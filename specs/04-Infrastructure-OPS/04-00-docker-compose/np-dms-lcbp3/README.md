@@ -29,11 +29,14 @@ np-dms-lcbp3/
 │       └── frontend  (port 192.168.10.11:3001)
 │
 └── 04-ai/                           # Layer 4: AI Services (GPU)
-    ├── docker-compose.yml
-    │   ├── ollama       (internal only, GPU)
-    │   ├── ocr-sidecar  (internal only)
-    │   └── ollama-metrics (port 192.168.10.11:9924)
-    └── ocr-sidecar/     # Build context (copy from Desk-5439)
+    └── ocr-sidecar/     # Build context + compose (copy from Desk-5439)
+        ├── docker-compose.yml
+        │   ├── ocr-sidecar      (port 192.168.10.11:8765)
+        │   └── ollama-metrics   (port 192.168.10.11:9924)
+        ├── Dockerfile
+        ├── app.py
+        └── ...
+    # Ollama = native systemd service (not Docker) — models at /opt/ollama
 ```
 
 ## Architecture Decisions
@@ -82,6 +85,22 @@ np-dms-lcbp3/
 | OS + Docker | ~2G |
 | **Total** | **~33.5G** (tight — monitor หลัง cutover) |
 
+## Disk Layout (LVM — 2x NVMe 931.5G)
+
+```
+nvme0n1 (OS disk) — VG: ubuntu-vg
+├─ ubuntu-lv     100G → /
+├─ docker-lv     100G → /var/lib/docker
+├─ np-dms-lv     300G → /opt/np-dms       (Redis, Gitea, n8n, ClamAV, logs, PMA, MariaDB config)
+└─ ollama-lv     100G → /opt/ollama        (Ollama models — native systemd)
+
+nvme1n1 (Data disk) — VG: data-vg
+├─ mariadb-lv        200G → /data/mariadb
+├─ elasticsearch-lv  300G → /data/elasticsearch
+├─ qdrant-lv         100G → /data/qdrant
+└─ postgres-lv       100G → /data/postgres
+```
+
 ## ASUSTOR CIFS Mounts
 
 New Server ต้อง mount ASUSTOR shares ก่อน `docker compose up`:
@@ -99,25 +118,28 @@ New Server ต้อง mount ASUSTOR shares ก่อน `docker compose up`:
 docker network create lcbp3
 docker network create gitnet
 
+# Runtime dirs: /opt/np-dms/{01-infrastructure,02-platform,03-application,04-ai/ocr-sidecar}
+# Source repo:  /opt/np-dms/np-dms-lcbp3/ (git clone — copy compose files to runtime dirs)
+
 # 1. Layer 1: Infrastructure
-cd 01-infrastructure
+cd /opt/np-dms/01-infrastructure
 cp ../.env.template .env  # edit secrets
 docker compose --env-file .env up -d
 # รอ healthcheck ผ่านทุก container
 
 # 2. Layer 2: Platform
-cd ../02-platform
+cd /opt/np-dms/02-platform
 cp ../.env.template .env  # edit secrets
 docker compose --env-file .env up -d
 
 # 3. Layer 3: Application
-cd ../03-application
+cd /opt/np-dms/03-application
 cp ../.env.template .env  # edit secrets
 docker compose --env-file .env up -d
 
-# 4. Layer 4: AI
-cd ../04-ai
-cp ../.env.template .env  # edit secrets
+# 4. Layer 4: AI (OCR Sidecar + Metrics — Ollama is native systemd)
+cd /opt/np-dms/04-ai/ocr-sidecar
+cp ../../.env.template .env  # edit secrets
 docker compose --env-file .env up -d
 ```
 
