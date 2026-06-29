@@ -770,7 +770,7 @@
 
 - [X] **0.29** ทดสอบ SSH จาก New Server → QNAP
   ```bash
-  ssh np-dms@192.168.10.8 "echo 'SSH OK'"
+  ssh admin@192.168.10.8 "echo 'SSH OK'"
   ```
 
 - [X] **0.30** ทดสอบ MariaDB จาก New Server → QNAP (สำหรับ mariadb-dump)
@@ -853,12 +853,12 @@
 
 - [ ] **0.39** ทดสอบ SSH จาก New Server → Desk-5439
   ```bash
-  ssh user@192.168.10.100 "echo 'SSH OK'"
+  ssh peanc@192.168.10.100 "echo 'SSH OK'"
   ```
 
 - [ ] **0.40** ทดสอบ scp จาก Desk-5439 (สำหรับ copy OCR sidecar files)
   ```bash
-  scp --dry-run -r user@192.168.10.100:/path/to/ocr-sidecar/ /tmp/ocr-test/
+  scp --dry-run -r peanc@192.168.10.100:/path/to/ocr-sidecar/ /tmp/ocr-test/
   # ตรวจสอบ file list แสดงถูกต้อง
   ```
 
@@ -903,7 +903,7 @@
   systemctl status ollama
   ```
 
-- [ ] **0.42** สร้าง custom Ollama models จาก Modelfiles (ADR-034)
+- [X] **0.42** สร้าง custom Ollama models จาก Modelfiles (ADR-034)
   > **สำคัญ:** `np-dms-ai` และ `np-dms-ocr` เป็น custom models ที่สร้างจาก Modelfiles — ไม่ใช่ pull จาก registry
   > Modelfiles อยู่ใน repo: `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/`
   > Base models (`scb10x/typhoon2.5-qwen3-4b:latest`, `scb10x/typhoon-ocr1.5-3b:latest`) มีอยู่แล้วบนเครื่อง
@@ -954,10 +954,10 @@
 - [X] **0.50** ยืนยัน `my.cnf` อยู่ที่ `/opt/np-dms/mariadb/my.cnf`
 - [X] **0.51** ยืนยัน OCR sidecar build สำเร็จ (`docker images | grep ocr-sidecar`)
 - [X] **0.52** ยืนยัน Ollama custom models สร้างแล้ว (`sudo -u ollama ollama list` — ต้องเห็น np-dms-ai:latest, np-dms-ocr:latest)
-- [ ] **0.53** ยืนยัน SSH key จาก New Server → QNAP ทำงาน (passwordless)
-- [-] **0.54** ยืนยัน SSH key จาก New Server → Desk-5439 ทำงาน (passwordless)
-- [ ] **0.55** ยืนยัน ASUSTOR CIFS write ทำงาน (`touch /mnt/asustor-uploads/temp/.test && rm /mnt/asustor-uploads/temp/.test`)
-- [ ] **0.56** สำรอง `.env` ทุก layer ไปที่เดียวกัน (เช่น `/opt/np-dms/backup/.env.backup/`)
+- [X] **0.53** ยืนยัน SSH key จาก New Server → QNAP ทำงาน (passwordless)
+- [X] **0.54** ยืนยัน SSH key จาก New Server → Desk-5439 ทำงาน (passwordless)
+- [X] **0.55** ยืนยัน ASUSTOR CIFS write ทำงาน (`touch /mnt/asustor-uploads/temp/.test && rm /mnt/asustor-uploads/temp/.test`)
+- [X] **0.56** สำรอง `.env` ทุก layer ไปที่เดียวกัน (เช่น `/opt/np-dms/backup/.env.backup/`)
 
 ### Phase 1: Backup (วันย้าย — หยุดระบบ)
 
@@ -971,7 +971,7 @@
   - ส่ง email/announcement: "ระบบ DMS จะหยุดให้บริการวันที่ ___ เวลา ___ น. ระยะเวลาประมาณ ___ ชม."
   - แจ้งผ่าน RocketChat และปิดป้ายบนหน้าเว็บ (ถ้ามี maintenance banner)
 
-- [ ] **1.2** หยุด Backend + Frontend บน QNAP:
+- [X] **1.2** หยุด Backend + Frontend บน QNAP:
   ```bash
   ssh admin@192.168.10.8
   cd /share/np-dms/app
@@ -981,7 +981,7 @@
   # ควรไม่มี output
   ```
 
-- [ ] **1.3** หยุด n8n บน QNAP:
+- [X] **1.3** หยุด n8n บน QNAP:
   ```bash
   cd /share/np-dms/n8n
   docker compose --env-file .env down
@@ -990,7 +990,7 @@
   # ควรไม่มี output
   ```
 
-- [ ] **1.4** หยุด Gitea บน QNAP:
+- [X] **1.4** หยุด Gitea บน QNAP:
   ```bash
   cd /share/np-dms/gitea
   docker compose --env-file .env down
@@ -999,14 +999,14 @@
   # ควรไม่มี output
   ```
 
-- [ ] **1.5** หยุด NPM บน QNAP (หยุดชั่วคราว — กัน write ไป MariaDB):
+- [X] **1.5** หยุด NPM บน QNAP (หยุดชั่วคราว — กัน write ไป MariaDB):
   ```bash
   cd /share/np-dms/npm
   docker compose down
   # หมายเหตุ: NPM จะ start ใหม่ใน Phase 5
   ```
 
-- [ ] **1.6** ยืนยันเหลือแค่ MariaDB + Redis + ES + Qdrant รันอยู่บน QNAP:
+- [X] **1.6** ยืนยันเหลือแค่ MariaDB + Redis + ES + Qdrant รันอยู่บน QNAP:
   ```bash
   docker ps --format 'table {{.Names}}\t{{.Status}}'
   # ควรเห็นเฉพาะ: mariadb, cache (redis), search (es), qdrant
@@ -1016,7 +1016,7 @@
 
 #### 1B. Backup Databases (mariadb-dump)
 
-- [ ] **1.7** Backup database `lcbp3` (DMS — สำคัญที่สุด):
+- [X] **1.7** Backup database `lcbp3` (DMS — สำคัญที่สุด):
   ```bash
   # รันบน QNAP — backup ไปที่ /share/np-dms/mariadb/backup/
   docker exec mariadb mariadb-dump \
@@ -1031,7 +1031,7 @@
   - `--single-transaction`: consistent snapshot โดยไม่ lock table
   - `--routines --triggers --events`: รวม stored procedures, triggers, events
 
-- [ ] **1.8** Backup database `gitea`:
+- [X] **1.8** Backup database `gitea`:
   ```bash
   docker exec mariadb mariadb-dump \
     -u root -p"$DB_ROOT_PASSWORD" \
@@ -1040,7 +1040,7 @@
     > /share/np-dms/mariadb/backup/gitea_$(date +%Y%m%d_%H%M%S).sql
   ```
 
-- [ ] **1.9** Backup database `npm` (Nginx Proxy Manager):
+- [X] **1.9** Backup database `npm` (Nginx Proxy Manager):
   ```bash
   docker exec mariadb mariadb-dump \
     -u root -p"$DB_ROOT_PASSWORD" \
@@ -1049,7 +1049,7 @@
     > /share/np-dms/mariadb/backup/npm_$(date +%Y%m%d_%H%M%S).sql
   ```
 
-- [ ] **1.10** ตรวจสอบ backup files:
+- [X] **1.10** ตรวจสอบ backup files:
   ```bash
   BACKUP_DIR=/share/np-dms/mariadb/backup
   for f in $BACKUP_DIR/*.sql; do
@@ -1069,7 +1069,7 @@
 
 #### 1C. Backup File Data (rsync)
 
-- [ ] **1.11** Backup Gitea file data (repos, config, registry):
+- [X] **1.11** Backup Gitea file data (repos, config, registry):
   ```bash
   # สร้าง backup dir บน ASUSTOR
   ssh admin@192.168.10.9 "mkdir -p /share/np-dms/backup/migration/gitea"
@@ -1084,7 +1084,7 @@
   1087
   ```
 
-- [ ] **1.12** Backup NPM file data (data, letsencrypt, custom):
+- [X] **1.12** Backup NPM file data (data, letsencrypt, custom):
   ```bash
   ssh admin@192.168.10.9 "mkdir -p /share/np-dms/backup/migration/npm"
   rsync -avz --progress \
@@ -1095,7 +1095,7 @@
   # ควรเห็น cert files สำหรับแต่ละ domain
   ```
 
-- [ ] **1.13** Backup n8n file data (app data, postgres-data, scripts):
+- [X] **1.13** Backup n8n file data (app data, postgres-data, scripts):
   ```bash
   ssh admin@192.168.10.9 "mkdir -p /share/np-dms/backup/migration/n8n"
   rsync -avz --progress \
@@ -1119,13 +1119,13 @@
   - Qdrant บน QNAP รันโดยไม่มี document embeddings — ไม่มี data ที่ต้อง backup
   - หลัง deploy บน New Server Qdrant จะ re-embed ใหม่จาก MariaDB
 
-- [ ] **1.17** หยุด data store containers บน QNAP (หลัง backup เสร็จ):
+- [X] **1.17** หยุด data store containers บน QNAP (หลัง backup เสร็จ):
   ```bash
   docker stop mariadb cache
   # ไม่ start กลับ — QNAP เป็นแค่ NPM host หลัง migration
   ```
 
-- [ ] **1.18** สร้าง checksum manifest ของ backup files:
+- [X] **1.18** สร้าง checksum manifest ของ backup files:
   ```bash
   cd /share/np-dms/mariadb/backup
   md5sum *.sql > /share/np-dms/mariadb/backup/checksums.md5
@@ -1144,7 +1144,7 @@
 
 #### 2A. Transfer Database Dumps
 
-- [ ] **2.1** Transfer MariaDB dump files (QNAP → New Server):
+- [X] **2.1** Transfer MariaDB dump files (QNAP → New Server):
   ```bash
   # รันจาก QNAP — scp ไป New Server
   scp /share/np-dms/mariadb/backup/lcbp3_*.sql \
@@ -1201,7 +1201,7 @@
 > ถ้า copy ไฟล์ model โดยตรง (วิธีที่ 1) จะได้ทั้ง base models และ custom models
 > ถ้าไม่ copy ได้ ให้สร้างใหม่จาก Modelfiles ใน repo (วิธีที่ 2 — step 0.42/4.14)
 
-- [ ] **2.8** Copy Ollama models จาก Desk-5439:
+- [X] **2.8** Copy Ollama models จาก Desk-5439:
   ```bash
   # Ollama บน Desk-5439 เก็บ models ที่ C:\Users\<user>\.ollama\models\ (Windows)
   # หรือ /usr/share/ollama/.ollama/models/ (Linux)
@@ -1214,7 +1214,7 @@
   # ทำใน Phase 0 (step 0.42) หรือ Phase 4 (step 4.14) หลัง start Ollama systemd service
   ```
 
-- [ ] **2.9** ตรวจสอบ Ollama model files:
+- [X] **2.9** ตรวจสอบ Ollama model files:
   ```bash
   ls -la /opt/ollama/models/
   # ควรเห็น blob files และ manifests/
@@ -1239,7 +1239,7 @@
 
 #### 3A. Start MariaDB (ชั่วคราว — เพื่อ restore)
 
-- [ ] **3.1** Start MariaDB container บน New Server (Layer 1 เฉพาะ mariadb):
+- [X] **3.1** Start MariaDB container บน New Server (Layer 1 เฉพาะ mariadb):
   ```bash
   cd /opt/np-dms/01-infrastructure
   docker compose --env-file ../.env up -d mariadb
@@ -1248,7 +1248,7 @@
   # ควรเห็น: healthy
   ```
 
-- [ ] **3.2** ตรวจสอบ MariaDB version ตรงกัน:
+- [X] **3.2** ตรวจสอบ MariaDB version ตรงกัน:
   ```bash
   docker exec mariadb mysql -u root -p"$DB_ROOT_PASSWORD" -e "SELECT VERSION();"
   # ควรเห็น: 11.8.x (ตรงกับ QNAP)
@@ -1256,7 +1256,7 @@
 
 #### 3B. Restore Databases
 
-- [ ] **3.3** Restore database `lcbp3`:
+- [X] **3.3** Restore database `lcbp3`:
   ```bash
   # ไฟล์ dump อยู่ที่ /opt/np-dms/mariadb/backup/
   # ใช้ไฟล์ล่าสุด
@@ -1267,13 +1267,13 @@
   # รอจนเสร็จ (DB เล็ก ~10MB — ไม่น่าเกิน 1 นาที)
   ```
 
-- [ ] **3.4** Restore database `gitea`:
+- [X] **3.4** Restore database `gitea`:
   ```bash
   GITEA_DUMP=$(ls -t /opt/np-dms/mariadb/backup/gitea_*.sql | head -1)
   docker exec -i mariadb mariadb -u root -p"$DB_ROOT_PASSWORD" < "$GITEA_DUMP"
   ```
 
-- [ ] **3.5** Restore database `npm`:
+- [X] **3.5** Restore database `npm`:
   ```bash
   NPM_DUMP=$(ls -t /opt/np-dms/mariadb/backup/npm_*.sql | head -1)
   docker exec -i mariadb mariadb -u root -p"$DB_ROOT_PASSWORD" < "$NPM_DUMP"
@@ -1291,7 +1291,7 @@
   # lcbp3: ตรวจสอบว่าตรงกับที่คาดการณ์ (ดูจาก QNAP ก่อน backup)
   ```
 
-- [ ] **3.7** ตรวจสอบ user accounts + grants:
+- [X] **3.7** ตรวจสอบ user accounts + grants:
   ```bash
   docker exec mariadb mariadb -u root -p"$DB_ROOT_PASSWORD" -e "
     SELECT user, host FROM mysql.user WHERE user IN ('center', 'gitea', 'npm');
@@ -1313,7 +1313,7 @@
 "
   ```
 
-- [ ] **3.8** ตรวจสอบ lcbp3 views + stored procedures:
+- [X] **3.8** ตรวจสอบ lcbp3 views + stored procedures:
   ```bash
   docker exec mariadb mariadb -u root -p"$DB_ROOT_PASSWORD" lcbp3 -e "
     SELECT COUNT(*) AS view_count FROM information_schema.views WHERE table_schema='lcbp3';
@@ -1350,7 +1350,7 @@
 
 - [X] **3.13** ~~ตั้ง permissions Qdrant data~~ — **Skip: ไม่มี data ย้าย** (Qdrant จะ re-embed ใหม่)
 
-- [ ] **3.14** ตั้ง permissions สำหรับ Ollama models (native systemd service):
+- [X] **3.14** ตั้ง permissions สำหรับ Ollama models (native systemd service):
   ```bash
   # ollama user สร้างโดย install script (ปกติ UID 1000 บน Ubuntu)
   chown -R ollama:ollama /opt/ollama/
@@ -1359,7 +1359,7 @@
   # ควรเห็น: Environment="OLLAMA_MODELS=/opt/ollama"
   ```
 
-- [ ] **3.15** สร้าง directories ที่ขาด:
+- [X] **3.15** สร้าง directories ที่ขาด:
   ```bash
   mkdir -p /opt/np-dms/logs/backend
   mkdir -p /opt/np-dms/logs/clamav
@@ -1468,7 +1468,7 @@
   ROOT_URL      = http://192.168.10.11:3003/
 
   ```
-- [ ] **4.8** ตรวจสอบ n8n: healthz, workflow count:
+- [X] **4.8** ตรวจสอบ n8n: healthz, workflow count:
   ```bash
   # Health check
   curl -s http://192.168.10.11:5678/healthz
