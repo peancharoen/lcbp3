@@ -22,7 +22,7 @@ services:
     container_name: gitea-runner
     restart: unless-stopped
     extra_hosts:
-      - "git.np-dms.work:192.168.10.8"
+      - "git.np-dms.work:192.168.10.11"
     environment:
       - TZ=Asia/Bangkok
       - CONFIG_FILE=/config.yaml
