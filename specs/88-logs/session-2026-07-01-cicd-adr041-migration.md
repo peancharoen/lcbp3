@@ -13,6 +13,9 @@
 5. **Compose file ownership** — `/opt/np-dms/03-application/docker-compose.yml` เป็น root แต่ `np-dms` ต้องเขียน → `chown np-dms:np-dms`
 6. **Docker permission denied** — `np-dms` ไม่ได้อยู่ใน docker group → `usermod -aG docker np-dms`
 7. **Gitea runner extra_hosts ผิด** — เปลี่ยน `git.np-dms.work` จาก QNAP → New Server ทำให้ runner ไม่เชื่อม Gitea ได้ (443 connection refused) เพราะ NPM อยู่ QNAP จัดการ HTTPS → revert กลับ QNAP
+8. **ESLint segfault (exit 139)** — Node 24 ใน ubuntu:22.04 runner container ทำให้ ESLint 9.18 segfault → ลด Node เป็น 22.22.1 (LTS) + อัปเดต `engines` ใน package.json ทั้ง 3 ไฟล์
+9. **Gitea/MariaDB down** — Gitea container ตาย และ MariaDB ไม่ได้อยู่ใน Docker network → restart ผ่าน docker compose Layer 1 + Layer 2
+10. **ClamAV permission denied** — volume `/opt/np-dms/logs/clamav/` และ `/opt/np-dms/clamav/data/` เป็นของ `np-dms` (uid=1001) แต่ ClamAV container รัน freshclam เป็น user `clamav` (uid=100, gid=101) → `chown -R 100:101`
 
 ## การแก้ไข (Fix)
 
@@ -23,12 +26,19 @@
 | `scripts/rollback.sh` | v1.8.1 → v3.0; ลบ blue-green/NGINX; checkout previous commit → rebuild → restart Layer 3; path ใหม่ตรง deploy.sh |
 | `specs/.../ASUSTOR/gitea-runner/docker-compose.yml` | extra_hosts: `git.np-dms.work` เปลี่ยน 192.168.10.11 → revert กลับ 192.168.10.8 (NPM อยู่ QNAP) |
 
+| `backend/package.json` | `engines.node`: `>=24.0.0` → `>=22.0.0` |
+| `frontend/package.json` | `engines.node`: `>=24.0.0` → `>=22.0.0` |
+| `package.json` (root) | `engines.node`: `>=24.0.0` → `>=22.0.0` |
+
 ### Server-side fixes (ไม่ใช่ไฟล์ใน repo)
 
 - `sudo -u np-dms git config --global --add safe.directory /opt/np-dms-lcbp3`
 - `sudo -u np-dms mkdir -p /home/np-dms/.ssh && ssh-keyscan -p 2222 192.168.10.11 → known_hosts`
 - `sudo chown np-dms:np-dms /opt/np-dms/03-application/docker-compose.yml`
 - `sudo usermod -aG docker np-dms`
+- `sudo chown -R 100:101 /opt/np-dms/logs/clamav/ /opt/np-dms/clamav/data/`
+- `sudo docker compose --env-file /opt/np-dms/.env -f /opt/np-dms/01-infrastructure/docker-compose.yml up -d` (restart Layer 1)
+- `sudo docker compose --env-file /opt/np-dms/.env -f /opt/np-dms/02-platform/docker-compose.yml up -d` (restart Layer 2)
 - Gitea Secrets: HOST=192.168.10.11, PORT=22, USERNAME=np-dms, SSH_KEY=nattanin's id_ed25519
 
 ## กฎที่ Lock แล้ว
@@ -43,4 +53,7 @@
 - [x] `git push origin main` สำเร็จ (commit `135618a6`)
 - [x] Gitea runner container รันปกติหลัง revert extra_hosts (`declare successfully`)
 - [x] Build job รันบน runner (`GITEA-ACTIONS-TASK-788`)
-- [ ] Deploy job สำเร็จ (pending re-run หลังแก้ docker group + compose file ownership)
+- [x] ESLint segfault แก้โดยลด Node 24 → 22 (LTS)
+- [x] ClamAV permission แก้โดย chown 100:101
+- [x] **Deploy job สำเร็จ** — CI/CD pipeline ทำงานครบทั้ง build + deploy
+- [x] Layer 3 (backend, frontend, clamav) รันปกติบน New Server
