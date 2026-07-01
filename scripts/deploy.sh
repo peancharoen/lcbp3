@@ -1,20 +1,28 @@
 #!/bin/bash
 
 # File: scripts/deploy.sh
-# LCBP3-DMS Deployment Script v2.0
-# Simple direct deploy: build images → restart stack via docker compose
+# LCBP3-DMS Deployment Script v3.0
+# New Server (np-dms-lcbp3 / 192.168.10.11) — ADR-041 Server Consolidation
+# 4-layer docker-compose:
+#   Layer 1: Infrastructure (mariadb, redis, es, qdrant, pma)
+#   Layer 2: Platform (gitea, n8n, n8n-db, docker-socket-proxy)
+#   Layer 3: Application (clamav, backend, frontend) ← deploy target
+#   Layer 4: AI (ocr-sidecar, ollama-metrics — Ollama = native systemd)
+# Deploy flow: sync compose files → build images → restart Layer 3
 
 set -e
 
-SOURCE_DIR="/share/np-dms/app/source/lcbp3"
-COMPOSE_FILE="$SOURCE_DIR/specs/04-Infrastructure-OPS/04-00-docker-compose/QNAP/app/docker-compose-app.yml"
-ENV_FILE="/share/np-dms/app/.env"
+SOURCE_DIR="/opt/np-dms/np-dms-lcbp3"
+COMPOSE_SRC_DIR="$SOURCE_DIR/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3"
+COMPOSE_RUNTIME_DIR="/opt/np-dms/03-application"
+ENV_FILE="/opt/np-dms/.env"
 
 API_URL="https://backend.np-dms.work/api"
 AUTH_URL="https://lcbp3.np-dms.work"
 
 echo "========================================="
-echo "LCBP3-DMS Deployment v2.0"
+echo "LCBP3-DMS Deployment v3.0"
+echo "Target: np-dms-lcbp3 (192.168.10.11)"
 echo "========================================="
 
 # Read overrides from .env if present
@@ -25,8 +33,8 @@ if [ -f "$ENV_FILE" ]; then
     [ -n "$ENV_AUTH" ] && AUTH_URL="$ENV_AUTH"
 fi
 
-if [ ! -f "$COMPOSE_FILE" ]; then
-    echo "✗ Compose file not found: $COMPOSE_FILE"
+if [ ! -f "$COMPOSE_SRC_DIR/03-application/docker-compose.yml" ]; then
+    echo "✗ Compose file not found: $COMPOSE_SRC_DIR/03-application/docker-compose.yml"
     exit 1
 fi
 
@@ -35,8 +43,15 @@ cd "$SOURCE_DIR"
 # เปิด BuildKit เพื่อ layer cache
 export DOCKER_BUILDKIT=1
 
-# [1/3] Build images (sequential to reduce resource contention)
-echo "[1/3] Building Docker images (sequential)..."
+# [1/4] Sync compose files from source repo to runtime dirs
+# อัปเดตเฉพาะ Layer 3 (application) — Layer 1/2/4 ไม่เปลี่ยนตาม code deploy
+echo "[1/4] Syncing compose files to runtime dirs..."
+mkdir -p "$COMPOSE_RUNTIME_DIR"
+cp "$COMPOSE_SRC_DIR/03-application/docker-compose.yml" "$COMPOSE_RUNTIME_DIR/docker-compose.yml"
+echo "✓ Layer 3 compose file synced"
+
+# [2/4] Build images (sequential to reduce resource contention)
+echo "[2/4] Building Docker images (sequential)..."
 
 echo "  Building backend..."
 docker build -f backend/Dockerfile -t lcbp3-backend:latest . || { echo "✗ Backend build failed!"; exit 1; }
@@ -49,13 +64,14 @@ docker build -f frontend/Dockerfile \
 
 echo "✓ Images built"
 
-# [2/3] Start / restart stack with new images
-echo "[2/3] Starting application stack..."
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --force-recreate
-echo "✓ Stack started"
+# [3/4] Restart Layer 3 (application) with new images
+# Layer 1/2/4 ไม่ต้อง restart — ไม่ได้เปลี่ยนแปลงตาม code deploy
+echo "[3/4] Restarting application stack (Layer 3)..."
+docker compose --env-file "$ENV_FILE" -f "$COMPOSE_RUNTIME_DIR/docker-compose.yml" up -d --force-recreate
+echo "✓ Stack restarted"
 
-# [3/3] Health check
-echo "[3/3] Waiting for backend to be healthy..."
+# [4/4] Health check
+echo "[4/4] Waiting for backend to be healthy..."
 for i in $(seq 1 30); do
     if docker exec backend curl -sf http://localhost:3000/health > /dev/null 2>&1 || \
        docker exec backend curl -sf http://localhost:3000/ping > /dev/null 2>&1; then
@@ -64,7 +80,7 @@ for i in $(seq 1 30); do
     fi
     if [ "$i" -eq 30 ]; then
         echo "✗ Backend health check failed after 60s"
-        docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" logs backend --tail=50
+        docker compose --env-file "$ENV_FILE" -f "$COMPOSE_RUNTIME_DIR/docker-compose.yml" logs backend --tail=50
         exit 1
     fi
     echo "  Waiting... ($i/30)"
