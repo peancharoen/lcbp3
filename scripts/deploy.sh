@@ -12,7 +12,7 @@
 
 set -e
 
-SOURCE_DIR="/opt/np-dms/np-dms-lcbp3"
+SOURCE_DIR="/opt/np-dms-lcbp3"
 COMPOSE_SRC_DIR="$SOURCE_DIR/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3"
 COMPOSE_RUNTIME_DIR="/opt/np-dms/03-application"
 ENV_FILE="/opt/np-dms/.env"

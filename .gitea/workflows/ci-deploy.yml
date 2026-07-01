@@ -70,7 +70,7 @@ jobs:
   #   Layer 2: Platform (gitea, n8n, n8n-db, docker-socket-proxy)
   #   Layer 3: Application (clamav, backend, frontend) ← deploy target
   #   Layer 4: AI (ocr-sidecar, ollama-metrics — Ollama = native systemd)
-  # Source repo: /opt/np-dms/np-dms-lcbp3/ (git clone)
+  # Source repo: /opt/np-dms-lcbp3/ (git clone)
   # Runtime:     /opt/np-dms/{01-infrastructure,02-platform,03-application,04-ai}/
   # Env:         /opt/np-dms/.env (master — shared across all layers)
   # ============================================================
@@ -99,7 +99,7 @@ jobs:
             set -e
             export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
 
-            cd /opt/np-dms/np-dms-lcbp3
+            cd /opt/np-dms-lcbp3
             [ -d .git ] || { echo "✗ Git repo not found"; exit 1; }
 
             git fetch origin main
