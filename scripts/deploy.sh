@@ -27,9 +27,9 @@ echo "========================================="
 
 # Read overrides from .env if present
 if [ -f "$ENV_FILE" ]; then
-    ENV_URL=$(grep NEXT_PUBLIC_API_URL "$ENV_FILE" | cut -d '=' -f2 | tr -d '"' | tr -d "'")
+    ENV_URL=$(grep -E '^NEXT_PUBLIC_API_URL=' "$ENV_FILE" | cut -d '=' -f2 | tr -d '"' | tr -d "'")
     [ -n "$ENV_URL" ] && API_URL="$ENV_URL"
-    ENV_AUTH=$(grep AUTH_URL "$ENV_FILE" | cut -d '=' -f2 | tr -d '"' | tr -d "'")
+    ENV_AUTH=$(grep -E '^AUTH_URL=' "$ENV_FILE" | cut -d '=' -f2 | tr -d '"' | tr -d "'")
     [ -n "$ENV_AUTH" ] && AUTH_URL="$ENV_AUTH"
 fi
 
