@@ -1,0 +1,1069 @@
+{
+  "folders": [
+    {
+      "name": "🎯 Root",
+      "path": ".",
+    },
+    {
+      "name": "🔧 Backend",
+      "path": "backend",
+    },
+    {
+      "name": "🎨 Frontend",
+      "path": "frontend",
+    },
+    {
+      "name": "🗓️ docs",
+      "path": "docs",
+    },
+    {
+      "name": "🔗 specs",
+      "path": "specs",
+    },
+    {
+      "name": "🐳 docker-compose",
+      "path": "specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3",
+    },
+  ],
+  "settings": {
+    // ========================================
+    // EDITOR SETTINGS
+    // ========================================
+
+    "editor.fontSize": 18,
+    "editor.tabSize": 2,
+    "editor.lineHeight": 1.6,
+    "editor.rulers": [80, 120],
+    "editor.minimap.enabled": true,
+    "editor.minimap.sectionHeaderFontSize": 12,
+    "editor.renderWhitespace": "none",
+    // "editor.renderWhitespace": "boundary",
+    "editor.renderControlCharacters": true,
+    "editor.bracketPairColorization.enabled": true,
+    "editor.guides.bracketPairs": "active",
+    "editor.smoothScrolling": true,
+    "editor.cursorBlinking": "smooth",
+    "editor.cursorSmoothCaretAnimation": "on",
+    "editor.wordWrap": "off",
+    "editor.linkedEditing": true,
+    "editor.formatOnSave": true,
+    "editor.formatOnPaste": true,
+    "editor.suggestSelection": "first",
+    "editor.detectIndentation": true,
+
+    // ========================================
+    // DEFAULT FORMATTER
+    // ========================================
+
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+
+    "[javascript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+    },
+    "[javascriptreact]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+    },
+    "[typescript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+    },
+    "[typescriptreact]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+    },
+    "[json]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+    },
+    "[jsonc]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+    },
+    "[html]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+    },
+    "[css]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+    },
+    "[scss]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+    },
+    "[markdown]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.wordWrap": "on",
+    },
+    "[yaml]": {
+      "editor.defaultFormatter": "redhat.vscode-yaml",
+    },
+    "[dockerfile]": {
+      "editor.defaultFormatter": "ms-azuretools.vscode-containers",
+    },
+    "[sql]": {
+      "editor.defaultFormatter": "mtxr.sqltools",
+      "editor.tabSize": 2,
+      "editor.insertSpaces": true,
+      "editor.detectIndentation": false,
+      "editor.wordWrap": "off",
+      "editor.formatOnSave": true,
+    },
+    "sqltools.format": {
+      "indent": "  ", // 2 spaces
+      "indentStyle": "space", // ใช้ space แทน tab
+      "tabSize": 2,
+      "reservedWordCase": "upper", // คำสงวนเป็นตัวพิมพ์ใหญ่ SELECT, FROM, WHERE
+      "dataTypeCase": "lower", // varchar, int, datetime
+      "functionCase": "lower", // count(), sum(), date_format()
+      // Spacing and Lines
+      "linesBetweenQueries": 2, // เว้นบรรทัดระหว่าง query
+      //"denseOperators": true,
+      "spaceAroundOperators": false,
+      // Comma Style
+      "commaPosition": "after", // ใส่ comma หลังคอลัมน์
+      "newlineBeforeComma": false,
+      "newlineAfterComma": false,
+      // Parentheses Style
+      "newlineBeforeOpenParen": false,
+      "newlineAfterOpenParen": false,
+      "newlineBeforeCloseParen": false,
+      "newlineAfterCloseParen": false,
+      // Width Control
+      "expressionWidth": 120,
+      "wrapLength": 120,
+      // Other Styles
+      "compact": true, // ไม่ย่อโค้ดให้แน่นเกินไป
+      "uppercaseKeywords": true,
+      "newlineBeforeSemicolon": false,
+    },
+    // ป้องกัน extension อื่นมายุ่ง
+
+    // ========================================
+    // CODE ACTION ON SAVE
+    // ========================================
+
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "explicit",
+      "source.fixAll.prettier": "explicit",
+      "source.fixAll.eslint": "explicit",
+      //"source.organizeImports": "explicit",
+      //"source.addMissingImports": "explicit"
+    },
+
+    // ========================================
+    // PRETTIER SETTINGS .prettierrc
+    // ========================================
+
+    // ========================================
+    // ESLINT SETTINGS
+    // ========================================
+
+    "eslint.enable": true,
+    "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact"],
+    "eslint.alwaysShowStatus": true,
+    "eslint.format.enable": false,
+    "eslint.lintTask.enable": true,
+    "eslint.workingDirectories": ["./backend", "./frontend"],
+    // ========================================
+    // PATH INTELLISENSE - ไม่มี src folder
+    // ========================================
+
+    "path-intellisense.mappings": {
+      // Backend paths
+      "@backend": "${workspaceFolder:🔧 Backend}/src",
+      "@backend/*": "${workspaceFolder:🔧 Backend}/src/*",
+      "@modules": "${workspaceFolder:🔧 Backend}/src/modules",
+      "@common": "${workspaceFolder:🔧 Backend}/src/common",
+      "@config": "${workspaceFolder:🔧 Backend}/src/common/config",
+      "@circulation": "${workspaceFolder:🔧 Backend}/src/modules/circulation",
+      "@correspondence": "${workspaceFolder:🔧 Backend}/src/modules/correspondence",
+      "@document-numbering": "${workspaceFolder:🔧 Backend}/src/modules/document-numbering",
+      "@drawing": "${workspaceFolder:🔧 Backend}/src/modules/drawing",
+      "@json-schema": "${workspaceFolder:🔧 Backend}/src/modules/json-schema",
+      "@master": "${workspaceFolder:🔧 Backend}/src/modules/master",
+      "@monitoring": "${workspaceFolder:🔧 Backend}/src/modules/monitoring",
+      "@notification": "${workspaceFolder:🔧 Backend}/src/modules/notification",
+      "@project": "${workspaceFolder:🔧 Backend}/src/modules/project",
+      "@rfa": "${workspaceFolder:🔧 Backend}/src/modules/rfa",
+      "@search": "${workspaceFolder:🔧 Backend}/src/modules/search",
+      "@transmittal": "${workspaceFolder:🔧 Backend}/src/modules/transmittal",
+      "@users": "${workspaceFolder:🔧 Backend}/src/modules/users",
+      "@workflow-engine": "${workspaceFolder:🔧 Backend}/src/modules/workflow-engine",
+
+      // Frontend paths (ไม่มี src)
+      "@": "${workspaceFolder:🎨 Frontend}",
+      "@/*": "${workspaceFolder:🎨 Frontend}/*",
+      "@app": "${workspaceFolder:🎨 Frontend}/app",
+      "@components": "${workspaceFolder:🎨 Frontend}/components",
+      "@fe-config": "${workspaceFolder:🎨 Frontend}/config",
+      "@lib": "${workspaceFolder:🎨 Frontend}/lib",
+      "@hooks": "${workspaceFolder:🎨 Frontend}/hooks",
+      "@utils": "${workspaceFolder:🎨 Frontend}/utils",
+      "@providers": "${workspaceFolder:🎨 Frontend}/providers",
+      "@public": "${workspaceFolder:🎨 Frontend}/public",
+      "@styles": "${workspaceFolder:🎨 Frontend}/styles",
+      "@types": "${workspaceFolder:🎨 Frontend}/types",
+      "@api": "${workspaceFolder:🎨 Frontend}/app/api",
+    },
+    "path-intellisense.autoSlashAfterDirectory": true,
+    "path-intellisense.extensionOnImport": false,
+    "path-intellisense.showHiddenFiles": false,
+
+    // ========================================
+    // ERROR LENS
+    // ========================================
+
+    "errorLens.enabled": true,
+    "errorLens.enabledDiagnosticLevels": ["error", "warning"],
+    "errorLens.padding": "0 1ch",
+    "errorLens.messageTemplate": "$message",
+    "errorLens.messageEnabled": true,
+
+    // ========================================
+    // TAILWIND CSS
+    // ========================================
+
+    "tailwindCSS.emmetCompletions": true,
+    "tailwindCSS.colorDecorators": true,
+    "tailwindCSS.suggestions": true,
+    "tailwindCSS.includeLanguages": {
+      "typescript": "javascript",
+      "typescriptreact": "javascript",
+    },
+    "tailwindCSS.experimental.classRegex": [
+      ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"],
+      ["cn\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"],
+      "class[Nn]ame\\s*=\\s*['\"`]([^'\"`]*)['\"`]",
+    ],
+
+    // ระบุที่ตั้งของ tailwind.config (ถ้ามี)
+    "tailwindCSS.experimental.configFile": {
+      //"backend/tailwind.config.js": "backend/**",
+      "frontend/tailwind.config.ts": "frontend/**",
+    },
+
+    // ========================================
+    // HEADWIND
+    // ========================================
+
+    "headwind.runOnSave": true,
+
+    // ========================================
+    // AUTO CLOSE/RENAME TAG
+    // ========================================
+
+    "auto-close-tag.activationOnLanguage": [
+      "html",
+      "xml",
+      "javascript",
+      "javascriptreact",
+      "typescript",
+      "typescriptreact",
+    ],
+
+    "auto-rename-tag.activationOnLanguage": [
+      "html",
+      "xml",
+      "javascript",
+      "javascriptreact",
+      "typescript",
+      "typescriptreact",
+    ],
+
+    // ========================================
+    // BETTER COMMENTS
+    // ========================================
+
+    "better-comments.tags": [
+      {
+        "tag": "!",
+        "color": "#FF2D00",
+        "strikethrough": false,
+        "backgroundColor": "transparent",
+        "bold": true,
+      },
+      {
+        "tag": "?",
+        "color": "#3498DB",
+        "strikethrough": false,
+        "backgroundColor": "transparent",
+      },
+      {
+        "tag": "//",
+        "color": "#474747",
+        "strikethrough": true,
+        "backgroundColor": "transparent",
+      },
+      {
+        "tag": "todo",
+        "color": "#FF8C00",
+        "strikethrough": false,
+        "backgroundColor": "transparent",
+      },
+      {
+        "tag": "*",
+        "color": "#98C379",
+        "strikethrough": false,
+        "backgroundColor": "transparent",
+      },
+    ],
+
+    // ========================================
+    // TODO TREE
+    // ========================================
+
+    "todo-tree.general.tags": ["TODO", "FIXME", "BUG", "HACK", "NOTE", "XXX", "[ ]", "[x]"],
+    "todo-tree.highlights.enabled": true,
+    "todo-tree.tree.showScanModeButton": true,
+    "todo-tree.filtering.excludeGlobs": ["**/node_modules", "**/dist", "**/build", "**/.next"],
+    "todo-tree.highlights.customHighlight": {
+      "TODO": {
+        "icon": "check",
+        "iconColour": "#FF8C00",
+        "foreground": "#FF8C00",
+      },
+      "FIXME": {
+        "icon": "alert",
+        "iconColour": "#FF2D00",
+        "foreground": "#FF2D00",
+      },
+      "BUG": {
+        "icon": "bug",
+        "iconColour": "#FF2D00",
+        "foreground": "#FF2D00",
+      },
+      "NOTE": {
+        "icon": "note",
+        "iconColour": "#3498DB",
+        "foreground": "#3498DB",
+      },
+      "HACK": {
+        "icon": "tools",
+        "iconColour": "#FFA500",
+        "foreground": "#FFA500",
+      },
+    },
+    // ========================================
+    // GIT
+    // ========================================
+
+    "git.enabled": true,
+    "git.autofetch": true,
+    "git.autofetchPeriod": 180,
+    "git.confirmSync": false,
+    "git.enableSmartCommit": true,
+    "git.postCommitCommand": "none",
+    "git.untrackedChanges": "separate",
+    "git.openRepositoryInParentFolders": "always",
+
+    // ========================================
+    // IMPORT COST
+    // ========================================
+
+    "importCost.showCalculatingDecoration": true,
+    "importCost.largePackageSize": 100,
+    "importCost.mediumPackageSize": 50,
+    "importCost.smallPackageSize": 20,
+    "importCost.largePackageColor": "#FF2D00",
+    "importCost.mediumPackageColor": "#FF8C00",
+    "importCost.smallPackageColor": "#98C379",
+
+    // ========================================
+    // JAVASCRIPT/TYPESCRIPT (Unified Settings)
+    // ========================================
+
+    // Unified JS/TS settings (replaces deprecated javascript.* and typescript.*)
+    "#js/ts.suggest.autoImports": true,
+    "#js/ts.updateImportsOnFileMove.enabled": "always",
+    "#js/ts.preferences.importModuleSpecifier": "relative",
+
+    // Unified inlay hints (replaces deprecated javascript.inlayHints.* and typescript.inlayHints.*)
+    "editor.inlayHints.parameterNames.enabled": "all",
+    "editor.inlayHints.functionLikeReturnTypes.enabled": true,
+    "editor.inlayHints.variableTypes.enabled": false,
+    "editor.inlayHints.propertyDeclarationTypes.enabled": true,
+
+    // Unified TypeScript SDK path (replaces deprecated typescript.tsdk)
+    "#js/ts.tsdk.path": "node_modules/typescript/lib", // ✅ ใช้ relative path
+    // ========================================
+    // EMMET
+    // ========================================
+
+    "emmet.includeLanguages": {
+      "javascript": "javascriptreact",
+      "typescript": "typescriptreact",
+    },
+    "emmet.triggerExpansionOnTab": true,
+    "emmet.showSuggestionsAsSnippets": true,
+
+    // ========================================
+    // FILES
+    // ========================================
+
+    "files.trimTrailingWhitespace": true,
+    "files.insertFinalNewline": true,
+    "files.encoding": "utf8",
+    "files.autoGuessEncoding": true,
+    "files.eol": "\n",
+    "files.associations": {
+      "*.css": "tailwindcss",
+      ".env*": "dotenv",
+      "*.md": "markdown",
+    },
+
+    "files.exclude": {
+      "**/.git": true,
+      "**/.DS_Store": true,
+      "**/node_modules": true,
+      "**/.next": true,
+      "**/dist": true,
+      "**/build": true,
+      "**/.turbo": true,
+      "**/coverage": true,
+      "**/.nyc_output": true,
+      "**/*.log": true,
+    },
+
+    "files.watcherExclude": {
+      "**/.git/objects/**": true,
+      "**/.git/subtree-cache/**": true,
+      "**/node_modules/**": true,
+      "**/.next/**": true,
+      "**/dist/**": true,
+      "**/build/**": true,
+      "**/.turbo/**": true,
+    },
+
+    // ========================================
+    // SEARCH
+    // ========================================
+
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/dist": true,
+      "**/build": true,
+      "**/.next": true,
+      "**/.turbo": true,
+      "**/coverage": true,
+      "**/.nyc_output": true,
+      "**/yarn.lock": true,
+      "**/package-lock.json": true,
+      "**/pnpm-lock.yaml": true,
+      "**/*.log": true,
+    },
+    "search.followSymlinks": false,
+    "search.useIgnoreFiles": true,
+    "search.smartCase": true,
+
+    // ========================================
+    // TERMINAL
+    // ========================================
+
+    "terminal.integrated.fontSize": 20,
+    "terminal.integrated.lineHeight": 1.2,
+    "terminal.integrated.smoothScrolling": true,
+    "terminal.integrated.cursorBlinking": true,
+    "terminal.integrated.fontFamily": "MesloLGS NF, Consolas, monospace",
+    "terminal.integrated.copyOnSelection": true,
+    "terminal.integrated.tabs.defaultColor": "terminal.ansiBlue",
+    "terminal.integrated.defaultProfile.linux": "bash",
+    "terminal.integrated.profiles.linux": {
+      "bash": {
+        "path": "bash",
+        "icon": "terminal-bash",
+      },
+      "SSH New Server": {
+        "path": "ssh",
+        "args": ["admin@192.168.10.11"],
+        "icon": "terminal-linux",
+        "color": "terminal.ansiGreen",
+        "overrideName": true,
+      },
+      "SSH QNAP": {
+        "path": "ssh",
+        "args": ["admin@192.168.10.8"],
+        "icon": "terminal-linux",
+        "color": "terminal.ansiCyan",
+        "overrideName": true,
+      },
+      "SSH ASUSTOR": {
+        "path": "ssh",
+        "args": ["admin@192.168.10.9"],
+        "icon": "terminal-linux",
+        "color": "terminal.ansiBlue",
+        "overrideName": true,
+      },
+    },
+
+    // ========================================
+    // WORKBENCH
+    // ========================================
+
+    "workbench.iconTheme": "material-icon-theme",
+    "workbench.activityBar.location": "default",
+    "workbench.sideBar.location": "left",
+    "workbench.view.alwaysShowHeaderActions": true,
+    "workbench.tree.indent": 15,
+    "workbench.list.smoothScrolling": true,
+    "workbench.editor.enablePreview": true,
+    "workbench.editor.limit.enabled": true,
+    "workbench.editor.limit.value": 10,
+    "workbench.startupEditor": "welcomePage",
+    "workbench.view.showQuietly": {
+      "workbench.panel.output": false,
+    },
+    // ========================================
+    // EXPLORER
+    // ========================================
+
+    "explorer.compactFolders": false,
+    "explorer.confirmDelete": true,
+    "explorer.confirmDragAndDrop": false,
+    "explorer.sortOrder": "type",
+    "explorer.fileNesting.enabled": true,
+    "explorer.fileNesting.expand": false,
+    "explorer.fileNesting.patterns": {
+      "package.json": "package-lock.json, yarn.lock, pnpm-lock.yaml, .npmrc",
+      "tsconfig.json": "tsconfig.*.json",
+      ".env": ".env.*",
+      "docker-compose.yml": "docker-compose.*.yml, Dockerfile*",
+      "*.ts": "${capture}.test.ts, ${capture}.spec.ts",
+      "*.tsx": "${capture}.test.tsx, ${capture}.spec.tsx, ${capture}.module.css",
+      "*.js": "${capture}.test.js, ${capture}.spec.js",
+      "*.jsx": "${capture}.test.jsx, ${capture}.spec.jsx",
+      ".env.template": ".env",
+    },
+
+    // ========================================
+    // BREADCRUMBS
+    // ========================================
+
+    "breadcrumbs.enabled": true,
+    "breadcrumbs.filePath": "on",
+    "breadcrumbs.symbolPath": "on",
+
+    // ========================================
+    // JEST
+    // ========================================
+
+    // เปิดใช้งาน Jest extension
+    "jest.enable": true,
+
+    // ปิดการเปิด Terminal ตอนเปิด VS Code
+    "jest.showTerminalOnLaunch": false,
+
+    // ปิดการเปิด Terminal ตอนรันเทสต์
+    "jest.showTerminalOnTestRun": false,
+
+    // ให้รัน Jest ใน background โดยไม่ต้องเปิด terminal
+    "jest.runInWorkspace": true,
+
+    // แสดงผลลัพธ์เทสต์ใน editor (inline)
+    "jest.showInlineError": true,
+
+    // ใช้ watch mode สำหรับการรันเทสต์อัตโนมัติเมื่อไฟล์เปลี่ยน
+    "jest.runMode": "watch",
+
+    // กำหนด path ของ Jest ถ้าใช้ local install
+    "jest.pathToJest": "node_modules/.bin/jest",
+
+    "jest.disabledWorkspaceFolders": ["🎯 Root", "🗓️ docs", "🔗 specs", "🎨 Frontend"],
+
+    // ========================================
+    // DOCKER
+    // ========================================
+
+    "docker.languageserver.formatter.ignoreMultilineInstructions": true,
+    "docker.showStartPage": false,
+
+    // ========================================
+    // YAML
+    // ========================================
+
+    "yaml.schemas": {
+      "https://json.schemastore.org/prettierrc.json": ".prettierrc.{yml,yaml}",
+      "https://json.schemastore.org/docker-compose.json": "docker-compose*.{yml,yaml}",
+      "https://json.schemastore.org/github-workflow.json": ".gitea/workflows/*.{yml,yaml}",
+    },
+    "yaml.format.enable": true,
+    "yaml.format.singleQuote": false,
+    "yaml.format.bracketSpacing": true,
+    "yaml.validate": true,
+    "yaml.hover": true,
+    "yaml.completion": true,
+
+    // ========================================
+    // REST CLIENT
+    // ========================================
+
+    "rest-client.timeoutinmilliseconds": 30000,
+    "rest-client.showResponseInDifferentTab": true,
+    "rest-client.environmentVariables": {
+      "$shared": {
+        "apiUrl": "http://localhost:3000",
+      },
+      "development": {
+        "apiUrl": "http://localhost:3000",
+      },
+      "new-server": {
+        "apiUrl": "http://192.168.10.11:3000",
+        "frontendUrl": "http://192.168.10.11:3001",
+        "giteaUrl": "http://192.168.10.11:3003",
+        "n8nUrl": "http://192.168.10.11:5678",
+      },
+      "production": {
+        "apiUrl": "https://backend.np-dms.work",
+        "frontendUrl": "https://lcbp3.np-dms.work",
+        "giteaUrl": "https://git.np-dms.work",
+        "n8nUrl": "https://n8n.np-dms.work",
+      },
+    },
+
+    // ========================================
+    // MATERIAL ICON THEME
+    // ========================================
+
+    "material-icon-theme.folders.theme": "specific",
+    "material-icon-theme.folders.color": "#90a4ae",
+    "material-icon-theme.files.associations": {
+      "*.env.local": "Tune",
+      "*.env.development": "Tune",
+      "*.env.production": "Tune",
+      "docker-compose.*.yml": "Docker",
+    },
+    "material-icon-theme.folders.associations": {
+      "hooks": "Custom",
+      "utils": "Helper",
+      "lib": "Library",
+      "components": "Components",
+      "api": "Api",
+      "dto": "Class",
+      "entities": "Database",
+      "modules": "Folder-Controllers",
+      "common": "Shared",
+      "config": "Config",
+    },
+
+    // ========================================
+    // NPM INTELLISENSE
+    // ========================================
+
+    "npm-intellisense.importES6": true,
+    "npm-intellisense.importQuotes": "'",
+    "npm-intellisense.importLinebreak": ";\n",
+    "npm-intellisense.importDeclarationType": "const",
+
+    // ========================================
+    // PERFORMANCE
+    // ========================================
+
+    "files.maxMemoryForLargeFilesMB": 1024,
+    "telemetry.telemetryLevel": "off",
+    "security.workspace.trust.untrustedFiles": "open",
+    "extensions.ignoreRecommendations": true,
+    // ========================================
+    // DEBUGGING
+    // ========================================
+
+    "debug.console.fontSize": 16,
+    "debug.console.fontFamily": "Consolas, 'Courier New', monospace",
+    "debug.console.lineHeight": 20,
+    "debug.console.wordWrap": false,
+    "debug.internalConsoleOptions": "openOnSessionStart",
+    "debug.openDebug": "openOnDebugBreak",
+    "debug.showBreakpointsInOverviewRuler": true,
+    "prettier.configPath": "./.prettierrc",
+    "sqltools.connections": [
+      {
+        "mysqlOptions": {
+          "authProtocol": "default",
+          "enableSsl": "Disabled",
+        },
+        "ssh": "Disabled",
+        "previewLimit": 50,
+        "server": "localhost",
+        "port": 3306,
+        "driver": "MySQL",
+        "name": "lcbp3_dev (local)",
+        "database": "lcbp3_dev",
+        "username": "root",
+        "password": "${env:DB_PASSWORD}",
+        "askForPassword": true,
+      },
+      {
+        "mysqlOptions": {
+          "authProtocol": "default",
+          "enableSsl": "Disabled",
+        },
+        "ssh": "Disabled",
+        "previewLimit": 50,
+        "server": "192.168.10.11",
+        "port": 3306,
+        "driver": "MySQL",
+        "name": "lcbp3 (new server)",
+        "database": "lcbp3",
+        "username": "center",
+        "password": "${env:DB_PASSWORD}",
+        "askForPassword": true,
+      },
+    ],
+    "database-client.variableIndicator": [":", "$"],
+    "geminicodeassist.rules": "ใช้ภาษาไทยในการโต้ตอบ\n\n\n\n",
+    "geminicodeassist.verboseLogging": true,
+    "liveServer.settings.multiRootWorkspaceName": "🎯 Root",
+    "vitest.commandLine": "npm run test --",
+    "vitest.enable": true,
+    "yaml.maxItemsComputed": 10000,
+    // "terminal.integrated.persistentSessionReviveProcess": "never",
+    "files.autoSave": "onFocusChange",
+    "diffEditor.codeLens": false,
+    "workbench.colorTheme": "Default Dark Modern",
+    "workbench.preferredDarkColorTheme": "Default Dark Modern",
+    "scm.alwaysShowActions": false,
+    "workbench.settings.alwaysShowAdvancedSettings": true,
+    "npm.packageManager": "pnpm",
+    "editor.mouseWheelZoom": true,
+    "terminal.integrated.mouseWheelZoom": true,
+    "terminal.integrated.tabs.title": "${process}-${cwd}",
+    "workbench.editor.sharedViewState": true,
+  },
+  // ========================================
+  // LAUNCH CONFIGURATIONS
+  // ========================================
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "🔧 Debug Backend (NestJS)",
+        "type": "node",
+        "request": "launch",
+        "runtimeExecutable": "npm",
+        "runtimeArgs": ["run", "start:debug"],
+        "cwd": "${workspaceFolder:🔧 Backend}",
+        "console": "integratedTerminal",
+        // "internalConsoleOptions": "neverOpen",
+        "skipFiles": ["<node_internals>/**"],
+        "sourceMaps": true,
+        "restart": true,
+      },
+      {
+        "name": "🎨 Debug Frontend (Next.js)",
+        "type": "node",
+        "request": "launch",
+        "cwd": "${workspaceFolder:🎨 Frontend}",
+        "runtimeExecutable": "npm",
+        "runtimeArgs": ["run", "dev"],
+        "serverReadyAction": {
+          "pattern": "- Local:.+(https?://\\S+)",
+          "uriFormat": "%s",
+          "action": "debugWithChrome",
+        },
+      },
+      {
+        "name": "🧪 Debug Backend Tests (Jest)",
+        "type": "node",
+        "request": "launch",
+        "runtimeExecutable": "npm",
+        "runtimeArgs": ["run", "test:debug"],
+        "cwd": "${workspaceFolder:🔧 Backend}",
+        "console": "integratedTerminal",
+      },
+      {
+        "name": "🧪 Debug Frontend Tests (Vitest)",
+        "type": "node",
+        "request": "launch",
+        "runtimeExecutable": "npm",
+        "runtimeArgs": ["run", "test:debug"],
+        "cwd": "${workspaceFolder:🎨 Frontend}",
+        "console": "integratedTerminal",
+        "internalConsoleOptions": "neverOpen",
+      },
+    ],
+
+    "compounds": [
+      {
+        "name": "🚀 Debug Full Stack",
+        "configurations": ["🔧 Debug Backend (NestJS)", "🎨 Debug Frontend (Next.js)"],
+        "stopAll": true,
+      },
+    ],
+  },
+  // ========================================
+  // TASKS
+  // ========================================
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "🔧 Start Backend Dev",
+        "type": "shell",
+        "command": "npm run start:dev",
+        "options": {
+          "cwd": "${workspaceFolder:🔧 Backend}",
+        },
+        "problemMatcher": [],
+        "isBackground": true,
+        "presentation": {
+          "reveal": "always",
+          "panel": "dedicated",
+          "group": "dev",
+        },
+      },
+      {
+        "label": "🎨 Start Frontend Dev",
+        "type": "shell",
+        "command": "npm run dev",
+        "options": {
+          "cwd": "${workspaceFolder:🎨 Frontend}",
+        },
+        "problemMatcher": [],
+        "isBackground": true,
+        "presentation": {
+          "reveal": "always",
+          "panel": "dedicated",
+          "group": "dev",
+        },
+      },
+      {
+        "label": "🚀 Start Full Stack",
+        "dependsOn": ["🔧 Start Backend Dev", "🎨 Start Frontend Dev"],
+        "problemMatcher": [],
+      },
+      {
+        "label": "🧪 Run Backend Tests",
+        "type": "shell",
+        "command": "npm run test",
+        "options": {
+          "cwd": "${workspaceFolder:🔧 Backend}",
+        },
+        "problemMatcher": [],
+      },
+      {
+        "label": "🧪 Run Frontend Tests",
+        "type": "shell",
+        "command": "npm run test",
+        "options": {
+          "cwd": "${workspaceFolder:🎨 Frontend}",
+        },
+        "problemMatcher": [],
+      },
+      {
+        "label": "🧪 Watch Backend Tests",
+        "type": "shell",
+        "command": "npm run test:watch",
+        "options": {
+          "cwd": "${workspaceFolder:🔧 Backend}",
+        },
+        "problemMatcher": [],
+        "isBackground": true,
+      },
+      {
+        "label": "🧪 Watch Frontend Tests",
+        "type": "shell",
+        "command": "npm run test:watch",
+        "options": {
+          "cwd": "${workspaceFolder:🎨 Frontend}",
+        },
+        "problemMatcher": [],
+        "isBackground": true,
+      },
+      {
+        "label": "🏗️ Build Backend",
+        "type": "shell",
+        "command": "npm run build",
+        "options": {
+          "cwd": "${workspaceFolder:🔧 Backend}",
+        },
+        "problemMatcher": ["$tsc"],
+        "group": {
+          "kind": "build",
+          "isDefault": false,
+        },
+      },
+      {
+        "label": "🏗️ Build Frontend",
+        "type": "shell",
+        "command": "npm run build",
+        "options": {
+          "cwd": "${workspaceFolder:🎨 Frontend}",
+        },
+        "problemMatcher": ["$tsc"],
+        "group": {
+          "kind": "build",
+          "isDefault": false,
+        },
+      },
+      {
+        "label": "🔍 Lint Backend",
+        "type": "shell",
+        "command": "npm run lint",
+        "options": {
+          "cwd": "${workspaceFolder:🔧 Backend}",
+        },
+        "problemMatcher": ["$eslint-stylish"],
+      },
+      {
+        "label": "🔍 Lint Frontend",
+        "type": "shell",
+        "command": "npm run lint",
+        "options": {
+          "cwd": "${workspaceFolder:🎨 Frontend}",
+        },
+        "problemMatcher": ["$eslint-stylish"],
+      },
+      {
+        "label": "🐳 Layer 1: Infra Up",
+        "type": "shell",
+        "command": "docker compose --env-file ../.env up -d",
+        "options": {
+          "cwd": "${workspaceFolder:🎯 Root}/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/01-infrastructure",
+        },
+        "problemMatcher": [],
+      },
+      {
+        "label": "🐳 Layer 2: Platform Up",
+        "type": "shell",
+        "command": "docker compose --env-file ../.env up -d",
+        "options": {
+          "cwd": "${workspaceFolder:🎯 Root}/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/02-platform",
+        },
+        "problemMatcher": [],
+      },
+      {
+        "label": "🐳 Layer 3: Application Up",
+        "type": "shell",
+        "command": "docker compose --env-file ../.env up -d",
+        "options": {
+          "cwd": "${workspaceFolder:🎯 Root}/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/03-application",
+        },
+        "problemMatcher": [],
+      },
+      {
+        "label": "🐳 Layer 4: AI (OCR) Up",
+        "type": "shell",
+        "command": "docker compose --env-file ../../.env up -d",
+        "options": {
+          "cwd": "${workspaceFolder:🎯 Root}/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar",
+        },
+        "problemMatcher": [],
+      },
+      {
+        "label": "🐳 All Layers Down",
+        "type": "shell",
+        "command": "cd \"${workspaceFolder:🎯 Root}/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/03-application\" && docker compose --env-file ../.env down && cd \"../02-platform\" && docker compose --env-file ../.env down && cd \"../01-infrastructure\" && docker compose --env-file ../.env down && cd \"../04-ai/ocr-sidecar\" && docker compose --env-file ../../.env down",
+        "problemMatcher": [],
+      },
+      {
+        "label": "🐳 Deploy to New Server",
+        "type": "shell",
+        "command": "bash scripts/deploy.sh",
+        "options": {
+          "cwd": "${workspaceFolder:🎯 Root}",
+        },
+        "problemMatcher": [],
+      },
+      {
+        "label": "🔄 Rollback on New Server",
+        "type": "shell",
+        "command": "bash scripts/rollback.sh",
+        "options": {
+          "cwd": "${workspaceFolder:🎯 Root}",
+        },
+        "problemMatcher": [],
+      },
+      // 1. Task หลักที่จะรันอัตโนมัติเมื่อเปิดโปรแกรม
+      {
+        "label": "🚀 Setup Workspace",
+        "dependsOn": ["🎯 Term: Root", "🔧 Term: Backend", "🎨 Term: Frontend"],
+        "runOptions": {
+          "runOn": "folderOpen",
+        },
+        "presentation": {
+          "reveal": "never",
+        },
+        "problemMatcher": [],
+      },
+      // 2. Task ย่อย: เปิด Terminal ที่ Root
+      {
+        "label": "🎯 Term: Root",
+        "type": "shell",
+        "command": "bash",
+        "options": {
+          "cwd": "${workspaceFolder:🎯 Root}",
+        },
+        "isBackground": true,
+        "problemMatcher": [],
+        "presentation": {
+          "reveal": "always",
+          "panel": "dedicated",
+          "focus": false,
+        },
+      },
+      // 3. Task ย่อย: เปิด Terminal ที่ Backend
+      {
+        "label": "🔧 Term: Backend",
+        "type": "shell",
+        "command": "bash",
+        "options": {
+          "cwd": "${workspaceFolder:🔧 Backend}",
+        },
+        "isBackground": true,
+        "problemMatcher": [],
+        "presentation": {
+          "group": "workspace-terminals",
+          "reveal": "always",
+          "panel": "dedicated",
+          "focus": false,
+        },
+      },
+      // 4. Task ย่อย: เปิด Terminal ที่ Frontend
+      {
+        "label": "🎨 Term: Frontend",
+        "type": "shell",
+        "command": "bash",
+        "options": {
+          "cwd": "${workspaceFolder:🎨 Frontend}",
+        },
+        "isBackground": true,
+        "problemMatcher": [],
+        "presentation": {
+          "group": "workspace-terminals",
+          "reveal": "always",
+          "panel": "dedicated",
+          "focus": false,
+        },
+      },
+      // 5. Task ย่อย: เปิด Vitest Watch Mode ที่ Frontend (Manual run only)
+      {
+        "label": "🧪 Vitest Watch Frontend",
+        "type": "shell",
+        "command": "npm run test:watch",
+        "options": {
+          "cwd": "${workspaceFolder:🎨 Frontend}",
+        },
+        "isBackground": true,
+        "problemMatcher": [],
+        "presentation": {
+          "group": "workspace-terminals",
+          "reveal": "always",
+          "panel": "dedicated",
+          "focus": false,
+        },
+      },
+    ],
+  },
+  "extensions": {
+    "recommendations": [
+      "dbaeumer.vscode-eslint",
+      "esbenp.prettier-vscode",
+      "redhat.vscode-yaml",
+      "ms-azuretools.vscode-containers",
+      "mtxr.sqltools",
+      "mtxr.sqltools-driver-mysql",
+      "bradlc.vscode-tailwindcss",
+      "firsttris.vscode-jest",
+      "vitest.explorer",
+      "wayou.vscode-todo-highlight",
+      "aaron-bond.better-comments",
+      "usernamehw.errorlens",
+      "christian-kohler.path-intellisense",
+      "christian-kohler.npm-intellisense",
+      "PKief.material-icon-theme",
+      "humao.rest-client",
+    ],
+  },
+}
