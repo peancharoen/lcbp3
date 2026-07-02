@@ -47,4 +47,5 @@
 | 2026-06-20 | v1.9.10 | OCR Sidecar Review Fixes — ลบ hardcoded API key ใน SandboxOcrEngineService (FR-001), rewrite API contract v1.1 (เพิ่ม /ocr-upload, /embed, /rerank; แก้ camelCase fields, response schema, error format, path traversal doc) | ✅ Complete (pending tsc verify) |
 | 2026-06-22 | v1.9.10 | OCR Sidecar Refactor Validation (Speckit-140) — speckit-validate: 17/17 active FRs pass, 13/14 active ACs, 8/8 edge cases, 41 tests, 3 FRs blocked by ADR-041, 2 minor gaps (benchmarks) | ✅ PASS (with minor gaps) |
 | 2026-06-27 | v1.9.10 | ADR-041 Migration Step 4.7 — Gitea SSH via Cloudflare Tunnel (`git-ssh.np-dms.work`), แก้ Network is unreachable จาก Cloudflare proxy ไม่รองรับ SSH port; SSH config + known_hosts + git remote updated | ✅ Complete (SSH verified) |
+| 2026-07-02 | v1.9.10 | New Server Setup — pnpm install, 2git.sh (PowerShell→bash), fix root ownership on node_modules/.husky, add GitHub SSH key + remote, push to both Gitea+GitHub | ✅ Complete |
 
