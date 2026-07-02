@@ -63,7 +63,7 @@ RUN set -e; \
 
 
 # NEXT_PUBLIC_* vars must be set at BUILD TIME (baked into client bundle)
-ARG NEXT_PUBLIC_API_URL=https://backend.np-dms.work/api
+ARG NEXT_PUBLIC_API_URL=http://192.168.10.11:3000/api
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
 # AUTH_URL for NextAuth redirects

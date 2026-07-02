@@ -114,6 +114,8 @@ services:
       ELASTICSEARCH_PORT: '9200'
       ELASTICSEARCH_USERNAME: ${ELASTICSEARCH_USERNAME:-elastic}
       ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:?ELASTICSEARCH_PASSWORD required}
+      # --- CORS (frontend origin) ---
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://192.168.10.11:3001}
       # --- JWT (backend only) ---
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET required}
       JWT_EXPIRATION: '8h'
@@ -185,7 +187,7 @@ services:
       NODE_ENV: 'production'
       HOSTNAME: '0.0.0.0'
       PORT: '3000'
-      NEXT_PUBLIC_API_URL: 'https://backend.np-dms.work/api'
+      NEXT_PUBLIC_API_URL: 'http://192.168.10.11:3000/api'
       AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET required}
       AUTH_URL: 'https://lcbp3.np-dms.work'
       AUTH_TRUST_HOST: 'true'

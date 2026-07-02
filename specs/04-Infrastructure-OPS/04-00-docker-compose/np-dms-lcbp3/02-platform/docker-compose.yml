@@ -196,12 +196,12 @@ services:
       N8N_PUBLIC_URL: 'https://n8n.np-dms.work/'
       WEBHOOK_URL: 'https://n8n.np-dms.work/'
       N8N_EDITOR_BASE_URL: 'https://n8n.np-dms.work/'
-      N8N_PROTOCOL: 'http'
+      N8N_PROTOCOL: 'https'
       N8N_HOST: 'n8n.np-dms.work'
       N8N_PORT: 5678
       N8N_PROXY_HOPS: '1'
       N8N_DIAGNOSTICS_ENABLED: 'false'
-      N8N_SECURE_COOKIE: 'false'
+      N8N_SECURE_COOKIE: 'true'
       N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:?N8N_ENCRYPTION_KEY required}
       N8N_RESTRICT_FILE_ACCESS_TO: '/home/node/.n8n-files'
       N8N_BLOCK_FILE_ACCESS_TO_N8N_FILES: 'false'
@@ -218,7 +218,7 @@ services:
       EXECUTIONS_DATA_PRUNE: 'true'
       EXECUTIONS_DATA_MAX_AGE: 168
     ports:
-      - '5678:5678'
+      - '192.168.10.11:5678:5678'
     networks:
       - lcbp3
     volumes:

@@ -27,6 +27,10 @@
 
 name: lcbp3-ocr
 
+networks:
+  lcbp3:
+    external: true
+
 services:
   ocr-sidecar:
     build:
@@ -35,7 +39,9 @@ services:
     container_name: ocr-sidecar
     restart: unless-stopped
     ports:
-      - "8765:8765"
+      - "192.168.10.11:8765:8765"
+    networks:
+      - lcbp3
     extra_hosts:
       # Linux: map host.docker.internal → host gateway (Windows Docker Desktop มีอยู่แล้ว)
       # จำเป็นสำหรับ Ollama ที่รันเป็น native systemd service บน host (D11)
@@ -102,7 +108,9 @@ services:
       OLLAMA_HOST: "http://host.docker.internal:11434"
       PORT: "9924"
     ports:
-      - "9924:9924"
+      - "192.168.10.11:9924:9924"
+    networks:
+      - lcbp3
     extra_hosts:
       # Linux: map host.docker.internal → host gateway (Windows Docker Desktop มีอยู่แล้ว)
       # จำเป็นสำหรับ Ollama ที่รันเป็น native systemd service บน host (D11)

@@ -143,7 +143,7 @@
 
 #### 0A. OS Installation & Base Config
 
-- [ ] **0.1** ติดตั้ง Ubuntu Server 26.04 LTS บน New Server
+- [X] **0.1** ติดตั้ง Ubuntu Server 26.04 LTS บน New Server
   - ดาวน์โหลด ISO: `ubuntu-26.04-live-server-amd64.iso`
   - ติดตั้งบน SSD 1 (OS disk) — แยกจาก SSD 2 (data disk 1TB)
   - ตั้งค่า static IP: `192.168.10.11/24`, gateway: `192.168.10.1`, DNS: `192.168.10.1`
@@ -678,7 +678,7 @@
   docker pull elasticsearch:8.11.1
   docker pull qdrant/qdrant:v1.16.1
   docker pull gitea/gitea:1.26.0-rootless
-  docker pull n8nio/n8n:2.16.1
+  docker pull n8nio/n8n:2.21.7
   docker pull postgres:16.4-alpine
   docker pull tecnativa/docker-socket-proxy:0.2
   docker pull clamav/clamav:1.4.4
@@ -851,17 +851,17 @@
 
 ##### 0J.3 — Desk-5439 (OCR Sidecar Source) : skip manual move by git pull
 
-- [ ] **0.39** ทดสอบ SSH จาก New Server → Desk-5439
+- [X] **0.39** ทดสอบ SSH จาก New Server → Desk-5439
   ```bash
   ssh peanc@192.168.10.100 "echo 'SSH OK'"
   ```
 
-- [ ] **0.40** ทดสอบ scp จาก Desk-5439 (สำหรับ copy OCR sidecar files)
+- [X] **0.40** ทดสอบ scp จาก Desk-5439 (สำหรับ copy OCR sidecar files)
   ```bash
   scp --dry-run -r peanc@192.168.10.100:/path/to/ocr-sidecar/ /tmp/ocr-test/
   # ตรวจสอบ file list แสดงถูกต้อง
   ```
-
+**ใช้ mamnual copy ไฟล์ OCR sidecar จาก Desk-5439 ไปยัง New Server**
 #### 0K. Ollama — Native systemd Service (Pull Models ล่วงหน้า)
 
 > **D11:** Ollama รันเป็น native systemd service บน New Server — ไม่ใช่ Docker container
@@ -1481,7 +1481,7 @@
 
 #### 4C. Layer 3 — Application (Backend + Frontend + ClamAV)
 
-- [ ] **4.9** Deploy Layer 3 (application) — backend, frontend, clamav:
+- [X] **4.9** Deploy Layer 3 (application) — backend, frontend, clamav:
   ```bash
   cd /opt/np-dms/03-application
   docker compose --env-file ../.env up -d
@@ -1490,7 +1490,7 @@
   # ควรเห็น: clamav (healthy), backend (healthy), frontend (healthy)
   ```
 
-- [ ] **4.10** ตรวจสอบ backend: /health endpoint:
+- [X] **4.10** ตรวจสอบ backend: /health endpoint:
   ```bash
   curl -s http://192.168.10.11:3000/health
   # ควรเห็น: {"status":"ok",...}
@@ -1504,7 +1504,7 @@
   # ควรไม่เห็น error ร้ายแรง
   ```
 
-- [ ] **4.11** ตรวจสอบ frontend: homepage:
+- [X] **4.11** ตรวจสอบ frontend: homepage:
   ```bash
   curl -s -o /dev/null -w "%{http_code}" http://192.168.10.11:3001/
   # ควรเห็น: 200
@@ -1514,7 +1514,7 @@
   # ควรเห็น: 200
   ```
 
-- [ ] **4.12** ตรวจสอบ ClamAV: daemon ready:
+- [X] **4.12** ตรวจสอบ ClamAV: daemon ready:
   ```bash
   docker exec clamav clamdcheck.sh
   # ควรเห็น: clamd is running
@@ -1529,7 +1529,7 @@
 > **D11:** Ollama รันเป็น native systemd service — ไม่ได้ deploy ผ่าน Docker Compose
 > Docker Compose ใน Layer 4 มีเฉพาะ: ocr-sidecar + ollama-metrics
 
-- [ ] **4.13a** เริ่ม Ollama systemd service:
+- [X] **4.13a** เริ่ม Ollama systemd service:
   ```bash
   sudo systemctl start ollama
   # รอ healthy
@@ -1640,7 +1640,7 @@
 
 #### 5A. Start NPM + Update Proxy Configs
 
-- [ ] **5.1** เริ่ม NPM บน QNAP:
+- [X] **5.1** เริ่ม NPM บน QNAP:
   ```bash
   ssh admin@192.168.10.8
   cd /share/np-dms/npm
@@ -1650,7 +1650,7 @@
   # ควรเห็น: npm (healthy), npm-db (healthy) ถ้ามี
   ```
 
-- [ ] **5.2** อัปเดต NPM proxy host configs (ผ่าน NPM UI):
+- [X] **5.2** อัปเดต NPM proxy host configs (ผ่าน NPM UI):
   - เข้า NPM Admin UI: `http://192.168.10.8:81` (หรือ `https://npm.np-dms.work:81`)
   - ไปที่ **Hosts → Proxy Hosts**
   - แก้ไขแต่ละ domain — เปลี่ยน Forward Hostname/IP + Port:

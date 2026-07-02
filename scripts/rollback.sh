@@ -30,10 +30,19 @@ fi
 
 cd "$SOURCE_DIR"
 
-# [1/4] Checkout previous commit
-echo "[1/4] Rolling back to previous commit..."
+# [1/4] Checkout previous deploy tag (or fallback to HEAD~1)
+echo "[1/4] Rolling back to previous deploy..."
 CURRENT_COMMIT=$(git rev-parse HEAD)
-git checkout HEAD~1
+
+# ค้นหา deploy tag ล่าสุดก่อน HEAD
+PREV_TAG=$(git tag --sort=-creatordate | grep '^deploy-' | head -1)
+if [ -n "$PREV_TAG" ] && [ "$(git rev-parse "$PREV_TAG")" != "$CURRENT_COMMIT" ]; then
+  echo "  Found deploy tag: $PREV_TAG"
+  git checkout "$PREV_TAG"
+else
+  echo "  No deploy tag found, falling back to HEAD~1"
+  git checkout HEAD~1
+fi
 PREVIOUS_COMMIT=$(git rev-parse HEAD)
 echo "  Current:  $CURRENT_COMMIT"
 echo "  Previous: $PREVIOUS_COMMIT"

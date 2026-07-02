@@ -106,9 +106,13 @@ nvme1n1 (Data disk) — VG: data-vg
 New Server ต้อง mount ASUSTOR shares ก่อน `docker compose up`:
 
 ```bash
-# /etc/fstab บน New Server
-//192.168.10.9/np-dms-as/data/uploads  /mnt/asustor-uploads  cifs  credentials=/etc/cifs/asustor.cred,uid=0,gid=0,vers=3.0,iocharset=utf8  0  0
-//192.168.10.9/np-dms-as/Legacy        /mnt/asustor-legacy   cifs  credentials=/etc/cifs/asustor.cred,uid=0,gid=0,vers=3.0,iocharset=utf8,ro  0  0
+# /etc/fstab บน New Server (3 separate CIFS shares)
+# uploads/temp (read-write — backend เขียนได้)
+//192.168.10.9/np-dms-as/data/uploads/temp       /mnt/asustor-uploads/temp       cifs  credentials=/etc/cifs/asustor.cred,uid=0,gid=0,vers=3.0,iocharset=utf8,_netdev,nofail  0  0
+# uploads/permanent (read-write — backend ย้ายไฟล์จาก temp มาที่นี่)
+//192.168.10.9/np-dms-as/data/uploads/permanent  /mnt/asustor-uploads/permanent  cifs  credentials=/etc/cifs/asustor.cred,uid=0,gid=0,vers=3.0,iocharset=utf8,_netdev,nofail  0  0
+# legacy (read-only — migration files)
+//192.168.10.9/np-dms-as/Legacy                  /mnt/asustor-legacy             cifs  credentials=/etc/cifs/asustor.cred,uid=0,gid=0,vers=3.0,iocharset=utf8,ro,_netdev,nofail  0  0
 ```
 
 ## Usage (per layer)

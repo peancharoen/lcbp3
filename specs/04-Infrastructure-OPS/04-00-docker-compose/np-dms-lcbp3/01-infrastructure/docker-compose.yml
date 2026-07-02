@@ -174,7 +174,8 @@ services:
     environment:
       TZ: 'Asia/Bangkok'
       discovery.type: 'single-node'
-      xpack.security.enabled: 'false'
+      xpack.security.enabled: 'true'
+      ELASTIC_PASSWORD: ${ELASTICSEARCH_PASSWORD:?ELASTICSEARCH_PASSWORD required}
       ES_JAVA_OPTS: '-Xms2g -Xmx2g'
     ulimits:
       memlock:

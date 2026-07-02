@@ -79,17 +79,16 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: self-hosted
     steps:
-      - name: ' Checkout'
+      - name: " Checkout"
         uses: actions/checkout@v4
 
-      - name: '🚀 Deploy to New Server (np-dms-lcbp3)'
+      - name: "🚀 Deploy to New Server (np-dms-lcbp3)"
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -p ${{ secrets.PORT }} ${{ secrets.HOST }} >> ~/.ssh/known_hosts 2>/dev/null
 
-          ssh -o StrictHostKeyChecking=no \
+          ssh -o StrictHostKeyChecking=accept-new \
               -o ConnectTimeout=30 \
               -o BatchMode=yes \
               -o ServerAliveInterval=30 \

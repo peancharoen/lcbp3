@@ -82,7 +82,7 @@ export default auth((req) => {
   // ใช้ Nonce Strategy เพื่ออนุญาต Inline Script เฉพาะที่ระบุตัวตนได้ ป้องกัน XSS
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
 
-  let connectSrcApi = 'http://localhost:3001';
+  let connectSrcApi = 'http://192.168.10.11:3000';
   if (process.env.NEXT_PUBLIC_API_URL) {
     try {
       connectSrcApi = new URL(process.env.NEXT_PUBLIC_API_URL).origin;
