@@ -49,4 +49,5 @@
 | 2026-06-27 | v1.9.10 | ADR-041 Migration Step 4.7 — Gitea SSH via Cloudflare Tunnel (`git-ssh.np-dms.work`), แก้ Network is unreachable จาก Cloudflare proxy ไม่รองรับ SSH port; SSH config + known_hosts + git remote updated | ✅ Complete (SSH verified) |
 | 2026-07-02 | v1.9.10 | New Server Setup — pnpm install, 2git.sh (PowerShell→bash), fix root ownership on node_modules/.husky, add GitHub SSH key + remote, push to both Gitea+GitHub | ✅ Complete |
 | 2026-07-03 | v1.9.10 | Backend URL Migration + localhost Support — deploy.sh/rollback.sh default URL → IP, Docker port binding → 0.0.0.0, CORS_ORIGIN + localhost, CSP fallback + localhost | ✅ Complete (pending restart) |
+| 2026-07-03 | v1.9.10 | Deploy Permission Fix — ownership guard + `install` แทน `cp` ใน deploy.sh/rollback.sh; `chown np-dms` ไฟล์ทั้ง 3 layers บน server | ✅ Complete (pending CI verify) |
 

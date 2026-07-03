@@ -64,6 +64,7 @@
 | D31 | Gitea SSH ผ่าน Cloudflare Tunnel — ใช้ domain `git-ssh.np-dms.work` (แยกจาก `git.np-dms.work` สำหรับ HTTP/HTTPS) เพราะ Cloudflare proxy ไม่รองรับ SSH port; client ต้องใช้ `ProxyCommand cloudflared access ssh --hostname %h` ใน SSH config; docker-compose port mapping `192.168.10.11:2222:22` ถูกต้อง (Docker ให้ CAP_NET_BIND_SERVICE) | ADR-041            |
 | D32 | Dev environment ย้ายจาก Windows → Linux server `np-dms-lcbp3` — pnpm v10.33.0, node_modules ownership = `nattanin:nattanin`, `2git.sh` แทน `2git.ps1`, GitHub SSH key เพิ่มแล้ว, remotes: `origin` (Gitea SSH) + `github` (GitHub SSH)                                                                                                      | Session 2026-07-02 |
 | D33 | Docker port binding ใช้ `0.0.0.0` (ไม่ใช่ IP เฉพาะ) เพื่อให้เข้าได้ทั้ง LAN IP และ localhost; `CORS_ORIGIN` ต้องมีทั้ง `http://192.168.10.11:3001` และ `http://localhost:3001,http://127.0.0.1:3001`; deploy.sh/rollback.sh default URL = `http://192.168.10.11:3000/api` (ไม่ใช่ `backend.np-dms.work`) | Session 2026-07-03 |
+| D34 | Deploy/rollback scripts ต้องมี ownership guard ตรวจสอบ runtime compose files ก่อนดำเนินการ และใช้ `install -m 644` แทน `cp` เพื่อหลีกเลี่ยง Permission denied จาก root-owned files; runtime compose files ต้องเป็นของ deploy user (`np-dms`) | Session 2026-07-03 |
 
 ## Environment & Services
 
@@ -250,3 +251,10 @@ QDRANT_URL
 - [x] CORS_ORIGIN + `http://localhost:3001,http://127.0.0.1:3001` (3 .env files)
 - [x] CSP fallback + `http://localhost:3000` ใน `proxy.ts`
 - [ ] Restart application stack เพื่อให้ port binding และ CORS ใหม่มีผล
+
+### Deploy Permission Fix (Session 2026-07-03) ✅ COMPLETE
+
+- [x] Ownership guard ใน `deploy.sh` + `rollback.sh` (step `[0/4]`)
+- [x] `install -m 644` แทน `cp` ใน `deploy.sh`
+- [x] `chown np-dms:np-dms` ไฟล์ทั้ง 3 layers บน server
+- [ ] CI deploy สำเร็จหลัง push commit นี้

@@ -43,12 +43,32 @@ cd "$SOURCE_DIR"
 # เปิด BuildKit เพื่อ layer cache
 export DOCKER_BUILDKIT=1
 
+# [0/4] Ownership guard — ตรวจสอบว่า runtime compose files เป็นของ np-dms
+# ป้องกัน Permission denied จากไฟล์ที่ root เป็นเจ้าของ (เกิดจาก initial setup โดย root)
+echo "[0/4] Checking runtime file ownership..."
+RUNTIME_DIRS=("/opt/np-dms/01-infrastructure" "/opt/np-dms/02-platform" "$COMPOSE_RUNTIME_DIR")
+OWNERSHIP_OK=true
+for dir in "${RUNTIME_DIRS[@]}"; do
+    if [ -f "$dir/docker-compose.yml" ]; then
+        FILE_OWNER=$(stat -c '%U' "$dir/docker-compose.yml" 2>/dev/null || echo "unknown")
+        if [ "$FILE_OWNER" != "$(whoami)" ]; then
+            echo "  ⚠️  $dir/docker-compose.yml owned by '$FILE_OWNER' (expected: $(whoami))"
+            OWNERSHIP_OK=false
+        fi
+    fi
+done
+if [ "$OWNERSHIP_OK" = false ]; then
+    echo "  ❌ Runtime files have wrong ownership — run: sudo chown $(whoami):$(whoami) /opt/np-dms/*/docker-compose.yml"
+    exit 1
+fi
+echo "✓ Ownership OK"
+
 # [1/4] Sync compose files from source repo to runtime dirs
 # อัปเดตเฉพาะ Layer 3 (application) — Layer 1/2/4 ไม่เปลี่ยนตาม code deploy
+# ใช้ install แทน cp เพื่อสร้างไฟล์ใหม่เสมอ (ป้องกัน Permission denied จาก root-owned file)
 echo "[1/4] Syncing compose files to runtime dirs..."
 mkdir -p "$COMPOSE_RUNTIME_DIR"
-rm -f "$COMPOSE_RUNTIME_DIR/docker-compose.yml"
-cp "$COMPOSE_SRC_DIR/03-application/docker-compose.yml" "$COMPOSE_RUNTIME_DIR/docker-compose.yml"
+install -m 644 "$COMPOSE_SRC_DIR/03-application/docker-compose.yml" "$COMPOSE_RUNTIME_DIR/docker-compose.yml"
 echo "✓ Layer 3 compose file synced"
 
 # [2/4] Build images (sequential to reduce resource contention)

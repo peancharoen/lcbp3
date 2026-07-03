@@ -30,6 +30,26 @@ fi
 
 cd "$SOURCE_DIR"
 
+# [0/4] Ownership guard — ตรวจสอบว่า runtime compose files เป็นของ np-dms
+# ป้องกัน Permission denied จากไฟล์ที่ root เป็นเจ้าของ (เกิดจาก initial setup โดย root)
+echo "[0/4] Checking runtime file ownership..."
+RUNTIME_DIRS=("/opt/np-dms/01-infrastructure" "/opt/np-dms/02-platform" "$COMPOSE_RUNTIME_DIR")
+OWNERSHIP_OK=true
+for dir in "${RUNTIME_DIRS[@]}"; do
+    if [ -f "$dir/docker-compose.yml" ]; then
+        FILE_OWNER=$(stat -c '%U' "$dir/docker-compose.yml" 2>/dev/null || echo "unknown")
+        if [ "$FILE_OWNER" != "$(whoami)" ]; then
+            echo "  ⚠️  $dir/docker-compose.yml owned by '$FILE_OWNER' (expected: $(whoami))"
+            OWNERSHIP_OK=false
+        fi
+    fi
+done
+if [ "$OWNERSHIP_OK" = false ]; then
+    echo "  ❌ Runtime files have wrong ownership — run: sudo chown $(whoami):$(whoami) /opt/np-dms/*/docker-compose.yml"
+    exit 1
+fi
+echo "✓ Ownership OK"
+
 # [1/4] Checkout previous deploy tag (or fallback to HEAD~1)
 echo "[1/4] Rolling back to previous deploy..."
 CURRENT_COMMIT=$(git rev-parse HEAD)
