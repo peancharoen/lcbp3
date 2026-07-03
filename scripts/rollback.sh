@@ -12,7 +12,7 @@ SOURCE_DIR="/opt/np-dms-lcbp3"
 COMPOSE_RUNTIME_DIR="/opt/np-dms/03-application"
 ENV_FILE="/opt/np-dms/.env"
 
-API_URL="https://backend.np-dms.work/api"
+API_URL="http://192.168.10.11:3000/api"
 AUTH_URL="https://lcbp3.np-dms.work"
 
 echo "========================================="

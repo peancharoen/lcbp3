@@ -145,7 +145,7 @@ services:
     networks:
       - lcbp3
     ports:
-      - '192.168.10.11:3000:3000'
+      - '0.0.0.0:3000:3000'
     volumes:
       # ASUSTOR CIFS — uploads (Primary NAS — ADR-041 D2)
       - '/mnt/asustor-uploads/temp:/app/uploads/temp'
@@ -195,7 +195,7 @@ services:
     networks:
       - lcbp3
     ports:
-      - '192.168.10.11:3001:3000'
+      - '0.0.0.0:3001:3000'
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:3000/']
       interval: 30s

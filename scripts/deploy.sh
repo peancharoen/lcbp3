@@ -17,7 +17,7 @@ COMPOSE_SRC_DIR="$SOURCE_DIR/specs/04-Infrastructure-OPS/04-00-docker-compose/np
 COMPOSE_RUNTIME_DIR="/opt/np-dms/03-application"
 ENV_FILE="/opt/np-dms/.env"
 
-API_URL="https://backend.np-dms.work/api"
+API_URL="http://192.168.10.11:3000/api"
 AUTH_URL="https://lcbp3.np-dms.work"
 
 echo "========================================="
