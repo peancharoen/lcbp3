@@ -63,13 +63,14 @@
 | D30 | API Contract ต้อง match actual implementation — ห้ามเขียน contract ที่ field naming หรือ response schema ไม่ตรง Pydantic models จริง; `/ocr-upload` เป็น primary production endpoint, `/ocr` เป็น legacy; `/ocr-upload` ปลอดภัยจาก path traversal โดย design (รับ file bytes ไม่ใช่ path)                                                   | ADR-040            |
 | D31 | Gitea SSH ผ่าน Cloudflare Tunnel — ใช้ domain `git-ssh.np-dms.work` (แยกจาก `git.np-dms.work` สำหรับ HTTP/HTTPS) เพราะ Cloudflare proxy ไม่รองรับ SSH port; client ต้องใช้ `ProxyCommand cloudflared access ssh --hostname %h` ใน SSH config; docker-compose port mapping `192.168.10.11:2222:22` ถูกต้อง (Docker ให้ CAP_NET_BIND_SERVICE) | ADR-041            |
 | D32 | Dev environment ย้ายจาก Windows → Linux server `np-dms-lcbp3` — pnpm v10.33.0, node_modules ownership = `nattanin:nattanin`, `2git.sh` แทน `2git.ps1`, GitHub SSH key เพิ่มแล้ว, remotes: `origin` (Gitea SSH) + `github` (GitHub SSH)                                                                                                      | Session 2026-07-02 |
+| D33 | Docker port binding ใช้ `0.0.0.0` (ไม่ใช่ IP เฉพาะ) เพื่อให้เข้าได้ทั้ง LAN IP และ localhost; `CORS_ORIGIN` ต้องมีทั้ง `http://192.168.10.11:3001` และ `http://localhost:3001,http://127.0.0.1:3001`; deploy.sh/rollback.sh default URL = `http://192.168.10.11:3000/api` (ไม่ใช่ `backend.np-dms.work`) | Session 2026-07-03 |
 
 ## Environment & Services
 
 | Service          | Local URL / Port              | Production                        | Notes                                                                                              |
 | ---------------- | ----------------------------- | --------------------------------- | -------------------------------------------------------------------------------------------------- |
-| **Backend API**  | `http://localhost:3001`       | `https://backend.np-dms.work/api` | NestJS — port 3000 in container, exposed via Nginx Proxy Manager                                   |
-| **Frontend**     | `http://localhost:3000`       | QNAP `192.168.10.8`               | Next.js                                                                                            |
+| **Backend API**  | `http://localhost:3000`       | `http://192.168.10.11:3000/api`   | NestJS — port 3000 in container, bound `0.0.0.0:3000` (localhost + LAN)                           |
+| **Frontend**     | `http://localhost:3001`       | `http://192.168.10.11:3001`       | Next.js — port 3000 in container, bound `0.0.0.0:3001` (localhost + LAN)                          |
 | **MariaDB**      | `localhost:3307`              | QNAP internal                     | DB: `lcbp3`, root via docker                                                                       |
 | **Redis**        | `localhost:6379`              | QNAP internal                     | BullMQ + session store                                                                             |
 | **Ollama**       | `http://192.168.10.100:11434` | Admin Desktop (Desk-5439)         | np-dms-ai:latest (main) + np-dms-ocr:latest (OCR, keep_alive:0)                                    |
@@ -241,3 +242,11 @@ QDRANT_URL
 - [x] GitHub SSH key เพิ่มแล้ว
 - [x] GitHub remote เพิ่มแล้ว (`git@github.com:peancharoen/lcbp3.git`)
 - [x] Push สำเร็จทั้ง Gitea และ GitHub
+
+### Backend URL Migration + localhost Support (Session 2026-07-03) ✅ COMPLETE
+
+- [x] deploy.sh/rollback.sh default URL → `http://192.168.10.11:3000/api`
+- [x] Docker port binding → `0.0.0.0:3000:3000` และ `0.0.0.0:3001:3000`
+- [x] CORS_ORIGIN + `http://localhost:3001,http://127.0.0.1:3001` (3 .env files)
+- [x] CSP fallback + `http://localhost:3000` ใน `proxy.ts`
+- [ ] Restart application stack เพื่อให้ port binding และ CORS ใหม่มีผล

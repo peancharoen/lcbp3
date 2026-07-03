@@ -47,6 +47,7 @@ export DOCKER_BUILDKIT=1
 # อัปเดตเฉพาะ Layer 3 (application) — Layer 1/2/4 ไม่เปลี่ยนตาม code deploy
 echo "[1/4] Syncing compose files to runtime dirs..."
 mkdir -p "$COMPOSE_RUNTIME_DIR"
+rm -f "$COMPOSE_RUNTIME_DIR/docker-compose.yml"
 cp "$COMPOSE_SRC_DIR/03-application/docker-compose.yml" "$COMPOSE_RUNTIME_DIR/docker-compose.yml"
 echo "✓ Layer 3 compose file synced"
 
