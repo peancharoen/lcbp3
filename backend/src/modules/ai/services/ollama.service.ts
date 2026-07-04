@@ -52,7 +52,7 @@ export class OllamaService {
       'OLLAMA_URL',
       this.configService.get<string>(
         'AI_HOST_URL',
-        'http://192.168.10.100:11434'
+        'http://192.168.10.11:11434'
       )
     );
     this.mainModel = this.configService.get<string>(

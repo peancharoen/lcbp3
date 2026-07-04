@@ -57,7 +57,7 @@ export class AiRagService {
   ) {
     this.ollamaUrl = this.configService.get<string>(
       'OLLAMA_URL',
-      'http://localhost:11434'
+      'http://192.168.10.11:11434'
     );
     this.ollamaModel = this.configService.get<string>(
       'OLLAMA_RAG_MODEL',

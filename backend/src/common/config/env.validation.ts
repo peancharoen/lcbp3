@@ -30,7 +30,9 @@ export const envValidationSchema = Joi.object({
   REDIS_PASSWORD: Joi.string().required(),
 
   // 5. AI Gateway Configuration (ADR-023)
-  // URL หลักของเครื่อง AI Host (Desk-5439)
+  // URL ของ Ollama (ADR-041: native systemd บน New Server 192.168.10.11)
+  OLLAMA_URL: Joi.string().uri().optional(),
+  // URL หลักของเครื่อง AI Host (legacy — Desk-5439 ที่ถูกยกเลิก)
   AI_HOST_URL: Joi.string().uri().optional(),
   // URL ของ Qdrant บนเครื่อง AI Host
   AI_QDRANT_URL: Joi.string().uri().optional(),

@@ -133,7 +133,7 @@ services:
       OCR_SIDECAR_UPLOAD_BASE: ${OCR_SIDECAR_UPLOAD_BASE:-/mnt/uploads}
       OCR_SIDECAR_API_KEY: ${OCR_SIDECAR_API_KEY:?OCR_SIDECAR_API_KEY required}
       # --- Ollama (native systemd — D11, ไม่ใช่ Docker internal) ---
-      OLLAMA_API_URL: 'http://192.168.10.11:11434'
+      OLLAMA_URL: 'http://192.168.10.11:11434'
       # --- Numbering ---
       NUMBERING_LOCK_TIMEOUT: '5000'
       NUMBERING_RESERVATION_TTL: '300'

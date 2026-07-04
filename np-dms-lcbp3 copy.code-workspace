@@ -371,10 +371,9 @@
     // ========================================
 
     // Unified JS/TS settings (replaces deprecated javascript.* and typescript.*)
-    "js/ts.suggest.autoImports": true,
-    "js/ts.updateImportsOnFileMove.enabled": "always",
-    "js/ts.preferences.importModuleSpecifier": "relative",
-    "js/ts.tsdk": "node_modules/typescript/lib",
+    "#js/ts.suggest.autoImports": true,
+    "#js/ts.updateImportsOnFileMove.enabled": "always",
+    "#js/ts.preferences.importModuleSpecifier": "relative",
 
     // Unified inlay hints (replaces deprecated javascript.inlayHints.* and typescript.inlayHints.*)
     "editor.inlayHints.parameterNames.enabled": "all",
@@ -382,6 +381,8 @@
     "editor.inlayHints.variableTypes.enabled": false,
     "editor.inlayHints.propertyDeclarationTypes.enabled": true,
 
+    // Unified TypeScript SDK path (replaces deprecated typescript.tsdk)
+    "#js/ts.tsdk.path": "node_modules/typescript/lib", // ✅ ใช้ relative path
     // ========================================
     // EMMET
     // ========================================
@@ -564,14 +565,7 @@
     // กำหนด path ของ Jest ถ้าใช้ local install
     "jest.pathToJest": "node_modules/.bin/jest",
 
-    "jest.disabledWorkspaceFolders": [
-      "🎯 Root",
-      "🗓️ docs",
-      "🔗 specs",
-      "🐳 docker-compose",
-      "📦 np-dms",
-      "🎨 Frontend",
-    ],
+    "jest.disabledWorkspaceFolders": ["🎯 Root", "🗓️ docs", "🔗 specs", "🎨 Frontend"],
 
     // ========================================
     // DOCKER
@@ -915,67 +909,46 @@
         },
         "problemMatcher": ["$eslint-stylish"],
       },
-      // --- LAYER 1-4: DOCKER INFRASTRUCTURE (จัดกลุ่มให้อยู่ด้วยกัน) ---
       {
         "label": "🐳 Layer 1: Infra Up",
         "type": "shell",
         "command": "docker compose --env-file ../.env up -d",
         "options": {
-          "cwd": "${workspaceFolder:📦 np-dms}/01-infrastructure",
+          "cwd": "${workspaceFolder:🎯 Root}/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/01-infrastructure",
         },
         "problemMatcher": [],
-        "presentation": {
-          "group": "docker-stack",
-          "reveal": "always",
-          "panel": "dedicated",
-        },
       },
       {
         "label": "🐳 Layer 2: Platform Up",
         "type": "shell",
         "command": "docker compose --env-file ../.env up -d",
         "options": {
-          "cwd": "${workspaceFolder:📦 np-dms}/02-platform",
+          "cwd": "${workspaceFolder:🎯 Root}/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/02-platform",
         },
         "problemMatcher": [],
-        "presentation": {
-          "group": "docker-stack",
-          "reveal": "always",
-          "panel": "dedicated",
-        },
       },
       {
         "label": "🐳 Layer 3: Application Up",
         "type": "shell",
         "command": "docker compose --env-file ../.env up -d",
         "options": {
-          "cwd": "${workspaceFolder:📦 np-dms}/03-application",
+          "cwd": "${workspaceFolder:🎯 Root}/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/03-application",
         },
         "problemMatcher": [],
-        "presentation": {
-          "group": "docker-stack",
-          "reveal": "always",
-          "panel": "dedicated",
-        },
       },
       {
         "label": "🐳 Layer 4: AI (OCR) Up",
         "type": "shell",
         "command": "docker compose --env-file ../../.env up -d",
         "options": {
-          "cwd": "${workspaceFolder:📦 np-dms}/04-ai/ocr-sidecar",
+          "cwd": "${workspaceFolder:🎯 Root}/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar",
         },
         "problemMatcher": [],
-        "presentation": {
-          "group": "docker-stack",
-          "reveal": "always",
-          "panel": "dedicated",
-        },
       },
       {
         "label": "🐳 All Layers Down",
         "type": "shell",
-        "command": "cd \"${workspaceFolder:📦 np-dms}/03-application\" && docker compose --env-file ../.env down && cd \"../02-platform\" && docker compose --env-file ../.env down && cd \"../01-infrastructure\" && docker compose --env-file ../.env down && cd \"../04-ai/ocr-sidecar\" && docker compose --env-file ../../.env down",
+        "command": "cd \"${workspaceFolder:🎯 Root}/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/03-application\" && docker compose --env-file ../.env down && cd \"../02-platform\" && docker compose --env-file ../.env down && cd \"../01-infrastructure\" && docker compose --env-file ../.env down && cd \"../04-ai/ocr-sidecar\" && docker compose --env-file ../../.env down",
         "problemMatcher": [],
       },
       {
@@ -1000,14 +973,14 @@
       {
         "label": "🚀 Setup Workspace",
         "dependsOn": [
-          "🎯 Root",
-          "📦 np-dms",
-          "🐳 01-Infra",
-          "🐳 02-Platform",
-          "🐳 03-App",
-          "🐳 04-AI",
-          "🔧 Backend",
-          "🎨 Frontend",
+          "🎯 Term: Root",
+          "🔧 Term: Backend",
+          "🎨 Term: Frontend",
+          "📦 Term: np-dms",
+          "🐳 Term: 01-Infra",
+          "🐳 Term: 02-Platform",
+          "🐳 Term: 03-App",
+          "🐳 Term: 04-AI",
         ],
         "runOptions": {
           "runOn": "folderOpen",
@@ -1019,7 +992,7 @@
       },
       // 2. Task ย่อย: เปิด Terminal ที่ Root
       {
-        "label": "🎯 Root",
+        "label": "🎯 Term: Root",
         "type": "shell",
         "command": "bash",
         "options": {
@@ -1035,7 +1008,7 @@
       },
       // 3. Task ย่อย: เปิด Terminal ที่ Backend
       {
-        "label": "🔧 Backend",
+        "label": "🔧 Term: Backend",
         "type": "shell",
         "command": "bash",
         "options": {
@@ -1052,7 +1025,7 @@
       },
       // 4. Task ย่อย: เปิด Terminal ที่ Frontend
       {
-        "label": "🎨 Frontend",
+        "label": "🎨 Term: Frontend",
         "type": "shell",
         "command": "bash",
         "options": {
@@ -1069,15 +1042,16 @@
       },
       // 5. Task ย่อย: เปิด Terminal ที่ np-dms
       {
-        "label": "📦 np-dms",
+        "label": "📦 Term: np-dms",
         "type": "shell",
         "command": "bash",
         "options": {
-          "cwd": "${workspaceFolder:📦 np-dms}",
+          "cwd": "${workspaceFolder:🎯 np-dms}",
         },
         "isBackground": true,
         "problemMatcher": [],
         "presentation": {
+          "group": "workspace-terminals",
           "reveal": "always",
           "panel": "dedicated",
           "focus": false,
@@ -1085,15 +1059,16 @@
       },
       // 6. Task ย่อย: เปิด Terminal ที่ 01-infrastructure
       {
-        "label": "🐳 01-Infra",
+        "label": "🐳 Term: 01-Infra",
         "type": "shell",
         "command": "bash",
         "options": {
-          "cwd": "${workspaceFolder:📦 np-dms}/01-infrastructure",
+          "cwd": "${workspaceFolder:🎯 np-dms}/01-infrastructure",
         },
         "isBackground": true,
         "problemMatcher": [],
         "presentation": {
+          "group": "workspace-terminals",
           "reveal": "always",
           "panel": "dedicated",
           "focus": false,
@@ -1101,15 +1076,16 @@
       },
       // 7. Task ย่อย: เปิด Terminal ที่ 02-platform
       {
-        "label": "🐳 02-Platform",
+        "label": "🐳 Term: 02-Platform",
         "type": "shell",
         "command": "bash",
         "options": {
-          "cwd": "${workspaceFolder:📦 np-dms}/02-platform",
+          "cwd": "${workspaceFolder:🎯 np-dms}/02-platform",
         },
         "isBackground": true,
         "problemMatcher": [],
         "presentation": {
+          "group": "workspace-terminals",
           "reveal": "always",
           "panel": "dedicated",
           "focus": false,
@@ -1117,15 +1093,16 @@
       },
       // 8. Task ย่อย: เปิด Terminal ที่ 03-application
       {
-        "label": "🐳 03-App",
+        "label": "🐳 Term: 03-App",
         "type": "shell",
         "command": "bash",
         "options": {
-          "cwd": "${workspaceFolder:📦 np-dms}/03-application",
+          "cwd": "${workspaceFolder:🎯 np-dms}/03-application",
         },
         "isBackground": true,
         "problemMatcher": [],
         "presentation": {
+          "group": "workspace-terminals",
           "reveal": "always",
           "panel": "dedicated",
           "focus": false,
@@ -1133,15 +1110,16 @@
       },
       // 9. Task ย่อย: เปิด Terminal ที่ 04-ai/ocr-sidecar
       {
-        "label": "🐳 04-AI",
+        "label": "🐳 Term: 04-AI",
         "type": "shell",
         "command": "bash",
         "options": {
-          "cwd": "${workspaceFolder:📦 np-dms}/04-ai/ocr-sidecar",
+          "cwd": "${workspaceFolder:🎯 np-dms}/04-ai/ocr-sidecar",
         },
         "isBackground": true,
         "problemMatcher": [],
         "presentation": {
+          "group": "workspace-terminals",
           "reveal": "always",
           "panel": "dedicated",
           "focus": false,

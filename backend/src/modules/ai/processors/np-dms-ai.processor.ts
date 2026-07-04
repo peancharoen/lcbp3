@@ -66,7 +66,10 @@ export class NpDmsAiProcessor extends WorkerHost {
     super();
     this.ollamaUrl = this.configService.get<string>(
       'OLLAMA_URL',
-      this.configService.get<string>('AI_HOST_URL', 'http://localhost:11434')
+      this.configService.get<string>(
+        'AI_HOST_URL',
+        'http://192.168.10.11:11434'
+      )
     );
     this.defaultModel = this.configService.get<string>(
       'OLLAMA_MODEL_MAIN',

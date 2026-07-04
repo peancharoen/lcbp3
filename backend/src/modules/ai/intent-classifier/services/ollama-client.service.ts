@@ -1,6 +1,7 @@
 // File: src/modules/ai/intent-classifier/services/ollama-client.service.ts
 // Change Log
 // - 2026-05-19: สร้าง Ollama Client สำหรับ Intent Classification LLM Fallback (ADR-024, ADR-023A).
+// - 2026-07-04: ADR-041 — เปลี่ยน OLLAMA_BASE_URL เป็น OLLAMA_URL เพื่อความสอดคล้องกับ service อื่น; แก้ไข fallback URL เป็น 192.168.10.11 (New Server)
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -52,8 +53,11 @@ export class OllamaClientService {
 
   constructor(private readonly configService: ConfigService) {
     this.baseUrl = this.configService.get<string>(
-      'OLLAMA_BASE_URL',
-      this.configService.get<string>('AI_HOST_URL', 'http://localhost:11434')
+      'OLLAMA_URL',
+      this.configService.get<string>(
+        'AI_HOST_URL',
+        'http://192.168.10.11:11434'
+      )
     );
     this.model = this.configService.get<string>(
       'OLLAMA_INTENT_MODEL',

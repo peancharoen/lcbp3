@@ -630,7 +630,7 @@
   |-------|-------------|
   | **01-infrastructure** | `DB_ROOT_PASSWORD`, `DB_PASSWORD`, `REDIS_PASSWORD`, `ELASTICSEARCH_PASSWORD`, `ASUSTOR_USER/PASS` (CIFS volume) |
   | **02-platform** | `GITEA_DB_PASSWORD`, `N8N_DB_PASSWORD`, `N8N_ENCRYPTION_KEY`, `DB_HOST` |
-  | **03-application** | `DB_PASSWORD`, `REDIS_PASSWORD`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, `AUTH_SECRET`, `CLAMAV_HOST`, `OCR_*`, `OLLAMA_API_URL`, `QDRANT_*` |
+  | **03-application** | `DB_PASSWORD`, `REDIS_PASSWORD`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, `AUTH_SECRET`, `CLAMAV_HOST`, `OCR_*`, `OLLAMA_URL`, `QDRANT_*` |
   | **04-ai** | `OCR_SIDECAR_API_KEY`, `OCR_MODEL`, `GPU_*`, `VRAM_*`, `OCR_RESIDENCY_*` |
 
 - [X] **0.19** Copy compose files ไปยัง runtime dirs (ทำใน Step 2 ของ 0.18 แล้ว)
