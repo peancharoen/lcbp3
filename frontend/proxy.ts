@@ -82,24 +82,16 @@ export default auth((req) => {
   // ใช้ Nonce Strategy เพื่ออนุญาต Inline Script เฉพาะที่ระบุตัวตนได้ ป้องกัน XSS
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
 
-  // Backend รัน HTTP-only บน LAN IP — ห้ามใช้ upgrade-insecure-requests
-  // เพราะ browser จะอัปเกรด http→https แต่ backend ไม่มี SSL ทำให้ ERR_SSL_PROTOCOL_ERROR
-  let connectSrcApi = 'http://192.168.10.11:3000 http://localhost:3000';
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    try {
-      connectSrcApi = new URL(process.env.NEXT_PUBLIC_API_URL).origin;
-    } catch {
-      connectSrcApi = process.env.NEXT_PUBLIC_API_URL;
-    }
-  }
-
+  // API ผ่าน NPM proxy (same-origin) — connect-src 'self' ครอบอยู่แล้ว
+  // ไม่ต้องเพิ่ม origin แยกอีก และไม่ใช้ upgrade-insecure-requests
+  // เพราะ backend หลัง proxy เป็น HTTP แต่ browser เห็นเป็น HTTPS ผ่าน NPM
   const cspHeader = [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'unsafe-eval' 'unsafe-inline' http: https:`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' blob: data: https:",
     "font-src 'self' data:",
-    `connect-src 'self' ws: wss: ${connectSrcApi}`,
+    `connect-src 'self' ws: wss:`,
     // Monaco Editor Web Workers ต้องการ blob: URL สำหรับ inline workers
     "worker-src 'self' blob:",
     "object-src 'none'",
