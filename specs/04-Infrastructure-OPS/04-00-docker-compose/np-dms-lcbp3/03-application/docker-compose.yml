@@ -115,7 +115,7 @@ services:
       ELASTICSEARCH_USERNAME: ${ELASTICSEARCH_USERNAME:-elastic}
       ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:?ELASTICSEARCH_PASSWORD required}
       # --- CORS (frontend origin) ---
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://192.168.10.11:3001}
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://lcbp3.np-dms.work,http://192.168.10.11:3001}
       # --- JWT (backend only) ---
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET required}
       JWT_EXPIRATION: '8h'

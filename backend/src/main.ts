@@ -33,9 +33,17 @@ async function bootstrap() {
     })
   );
 
-  // ตั้งค่า CORS (ใน Production ควรระบุ origin ให้ชัดเจนจาก Config)
+  // ตั้งค่า CORS — แยก CORS_ORIGIN ด้วย comma เป็น array เพื่อให้ NestJS
+  // ส่งเฉพาะ origin ที่ match กับ request กลับไป (ไม่ใช่ comma-separated string ทั้งก้อน)
+  const corsOriginRaw = configService.get<string>('CORS_ORIGIN');
+  const corsOrigin = corsOriginRaw
+    ? corsOriginRaw
+        .split(',')
+        .map((o) => o.trim())
+        .filter(Boolean)
+    : true;
   app.enableCors({
-    origin: configService.get<string>('CORS_ORIGIN') || true,
+    origin: corsOrigin,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
