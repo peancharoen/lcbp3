@@ -82,10 +82,19 @@ export default auth((req) => {
   // ใช้ Nonce Strategy เพื่ออนุญาต Inline Script เฉพาะที่ระบุตัวตนได้ ป้องกัน XSS
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
 
-  let connectSrcApi = 'http://192.168.10.11:3000 http://localhost:3000';
+  // กรณี API URL เป็น http:// ต้องเพิ่ม https:// variant ด้วย เพราะ upgrade-insecure-requests
+  // จะบังคับ browser อัปเกรด http→https ทำให้ CSP connect-src ต้องอนุญาตทั้งสอง protocol
+  let connectSrcApi = 'http://192.168.10.11:3000 https://192.168.10.11:3000 http://localhost:3000 https://localhost:3000';
   if (process.env.NEXT_PUBLIC_API_URL) {
     try {
-      connectSrcApi = new URL(process.env.NEXT_PUBLIC_API_URL).origin;
+      const apiOrigin = new URL(process.env.NEXT_PUBLIC_API_URL).origin;
+      // ถ้าเป็น http:// ให้สร้าง https:// variant ด้วย
+      if (apiOrigin.startsWith('http://')) {
+        const httpsOrigin = apiOrigin.replace('http://', 'https://');
+        connectSrcApi = `${apiOrigin} ${httpsOrigin}`;
+      } else {
+        connectSrcApi = apiOrigin;
+      }
     } catch {
       connectSrcApi = process.env.NEXT_PUBLIC_API_URL;
     }
