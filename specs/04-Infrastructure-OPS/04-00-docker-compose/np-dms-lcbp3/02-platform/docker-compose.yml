@@ -109,6 +109,14 @@ services:
     <<: [*restart_policy, *default_logging]
     image: postgres:16.4-alpine
     container_name: n8n-db
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
     env_file:
       - ../.env
     environment:
@@ -133,6 +141,14 @@ services:
     <<: [*restart_policy, *default_logging]
     image: tecnativa/docker-socket-proxy:0.2
     container_name: docker-socket-proxy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
     environment:
       TZ: 'Asia/Bangkok'
       CONTAINERS: '1'

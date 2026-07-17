@@ -1,0 +1,17 @@
+# MariaDB Exporter connection config
+# Deploy to: /opt/np-dms/mariadb/exporter-my.cnf
+# ใช้โดย mariadb-exporter (prom/mysqld-exporter) ใน 01-infrastructure/docker-compose.yml
+#
+# ตั้งค่า: เปลี่ยน password ให้ตรงกับ DB_PASSWORD ใน .env
+# หรือใช้ environment variable ใน .env: MARIADB_EXPORTER_PASSWORD
+#
+# สร้าง user สำหรับ exporter ใน MariaDB:
+#   CREATE USER 'exporter'@'%' IDENTIFIED BY '<password>';
+#   GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO 'exporter'@'%';
+#   FLUSH PRIVILEGES;
+
+[client]
+host=mariadb
+port=3306
+user=exporter
+password=CHANGE_ME_EXPORTER_PASSWORD

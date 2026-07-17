@@ -5,14 +5,19 @@
 # - 2026-06-23: Initial creation — Server consolidation (ADR-041)
 #   Migrated from QNAP split files: mariadb/ + service/ (cache, search, qdrant)
 #   Changes: volume paths → /opt/np-dms/, MariaDB RAM 8G, ES heap 2G
+# - 2026-07-17: เพิ่ม node-exporter (9100), cadvisor (8088), mariadb-exporter (9104)
+#   สำหรับ Prometheus scrape จาก ASUSTOR monitoring stack
 # ============================================================
 # 🔒 SECURITY (ADR-016, Tier-1):
 #   - MariaDB: bind 192.168.10.11:3306 (internal + NPM on QNAP via VLAN 10)
-#   - Redis: loopback only — services use DNS 'cache:6379'
-#   - Elasticsearch: internal only (no host port)
-#   - Qdrant: internal only (no host port)
+#   - Redis: bind 192.168.10.11:6379 (Uptime Kuma @ ASUSTOR 192.168.10.9)
+#   - Elasticsearch: bind 192.168.10.11:9200 (Uptime Kuma @ ASUSTOR 192.168.10.9)
+#   - Qdrant: bind 192.168.10.11:6333 (Uptime Kuma @ ASUSTOR 192.168.10.9; gRPC 6334 internal only)
 #   - PMA: expose 192.168.10.11:8080 → NPM proxy (pma.np-dms.work)
 #   - Portainer: expose 192.168.10.11:9443 → NPM proxy (portainer.np-dms.work)
+#   - node-exporter: bind 192.168.10.11:9100 (Prometheus scrape from ASUSTOR)
+#   - cadvisor: bind 192.168.10.11:8088 (Prometheus scrape from ASUSTOR)
+#   - mariadb-exporter: bind 192.168.10.11:9104 (Prometheus scrape from ASUSTOR)
 # ============================================================
 
 x-restart: &restart_policy
@@ -35,7 +40,7 @@ services:
   # ----------------------------------------------------------------
   # 1. MariaDB — DMS + Gitea + NPM databases
   # Image: mariadb:11.8 (pinned — ADR-009)
-  # RAM: 8G (reduced from 16G — DB ยังเล็ก ~10MB, อัปเกรดได้ภายหลัง)
+  # RAM: 16G (RAM 64GB — ใช้ buffer pool เต็มที่)
   # ----------------------------------------------------------------
   mariadb:
     <<: [*restart_policy, *default_logging]
@@ -45,10 +50,10 @@ services:
       resources:
         limits:
           cpus: '4.0'
-          memory: 8G
+          memory: 16G
         reservations:
           cpus: '0.5'
-          memory: 1G
+          memory: 2G
     command: >-
       --character-set-server=utf8mb4
       --collation-server=utf8mb4_general_ci
@@ -94,10 +99,9 @@ services:
       TZ: 'Asia/Bangkok'
       PMA_HOST: 'mariadb'
       PMA_PORT: '3306'
-      PMA_ABSOLUTE_URI: 'https://pma.np-dms.work/'
       UPLOAD_LIMIT: '1G'
       MEMORY_LIMIT: '512M'
-    # expose ให้ NPM บน QNAP เข้าถึงผ่าน VLAN 10
+    # expose ให้เข้าถึงผ่าน VLAN 10
     ports:
       - '192.168.10.11:8080:80'
     networks:
@@ -113,7 +117,7 @@ services:
 
   # ----------------------------------------------------------------
   # 3. Redis — Caching + Distributed Lock + BullMQ queues
-  # Internal only (loopback bind for debug)
+  # Bind 192.168.10.11:6379 — Uptime Kuma @ ASUSTOR 192.168.10.9
   # ----------------------------------------------------------------
   cache:
     <<: [*restart_policy, *default_logging]
@@ -123,10 +127,10 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 2G
+          memory: 4G
         reservations:
           cpus: '0.25'
-          memory: 512M
+          memory: 1G
     environment:
       TZ: 'Asia/Bangkok'
     env_file:
@@ -140,7 +144,7 @@ services:
       - '--maxmemory-policy'
       - 'noeviction'
     ports:
-      - '127.0.0.1:6379:6379'
+      - '192.168.10.11:6379:6379'
     networks:
       - lcbp3
     volumes:
@@ -154,8 +158,8 @@ services:
 
   # ----------------------------------------------------------------
   # 4. Elasticsearch — Advanced Search
-  # Internal only (no host port — ADR-016)
-  # Heap: 2G (ลดจาก 4G — RAM budget 32GB)
+  # Bind 192.168.10.11:9200 — Uptime Kuma @ ASUSTOR 192.168.10.9
+  # Heap: 4G (RAM 64GB — คืนค่า heap ตามขนาดเดิม)
   # ----------------------------------------------------------------
   search:
     <<: [*restart_policy, *default_logging]
@@ -165,10 +169,10 @@ services:
       resources:
         limits:
           cpus: '2.0'
-          memory: 3G
+          memory: 6G
         reservations:
           cpus: '0.5'
-          memory: 2G
+          memory: 3G
     env_file:
       - ../.env
     environment:
@@ -176,13 +180,13 @@ services:
       discovery.type: 'single-node'
       xpack.security.enabled: 'true'
       ELASTIC_PASSWORD: ${ELASTICSEARCH_PASSWORD:?ELASTICSEARCH_PASSWORD required}
-      ES_JAVA_OPTS: '-Xms2g -Xmx2g'
+      ES_JAVA_OPTS: '-Xms4g -Xmx4g'
     ulimits:
       memlock:
         soft: -1
         hard: -1
-    expose:
-      - '9200'
+    ports:
+      - '192.168.10.11:9200:9200'
     networks:
       - lcbp3
     volumes:
@@ -191,7 +195,7 @@ services:
       test:
         [
           'CMD-SHELL',
-          'curl -s http://localhost:9200/_cluster/health | grep -q ''"status":"green"\|"status":"yellow"''',
+          'curl -s -u elastic:"$$ELASTIC_PASSWORD" http://localhost:9200/_cluster/health | grep -q ''"status":"green"\|"status":"yellow"''',
         ]
       interval: 30s
       timeout: 10s
@@ -199,7 +203,8 @@ services:
 
   # ----------------------------------------------------------------
   # 5. Qdrant — Vector Database for RAG (ADR-023A)
-  # Internal only (no host port)
+  # Bind 192.168.10.11:6333 — Uptime Kuma @ ASUSTOR 192.168.10.9
+  # gRPC 6334 internal only (Docker network)
   # ----------------------------------------------------------------
   qdrant:
     <<: [*restart_policy, *default_logging]
@@ -209,18 +214,19 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 2G
+          memory: 4G
         reservations:
           cpus: '0.25'
-          memory: 512M
+          memory: 1G
     environment:
       TZ: 'Asia/Bangkok'
       QDRANT__SERVICE__GRPC_PORT: '6334'
       QDRANT__LOG_LEVEL: 'INFO'
     networks:
       - lcbp3
+    ports:
+      - '192.168.10.11:6333:6333'
     expose:
-      - '6333'
       - '6334'
     volumes:
       - '/data/qdrant:/qdrant/storage'
@@ -259,6 +265,116 @@ services:
       - 'portainer_data:/data'
     healthcheck:
       disable: true
+
+  # ----------------------------------------------------------------
+  # 7. Node Exporter — Host Metrics (Prometheus scrape target)
+  # Bind: 192.168.10.11:9100 — Prometheus (ASUSTOR 192.168.10.9) scrape
+  # Metrics: CPU, memory, disk, network, filesystem usage
+  # ----------------------------------------------------------------
+  node-exporter:
+    <<: [*restart_policy, *default_logging]
+    image: prom/node-exporter:v1.7.0
+    container_name: node-exporter
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 32M
+    environment:
+      TZ: 'Asia/Bangkok'
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - '192.168.10.11:9100:9100'
+    networks:
+      - lcbp3
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:9100/metrics']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ----------------------------------------------------------------
+  # 8. cAdvisor — Container Metrics (Prometheus scrape target)
+  # Bind: 192.168.10.11:8088 → container 8080
+  # Metrics: per-container CPU, memory, network, filesystem
+  # ----------------------------------------------------------------
+  cadvisor:
+    <<: [*restart_policy, *default_logging]
+    image: gcr.io/cadvisor/cadvisor:v0.47.2
+    container_name: cadvisor
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    environment:
+      TZ: 'Asia/Bangkok'
+    ports:
+      - '192.168.10.11:8088:8080'
+    networks:
+      - lcbp3
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:8080/healthz']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ----------------------------------------------------------------
+  # 9. MariaDB Exporter — Database Metrics (Prometheus scrape target)
+  # Bind: 192.168.10.11:9104 — Prometheus (ASUSTOR 192.168.10.9) scrape
+  # Metrics: MariaDB performance, connections, queries, buffer pool
+  # ----------------------------------------------------------------
+  mariadb-exporter:
+    <<: [*restart_policy, *default_logging]
+    image: prom/mysqld-exporter:v0.15.1
+    container_name: mariadb-exporter
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 32M
+    environment:
+      TZ: 'Asia/Bangkok'
+    env_file:
+      - ../.env
+    command:
+      - '--config.my-cnf=/etc/my.cnf'
+    ports:
+      - '192.168.10.11:9104:9104'
+    networks:
+      - lcbp3
+    volumes:
+      # Mount MariaDB config สำหรับ connection credentials
+      - '/opt/np-dms/mariadb/exporter-my.cnf:/etc/my.cnf:ro'
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:9104/metrics']
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   portainer_data:

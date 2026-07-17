@@ -1,5 +1,7 @@
 // File: src/common/interceptors/transform.interceptor.ts
 // Fix #1: แก้ไข `any` type ให้ถูกต้องตาม nestjs-best-practices (TypeScript Strict Mode)
+// Fix #2: Bypass /metrics endpoint — Prometheus ต้องการ raw text exposition format,
+//         ห้าม wrap ด้วย ApiResponse envelope (ทำให้ Prometheus parse ไม่ได้)
 
 import {
   Injectable,
@@ -46,12 +48,19 @@ function isPaginatedPayload<T>(value: unknown): value is PaginatedPayload<T> {
 
 @Injectable()
 export class TransformInterceptor<T>
-  implements NestInterceptor<T, ApiResponse<T>>
+  implements NestInterceptor<T, ApiResponse<T> | T>
 {
   intercept(
     context: ExecutionContext,
     next: CallHandler<T>
-  ): Observable<ApiResponse<T>> {
+  ): Observable<ApiResponse<T> | T> {
+    const request = context.switchToHttp().getRequest<{ url: string }>();
+
+    // Bypass: Prometheus /metrics ต้องเป็น raw text format ห้าม wrap envelope
+    if (request.url === '/metrics' || request.url.startsWith('/metrics?')) {
+      return next.handle();
+    }
+
     return next.handle().pipe(
       map((data: T) => {
         const response = context

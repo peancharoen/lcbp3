@@ -63,22 +63,29 @@
 | D30 | API Contract ต้อง match actual implementation — ห้ามเขียน contract ที่ field naming หรือ response schema ไม่ตรง Pydantic models จริง; `/ocr-upload` เป็น primary production endpoint, `/ocr` เป็น legacy; `/ocr-upload` ปลอดภัยจาก path traversal โดย design (รับ file bytes ไม่ใช่ path)                                                   | ADR-040            |
 | D31 | Gitea SSH ผ่าน Cloudflare Tunnel — ใช้ domain `git-ssh.np-dms.work` (แยกจาก `git.np-dms.work` สำหรับ HTTP/HTTPS) เพราะ Cloudflare proxy ไม่รองรับ SSH port; client ต้องใช้ `ProxyCommand cloudflared access ssh --hostname %h` ใน SSH config; docker-compose port mapping `192.168.10.11:2222:22` ถูกต้อง (Docker ให้ CAP_NET_BIND_SERVICE) | ADR-041            |
 | D32 | Dev environment ย้ายจาก Windows → Linux server `np-dms-lcbp3` — pnpm v10.33.0, node_modules ownership = `nattanin:nattanin`, `2git.sh` แทน `2git.ps1`, GitHub SSH key เพิ่มแล้ว, remotes: `origin` (Gitea SSH) + `github` (GitHub SSH)                                                                                                      | Session 2026-07-02 |
-| D33 | Docker port binding ใช้ `0.0.0.0` (ไม่ใช่ IP เฉพาะ) เพื่อให้เข้าได้ทั้ง LAN IP และ localhost; `CORS_ORIGIN` ต้องมีทั้ง `http://192.168.10.11:3001` และ `http://localhost:3001,http://127.0.0.1:3001`; deploy.sh/rollback.sh default URL = `http://192.168.10.11:3000/api` (ไม่ใช่ `backend.np-dms.work`) | Session 2026-07-03 |
-| D34 | Deploy/rollback scripts ต้องมี ownership guard ตรวจสอบ runtime compose files ก่อนดำเนินการ และใช้ `install -m 644` แทน `cp` เพื่อหลีกเลี่ยง Permission denied จาก root-owned files; runtime compose files ต้องเป็นของ deploy user (`np-dms`) | Session 2026-07-03 |
+| D33 | Docker port binding ใช้ `0.0.0.0` (ไม่ใช่ IP เฉพาะ) เพื่อให้เข้าได้ทั้ง LAN IP และ localhost; `CORS_ORIGIN` ต้องมีทั้ง `http://192.168.10.11:3001` และ `http://localhost:3001,http://127.0.0.1:3001`; deploy.sh/rollback.sh default URL = `http://192.168.10.11:3000/api` (ไม่ใช่ `backend.np-dms.work`)                                    | Session 2026-07-03 |
+| D34 | Deploy/rollback scripts ต้องมี ownership guard ตรวจสอบ runtime compose files ก่อนดำเนินการ และใช้ `install -m 644` แทน `cp` เพื่อหลีกเลี่ยง Permission denied จาก root-owned files; runtime compose files ต้องเป็นของ deploy user (`np-dms`)                                                                                                | Session 2026-07-03 |
+| D35 | New Server RAM 64GB — MariaDB buffer pool 16G, ES heap 4G, Redis 4G, Qdrant 4G, Ollama 8G, swap 16G (25% RAM); total ~55.8G headroom ~8G; `ubuntu-lv` ขยาย 100G→150G (เดิมเต็ม 94%)                                                                                                                                                         | Session 2026-07-13 |
+| D36 | Docker Compose deploy ใช้ `--env-file ../.env` (single source of truth) — ไม่ copy `.env` ไปทุก layer; 04-ai/ocr-sidecar ใช้ `--env-file ../../.env`                                                                                                                                                                                        | Session 2026-07-13 |
+| D37 | Elasticsearch healthcheck ต้องส่ง `-u elastic:"$$ELASTIC_PASSWORD"` เมื่อ `xpack.security.enabled: 'true'` — ไม่งั้นได้ 401 และ healthcheck fail                                                                                                                                                                                            | Session 2026-07-13 |
+| D38 | Distroless images (เช่น ollama-metrics) ไม่มี shell/wget/curl — ใช้ `healthcheck: disable: true` และใช้ external monitoring (Prometheus scraping) แทน                                                                                                                                                                                       | Session 2026-07-13 |
+| D39 | Container RAM limits ต้องตรง MIGRATION-PLAN.md RAM budget table (64GB): MariaDB 16G, ES 6G (heap 4G), Redis 4G, Qdrant 4G, Backend 2G, Frontend 3G, ClamAV 2G, Gitea 2G, n8n 2G, n8n-db 1G, OCR Sidecar 2G, ollama-metrics 256M, docker-socket-proxy 256M; ES heap ต้องตรง `ES_JAVA_OPTS` กับ container memory limit                        | Session 2026-07-14 |
+| D40 | MCP MariaDB config ต้องแก้ผ่าน Windsurf UI เท่านั้น — ห้ามแก้ไฟล์ `mcp_config.json` โดยตรง เพราะ Windsurf เขียนทับทุกครั้งที่ reload; user `migration_bot`@`%` มีสิทธิ์ `ALL PRIVILEGES` บน `lcbp3` เท่านั้น (ไม่ query `mysql.*` ได้)                                                                                                      | Session 2026-07-16 |
 
 ## Environment & Services
 
-| Service          | Local URL / Port              | Production                        | Notes                                                                                              |
-| ---------------- | ----------------------------- | --------------------------------- | -------------------------------------------------------------------------------------------------- |
-| **Backend API**  | `http://localhost:3000`       | `http://192.168.10.11:3000/api`   | NestJS — port 3000 in container, bound `0.0.0.0:3000` (localhost + LAN)                           |
-| **Frontend**     | `http://localhost:3001`       | `http://192.168.10.11:3001`       | Next.js — port 3000 in container, bound `0.0.0.0:3001` (localhost + LAN)                          |
-| **MariaDB**      | `localhost:3307`              | QNAP internal                     | DB: `lcbp3`, root via docker                                                                       |
-| **Redis**        | `localhost:6379`              | QNAP internal                     | BullMQ + session store                                                                             |
-| **Ollama**       | `http://192.168.10.100:11434` | Admin Desktop (Desk-5439)         | np-dms-ai:latest (main) + np-dms-ocr:latest (OCR, keep_alive:0)                                    |
-| **Qdrant**       | `http://localhost:6333`       | Admin Desktop (Desk-5439)         | Vector DB — requires projectPublicId                                                               |
-| **OCR Sidecar**  | `http://192.168.10.100:8765`  | Admin Desktop (Desk-5439)         | np-dms-ocr (Ollama) + BGE-M3 `/embed` + BGE-Reranker `/rerank`; async I/O, lifespan, no /normalize |
-| **Gitea**        | `https://git.np-dms.work`     | New Server `192.168.10.11:3003`   | Source + CI/CD; SSH via `git-ssh.np-dms.work:2222` (Cloudflare Tunnel)                             |
-| **Gitea Runner** | ASUSTOR `192.168.10.9`        | —                                 | CI runner                                                                                          |
+| Service           | Local URL / Port             | Production                      | Notes                                                                                                        |
+| ----------------- | ---------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| **Backend API**   | `http://localhost:3000`      | `http://192.168.10.11:3000/api` | NestJS — port 3000 in container, bound `0.0.0.0:3000` (localhost + LAN)                                      |
+| **Frontend**      | `http://localhost:3001`      | `http://192.168.10.11:3001`     | Next.js — port 3000 in container, bound `0.0.0.0:3001` (localhost + LAN)                                     |
+| **MariaDB**       | `192.168.10.11:3306`         | New Server (bind IP)            | DB: `lcbp3`; MCP user: `migration_bot` (ALL on `lcbp3`); app user: `center`; port bound `192.168.10.11:3306` |
+| **Redis**         | `192.168.10.11:6379`         | New Server (bind IP)            | BullMQ + session store; exposed for Uptime Kuma @ ASUSTOR 192.168.10.9                                       |
+| **Ollama**        | `http://192.168.10.11:11434` | New Server (native systemd)     | np-dms-ai:latest (main) + np-dms-ocr:latest (OCR, keep_alive:0)                                              |
+| **Elasticsearch** | `192.168.10.11:9200`         | New Server (bind IP)            | Advanced Search; exposed for Uptime Kuma @ ASUSTOR 192.168.10.9                                              |
+| **Qdrant**        | `http://localhost:6333`      | New Server (Docker internal)    | Vector DB — requires projectPublicId; internal only (no host port)                                           |
+| **OCR Sidecar**   | `http://192.168.10.11:8765`  | New Server (Docker internal)    | np-dms-ocr (Ollama) + BGE-M3 `/embed` + BGE-Reranker `/rerank`; async I/O, lifespan, no /normalize           |
+| **Gitea**         | `https://git.np-dms.work`    | New Server `192.168.10.11:3003` | Source + CI/CD; SSH via `git-ssh.np-dms.work:2222` (Cloudflare Tunnel)                                       |
+| **Gitea Runner**  | ASUSTOR `192.168.10.9`       | —                               | CI runner                                                                                                    |
 
 ### Key Environment Variables
 
@@ -258,3 +265,50 @@ QDRANT_URL
 - [x] `install -m 644` แทน `cp` ใน `deploy.sh`
 - [x] `chown np-dms:np-dms` ไฟล์ทั้ง 3 layers บน server
 - [ ] CI deploy สำเร็จหลัง push commit นี้
+
+### ADR-041 Migration Plan RAM 64GB Upgrade (Session 2026-07-13) ✅ COMPLETE
+
+- [x] MIGRATION-PLAN.md อัปเดต RAM budget 32GB→64GB (D8/D9/table/diagram/swap/my.cnf/tests/risks)
+- [x] Swap 8G→16G ดำเนินการจริงบน server
+- [x] `my.cnf` สร้างใหม่ (innodb_buffer_pool_size=16G, log_file 1G, connections 300, tmp/heap 512M)
+- [x] PMA config สร้าง (config.user.inc.php + zzz-custom.ini + tmp/)
+- [x] `ubuntu-lv` ขยาย 100G→150G (เดิมเต็ม 94%)
+- [x] Docker group เพิ่ม nattanin + np-dms
+- [x] Step 5 copy `.env` → `--env-file ../.env` pattern (single source of truth)
+- [x] ลบ typo "หีกน"
+- [ ] MariaDB restart เพื่อให้ my.cnf ใหม่มีผล (หลัง deploy Layer 1)
+
+### Docker Healthcheck Fixes (Session 2026-07-13) ✅ COMPLETE
+
+- [x] ES `search` healthcheck เพิ่ม `-u elastic:"$$ELASTIC_PASSWORD"` — 3 files (prod + 2 specs)
+- [x] `ollama-metrics` healthcheck → `disable: true` (distroless, ใช้ Prometheus แทน)
+- [x] Container recreate ทั้งคู่ → `docker ps` ยืนยัน healthy/normal
+- [x] Session log: `specs/88-logs/session-2026-07-13-docker-healthcheck-fixes.md`
+
+### Migration Verification & RAM Limits (Session 2026-07-14) ✅ COMPLETE
+
+- [x] 4.16 OCR sidecar /health — `{"status":"ok","engine":"np-dms-ocr"}`
+- [x] 4.17 Ollama metrics — Prometheus format ที่ `:9924/metrics`
+- [x] 4.18 Docker network connectivity — ทุก internal DNS ทำงาน (mariadb, cache, search, qdrant, ollama, ocr-sidecar)
+- [x] 4.19 RAM usage — ~6.5 GiB total (ห่างจาก 56GB อย่างมาก)
+- [x] LVM/CIFS fix ใน MIGRATION-PLAN.md + README.md (swap nvme0n1/nvme1n1, CIFS share → np-dms, uid/gid → 1000:1000)
+- [x] RAM limits อัปเดต 4 compose files ให้ตรง plan 64GB
+- [ ] Redeploy ทุก layer เพื่อให้ RAM limits ใหม่มีผล
+- [x] Session log: `specs/88-logs/session-2026-07-14-migration-verification-and-ram-limits.md`
+
+### Redis + ES Expose for Uptime Kuma (Session 2026-07-15) ✅ COMPLETE
+
+- [x] Redis: `127.0.0.1:6379` → `192.168.10.11:6379` (bind IP สำหรับ Uptime Kuma @ ASUSTOR 192.168.10.9)
+- [x] Elasticsearch: `expose: 9200` → `ports: 192.168.10.11:9200:9200` (bind IP สำหรับ Uptime Kuma)
+- [x] อัปเดต security comments ใน docker-compose.yml (specs + prod runtime)
+- [x] Qdrant ยังคง internal only (ไม่ expose)
+- [ ] Recreate containers: `docker compose -p lcbp3-infra up -d cache search`
+- [ ] Uptime Kuma เพิ่ม monitor ทั้งสอง services
+- [x] Session log: `specs/88-logs/session-2026-07-15-redis-es-expose-uptime-kuma.md`
+
+### Migration Verification 4.10/4.11 (Session 2026-07-16) ✅ COMPLETE
+
+- [x] 4.10 `/health` endpoint — แก้ MIGRATION-PLAN.md จาก `/api/health` → `/health` (health excluded from api prefix ใน `main.ts:57`); response: database up, memory_heap up, storage up
+- [x] 4.11 Frontend `/` — แก้ expected 200 → 307 (`app/page.tsx` redirect ไป `/dashboard` → `/login`); `/login` ยังคง expect 200
+- [x] 4.17 Ollama metrics — Prometheus format ที่ `:9924/metrics` ผ่าน
+- [x] Session log: `specs/88-logs/session-2026-07-16-migration-verification-health-endpoint.md`

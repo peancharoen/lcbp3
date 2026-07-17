@@ -46,9 +46,9 @@ describe('TransformInterceptor', () => {
       const context = createMockExecutionContext(200);
       const callHandler = createMockCallHandler(data);
 
-      const result = await lastValueFrom(
+      const result = (await lastValueFrom(
         interceptor.intercept(context, callHandler)
-      );
+      )) as ApiResponse<unknown>;
 
       expect(result).toEqual({
         statusCode: 200,
@@ -62,9 +62,9 @@ describe('TransformInterceptor', () => {
       const context = createMockExecutionContext(201);
       const callHandler = createMockCallHandler(data);
 
-      const result = await lastValueFrom(
+      const result = (await lastValueFrom(
         interceptor.intercept(context, callHandler)
-      );
+      )) as ApiResponse<unknown>;
 
       expect(result).toEqual({
         statusCode: 201,
@@ -78,9 +78,9 @@ describe('TransformInterceptor', () => {
       const context = createMockExecutionContext(201);
       const callHandler = createMockCallHandler(data);
 
-      const result = await lastValueFrom(
+      const result = (await lastValueFrom(
         interceptor.intercept(context, callHandler)
-      );
+      )) as ApiResponse<unknown>;
 
       expect(result.statusCode).toBe(201);
     });
@@ -103,9 +103,9 @@ describe('TransformInterceptor', () => {
       const context = createMockExecutionContext(200);
       const callHandler = createMockCallHandler(paginatedData);
 
-      const result = await lastValueFrom(
+      const result = (await lastValueFrom(
         interceptor.intercept(context, callHandler)
-      );
+      )) as ApiResponse<unknown>;
 
       expect(result).toEqual({
         statusCode: 200,
@@ -134,9 +134,9 @@ describe('TransformInterceptor', () => {
       const context = createMockExecutionContext(200);
       const callHandler = createMockCallHandler(paginatedData);
 
-      const result = await lastValueFrom(
+      const result = (await lastValueFrom(
         interceptor.intercept(context, callHandler)
-      );
+      )) as ApiResponse<unknown>;
 
       expect(result.message).toBe('Filtered results');
     });
@@ -154,9 +154,9 @@ describe('TransformInterceptor', () => {
       const context = createMockExecutionContext(200);
       const callHandler = createMockCallHandler(paginatedData);
 
-      const result = await lastValueFrom(
+      const result = (await lastValueFrom(
         interceptor.intercept(context, callHandler)
-      );
+      )) as ApiResponse<unknown>;
 
       expect(result.data).toEqual([]);
       expect(result.meta?.total).toBe(0);
@@ -176,9 +176,9 @@ describe('TransformInterceptor', () => {
       const context = createMockExecutionContext(200);
       const callHandler = createMockCallHandler(paginatedData);
 
-      const result = await lastValueFrom(
+      const result = (await lastValueFrom(
         interceptor.intercept(context, callHandler)
-      );
+      )) as ApiResponse<unknown>;
 
       expect(result.data).toEqual([{ id: '1' }]);
     });
@@ -196,9 +196,9 @@ describe('TransformInterceptor', () => {
       const context = createMockExecutionContext(200);
       const callHandler = createMockCallHandler(data);
 
-      const result = await lastValueFrom(
+      const result = (await lastValueFrom(
         interceptor.intercept(context, callHandler)
-      );
+      )) as ApiResponse<unknown>;
 
       expect(result.data).toEqual({ id: 'extracted', name: 'Extracted Data' });
     });
@@ -208,9 +208,9 @@ describe('TransformInterceptor', () => {
       const context = createMockExecutionContext(200);
       const callHandler = createMockCallHandler(data);
 
-      const result = await lastValueFrom(
+      const result = (await lastValueFrom(
         interceptor.intercept(context, callHandler)
-      );
+      )) as ApiResponse<unknown>;
 
       expect(result.data).toEqual({ id: 'direct', name: 'Direct Data' });
     });
@@ -232,9 +232,9 @@ describe('TransformInterceptor', () => {
       const context = createMockExecutionContext(200);
       const callHandler = createMockCallHandler(entity);
 
-      const result = await lastValueFrom(
+      const result = (await lastValueFrom(
         interceptor.intercept(context, callHandler)
-      );
+      )) as ApiResponse<unknown>;
 
       // instanceToPlain should be applied (no @Exclude in this test, so all fields present)
       expect(result.data).toBeDefined();
@@ -244,9 +244,9 @@ describe('TransformInterceptor', () => {
       const context = createMockExecutionContext(200);
       const callHandler = createMockCallHandler(null);
 
-      const result = await lastValueFrom(
+      const result = (await lastValueFrom(
         interceptor.intercept(context, callHandler)
-      );
+      )) as ApiResponse<unknown>;
 
       expect(result).toEqual({
         statusCode: 200,
@@ -259,9 +259,9 @@ describe('TransformInterceptor', () => {
       const context = createMockExecutionContext(200);
       const callHandler = createMockCallHandler(undefined);
 
-      const result = await lastValueFrom(
+      const result = (await lastValueFrom(
         interceptor.intercept(context, callHandler)
-      );
+      )) as ApiResponse<unknown>;
 
       expect(result).toEqual({
         statusCode: 200,
@@ -279,9 +279,9 @@ describe('TransformInterceptor', () => {
       const context = createMockExecutionContext(200);
       const callHandler = createMockCallHandler('simple string');
 
-      const result = await lastValueFrom(
+      const result = (await lastValueFrom(
         interceptor.intercept(context, callHandler)
-      );
+      )) as ApiResponse<unknown>;
 
       expect(result.data).toBe('simple string');
     });
@@ -290,9 +290,9 @@ describe('TransformInterceptor', () => {
       const context = createMockExecutionContext(200);
       const callHandler = createMockCallHandler(42);
 
-      const result = await lastValueFrom(
+      const result = (await lastValueFrom(
         interceptor.intercept(context, callHandler)
-      );
+      )) as ApiResponse<unknown>;
 
       expect(result.data).toBe(42);
     });
@@ -301,9 +301,9 @@ describe('TransformInterceptor', () => {
       const context = createMockExecutionContext(200);
       const callHandler = createMockCallHandler(true);
 
-      const result = await lastValueFrom(
+      const result = (await lastValueFrom(
         interceptor.intercept(context, callHandler)
-      );
+      )) as ApiResponse<unknown>;
 
       expect(result.data).toBe(true);
     });
@@ -313,9 +313,9 @@ describe('TransformInterceptor', () => {
       const context = createMockExecutionContext(200);
       const callHandler = createMockCallHandler(data);
 
-      const result = await lastValueFrom(
+      const result = (await lastValueFrom(
         interceptor.intercept(context, callHandler)
-      );
+      )) as ApiResponse<unknown>;
 
       expect(result.data).toEqual(data);
       expect(result.meta).toBeUndefined(); // Arrays are NOT paginated
@@ -332,9 +332,9 @@ describe('TransformInterceptor', () => {
       const context = createMockExecutionContext(200);
       const callHandler = createMockCallHandler(data);
 
-      const result = await lastValueFrom(
+      const result = (await lastValueFrom(
         interceptor.intercept(context, callHandler)
-      );
+      )) as ApiResponse<unknown>;
 
       expect(result.data).toEqual(data);
     });
@@ -349,9 +349,9 @@ describe('TransformInterceptor', () => {
       const context = createMockExecutionContext(200);
       const callHandler = createMockCallHandler(data);
 
-      const result: ApiResponse<unknown> = await lastValueFrom(
+      const result = (await lastValueFrom(
         interceptor.intercept(context, callHandler)
-      );
+      )) as ApiResponse<unknown>;
 
       // Type checking at runtime
       expect(result).toHaveProperty('statusCode');
@@ -373,9 +373,9 @@ describe('TransformInterceptor', () => {
       const context = createMockExecutionContext(200);
       const callHandler = createMockCallHandler(paginatedData);
 
-      const result: ApiResponse<unknown> = await lastValueFrom(
+      const result = (await lastValueFrom(
         interceptor.intercept(context, callHandler)
-      );
+      )) as ApiResponse<unknown>;
 
       expect(result.meta).toBeDefined();
       expect(result.meta).toHaveProperty('total');

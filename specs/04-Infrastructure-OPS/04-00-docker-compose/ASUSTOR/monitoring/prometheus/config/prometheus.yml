@@ -1,19 +1,32 @@
 # File: specs/04-Infrastructure-OPS/04-00-docker-compose/ASUSTOR/monitoring/prometheus/config/prometheus.yml
-# Prometheus Configuration — รัน บน ASUSTOR AS5403T (lcbp3-monitoring stack)
+# Prometheus Configuration - ASUSTOR AS5403T (lcbp3-monitoring stack)
 # Change Log:
-# - 2026-06-02: Initial config — merge จาก 0.yml (existing) + เพิ่ม ollama-metrics job
+# - 2026-06-02: Initial config, merge 0.yml (existing) + ollama-metrics job
+# - 2026-07-15: Updated for ADR-041 server consolidation - all app/db/AI
+#   services now on 192.168.10.11. Removed stale QNAP app-level targets
+#   (backend, mariadb) and Desk-5439 ollama-metrics target. Added
+#   node-exporter + cadvisor targets for 192.168.10.11 (main server) -
+#   NOTE: these exporters must be deployed on 192.168.10.11 itself, they
+#   are not part of this ASUSTOR compose stack. QNAP node/cadvisor targets
+#   kept since QNAP still runs NPM + its own MariaDB.
+# - 2026-07-15 (rev2): Clarified prerequisite for exporters on .11 —
+#   added explicit PREREQUISITE block with port list. Confirmed backend
+#   /metrics endpoint exists (@willsoto/nestjs-prometheus in MonitoringModule).
+# - 2026-07-17: Added nvidia-gpu-exporter (utkuozdemir) job — card-level GPU
+#   telemetry (temp/util/power/clock) for RTX 5060 Ti on main server, to
+#   complement ollama-metrics (which only covers token/duration/VRAM-per-model).
+#   Requires nvidia-gpu-exporter container deployed on 192.168.10.11:9835
+#   (see 04-ai/docker-compose.yml) — job will show as "down" until deployed.
 #
 # Deploy path: /volume1/np-dms/monitoring/prometheus/config/prometheus.yml
-# Mount (read-only): docker-compose volume → /etc/prometheus/prometheus.yml
+# Mount (read-only): docker-compose volume -> /etc/prometheus/prometheus.yml
 #
-# NOTE: ไฟล์นี้รวม 0.yml (config เดิมบน ASUSTOR) + job ollama-metrics ใหม่
-#       เมื่อ deploy แล้วให้ลบ 0.yml ออก หรือ rename เป็น 0.yml.bak
+# NOTE: rename previous file to prometheus.yml.bak before deploying this one
 
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
-# ─── Scrape Jobs ─────────────────────────────────────────────────────────────
 scrape_configs:
   # ----------------------------------------------------------------
   # 1. Prometheus self-monitoring (ASUSTOR)
@@ -25,15 +38,12 @@ scrape_configs:
   # ============================================
   # ASUSTOR Metrics (Local)
   # ============================================
-
-  # Host metrics from Node Exporter (ASUSTOR)
   - job_name: "asustor-node"
     static_configs:
       - targets: ["node-exporter:9100"]
         labels:
           host: "asustor"
 
-  # Container metrics from cAdvisor (ASUSTOR)
   - job_name: "asustor-cadvisor"
     static_configs:
       - targets: ["cadvisor:8080"]
@@ -41,58 +51,89 @@ scrape_configs:
           host: "asustor"
 
   # ============================================
-  # QNAP Metrics (Remote - 192.168.10.8)
+  # Main Server Metrics (Remote - 192.168.10.11)
+  # Exporters deployed in 01-infrastructure/docker-compose.yml on main server
+  # Bound to LAN IP per ADR-016 (192.168.10.11:9100, :8088, :9104)
   # ============================================
+  - job_name: "main-server-node"
+    static_configs:
+      - targets: ["192.168.10.11:9100"]
+        labels:
+          host: "main-server"
 
-  # Host metrics from Node Exporter (QNAP)
+  - job_name: "main-server-cadvisor"
+    static_configs:
+      - targets: ["192.168.10.11:8088"]
+        labels:
+          host: "main-server"
+
+  # Backend NestJS application (moved from QNAP to main server)
+  - job_name: "backend"
+    static_configs:
+      - targets: ["192.168.10.11:3000"]
+        labels:
+          host: "main-server"
+    metrics_path: "/metrics"
+
+  # MariaDB Exporter (moved from QNAP to main server)
+  - job_name: "mariadb"
+    static_configs:
+      - targets: ["192.168.10.11:9104"]
+        labels:
+          host: "main-server"
+
+  # ollama-metrics (NorskHelsenett) - Ollama LLM metrics
+  # Ollama now runs as native systemd service on main server (ADR-034/ADR-041)
+  #
+  # Metrics collected:
+  #   ollama_prompt_tokens_total        - prompt tokens processed
+  #   ollama_generated_tokens_total     - generated tokens
+  #   ollama_request_duration_seconds   - latency histogram
+  #   ollama_time_per_token_seconds     - inference speed (tok/s)
+  #   ollama_loaded_models               - loaded model count / VRAM
+  #   ollama_model_loaded               - 1/0 per model
+  #   ollama_model_ram_mb               - VRAM usage (MB) per model
+  - job_name: "ollama-metrics"
+    scrape_interval: 30s
+    static_configs:
+      - targets: ["192.168.10.11:9924"]
+        labels:
+          host: "main-server"
+          service: "ollama"
+          role: "ai-inference"
+
+  # nvidia-gpu-exporter (utkuozdemir) - Card-level GPU telemetry via nvidia-smi
+  # Complements ollama-metrics: this covers the GPU card itself (RTX 5060 Ti),
+  # not per-model usage.
+  #
+  # Metrics collected (nvidia_smi_* namespace):
+  #   nvidia_smi_utilization_gpu_ratio   - GPU utilization %
+  #   nvidia_smi_utilization_memory_ratio - VRAM utilization %
+  #   nvidia_smi_temperature_gpu         - GPU temperature (C)
+  #   nvidia_smi_power_draw_watts        - power draw
+  #   nvidia_smi_clock_speed_hertz       - clock speed
+  #   nvidia_smi_fanspeed_ratio          - fan speed %
+  - job_name: "nvidia-gpu"
+    static_configs:
+      - targets: ["192.168.10.11:9835"]
+        labels:
+          host: "main-server"
+          service: "gpu"
+          role: "ai-inference"
+
+  # ============================================
+  # QNAP Metrics (Remote - 192.168.10.8)
+  # QNAP post-ADR-041 only runs NPM (edge proxy) + its own MariaDB.
+  # Kept for host-level visibility since QNAP is still a SPOF for ingress.
+  # ============================================
   - job_name: "qnap-node"
     static_configs:
       - targets: ["192.168.10.8:9100"]
         labels:
           host: "qnap"
 
-  # Container metrics from cAdvisor (QNAP)
   - job_name: "qnap-cadvisor"
     static_configs:
       - targets: ["192.168.10.8:8088"]
         labels:
           host: "qnap"
-
-  # Backend NestJS application (QNAP)
-  - job_name: "backend"
-    static_configs:
-      - targets: ["192.168.10.8:3000"]
-        labels:
-          host: "qnap"
-    metrics_path: "/metrics"
-
-  # MariaDB Exporter (optional - QNAP)
-  - job_name: "mariadb"
-    static_configs:
-      - targets: ["192.168.10.8:9104"]
-        labels:
-          host: "qnap"
-
-  # ============================================
-  # Desk-5439 Metrics (Remote - 192.168.10.100)
-  # ============================================
-
-  # ollama-metrics (NorskHelsenett) — Ollama LLM metrics
-  # sidecar รันบน Desk-5439 ตาม ADR-023A, expose /metrics บน port 9924
-  #
-  # Metrics ที่ collect:
-  #   ollama_prompt_tokens_total       — prompt tokens รวม
-  #   ollama_generated_tokens_total    — generated tokens รวม
-  #   ollama_request_duration_seconds  — latency histogram
-  #   ollama_time_per_token_seconds    — inference speed (tok/s)
-  #   ollama_loaded_models             — จำนวน model ใน VRAM
-  #   ollama_model_loaded              — 1/0 per model
-  #   ollama_model_ram_mb              — VRAM usage (MB) per model
-  - job_name: "ollama-metrics"
-    scrape_interval: 30s
-    static_configs:
-      - targets: ["192.168.10.100:9924"]
-        labels:
-          host: "desk-5439"
-          service: "ollama"
-          role: "ai-inference"

@@ -13,17 +13,19 @@
 # - 2026-06-04: ADR-034 — เปลี่ยน OCR_MODEL เป็น typhoon-np-dms-ocr:latest; OLLAMA_API_URL ชี้ตรงไป Ollama (ไม่ผ่าน metrics proxy) เพื่อป้องกัน empty response
 # - 2026-06-02: เพิ่ม ollama-metrics (NorskHelsenett) — Prometheus sidecar สำหรับ Ollama metrics
 #              expose /metrics บน port 9924; Prometheus (ASUSTOR) scrape จาก 192.168.10.100:9924
+# - 2026-07-17: ย้าย ollama-metrics + nvidia-gpu-exporter ออกไป 04-ai/docker-compose.yml
+#              (telemetry ไม่ใช่ส่วนของ OCR workload)
 # - 2026-06-11: US2 & US3 - เพิ่ม VRAM headroom, residency window, pressure threshold, retrieval timeout env variables
 # - 2026-06-13: ADR-036 — เปลี่ยน TYPHOON_OCR_MODEL เป็น OCR_MODEL=np-dms-ocr:latest
 # - 2026-06-17: ลบชื่อ Typhoon ออกจากทุก environment variable และ comment (เปลี่ยนเป็น OCR_* ตาม ADR-036)
 # - 2026-06-20: ADR-040 Phase 6+8 — ลบ OCR_LANG, USE_GPU (stale Tesseract config); เพิ่ม OCR_SIDECAR_API_KEY, OCR_ACTIVE_PROFILE
 #
 # วิธีรัน:
+#   docker compose --env-file ../../.env up -d --build
 #   docker compose up -d --build
 #
 # ทดสอบ:
-#   curl http://192.168.10.100:8765/health
-#   curl http://192.168.10.100:9924/metrics
+#   curl http://192.168.10.11:8765/health
 
 name: lcbp3-ocr
 
@@ -38,6 +40,14 @@ services:
       dockerfile: Dockerfile
     container_name: ocr-sidecar
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
     ports:
       - "192.168.10.11:8765:8765"
     networks:
@@ -58,7 +68,7 @@ services:
       OCR_ACTIVE_PROFILE: ${OCR_ACTIVE_PROFILE:-}
       # ─── OCR via Ollama (ADR-034) ───────────────────────────────────
       # ชี้ตรงไปยัง Ollama (port 11434) ไม่ผ่าน metrics proxy
-      # (proxy ไม่ forward /api/generate ได้ถูกต้อง — ทำให้ response ว่าง)
+      # (proxy ไม่ forward /api/ฟgenerate ได้ถูกต้อง — ทำให้ response ว่าง)
       OLLAMA_API_URL: "http://host.docker.internal:11434"
       OCR_MODEL: "np-dms-ocr:latest"
       # Timeout 360 วินาที/หน้า — รองรับ cold-start โหลด model (~70s) + inference (10GB model, CPU offload)
@@ -80,49 +90,3 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
-
-  # ----------------------------------------------------------------
-  # ollama-metrics (NorskHelsenett) — Prometheus Sidecar สำหรับ Ollama
-  # ----------------------------------------------------------------
-  # Transparent proxy ที่นั่งระหว่าง client กับ Ollama (port 11434)
-  # เก็บ metrics แล้ว expose ที่ /metrics บน port 9924 (Prometheus format)
-  #
-  # Metrics ที่ได้:
-  #   ollama_prompt_tokens_total       — จำนวน prompt tokens ทั้งหมด
-  #   ollama_generated_tokens_total    — จำนวน generated tokens ทั้งหมด
-  #   ollama_request_duration_seconds  — ระยะเวลา request (histogram)
-  #   ollama_time_per_token_seconds    — เวลาต่อ token (inference speed)
-  #   ollama_loaded_models             — จำนวน model ที่โหลดอยู่ใน VRAM
-  #   ollama_model_loaded              — indicator 1/0 ต่อ model
-  #   ollama_model_ram_mb              — VRAM usage (MB) ต่อ model
-  #
-  # Prometheus (ASUSTOR 192.168.10.8) scrape จาก:
-  #   http://192.168.10.11:9924/metrics
-  ollama-metrics:
-    image: ghcr.io/norskhelsenett/ollama-metrics:latest
-    container_name: ollama-metrics
-    restart: unless-stopped
-    environment:
-      # ชี้ไปที่ Ollama ที่รันเป็น native systemd service บน host (D11)
-      # host.docker.internal → host gateway → systemd Ollama on port 11434
-      OLLAMA_HOST: "http://host.docker.internal:11434"
-      PORT: "9924"
-    ports:
-      - "192.168.10.11:9924:9924"
-    networks:
-      - lcbp3
-    extra_hosts:
-      # Linux: map host.docker.internal → host gateway (Windows Docker Desktop มีอยู่แล้ว)
-      # จำเป็นสำหรับ Ollama ที่รันเป็น native systemd service บน host (D11)
-      - "host.docker.internal:host-gateway"
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9924/metrics"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 15s
