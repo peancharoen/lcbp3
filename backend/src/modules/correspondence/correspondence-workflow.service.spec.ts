@@ -122,7 +122,12 @@ describe('CorrespondenceWorkflowService', () => {
           correspondenceRevisionId: 50,
           attachmentId: 88,
           isMainDocument: true,
-          attachment: { filePath: '/files/doc.pdf', fileExtension: 'pdf' },
+          attachment: {
+            filePath: '/files/doc.pdf',
+            fileExtension: 'pdf',
+            originalFilename: 'doc.pdf',
+            publicId: 'att-uuid-001',
+          },
         },
       ]);
       await (
@@ -147,6 +152,7 @@ describe('CorrespondenceWorkflowService', () => {
         subject: 'Test Subject',
         documentDate: '2026-06-05',
         attachmentPath: '/files/doc.pdf',
+        attachmentPublicId: 'att-uuid-001',
       });
     });
     it('ไม่ควรเรียก enqueueRagPrepare เมื่อเอกสารยังคงอยู่ในสถานะ DRAFT', async () => {

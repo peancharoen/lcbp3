@@ -45,6 +45,7 @@ CREATE TABLE projects (
   -- parent_project_id INT COMMENT 'รหัสโครงการหลัก (ถ้ามี)',
   -- contractor_organization_id INT COMMENT 'รหัสองค์กรผู้รับเหมา (ถ้ามี)',
   is_active TINYINT(1) DEFAULT 1 COMMENT 'สถานะการใช้งาน',
+  is_sandbox TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Flag ระบุว่าเป็นโครงการทดสอบ (ADR-042)',
   -- FOREIGN KEY (parent_project_id) REFERENCES projects(id) ON DELETE SET NULL,
   -- FOREIGN KEY (contractor_organization_id) REFERENCES organizations(id) ON DELETE SET NULL
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
@@ -900,6 +901,7 @@ CREATE TABLE attachments (
   ai_processing_status ENUM('PENDING', 'PROCESSING', 'DONE', 'FAILED') NOT NULL DEFAULT 'PENDING' COMMENT 'สถานะ AI job ของไฟล์เอกสารตาม ADR-023A',
   rag_status ENUM('PENDING', 'PROCESSING', 'INDEXED', 'FAILED') NOT NULL DEFAULT 'PENDING' COMMENT 'สถานะ RAG ingestion ระดับ file (ADR-022)',
   rag_last_error TEXT NULL COMMENT 'Error message ล่าสุดเมื่อ rag_status = FAILED',
+  ocr_text LONGTEXT NULL COMMENT 'OCR text ที่สกัดได้ก่อน semantic chunking/embedding (ADR-042)',
   FOREIGN KEY (uploaded_by_user_id) REFERENCES users (user_id) ON DELETE CASCADE,
   FOREIGN KEY (workflow_history_id) REFERENCES workflow_histories (id) ON DELETE
   SET NULL ON UPDATE CASCADE,

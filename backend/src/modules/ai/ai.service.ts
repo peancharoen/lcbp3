@@ -68,6 +68,8 @@ import { ActivateAiModelDto } from './dto/activate-ai-model.dto';
 import { AiAvailableModel } from './entities/ai-available-model.entity';
 import { AiQdrantService } from './qdrant.service';
 import { OllamaService } from './services/ollama.service';
+import { FileStorageService } from '../../common/file-storage/file-storage.service';
+import { AiQueueService } from './ai-queue.service';
 
 // ผลลัพธ์ของ Real-time Extraction
 export interface ExtractionResult {
@@ -210,6 +212,10 @@ export class AiService {
     private readonly aiSettingsService?: AiSettingsService,
     @Optional()
     private readonly vramMonitorService?: VramMonitorService,
+    @Optional()
+    private readonly fileStorageService?: FileStorageService,
+    @Optional()
+    private readonly aiQueueService?: AiQueueService,
     @Optional()
     @InjectRedis()
     private readonly redis?: Redis
@@ -1265,5 +1271,121 @@ export class AiService {
       errorMessage: `Model ${model.modelName} activated by user ${userId}. VRAM Capacity verified successfully.`,
     });
     return activeModel;
+  }
+
+  /**
+   * ลบข้อมูลทดสอบทั้งหมดที่ผูกกับ Sandbox Project (ADR-042)
+   * ลำดับ: ไฟล์กายภาพก่อน → DB rows ทีหลัง → enqueue vector deletion
+   * ไม่ throw หากไฟล์ลบไม่ได้ (log warning และดำเนินต่อ)
+   * ไม่ throw หากมี BullMQ job active (ตาม Clarifications ใน spec.md)
+   */
+  async clearSandboxData(): Promise<{
+    deletedCorrespondenceCount: number;
+    vectorDeletionJobsEnqueued: number;
+  }> {
+    const manager = this.importTransactionRepo.manager;
+    // 1. หา Sandbox Project
+    const sandboxProject = await manager.findOne(Project, {
+      where: { isSandbox: true },
+    });
+    if (!sandboxProject) {
+      this.logger.warn('clearSandboxData: No sandbox project found');
+      return { deletedCorrespondenceCount: 0, vectorDeletionJobsEnqueued: 0 };
+    }
+    this.logger.log(
+      `clearSandboxData: Starting cleanup for sandbox project id=${sandboxProject.id}`
+    );
+    // 2. หา correspondences ใน sandbox project
+    const correspondencesRaw: unknown = await manager.query(
+      'SELECT id, public_id FROM correspondences WHERE project_id = ?',
+      [sandboxProject.id]
+    );
+    const correspondences = correspondencesRaw as Array<{
+      id: number;
+      public_id: string;
+    }>;
+    const correspondenceIds: number[] = correspondences.map((c) => c.id);
+    const correspondencePublicIds: string[] = correspondences.map(
+      (c) => c.public_id
+    );
+    if (correspondenceIds.length === 0) {
+      this.logger.log('clearSandboxData: No correspondences to delete');
+      return { deletedCorrespondenceCount: 0, vectorDeletionJobsEnqueued: 0 };
+    }
+    // 3. เก็บ file paths จาก attachments ก่อน cascade delete
+    const attachmentRowsRaw: unknown = await manager.query(
+      `SELECT a.id, a.file_path, a.public_id
+       FROM attachments a
+       INNER JOIN correspondence_revision_attachments cra ON cra.attachment_id = a.id
+       INNER JOIN correspondence_revisions cr ON cr.id = cra.correspondence_revision_id
+       WHERE cr.correspondence_id IN (?)`,
+      [correspondenceIds]
+    );
+    const attachmentRows = attachmentRowsRaw as Array<{
+      id: number;
+      file_path: string;
+      public_id: string;
+    }>;
+    // 4. ลบไฟล์กายภาพก่อน — log warning ไม่ throw ถ้า fail
+    if (this.fileStorageService) {
+      for (const att of attachmentRows) {
+        try {
+          await this.fileStorageService.delete(att.id, 0);
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          this.logger.warn(
+            `clearSandboxData: Failed to delete file id=${att.id} path=${att.file_path}: ${msg}`
+          );
+        }
+      }
+    }
+    // 5. Enqueue vector deletion ต่อเอกสาร ก่อนลบ DB rows
+    let vectorDeletionJobsEnqueued = 0;
+    if (this.aiQueueService) {
+      for (const docPublicId of correspondencePublicIds) {
+        try {
+          await this.aiQueueService.enqueueVectorDeletion({
+            documentPublicId: docPublicId,
+            projectPublicId: sandboxProject.publicId,
+            requestedByUserPublicId: 'system-clear-sandbox',
+          });
+          vectorDeletionJobsEnqueued++;
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          this.logger.warn(
+            `clearSandboxData: Failed to enqueue vector deletion for doc=${docPublicId}: ${msg}`
+          );
+        }
+      }
+    }
+    // 6. Cascade delete DB rows (correspondences → revisions → attachments → workflow)
+    await manager.query(
+      'DELETE FROM workflow_histories WHERE instance_id IN (SELECT id FROM workflow_instances WHERE entity_id IN (SELECT public_id FROM correspondences WHERE project_id = ?))',
+      [sandboxProject.id]
+    );
+    await manager.query(
+      'DELETE FROM workflow_instances WHERE entity_id IN (SELECT public_id FROM correspondences WHERE project_id = ?)',
+      [sandboxProject.id]
+    );
+    await manager.query(
+      `DELETE FROM correspondence_revision_attachments
+       WHERE correspondence_revision_id IN
+       (SELECT id FROM correspondence_revisions WHERE correspondence_id IN (?))`,
+      [correspondenceIds]
+    );
+    await manager.query(
+      'DELETE FROM correspondence_revisions WHERE correspondence_id IN (?)',
+      [correspondenceIds]
+    );
+    await manager.query('DELETE FROM correspondences WHERE project_id = ?', [
+      sandboxProject.id,
+    ]);
+    this.logger.log(
+      `clearSandboxData: Deleted ${correspondenceIds.length} correspondences, enqueued ${vectorDeletionJobsEnqueued} vector deletion jobs`
+    );
+    return {
+      deletedCorrespondenceCount: correspondenceIds.length,
+      vectorDeletionJobsEnqueued,
+    };
   }
 }

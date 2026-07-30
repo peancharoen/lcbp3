@@ -24,13 +24,13 @@
 
 | รหัสข้อกำหนด | คำอธิบายความต้องการ (Spec Requirement) | การนำไปใช้จริงในโค้ด (Implementation Reference) | สถานะการตรวจสอบ |
 | :--- | :--- | :--- | :---: |
-| **FR-001** | ระบบต้องมี API `GET /ai/ocr-engines` และ `POST /ai/ocr-engines/:engineId/select` สำหรับ Superadmin ในการสลับ OCR Engine | **[ai.controller.ts](file:///e:/np-dms/lcbp3/backend/src/modules/ai/ai.controller.ts)**: เอนด์พอยต์เปิดใช้งานพร้อม Jwt/Rbac guard และ ParseUuidPipe | ✅ **PASS** |
-| **FR-002** | ตรวจสอบความพร้อมโมเดลล่วงหน้า (Synchronous Pre-loading) ใน Ollama และคืนข้อผิดพลาดหากไม่สำเร็จ | **[ai.service.ts](file:///e:/np-dms/lcbp3/backend/src/modules/ai/ai.service.ts)**: เมธอด `activateAiModel` เรียก `ollamaService.loadModel` ยืนยันก่อนแก้ไข DB | ✅ **PASS** |
-| **FR-003** | กู้คืน VRAM monitor OOM Guard ด้วยการจำลอง VRAM free เมื่อเข้าถึง `/api/ps` ไม่ได้ | **[vram-monitor.service.ts](file:///e:/np-dms/lcbp3/backend/src/modules/ai/services/vram-monitor.service.ts)**: Catch block คืน `hasCapacity = true` และ Free VRAM 6GB | ✅ **PASS** |
-| **FR-004** | ดึงรายการโมเดลที่โหลดจริงผ่าน `/api/ps` แสดงใน Ollama AI Engine | **[ollama.service.ts](file:///e:/np-dms/lcbp3/backend/src/modules/ai/services/ollama.service.ts)**: ปรับปรุง `checkHealth` เพื่อดึงและ map ข้อมูลจริงเรียลไทม์ | ✅ **PASS** |
-| **FR-005** | ปรับเมนู OCR Sandbox ให้แท็บ "OCR Sandbox" แสดงเป็นแท็บแรกสุดเป็น default | **[OcrSandboxPromptManager.tsx](file:///e:/np-dms/lcbp3/frontend/components/admin/ai/OcrSandboxPromptManager.tsx)**: ปรับสวิตช์ activeTab และสลับ UI เรียบร้อย | ✅ **PASS** |
-| **FR-006** | ป้าย Dropdown ตัวเลือก OCR Engine แสดงความจุ: `Auto`, `Tesseract`, `typhoon-ocr1.5-3b 3.2GB`, `typhoon-ocr-3b 7.5GB` | **[OcrSandboxPromptManager.tsx](file:///e:/np-dms/lcbp3/frontend/components/admin/ai/OcrSandboxPromptManager.tsx)**: Dropdown ปรับแก้เป็นเวอร์ชันและขนาดที่แม่นยำตรงความจริง | ✅ **PASS** |
-| **FR-007** | แมปโมเดลไดนามิกใน `app.py` ไปยัง Ollama tag จริง: `scb10x/typhoon-ocr1.5-3b` และ `scb10x/typhoon-ocr-3b` | **[app.py](file:///e:/np-dms/lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py)**: ปรับ `process_with_typhoon_ocr` และส่งคืน `engineUsed` | ✅ **PASS** |
+| **FR-001** | ระบบต้องมี API `GET /ai/ocr-engines` และ `POST /ai/ocr-engines/:engineId/select` สำหรับ Superadmin ในการสลับ OCR Engine | **[ai.controller.ts](backend/src/modules/ai/ai.controller.ts)**: เอนด์พอยต์เปิดใช้งานพร้อม Jwt/Rbac guard และ ParseUuidPipe | ✅ **PASS** |
+| **FR-002** | ตรวจสอบความพร้อมโมเดลล่วงหน้า (Synchronous Pre-loading) ใน Ollama และคืนข้อผิดพลาดหากไม่สำเร็จ | **[ai.service.ts](backend/src/modules/ai/ai.service.ts)**: เมธอด `activateAiModel` เรียก `ollamaService.loadModel` ยืนยันก่อนแก้ไข DB | ✅ **PASS** |
+| **FR-003** | กู้คืน VRAM monitor OOM Guard ด้วยการจำลอง VRAM free เมื่อเข้าถึง `/api/ps` ไม่ได้ | **[vram-monitor.service.ts](backend/src/modules/ai/services/vram-monitor.service.ts)**: Catch block คืน `hasCapacity = true` และ Free VRAM 6GB | ✅ **PASS** |
+| **FR-004** | ดึงรายการโมเดลที่โหลดจริงผ่าน `/api/ps` แสดงใน Ollama AI Engine | **[ollama.service.ts](backend/src/modules/ai/services/ollama.service.ts)**: ปรับปรุง `checkHealth` เพื่อดึงและ map ข้อมูลจริงเรียลไทม์ | ✅ **PASS** |
+| **FR-005** | ปรับเมนู OCR Sandbox ให้แท็บ "OCR Sandbox" แสดงเป็นแท็บแรกสุดเป็น default | **[OcrSandboxPromptManager.tsx](frontend/components/admin/ai/OcrSandboxPromptManager.tsx)**: ปรับสวิตช์ activeTab และสลับ UI เรียบร้อย | ✅ **PASS** |
+| **FR-006** | ป้าย Dropdown ตัวเลือก OCR Engine แสดงความจุ: `Auto`, `Tesseract`, `typhoon-ocr1.5-3b 3.2GB`, `typhoon-ocr-3b 7.5GB` | **[OcrSandboxPromptManager.tsx](frontend/components/admin/ai/OcrSandboxPromptManager.tsx)**: Dropdown ปรับแก้เป็นเวอร์ชันและขนาดที่แม่นยำตรงความจริง | ✅ **PASS** |
+| **FR-007** | แมปโมเดลไดนามิกใน `app.py` ไปยัง Ollama tag จริง: `scb10x/typhoon-ocr1.5-3b` และ `scb10x/typhoon-ocr-3b` | **[app.py](specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py)**: ปรับ `process_with_typhoon_ocr` และส่งคืน `engineUsed` | ✅ **PASS** |
 
 ---
 

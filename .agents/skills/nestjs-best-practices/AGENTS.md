@@ -14,7 +14,7 @@
 
 ## Abstract
 
-Comprehensive NestJS best-practices guide compiled for the LCBP3-DMS backend. Contains 40+ rules across 11 categories (10 general + 1 project-specific), prioritized by impact. Forked from Kadajett/nestjs-best-practices (v1.1.0) and aligned to LCBP3 ADRs: ADR-001 (workflow engine), ADR-002 (document numbering), ADR-007 (error handling), ADR-008 (notifications/BullMQ), ADR-009 (no TypeORM migrations), ADR-016 (security), ADR-018/020 (AI boundary), ADR-019 (hybrid UUID identifier — March 2026 pattern), and ADR-021 (workflow context).
+Comprehensive NestJS best-practices guide compiled for the LCBP3-DMS backend. Contains 40+ rules across 11 categories (10 general + 1 project-specific), prioritized by impact. Forked from Kadajett/nestjs-best-practices (v1.1.0) and aligned to LCBP3 ADRs: ADR-001 (workflow engine), ADR-002 (document numbering), ADR-007 (error handling), ADR-008 (notifications/BullMQ), ADR-009 (no TypeORM migrations), ADR-016 (security), ADR-023/023A (AI boundary — supersedes ADR-018/020), ADR-019 (hybrid UUID identifier — March 2026 pattern), ADR-021 (workflow context), ADR-034/040/041 (AI model stack + OCR sidecar refactor + server consolidation).
 
 This document is the single, consolidated reference used by Cascade and other AI coding agents when writing, reviewing, or refactoring backend code in this repository. All LCBP3-specific overrides live in section 11.
 
@@ -72,12 +72,15 @@ This document is the single, consolidated reference used by Cascade and other AI
    - 9.2 [Use Message and Event Patterns Correctly](#92-use-message-and-event-patterns-correctly)
    - 9.3 [Use Message Queues for Background Jobs](#93-use-message-queues-for-background-jobs)
 10. [DevOps & Deployment](#10-devops-deployment) — **LOW-MEDIUM**
-   - 10.1 [Implement Graceful Shutdown](#101-implement-graceful-shutdown)
-   - 10.2 [Use ConfigModule for Environment Configuration](#102-use-configmodule-for-environment-configuration)
-   - 10.3 [Use Structured Logging](#103-use-structured-logging)
+
+- 10.1 [Implement Graceful Shutdown](#101-implement-graceful-shutdown)
+- 10.2 [Use ConfigModule for Environment Configuration](#102-use-configmodule-for-environment-configuration)
+- 10.3 [Use Structured Logging](#103-use-structured-logging)
+
 11. [LCBP3 Project-Specific](#11-lcbp3-project-specific) — **CRITICAL**
-   - 11.1 [AI Integration Boundary (ADR-018 / ADR-020)](#111-ai-integration-boundary-adr-018-adr-020-)
-   - 11.2 [Workflow Engine + Document Numbering + Workflow Context (ADR-001 / 002 / 021)](#112-workflow-engine-document-numbering-workflow-context-adr-001-002-021-)
+
+- 11.1 [AI Integration Boundary (ADR-023/023A + ADR-040/041)](#111-ai-integration-boundary-adr-023023a--adr-040041)
+- 11.2 [Workflow Engine + Document Numbering + Workflow Context (ADR-001 / 002 / 021)](#112-workflow-engine-document-numbering-workflow-context-adr-001-002-021-)
 
 ---
 
@@ -1964,14 +1967,14 @@ Client → Upload endpoint → Temp storage → ClamAV scan → Commit endpoint 
 
 ## Constraints (non-negotiable)
 
-| Rule | Value |
-| --- | --- |
+| Rule               | Value                                                                                                                                                                                                 |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Allowed MIME types | `application/pdf`, `image/vnd.dwg`, `application/vnd.openxmlformats-officedocument.wordprocessingml.document`, `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, `application/zip` |
-| Allowed extensions | `.pdf`, `.dwg`, `.docx`, `.xlsx`, `.zip` |
-| Max size | 50 MB |
-| Temp TTL | 24 h (purged by cron) |
-| Virus scan | ClamAV (blocking) |
-| Mover | `StorageService` only — never `fs.rename` directly from controller |
+| Allowed extensions | `.pdf`, `.dwg`, `.docx`, `.xlsx`, `.zip`                                                                                                                                                              |
+| Max size           | 50 MB                                                                                                                                                                                                 |
+| Temp TTL           | 24 h (purged by cron)                                                                                                                                                                                 |
+| Virus scan         | ClamAV (blocking)                                                                                                                                                                                     |
+| Mover              | `StorageService` only — never `fs.rename` directly from controller                                                                                                                                    |
 
 ---
 
@@ -2050,7 +2053,7 @@ export interface StorageService {
   commitFiles(
     tempIds: string[],
     target: { entityId: number; entityType: string },
-    manager: EntityManager,
+    manager: EntityManager
   ): Promise<FileRecord[]>;
   purgeExpiredTemp(): Promise<number>; // called by cron
   getPermanentPath(fileId: number): Promise<string>;
@@ -4005,12 +4008,14 @@ Data migration (e.g., backfilling a new column) is handled by **n8n workflows**,
 
    CREATE INDEX idx_rfa_revision ON rfa(revision);
    ```
+
 4. **Update the Entity** (`backend/src/.../entities/rfa.entity.ts`):
 
    ```typescript
    @Column({ type: 'int', default: 1 })
    revision: number;
    ```
+
 5. **If data backfill needed** → create n8n workflow, not TypeScript migration.
 
 ---
@@ -4028,8 +4033,12 @@ pnpm typeorm migration:run
 ```typescript
 // ❌ DO NOT write migration classes
 export class AddRevision1730000000000 implements MigrationInterface {
-  async up(queryRunner: QueryRunner): Promise<void> { /* ... */ }
-  async down(queryRunner: QueryRunner): Promise<void> { /* ... */ }
+  async up(queryRunner: QueryRunner): Promise<void> {
+    /* ... */
+  }
+  async down(queryRunner: QueryRunner): Promise<void> {
+    /* ... */
+  }
 }
 ```
 
@@ -4042,8 +4051,8 @@ export class AddRevision1730000000000 implements MigrationInterface {
 export default {
   type: 'mariadb',
   // ...
-  synchronize: false,      // ❗ NEVER true (would auto-sync entity ↔ schema)
-  migrationsRun: false,    // ❗ NEVER true
+  synchronize: false, // ❗ NEVER true (would auto-sync entity ↔ schema)
+  migrationsRun: false, // ❗ NEVER true
   // ❌ Do NOT specify `migrations:` entries
 };
 ```
@@ -6320,11 +6329,11 @@ Reference: [NestJS Logger](https://docs.nestjs.com/techniques/logger)
 
 **Section Impact: CRITICAL**
 
-### 11.1 AI Integration Boundary (ADR-018 / ADR-020)
+### 11.1 AI Integration Boundary (ADR-023/023A + ADR-040/041)
 
-**Impact: CRITICAL** — AI runs on Admin Desktop only; AI → DMS API → DB (never direct); human-in-the-loop validation mandatory; full audit trail.
+**Impact: CRITICAL** — AI runs on np-dms-lcbp3 only (post-ADR-041); AI → DMS API → DB (never direct); human-in-the-loop validation mandatory; full audit trail.
 
-LCBP3 uses **on-premises AI only** (Ollama on Admin Desktop) with strict isolation from data layers.
+LCBP3 uses **on-premises AI only** (Ollama on np-dms-lcbp3, native systemd) with strict isolation from data layers. ADR-018/020 superseded by ADR-023; ADR-040 refactors OCR sidecar to pure compute worker.
 
 ---
 
@@ -6334,22 +6343,23 @@ LCBP3 uses **on-premises AI only** (Ollama on Admin Desktop) with strict isolati
 ┌────────────────────────────────────────────────────────────┐
 │  User Browser (Next.js)                                    │
 └─────────────────────────┬──────────────────────────────────┘
-                          │  (authenticated HTTPS)
+                          │  (authenticated HTTPS via Cloudflare Tunnel)
 ┌─────────────────────────▼──────────────────────────────────┐
 │  DMS API (NestJS)  ◀── enforces CASL, validation, audit    │
-│   ├─ AiGateway (proxies to Ollama)                          │
+│   ├─ AiGateway (proxies to Ollama via BullMQ)               │
 │   └─ DB + Storage (Elasticsearch, MariaDB, File System)    │
 └─────────────────────────┬──────────────────────────────────┘
-                          │ (HTTP → Admin Desktop, internal)
+                          │ (Docker-internal network, same host)
 ┌─────────────────────────▼──────────────────────────────────┐
-│  Admin Desktop (Desk-5439)                                 │
-│   ├─ Ollama (Gemma 4)                                       │
-│   ├─ PaddleOCR (Thai + English)                             │
-│   └─ n8n orchestration                                      │
+│  np-dms-lcbp3 (192.168.10.11)                              │
+│   ├─ Ollama (systemd): np-dms-ai + np-dms-ocr (ADR-034)   │
+│   ├─ OCR Sidecar (Docker): /ocr-upload + /embed + /rerank  │
+│   │   (BGE-M3 + BGE-Reranker — ADR-040, no Tesseract)      │
+│   └─ n8n orchestration (migration phase only)              │
 └────────────────────────────────────────────────────────────┘
 ```
 
-**❗ Admin Desktop has NO network access to MariaDB, no SMB to storage, no shared secrets.** It receives base64-encoded file bytes over HTTPS and returns extracted text + suggestions.
+**❗ OCR Sidecar has NO network access to MariaDB, no SMB to storage.** It receives file bytes via multipart `/ocr-upload` and returns extracted text. Auth via Docker-internal network isolation (ADR-040 D6, post-ADR-041 cutover).
 
 ---
 
@@ -6454,7 +6464,7 @@ CREATE TABLE ai_audit_log (
   user_id INT NOT NULL,
   action VARCHAR(64) NOT NULL,       -- 'ai.extract_metadata', 'ai.classify', etc.
   file_id INT,
-  model VARCHAR(64),                  -- 'gemma-4:7b', 'typhoon-np-dms-ocr', 'tesseract-ocr'
+  model VARCHAR(64),                  -- 'np-dms-ai', 'np-dms-ocr' (canonical per ADR-034; no Tesseract per ADR-040)
   confidence DECIMAL(4,3),
   input_hash CHAR(64),                -- SHA-256 of input for replay detection
   output_summary JSON,
@@ -6494,7 +6504,7 @@ export class WorkflowEngine {
     instanceId: string,
     action: WorkflowAction,
     actor: User,
-    context?: WorkflowContext,
+    context?: WorkflowContext
   ): Promise<WorkflowInstance> {
     // 1. Load current state from DB (never trust client-provided state)
     const instance = await this.repo.findOneByPublicId(instanceId);
@@ -6508,7 +6518,7 @@ export class WorkflowEngine {
         `Action ${action} not allowed from state ${instance.currentState}`,
         'ไม่สามารถดำเนินการนี้ได้ในสถานะปัจจุบัน',
         'กรุณาตรวจสอบขั้นตอนการอนุมัติ',
-        'WF_INVALID_TRANSITION',
+        'WF_INVALID_TRANSITION'
       );
     }
 
@@ -6568,7 +6578,7 @@ export class DocumentNumberingService {
     @InjectRepository(DocumentNumberCounter)
     private counterRepo: Repository<DocumentNumberCounter>,
     private redlock: RedlockService,
-    private readonly logger: Logger,
+    private readonly logger: Logger
   ) {}
 
   async generateNext(ctx: NumberingContext): Promise<string> {
@@ -6627,13 +6637,14 @@ export class WorkflowEnvelope<T> {
 
   workflow: {
     instancePublicId: string;
-    currentState: string;       // e.g. 'pending_review'
+    currentState: string; // e.g. 'pending_review'
     availableActions: string[]; // e.g. ['approve', 'reject', 'request-revision']
-    canEdit: boolean;           // computed from CASL + current state
-    lastTransitionAt: string;   // ISO 8601
+    canEdit: boolean; // computed from CASL + current state
+    lastTransitionAt: string; // ISO 8601
   };
 
-  stepAttachments?: Array<{     // files produced by the current/previous step
+  stepAttachments?: Array<{
+    // files produced by the current/previous step
     publicId: string;
     fileName: string;
     stepCode: string;
@@ -6675,4 +6686,4 @@ Frontend uses `workflow.availableActions` to render buttons — no client-side s
 
 ---
 
-*Generated by build-agents.ts on 2026-04-22*
+_Generated by build-agents.ts on 2026-04-22_

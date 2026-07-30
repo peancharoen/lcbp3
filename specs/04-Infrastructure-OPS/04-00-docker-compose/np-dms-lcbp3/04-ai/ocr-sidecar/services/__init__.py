@@ -1,2 +1,2 @@
 # Services module for OCR sidecar
-# Contains VRAM monitoring and residency policy utilities
+# Contains VRAM monitoring, residency policy, and prompt cache invalidation utilities

@@ -1,15 +1,25 @@
+<!-- File: specs/06-Decision-Records/ADR-036-unified-ocr-architecture.md -->
+<!-- Change Log
+- 2026-06-13: Created ADR-036 (Unified AI Model Architecture).
+- 2026-07-30: Added Amended by ADR-040 note for §5 (sidecar contract).
+-->
+
 # ADR-036: Unified AI Model Architecture — Sandbox-Production Parity for np-dms-ai and np-dms-ocr
 
-**Status:** Proposed
+**Status:** Proposed (§5 amended by ADR-040 — see note below)
 **Date:** 2026-06-13
 **Decision Makers:** Development Team, AI Integration Lead
 **Supersedes:** — (New Architecture)
 **Amends:** AI model testing and parameter management layer
+**Amended by:** [ADR-040: OCR Sidecar Refactor](./ADR-040-ocr-sidecar-refactor.md) (2026-06-20) — §5 (sidecar contract): sidecar เป็น pure compute worker, รับ params จาก backend เท่านั้น (ไม่ hardcode defaults)
 **Related Documents:**
 - [ADR-034: AI Model Change](./ADR-034-AI-model-change.md)
 - [ADR-033: Active Model & OCR Management](./ADR-033-active-model-and-ocr-management.md)
 - [ADR-029: Dynamic Prompt Management](./ADR-029-dynamic-prompt-management.md)
+- [ADR-040: OCR Sidecar Refactor](./ADR-040-ocr-sidecar-refactor.md) ← amends §5
 - [CONTEXT.md](../../../CONTEXT.md)
+
+> **⚠️ Amendment note (2026-07-30):** §5 (Sidecar — Dynamic Params) ถูก amend โดย ADR-040 D1/D8 — sidecar เป็น pure compute worker: รับ `temperature`/`top_p`/`repeat_penalty`/`systemPrompt`/`dmsTags` จาก backend เท่านั้น (ไม่ hardcode defaults); `keep_alive` คำนวณโดย `calculate_ocr_residency()` (ADR-040 D4)
 
 > **Grilling resolution (2026-06-13):** ADR นี้เป็น **enhance** ของ Profile-Only Parameter Governance ที่มีอยู่ (`AiPolicyService` + `ai_execution_profiles`) **ไม่ใช่** การสร้าง `system_settings` param store ใหม่ และ**ไม่** supersede ADR-029/033. การตัดสินที่ resolved แล้ว: (1) production setting store = `ai_execution_profiles`; (2) **draft (sandbox) store = `ai_sandbox_profiles`** (แยกต่างหาก) — admin iterate ลง draft แล้วกด **Apply** = UPSERT draft → production row + DEL cache; (3) คง **Snapshot semantics** (params แช่แข็งลง job payload ณ dispatch); (4) systemPrompt อยู่ใน `ai_prompts` (Active Prompt) เท่านั้น; (5) OCR params = row `ocr-extract` + column `canonical_model`; (6) "OCR Sandbox" = **Production Pipeline Sandbox** (รัน pipeline เดียวกับ production). ดู `CONTEXT.md` → Flagged ambiguities + Glossary (from ADR-036).
 

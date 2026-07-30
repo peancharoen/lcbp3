@@ -88,8 +88,8 @@ Pipeline: embed query → `QdrantService.search(projectPublicId, vector)` → �
 _Avoid_: Semantic search (overloaded), Vector search (incomplete)
 
 **OCR Service**:
-Container สำเร็จรูป (FastAPI Sidecar) ทำหน้าที่ประมวลผล OCR — หลัง ADR-041 co-locate บน New Server ใช้ Docker-internal isolation แทน `X-API-Key` (ADR-040 D5)
-_Avoid_: OCR microservice (ที่ขาดการป้องกัน)
+Container สำเร็จรูป (FastAPI Sidecar) ทำหน้าที่ประมวลผล OCR — หลัง ADR-041 co-locate บน np-dms-lcbp3 ใช้ Docker-internal isolation แทน `X-API-Key` (ADR-040 D6); engine เดียว `np-dms-ocr` (ไม่มี Tesseract — ADR-040 D1 แก้ ADR-035); ลบ `/normalize` endpoint แล้ว (ADR-040 D2)
+_Avoid_: OCR microservice (ที่ขาดการป้องกัน), Tesseract fallback, PyMuPDF Fast-Path (เป็น dead branch สำหรับ PDF scan)
 
 **Prompt Version**:
 Immutable snapshot ของ prompt template ใน `ai_prompts` table — ทุกครั้งที่ admin กด "บันทึก" จะสร้าง version ใหม่ (`version_number` เพิ่มทีละ 1) version เก่ายังอยู่ใน history ลบได้ยกเว้น active version (ADR-029)
@@ -135,6 +135,14 @@ _Avoid_: Raw entity, Full entity response
 **ToolCallResult**:
 Result wrapper ที่ tool คืนให้ Gateway: `{ ok: true, data }` หรือ `{ ok: false, reason, message }` — ไม่ throw exception
 _Avoid_: Throw exception from tool, Untyped error
+
+**Sandbox Project** _(ADR-042)_:
+Project row ที่มี `is_sandbox = 1` — จุดเดียวที่ admin สร้าง Correspondence ผ่าน production code path จริง (upload → commit → workflow submit → AI Pipeline) แบบ commit DB ได้ เพื่อทดสอบ end-to-end parity 100%; ถูกกรองออกจาก project dropdown ปกติเสมอ (`WHERE is_sandbox = 0`); ลบข้อมูลทดสอบผ่าน `POST /ai/admin/sandbox/clear-data` (scoped `project_id`, รวม Qdrant vector deletion)
+_Avoid_: Production Pipeline Sandbox (คนละแนวคิด — ตัวนั้นไม่ commit DB), Test tenant (generic)
+
+**Production Pipeline Sandbox** _(ADR-036, ไม่เปลี่ยนแปลงโดย ADR-042)_:
+เครื่องมือ admin ที่รันเส้นทางประมวลผลเดียวกับ production (OCR → Active Prompt → Master Data context → LLM extraction) — **ยังคงไม่ commit ลง DB** เหมือนเดิมทุกประการ; ครอบคลุมเฉพาะ AI Pipeline (OCR-only/AI-extract/RAG-prep) ไม่ครอบคลุม Production Flow (upload/create/submit) — ดู **Sandbox Project** สำหรับกรณีนั้น
+_Avoid_: OCR Sandbox (สื่อแคบ), Sandbox Project (คนละแนวคิด — ตัวนั้น commit DB)
 
 ## Relationships
 
@@ -205,6 +213,20 @@ _Avoid_: Throw exception from tool, Untyped error
 - **QdrantService** — Vector search แบบ project-isolated
 - **AiRagService** — RAG pipeline (embed query → Qdrant → LLM context)
 - **OcrService / sidecar** — ระบบประมวลผล OCR ปลอดภัยด้วย Docker-internal isolation (ADR-040 D5) และ dynamic model swapping (ADR-033)
+
+## Infrastructure (resolved)
+
+หลัง ADR-041 Server Consolidation ระบบ LCBP3-DMS รันบน single compute host `np-dms-lcbp3` (192.168.10.11) พร้อม NAS/edge proxy แยก:
+
+| Term                  | Definition                                                                                                                                          | Avoid                                    |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| **np-dms-lcbp3**      | New Server hostname — รวม services ทุก layer (Docker 4 layers + Ollama systemd) บน 192.168.10.11                                                    | New Server (generic), 192.168.10.11 host |
+| **Layer 1-4**         | 4 Docker Compose layers ที่ `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/`: 01-infrastructure, 02-platform, 03-application, 04-ai | compose folders (ambiguous)              |
+| **192.168.10.11**     | Static IP ของ `np-dms-lcbp3` บน VLAN 10 (SERVER)                                                                                                    | direct host IP reference ใน code         |
+| **Cloudflare Tunnel** | Edge หลักสำหรับ WAN → `np-dms-lcbp3`; NPM บน QNAP เป็น internal router อยู่ภายใน                                                                    | public IP, NPM edge proxy                |
+| **ASUSTOR**           | Primary NAS (uploads/permanent + backup) บน 192.168.10.9                                                                                            | backup server, secondary NAS             |
+| **QNAP**              | 192.168.10.8 — คงไว้สำหรับ NPM internal router เท่านั้น                                                                                             | compute host, primary NAS                |
+| **Desk-5439**         | 192.168.10.100 — decommissioned (Ollama/OCR sidecar ย้ายไป `np-dms-lcbp3`)                                                                          | OCR host, GPU host                       |
 
 ## Glossary Updates (from ADR-034)
 
@@ -326,23 +348,23 @@ _Avoid_: Network isolation (generic), VLAN isolation (เป็น layer อื�
 - **"Master Data context parity (Gap 5)"** — resolved: Sandbox (`processSandboxExtract`/`processSandboxAiExtract`) ปัจจุบัน skip master data context ถ้า `projectPublicId='default'` → ทำให้ prompt content ต่างจาก production. Sandbox UI ต้องให้ admin ระบุ `projectPublicId` (และ `contractPublicId`) จริง; `aiPromptsService.resolveContext` ต้องถูกเรียกด้วย ID จริงเสมอ (ไม่ใช้ `'default'` เพื่อ skip); `aiPromptsService` จะคืนค่า empty context ถ้า project/contract ไม่มี master data
 - **"Apply Guardrails (Gap 6)"** — resolved: Apply to Production เป็น critical config change → ต้องมี guardrails ตาม AGENTS.md: (1) **Idempotency-Key** header mandatory สำหรับ `POST /api/ai/profiles/:profileName/apply` (Redis dedupe 5 นาที); (2) **CASL Guard** `@UseGuards(CaslGuard)` + permission `system.manage_ai`; (3) **Param Validation** class-validator (`@Min(0) @Max(1)` สำหรับ temperature/topP); (4) **Audit Trail** `ai_audit_logs` บันทึก `action='APPLY_PROFILE'`, user, old→new values; (5) **Range Guard** service layer throw `BusinessException` ถ้า out of range
 - **"Entity/Service canonicalModel mapping (Gap 7)"** — resolved: `AiExecutionProfileEntity` ไม่มี mapping `canonical_model` column; `getProfileParameters` (`:125`) hardcode `canonicalModel: 'np-dms-ai'` → ต้องเพิ่ม `@Column({ name: 'canonical_model' })` ใน Entity; แก้ `getProfileParameters` อ่านจาก column แทน hardcode; สร้าง accessor `getModelDefaults(canonicalModel)` สำหรับ query ตาม canonical_model โดยตรง
-- **"OCR Sidecar X-API-Key"** — resolved: ใช้ **Network Isolation Only** (ADR-040 D5) — supersede ADR-033 §7; ลบ `X-API-Key` validation จาก sidecar endpoints; ตรวจสอบผ่าน Docker-internal network (post-consolidation) หรือ VLAN/firewall ACL (interim cross-host); sequencing: ลบ `X-API-Key` เฉพาะเมื่อ ADR-041 cutover เสร็จ (single Docker host)
+- **"OCR Sidecar X-API-Key"** — resolved: ใช้ **Network Isolation Only** (ADR-040 D6 Phase 2 — complete 2026-07-30) — supersede ADR-033 §7; ลบ `X-API-Key` validation จาก sidecar endpoints และ backend send-side ทั้งหมดแล้ว; ตรวจสอบผ่าน Docker-internal network (post-consolidation); `OCR_SIDECAR_API_KEY` env var ถูกลบจาก docker-compose, .env, test files
 - **"Cross-host trust gap ของ OCR sidecar"** — resolved: ใช้ **Server Consolidation** (ADR-041) — co-locate ทุก services บน single Docker host (Ryzen 5 5600 / 32GB / RTX 5060 Ti 16GB); sidecar+backend อยู่บน Docker bridge เดียวกัน → Docker-internal isolation จริง; ASUSTOR เป็น Primary NAS (CIFS); NPM แยกไว้ QNAP เป็น Edge Proxy (SPOF mitigation)
 
 ## ADRs ที่เกี่ยวข้องกับ AI Runtime Layer
 
-| ADR     | หัวข้อ                             | ตัดสินใจอะไร                                                                         | สถานะ       |
-| :------ | :--------------------------------- | :----------------------------------------------------------------------------------- | :---------- |
-| ADR-024 | Intent Classification Strategy     | Hybrid: Pattern First → LLM Fallback                                                 | ✅ Accepted |
-| ADR-025 | AI Tool Layer Architecture         | Bridge pattern, CASL enforcement, response shape                                     | ✅ Accepted |
-| ADR-026 | Document Chat UI Pattern           | Side-panel vs modal vs separate page                                                 | ✅ Accepted |
-| ADR-027 | AI Admin Console & Dynamic Control | Admin Panel + dynamic model/prompt/intent control                                    | ✅ Accepted |
-| ADR-028 | Migration Architecture Refactor    | Staging Queue & post-migration cleanup                                               | ✅ Active   |
-| ADR-029 | Dynamic Prompt Management          | `ai_prompts` table, versioned OCR extraction prompt                                  | ✅ Active   |
-| ADR-032 | Typhoon OCR Integration            | Typhoon OCR-3B + typhoon2.1-gemma3-4b on Admin Desktop                               | ✅ Active   |
-| ADR-033 | Active Model & OCR Management      | Synchronous Model switch, GPU VRAM Auto-release, Sidecar API Key protection          | ✅ Active   |
-| ADR-034 | Thai Model Stack                   | typhoon2.5-np-dms:latest (Main) + typhoon-np-dms-ocr:latest (OCR, keep_alive:0)      | ✅ Active   |
-| ADR-041 | Server Consolidation               | Co-locate ทุก services บน New Server (4 layers); NPM แยก QNAP; ASUSTOR = Primary NAS | ✅ Accepted |
+| ADR     | หัวข้อ                             | ตัดสินใจอะไร                                                                         | สถานะ          |
+| :------ | :--------------------------------- | :----------------------------------------------------------------------------------- | :------------- |
+| ADR-024 | Intent Classification Strategy     | Hybrid: Pattern First → LLM Fallback                                                 | ✅ Accepted    |
+| ADR-025 | AI Tool Layer Architecture         | Bridge pattern, CASL enforcement, response shape                                     | ✅ Accepted    |
+| ADR-026 | Document Chat UI Pattern           | Side-panel vs modal vs separate page                                                 | ✅ Accepted    |
+| ADR-027 | AI Admin Console & Dynamic Control | Admin Panel + dynamic model/prompt/intent control                                    | ✅ Accepted    |
+| ADR-028 | Migration Architecture Refactor    | Staging Queue & post-migration cleanup                                               | ✅ Active      |
+| ADR-029 | Dynamic Prompt Management          | `ai_prompts` table, versioned OCR extraction prompt                                  | ✅ Active      |
+| ADR-032 | Typhoon OCR Integration            | Typhoon OCR-3B + typhoon2.1-gemma3-4b on Admin Desktop                               | ✅ Active      |
+| ADR-033 | Active Model & OCR Management      | Synchronous Model switch, GPU VRAM Auto-release, Sidecar API Key protection          | ✅ Active      |
+| ADR-034 | Thai Model Stack                   | typhoon2.5-np-dms:latest (Main) + typhoon-np-dms-ocr:latest (OCR, keep_alive:0)      | ✅ Active      |
+| ADR-041 | Server Consolidation               | Co-locate ทุก services บน New Server (4 layers); NPM แยก QNAP; ASUSTOR = Primary NAS | ✅ Implemented |
 
 **หมายเหตุ**: ADR-023A ยังคงเป็น canonical สำหรับ infrastructure — ADR-024/025/026/027 เพิ่ม runtime layer; ADR-028 ปรับ Migration Pipeline; ADR-033 จัดระบบโมเดลและ OCR
 

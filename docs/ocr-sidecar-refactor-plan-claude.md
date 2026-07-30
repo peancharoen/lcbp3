@@ -2,7 +2,7 @@
 **ไฟล์:** `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py`
 **วันที่วิเคราะห์:** 2026-06-20
 **GPU ปัจจุบัน:** RTX 5060 Ti 16GB
-**ไฟล์:** `ocr-sidecar-refactor-plan-cluade.md`
+**ไฟล์:** `ocr-sidecar-refactor-plan-claude.md`
 ---
 
 ## สรุปปัญหาที่พบ

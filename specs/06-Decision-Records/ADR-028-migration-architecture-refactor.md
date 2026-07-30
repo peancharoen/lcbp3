@@ -4,7 +4,7 @@
 **Date:** 2026-05-22
 **Decision Makers:** Senior Full Stack Developer, Lead Architect
 **Related Documents:**
-- [Feature Specification (spec.md)](file:///e:/np-dms/lcbp3/specs/200-fullstacks/228-migration-arch-refactor/spec.md)
+- [Feature Specification (spec.md)](specs/200-fullstacks/228-migration-arch-refactor/spec.md)
 - [ADR-019: Hybrid Identifier Strategy](./ADR-019-hybrid-identifier-strategy.md)
 - [ADR-023A: Unified AI Architecture (Model Revision)](./ADR-023A-unified-ai-architecture.md)
 

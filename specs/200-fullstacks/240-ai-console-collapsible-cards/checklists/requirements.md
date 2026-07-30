@@ -2,7 +2,7 @@
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-06-19
-**Feature**: [spec.md](file:///e:/np-dms/lcbp3/specs/200-fullstacks/240-ai-console-collapsible-cards/spec.md)
+**Feature**: [spec.md](specs/200-fullstacks/240-ai-console-collapsible-cards/spec.md)
 
 ## Content Quality
 

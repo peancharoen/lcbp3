@@ -6,8 +6,13 @@
 **Owner:** Nattanin Peancharoen / DevOps Team
 **Last Updated:** 2026-02-23
 
-> 📍 **Backup Target Server:** ASUSTOR AS5403T (Infrastructure & Backup)
-> 🖥️ **Primary Source Server:** QNAP TS-473A (Application & Database)
+> 📍 **Primary NAS:** ASUSTOR AS5403T (192.168.10.9) — uploads + permanent storage + legacy
+> 🖥️ **Compute Server:** `np-dms-lcbp3` (192.168.10.11) — all services (4 Docker Compose layers + Ollama systemd)
+> � **Edge Proxy:** Cloudflare Tunnel (on `np-dms-lcbp3`) + NPM on QNAP (internal router)
+> 💾 **QNAP TS-473A** (192.168.10.8) — NPM only (edge proxy role revised)
+> 📦 **Desk-5439** (192.168.10.100) — decommissioned (services ย้ายไป New Server หมดแล้ว)
+>
+> **ADR-041:** Server Consolidation — Implemented 2026-07-22
 
 ---
 
@@ -46,9 +51,9 @@ This document outlines backup strategies, recovery procedures, and disaster reco
 
 ### Backup Locations
 
-**Primary Backup:** QNAP NAS `/backup/lcbp3-dms`
-**Secondary Backup:** External backup server (rsync)
-**Offsite Backup:** Cloud storage (optional - for critical data)
+**Primary Backup:** ASUSTOR AS5403T `/backup/lcbp3-dms` — เก็บ uploads, permanent files, และ database backups (pulling from New Server `np-dms-lcbp3`)
+**Secondary Backup:** QNAP TS-473A `/backup/lcbp3-dms` — legacy standby (QNAP คงบท NPM internal router เท่านั้น)
+**Offsite Backup:** External backup server หรือ Cloud storage (optional - for critical data)
 
 ---
 

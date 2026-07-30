@@ -21,8 +21,10 @@ services:
     image: gitea/act_runner:0.4.0
     container_name: gitea-runner
     restart: unless-stopped
-    extra_hosts:
-      - "git.np-dms.work:192.168.10.8"
+    # Gitea ย้ายไป 192.168.10.11:3003 (HTTP) — เชื่อมตรง ไม่ผ่าน NPM
+    # GITEA_INSTANCE_URL ต้องเป็น http://git.np-dms.work:3003 (ไม่ใช่ HTTPS)
+    # extra_hosts:
+    #  - "git.np-dms.work:192.168.10.11"
     environment:
       - TZ=Asia/Bangkok
       - CONFIG_FILE=/config.yaml

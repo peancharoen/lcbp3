@@ -50,9 +50,9 @@ Primary users are document-heavy construction project teams working across multi
 ## How To Run
 
 1. Install workspace dependencies with `pnpm install` at repo root.
-2. Start local infra from [`backend/docker-compose.yml`](/E:/np-dms/lcbp3/backend/docker-compose.yml) to bring up MariaDB, Redis, and Elasticsearch.
+2. Start local infra from [`backend/docker-compose.yml`](backend/docker-compose.yml) to bring up MariaDB, Redis, and Elasticsearch.
 3. Prepare env files: `frontend/.env.example` -> `frontend/.env.local`; backend example env file: Not found in repo.
-4. Load the SQL schema and seed data using the commands documented in [`README.md`](/E:/np-dms/lcbp3/README.md).
+4. Load the SQL schema and seed data using the commands documented in [`README.md`](README.md).
 5. Run backend with `pnpm run start:dev` in `backend/`.
 6. Run frontend with `pnpm run dev` in `frontend/`.
 

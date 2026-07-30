@@ -2,6 +2,7 @@
 # Change Log:
 # - 2026-06-20: Added ADR-040 residency wiring tests for process_ocr.
 # - 2026-06-20: Updated for async process_ocr (Phase 6 — async I/O refactor).
+# - 2026-07-30: ADR-040 Phase 2 (T016) — ลบ X-API-Key auth (network isolation แทน).
 
 import asyncio
 from pathlib import Path
@@ -76,6 +77,5 @@ def test_ocr_endpoint_rejects_keep_alive_override(tmp_path: Path) -> None:
     response = client.post(
         "/ocr",
         json={"pdfPath": str(tmp_path / "document.pdf"), "keep_alive": 0},
-        headers={"X-API-Key": "test-key"},
     )
     assert response.status_code == 400

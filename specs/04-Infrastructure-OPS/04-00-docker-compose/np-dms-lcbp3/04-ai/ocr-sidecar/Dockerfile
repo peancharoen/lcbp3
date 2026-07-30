@@ -1,6 +1,6 @@
-# File: specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/Dockerfile
-# Typhoon OCR Sidecar — HTTP API server สำหรับสกัดข้อความจาก PDF ผ่าน np-dms-ocr (Ollama)
-# รันบน Desk-5439 ตาม ADR-023A
+# File: specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/Dockerfile
+# OCR Sidecar — HTTP API server สำหรับสกัดข้อความจาก PDF ผ่าน np-dms-ocr (Ollama)
+# รันบน New Server (192.168.10.11) ตาม ADR-023A/ADR-041
 # Change Log:
 # - 2026-05-25: Initial Dockerfile สำหรับ OCR sidecar (port 8765)
 # - 2026-05-30: เปลี่ยนจาก PaddleOCR เป็น Tesseract OCR เพื่อความเข้ากันได้กับ CPU เก่า

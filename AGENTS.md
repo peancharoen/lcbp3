@@ -1,7 +1,7 @@
 # NAP-DMS Project Context & Rules
 
 - For: Windsurf Cascade (and compatible: Codex CLI, opencode, Amp, Antigravity, AGENTS.md tools)
-- Version: 1.9.10 | Last synced from repo: 2026-06-06
+- Version: 1.9.13 | Last synced from repo: 2026-07-30
 - Repo: [https://git.np-dms.work/np-dms/lcbp3](https://git.np-dms.work/np-dms/lcbp3)
 - Skill pack: `.agents/skills/` (v1.9.0, 21 skills) — see [`skills/README.md`](./.agents/skills/README.md) + [`skills/_LCBP3-CONTEXT.md`](./.agents/skills/_LCBP3-CONTEXT.md)
 
@@ -9,8 +9,8 @@
 
 ## 📦 Project Memory Override
 
-For this repository (`E:\np-dms\lcbp3`), use project memory from:
-`E:\np-dms\lcbp3\memory\project-memory-override.md`
+For this repository, use project memory from:
+`memory/project-memory-override.md`
 
 **Before using global Codex memory**, read this project memory file first when the task depends on prior repo context, conventions, decisions, or rollout history.
 
@@ -100,8 +100,9 @@ Must fix ก่อน merge:
 Requires domain-specific knowledge:
 
 - **ADR-021 Integration:** Workflow Engine & Context implementation
-- **AI Infrastructure:** ADR-023/023A boundary enforcement and pipeline usage
-- **AI Runtime Layer:** ADR-024 Intent Classification, ADR-025 Tool Layer, ADR-026 Chat UI, ADR-027 Admin Console, ADR-032 Typhoon OCR, ADR-033 Active Model & OCR
+- **AI Infrastructure:** ADR-023/023A boundary enforcement and pipeline usage; ADR-040 OCR sidecar contract (amends ADR-035); ADR-042 OCR text persistence + Sandbox Project
+- **AI Runtime Layer:** ADR-024 Intent Classification, ADR-025 Tool Layer, ADR-026 Chat UI, ADR-027 Admin Console, ADR-032 Typhoon OCR, ADR-033 Active Model & OCR, ADR-036 Sandbox-Production Parity, ADR-037 Prompt Management UX/UI
+- **AI Document Ingestion Flow:** [`specs/02-architecture/02-05-ai-document-ingestion-flow.md`](./specs/02-architecture/02-05-ai-document-ingestion-flow.md) — end-to-end walkthrough (Production + Sandbox)
 - **Migration Pipeline:** ADR-028 Staging Queue & post-migration cleanup
 - **Complex Business Logic:** Multi-step workflows with state management
 - **Performance Optimization:** Database queries, caching strategies, bulk operations
@@ -118,568 +119,100 @@ Best practice — follow when possible:
 
 ## 🗂️ Key Spec Files (Always Check Before Writing Code)
 
-Spec priority: **`06-Decision-Records`** > **`05-Engineering-Guidelines`** > others
+→ Full table: [`.agents/rules/12-key-spec-files.md`](./.agents/rules/12-key-spec-files.md)
 
-| Document                       | Path                                                                        | Status    | Use When                                                                               |
-| ------------------------------ | --------------------------------------------------------------------------- | --------- | -------------------------------------------------------------------------------------- |
-| **Glossary**                   | `specs/00-overview/00-02-glossary.md`                                       | —         | Verify domain terminology                                                              |
-| **Schema Tables**              | `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql`               | —         | Before writing any query                                                               |
-| **Data Dictionary**            | `specs/03-Data-and-Storage/03-01-data-dictionary.md`                        | —         | Field meanings + business rules                                                        |
-| **RBAC Matrix**                | `specs/01-requirements/01-02-business-rules/01-02-01-rbac-matrix.md`        | —         | Permission levels + roles                                                              |
-| **Edge Cases**                 | `specs/01-Requirements/01-06-edge-cases-and-rules.md`                       | —         | Prevent bugs in flows                                                                  |
-| **ADR-001 Workflow Engine**    | `specs/06-Decision-Records/ADR-001-unified-workflow-engine.md`              | ✅ Active | DSL-based workflow implementation                                                      |
-| **ADR-002 Doc Numbering**      | `specs/06-Decision-Records/ADR-002-document-numbering-strategy.md`          | ✅ Active | Document number generation + locking                                                   |
-| **ADR-007 Error Handling**     | `specs/06-Decision-Records/ADR-007-error-handling-strategy.md`              | ✅ Active | Error patterns & recovery                                                              |
-| **ADR-008 Notifications**      | `specs/06-Decision-Records/ADR-008-email-notification-strategy.md`          | ✅ Active | BullMQ + multi-channel notification                                                    |
-| **ADR-009 DB Migration**       | `specs/06-Decision-Records/ADR-009-database-migration-strategy.md`          | ✅ Active | Schema changes — edit SQL directly                                                     |
-| **ADR-016 Security**           | `specs/06-Decision-Records/ADR-016-security-authentication.md`              | ✅ Active | Auth, RBAC, file upload security                                                       |
-| **ADR-015 Release Strategy**   | `specs/06-Decision-Records/ADR-015-deployment-infrastructure.md`            | ✅ Active | Blue-Green deployment + release gates                                                  |
-| **ADR-019 UUID**               | `specs/06-Decision-Records/ADR-019-hybrid-identifier-strategy.md`           | ✅ Active | UUID-related work                                                                      |
-| **ADR-021 Workflow Context**   | `specs/06-Decision-Records/ADR-021-workflow-context.md`                     | ✅ Active | Integrated workflow & step attachments                                                 |
-| **ADR-023 AI Architecture**    | `specs/06-Decision-Records/ADR-023-unified-ai-architecture.md`              | ✅ Active | Unified AI boundaries and pipeline (base architecture)                                 |
-| **ADR-023A AI Model Rev.**     | `specs/06-Decision-Records/ADR-023A-unified-ai-architecture.md`             | ✅ Active | 2-queue, RAG embed scope, OCR auto-detect (model stack superseded by ADR-034)          |
-| **ADR-034 Thai Model Stack**   | `specs/06-Decision-Records/ADR-034-AI-model-change.md`                      | ✅ Active | np-dms-ai:latest (Main) + np-dms-ocr:latest (OCR, keep_alive:0)                        |
-| **ADR-024 Intent Class.**      | `specs/06-Decision-Records/ADR-024-intent-classification-strategy.md`       | ✅ Active | Hybrid Pattern→LLM Fallback; ai_intent_patterns DB; Redis cache 5 min                  |
-| **ADR-025 AI Tool Layer**      | `specs/06-Decision-Records/ADR-025-ai-tool-layer-architecture.md`           | ✅ Active | Server-side Tool dispatch; CASL-guarded bridge; ToolResult uses publicId only          |
-| **ADR-026 Chat UI**            | `specs/06-Decision-Records/ADR-026-document-chat-ui-pattern.md`             | ✅ Active | Side-panel Document Chat UI; useAiChat() hook; streaming response support              |
-| **ADR-027 AI Admin Console**   | `specs/06-Decision-Records/ADR-027-ai-admin-console-and-dynamic-control.md` | ✅ Active | Admin Panel + dynamic model/prompt/intent control without redeploy                     |
-| **ADR-028 Migration Refactor** | `specs/06-Decision-Records/ADR-028-migration-architecture-refactor.md`      | ✅ Active | Staging Queue & post-migration cleanup                                                 |
-| **ADR-029 Dynamic Prompts**    | `specs/06-Decision-Records/ADR-029-dynamic-prompt-management.md`            | ✅ Active | Prompt templates in DB (`ai_prompts`); Redis cache TTL 60s; versioned                  |
-| **ADR-031 Hermes Agent**       | `specs/06-Decision-Records/ADR-031-hermes-agent-telegram-devops-bridge.md`  | ✅ Active | Optional DevOps Agent with Telegram commands, read-only diagnostics                    |
-| **ADR-032 Typhoon OCR**        | `specs/06-Decision-Records/ADR-032-typhoon-ocr-integration.md`              | ✅ Active | Typhoon OCR-3B + typhoon2.1-gemma3-4b on Admin Desktop, VRAM monitoring, Redis caching |
-| **ADR-033 Active Model & OCR** | `specs/06-Decision-Records/ADR-033-active-model-and-ocr-management.md`      | ✅ Active | Synchronous switches, VRAM auto-release, ocr-sidecar API Key protection                |
-| **ADR-037 Unified Prompt UX**  | `specs/06-Decision-Records/ADR-037-unified-prompt-management-ux.md`         | ✅ Active | OCR & AI Extraction prompt separation, 3-Step Sandbox with RAG Prep, vector preview    |
-| **Backend Guidelines**         | `specs/05-Engineering-Guidelines/05-02-backend-guidelines.md`               | —         | NestJS patterns                                                                        |
-| **Frontend Guidelines**        | `specs/05-Engineering-Guidelines/05-03-frontend-guidelines.md`              | —         | Next.js patterns                                                                       |
-| **Testing Strategy**           | `specs/05-Engineering-Guidelines/05-04-testing-strategy.md`                 | —         | Coverage goals                                                                         |
-| **Git Conventions**            | `specs/05-Engineering-Guidelines/05-05-git-conventions.md`                  | —         | Commit/branch naming                                                                   |
-| **Code Snippets**              | `specs/05-Engineering-Guidelines/05-06-code-snippets.md`                    | —         | Reusable patterns                                                                      |
-| **i18n Guidelines**            | `specs/05-Engineering-Guidelines/05-08-i18n-guidelines.md`                  | —         | Localization rules                                                                     |
-| **Release Policy**             | `specs/04-Infrastructure-OPS/04-08-release-management-policy.md`            | —         | Before deploy/hotfix                                                                   |
-| **UAT Criteria**               | `specs/01-Requirements/01-05-acceptance-criteria.md`                        | —         | Feature completeness                                                                   |
+Spec priority: **`06-Decision-Records`** > **`05-Engineering-Guidelines`** > others
 
 ---
 
 ## 📁 Specs Folder Organization
 
-โครงสร้างโฟลเดอร์ `specs/` แบ่งเป็น 2 ส่วนหลัก:
+→ Full details: [`.agents/rules/13-specs-folder-organization.md`](./.agents/rules/13-specs-folder-organization.md)
 
-### 1. Core Specs (Permanent - ไม่เปลี่ยนชื่อ)
-
-โฟลเดอร์เหล่านี้เป็น Source of Truth ถาวรของระบบ:
-
-- `00-overview/` - ภาพรวมระบบ + Product Vision + KPI + Training
-- `01-requirements/` - Business Requirements & Modularity
-- `02-architecture/` - สถาปัตยกรรมระบบ (System & Network)
-- `03-Data-and-Storage/` - โครงสร้างฐานข้อมูลและการจัดการไฟล์
-- `04-Infrastructure-OPS/` - โครงสร้างพื้นฐานและการปฏิบัติการ
-- `05-Engineering-Guidelines/` - มาตรฐานการพัฒนาและการเขียนโค้ด
-- `06-Decision-Records/` - Architecture Decision Records (ADRs)
-- `08-Tasks/` - Task documents
-- `88-logs/` - Logs
-- `99-archives/` - ประวัติการทำงานและ Tasks เก่า
-
-### 2. Feature Work (Categorized - ใช้สำหรับงาน Implement)
-
-โฟลเดอร์เหล่านี้ใช้เก็บ plan.md, spec.md, tasks.md สำหรับงานที่กำลังดำเนินการ:
-
-- `100-Infrastructures/` - งานที่เกี่ยวกับ Infrastructure (Deployment, Monitoring, Docker Compose, Network)
-- `200-fullstacks/` - งาน Fullstack Development (Backend + Frontend features, Workflow Engine, API)
-- `300-others/` - งานอื่นๆ (Documentation, Research, Non-code tasks)
-
-### การตั้งชื่อโฟลเดอร์ Feature Work
-
-ใช้รูปแบบ: `nXX-feature-name`
-
-- **n** = หลักร้อยของหมวดหมู่ (1, 2, 3)
-- **XX** = เลขลำดับงาน (01, 02, 03, ...)
-- **feature-name** = ชื่องาน (kebab-case)
-
-ตัวอย่าง:
-
-- `100-Infrastructures/102-infra-ops` - Infrastructure Operations
-- `200-fullstacks/201-transmittals-circulation` - Transmittals + Circulation Integration
-- `200-fullstacks/203-unified-workflow-engine` - Unified Workflow Engine
-
-### กฎสำคัญ
-
-- **เมื่อสร้าง feature spec ใหม่** → วางไว้ในหมวดหมู่ที่เหมาะสม (100/200/300)
-- **ใช้เลขลำดับต่อจากงานล่าสุด** ในหมวดหมู่เดียวกัน
-- **อ่าน README.md** ในแต่ละหมวดหมู่ก่อนเริ่มงาน
-
-ดูรายละเอียดเพิ่มเติมใน:
-
-- `specs/100-Infrastructures/README.md`
-- `specs/200-fullstacks/README.md`
-- `specs/300-others/README.md`
+Core: `00-overview/` → `06-Decision-Records/` (permanent) | Feature: `100-Infrastructures/`, `200-fullstacks/`, `300-others/`
 
 ---
 
 ## 🆔 Identifier Strategy (ADR-019) — CRITICAL
 
-| Context          | Type                      | Notes                                       |
-| ---------------- | ------------------------- | ------------------------------------------- |
-| Internal / DB FK | `INT AUTO_INCREMENT`      | Never exposed in API                        |
-| Public API / URL | `UUIDv7` (MariaDB native) | Stored as BINARY(16), no transformer needed |
-| Entity Property  | `publicId: string`        | Exposed directly in API (no transformation) |
-| API Response     | `publicId: string` (UUID) | INT `id` has `@Exclude()` — never appears   |
+→ Full details: [`.agents/rules/01-adr-019-uuid.md`](./.agents/rules/01-adr-019-uuid.md)
 
-### ✅ Updated Pattern (March 2026)
-
-**Backend:** `UuidBaseEntity` exposes `publicId` directly — no `@Expose({ name: 'id' })` transformation
-
-**Frontend:** Use `publicId` only — no `uuid` or `id` fallbacks:
-
-```typescript
-// ✅ CORRECT — Use publicId only
-type ProjectOption = {
-  publicId?: string; // No uuid, no id fallback
-  projectName?: string;
-};
-
-// ❌ WRONG — Multiple identifiers cause confusion
-type ProjectOption = {
-  publicId?: string;
-  uuid?: string; // Don't do this
-  id?: number; // Don't do this
-};
-```
-
-### ❌ Forbidden UUID Patterns
-
-```typescript
-// ❌ NEVER use parseInt on UUID
-parseInt(projectId); // "0195..." → 19 (WRONG!)
-
-// ❌ NEVER use id ?? '' fallback
-const value = c.publicId ?? c.id ?? ''; // Wrong!
-
-// ✅ CORRECT — Use publicId only
-const value = c.publicId; // "019505a1-7c3e-7000-8000-abc123def456"
-```
-
-Read `specs/05-Engineering-Guidelines/05-07-hybrid-uuid-implementation-plan.md` before any UUID-related work.
+Key rules: Use `publicId` only, NEVER `parseInt()` on UUID, NEVER expose INT `id`.
 
 ---
 
 ## 🛡️ Security Rules (Non-Negotiable)
 
-1. **Idempotency:** All critical `POST`/`PUT`/`PATCH` MUST validate `Idempotency-Key` header
-2. **Two-Phase File Upload:** Upload → Temp → Commit → Permanent
-3. **Race Conditions:** Redis Redlock + TypeORM `@VersionColumn` for Document Numbering
-4. **Validation:** Zod (frontend) + class-validator (backend DTO)
-5. **Password:** bcrypt 12 salt rounds, min 8 chars, rotate every 90 days
-6. **Rate Limiting:** `ThrottlerGuard` on all auth endpoints
-7. **File Upload:** Whitelist PDF/DWG/DOCX/XLSX/ZIP, max 50MB, ClamAV scan
-8. **AI Isolation (ADR-023/023A/034):** Ollama on Admin Desktop ONLY — NO direct DB/storage access; model stack `np-dms-ai:latest` (main) + `np-dms-ocr:latest` (OCR, keep_alive:0) + `nomic-embed-text`; all inference via BullMQ (`ai-realtime` / `ai-batch`)
-9. **Error Handling (ADR-007):** Use layered error classification with user-friendly messages
-10. **AI Integration (ADR-023/023A):** RFA-First approach; n8n orchestrates Migration Phase only via DMS API — never calls Ollama directly; `QdrantService.search()` requires `projectPublicId` as mandatory param
+→ Full details: [`.agents/rules/02-security.md`](./.agents/rules/02-security.md)
 
-Full details: `specs/06-Decision-Records/ADR-016-security-authentication.md`
+Key: Two-phase upload, ClamAV, RBAC, AI isolation (ADR-023/023A/034), Qdrant `projectPublicId` filter.
 
 ---
 
 ## 📐 TypeScript Rules & Coding Standards
 
-### 📝 Core Standards
+→ Full details: [`.agents/rules/03-typescript.md`](./.agents/rules/03-typescript.md)
 
-- **Strict Mode** — all strict checks enforced
-- **ZERO `any` types** — use proper types or `unknown` + narrowing
-- **ZERO `console.log`** — use NestJS `Logger` (backend) or remove (frontend)
-- **English for Code** — use English for all code identifiers, variables, and logic
-- **Thai for Comments** — use Thai for comments, documentation, and JSDoc
-- **Explicit Typing** — explicitly define types for all variables, parameters, and return values
-- **JSDoc** — use JSDoc for all public classes and methods
-
-### 🏗️ File & Function Structure
-
-- **File Headers** — every file MUST start with `// File: path/filename` on the first line
-- **Change Log** — include `// Change Log` at the top of the file to track modifications
-- **Single Export** — export **only one main symbol** per file
-- **Function Style** — avoid unnecessary blank lines inside functions to maintain compactness
+Key: Strict mode, ZERO `any`, ZERO `console.log`, English code/Thai comments, file headers `// File: path`.
 
 ---
 
 ## 🏷️ Domain Terminology
 
-| ✅ Use             | ❌ Don't Use                          | คำอธิบายเพิ่มเติม                                |
-| ------------------ | ------------------------------------- | ------------------------------------------------ |
-| Correspondence     | Letter, Communication, Document       | ครอบคลุมทุกประเภท: Letter, RFA, Memo, ฯลฯ        |
-| RFA                | Approval Request, Submit for Approval | เอกสารขออนุมัติ (ชนิดหนึ่งของ Correspondence)    |
-| Transmittal        | Delivery Note, Cover Letter           | เอกสารนำส่ง (ชนิดหนึ่งของ Correspondence)        |
-| Circulation        | Distribution, Routing                 | ใบเวียนเอกสารภายใน (ชนิดหนึ่งของ Correspondence) |
-| Shop Drawing       | Construction Drawing                  | แบบก่อสร้าง                                      |
-| Contract Drawing   | Design Drawing, Blueprint             | แบบคู่สัญญา                                      |
-| Workflow Engine    | Approval Flow, Process Engine         | เครื่องมือจัดการลำดับงาน                         |
-| Document Numbering | Document ID, Auto Number              | ระบบจัดการเลขที่เอกสาร                           |
-| RBAC               | Permission System (generic)           | การควบคุมสิทธิ์ตามบทบาท                          |
+→ Full glossary: [`.agents/rules/04-domain-terminology.md`](./.agents/rules/04-domain-terminology.md) | `specs/00-overview/00-02-glossary.md`
 
-Full glossary: `specs/00-overview/00-02-glossary.md`
+Key: Correspondence (not Letter), Workflow Engine (not Approval Flow), Document Numbering (not Document ID).
 
 ---
 
-## 🚫 Forbidden Actions
+## 🚫 Forbidden Actions & Out of Scope
 
-| ❌ Forbidden                                    | ✅ Correct Approach                                     | ⚠️ Why                                               |
-| ----------------------------------------------- | ------------------------------------------------------- | ---------------------------------------------------- |
-| SQL Triggers for business logic                 | NestJS Service methods                                  | Untestable; bypasses audit log                       |
-| `.env` files in production                      | `docker-compose.yml` environment section                | Secrets exposed in version control                   |
-| TypeORM migration files                         | Edit schema SQL directly (ADR-009)                      | Migration drift risk; schema managed via SQL delta   |
-| Inventing table/column names                    | Verify against `schema-02-tables.sql`                   | Schema mismatch causes silent runtime errors         |
-| `any` TypeScript type                           | Proper types / generics                                 | Defeats strict mode; hides runtime type errors       |
-| `console.log` in committed code                 | NestJS Logger (backend) / remove (frontend)             | Log flooding in production; risk of data leakage     |
-| `req: any` in controllers                       | `RequestWithUser` typed interface                       | Type safety lost; auth context unreachable           |
-| `parseInt()` on UUID values                     | Use UUID string directly (ADR-019)                      | `"0195…"` parsed to integer `19` — silently wrong    |
-| Exposing INT PK in API responses                | UUIDv7 `publicId` (ADR-019)                             | Leaks row count; enables DB enumeration attacks      |
-| AI accessing DB/storage directly                | AI → DMS API → DB (ADR-023/023A)                        | Bypasses RBAC, audit trail, and validation layer     |
-| Direct file operations bypassing StorageService | `StorageService` for all file moves                     | Orphaned files; broken ClamAV scan; no audit trail   |
-| Inline email/notification sending               | BullMQ queue job (ADR-008)                              | Blocks request thread; no retry on transient failure |
-| Deploying without Release Gates                 | Complete `04-08-release-management-policy.md`           | Unverified deploy risks data loss in production      |
-| AI direct cloud API calls                       | On-premises Ollama only (ADR-023/023A)                  | Data privacy violation; no audit control             |
-| AI outputs without human validation             | Human-in-the-loop validation required (ADR-023/023A)    | Unvalidated AI metadata corrupts document records    |
-| n8n calling Ollama/Qdrant directly              | n8n → DMS API → BullMQ → Ollama (ADR-023A)              | Bypasses audit log, RBAC, and error handling layer   |
-| Qdrant query without `projectPublicId` filter   | `QdrantService.search(projectPublicId, ...)` (ADR-023A) | Cross-project data leak via vector search            |
+→ Full details: [`.agents/rules/05-forbidden-actions.md`](./.agents/rules/05-forbidden-actions.md)
 
----
-
-## 🚧 Out of Scope — Never Do Without Explicit Approval
-
-| ❌ Never Do Autonomously                                        | ⚠️ Why Approval Is Required                                      |
-| --------------------------------------------------------------- | ---------------------------------------------------------------- |
-| `DROP` or `RENAME` a column / table                             | Irreversible data loss — requires DBA + PM sign-off              |
-| Push directly to `main` / `master` branch                       | Bypasses CI, code review, and release gates                      |
-| Generate or insert seed data into production database           | May corrupt live data or violate business state invariants       |
-| Delete files from permanent storage                             | Files may be referenced in active documents or audit trails      |
-| Modify RBAC permission matrix without security team approval    | Defines access control for all users — security boundary change  |
-| Upgrade major library versions (NestJS, Next.js, TypeORM, etc.) | Breaking changes require full regression test cycle              |
-| Disable or modify authentication / authorization guards         | Creates unguarded endpoints — immediate security risk            |
-| Change Redis lock TTL or disable Redlock                        | Risk of document number race condition (ADR-002)                 |
-| Create or supersede an ADR unilaterally                         | Architecture decisions require team consensus and review process |
-| Add new columns to production tables without schema review      | Must update Data Dictionary + downstream queries simultaneously  |
+Includes: Forbidden patterns + Out of Scope (never do without explicit approval).
 
 ---
 
 ## 🔄 Development Flow (Tiered)
 
-### 🔴 Critical Work — DB / API / Security / Workflow Engine
+→ Full details: [`.agents/rules/08-development-flow.md`](./.agents/rules/08-development-flow.md)
 
-**MUST complete all steps:**
-
-1. **Glossary check** — verify domain terms in `00-02-glossary.md`
-2. **Read the spec** — select from Key Spec Files table
-3. **Check schema** — verify table/column in `schema-02-tables.sql`
-4. **Check data dictionary** — confirm field meanings + business rules
-5. **Scan edge cases** — `01-06-edge-cases-and-rules.md`
-6. **Check ADRs** — verify decisions align (ADR-009, ADR-019, ADR-023)
-7. **Write code** — TypeScript strict, no `any`, no `console.log`, follow headers/JSDoc rules
-
-### 🟡 Normal Work — UI / Feature / Integration
-
-**Steps:**
-
-1. Follow existing patterns in codebase
-2. Check spec for relevant module only
-3. Verify no forbidden patterns (`any`, `console.log`, UUID misuse)
-4. **Apply TypeScript Standards:** File headers, Thai comments, JSDoc
-
-**Expected output:**
-
-- Functional component or updated service method
-- At least 1 unit/snapshot test added or updated
-- No new TypeScript errors or ESLint warnings
-- PR description reflects the change
-
-### 🟢 Quick Fix — Bug Fix / Typo / Style
-
-**Steps:**
-
-1. Identify root cause before changing code
-2. Apply minimal, targeted fix
-3. Add regression test if logic changed
-4. Verify no forbidden patterns introduced
-
-**Expected output:**
-
-- Single focused commit: `fix(scope): description`
-- All existing tests still pass (no regressions)
-- If logic changed: at least 1 regression test added
-
-### 🟢 Specialized Work — ADR-021, AI Runtime Layer, Complex Logic
-
-**MUST complete:**
-
-1. **Domain Knowledge Check** - Read relevant ADRs (ADR-021, ADR-023/023A, ADR-024~028)
-2. **Pattern Verification** - Check existing implementations in codebase
-3. **Specialized Requirements** - Follow domain-specific patterns
-4. **Complex Logic Testing** - Multi-scenario test coverage
-5. **Performance Validation** - Load testing if applicable
-
-**For ADR-021 Integration:**
-
-- Read ADR-021 - Integrated workflow & step attachments
-- Check ADR-001 - Unified workflow engine patterns
-- Verify WorkflowEngineService - Polymorphic instance handling
-- Add workflow fields - Expose workflowInstanceId, workflowState, availableActions
-- Include IntegratedBanner - Frontend workflow lifecycle display
-- Test workflow transitions - State changes and action validation
-
-**For AI Infrastructure (ADR-023/023A):**
-
-- Verify AI boundary enforcement - No direct DB/storage access
-- Check BullMQ 2-queue setup - ai-realtime + ai-batch
-- Validate Qdrant multi-tenancy - projectPublicId filter required
-- Test human-in-the-loop validation workflows
-- Audit AI interaction logging to ai_audit_logs
-
-**For AI Runtime Layer (ADR-024/025/026/027):**
-
-- ADR-024: Pattern Layer first (ai_intent_patterns DB + Redis cache 5 min) → LLM Fallback (np-dms-ai:latest, semaphore max=3)
-- ADR-025: Tool Registry dispatch — AI Gateway → Tool → Business Service; ToolResult DTO must use publicId only
-- ADR-026: useAiChat() hook + side-panel UI; streaming response via SSE; TanStack Query cache
-- ADR-027: Admin Console — dynamic model/prompt/intent control; CASL-guarded admin-only endpoints
-- ADR-032: Typhoon OCR-3B + typhoon2.1-gemma3-4b on Admin Desktop; VRAM capacity checks and dynamic mappings
-- ADR-033: Active Model & OCR — Synchronous switches with load checks; GPU Unload model method on switch; ocr-sidecar endpoint X-API-Key validation
-
-**For Migration Pipeline (ADR-028):**
-
-- Use Staging Queue pattern — never write directly to production tables
-- Post-migration cleanup process required after each batch
-- Migration Validation Gates must pass before promoting to production
-
-**Expected output:**
-
-- Backend services expose specialized context fields
-- Frontend components use domain-specific patterns
-- Complex state management with proper validation
-- Performance metrics within acceptable thresholds
-- Comprehensive test coverage for edge cases
+Tiers: 🔴 Critical (DB/API/Security) → 🟡 Normal (UI/Feature) → 🟢 Quick Fix → 🟢 Specialized (ADR-021/AI Runtime/Migration)
 
 ---
 
 ## 🎯 Context-Aware Triggers
 
-When user asks about... check these files:
+→ Full table: [`.agents/rules/14-context-aware-triggers.md`](./.agents/rules/14-context-aware-triggers.md)
 
-| Request                        | Status | Files to Check                                                                        | Expected Response                                                       |
-| ------------------------------ | ------ | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| "สร้าง API ใหม่"               | ✅     | `05-02-backend-guidelines.md`, `lcbp3-v1.9.0-schema-02-tables.sql`                    | NestJS Controller + Service + DTO + CASL Guard                          |
-| "แก้ฟอร์ม frontend"            | ✅     | `05-03-frontend-guidelines.md`, `01-06-edge-cases-and-rules.md`                       | RHF+Zod + TanStack Query + Thai comments                                |
-| "เพิ่ม field ใหม่"             | ✅     | `ADR-009`, `03-01-data-dictionary.md`, `lcbp3-v1.9.0-schema-02-tables.sql`            | Edit SQL directly + update Data Dictionary + Entity                     |
-| "ตรวจสอบ UUID"                 | ✅     | `ADR-019`, `05-07-hybrid-uuid-implementation-plan.md`                                 | UUIDv7 MariaDB native UUID + TransformInterceptor                       |
-| "สร้าง migration"              | ✅     | `ADR-009`, `03-06-migration-business-scope.md`                                        | Edit SQL schema directly + n8n workflow                                 |
-| "ตรวจสอบ permission"           | ✅     | `lcbp3-v1.9.0-seed-permissions.sql`, `ADR-016`                                        | CASL 4-Level RBAC matrix                                                |
-| "deploy production"            | ✅     | `04-08-release-management-policy.md`, `ADR-015`                                       | Release Gates + Blue-Green strategy                                     |
-| "เพิ่ม test"                   | ✅     | `05-04-testing-strategy.md`                                                           | Coverage goals + test patterns                                          |
-| "AI integration"               | ✅     | `ADR-023`, `ADR-023A`, `ADR-024`, `ADR-025`                                           | AI boundary + 2-model stack + BullMQ queue policy + Intent/Tool Layer   |
-| "Error handling"               | ✅     | `ADR-007`                                                                             | Layered error classification + recovery                                 |
-| "File upload"                  | ✅     | `ADR-016`, `05-02-backend-guidelines.md`, `03-Data-and-Storage/03-03-file-storage.md` | Two-phase upload → temp → commit; ClamAV + whitelist                    |
-| "Notifications / Queue"        | ✅     | `ADR-008`, `05-02-backend-guidelines.md`                                              | BullMQ job — never inline; check retry + dead-letter                    |
-| "Add i18n / translate"         | ✅     | `05-08-i18n-guidelines.md`                                                            | i18n keys only — no hardcoded text                                      |
-| "Workflow / DSL"               | ✅     | `ADR-001`, `01-03-modules/01-03-06-unified-workflow.md`                               | DSL state machine + WorkflowEngineService                               |
-| "Document numbering"           | ✅     | `ADR-002`, `01-02-business-rules/01-02-02-doc-numbering-rules.md`                     | Redis Redlock + DB optimistic lock (double-lock)                        |
-| "ตรวจสอบ Workflow"             | ✅     | `01-06-edge-cases-and-rules.md`, `05-02-backend-guidelines.md`, `ADR-001`, `ADR-002`  | เช็คการเปลี่ยน State, คิว BullMQ และการล็อกเลขที่เอกสาร                 |
-| "Transmittal submit"           | 📋     | `ADR-021`, `specs/200-fullstacks/201-transmittals-circulation/`                       | submit() with EC-RFA-004 validation                                     |
-| "Circulation reassign"         | 📋     | `ADR-021`, `specs/200-fullstacks/201-transmittals-circulation/`                       | reassignRouting() with EC-CIRC-001                                      |
-| "สร้าง workflow ใหม่"          | 📋     | `ADR-001`, `ADR-021`, `specs/200-fullstacks/203-unified-workflow-engine/`             | DSL workflow definition + WorkflowEngineService setup                   |
-| "ตรวจสอบ AI boundary"          | ✅     | `ADR-023`, `ADR-023A`                                                                 | Verify Ollama isolation + BullMQ queues + Qdrant projectPublicId filter |
-| "Intent classification"        | ✅     | `ADR-024`, `specs/200-fullstacks/224-intent-classification/`                          | Pattern Layer → LLM Fallback; ai_intent_patterns; Redis cache 5 min     |
-| "AI Tool Layer"                | ✅     | `ADR-025`, `specs/200-fullstacks/225-ai-tool-layer-architecture/`                     | Tool Registry; CASL-guarded dispatch; ToolResult publicId only          |
-| "Document Chat UI"             | ✅     | `ADR-026`, `specs/200-fullstacks/226-document-chat-ui-pattern/`                       | Side-panel; useAiChat() hook; streaming SSE; TanStack Query cache       |
-| "AI Admin Console"             | ✅     | `ADR-027`, `specs/200-fullstacks/227-ai-admin-console/`                               | Dynamic model/prompt/intent control; admin-only CASL endpoints          |
-| "Migration refactor"           | ✅     | `ADR-028`, `specs/200-fullstacks/228-migration-arch-refactor/`                        | Staging Queue; post-migration cleanup; validation gates                 |
-| "Dynamic Prompt / Prompt"      | ✅     | `ADR-029`, `specs/06-Decision-Records/ADR-029-dynamic-prompt-management.md`           | ai_prompts table; Redis cache `ai:prompt:active:{type}` TTL 60s         |
-| "AI Model / OCR Active Switch" | ✅     | `ADR-032`, `ADR-033`, `specs/200-fullstacks/233-ai-model-ocr-runner-management/`      | Synchronous LLM switches, VRAM Release, sidecar API Key protection      |
-| "จัดการ document numbering"    | ✅     | `ADR-002`, `specs/03-Data-and-Storage/03-04-document-numbering.md`                    | Redis Redlock + template system + preview/override workflows            |
-| "Audit ความปลอดภัย"            | ✅     | `ADR-016`, `ADR-019`, `ADR-023`, `ADR-023A`                                           | ตรวจสอบ UUID pattern, CASL Guard, AI Boundary และ Qdrant multi-tenancy  |
-| "แก้ bug / bugfix"             | ✅     | `.agents/workflows/bugfix.md`, `error-catalog.md`                                     | ใช้ bugfix workflow สำหรับเคสที่สาเหตุชัดเจน                            |
-| "ตรวจแอปจริง"                  | ✅     | `.windsurf/workflows/check-real-app.md`                                               | ตรวจ endpoint/UI/console หลัง build pass — No Fake Evidence             |
-| "งานค้าง / resume"             | ✅     | `.windsurf/workflows/resume-pending-work.md`                                          | อ่าน checkpoint เดิม → ตรวจ build → วางแผนต่อโดยไม่ทำงานซ้ำ             |
-
-**Status Legend:**
-
-- ✅ Implemented and verified
-- 📋 Spec exists, implementation in progress
-- 🔄 In development
-- ❌ Not yet started
+Maps user requests → spec files to check + expected response.
 
 ---
 
 ## 🔌 MCP MariaDB Tools
 
-MCP MariaDB server ให้เครื่องมือสำหรับตรวจสอบและจัดการ database โดยตรง ใช้สำหรับ:
+→ Full details: [`.agents/rules/15-mcp-mariadb-tools.md`](./.agents/rules/15-mcp-mariadb-tools.md)
 
-- ตรวจสอบ schema กับ spec file `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql`
-- Debug ปัญหา database โดยไม่ต้องเข้า MySQL client
-- ตรวจสอบ data ใน production/staging
-- Validate การเปลี่ยนแปลง schema ก่อน deploy
-
-### Available Tools
-
-| Tool                         | หน้าที่                        | ตัวอย่างการใช้งาน                                  |
-| ---------------------------- | ------------------------------ | -------------------------------------------------- |
-| `mcp1_mysql_test_connection` | ทดสอบ connection กับ database  | ตรวจสอบว่า MCP server เชื่อมต่อได้                 |
-| `mcp1_mysql_show_databases`  | แสดง databases ทั้งหมด         | ดูว่ามี database อะไรบ้าง                          |
-| `mcp1_mysql_show_tables`     | แสดง tables ทั้งหมดใน database | ดูรายชื่อ tables ใน `lcbp3`                        |
-| `mcp1_mysql_describe_table`  | ดู structure/columns ของ table | ตรวจสอบ columns, types, keys ของ `correspondences` |
-| `mcp1_mysql_query`           | รัน SELECT query               | ดู data ใน table หรือ join query                   |
-| `mcp1_mysql_insert`          | INSERT data                    | เพิ่ม seed data หรือ test data                     |
-| `mcp1_mysql_update`          | UPDATE data                    | แก้ไข data ใน table                                |
-| `mcp1_mysql_delete`          | DELETE data                    | ลบ data ใน table                                   |
-
-### การใช้งานร่วมกับ Development Flow
-
-**เมื่อเขียน query ใหม่:**
-
-1. ใช้ `mcp1_mysql_describe_table` เพื่อตรวจสอบ columns และ types
-2. เปรียบเทียบกับ `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql`
-3. ใช้ `mcp1_mysql_query` เพื่อทดสอบ query ก่อน implement
-
-**เมื่อเปลี่ยน schema (ADR-009):**
-
-1. ใช้ `mcp1_mysql_describe_table` เพื่อดู structure ปัจจุบัน
-2. สร้าง SQL delta ใน `specs/03-Data-and-Storage/deltas/`
-3. ใช้ `mcp1_mysql_query` เพื่อตรวจสอบผลลัพธ์หลัง apply delta
-
-**เมื่อ debug ปัญหา database:**
-
-1. ใช้ `mcp1_mysql_query` เพื่อดู data จริง
-2. เปรียบเทียบกับ spec และ data dictionary
-3. ตรวจสอบ foreign keys และ constraints
-
-### ข้อควรระวัง
-
-- **❌ ห้ามใช้ MCP MariaDB สำหรับ DDL operations** (CREATE/ALTER/DROP) โดยตรง — ต้องใช้ SQL delta ตาม ADR-009
-- **✅ ใช้สำหรับ DQL/DML operations** (SELECT/INSERT/UPDATE/DELETE) เพื่อ debug และ test เท่านั้น
-- **⚠️ ระวัง DELETE operations** — อาจทำให้เสีย data ใน production
-- **✅ ตรวจสอบ schema กับ spec file เสมอ** ก่อนเขียน query
+Tools: test_connection, show_databases, show_tables, describe_table, query, insert, update, delete. ❌ No DDL.
 
 ---
 
 ## 🧠 MCP Memory Tools
 
-MCP Memory server ให้เครื่องมือสำหรับจัดการ Knowledge Graph และ Long-term Memory ใช้สำหรับ:
+→ Full details: [`.agents/rules/16-mcp-memory-tools.md`](./.agents/rules/16-mcp-memory-tools.md)
 
-- จัดเก็บความรู้และ context ของโปรเจกต์ในรูปแบบ Graph (Entities + Relations + Observations)
-- ค้นหาและดึงข้อมูล context จาก memory ที่บันทึกไว้ใน session ก่อนหน้า
-- สร้าง/แก้ไข/ลบ entities, relations, และ observations ใน knowledge graph
-
-### Available Tools
-
-| Tool                       | หน้าที่                                      | ตัวอย่างการใช้งาน                            |
-| -------------------------- | -------------------------------------------- | -------------------------------------------- |
-| `mcp3_create_entities`     | สร้าง entities ใหม่หลายตัวพร้อม observations | สร้าง entity ใหม่เช่น Project, User, Task    |
-| `mcp3_create_relations`    | สร้าง relations ระหว่าง entities             | สร้าง relation: Project → has → User         |
-| `mcp3_add_observations`    | เพิ่ม observations ให้ entity ที่มีอยู่แล้ว  | เพิ่ม context เพิ่มเติมให้ entity            |
-| `mcp3_delete_entities`     | ลบ entities และ relations ที่เกี่ยวข้อง      | ลบ entity ที่ไม่ใช้แล้ว                      |
-| `mcp3_delete_relations`    | ลบ relations ระหว่าง entities                | ลบ relation ที่ผิดหรือไม่ใช้แล้ว             |
-| `mcp3_delete_observations` | ลบ observations จาก entity                   | ลบ context ที่ผิดหรือล้าสุด                  |
-| `mcp3_open_nodes`          | ดึงข้อมูล entities ตามชื่อ                   | ดึง entity ที่ระบุชื่อ                       |
-| `mcp3_read_graph`          | อ่าน knowledge graph ทั้งหมด                 | ดูทั้ง graph structure                       |
-| `mcp3_search_nodes`        | ค้นหา entities ตาม query                     | ค้นหา entity จากชื่อ, type, หรือ observation |
-
-### การใช้งานร่วมกับ Development Flow
-
-**เมื่อบันทึก context ใหม่:**
-
-1. ใช้ `mcp3_create_entities` เพื่อสร้าง entities ใหม่ (ถ้ายังไม่มี)
-2. ใช้ `mcp3_create_relations` เพื่อเชื่อมโยง entities
-3. ใช้ `mcp3_add_observations` เพื่อเพิ่ม context/observations
-
-**เมื่อค้นหา context:**
-
-1. ใช้ `mcp3_search_nodes` เพื่อค้นหา entities ที่เกี่ยวข้อง
-2. ใช้ `mcp3_open_nodes` เพื่อดึงข้อมูล entities ที่ต้องการ
-3. ใช้ `mcp3_read_graph` เพื่อดู relations ระหว่าง entities
-
-**เมื่อแก้ไข context:**
-
-1. ใช้ `mcp3_add_observations` เพื่อเพิ่ม observations ใหม่
-2. ใช้ `mcp3_delete_observations` เพื่อลบ observations ที่ผิด
-3. ใช้ `mcp3_create_relations` หรือ `mcp3_delete_relations` เพื่อปรับ relations
-
-### ข้อควรระวัง
-
-- **✅ ใช้สำหรับบันทึก context ที่ต้องใช้ร่วมกันหลาย session** — เช่น การตัดสินใจสำคัญ, architecture decisions, rollout history
-- **⚠️ ระวังการลบ entities** — อาจทำให้เสีย context ที่ยังใช้งานอยู่
-- **✅ ตรวจสอบว่า entity มีอยู่แล้วก่อนสร้าง** — ใช้ `mcp3_search_nodes` หรือ `mcp3_open_nodes` ก่อน
-- **✅ ใช้ชื่อ entity ที่ชัดเจนและไม่ซ้ำกัน** — เพื่อป้องกันความสับสน
+Knowledge Graph tools: create/search/delete entities, relations, observations for long-term context.
 
 ---
 
 ## 🛠️ Final Checklists
 
-### 🔴 Tier 1 — CRITICAL (CI BLOCKER)
+→ Full details: [`.agents/rules/09-commit-checklist.md`](./.agents/rules/09-commit-checklist.md)
 
-**Security & Data Integrity:**
-
-- [ ] **UUID Strategy:** Use `publicId` only, no `parseInt()` on UUID values (ADR-019)
-- [ ] **RBAC Guards:** CASL guards on all endpoints, 4-level matrix checked (ADR-016)
-- [ ] **AI Boundary:** Ollama isolation, no direct DB/storage access (ADR-023/023A)
-- [ ] **Input Validation:** Zod (frontend) + class-validator (backend DTO)
-- [ ] **File Upload:** Two-phase (Temp → Commit), ClamAV scan, whitelist enforced
-- [ ] **Idempotency:** `Idempotency-Key` header validated on critical POST/PUT/PATCH
-- [ ] **Error Handling:** Layered classification (Validation, Business, System) with user-friendly messages (ADR-007)
-
-**Code Quality:**
-
-- [ ] No `any` types in TypeScript (use interfaces/types)
-- [ ] No `console.log` in committed code (use NestJS Logger)
-- [ ] Database schema verified before writing queries
-- [ ] SQL injection prevention checked
-
-### 🟡 Tier 2 — IMPORTANT (CODE REVIEW)
-
-**Architecture & Standards:**
-
-- [ ] **File header `// File: path/filename` present**
-- [ ] **`// Change Log` section included at top**
-- [ ] **JSDoc present for public classes and methods**
-- [ ] **One main export per file**
-- [ ] Business logic in services, thin controllers pattern
-- [ ] Schema changes via SQL directly (ADR-009)
-- [ ] Test coverage meets targets (Backend 70%+, Business Logic 80%+)
-- [ ] Cache invalidation when data modified
-- [ ] Naming conventions followed
-
-**Localization & Comments:**
-
-- [ ] Business logic comments in Thai, technical comments in English
-- [ ] Code identifiers in English
-- [ ] i18n keys used instead of hardcode text
-
-### 🟢 Tier 3 — SPECIALIZED WORK
-
-**Workflow Integration (ADR-021):**
-
-- [ ] WorkflowEngineService polymorphic handling verified
-- [ ] Workflow fields exposed (workflowInstanceId, workflowState, availableActions)
-- [ ] IntegratedBanner + WorkflowLifecycle components used
-- [ ] Workflow transitions tested with state validation
-- [ ] RBAC guards on workflow actions
-
-**AI Integration (ADR-023/023A):**
-
-- [ ] **BullMQ Usage:** Background jobs via BullMQ, no inline processing
-- [ ] **Qdrant Multi-tenancy:** `projectPublicId` filter enforced
-- [ ] **Human-in-the-loop:** AI outputs validated before use
-- [ ] **Audit Logging:** All AI interactions logged to `ai_audit_logs`
-- [ ] **Model Stack (ADR-034):** np-dms-ai:latest + np-dms-ocr:latest + nomic-embed-text verified
-- [ ] **Dynamic Prompts (ADR-029):** Prompt templates loaded from `ai_prompts` DB, not hardcoded
-
-**Performance & Complex Logic:**
-
-- [ ] Performance metrics within targets (P95 ≤ 5s for ≤10MB uploads)
-- [ ] Multi-scenario test coverage for edge cases
-- [ ] Load testing completed if applicable
-- [ ] Complex state management properly validated
-
-### 🔵 Tier 4 — GUIDELINES
-
-**Code Style:**
-
-- [ ] Code formatting follows Prettier rules
-- [ ] Comment completeness where helpful
-- [ ] Minor optimizations considered but not required
+Tier 1 (CI blocker): UUID, RBAC, AI boundary, validation, file upload, error handling.
+Tier 2 (code review): File headers, JSDoc, test coverage, cache invalidation, i18n.
+Tier 3 (specialized): Workflow, AI integration, performance.
+Tier 4 (guidelines): Prettier, comments.
 
 ---
 
@@ -718,6 +251,7 @@ This file is a **quick reference**. For detailed information:
 
 | Version | Date       | Changes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Updated By     |
 | ------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| 1.9.12  | 2026-07-23 | **Refactoring:** Extracted 12 sections to `.agents/rules/` reference files (5 new: 12-16); merged Out of Scope into 05-forbidden-actions.md; AGENTS.md reduced from 756→283 lines (63% reduction); all content preserved in rule files with stub links in AGENTS.md                                                                                                                                                                                                                       | Windsurf AI    |
 | 1.9.10  | 2026-06-06 | Added MCP MariaDB Tools section with available tools (test_connection, show_databases, show_tables, describe_table, query, insert, update, delete), usage guidelines for development flow, and safety warnings for DDL operations; Added MCP Memory Tools section with Knowledge Graph management tools (create_entities, create_relations, add_observations, delete_entities, delete_relations, delete_observations, open_nodes, read_graph, search_nodes) for long-term context storage | Windsurf AI    |
 | 1.9.9   | 2026-06-13 | ADR-034 canonical model names sync: np-dms-ai:latest / np-dms-ocr:latest; ADR-036 parity prep; model switching and sidecar refs updated                                                                                                                                                                                                                                                                                                                                                   | Codex          |
 | 1.9.8   | 2026-06-02 | Added ADR-033 Active Model & OCR Runner Management; implemented Synchronous LLM switches, GPU Memory Auto-release, sidecar `X-API-Key` headers protection; updated Key Spec Files & Specialized Work AI runtime sections                                                                                                                                                                                                                                                                  | Windsurf AI    |

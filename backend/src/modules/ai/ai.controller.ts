@@ -705,6 +705,36 @@ export class AiController {
     return { requestPublicId, jobId, status: 'queued' };
   }
 
+  // --- ADR-042: Sandbox Project Clear Data ---
+
+  @Post('admin/sandbox/clear-data')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Sandbox Project Clear Data — ลบข้อมูลทดสอบทั้งหมด (ADR-042)',
+    description:
+      'Hard-delete cascading (correspondences → revisions → attachments → workflow) scoped เฉพาะ Sandbox Project + enqueue vector deletion',
+  })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    description:
+      'บังคับตาม ADR-016 — ป้องกันการเรียก clear-data ซ้ำโดยไม่ตั้งใจ',
+    required: true,
+  })
+  async clearSandboxData(
+    @Headers('idempotency-key') idempotencyKey: string
+  ): Promise<{
+    deletedCorrespondenceCount: number;
+    vectorDeletionJobsEnqueued: number;
+  }> {
+    if (!idempotencyKey) {
+      throw new ValidationException('Idempotency-Key header is required');
+    }
+    return this.aiService.clearSandboxData();
+  }
+
   // --- Webhook Callback จาก n8n (Service Account) ---
 
   @Post('callback')

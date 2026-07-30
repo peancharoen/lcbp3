@@ -3,30 +3,30 @@
 > **Laem Chabang Port Phase 3 - Document Management System**
 > ระบบบริหารจัดการเอกสารโครงการแบบครบวงจร สำหรับโครงการก่อสร้างท่าเรือแหลมฉบังระยะที่ 3
 
-[![Version](https://img.shields.io/badge/version-1.9.8-blue.svg)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.9.12-blue.svg)](./CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-Internal-red.svg)]()
 [![Status](https://img.shields.io/badge/status-Production%20Ready-brightgreen.svg)]()
 [![Docs](https://img.shields.io/badge/docs-10%2F10%20Gaps%20Closed-success.svg)](./specs/00-Overview/README.md)
 
 ---
 
-## 📈 Current Status (As of 2026-06-02)
+## 📈 Current Status (As of 2026-07-30)
 
-**Version 1.9.8 — ADR-033 Active Model & OCR Sandbox Management with GPU VRAM Release & X-API-Key Protection**
+**Version 1.9.12 — AI Document Ingestion Flow Reconciliation + ADR-035/040 Amendment**
 
-> v1.9.7 (ADR-029 + sidecar) May 25; v1.9.8 (ADR-033 Model/OCR Sync & Security) June 2.
+> v1.9.8 (ADR-033) June 2; v1.9.10 (ADR-034/035 + AGENTS sync) June 6; v1.9.11 (ADR-040/041 + Server Migration + Cloudflare Tunnel + NUT/UPS) July 23; v1.9.12 (AI ingestion flow doc + ADR-035 amendment) July 30; v1.9.13 (ADR-040 Phase 2 — X-API-Key removal) July 30.
 
-| Area                   | Status                   | หมายเหตุ                                                       |
-| ---------------------- | ------------------------ | -------------------------------------------------------------- |
-| 🔧 **Backend**         | ✅ Production Ready      | NestJS 11, Express v5, 0 Vulnerabilities                       |
-| 🎨 **Frontend**        | ✅ 100% Complete         | Next.js 16.2.0, React 19.2.4, ESLint 9                         |
-| 💾 **Database**        | ✅ Schema v1.9.0 Stable  | MariaDB 11.8, No-migration Policy                              |
-| 📘 **Documentation**   | ✅ **10/10 Gaps Closed** | Product Vision → Release Policy (33 ADRs — v1.9.8)             |
-| 🤖 **AI Architecture** | ✅ 33 ADRs Accepted      | ADR-023A + ADR-024~029 + ADR-033 Model Sync & Security         |
-| 🔄 **Workflow Engine** | ✅ ADR-021 Integrated    | Transmittals & Circulation with Integrated Context             |
-| 🧪 **Testing**         | ✅ UAT Ready             | E2E + Acceptance Criteria ready                                |
-| 🚀 **Deployment**      | ✅ Production Ready      | Blue-Green on QNAP Container Station                           |
-| 🔒 **Infrastructure**  | ✅ Hardened (v1.9.8)     | Sidecar APIs secured; dynamic VRAM Release; container hardened |
+| Area                   | Status                                | หมายเหตุ                                                                                            |
+| ---------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| 🔧 **Backend**         | ✅ Production Ready                   | NestJS 11, Express v5, 0 Vulnerabilities                                                            |
+| 🎨 **Frontend**        | ✅ 100% Complete                      | Next.js 16.2.0, React 19.2.4, ESLint 9                                                              |
+| 💾 **Database**        | ✅ Schema v1.9.0 Stable               | MariaDB 11.8, No-migration Policy                                                                   |
+| 📘 **Documentation**   | ✅ **10/10 Gaps Closed**              | Product Vision → Release Policy (43 ADRs — v1.9.13)                                                 |
+| 🤖 **AI Architecture** | ✅ 43 ADRs (41 Accepted + 2 Proposed) | ADR-034 Thai Model Stack + ADR-035 (amended by ADR-040) + ADR-040 Sidecar + ADR-042 Sandbox Project |
+| 🔄 **Workflow Engine** | ✅ ADR-021 Integrated                 | Transmittals & Circulation with Integrated Context                                                  |
+| 🧪 **Testing**         | ✅ UAT Ready                          | E2E + Acceptance Criteria ready                                                                     |
+| 🚀 **Deployment**      | ✅ Production Ready                   | Single-host on np-dms-lcbp3 (192.168.10.11) — ADR-041                                               |
+| 🔒 **Infrastructure**  | ✅ Hardened (v1.9.13)                 | Cloudflare Tunnel edge, NUT/UPS, Docker-internal sidecar network isolation (ADR-040 Phase 2)        |
 
 ---
 
@@ -53,7 +53,9 @@ LCBP3-DMS เป็นระบบบริหารจัดการเอก�
 - 💬 **AI Document Assistant** - Intent Classification + Tool Layer + Document Chat UI (ADR-024/025/026)
 - ⚙️ **AI Admin Console** - Dynamic model/prompt/intent control with Synchronous Loading & Auto-Unloading (ADR-027/033)
 - 📝 **Dynamic Prompt Management** - Prompt templates in DB `ai_prompts`, Redis cache TTL 60s (ADR-029)
-- 🔬 **Typhoon & Tesseract OCR Sidecar** - FastAPI OCR service on Desk-5439 with `X-API-Key` protection & dynamic engine routing (ADR-032/033)
+- 🔬 **Thai-Optimized AI Stack** - `np-dms-ai` (Typhoon 2.5) + `np-dms-ocr` (Typhoon OCR) + BGE-M3/Reranker on np-dms-lcbp3 (ADR-034/035)
+- 🛡️ **Cloudflare Tunnel Edge** - Zero Trust ingress, no public ports, Cloudflare Access for QNAP admin (D5 Revised)
+- ⚡ **UPS Graceful Shutdown** - NUT monitors CyberPower UT2200EG, graceful Docker stack stop before system shutdown
 
 ---
 
@@ -98,35 +100,42 @@ LCBP3-DMS เป็นระบบบริหารจัดการเอก�
 }
 ```
 
-#### Infrastructure
+#### Infrastructure (Post-Consolidation — ADR-041)
 
-- **Server**: QNAP TS-473A (AMD Ryzen V1500B, 32GB RAM)
-- **Containerization**: Docker + Docker Compose (Container Station)
-- **Reverse Proxy**: Nginx Proxy Manager
+- **Primary Server**: np-dms-lcbp3 (Ryzen 5 5600, 32GB RAM, RTX 5060 Ti 16GB) — 192.168.10.11
+- **Containerization**: Docker + Docker Compose (4-layer stack: 01-infrastructure → 02-platform → 03-application → 04-ai)
+- **Edge**: Cloudflare Tunnel (cloudflared systemd) — TLS termination, Zero Trust ingress
+- **HA Standby**: QNAP TS-473A (NPM internal router + cloudflared backup) — 192.168.10.8
+- **File Storage**: ASUSTOR AS5304T (Primary NAS, CIFS mount) — 192.168.10.9
+- **AI Engine**: Ollama (native systemd, not Docker) — np-dms-ai + np-dms-ocr
 - **Version Control**: Gitea (Self-hosted)
-- **Domain**: `np-dms.work`
+- **Domain**: `np-dms.work` (Cloudflare Anycast)
+- **UPS**: CyberPower UT2200EG + NUT (graceful Docker shutdown on battery critical)
 
-### โครงสร้างระบบ
+### โครงสร้างระบบ (Post-Consolidation)
 
 ```
-┌─────────────────┐
-│  Nginx Proxy    │ ← SSL/TLS Termination
-│    Manager      │
-└────────┬────────┘
-         │
-    ┌────┴────┬────────────┬──────────┐
-    │         │            │          │
-┌───▼───┐ ┌──▼──┐  ┌─────▼────┐ ┌──▼──┐
-│Next.js│ │NestJS│ │Elasticsearch│ │ n8n │
-│Frontend│ │Backend│ │  Search   │ │Workflow│
-└───────┘ └──┬──┘  └──────────┘ └─────┘
+┌──────────────────────┐
+│  Cloudflare Tunnel   │ ← TLS Termination, Zero Trust
+│  (cloudflared)       │
+└──────────┬───────────┘
+           │
+    ┌──────┴─────┬──────────┬──────────┬──────────┐
+    │            │          │          │          │
+┌───▼───┐ ┌────▼───┐ ┌────▼────┐ ┌───▼──┐ ┌────▼───┐
+│Next.js│ │ NestJS │ │    n8n  │ │Gitea │ │ Qdrant │
+│Frontend│ │Backend │ │Workflow │ │  Git │ │Vectors │
+└───────┘ └──┬─────┘ └─────────┘ └──────┘ └────────┘
              │
-    ┌────────┼────────┐
-    │        │        │
-┌───▼───┐ ┌─▼──┐ ┌──▼────┐
-│MariaDB│ │Redis│ │ClamAV │
-│  DB   │ │Cache│ │ Scan  │
-└───────┘ └────┘ └───────┘
+    ┌────────┼────────┬──────────┐
+    │        │        │          │
+┌───▼───┐ ┌─▼──┐ ┌──▼────┐ ┌───▼──────┐
+│MariaDB│ │Redis│ │ClamAV │ │Ollama(   │
+│  DB   │ │Cache│ │ Scan  │ │systemd)  │
+└───────┘ └────┘ └───────┘ └──────────┘
+
+  ASUSTOR NAS (CIFS) ← File Storage
+  QNAP (HA standby)  ← cloudflared #2
 ```
 
 ---
@@ -178,14 +187,14 @@ cp .env.local.example .env.local
 #### 4. ตั้งค่า Database
 
 ```bash
-# Import schema (v1.8.0 — ดู ADR-009: No migrations, แก้ไข SQL ตรง)
-mysql -u root -p lcbp3_dev < specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-01-drop.sql
-mysql -u root -p lcbp3_dev < specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql
-mysql -u root -p lcbp3_dev < specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-03-views-indexes.sql
+# Import schema (v1.9.0 — ดู ADR-009: No migrations, แก้ไข SQL ตรง)
+mysql -u root -p lcbp3_dev < specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-01-drop.sql
+mysql -u root -p lcbp3_dev < specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql
+mysql -u root -p lcbp3_dev < specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-03-views-indexes.sql
 
 # Import seed data
-mysql -u root -p lcbp3_dev < specs/03-Data-and-Storage/lcbp3-v1.8.0-seed-basic.sql
-mysql -u root -p lcbp3_dev < specs/03-Data-and-Storage/lcbp3-v1.8.0-seed-permissions.sql
+mysql -u root -p lcbp3_dev < specs/03-Data-and-Storage/lcbp3-v1.9.0-seed-basic.sql
+mysql -u root -p lcbp3_dev < specs/03-Data-and-Storage/lcbp3-v1.9.0-seed-permissions.sql
 ```
 
 #### 5. รัน Development Server
@@ -314,21 +323,21 @@ lcbp3-dms/
 
 ### เอกสารหลัก (specs/ folder)
 
-| เอกสาร                  | คำอธิบาย                                                          | Gap       | ไฟล์หลัก                                |
-| ----------------------- | ----------------------------------------------------------------- | --------- | --------------------------------------- |
-| **Product Vision**      | Vision, Strategic Pillars, Guardrails                             | Gap 1 ✅  | `00-03-product-vision.md`               |
-| **User Stories**        | 27 Stories, 8 Epics, MoSCoW                                       | Gap 2 ✅  | `01-04-user-stories.md`                 |
-| **Acceptance Criteria** | UAT Criteria, Sign-off Process                                    | Gap 3 ✅  | `01-05-acceptance-criteria.md`          |
-| **UI/UX Wireframes**    | 26 Screens, ASCII Wireframes, Design System                       | Gap 4 ✅  | `01-07-ui-wireframes.md`                |
-| **Stakeholder & Risk**  | Sign-off, Risk Register, Change Control                           | Gap 5 ✅  | `00-04-stakeholder-signoff-and-risk.md` |
-| **KPI Baseline**        | 14 KPIs, SQL Queries, Grafana Specs                               | Gap 6 ✅  | `00-05-kpi-baseline.md`                 |
-| **Migration Scope**     | 20K Docs, 3 Tiers, Go/No-Go Gates                                 | Gap 7 ✅  | `03-06-migration-business-scope.md`     |
-| **Release Policy**      | SemVer, 5 Gates, Hotfix, Rollback                                 | Gap 8 ✅  | `04-08-release-management-policy.md`    |
-| **Training Plan**       | Curriculum per Role, UAT Training                                 | Gap 9 ✅  | `00-06-training-plan.md`                |
-| **Edge Cases & Rules**  | 37 Edge Cases, Business Logic Guards                              | Gap 10 ✅ | `01-06-edge-cases-and-rules.md`         |
-| **Schema v1.9.0**       | Tables, Views, Indexes (3-file split)                             | —         | `lcbp3-v1.9.0-schema-*.sql`             |
-| **Data Dictionary**     | Field Meanings, Business Rules                                    | —         | `03-01-data-dictionary.md`              |
-| **ADRs (33)**           | All Architecture Decisions incl. ADR-019/021/023/024-029, ADR-033 | -         | `06-Decision-Records/`                  |
+| เอกสาร                  | คำอธิบาย                                                                       | Gap       | ไฟล์หลัก                                |
+| ----------------------- | ------------------------------------------------------------------------------ | --------- | --------------------------------------- |
+| **Product Vision**      | Vision, Strategic Pillars, Guardrails                                          | Gap 1 ✅  | `00-03-product-vision.md`               |
+| **User Stories**        | 27 Stories, 8 Epics, MoSCoW                                                    | Gap 2 ✅  | `01-04-user-stories.md`                 |
+| **Acceptance Criteria** | UAT Criteria, Sign-off Process                                                 | Gap 3 ✅  | `01-05-acceptance-criteria.md`          |
+| **UI/UX Wireframes**    | 26 Screens, ASCII Wireframes, Design System                                    | Gap 4 ✅  | `01-07-ui-wireframes.md`                |
+| **Stakeholder & Risk**  | Sign-off, Risk Register, Change Control                                        | Gap 5 ✅  | `00-04-stakeholder-signoff-and-risk.md` |
+| **KPI Baseline**        | 14 KPIs, SQL Queries, Grafana Specs                                            | Gap 6 ✅  | `00-05-kpi-baseline.md`                 |
+| **Migration Scope**     | 20K Docs, 3 Tiers, Go/No-Go Gates                                              | Gap 7 ✅  | `03-06-migration-business-scope.md`     |
+| **Release Policy**      | SemVer, 5 Gates, Hotfix, Rollback                                              | Gap 8 ✅  | `04-08-release-management-policy.md`    |
+| **Training Plan**       | Curriculum per Role, UAT Training                                              | Gap 9 ✅  | `00-06-training-plan.md`                |
+| **Edge Cases & Rules**  | 37 Edge Cases, Business Logic Guards                                           | Gap 10 ✅ | `01-06-edge-cases-and-rules.md`         |
+| **Schema v1.9.0**       | Tables, Views, Indexes (3-file split)                                          | —         | `lcbp3-v1.9.0-schema-*.sql`             |
+| **Data Dictionary**     | Field Meanings, Business Rules                                                 | —         | `03-01-data-dictionary.md`              |
+| **ADRs (41)**           | All Architecture Decisions incl. ADR-019/021/023-029, ADR-033-035, ADR-040-041 | -         | `06-Decision-Records/`                  |
 
 ---
 
@@ -377,7 +386,7 @@ lcbp3-dms/
 | 1        | [`AGENTS.md`](./AGENTS.md)                                               | Quick-reference rules (Tier 1/2/3 enforcement, ADR-019 March 2026 pattern, forbidden actions) |
 | 2        | [`.agents/skills/_LCBP3-CONTEXT.md`](./.agents/skills/_LCBP3-CONTEXT.md) | Shared context appendix injected into every speckit-\* skill                                  |
 | 3        | [`.agents/skills/README.md`](./.agents/skills/README.md)                 | Skill-pack layout + slash-command invocation guide                                            |
-| 4        | `specs/06-Decision-Records/`                                             | 33 ADRs (architectural decisions)                                                             |
+| 4        | `specs/06-Decision-Records/`                                             | 43 ADRs (architectural decisions)                                                             |
 
 **Unified workflows (v1.9.0):** `/00-speckit.all` → `/102-speckit.specify` → `/104-speckit.plan` → `/107-speckit.implement` → `/110-speckit.reviewer`
 
@@ -385,16 +394,34 @@ lcbp3-dms/
 
 ## 🗺️ Roadmap
 
+### ✅ Version 1.9.11 (July 2026) — Server Consolidation + Cloudflare Tunnel + Thai AI Model Stack
+
+- ✅ **ADR-034**: AI Model Change — Thai-Optimized Stack (`np-dms-ai` = Typhoon 2.5, `np-dms-ocr` = Typhoon OCR)
+- ✅ **ADR-035**: AI Pipeline Flow Architecture — BGE-M3 replaces nomic-embed-text, BGE-Reranker, 4-flow pipeline ⚠️ OCR sidecar contract amended by ADR-040
+- ✅ **ADR-040**: OCR Sidecar Refactor — Pure compute worker, network-trust boundary (Docker-internal isolation)
+- ✅ **ADR-041**: Server Consolidation — All services on np-dms-lcbp3 (192.168.10.11), QNAP demoted to HA standby
+- ✅ **Cloudflare Tunnel**: Replaced NPM as internet-facing edge — Zero Trust ingress, no public ports
+- ✅ **NUT/UPS**: CyberPower UT2200EG + NUT — graceful Docker stack shutdown on battery critical
+- ✅ **Post-Migration**: DB restored, all services healthy, functional tests passed (login, OCR, Git SSH)
+- ✅ **Total: 43 ADRs** ครอบคลุมทุก Architectural Decision (ADR-001~ADR-042)
+
 ### ✅ Version 1.9.8 (June 2026) — AI Model Sync, GPU Unloading & OCR Security (ADR-033)
 
 - ✅ **ADR-033**: Active Model & OCR Runner Management Architecture
 - ✅ **Synchronous LLM verification**: สวิตช์โมเดลแบบ Synchronous ตรวจเช็คความถูกต้องและสั่งโหลดขึ้น GPU จริงจังล่วงหน้า 30 วินาทีก่อนบันทึกฐานข้อมูล
 - ✅ **Dynamic VRAM Release**: ระบบ Unload ลบโมเดลหลักตัวเก่าออกจาก GPU Memory ด้วย `keep_alive: 0` ทันทีหลังโมเดลตัวใหม่โหลดสำเร็จ
 - ✅ **Resilient OOM Fallback**: ปรับปรุง VramMonitor ให้ทนทาน ไม่บล็อก RAG/OCR sandbox เมื่อ Ollama connection metrics ขัดข้อง
-- ✅ **Sidecar API Key Protection**: กำหนดการใช้ `X-API-Key` คัดกรองและป้องกันฮาร์ดแวร์ sidecar จากการถูกเรียกใช้ภายนอกโดยไม่ได้รับอนุญาต
+- ✅ **Sidecar Network Isolation**: Docker-internal network isolation แทน `X-API-Key` auth (ADR-040 Phase 2 — post-consolidation)
 - ✅ **Typhoon Mapping**: เชื่อมโยงโมเดลและ dropdown ขนาดโมเดลในหน้า Sandbox และ sidecar ตรงตามขนาดจริง
 - ✅ **Root Docs Updated**: ARCHITECTURE.md, CHANGELOG.md, CONTEXT.md, README.md, specs/README.md, ADR-033
 - ✅ **Total: 33 ADRs** ครอบคลุมทุก Architectural Decision (ADR-001~ADR-033)
+
+### ✅ Version 1.9.10 (June 2026) — Thai AI Model Stack + AI Pipeline Flow
+
+- ✅ **ADR-034**: AI Model Change — `np-dms-ai` (Typhoon 2.5 Qwen3 4B) + `np-dms-ocr` (Typhoon OCR 1.5 3B)
+- ✅ **ADR-035**: AI Pipeline Flow — BGE-M3 + BGE-Reranker replaces nomic-embed-text; 4-flow pipeline (Sandbox, n8n Migration, User Upload, RAG)
+- ✅ **AGENTS.md**: Synced to v1.9.10 with ADR-034/035 references
+- ✅ **Total: 35 ADRs** ครอบคลุมทุก Architectural Decision
 
 ### ✅ Version 1.9.5 (May 2026) — AI Runtime Layer ADRs + Migration Architecture Refactor
 
@@ -523,7 +550,7 @@ lcbp3-dms/
 - 🔄 **Migration Execution**: ADR-028 Staging Queue — Tier 1 (2,000 docs Critical)
 - 🔄 **UAT**: ทำ User Acceptance Testing ตาม `01-05-acceptance-criteria.md`
 - 🔄 **Security Audit**: ตาม `04-06-security-operations.md`
-- 📋 **Go-Live**: Blue-Green Deploy บน QNAP Container Station
+- 📋 **Go-Live**: Deploy บน np-dms-lcbp3 (192.168.10.11) — ADR-041 Single-Host
 
 ### 📅 Post Go-Live
 

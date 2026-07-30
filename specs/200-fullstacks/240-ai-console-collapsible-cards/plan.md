@@ -1,6 +1,6 @@
 # Implementation Plan: AI Console Collapsible Cards
 
-**Branch**: `[240-ai-console-collapsible-cards]` | **Date**: 2026-06-19 | **Spec**: [spec.md](file:///e:/np-dms/lcbp3/specs/200-fullstacks/240-ai-console-collapsible-cards/spec.md)
+**Branch**: `[240-ai-console-collapsible-cards]` | **Date**: 2026-06-19 | **Spec**: [spec.md](specs/200-fullstacks/240-ai-console-collapsible-cards/spec.md)
 **Input**: Feature specification from `/specs/200-fullstacks/240-ai-console-collapsible-cards/spec.md`
 
 ## Summary
@@ -56,7 +56,7 @@ frontend/
 
 ### [Component Name] Next.js Frontend Page
 
-#### [MODIFY] [page.tsx](file:///e:/np-dms/lcbp3/frontend/app/(admin)/admin/ai/page.tsx)
+#### [MODIFY] [page.tsx](frontend/app/(admin)/admin/ai/page.tsx)
 
 1. **Imports**:
    - เพิ่มการนำเข้าไอคอน `ChevronUp` (หรือ `ChevronDown`) จาก `lucide-react`

@@ -37,7 +37,7 @@
 
 สร้างตาราง `system_settings` ในฐานข้อมูล MariaDB เพื่อเก็บค่าการตั้งค่าแบบไดนามิก (ตามแนวทาง ADR-009)
 
-#### [NEW] [03-09-add-system-settings.sql](file:///E:/np-dms/lcbp3/backend/migrations/03-09-add-system-settings.sql)
+#### [NEW] [03-09-add-system-settings.sql](backend/migrations/03-09-add-system-settings.sql)
 - เขียนคำสั่ง SQL เพื่อสร้างตาราง `system_settings` และ Seed ข้อมูลเบื้องต้น:
 ```sql
 -- File: backend/migrations/03-09-add-system-settings.sql
@@ -65,13 +65,13 @@ ON DUPLICATE KEY UPDATE setting_key = setting_key;
 
 ### 💻 2. ส่วนของระบบหลังบ้าน (Backend Layer - NestJS)
 
-#### [MODIFY] [queue.constants.ts](file:///E:/np-dms/lcbp3/backend/src/modules/common/constants/queue.constants.ts)
+#### [MODIFY] [queue.constants.ts](backend/src/modules/common/constants/queue.constants.ts)
 - เพิ่มรหัสคิวใหม่สำหรับห้องทดสอบของแอดมิน:
 ```typescript
 export const QUEUE_AI_ADMIN_SANDBOX = 'ai-admin-sandbox';
 ```
 
-#### [NEW] [system-setting.entity.ts](file:///E:/np-dms/lcbp3/backend/src/modules/ai/entities/system-setting.entity.ts)
+#### [NEW] [system-setting.entity.ts](backend/src/modules/ai/entities/system-setting.entity.ts)
 - สร้าง Entity รองรับโครงสร้างตารางใหม่ (ไม่มีบรรทัดว่างในฟังก์ชันตามข้อตกลง):
 ```typescript
 // File: src/modules/ai/entities/system-setting.entity.ts
@@ -104,29 +104,29 @@ export class SystemSetting {
 }
 ```
 
-#### [MODIFY] [ai.module.ts](file:///E:/np-dms/lcbp3/backend/src/modules/ai/ai.module.ts)
+#### [MODIFY] [ai.module.ts](backend/src/modules/ai/ai.module.ts)
 - ลงทะเบียน `SystemSetting` ใน TypeORM `forFeature`
 - ลงทะเบียนคิว BullMQ `QUEUE_AI_ADMIN_SANDBOX` และตัวประมวลผลคิว `AiSandboxProcessor`
 
-#### [NEW] [ai-sandbox.processor.ts](file:///E:/np-dms/lcbp3/backend/src/modules/ai/processors/ai-sandbox.processor.ts)
+#### [NEW] [ai-sandbox.processor.ts](backend/src/modules/ai/processors/ai-sandbox.processor.ts)
 - พัฒนาตัวประมวลผลงานคิว `ai-admin-sandbox` โดยเฉพาะ:
   - รับงานประเภท `sandbox-rag` -> ค้นหาในเวกเตอร์และตอบคำถาม RAG พร้อมแสดง Citations
   - รับงานประเภท `sandbox-extract` -> รัน OCR บนไฟล์ PDF เดี่ยวและประมวลผลสกัด Metadata คืนออกมาเป็นก้อนข้อมูล JSON
 
-#### [MODIFY] [ai-queue.service.ts](file:///E:/np-dms/lcbp3/backend/src/modules/ai/ai-queue.service.ts)
+#### [MODIFY] [ai-queue.service.ts](backend/src/modules/ai/ai-queue.service.ts)
 - เพิ่มฟังก์ชัน `enqueueSandboxJob(type: string, payload: any)` เพื่อส่งงานของแอดมินเข้าคิว Sandbox แยกต่างหาก
 
-#### [MODIFY] [ai.service.ts](file:///E:/np-dms/lcbp3/backend/src/modules/ai/ai.service.ts)
+#### [MODIFY] [ai.service.ts](backend/src/modules/ai/ai.service.ts)
 - เพิ่มเมธอดสำหรับอ่าน/เขียนการตั้งค่า:
   - `getAiFeaturesEnabled()`: ค้นหาค่า `AI_FEATURES_ENABLED` จาก Redis Cache ก่อน หากไม่มีจึงไปดึงจากตาราง `system_settings` แล้วเขียนลง Redis Cache เพื่อใช้ครั้งต่อไป
   - `setAiFeaturesEnabled(enabled: boolean, userId: number)`: อัปเดตสถานะในตารางฐานข้อมูลและอัปเดต Redis Cache ทันที
   - `getSystemHealth()`: รวบรวมข้อมูลสุขภาพของระบบ Ollama, Qdrant, และคิว BullMQ ต่างๆ (รวมความยาวคิว sandbox)
 
-#### [NEW] [ai-enabled.guard.ts](file:///E:/np-dms/lcbp3/backend/src/modules/ai/guards/ai-enabled.guard.ts)
+#### [NEW] [ai-enabled.guard.ts](backend/src/modules/ai/guards/ai-enabled.guard.ts)
 - สร้าง Guard สำหรับเช็คสถานะการปิด AI ทั่วระบบ:
   - หากคีย์การเปิดใช้งานถูกตั้งค่าเป็น `'false'` และผู้ใช้ไม่มีสิทธิ์จัดการระบบสูงสุด (`system.manage_all`) จะปฏิเสธการเข้าใช้งาน API ด้วยรหัสข้อผิดพลาด **HTTP 503 Service Unavailable**
 
-#### [MODIFY] [ai.controller.ts](file:///E:/np-dms/lcbp3/backend/src/modules/ai/ai.controller.ts)
+#### [MODIFY] [ai.controller.ts](backend/src/modules/ai/ai.controller.ts)
 - นำ Guard `AiEnabledGuard` ไปติดตั้งใน Endpoints ยิงทำงาน AI ของผู้ใช้ทั่วไป
 - เพิ่มกลุ่ม API ปลอดภัยสำหรับ Superadmin เท่านั้น (ควบคุมด้วย `@RequirePermission('system.manage_all')`):
   - `GET /ai/admin/settings` -> แสดงสถานะเปิด/ปิด AI ปัจจุบัน
@@ -140,22 +140,22 @@ export class SystemSetting {
 
 ### 🎨 3. ส่วนหน้าจอแสดงผล (Frontend Layer - Next.js)
 
-#### [NEW] [admin-ai.service.ts](file:///E:/np-dms/lcbp3/frontend/lib/services/admin-ai.service.ts)
+#### [NEW] [admin-ai.service.ts](frontend/lib/services/admin-ai.service.ts)
 - พัฒนา API Service สำหรับดึงข้อมูลและสั่งงานของระบบ Admin AI Panel:
   - ดึงข้อมูลสุขภาพ ตรวจสอบการตั้งค่า สลับปุ่มเปิด/ปิด
   - ส่งงาน Sandbox RAG/Extraction และ Polling เช็คผลลัพธ์ของ Job
 
-#### [NEW] [page.tsx](file:///E:/np-dms/lcbp3/frontend/app/%28admin%29/admin/ai/page.tsx)
+#### [NEW] [page.tsx](frontend/app/%28admin%29/admin/ai/page.tsx)
 - หน้าต่าง **AI Control Panel & Playground** ออกแบบอย่างพรีเมียม สไตล์ Glassmorphism:
   - **Header Switch:** สวิตช์ปุ่มเรืองแสงสีเขียว/ส้มขนาดใหญ่ สำหรับเปิด/ปิดใช้งานระบบ AI
   - **Health Indicators:** การ์ดประเมินสถานะของ Ollama, Qdrant, และ คิว BullMQ แบบเรียลไทม์
   - **RAG Playground Tab:** แชทบอทโต้ตอบผ่าน Isolated Queue พร้อมสถานะความคืบหน้าของคิว แสดงคำตอบและเอกสารอ้างอิงสวยงาม
   - **OCR Sandbox Tab:** กล่องวางอัปโหลดไฟล์ PDF เดี่ยวเพื่อจำลองการรัน OCR และดึง Metadata แสดงก้อน JSON ด้วย Syntax highlighting สวยงาม
 
-#### [MODIFY] [sidebar.tsx](file:///E:/np-dms/lcbp3/frontend/components/admin/sidebar.tsx)
+#### [MODIFY] [sidebar.tsx](frontend/components/admin/sidebar.tsx)
 - เพิ่มปุ่มเมนู **"AI Console"** (ไอคอน Brain) ใน Sidebar สำหรับแอดมิน เพื่อลิงก์ไปหน้าจอ `/admin/ai`
 
-#### [MODIFY] [layout.tsx](file:///E:/np-dms/lcbp3/frontend/app/layout.tsx)
+#### [MODIFY] [layout.tsx](frontend/app/layout.tsx)
 - เพิ่มกลไก Polling ตรวจเช็คสถานะการเปิดใช้ AI ทุก 30 วินาที
 - หากระบบ AI ปิดตัวลง จะแสดงแถบแจ้งเตือน **Global Banner** ด้านบนสุด และส่งสัญญาณบอกหน้าจอฟอร์มเพื่อ Disable ปุ่ม AI Suggestion
 

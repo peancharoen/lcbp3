@@ -51,7 +51,6 @@ const mockConfigService = {
   get: jest.fn(<T>(key: string, defaultValue?: T): T | undefined => {
     const cfg: Record<string, unknown> = {
       OCR_API_URL: 'http://localhost:8765',
-      OCR_SIDECAR_API_KEY: 'test-api-key-2026',
     };
     return (cfg[key] as T | undefined) ?? defaultValue;
   }),
@@ -89,7 +88,7 @@ describe('SandboxOcrEngineService', () => {
       });
       const result = await service.detectAndExtract('/tmp/file.pdf', 'auto');
       expect(result.text).toBe('auto extracted text');
-      expect(result.engineUsed).toBe('fast-path');
+      expect(result.engineUsed).toBe('np-dms-ocr');
       expect(result.fallbackUsed).toBe(false);
       expect(mockOcrService.detectAndExtract).toHaveBeenCalledWith({
         pdfPath: '/tmp/file.pdf',
@@ -102,7 +101,7 @@ describe('SandboxOcrEngineService', () => {
         ocrUsed: false,
       });
       const result = await service.detectAndExtract('/tmp/file.pdf', 'auto');
-      expect(result.engineUsed).toBe('fast-path');
+      expect(result.engineUsed).toBe('np-dms-ocr');
       expect(result.fallbackUsed).toBe(false);
     });
   });
@@ -130,9 +129,7 @@ describe('SandboxOcrEngineService', () => {
         expect.stringContaining('/ocr-upload'),
         expect.any(FormData),
         expect.objectContaining({
-          headers: expect.objectContaining({
-            'X-API-Key': 'test-api-key-2026',
-          }),
+          timeout: 360000,
         })
       );
     });

@@ -28,7 +28,7 @@
 - **ADR-016 Security:** JWT + CASL 4-Level RBAC; `@UseGuards(JwtAuthGuard, CaslAbilityGuard)` on every mutation controller; `ThrottlerGuard` on auth; bcrypt 12 rounds; `Idempotency-Key` required on POST/PUT/PATCH.
 - **ADR-002 Document Numbering:** Redis Redlock + TypeORM `@VersionColumn` (double-lock). Never use application-side counter alone.
 - **ADR-008 Notifications:** BullMQ queue — never inline email/notification in a request thread.
-- **ADR-023/023A AI Boundary:** Ollama on Admin Desktop only; AI → DMS API → DB (never direct DB/storage). 2-model stack: `gemma4:e4b Q8_0` + `nomic-embed-text`. BullMQ `ai-realtime` / `ai-batch` queues. Human-in-the-loop validation required. (ADR-018 superseded by ADR-023)
+- **ADR-023/023A AI Boundary:** Ollama on np-dms-lcbp3 only (post-ADR-041); AI → DMS API → DB (never direct DB/storage). Model stack: `np-dms-ai` + `np-dms-ocr` + BGE-M3 + BGE-Reranker (ADR-034/035/040). BullMQ `ai-realtime` / `ai-batch` queues. Human-in-the-loop validation required. (ADR-018 superseded by ADR-023; ADR-040 amends ADR-035 OCR sidecar contract)
 - **ADR-029 Dynamic Prompt Management:** Prompt templates in DB (`ai_prompts`), never hardcoded in processor; Redis cache `ai:prompt:active:{type}` TTL 60s; `activate()` runs in DB transaction + Redis DEL after commit; `system.manage_all` guard on all mutations.
 - **ADR-007 Error Handling:** Layered (Validation / Business / System); `BusinessException` hierarchy; user-friendly `userMessage` + `recoveryAction`; technical stack only in logs.
 - **TypeScript Strict:** Zero `any`, zero `console.log` (use NestJS `Logger`).

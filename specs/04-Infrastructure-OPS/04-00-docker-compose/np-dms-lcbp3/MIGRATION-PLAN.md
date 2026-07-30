@@ -415,9 +415,10 @@
 
 - [X] **0.14** เพิ่ม CIFS mounts ใน `/etc/fstab`
   ```bash
-  # uploads (read-write — backend เขียนได้)
-  echo '//192.168.10.9/np-dms/data/uploads/temp /mnt/asustor-uploads/temp cifs credentials=/etc/cifs/asustor.cred,uid=1000,gid=1000,vers=3.0,iocharset=utf8,_netdev,nofail 0 0' | sudo tee -a /etc/fstab
-  echo '//192.168.10.9/np-dms/data/uploads/permanent /mnt/asustor-uploads/permanent cifs credentials=/etc/cifs/asustor.cred,uid=1000,gid=1000,vers=3.0,iocharset=utf8,_netdev,nofail 0 0' | sudo tee -a /etc/fstab
+  # uploads (read-write — backend container รันด้วย uid=1001/nestjs)
+  # uid/gid=1001 ตรงกับ container user, noperm ข้าม local POSIX check, file_mode/dir_mode=0777 ป้องกัน GID mismatch
+  echo '//192.168.10.9/np-dms/data/uploads/temp /mnt/asustor-uploads/temp cifs credentials=/etc/cifs/asustor.cred,uid=1001,gid=1001,noperm,file_mode=0777,dir_mode=0777,vers=3.0,iocharset=utf8,_netdev,nofail 0 0' | sudo tee -a /etc/fstab
+  echo '//192.168.10.9/np-dms/data/uploads/permanent /mnt/asustor-uploads/permanent cifs credentials=/etc/cifs/asustor.cred,uid=1001,gid=1001,noperm,file_mode=0777,dir_mode=0777,vers=3.0,iocharset=utf8,_netdev,nofail 0 0' | sudo tee -a /etc/fstab
   # legacy (read-only — migration files)
   echo '//192.168.10.9/np-dms/Legacy /mnt/asustor-legacy cifs credentials=/etc/cifs/asustor.cred,uid=1000,gid=1000,vers=3.0,iocharset=utf8,ro,_netdev,nofail 0 0' | sudo tee -a /etc/fstab
   ```
@@ -430,8 +431,10 @@
   ls -la /mnt/asustor-uploads/temp/
   ls -la /mnt/asustor-uploads/permanent/
   ls -la /mnt/asustor-legacy/
-  # ทดสอบ write
+  # ทดสอบ write (จาก host)
   touch /mnt/asustor-uploads/temp/.test && rm /mnt/asustor-uploads/temp/.test
+  # ทดสอบ write จาก backend container (uid=1001)
+  docker exec backend touch /app/uploads/temp/.test && docker exec backend rm /app/uploads/temp/.test && echo "CONTAINER WRITE OK"
   ```
 
 #### 0F. Configuration Files
@@ -592,7 +595,7 @@
   sed -i "s|CHANGE_ME_JWT_SECRET|$(cat $S/jwt_secret.txt)|" .env
   sed -i "s|CHANGE_ME_JWT_REFRESH_SECRET|$(cat $S/jwt_refresh_secret.txt)|" .env
   sed -i "s|CHANGE_ME_AUTH_SECRET|$(cat $S/auth_secret.txt)|" .env
-  sed -i "s|CHANGE_ME_OCR_SIDECAR_API_KEY|$(cat $S/ocr_sidecar_api_key.txt)|" .env
+  # Note: OCR_SIDECAR_API_KEY ถูกลบแล้วใน ADR-040 Phase 2 (T016) — ใช้ network isolation แทน
   sed -i "s|CHANGE_ME_N8N_ENCRYPTION_KEY|$(cat $S/n8n_encryption_key.txt)|" .env
   sed -i "s|CHANGE_ME_N8N_DB_PASSWORD|$(cat $S/n8n_db_password.txt)|" .env
   sed -i "s|CHANGE_ME_GITEA_DB_PASSWORD|$(cat $S/gitea_db_password.txt)|" .env
@@ -639,7 +642,7 @@
   | **01-infrastructure** | `DB_ROOT_PASSWORD`, `DB_PASSWORD`, `REDIS_PASSWORD`, `ELASTICSEARCH_PASSWORD`, `ASUSTOR_USER/PASS` (CIFS volume) |
   | **02-platform** | `GITEA_DB_PASSWORD`, `N8N_DB_PASSWORD`, `N8N_ENCRYPTION_KEY`, `DB_HOST` |
   | **03-application** | `DB_PASSWORD`, `REDIS_PASSWORD`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, `AUTH_SECRET`, `CLAMAV_HOST`, `OCR_*`, `OLLAMA_URL`, `QDRANT_*` |
-  | **04-ai** | `OCR_SIDECAR_API_KEY`, `OCR_MODEL`, `GPU_*`, `VRAM_*`, `OCR_RESIDENCY_*` |
+  | **04-ai** | `OCR_MODEL`, `GPU_*`, `VRAM_*`, `OCR_RESIDENCY_*` (OCR_SIDECAR_API_KEY ลบแล้ว — ADR-040 Phase 2) |
 
 - [X] **0.19** Copy compose files ไปยัง runtime dirs (ทำใน Step 2 ของ 0.18 แล้ว)
   ```bash
@@ -1640,89 +1643,139 @@
   # แสดง models ที่โหลดอยู่ใน VRAM (native systemd — ไม่ใช่ docker exec)
   ```
 
-### Phase 5: NPM Cutover (QNAP)
+### Phase 5: Edge Cutover — Cloudflare Tunnel (primary), NPM demoted to internal router
 
+> **สถานะ:** ⚠️ **Superseded โดย [Section 11: Addendum — Cloudflare Tunnel Integration](#11-addendum-cloudflare-tunnel-integration-2026-07-05)** — เนื้อหาด้านล่างปรับปรุงตาม D5 Revised (11.1) แล้ว NPM **ไม่ใช่** internet-facing edge อีกต่อไป — ดู 11.2 สำหรับสถาปัตยกรรมจริง และ 11.7 สำหรับขั้นตอน setup แบบละเอียด (Remote-Managed Tunnel)
+>
 > **เวลาที่คาดการณ์:** 30 นาที
 > **ผู้ดำเนินการ:** Admin
 > **เงื่อนไขขาเข้า:** Phase 4 เสร็จทุกข้อ (ทุก service healthy บน New Server)
 
-#### 5A. Start NPM + Update Proxy Configs
-
-- [X] **5.1** เริ่ม NPM บน QNAP:
+#### 5A. Verify Cloudflare Tunnel + Configure Ingress (แทน NPM proxy hosts)
+- [X] **5.0A** update `cloudflared`:
   ```bash
-  ssh admin@192.168.10.8
-  cd /share/np-dms/npm
-  docker compose up -d
-  # รอ healthy
-  docker compose ps
-  # ควรเห็น: npm (healthy), npm-db (healthy) ถ้ามี
+  sudo cloudflared update
+  ```
+- [X] **5.0B** restart `cloudflared`:
+  ```bash
+  sudo systemctl restart cloudflared
+  ```
+- [X] **5.1** ตรวจสอบ `cloudflared` (systemd) รันอยู่บน `np-dms-lcbp3` และ tunnel connected:
+  ```bash
+  sudo systemctl status cloudflared
+  # ควรเห็น: active (running)
+  cloudflared tunnel info <tunnel-id>
+  # ควรเห็น connector อย่างน้อย 1 ตัว สถานะ healthy
   ```
 
-- [X] **5.2** อัปเดต NPM proxy host configs (ผ่าน NPM UI):
-  - เข้า NPM Admin UI: `http://192.168.10.8:81` (หรือ `https://npm.np-dms.work:81`)
-  - ไปที่ **Hosts → Proxy Hosts**
-  - แก้ไขแต่ละ domain — เปลี่ยน Forward Hostname/IP + Port:
+- [X] **5.2** ตั้งค่า ingress rules ผ่าน **Cloudflare Zero Trust Dashboard** (Remote Management — ไม่ใช้ NPM UI):
+  - **Zero Trust → Networks → Connectors → `np-dms-lcbp3` → Published application routes**
+  - เพิ่ม/ตรวจสอบ Public Hostname ต่อ domain ให้ชี้ตรงเข้า New Server:
 
-  | Domain | Forward IP | Forward Port | เดิม |
-  |---|---|---|---|
-  | backend.np-dms.work | 192.168.10.11 | 3000 | QNAP Docker DNS `backend` |
-  | lcbp3.np-dms.work | 192.168.10.11 | 3001 | QNAP Docker DNS `frontend` |
-  | git.np-dms.work | 192.168.10.11 | 3003 | QNAP Docker DNS `gitea` |
-  | n8n.np-dms.work | 192.168.10.11 | 5678 | QNAP Docker DNS `n8n` |
-  | pma.np-dms.work | 192.168.10.11 | 8080 | QNAP Docker DNS `pma` |
+  | Domain | Service (origin) | เดิม (NPM forward) |
+  |---|---|---|
+  | lcbp3.np-dms.work | `http://192.168.10.11:3001` | NPM → 192.168.10.11:3001 |
+  | backend.np-dms.work | `http://192.168.10.11:3000` | NPM → 192.168.10.11:3000 |
+  | git.np-dms.work | `http://192.168.10.11:3003` | NPM → 192.168.10.11:3003 |
+  | n8n.np-dms.work | `http://192.168.10.11:5678` | NPM → 192.168.10.11:5678 |
+  | pma.np-dms.work | `http://192.168.10.11:8080` | NPM → 192.168.10.11:8080 |
 
-  - **สำคัญ:** ตรวจสอบ SSL tab — cert ยังอยู่ (Force SSL ✓, HTTP/2 ✓)
-  - บันทึกทุก host หลังแก้ไข
+  - **สำคัญ:** TLS ที่ edge จัดการโดย Cloudflare Universal SSL อัตโนมัติ (ไม่ต้องพึ่ง NPM/Let's Encrypt cert ต่อ domain อีกต่อไป — ดู 11.3 สำหรับ DNS record ที่ต้องเปลี่ยนเป็น CNAME → `<tunnel-id>.cfargotunnel.com`)
+  - บันทึกทุก route หลังแก้ไข (การตั้งค่าบน Dashboard override local `config.yml` — ดู 11.6/11.7)
 
-- [ ] **5.3** ตรวจสอบ NPM proxy hosts ผ่าน API (ถ้าใช้ API):
+- [X] **5.3** ตรวจสอบ ingress rules ผ่าน CLI (ทางเลือกแทน NPM API):
   ```bash
-  # ดึง token
-  TOKEN=$(curl -s -X POST http://192.168.10.8:81/api/tokens \
-    -H 'Content-Type: application/json' \
-    -d '{"identity":"admin@example.com","secret":"PASSWORD"}' | jq -r '.token')
+  cloudflared tunnel ingress rule <hostname>
+  # หรือตรวจสอบ config.yml ที่ sync จาก Dashboard
+  cat /etc/cloudflared/config.yml
+  # ควรเห็นทุก domain ชี้ไป 192.168.10.11 (หรือ service ที่ถูกต้อง)
 
-  # ดู proxy hosts
-  curl -s http://192.168.10.8:81/api/nginx/proxy-hosts \
-    -H "Authorization: Bearer $TOKEN" | jq '.[] | {domain_names, forward_host, forward_port}'
-  # ควรเห็นทุก domain ชี้ไป 192.168.10.11
+  cat /etc/cloudflared/config.yml
+  tunnel: b2a2ff68-b4da-41b4-8a8c-37ba0b16618e
+  credentials-file: /etc/cloudflared/b2a2ff68-b4da-41b4-8a8c-37ba0b16618e.json
+
+  ingress:
+    - hostname: ssh.np-dms.work
+      service: ssh://localhost:22
+    - hostname: git-ssh.np-dms.work
+      service: tcp://192.168.10.11:2222
+    - hostname: api.np-dms.work
+      service: http://192.168.10.11:3000
+    - hostname: lcbp3.np-dms.work
+      service: http://192.168.10.11:3001
+    - hostname: git.np-dms.work
+      service: http://192.168.10.11:3003
+    - hostname: pma.np-dms.work
+      service: http://192.168.10.11:81
+    - hostname: n8n.np-dms.work
+      service: http://192.168.10.11:5678
+      originRequest:
+        noTLSVerify: true
+    - hostname: qnap.np-dms.work
+      service: https://192.168.10.8:8443
+      originRequest:
+        noTLSVerify: true
+    - hostname: uptime.np-dms.work
+      service: http://192.168.10.9:3001
+    - service: http_status:404
   ```
 
 #### 5B. Test All Domains
 
-- [ ] **5.4** ทดสอบทุก domain ผ่าน browser (จากเครื่องใน VLAN 10):
+- [X] **5.4** ทดสอบทุก domain ผ่าน browser (จาก external network — traffic ต้องวิ่งผ่าน Cloudflare Anycast):
   - `https://lcbp3.np-dms.work` — frontend (ควรเห็นหน้า login)
-  - `https://backend.np-dms.work/api/health` — backend health (ควรเห็น `{"status":"ok"}`)
+  - `https://backend.np-dms.work/health` — backend health (ควรเห็น `{"status":"ok"}`)
   - `https://git.np-dms.work` — Gitea (ควรเห็นหน้า Gitea)
   - `https://n8n.np-dms.work` — n8n (ควรเห็นหน้า n8n login)
   - `https://pma.np-dms.work` — phpMyAdmin (ควรเห็นหน้า login)
+  - ยืนยันว่า resolve ไป Cloudflare Anycast IP ไม่ใช่ IP ตรงของ QNAP/New Server:
+    ```bash
+    dig lcbp3.np-dms.work +short
+    # ควรเห็น 104.21.x.x / 172.67.x.x (Cloudflare range) ไม่ใช่ 192.168.10.x หรือ public IP ของออฟฟิศ
+    ```
 
-- [ ] **5.5** ทดสอบ SSL certs ไม่หมดอายุ:
+- [X] **5.5** ทดสอบ SSL/TLS ที่ edge (Cloudflare Universal SSL — ไม่ใช่ origin cert ของ NPM):
   ```bash
-  for domain in lcbp3 backend git n8n pma; do
+  for domain in lcbp3 api git n8n pma; do
     echo "=== $domain.np-dms.work ==="
     echo | openssl s_client -connect $domain.np-dms.work:443 -servername $domain.np-dms.work 2>/dev/null \
-      | openssl x509 -noout -dates
+      | openssl x509 -noout -issuer -dates
   done
-  # ควรเห็น notAfter ในอนาคต (อย่างน้อย 30 วัน)
+  # ควรเห็น issuer เป็น Cloudflare Inc ECC/RSA CA และ notAfter ในอนาคต (Cloudflare ต่ออายุอัตโนมัติ)
   ```
 
-- [X] **5.6** ทดสอบ Gitea SSH (ผ่าน NPM domain):
+- [X] **5.6** ทดสอบ Gitea SSH (ไม่ผ่าน Cloudflare Tunnel — ไม่รองรับ raw TCP/SSH ผ่าน public hostname แบบเดิม):
   ```bash
   ssh -p 2222 git@git.np-dms.work
-  # หมายเหตุ: SSH port 2222 ไม่ผ่าน NPM proxy — ใช้ direct IP
+  # หมายเหตุ: SSH port 2222 ไม่ผ่าน Cloudflare Tunnel — DNS record เป็น "DNS only" (grey-cloud) ชี้ IP ตรง
   ssh -p 2222 git@192.168.10.11
   # ควรเห็น: Hi there, You've successfully authenticated
   ```
+
+#### 5C. (Legacy/Optional) NPM — Internal Router สำหรับ Service ที่เหลือบน QNAP
+
+> ขั้นตอนนี้ทำเฉพาะกรณีที่ยังมี service ค้างอยู่บน QNAP/ASUSTOR ที่ต้อง route ผ่าน NPM ภายใน (ดู diagram 11.2) — ถ้าทุก domain ย้ายมาที่ New Server ครบแล้ว **ข้ามขั้นตอนนี้** และพิจารณาปลดประจำการ NPM (ต้องมี Decision ใหม่ เนื่องจากแตกต่างจาก D5 เดิม)
+
+- [X] **5.7** เริ่ม NPM บน QNAP (ถ้ายังต้องใช้เป็น internal router):
+  ```bash
+  ssh admin@192.168.10.8
+  cd /share/np-dms/npm
+  docker compose up -d
+  docker compose ps
+  # ควรเห็น: npm (healthy), npm-db (healthy) ถ้ามี
+  ```
+
+- [X] **5.8** ตรวจสอบว่า NPM **ไม่ได้** รับ traffic จาก WAN โดยตรงอีกต่อไป (ปิด public port-forward 80/443/8443 ตาม 11.4/11.7 ขั้นตอนที่ 1) — NPM ควรเข้าถึงได้จาก internal network เท่านั้น
 
 ### Phase 6: Verification & Cleanup
 
 > **เวลาที่คาดการณ์:** 2-4 ชั่วโมง (รวม soak test)
 > **ผู้ดำเนินการ:** Admin + QA
-> **เงื่อนไขขาเข้า:** Phase 5 เสร็จทุกข้อ (ทุก domain ทำงานผ่าน NPM)
+> **เงื่อนไขขาเข้า:** Phase 5 เสร็จทุกข้อ (ทุก domain ทำงานผ่าน Cloudflare Tunnel)
 
 #### 6A. Functional Verification
 
-- [ ] **6.1** ทดสอบ login บน DMS (user authentication):
+- [X] **6.1** ทดสอบ login บน DMS (user authentication):
   - เปิด `https://lcbp3.np-dms.work` ใน browser
   - Login ด้วย admin account
   - ตรวจสอบ: session token ออก, redirect ไป dashboard
@@ -1730,14 +1783,16 @@
   - ตรวจสอบ: logout ทำงาน
   - ทดสอบ login ด้วย user ทั่วไป (ไม่ใช่ admin) — ตรวจสอบ RBAC
 
-- [ ] **6.2** ทดสอบ file upload (Two-Phase: temp → permanent):
+- [⏸] **6.2** ทดสอบ file upload (Two-Phase: temp → permanent):
+  > ⏸ **Pending** — ยังไม่มีข้อมูล document ให้ทดลอง
   - สร้าง Correspondence ใหม่ → แนบไฟล์ PDF
   - ตรวจสอบ: ไฟล์ไปอยู่ใน `/mnt/asustor-uploads/temp/` (temp phase)
   - Commit correspondence → ตรวจสอบ: ไฟล์ย้ายไป `/mnt/asustor-uploads/permanent/`
   - ตรวจสอบ: ClamAV scan log ไม่มี virus detected
   - ทดสอบ: upload ไฟล์ใหญ่ (>10MB) — ตรวจสอบไม่ timeout
 
-- [ ] **6.3** ทดสอบ AI chat (RAG query):
+- [⏸] **6.3** ทดสอบ AI chat (RAG query):
+  > ⏸ **Pending** — ยังไม่มีข้อมูล document ให้ทดลอง
   - เปิด Document Chat บนเอกสารที่มี embedded data
   - ส่ง query เช่น "เอกสารนี้เกี่ยวกับอะไร"
   - ตรวจสอบ: ได้ response จาก AI (ผ่าน Ollama)
@@ -1745,7 +1800,7 @@
   - ตรวจสอบ logs: `docker logs backend --tail 100 | grep -i "ai.*chat"`
   - ตรวจสอบ: Qdrant search ทำงาน (ดู logs สำหรับ vector search)
 
-- [ ] **6.4** ทดสอบ OCR (upload PDF → extract text):
+- [X] **6.4** ทดสอบ OCR (upload PDF → extract text):
   - Upload PDF ที่มีข้อความ (Thai + English)
   - ทริกเกอร์ OCR (ผ่าน document detail → Extract Text)
   - ตรวจสอบ: OCR sidecar รับ request
@@ -1756,7 +1811,7 @@
   - ตรวจสอบ: extracted text แสดงใน document metadata
   - ตรวจสอบ: text มีความถูกต้อง (Thai + English อ่านได้)
 
-- [ ] **6.5** ทดสอบ Git clone/push (gitea SSH):
+- [X] **6.5** ทดสอบ Git clone/push (gitea SSH):
   ```bash
   # Clone ผ่าน SSH
   git clone ssh://git@192.168.10.11:2222/np-dms/lcbp3.git /tmp/test-clone
@@ -1778,14 +1833,16 @@
   git push origin --delete test-migration
   ```
 
-- [ ] **6.6** ทดสอบ n8n workflow execution:
+- [⏸] **6.6** ทดสอบ n8n workflow execution:
+  > ⏸ **Pending** — ยังไม่มีข้อมูล document ให้ทดลอง
   - เปิด `https://n8n.np-dms.work`
   - Login และตรวจสอบ workflows ที่มีอยู่
   - รัน workflow ทดสอบ (เช่น migration workflow แบบ dry-run)
   - ตรวจสอบ: execution history แสดงสถานะ "success"
   - ตรวจสอบ: n8n เชื่อมต่อ DMS API ได้ (ผ่าน `http://backend:3000/api`)
 
-- [ ] **6.7** ทดสอบ Document Numbering (Redis Redlock):
+- [⏸] **6.7** ทดสอบ Document Numbering (Redis Redlock):
+  > ⏸ **Pending** — ยังไม่มีข้อมูล document ให้ทดลอง
   - สร้าง Correspondence ใหม่ → ตรวจสอบเลขที่เอกสารถูก生成
   - สร้าง 2 documents พร้อมกัน (concurrent) → ตรวจสอบไม่ซ้ำเลข
   - ตรวจสอบ Redis lock logs:
@@ -1793,7 +1850,8 @@
   docker logs backend --tail 100 | grep -i "lock\|numbering"
   ```
 
-- [ ] **6.8** ทดสอบ Search (Elasticsearch):
+- [⏸] **6.8** ทดสอบ Search (Elasticsearch):
+  > ⏸ **Pending** — ยังไม่มีข้อมูล document ให้ทดลอง
   - ค้นหาเอกสารผ่าน global search bar
   - ตรวจสอบ: ผลลัพธ์แสดง (full-text search)
   - ตรวจสอบ: highlight keywords ในผลลัพธ์
@@ -1801,7 +1859,7 @@
 
 #### 6B. Monitoring & Soak Test
 
-- [ ] **6.9** Monitor RAM/VRAM usage 24-48 ชม.:
+- [X] **6.9** Monitor RAM/VRAM usage 24-48 ชม.:
   ```bash
   # RAM usage (ทุก ชม.)
   docker stats --no-stream --format 'table {{.Name}}\t{{.MemUsage}}\t{{.MemPerc}}'
@@ -1818,20 +1876,20 @@
   # ทุก container ควร OOMKilled=false
   ```
 
-- [ ] **6.10** ตรวจสอบ logs ไม่มี error ร้ายแรง (หลัง 24 ชม.):
+- [X] **6.10** ตรวจสอบ logs ไม่มี error ร้ายแรง (หลัง 24 ชม.):
   ```bash
   # Backend errors
   docker logs backend --since 24h 2>&1 | grep -iE "error|fatal|crash" | grep -v "ECONNRESET\|timeout"
   # ตรวจสอบ error ที่เกิดซ้ำ (pattern)
 
-  # Ollama errors
-  docker logs ollama --since 24h 2>&1 | grep -iE "error|fatal"
+  # Ollama errors (native systemd service — ไม่ใช่ Docker container)
+  journalctl -u ollama --since "24 hours ago" --no-pager | grep -iE "error|fatal"
 
   # OCR sidecar errors
   docker logs ocr-sidecar --since 24h 2>&1 | grep -iE "error|fatal"
   ```
 
-- [ ] **6.11** ตรวจสอบ Prometheus metrics (ถ้ามี):
+- [X] **6.11** ตรวจสอบ Prometheus metrics (ถ้ามี):
   ```bash
   curl -s http://192.168.10.11:9924/metrics | grep ollama_loaded_models
   curl -s http://192.168.10.11:9924/metrics | grep ollama_model_ram_mb
@@ -1840,7 +1898,7 @@
 
 #### 6C. Cleanup & Decommission
 
-- [ ] **6.12** สำรอง backup files ไป ASUSTOR (offsite copy):
+- [X] **6.12** สำรอง backup files ไป ASUSTOR (offsite copy):
   ```bash
   # Copy dump files ไป ASUSTOR (ถ้ายังไม่ได้ทำใน Phase 1)
   rsync -avz /opt/np-dms/mariadb/backup/ \
@@ -1849,21 +1907,10 @@
   ssh admin@192.168.10.9 "ls -la /share/np-dms/backup/migration/mariadb/"
   ```
 
-- [ ] **6.13** หยุด services บน QNAP (ยกเว้น NPM):
-  ```bash
-  ssh admin@192.168.10.8
-  # หยุด data stores (ถ้ายังรันอยู่)
-  docker stop mariadb cache search qdrant 2>/dev/null
-  docker rm mariadb cache search qdrant 2>/dev/null
-  # หยุด app containers (ถ้ายังรันอยู่)
-  docker stop backend frontend n8n gitea 2>/dev/null
-  docker rm backend frontend n8n gitea 2>/dev/null
-  # ยืนยันเหลือแค่ NPM
-  docker ps --format 'table {{.Names}}\t{{.Status}}'
-  # ควรเห็นเฉพาะ: npm (+ npm-db ถ้ามี)
-  ```
+- [N/A] **6.13** ~~หยุด services บน QNAP (ยกเว้น NPM)~~:
+  > **N/A** — services บน QNAP ไม่มีแล้ว (ย้ายหมดแล้ว)
 
-- [ ] **6.14** หยุด services บน Desk-5439:
+- [X] **6.14** หยุด services บน Desk-5439:
   ```bash
   ssh user@192.168.10.100
   # หยุด Ollama (ถ้ารันเป็น service)
@@ -1878,7 +1925,7 @@
   # ควรไม่มี container รันอยู่
   ```
 
-- [ ] **6.15** ทำความสะอาด Docker images เก่าบน QNAP (optional — ประหยัด disk):
+- [X] **6.15** ทำความสะอาด Docker images เก่าบน QNAP (optional — ประหยัด disk):
   ```bash
   ssh admin@192.168.10.8
   docker image prune -a
@@ -1889,30 +1936,30 @@
 
 #### 6D. Documentation Update
 
-- [ ] **6.16** อัปเดต ADR-041: mark D2-D6 as implemented:
+- [X] **6.16** อัปเดต ADR-041: mark D2-D6 as implemented:
   - เปิด `specs/06-Decision-Records/ADR-041-server-consolidation.md`
   - เปลี่ยน status: `Proposed` → `Implemented`
   - เพิ่ม section: `## Implementation Notes` พร้อมวันที่ deploy จริง
   - บันทึก: RAM usage จริง, VRAM usage จริง, ปัญหาที่เจอ + วิธีแก้
 
-- [ ] **6.17** อัปเดต CONTEXT.md: เพิ่ม terms ใหม่:
+- [X] **6.17** อัปเดต CONTEXT.md: เพิ่ม terms ใหม่:
   - `np-dms-lcbp3` — New Server hostname
   - `Layer 1-4` — compose layer structure
   - `192.168.10.11` — New Server IP
   - อัปเดต network topology section
 
-- [ ] **6.18** อัปเดต `04-02-backup-recovery.md`:
+- [X] **6.18** อัปเดต `04-02-backup-recovery.md`:
   - ASUSTOR = Primary NAS (uploads + backup)
   - QNAP = NPM only (edge proxy)
   - New Server = compute (all services)
   - Desk-5439 = decommissioned (or standby)
 
-- [ ] **6.19** อัปเดต `04-network-infrastructure-guide.md`:
+- [X] **6.19** อัปเดต `04-network-infrastructure-guide.md`:
   - เพิ่ม New Server node (192.168.10.11)
   - อัปเดต topology diagram
   - อัปเดต port mapping table
 
-- [ ] **6.20** สร้าง post-migration report:
+- [X] **6.20** สร้าง post-migration report:
   - วันที่/เวลา migration เริ่ม-จบ
   - ปัญหาที่เจอ + วิธีแก้
   - RAM/VRAM usage จริง vs ที่วางแผน
@@ -1963,13 +2010,15 @@
 
 ## 10. Remaining Work
 
-- [ ] สร้าง `my.cnf` สำหรับ MariaDB (innodb_buffer_pool_size=16G)
-- [ ] Copy OCR sidecar build context จาก Desk-5439 → `04-ai/ocr-sidecar/`
-- [ ] อัปเดต ADR-041: D2 (NPM stays on QNAP — revised from original)
-- [ ] อัปเดต CONTEXT.md: เพิ่ม infrastructure terms
-- [ ] อัปเดต `04-02-backup-recovery.md`: ASUSTOR = Primary, QNAP = backup + NPM
-- [ ] อัปเดต `04-network-infrastructure-guide.md`: New Server node
-- [ ] ปรับ MariaDB migration checklist ให้ตรงกับ compose ใหม่
+- [X] สร้าง `my.cnf` สำหรับ MariaDB (innodb_buffer_pool_size=16G) — ทำใน 0.16
+- [X] Copy OCR sidecar build context จาก Desk-5439 → `04-ai/ocr-sidecar/` — ทำใน 0.20
+- [X] อัปเดต ADR-041: D2 (NPM stays on QNAP — revised from original) — ทำใน 6.16, D5 revised (Cloudflare Tunnel)
+- [X] อัปเดต CONTEXT.md: เพิ่ม infrastructure terms — ทำใน 6.17
+- [X] อัปเดต `04-02-backup-recovery.md`: ASUSTOR = Primary, QNAP = NPM only — ทำใน 6.18
+- [X] อัปเดต `04-network-infrastructure-guide.md`: New Server node — ทำใน 6.19
+- [X] ปรับ MariaDB migration checklist ให้ตรงกับ compose ใหม่ — ทำใน Phase 1-2
+
+> ✅ **Remaining Work ทำครบแล้วทั้งหมด** — สถานะล่าสุดดูใน Post-Migration Report (`specs/88-logs/session-2026-07-22-post-migration-report.md`)
 
 ---
 

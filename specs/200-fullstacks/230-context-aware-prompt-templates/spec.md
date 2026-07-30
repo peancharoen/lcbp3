@@ -1,9 +1,9 @@
 # Feature Specification: Context-Aware Prompt Templates & Database Typo Cleanup
 
-**Feature Branch**: `main`  
-**Created**: 2026-05-27  
-**Status**: Draft  
-**Input**: User description: "/01-speckit.prepare E:\np-dms\lcbp3\specs\06-Decision-Records\ADR-030-context-aware-prompt-templates.md"
+**Feature Branch**: `main`
+**Created**: 2026-05-27
+**Status**: Draft
+**Input**: User description: "/01-speckit.prepare specs/06-Decision-Records/ADR-030-context-aware-prompt-templates.md"
 
 ---
 
@@ -11,7 +11,7 @@
 
 ### User Story 1 - OCR Metadata Extraction with Project Context (Priority: P1)
 
-ในฐานะ **ผู้ดูแลระบบ (Admin) หรือระบบประมวลผล (Migration Bot)** 
+ในฐานะ **ผู้ดูแลระบบ (Admin) หรือระบบประมวลผล (Migration Bot)**
 ข้าพเจ้าต้องการสั่งให้ระบบสกัดข้อมูลจากไฟล์เอกสารโดยส่งข้อมูลอ้างอิงโครงการ (Master Data Context) ไปด้วย
 เพื่อป้องกันไม่ให้ AI เกิดความสับสน และสกัดข้อมูลออกมาเป็นภาษาไทยได้อย่างถูกต้องตรงตามโครงการนั้นๆ
 

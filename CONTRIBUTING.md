@@ -1,6 +1,6 @@
 # 📝 Contributing to LCBP3-DMS Specifications
 
-> แนวทางการมีส่วนร่วมในการพัฒนาเอกสาร Specifications ของโครงการ LCBP3-DMS (v1.9.8)
+> แนวทางการมีส่วนร่วมในการพัฒนาเอกสาร Specifications ของโครงการ LCBP3-DMS (v1.9.12)
 
 ยินดีต้อนรับสู่คู่มือการมีส่วนร่วมในการพัฒนาเอกสาร Specifications! เอกสารนี้จะช่วยให้คุณเข้าใจวิธีการสร้าง แก้ไข และปรับปรุงเอกสารข้อกำหนดของโครงการได้อย่างมีประสิทธิภาพ
 
@@ -43,12 +43,13 @@ specs/
 │   ├── 01-06-edge-cases-and-rules.md # Gap 10: 37 Edge Cases [★ NEW]
 │   └── 01-07-ui-wireframes.md   # Gap 4: 26 Screens, Design System [★ NEW]
 │
-├── 02-Architecture/          # สถาปัตยกรรมระบบ (4 docs)
+├── 02-Architecture/          # สถาปัตยกรรมระบบ (5 docs)
 │   ├── README.md
 │   ├── 02-01-system-context.md
 │   ├── 02-02-software-architecture.md
 │   ├── 02-03-network-design.md
-│   └── 02-04-api-design.md
+│   ├── 02-04-api-design.md
+│   └── 02-05-ai-document-ingestion-flow.md  # [★ v1.9.12] AI ingestion flow walkthrough
 │
 ├── 03-Data-and-Storage/      # Database Schema v1.9.0 (3-file split)
 │   ├── README.md
@@ -79,7 +80,7 @@ specs/
 │   ├── 05-03-frontend-guidelines.md
 │   └── 05-04-testing-strategy.md
 │
-├── 06-Decision-Records/      # Architecture Decision Records (28 ADRs)
+├── 06-Decision-Records/      # Architecture Decision Records (41+ ADRs)
 │   ├── README.md
 │   ├── ADR-001-unified-workflow-engine.md
 │   └── ...
@@ -104,7 +105,7 @@ specs/
 | **03-Data-and-Storage**       | Schema v1.8.0, Migration Scope         | Gap 7                   | Backend Lead + DBA      |
 | **04-Infrastructure-OPS**     | Deployment, Operations, Release Policy | Gap 8                   | DevOps Team             |
 | **05-Engineering-Guidelines** | แผนการพัฒนาและ Implementation          | —                       | Development Team Leads  |
-| **06-Decision-Records**       | Architecture Decision Records (28)     | ADR-019/021/023/024-028 | Tech Lead + Senior Devs |
+| **06-Decision-Records**       | Architecture Decision Records (41+)    | ADR-019/021/023/024-041 | Tech Lead + Senior Devs |
 | **100-Infrastructures**       | Infrastructure Operations & Ops        | —                       | DevOps / SRE Team       |
 | **200-fullstacks**            | Feature Implementation (Fullstack)     | spec.md, plan.md        | Development Team        |
 | **300-others**                | Documentation & Research               | —                       | All Team Members        |
@@ -546,31 +547,33 @@ graph LR
 
 **Document History**:
 
-| Version | Date       | Author     | Changes                                                                           |
-| ------- | ---------- | ---------- | --------------------------------------------------------------------------------- |
-| 1.0.0   | 2025-01-15 | John Doe   | Initial version                                                                   |
-| 1.1.0   | 2025-02-20 | Jane Smith | Add CC support                                                                    |
-| 1.8.1   | 2026-03-21 | Tech Lead  | Security hardening, numbering fixes, dependency updates                           |
-| 1.8.5   | 2026-04-10 | Tech Lead  | ADR registry complete (21 ADRs), spec documentation updates                       |
-| 1.8.7   | 2026-04-14 | Tech Lead  | ADR-021 integration complete (22 ADRs), workflow context features                 |
-| 1.8.8   | 2026-04-14 | Tech Lead  | Step-specific attachments, IntegratedBanner, WorkflowLifecycle                    |
-| 1.8.9   | 2026-04-18 | Tech Lead  | Docker Compose hardening — 27 findings (C1–S4) addressed                          |
-| 1.9.0   | 2026-05-13 | Tech Lead  | Agent Infrastructure standard & RFA System migration finalized                    |
-| 1.9.1   | 2026-05-14 | Tech Lead  | Consolidated AI master architecture into ADR-023                                  |
-| 1.9.2   | 2026-05-15 | Tech Lead  | AI Model Revision ADR-023A: 2-Model Stack + BullMQ 2-Queue (23 ADRs)              |
-| 1.9.3   | 2026-05-19 | Tech Lead  | ADR-024 Intent Classification + ADR-025 AI Tool Layer + ADR-026 Chat UI (26 ADRs) |
-| 1.9.4   | 2026-05-21 | Tech Lead  | ADR-027 AI Admin Console & Dynamic Control (27 ADRs)                              |
-| 1.9.5   | 2026-05-22 | Tech Lead  | ADR-028 Migration Architecture Refactor + Root Docs Update (28 ADRs)              |
-| 1.9.6   | 2026-05-22 | Tech Lead  | AGENTS.md v1.9.6 — AI Runtime Layer + Migration Pipeline Tiers expanded           |
-| 1.9.7   | 2026-05-25 | Tech Lead  | ADR-029 Dynamic Prompt Management + PaddleOCR Sidecar infra + bug fixes (29 ADRs) |
-| 1.9.8   | 2026-06-02 | Tech Lead  | ADR-033 Active Model & OCR Management (Synchronous switch, VRAM release, API Key) |
+| Version | Date       | Author      | Changes                                                                                                                                               |
+| ------- | ---------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.0.0   | 2025-01-15 | John Doe    | Initial version                                                                                                                                       |
+| 1.1.0   | 2025-02-20 | Jane Smith  | Add CC support                                                                                                                                        |
+| 1.8.1   | 2026-03-21 | Tech Lead   | Security hardening, numbering fixes, dependency updates                                                                                               |
+| 1.8.5   | 2026-04-10 | Tech Lead   | ADR registry complete (21 ADRs), spec documentation updates                                                                                           |
+| 1.8.7   | 2026-04-14 | Tech Lead   | ADR-021 integration complete (22 ADRs), workflow context features                                                                                     |
+| 1.8.8   | 2026-04-14 | Tech Lead   | Step-specific attachments, IntegratedBanner, WorkflowLifecycle                                                                                        |
+| 1.8.9   | 2026-04-18 | Tech Lead   | Docker Compose hardening — 27 findings (C1–S4) addressed                                                                                              |
+| 1.9.0   | 2026-05-13 | Tech Lead   | Agent Infrastructure standard & RFA System migration finalized                                                                                        |
+| 1.9.1   | 2026-05-14 | Tech Lead   | Consolidated AI master architecture into ADR-023                                                                                                      |
+| 1.9.2   | 2026-05-15 | Tech Lead   | AI Model Revision ADR-023A: 2-Model Stack + BullMQ 2-Queue (23 ADRs)                                                                                  |
+| 1.9.3   | 2026-05-19 | Tech Lead   | ADR-024 Intent Classification + ADR-025 AI Tool Layer + ADR-026 Chat UI (26 ADRs)                                                                     |
+| 1.9.4   | 2026-05-21 | Tech Lead   | ADR-027 AI Admin Console & Dynamic Control (27 ADRs)                                                                                                  |
+| 1.9.5   | 2026-05-22 | Tech Lead   | ADR-028 Migration Architecture Refactor + Root Docs Update (28 ADRs)                                                                                  |
+| 1.9.6   | 2026-05-22 | Tech Lead   | AGENTS.md v1.9.6 — AI Runtime Layer + Migration Pipeline Tiers expanded                                                                               |
+| 1.9.7   | 2026-05-25 | Tech Lead   | ADR-029 Dynamic Prompt Management + PaddleOCR Sidecar infra + bug fixes (29 ADRs)                                                                     |
+| 1.9.8   | 2026-06-02 | Tech Lead   | ADR-033 Active Model & OCR Management (Synchronous switch, VRAM release, API Key)                                                                     |
+| 1.9.12  | 2026-07-23 | Windsurf AI | AGENTS.md refactored: 12 sections extracted to `.agents/rules/` reference files (5 new: 12-16); 756→283 lines (63% reduction); CONTRIBUTING.md synced |
 
-**Current Version**: 1.9.8
+**Current Version**: 1.9.12
 **Status**: Approved
-**Last Updated**: 2026-06-02
+**Last Updated**: 2026-07-23
 **Security**: 0 vulnerabilities (backend) + sidecar endpoints secured with API Key
 **Workflow Engine**: ADR-021 Integrated Context complete + RFA v1.9.0 finalized
-**AI Runtime Layer**: ADR-024/025/026/027/028/029/032/033 Active — Intent Classification, Tool Layer, Chat UI, Admin Console, Dynamic Prompts, OCR Sandbox & Active Model Switch
+**AI Runtime Layer**: ADR-024/025/026/027/028/029/032/033/034/035/037/040/041 Active — Intent Classification, Tool Layer, Chat UI, Admin Console, Dynamic Prompts, OCR Sandbox, Active Model Switch, Pipeline Flow, Prompt UX, Sidecar Refactor, Server Consolidation
+**Agent Rules**: `.agents/rules/` (16 files) — extracted from AGENTS.md v1.9.12 for modularity
 ```
 
 ### 5. UUID Conventions (ADR-019)
@@ -615,14 +618,13 @@ onValueChange={(v) => setValue("projectId", parseInt(v))}
 onValueChange={(v) => setValue("projectUuid", v)}
 ```
 
-#### Serialization Behavior
+#### Serialization Behavior (Updated March 2026)
 
-- `TransformInterceptor` ใช้ `instanceToPlain()` → `@Exclude()` และ `@Expose()` มีผล
-- Entity ทั้ง 14 ตาราง มี `@Exclude()` บน INT `id` → API response **ไม่มี** `id` เป็นตัวเลข
-- Project & Contract มี `@Expose({ name: 'id' })` บน `uuid` → API response มี `id` = UUID string
-- Entity อื่นๆ มี `uuid` field แยก → API response มี `uuid` แต่ไม่มี `id`
+- `UuidBaseEntity` exposes `publicId` directly — no `@Expose({ name: 'id' })` transformation needed
+- INT `id` has `@Exclude()` → API response **ไม่มี** `id` เป็นตัวเลข
+- Frontend ใช้ `publicId` เท่านั้น — ไม่มี `uuid` หรือ `id` fallback
 
-> ดูรายละเอียดเพิ่มเติมที่ [05-07-hybrid-uuid-implementation-plan.md](./specs/05-Engineering-Guidelines/05-07-hybrid-uuid-implementation-plan.md)
+> ดูรายละเอียดเพิ่มเติมที่ [`.agents/rules/01-adr-019-uuid.md`](./.agents/rules/01-adr-019-uuid.md) และ [05-07-hybrid-uuid-implementation-plan.md](./specs/05-Engineering-Guidelines/05-07-hybrid-uuid-implementation-plan.md)
 
 ### 6. ใช้ Consistent Terminology
 
@@ -726,11 +728,12 @@ Create `.markdownlint.json`:
 
 ### Canonical Rule Sources (อ่านตามลำดับนี้)
 
-1. **[`AGENTS.md`](./AGENTS.md)** — quick-reference rules + change log (supersedes legacy `GEMINI.md`)
-2. **[`.agents/skills/_LCBP3-CONTEXT.md`](./.agents/skills/_LCBP3-CONTEXT.md)** — shared context loaded by every speckit-\* skill
-3. **[`.agents/skills/README.md`](./.agents/skills/README.md)** — skill-pack layout + Devin invocation guide
-4. `specs/06-Decision-Records/` (โดยเฉพาะ ADR-019 — UUID **March 2026 pattern**)
-5. `specs/05-Engineering-Guidelines/` (backend / frontend / testing / i18n / git conventions)
+1. **[`AGENTS.md`](./AGENTS.md)** — quick-reference stubs + change log (v1.9.12, 283 lines); detailed rules extracted to `.agents/rules/`
+2. **[`.agents/rules/`](./.agents/rules/)** — 16 rule files covering UUID, security, TypeScript, domain terminology, forbidden actions, development flow, checklists, AI integration, key spec files, context triggers, MCP tools
+3. **[`.agents/skills/_LCBP3-CONTEXT.md`](./.agents/skills/_LCBP3-CONTEXT.md)** — shared context loaded by every speckit-\* skill
+4. **[`.agents/skills/README.md`](./.agents/skills/README.md)** — skill-pack layout + Devin invocation guide
+5. `specs/06-Decision-Records/` (โดยเฉพาะ ADR-019 — UUID `publicId` pattern, ADR-034 — model stack)
+6. `specs/05-Engineering-Guidelines/` (backend / frontend / testing / i18n / git conventions)
 
 ### Invocation (v1.9.0 Unified)
 
@@ -761,10 +764,10 @@ bash  ./.agents/scripts/bash/audit-skills.sh
 
 ### 🔴 Tier 1 Non-Negotiables (AI must enforce)
 
-- **ADR-019 UUID** — `publicId` exposed directly; ห้าม `parseInt`/`Number`/`+` บน UUID; ห้าม `id ?? ''` fallback; ห้ามใช้ `@Expose({ name: 'id' })` rename
+- **ADR-019 UUID** — `publicId` exposed directly; ห้าม `parseInt`/`Number`/`+` บน UUID; ห้าม `id ?? ''` fallback; ห้ามใช้ `@Expose({ name: 'id' })` rename — ดู `.agents/rules/01-adr-019-uuid.md`
 - **ADR-009 Schema** — แก้ `lcbp3-v1.9.0-schema-02-tables.sql` โดยตรง + เพิ่ม delta ที่ `specs/03-Data-and-Storage/deltas/`; ห้าม TypeORM migrations
-- **ADR-016 Security** — CASL + `Idempotency-Key` + ClamAV two-phase upload
-- **ADR-023/023A AI Architecture** — Ollama on Admin Desktop only; 2-Model Stack (gemma4:e4b Q8_0 + nomic-embed-text); BullMQ 2-Queue; human-in-the-loop validation
+- **ADR-016 Security** — CASL + `Idempotency-Key` + ClamAV two-phase upload — ดู `.agents/rules/02-security.md`
+- **ADR-023/023A/034 AI Architecture** — Ollama on Admin Desktop only; Model Stack: `np-dms-ai:latest` (Main) + `np-dms-ocr:latest` (OCR, keep_alive:0) + `nomic-embed-text`; BullMQ 2-Queue; human-in-the-loop validation — ดู `.agents/rules/11-ai-integration.md`
 - **ADR-024 Intent Classification** — Hybrid Pattern→LLM Fallback; Redis cache 5 min; ห้าม LLM Fallback โดยไม่มี Pattern Layer
 - **ADR-025 AI Tool Layer** — Server-side Tool dispatch; CASL-guarded; ToolResult DTO ใช้ `publicId` เท่านั้น
 

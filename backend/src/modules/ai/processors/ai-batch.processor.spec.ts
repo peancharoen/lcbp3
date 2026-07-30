@@ -33,6 +33,7 @@ import { TagsService } from '../../tags/tags.service';
 import { MigrationService } from '../../migration/migration.service';
 import { AiPromptsService } from '../prompts/ai-prompts.service';
 import { AiPolicyService } from '../services/ai-policy.service';
+import { AiQueueService } from '../ai-queue.service';
 
 describe('AiBatchProcessor', () => {
   let processor: AiBatchProcessor;
@@ -167,6 +168,10 @@ describe('AiBatchProcessor', () => {
       canonicalModel: 'np-dms-ai',
     }),
   };
+  const mockAiQueueService = {
+    enqueueEmbedDocument: jest.fn().mockResolvedValue('job-embed-123'),
+    enqueueRagPrepare: jest.fn().mockResolvedValue('job-rag-prepare-123'),
+  };
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -196,6 +201,7 @@ describe('AiBatchProcessor', () => {
         { provide: MigrationService, useValue: mockMigrationService },
         { provide: AiPromptsService, useValue: mockAiPromptsService },
         { provide: AiPolicyService, useValue: mockAiPolicyService },
+        { provide: AiQueueService, useValue: mockAiQueueService },
       ],
     }).compile();
     processor = module.get<AiBatchProcessor>(AiBatchProcessor);
@@ -569,7 +575,7 @@ describe('AiBatchProcessor', () => {
     expect(mockAiAuditLogRepo.save).toHaveBeenCalledTimes(1);
   });
   describe('rag-prepare', () => {
-    it('ควรประมวลผล rag-prepare สำเร็จเมื่อส่ง cachedOcrText มาโดยตรง', async () => {
+    it('ควรประมวลผล rag-prepare สำเร็จเมื่อส่ง cachedOcrText มาโดยตรง — persist ocr_text และ enqueue embed-document (ADR-042)', async () => {
       const job = {
         id: 'job-rag-prepare-cached',
         data: {
@@ -586,23 +592,32 @@ describe('AiBatchProcessor', () => {
             subject: 'Test Subject',
             cachedOcrText:
               'some cached ocr text that is long enough to pass the 50 character limit check',
+            attachmentPublicId: 'att-uuid-001',
           },
         },
       } as unknown as Job<AiBatchJobData>;
       await processor.process(job);
-      expect(embeddingService.embedDocument).toHaveBeenCalledWith(
-        'proj-uuid-456',
-        'doc-uuid-123',
-        'CORR-001',
-        'LETTER',
-        'IN_REVIEW',
-        1,
-        'Test Subject',
-        undefined,
-        'some cached ocr text that is long enough to pass the 50 character limit check'
+      // ADR-042: ต้อง persist ocr_text ก่อนเสมอ
+      expect(attachmentRepo.update).toHaveBeenCalledWith(
+        { publicId: 'att-uuid-001' },
+        {
+          ocrText:
+            'some cached ocr text that is long enough to pass the 50 character limit check',
+        }
       );
+      // ADR-042: ต้อง enqueue embed-document แทนการเรียก embeddingService.embedDocument ตรง
+      expect(mockAiQueueService.enqueueEmbedDocument).toHaveBeenCalledWith(
+        expect.objectContaining({
+          documentPublicId: 'doc-uuid-123',
+          projectPublicId: 'proj-uuid-456',
+          extractedText:
+            'some cached ocr text that is long enough to pass the 50 character limit check',
+        })
+      );
+      // ต้องไม่เรียก embeddingService.embedDocument ตรงอีกต่อไป
+      expect(embeddingService.embedDocument).not.toHaveBeenCalled();
     });
-    it('ควรประมวลผล rag-prepare สำเร็จเมื่อดึงข้อความจากไฟล์แนบผ่าน OCR Service', async () => {
+    it('ควรประมวลผล rag-prepare สำเร็จเมื่อดึงข้อความจากไฟล์แนบผ่าน OCR Service — persist และ enqueue (ADR-042)', async () => {
       ocrService.detectAndExtract.mockResolvedValueOnce({
         text: 'extracted ocr text from document that is long enough to bypass character length check',
         ocrUsed: true,
@@ -622,6 +637,7 @@ describe('AiBatchProcessor', () => {
             revisionNumber: 2,
             subject: 'Test OCR Subject',
             attachmentPath: '/files/test-ocr.pdf',
+            attachmentPublicId: 'att-uuid-002',
           },
         },
       } as unknown as Job<AiBatchJobData>;
@@ -629,17 +645,23 @@ describe('AiBatchProcessor', () => {
       expect(ocrService.detectAndExtract).toHaveBeenCalledWith(
         expect.objectContaining({ pdfPath: '/files/test-ocr.pdf' })
       );
-      expect(embeddingService.embedDocument).toHaveBeenCalledWith(
-        'proj-uuid-456',
-        'doc-uuid-123',
-        'CORR-002',
-        'LETTER',
-        'IN_REVIEW',
-        2,
-        'Test OCR Subject',
-        undefined,
-        'extracted ocr text from document that is long enough to bypass character length check'
+      // ADR-042: ต้อง persist ocr_text ก่อน
+      expect(attachmentRepo.update).toHaveBeenCalledWith(
+        { publicId: 'att-uuid-002' },
+        {
+          ocrText:
+            'extracted ocr text from document that is long enough to bypass character length check',
+        }
       );
+      // ADR-042: ต้อง enqueue embed-document แทนการเรียก embeddingService.embedDocument ตรง
+      expect(mockAiQueueService.enqueueEmbedDocument).toHaveBeenCalledWith(
+        expect.objectContaining({
+          documentPublicId: 'doc-uuid-123',
+          extractedText:
+            'extracted ocr text from document that is long enough to bypass character length check',
+        })
+      );
+      expect(embeddingService.embedDocument).not.toHaveBeenCalled();
     });
   });
 

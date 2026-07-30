@@ -81,7 +81,7 @@ CREATE TABLE workflow_history_attachments (
 
 **Finding from codebase:**
 
-`@/e:/np-dms/lcbp3/backend/src/modules/workflow-engine/entities/workflow-history.entity.ts:22-23`
+`@backend/src/modules/workflow-engine/entities/workflow-history.entity.ts:22-23`
 ```typescript
 @PrimaryGeneratedColumn('uuid')
 id!: string;
@@ -99,7 +99,7 @@ id!: string;
 
 **Finding:**
 
-`@/e:/np-dms/lcbp3/frontend/components/custom/workflow-visualizer.tsx:26-28`
+`@frontend/components/custom/workflow-visualizer.tsx:26-28`
 ```typescript
 // WorkflowVisualizer Component
 // แสดงเส้นเวลา (Timeline) ของกระบวนการอนุมัติแบบแนวนอน

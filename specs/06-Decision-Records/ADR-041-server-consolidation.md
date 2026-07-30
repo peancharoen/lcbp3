@@ -13,12 +13,15 @@
   - Tika removed (legacy — rejected in ADR-028 research, Thai NLP support อ่อนแอ).
   - Compose files created at specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/.
   - Migration plan created at np-dms-lcbp3/MIGRATION-PLAN.md.
+- 2026-07-30: Review pass — corrected T016 status.
+  - T016 (Remove X-API-Key) was marked Done but code verification shows X-API-Key still present in sidecar (app.py:129-135) and backend (ocr.service.ts, sandbox-ocr-engine.service.ts). No git commit removed it. Reverted status to Pending.
+- 2026-07-30: T016 implemented — X-API-Key auth removed from sidecar + backend (ADR-040 Phase 2 T016/T017/T018).
 -->
 
 # ADR-041: Single-Host Server Consolidation
 
-**Status:** Accepted
-**Date:** 2026-06-20 (Revised: 2026-06-23)
+**Status:** Implemented
+**Date:** 2026-06-20 (Revised: 2026-06-23, Implemented: 2026-07-22)
 **Related Documents:**
 - [ADR-040: OCR Sidecar Refactor](./ADR-040-ocr-sidecar-refactor.md)
 - [ADR-016: Security & Authentication](./ADR-016-security-authentication.md)
@@ -188,25 +191,25 @@ Single host = SPOF risk สำหรับ compute services
 
 | Task ID | Phase | Summary | Status |
 | :--- | :--- | :--- | :--- |
-| T001 | Provision | Install Ubuntu 26.04 + Docker + nvidia-container-toolkit | Pending |
-| T002 | Provision | Mount CIFS shares from ASUSTOR (uploads + legacy) | Pending |
-| T003 | Deploy | Create Docker networks: `lcbp3` + `gitnet` | Pending |
+| T001 | Provision | Install Ubuntu 26.04 + Docker + nvidia-container-toolkit | ✅ Done |
+| T002 | Provision | Mount CIFS shares from ASUSTOR (uploads + legacy) | ✅ Done |
+| T003 | Deploy | Create Docker networks: `lcbp3` + `gitnet` | ✅ Done |
 | T004 | Deploy | Create 4-layer compose files (np-dms-lcbp3/) | ✅ Done |
-| T005 | Deploy | Deploy Layer 1: Infrastructure (MariaDB, Redis, ES, Qdrant) | Pending |
-| T006 | Deploy | Deploy Layer 2: Platform (Gitea, n8n) | Pending |
-| T007 | Deploy | Deploy Layer 3: Application (Backend, Frontend, ClamAV) | Pending |
-| T008 | Deploy | Deploy Layer 4: AI (Ollama, OCR Sidecar, metrics) | Pending |
-| T009 | Migrate | Migrate MariaDB (lcbp3 + gitea + npm) via mysqldump | Pending |
-| T010 | Migrate | Migrate Gitea file data (repos, config, registry) | Pending |
-| T011 | Migrate | Migrate n8n + PostgreSQL data | Pending |
-| T012 | Migrate | Migrate Redis + Elasticsearch + Qdrant data | Pending |
-| T013 | Migrate | Pull Ollama models (np-dms-ai, np-dms-ocr, nomic-embed-text) | Pending |
-| T014 | Cutover | Update NPM proxy hosts on QNAP → New Server IPs | Pending |
-| T015 | Cutover | Run smoke tests on all domains | Pending |
-| T016 | ADR-040 | Remove `X-API-Key` from sidecar + backend (ADR-040 D5) | Pending |
-| T017 | Cleanup | Stop services on QNAP (ยกเว้น NPM) | Pending |
-| T018 | Cleanup | Retire Desk-5439 | Pending |
-| T019 | Docs | Update backup-recovery + network-infrastructure docs | Pending |
+| T005 | Deploy | Deploy Layer 1: Infrastructure (MariaDB, Redis, ES, Qdrant) | ✅ Done |
+| T006 | Deploy | Deploy Layer 2: Platform (Gitea, n8n) | ✅ Done |
+| T007 | Deploy | Deploy Layer 3: Application (Backend, Frontend, ClamAV) | ✅ Done |
+| T008 | Deploy | Deploy Layer 4: AI (Ollama, OCR Sidecar, metrics) | ✅ Done |
+| T009 | Migrate | Migrate MariaDB (lcbp3 + gitea + npm) via mysqldump | ✅ Done |
+| T010 | Migrate | Migrate Gitea file data (repos, config, registry) | ✅ Done |
+| T011 | Migrate | Migrate n8n + PostgreSQL data | ✅ Done |
+| T012 | Migrate | Migrate Redis + Elasticsearch + Qdrant data | ✅ Done |
+| T013 | Migrate | Pull Ollama models (np-dms-ai, np-dms-ocr, nomic-embed-text) | ✅ Done |
+| T014 | Cutover | Update NPM proxy hosts on QNAP → New Server IPs | ✅ Done |
+| T015 | Cutover | Run smoke tests on all domains | ✅ Done |
+| T016 | ADR-040 | Remove `X-API-Key` from sidecar + backend (ADR-040 D5) | ✅ Done (2026-07-30, ADR-040 Phase 2 — T016/T017/T018) |
+| T017 | Cleanup | Stop services on QNAP (ยกเว้น NPM) | N/A — services บน QNAP ไม่มีแล้ว |
+| T018 | Cleanup | Retire Desk-5439 | ✅ Done |
+| T019 | Docs | Update backup-recovery + network-infrastructure docs | ✅ Done |
 
 ---
 
@@ -281,3 +284,52 @@ np-dms-lcbp3/
 4. Verify ADR-040 D3/D4 (adaptive residency + CPU fallback) ทำงานได้จริง
 5. Verify NPM proxy hosts ทุก domain ผ่าน browser
 6. ดู migration checklist ที่ `np-dms-lcbp3/MIGRATION-PLAN.md` Phase 6
+
+---
+
+## 📝 Implementation Notes
+
+**Deploy Date:** 2026-07-22
+**Server:** `np-dms-lcbp3` (192.168.10.11, VLAN 10)
+**Hardware:** Ryzen 5 5600, 64GB RAM, RTX 5060 Ti 16GB, 2x NVMe 931.5G
+
+### RAM Usage จริง (post-migration)
+
+| Service | Planned | Actual | Notes |
+|---------|---------|--------|-------|
+| MariaDB | 16G | ~16G | innodb_buffer_pool_size=16G |
+| Elasticsearch | 6G | ~6G | heap 4G |
+| Redis | 4G | ~2G | in-memory cache + BullMQ |
+| Qdrant | 4G | ~2G | vector DB |
+| Backend (NestJS) | 2G | ~1.5G | |
+| Frontend (Next.js) | 3G | ~2G | |
+| ClamAV | 2G | ~2G | virus definitions |
+| Gitea | 2G | ~1G | |
+| n8n + n8n-db | 3G | ~2G | |
+| Ollama (systemd) | 8G | ~6G | system RAM (VRAM แยก) |
+| OCR Sidecar | 2G | ~1.5G | |
+| OS + Docker | 3G | ~3G | |
+| **Total** | ~55.8G | ~45G | headroom ~19G |
+
+### VRAM Usage จริง
+
+| Model | Planned | Actual |
+|-------|---------|--------|
+| np-dms-ai | 6-8G | ~7G |
+| np-dms-ocr | 5G | ~5G (adaptive residency) |
+| nomic-embed-text | 0.5G | ~0.5G |
+| CUDA overhead | 1.5G | ~1.5G |
+| **Total** | ~15.5G | ~14G | headroom ~2G |
+
+### ปัญหาที่เจอ + วิธีแก้
+
+1. **QNAP services ไม่มีแล้ว** — ข้อ 6.13 (หยุด services บน QNAP) เป็น N/A เพราะย้ายหมดแล้วก่อน cutover
+2. **Cloudflare Tunnel** — หลัง migration เสร็จ ได้ติดตั้ง Cloudflare Tunnel บน New Server เปลี่ยน edge architecture (D5 revised — ดู Addendum Section 11 ใน MIGRATION-PLAN.md)
+3. **Functional tests ที่ต้องมี document data** — ข้อ 6.2, 6.3, 6.6, 6.7, 6.8 pending เนื่องจากยังไม่มีข้อมูล document ให้ทดลอง
+
+### D5 Revised (Cloudflare Tunnel)
+
+หลัง migration เสร็จ ได้ติดตั้ง Cloudflare Tunnel บน `np-dms-lcbp3` ทำให้:
+- Cloudflare Tunnel เป็น edge เดียว (internet-facing)
+- NPM เปลี่ยนบทบาทเป็น internal router
+- ดูรายละเอียดใน MIGRATION-PLAN.md Section 11 (Addendum)

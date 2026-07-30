@@ -21,20 +21,20 @@
 ## 🛠️ รายการไฟล์ที่เปลี่ยนแปลง (Proposed & Implemented Changes)
 
 ### Backend (NestJS)
-- **[MODIFY] [ai-batch.processor.ts](file:///e:/np-dms/lcbp3/backend/src/modules/ai/processors/ai-batch.processor.ts)**
+- **[MODIFY] [ai-batch.processor.ts](backend/src/modules/ai/processors/ai-batch.processor.ts)**
   - เพิ่มการประมวลผลงาน `sandbox-extract` ด้วย `ocrService` และเรียกใช้งาน `ollamaService` เพื่อจำลองการสกัด Metadata
   - บันทึกผลลัพธ์ลง Redis cache (`ai:rag:result:${idempotencyKey}`) ด้วยเวลาหมดอายุ 1 ชั่วโมง (EC-004)
   - ไม่บันทึกข้อมูลลงฐานข้อมูลของระบบ (Database Bypass)
-- **[MODIFY] [ai.controller.ts](file:///e:/np-dms/lcbp3/backend/src/modules/ai/ai.controller.ts)**
+- **[MODIFY] [ai.controller.ts](backend/src/modules/ai/ai.controller.ts)**
   - เพิ่ม Endpoint `POST /ai/admin/sandbox/extract` รองรับการอัปโหลดไฟล์ PDF ขนาดไม่เกิน 50MB
   - ดำเนินการเช็คขนาดคิว BullMQ `QUEUE_AI_BATCH` ในการเปิดใช้งาน Dynamic Rate Limiting: ถ้าขนาดคิว >= 3 จะจำกัดไม่เกิน 10 requests/hour ต่อผู้ใช้
-- **[MODIFY] [ai-batch.processor.spec.ts](file:///e:/np-dms/lcbp3/backend/src/modules/ai/processors/ai-batch.processor.spec.ts)**
+- **[MODIFY] [ai-batch.processor.spec.ts](backend/src/modules/ai/processors/ai-batch.processor.spec.ts)**
   - เพิ่ม Unit Test ครอบคลุมการทำงานจำลอง OCR Sandbox และการบันทึกผลลง Redis
 
 ### Frontend (Next.js)
-- **[MODIFY] [admin-ai.service.ts](file:///e:/np-dms/lcbp3/frontend/lib/services/admin-ai.service.ts)**
+- **[MODIFY] [admin-ai.service.ts](frontend/lib/services/admin-ai.service.ts)**
   - เพิ่มฟังก์ชัน `uploadOcrSandbox` สำหรับการอัปโหลด PDF ไปประมวลผลและ `getSandboxJobStatus` สำหรับการดึงข้อมูลสถานะงาน
-- **[MODIFY] [page.tsx](file:///e:/np-dms/lcbp3/frontend/app/(admin)/admin/ai/page.tsx)**
+- **[MODIFY] [page.tsx](frontend/app/(admin)/admin/ai/page.tsx)**
   - ปรับแก้โครงสร้างของแท็บ OCR Playground ให้รองรับการ Drag-and-Drop ไฟล์ และแสดงความก้าวหน้าการสกัดผลลัพธ์ผ่าน Progress bar
   - ทำการพ่นโค้ด JSON syntax highlight ให้สวยงาม และแสดงกล่องข้อความสีแดงเตือนกรณีเกิดข้อผิดพลาดในการประมวลผล
 

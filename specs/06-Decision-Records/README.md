@@ -1,7 +1,7 @@
 # Architecture Decision Records (ADRs)
 
-**Version:** 1.9.8
-**Last Updated:** 2026-06-02
+**Version:** 1.9.12
+**Last Updated:** 2026-07-30
 **Project:** LCBP3-DMS (Laem Chabang Port Phase 3 - Document Management System)
 
 ---
@@ -105,9 +105,14 @@ Architecture Decision Records (ADRs) เป็นเอกสารที่บ�
 | [ADR-029](./ADR-029-dynamic-prompt-management.md) | Dynamic Prompt Management | ✅ Accepted | 2026-05-25 | การเก็บ prompt templates ใน DB (`ai_prompts`) และ Redis cache TTL 60s |
 | [ADR-030](./ADR-030-context-aware-prompt-templates.md) | Context-Aware Prompt Templates | ✅ Accepted | 2026-05-26 | Dynamic prompts ที่ทำงานสัมพันธ์ตามประเภทเอกสาร สิทธิ์ และ workflow step |
 | [ADR-032](./ADR-032-typhoon-ocr-integration.md) | Typhoon OCR Integration | ✅ Accepted | 2026-05-30 | Typhoon OCR-3B และ typhoon2.1-gemma3-4b บน Admin Desktop |
-| [ADR-033](./ADR-033-active-model-and-ocr-management.md) | Active Model & OCR Runner Management | ✅ Accepted | 2026-06-02 | Synchronous Model Loading, GPU VRAM Auto-release และ API Key sidecar protection |
-| [ADR-034](./ADR-034-AI-model-change.md) | AI Model Change — Thai-Optimized Model Stack | ✅ Accepted | 2026-06-03 | เปลี่ยนเป็น np-dms-ai (Typhoon2.5) + np-dms-ocr (Typhoon OCR) — Supersede ADR-023A Section 2.1 |
-| [ADR-035](./ADR-035-ai-pipeline-flow-architecture.md) | AI Pipeline Flow Architecture | ✅ Accepted | 2026-06-05 | 4 Flows (Sandbox, Migration, Auto-fill, RAG); BGE-M3 แทนที่ nomic-embed-text; OCR Sidecar routing |
+| [ADR-033](./ADR-033-active-model-and-ocr-management.md) | Active Model & OCR Runner Management | ⚠️ Accepted (§7 superseded by ADR-040) | 2026-06-02 | Synchronous Model Loading, GPU VRAM Auto-release; §7 (X-API-Key) superseded by ADR-040 D6 (network isolation) — Phase 2 removal complete |
+| [ADR-034](./ADR-034-AI-model-change.md) | AI Model Change — Thai-Optimized Model Stack | ✅ Accepted | 2026-06-03 | เปลี่ยนเป็น np-dms-ai (typhoon2.5-qwen3-4b) + np-dms-ocr (Typhoon OCR) — Supersede ADR-023A Section 2.1 |
+| [ADR-035](./ADR-035-ai-pipeline-flow-architecture.md) | AI Pipeline Flow Architecture | ⚠️ Accepted (amended by ADR-040) | 2026-06-05 | 4 Flows (Sandbox, Migration, Auto-fill, RAG); BGE-M3 แทนที่ nomic-embed-text; OCR Sidecar routing — OCR engine routing, `/normalize`, model identity amended by ADR-040 |
+| [ADR-036](./ADR-036-unified-ocr-architecture.md) | Unified AI Model Architecture — Sandbox-Production Parity | 📋 Proposed (§5 amended by ADR-040) | 2026-06-13 | Sandbox-Production Parity สำหรับ np-dms-ai และ np-dms-ocr; Profile-Only Parameter Governance; §5 sidecar contract amended by ADR-040 |
+| [ADR-037](./ADR-037-unified-prompt-management-ux-ui.md) | Unified Prompt Management UX/UI | ✅ Implemented | 2026-06-14 | Unified Prompt Management UX/UI — extends ADR-029 prompt_type scope |
+| [ADR-040](./ADR-040-ocr-sidecar-refactor.md) | OCR Sidecar Refactor — Pure Compute Worker | ✅ Accepted (Phase 1 + Phase 2 implemented) | 2026-06-20 | Sidecar เป็น pure compute worker; ลบ `/normalize` endpoint; engine เดียว np-dms-ocr; path traversal hardening; amends ADR-035 + ADR-036 §5; supersedes ADR-033 §7; Phase 2 (X-API-Key removal) complete |
+| [ADR-041](./ADR-041-server-consolidation.md) | Single-Host Server Consolidation | ✅ Implemented | 2026-06-20 | ย้าย services ทั้งหมดไปรวมบน np-dms-lcbp3; 4-layer Docker compose; QNAP = HA standby; ASUSTOR = Primary NAS; T016 (X-API-Key removal) complete |
+| [ADR-042](./ADR-042-sandbox-project-and-ocr-text-persistence.md) | Sandbox Project + OCR Text Persistence | 📋 Proposed | 2026-07-27 | Sandbox Project (DB-committing Full Pipeline Test) + OCR text persistence (แยก rag-prepare เป็น OCR-persist + embed-document) |
 
 ---
 
@@ -163,7 +168,14 @@ Architecture Decision Records (ADRs) เป็นเอกสารที่บ�
 - **ADR-023:** Unified AI Architecture - สถาปัตยกรรม AI หลักของระบบ ครอบคลุม Boundary, Workflows, RAG และ Hardware Isolation
 - **ADR-023A:** AI Model Revision - 2-Model Stack (gemma4:e4b Q8_0 + nomic-embed-text), BullMQ 2-Queue, OCR auto-detect
 - **ADR-024 ถึง ADR-030:** Runtime dynamic system (Intent Classifier, Tool Layer, Chat UI, Dynamic prompts & contexts)
-- **ADR-032 & ADR-033:** OCR integration, Synchronous Loading, GPU VRAM Auto-release และ FastAPI API Key Protection
+- **ADR-032 & ADR-033:** OCR integration, Synchronous Loading, GPU VRAM Auto-release; ADR-033 §7 (X-API-Key) superseded by ADR-040 D6
+- **ADR-034 & ADR-035:** Thai-Optimized Model Stack (np-dms-ai + np-dms-ocr) + AI Pipeline Flow Architecture (4 Flows, BGE-M3) — ADR-035 OCR sidecar contract amended by ADR-040
+- **ADR-036 & ADR-037:** Sandbox-Production Parity (§5 amended by ADR-040) + Unified Prompt Management UX/UI
+- **ADR-040:** OCR Sidecar Refactor — Pure compute worker, ลบ `/normalize`, engine เดียว `np-dms-ocr`, path traversal hardening (amends ADR-035 + ADR-036 §5; supersedes ADR-033 §7; Phase 2 X-API-Key removal complete)
+- **ADR-041:** Server Consolidation — ย้ายทุก services ไป np-dms-lcbp3 (single-host Docker); T016 (X-API-Key removal) complete
+- **ADR-042:** Sandbox Project + OCR Text Persistence — DB-committing full pipeline test + แยก rag-prepare เป็น 2 jobs
+
+> 📖 **AI Document Ingestion Flow walkthrough:** ดู [`02-Architecture/02-05-ai-document-ingestion-flow.md`](../02-architecture/02-05-ai-document-ingestion-flow.md) สำหรับ end-to-end flow (Production + Sandbox)
 
 ---
 
@@ -187,6 +199,6 @@ Architecture Decision Records (ADRs) เป็นเอกสารที่บ�
 
 ---
 
-**Version:** 1.9.8 (Added ADR-033 Active Model & OCR Runner Management)
-**Last Review:** 2026-06-02
-**Next Review:** 2026-12-02
+**Version:** 1.9.12 (Added ADR-036/037/040/041/042 + ADR-035 amendment note)
+**Last Review:** 2026-07-30
+**Next Review:** 2027-01-30

@@ -1,6 +1,6 @@
 # Implementation Plan: Context-Aware Prompt Templates & Database Typo Cleanup
 
-**Branch**: `main` | **Date**: 2026-05-27 | **Spec**: [spec.md](file:///e:/np-dms/lcbp3/specs/200-fullstacks/230-context-aware-prompt-templates/spec.md)
+**Branch**: `main` | **Date**: 2026-05-27 | **Spec**: [spec.md](specs/200-fullstacks/230-context-aware-prompt-templates/spec.md)
 **Input**: Feature specification from `/specs/200-fullstacks/230-context-aware-prompt-templates/spec.md`
 
 ---

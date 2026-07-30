@@ -27,6 +27,7 @@ import { CorrespondenceTag } from './entities/correspondence-tag.entity';
 import { Tag } from '../master/entities/tag.entity';
 import { User } from '../user/entities/user.entity';
 import { Organization } from '../organization/entities/organization.entity';
+import { Project } from '../project/entities/project.entity';
 import { CorrespondenceRevisionAttachment } from './entities/correspondence-revision-attachment.entity';
 
 // DTOs
@@ -239,6 +240,23 @@ export class CorrespondenceService {
     const resolvedProjectId = await this.uuidResolver.resolveProjectId(
       createDto.projectId
     );
+    // ADR-042: ป้องกันผู้ใช้ทั่วไปสร้างเอกสารใน Sandbox Project
+    const targetProject = await this.correspondenceRepo.manager.findOne(
+      Project,
+      { where: { id: resolvedProjectId } }
+    );
+    if (targetProject?.isSandbox) {
+      const canManageAll = await this.hasSystemManageAllPermission(
+        user.user_id
+      );
+      if (!canManageAll) {
+        throw new BusinessException(
+          'SANDBOX_PROJECT_ACCESS_DENIED',
+          'Non-admin users cannot create correspondences in sandbox project',
+          'ไม่สามารถสร้างเอกสารในโครงการทดสอบได้'
+        );
+      }
+    }
     const resolvedOriginatorId = createDto.originatorId
       ? await this.uuidResolver.resolveOrganizationId(createDto.originatorId)
       : undefined;

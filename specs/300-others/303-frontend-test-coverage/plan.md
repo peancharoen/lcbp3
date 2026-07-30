@@ -186,8 +186,8 @@ const mockItem = {
 ### แต่ละ Phase
 
 ```powershell
-# รันจาก E:\np-dms\lcbp3\frontend
-cd E:\np-dms\lcbp3\frontend
+# รันจาก frontend/
+cd frontend/
 npm run test:cov
 
 # ดูตัวเลขสรุปที่ terminal output

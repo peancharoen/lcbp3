@@ -13,6 +13,13 @@
 // - 2026-06-04: ADR-034 — เปลี่ยน engineName เป็น np-dms-ocr:latest ตรงกับชื่อโมเดลใน Ollama
 // - 2026-06-11: US2 - คำนวณ OCR residency keep_alive แบบ dynamic ตาม VRAM headroom และ active profile
 // - 2026-06-13: US5 - เพิ่มการส่ง temperature, topP และ repeatPenalty ไปยัง OCR sidecar ผ่าน multipart form (T070)
+// - 2026-07-30: ADR-040 D1 — ยกเลิก engine selection ใน detectAndExtract() ใช้ np-dms-ocr อย่างเดียว
+//   - เปลี่ยน processWithFastPath → processWithAutoFallback (ใช้เฉพาะ VRAM fallback)
+//   - แก้ audit log จาก pymupdf → auto (สะท้อนความจริง: sidecar อาจวิ่ง np-dms-ocr ผ่าน auto)
+//   - เก็บ getOcrEngines/selectOcrEngine ไว้สำหรับ Admin Console UI (sandbox testing)
+// - 2026-07-30: ADR-040 Phase 2 (T017) — ลบ X-API-Key send-side (network isolation แทน, ADR-041 complete)
+//   - ลบ ocrSidecarApiKey field + env var validation
+//   - ลบ headers: { 'X-API-Key': ... } จากทุก axios call (health, ocr-upload x2, embed, rerank)
 
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -108,13 +115,12 @@ const ENGINES_MAP = new Map<string, OcrEngineConfiguration>([
   [OCR_ENGINE_ID, OCR_ENGINE],
 ]);
 
-/** บริการเลือก fast path หรือ OCR sidecar (np-dms-ocr) พร้อมความสามารถในสลับ Engine และ Caching */
+/** บริการ OCR ใช้ np-dms-ocr เป็น engine หลัก (ADR-040 D1) พร้อม auto fallback เมื่อ VRAM ไม่เพียงพอ */
 @Injectable()
 export class OcrService {
   private readonly logger = new Logger(OcrService.name);
   private readonly threshold: number;
   private readonly ocrApiUrl: string;
-  private readonly ocrSidecarApiKey: string;
   private readonly vramHeadroomThresholdMb: number;
   private readonly ocrResidencyWindowSeconds: number;
   private readonly mainModelPressureThresholdMb: number;
@@ -137,15 +143,6 @@ export class OcrService {
       'OCR_API_URL',
       'http://localhost:8765'
     );
-    const ocrSidecarApiKey = this.configService.get<string>(
-      'OCR_SIDECAR_API_KEY'
-    );
-    if (!ocrSidecarApiKey) {
-      throw new Error(
-        'OCR_SIDECAR_API_KEY is required — กรุณาตั้งค่า environment variable'
-      );
-    }
-    this.ocrSidecarApiKey = ocrSidecarApiKey;
     this.vramHeadroomThresholdMb = this.configService.get<number>(
       'VRAM_HEADROOM_THRESHOLD_MB',
       this.configService.get<number>('AI_VRAM_HEADROOM_THRESHOLD_MB', 3000)
@@ -304,7 +301,6 @@ export class OcrService {
     try {
       await axios.get(`${this.ocrApiUrl}/health`, {
         timeout: 5000,
-        headers: { 'X-API-Key': this.ocrSidecarApiKey },
       });
       return {
         status: 'HEALTHY',
@@ -323,7 +319,11 @@ export class OcrService {
     }
   }
 
-  /** ตรวจสอบ text layer ก่อนเลือก OCR slow path */
+  /**
+   * สกัดข้อความจาก PDF — ใช้ np-dms-ocr เป็น engine หลัก (ADR-040 D1)
+   * ถ้ามี text layer เพียงพอ (extractedChars > threshold) จะข้าม OCR
+   * ถ้า VRAM ไม่เพียงพอ จะ fallback ไป auto engine (PyMuPDF บน CPU ก่อน → np-dms-ocr)
+   */
   async detectAndExtract(
     input: OcrDetectionInput
   ): Promise<OcrDetectionResult> {
@@ -339,22 +339,21 @@ export class OcrService {
       return { text: extractedText, ocrUsed: false };
     }
 
-    const activeEngineId = await this.getActiveEngineId();
-
-    if (activeEngineId === OCR_ENGINE_ID) {
-      return this.processWithNpDmsOcr(input);
-    } else {
-      return this.processWithFastPath(input);
-    }
+    // ADR-040 D1: engine เดียว np-dms-ocr — ไม่มี engine selection แล้ว
+    return this.processWithNpDmsOcr(input);
   }
 
-  /** ประมวลผลผ่าน Fast Path (PyMuPDF text layer) โดยส่ง file content ผ่าน multipart */
-  private async processWithFastPath(
+  /**
+   * Fallback เมื่อ np-dms-ocr ไม่พร้อม (VRAM ไม่พอ หรือ error)
+   * ส่ง engine='auto' ให้ sidecarลอง PyMuPDF text layer (CPU) ก่อน → ถ้าไม่ได้ text จะวิ่ง np-dms-ocr อีกครั้ง
+   * ใช้เฉพาะกรณี fallback — ไม่ใช่ engine หลัก (ADR-040 D1)
+   */
+  private async processWithAutoFallback(
     input: OcrDetectionInput
   ): Promise<OcrDetectionResult> {
     const startTime = Date.now();
     try {
-      this.logger.debug(`Fast Path processing: ${input.pdfPath}`);
+      this.logger.debug(`Auto fallback processing: ${input.pdfPath}`);
       const fileBuffer = fs.readFileSync(input.pdfPath!);
       const form = new FormData();
       form.append(
@@ -368,16 +367,15 @@ export class OcrService {
         form,
         {
           timeout: 90000,
-          headers: { 'X-API-Key': this.ocrSidecarApiKey },
         }
       );
       const text = response.data.text ?? '';
       const durationMs = Date.now() - startTime;
       await this.writeAuditLog({
         documentPublicId: input.documentPublicId,
-        aiModel: 'fast-path',
-        modelName: 'pymupdf',
-        modelType: 'fast-path',
+        aiModel: 'auto-fallback',
+        modelName: 'auto',
+        modelType: 'auto-fallback',
         status: AiAuditStatus.SUCCESS,
         processingTimeMs: durationMs,
         cacheHit: false,
@@ -395,15 +393,15 @@ export class OcrService {
             : String(err);
       await this.writeAuditLog({
         documentPublicId: input.documentPublicId,
-        aiModel: 'fast-path',
-        modelName: 'pymupdf',
-        modelType: 'fast-path',
+        aiModel: 'auto-fallback',
+        modelName: 'auto',
+        modelType: 'auto-fallback',
         status: AiAuditStatus.FAILED,
         processingTimeMs: durationMs,
         errorMessage: cause,
         cacheHit: false,
       });
-      throw new Error(`Fast Path OCR Sidecar failed: ${cause}`);
+      throw new Error(`Auto fallback OCR Sidecar failed: ${cause}`);
     }
   }
 
@@ -417,9 +415,9 @@ export class OcrService {
         await this.vramMonitorService.hasVramCapacity(OCR_REQUIRED_VRAM_MB);
       if (!hasCapacity) {
         this.logger.warn(
-          `VRAM insufficient for np-dms-ocr. Falling back to fast-path.`
+          `VRAM insufficient for np-dms-ocr. Falling back to auto engine (PyMuPDF CPU → np-dms-ocr).`
         );
-        return this.processWithFastPath(input);
+        return this.processWithAutoFallback(input);
       }
       await this.calculateOcrResidency(input.activeProfile);
 
@@ -483,7 +481,6 @@ export class OcrService {
         form,
         {
           timeout: 120000,
-          headers: { 'X-API-Key': this.ocrSidecarApiKey },
         }
       );
       const text = response.data.text ?? '';
@@ -503,9 +500,9 @@ export class OcrService {
       };
     } catch (err: unknown) {
       this.logger.warn(
-        `np-dms-ocr failed, trying fallback to fast-path: ${err instanceof Error ? err.message : String(err)}`
+        `np-dms-ocr failed, trying auto fallback (PyMuPDF CPU → np-dms-ocr): ${err instanceof Error ? err.message : String(err)}`
       );
-      return this.processWithFastPath(input);
+      return this.processWithAutoFallback(input);
     }
   }
 
@@ -545,15 +542,7 @@ export class OcrService {
     device?: string;
   }> {
     try {
-      const response = await axios.post(
-        `${this.ocrApiUrl}/embed`,
-        { text },
-        {
-          headers: {
-            'X-API-Key': this.ocrSidecarApiKey,
-          },
-        }
-      );
+      const response = await axios.post(`${this.ocrApiUrl}/embed`, { text });
       return response.data as {
         dense: number[];
         sparse: { indices: number[]; values: number[] };
@@ -572,15 +561,10 @@ export class OcrService {
     chunks: string[]
   ): Promise<{ scores: number[]; ranked_indices: number[]; device?: string }> {
     try {
-      const response = await axios.post(
-        `${this.ocrApiUrl}/rerank`,
-        { query, chunks },
-        {
-          headers: {
-            'X-API-Key': this.ocrSidecarApiKey,
-          },
-        }
-      );
+      const response = await axios.post(`${this.ocrApiUrl}/rerank`, {
+        query,
+        chunks,
+      });
       return response.data as {
         scores: number[];
         ranked_indices: number[];

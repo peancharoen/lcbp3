@@ -1,4 +1,4 @@
-# File: specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/services/vram_monitor.py
+# File: specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/services/vram_monitor.py
 # Change Log:
 # - 2026-06-11: Initial creation of VramMonitor service for Python OCR sidecar to query GPU VRAM headroom from Ollama /api/ps
 

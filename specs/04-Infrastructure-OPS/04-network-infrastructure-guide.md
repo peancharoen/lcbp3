@@ -48,6 +48,7 @@
 | Access Switch | SG2428P | PoE Access Switch |
 | **2.5G Access Switch** | **AMPCOM ZX-SWTGW218AS** | **2.5Gbps Desktop Switch + SFP+ Uplink** |
 | NAS Storage | QNAP / ASUSTOR | Network Attached Storage |
+| **Compute Server** | **`np-dms-lcbp3`** | **All services (4 Docker layers + Ollama systemd) — 192.168.10.11, VLAN 10** |
 | Unmanaged Switch 1 | TL-SG1210P | IP Phone + PC |
 | Unmanaged Switch 2 | TL-SL1226P | CCTV |
 | Wireless AP | EAP610 | Wi-Fi Access Points |

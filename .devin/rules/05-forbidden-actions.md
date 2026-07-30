@@ -1,7 +1,3 @@
----
-trigger: always_on
----
-
 # Forbidden Actions
 
 ## ❌ Never Do This
@@ -41,3 +37,18 @@ Quick reminder:
 - ❌ `parseInt(uuid)` → NEVER
 - ❌ `Number(uuid)` → NEVER
 - ✅ Use UUID string directly
+
+## 🚧 Out of Scope — Never Do Without Explicit Approval
+
+| ❌ Never Do Autonomously                                        | ⚠️ Why Approval Is Required                                      |
+| --------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `DROP` or `RENAME` a column / table                             | Irreversible data loss — requires DBA + PM sign-off              |
+| Push directly to `main` / `master` branch                       | Bypasses CI, code review, and release gates                      |
+| Generate or insert seed data into production database           | May corrupt live data or violate business state invariants       |
+| Delete files from permanent storage                             | Files may be referenced in active documents or audit trails      |
+| Modify RBAC permission matrix without security team approval    | Defines access control for all users — security boundary change  |
+| Upgrade major library versions (NestJS, Next.js, TypeORM, etc.) | Breaking changes require full regression test cycle              |
+| Disable or modify authentication / authorization guards         | Creates unguarded endpoints — immediate security risk            |
+| Change Redis lock TTL or disable Redlock                        | Risk of document number race condition (ADR-002)                 |
+| Create or supersede an ADR unilaterally                         | Architecture decisions require team consensus and review process |
+| Add new columns to production tables without schema review      | Must update Data Dictionary + downstream queries simultaneously  |

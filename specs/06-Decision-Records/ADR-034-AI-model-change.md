@@ -58,7 +58,7 @@ PARAMETER repeat_penalty 1.15
 
 ---
 
-file: E:\np-dms\lcbp3\specs\04-Infrastructure-OPS\04-00-docker-compose\Desk-5439\typhoon2.5-np-dms.model.md
+file: specs\04-Infrastructure-OPS\04-00-docker-compose\Desk-5439\typhoon2.5-np-dms.model.md
 ```t
 # ollama create np-dms-ai -f ./np-dms-ai.model.md
 
@@ -90,7 +90,7 @@ Guidelines:
 ```
 
 ---
-file: E:\np-dms\lcbp3\specs\04-Infrastructure-OPS\04-00-docker-compose\Desk-5439\typhoon-np-dms-ocr.model.md
+file: specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/typhoon-np-dms-ocr.model.md
 ```t
 # ollama create np-dms-ocr -f ./np-dms-ocr.model.md
 

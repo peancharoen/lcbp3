@@ -23,16 +23,17 @@ LCBP3 uses **on-premises AI only** (Ollama on Admin Desktop) with strict isolati
 │   ├─ AiGateway (proxies to Ollama)                          │
 │   └─ DB + Storage (Elasticsearch, MariaDB, File System)    │
 └─────────────────────────┬──────────────────────────────────┘
-                          │ (HTTP → Admin Desktop, internal)
+                          │ (Docker-internal network, same host)
 ┌─────────────────────────▼──────────────────────────────────┐
-│  Admin Desktop (Desk-5439)                                 │
-│   ├─ Ollama (Gemma 4)                                       │
-│   ├─ PaddleOCR (Thai + English)                             │
-│   └─ n8n orchestration                                      │
+│  np-dms-lcbp3 (192.168.10.11)                              │
+│   ├─ Ollama (systemd): np-dms-ai + np-dms-ocr (ADR-034)   │
+│   ├─ OCR Sidecar (Docker): /ocr-upload + /embed + /rerank  │
+│   │   (BGE-M3 + BGE-Reranker — ADR-040, no Tesseract)      │
+│   └─ n8n orchestration (migration phase only)              │
 └────────────────────────────────────────────────────────────┘
 ```
 
-**❗ Admin Desktop has NO network access to MariaDB, no SMB to storage, no shared secrets.** It receives base64-encoded file bytes over HTTPS and returns extracted text + suggestions.
+**❗ OCR Sidecar has NO network access to MariaDB, no SMB to storage.** It receives file bytes via multipart `/ocr-upload` and returns extracted text. Auth via Docker-internal network isolation (ADR-040 D6, post-ADR-041 cutover).
 
 ---
 
@@ -137,7 +138,7 @@ CREATE TABLE ai_audit_log (
   user_id INT NOT NULL,
   action VARCHAR(64) NOT NULL,       -- 'ai.extract_metadata', 'ai.classify', etc.
   file_id INT,
-  model VARCHAR(64),                  -- 'gemma-4:7b', 'typhoon-np-dms-ocr', 'tesseract-ocr'
+  model VARCHAR(64),                  -- 'np-dms-ai', 'np-dms-ocr' (canonical per ADR-034; no Tesseract per ADR-040)
   confidence DECIMAL(4,3),
   input_hash CHAR(64),                -- SHA-256 of input for replay detection
   output_summary JSON,

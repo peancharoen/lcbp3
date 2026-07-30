@@ -49,6 +49,7 @@ export interface RagPrepareJobPayload {
   documentDate?: string;
   cachedOcrText?: string;
   attachmentPath?: string;
+  attachmentPublicId?: string;
 }
 
 /** จัดการคิว AI ทั้งหมดให้อยู่หลัง BullMQ ตาม ADR-008/ADR-023 */
@@ -192,6 +193,49 @@ export class AiQueueService {
       {
         ...this.defaultOptions,
         jobId: `rag-prepare:${payload.documentPublicId}:${payload.revisionNumber}`,
+      }
+    );
+    return String(job.id);
+  }
+
+  /**
+   * ส่งงาน embed-document เข้า queue แยกจาก rag-prepare เพื่อให้ OCR text ถูก persist ก่อน
+   * แล้ว enqueue ต่อไป embedding ที่รับ extractedText โดยตรง (ADR-042)
+   * @idempotency `jobId = embed-document:${documentPublicId}:${revisionNumber}` — แยกจาก rag-prepare เพื่อไม่ชนกัน
+   */
+  async enqueueEmbedDocument(payload: {
+    documentPublicId: string;
+    projectPublicId: string;
+    correspondenceNumber: string;
+    docType: string;
+    statusCode: string;
+    revisionNumber: number;
+    subject: string;
+    documentDate?: string;
+    extractedText: string;
+    pdfPath?: string;
+  }): Promise<string> {
+    const job = await this.batchQueue.add(
+      'embed-document',
+      {
+        jobType: 'embed-document',
+        documentPublicId: payload.documentPublicId,
+        projectPublicId: payload.projectPublicId,
+        payload: {
+          pdfPath: payload.pdfPath,
+          extractedText: payload.extractedText,
+          correspondenceNumber: payload.correspondenceNumber,
+          docType: payload.docType,
+          statusCode: payload.statusCode,
+          revisionNumber: payload.revisionNumber,
+          subject: payload.subject,
+          documentDate: payload.documentDate,
+        },
+        idempotencyKey: `embed-document:${payload.documentPublicId}:${payload.revisionNumber}`,
+      },
+      {
+        ...this.defaultOptions,
+        jobId: `embed-document:${payload.documentPublicId}:${payload.revisionNumber}`,
       }
     );
     return String(job.id);

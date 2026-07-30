@@ -57,7 +57,7 @@
 
 **For AI Runtime Layer (ADR-024/025/026/027):**
 
-- ADR-024: Pattern Layer first (ai_intent_patterns DB + Redis cache 5 min) → LLM Fallback (gemma4:e4b, semaphore max=3)
+- ADR-024: Pattern Layer first (ai_intent_patterns DB + Redis cache 5 min) → LLM Fallback (np-dms-ai via Ollama, semaphore max=3)
 - ADR-025: Tool Registry dispatch — AI Gateway → Tool → Business Service; ToolResult DTO must use publicId only
 - ADR-026: useAiChat() hook + side-panel UI; streaming response via SSE; TanStack Query cache
 - ADR-027: Admin Console — dynamic model/prompt/intent control; CASL-guarded admin-only endpoints
@@ -126,30 +126,33 @@ MCP MariaDB server ให้เครื่องมือสำหรับต�
 
 ### Available Tools
 
-| Tool | หน้าที่ | ตัวอย่างการใช้งาน |
-|------|----------|------------------|
-| `mcp1_mysql_test_connection` | ทดสอบ connection กับ database | ตรวจสอบว่า MCP server เชื่อมต่อได้ |
-| `mcp1_mysql_show_databases` | แสดง databases ทั้งหมด | ดูว่ามี database อะไรบ้าง |
-| `mcp1_mysql_show_tables` | แสดง tables ทั้งหมดใน database | ดูรายชื่อ tables ใน `lcbp3` |
-| `mcp1_mysql_describe_table` | ดู structure/columns ของ table | ตรวจสอบ columns, types, keys ของ `correspondences` |
-| `mcp1_mysql_query` | รัน SELECT query | ดู data ใน table หรือ join query |
-| `mcp1_mysql_insert` | INSERT data | เพิ่ม seed data หรือ test data |
-| `mcp1_mysql_update` | UPDATE data | แก้ไข data ใน table |
-| `mcp1_mysql_delete` | DELETE data | ลบ data ใน table |
+| Tool                         | หน้าที่                        | ตัวอย่างการใช้งาน                                  |
+| ---------------------------- | ------------------------------ | -------------------------------------------------- |
+| `mcp1_mysql_test_connection` | ทดสอบ connection กับ database  | ตรวจสอบว่า MCP server เชื่อมต่อได้                 |
+| `mcp1_mysql_show_databases`  | แสดง databases ทั้งหมด         | ดูว่ามี database อะไรบ้าง                          |
+| `mcp1_mysql_show_tables`     | แสดง tables ทั้งหมดใน database | ดูรายชื่อ tables ใน `lcbp3`                        |
+| `mcp1_mysql_describe_table`  | ดู structure/columns ของ table | ตรวจสอบ columns, types, keys ของ `correspondences` |
+| `mcp1_mysql_query`           | รัน SELECT query               | ดู data ใน table หรือ join query                   |
+| `mcp1_mysql_insert`          | INSERT data                    | เพิ่ม seed data หรือ test data                     |
+| `mcp1_mysql_update`          | UPDATE data                    | แก้ไข data ใน table                                |
+| `mcp1_mysql_delete`          | DELETE data                    | ลบ data ใน table                                   |
 
 ### การใช้งานร่วมกับ Development Flow
 
 **เมื่อเขียน query ใหม่:**
+
 1. ใช้ `mcp1_mysql_describe_table` เพื่อตรวจสอบ columns และ types
 2. เปรียบเทียบกับ `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql`
 3. ใช้ `mcp1_mysql_query` เพื่อทดสอบ query ก่อน implement
 
 **เมื่อเปลี่ยน schema (ADR-009):**
+
 1. ใช้ `mcp1_mysql_describe_table` เพื่อดู structure ปัจจุบัน
 2. สร้าง SQL delta ใน `specs/03-Data-and-Storage/deltas/`
 3. ใช้ `mcp1_mysql_query` เพื่อตรวจสอบผลลัพธ์หลัง apply delta
 
 **เมื่อ debug ปัญหา database:**
+
 1. ใช้ `mcp1_mysql_query` เพื่อดู data จริง
 2. เปรียบเทียบกับ spec และ data dictionary
 3. ตรวจสอบ foreign keys และ constraints
@@ -173,31 +176,34 @@ MCP Memory server ให้เครื่องมือสำหรับจ�
 
 ### Available Tools
 
-| Tool | หน้าที่ | ตัวอย่างการใช้งาน |
-|------|----------|------------------|
-| `mcp3_create_entities` | สร้าง entities ใหม่หลายตัวพร้อม observations | สร้าง entity ใหม่เช่น Project, User, Task |
-| `mcp3_create_relations` | สร้าง relations ระหว่าง entities | สร้าง relation: Project → has → User |
-| `mcp3_add_observations` | เพิ่ม observations ให้ entity ที่มีอยู่แล้ว | เพิ่ม context เพิ่มเติมให้ entity |
-| `mcp3_delete_entities` | ลบ entities และ relations ที่เกี่ยวข้อง | ลบ entity ที่ไม่ใช้แล้ว |
-| `mcp3_delete_relations` | ลบ relations ระหว่าง entities | ลบ relation ที่ผิดหรือไม่ใช้แล้ว |
-| `mcp3_delete_observations` | ลบ observations จาก entity | ลบ context ที่ผิดหรือล้าสุด |
-| `mcp3_open_nodes` | ดึงข้อมูล entities ตามชื่อ | ดึง entity ที่ระบุชื่อ |
-| `mcp3_read_graph` | อ่าน knowledge graph ทั้งหมด | ดูทั้ง graph structure |
-| `mcp3_search_nodes` | ค้นหา entities ตาม query | ค้นหา entity จากชื่อ, type, หรือ observation |
+| Tool                       | หน้าที่                                      | ตัวอย่างการใช้งาน                            |
+| -------------------------- | -------------------------------------------- | -------------------------------------------- |
+| `mcp3_create_entities`     | สร้าง entities ใหม่หลายตัวพร้อม observations | สร้าง entity ใหม่เช่น Project, User, Task    |
+| `mcp3_create_relations`    | สร้าง relations ระหว่าง entities             | สร้าง relation: Project → has → User         |
+| `mcp3_add_observations`    | เพิ่ม observations ให้ entity ที่มีอยู่แล้ว  | เพิ่ม context เพิ่มเติมให้ entity            |
+| `mcp3_delete_entities`     | ลบ entities และ relations ที่เกี่ยวข้อง      | ลบ entity ที่ไม่ใช้แล้ว                      |
+| `mcp3_delete_relations`    | ลบ relations ระหว่าง entities                | ลบ relation ที่ผิดหรือไม่ใช้แล้ว             |
+| `mcp3_delete_observations` | ลบ observations จาก entity                   | ลบ context ที่ผิดหรือล้าสุด                  |
+| `mcp3_open_nodes`          | ดึงข้อมูล entities ตามชื่อ                   | ดึง entity ที่ระบุชื่อ                       |
+| `mcp3_read_graph`          | อ่าน knowledge graph ทั้งหมด                 | ดูทั้ง graph structure                       |
+| `mcp3_search_nodes`        | ค้นหา entities ตาม query                     | ค้นหา entity จากชื่อ, type, หรือ observation |
 
 ### การใช้งานร่วมกับ Development Flow
 
 **เมื่อบันทึก context ใหม่:**
+
 1. ใช้ `mcp3_create_entities` เพื่อสร้าง entities ใหม่ (ถ้ายังไม่มี)
 2. ใช้ `mcp3_create_relations` เพื่อเชื่อมโยง entities
 3. ใช้ `mcp3_add_observations` เพื่อเพิ่ม context/observations
 
 **เมื่อค้นหา context:**
+
 1. ใช้ `mcp3_search_nodes` เพื่อค้นหา entities ที่เกี่ยวข้อง
 2. ใช้ `mcp3_open_nodes` เพื่อดึงข้อมูล entities ที่ต้องการ
 3. ใช้ `mcp3_read_graph` เพื่อดู relations ระหว่าง entities
 
 **เมื่อแก้ไข context:**
+
 1. ใช้ `mcp3_add_observations` เพื่อเพิ่ม observations ใหม่
 2. ใช้ `mcp3_delete_observations` เพื่อลบ observations ที่ผิด
 3. ใช้ `mcp3_create_relations` หรือ `mcp3_delete_relations` เพื่อปรับ relations

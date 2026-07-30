@@ -1,4 +1,4 @@
-# File: specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/services/residency_policy.py
+# File: specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/services/residency_policy.py
 # Change Log:
 # - 2026-06-11: Initial creation of residency_policy.py for calculating OCR keep_alive value dynamically
 

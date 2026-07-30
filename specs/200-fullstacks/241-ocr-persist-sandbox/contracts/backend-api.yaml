@@ -1,0 +1,73 @@
+openapi: 3.0.3
+info:
+  title: OCR Text Persistence & Sandbox Project — New/Modified Endpoints
+  version: 1.0.0
+  description: >
+    เฉพาะ endpoint ใหม่/ที่แก้ไขสำหรับ feature 241-ocr-persist-sandbox
+    (ADR-042) ไม่ใช่ full API spec ของระบบ
+
+paths:
+  /ai/admin/sandbox/clear-data:
+    post:
+      summary: ลบข้อมูลทดสอบทั้งหมดที่ผูกกับ Sandbox Project
+      description: >
+        Hard-delete cascading (correspondences → revisions → attachments →
+        workflow_instances/histories) scoped เฉพาะ project ที่ is_sandbox=1
+        พร้อม enqueue vector deletion job ต่อเอกสาร ไม่ตรวจสอบ BullMQ job
+        ที่กำลัง active ก่อนลบ (ตาม Clarifications ใน spec.md)
+      tags: [AI Admin Sandbox]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: >
+            บังคับตาม ADR-016 (ทุก POST/PUT/PATCH ต้องตรวจสอบ Idempotency-Key) —
+            ป้องกันการเรียก clear-data ซ้ำโดยไม่ตั้งใจ
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: ลบข้อมูลสำเร็จ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deletedCorrespondenceCount:
+                    type: integer
+                    example: 5
+                  vectorDeletionJobsEnqueued:
+                    type: integer
+                    example: 5
+        "403":
+          description: ไม่มีสิทธิ์ (ต้องมี permission system.manage_all)
+        "400":
+          description: ขาด header Idempotency-Key
+
+  /correspondences:
+    post:
+      summary: (แก้ไข semantics ภายใน — ไม่แก้ contract) สร้าง Correspondence
+      description: >
+        Endpoint เดิม ไม่แก้ request/response shape — ใช้ code path เดียวกับ
+        production เมื่อเรียกจาก Sandbox UI โดยส่ง projectPublicId ของ
+        Sandbox Project (ADR-042 Full Pipeline test)
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+x-internal-payload-changes:
+  RagPrepareJobPayload:
+    description: BullMQ payload (ไม่ใช่ HTTP contract) — เพิ่ม field ใหม่
+    added_fields:
+      - name: attachmentPublicId
+        type: string
+        format: uuid
+        required: false
+        description: ใช้เป็น WHERE key เขียน attachments.ocr_text แทน attachmentPath

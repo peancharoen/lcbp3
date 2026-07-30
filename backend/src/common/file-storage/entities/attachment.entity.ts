@@ -47,6 +47,10 @@ export class Attachment extends UuidBaseEntity {
   @Column({ name: 'reference_date', type: 'date', nullable: true })
   referenceDate?: Date;
 
+  // ADR-042: OCR text ที่สกัดได้ก่อน semantic chunking/embedding — persist ก่อนเสมอ
+  @Column({ name: 'ocr_text', type: 'longtext', nullable: true })
+  ocrText?: string;
+
   @Column({
     name: 'ai_processing_status',
     type: 'enum',

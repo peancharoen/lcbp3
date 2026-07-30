@@ -1,11 +1,11 @@
-# OCR Sidecar — Desk-5439
+# OCR Sidecar — New Server (192.168.10.11)
 
-HTTP API server สำหรับสกัดข้อความจาก PDF ผ่าน np-dms-ocr (Ollama) — รันบน Desk-5439 ตาม ADR-023A/ADR-040.
+HTTP API server สำหรับสกัดข้อความจาก PDF ผ่าน np-dms-ocr (Ollama) — รันบน New Server (192.168.10.11) ตาม ADR-023A/ADR-040/ADR-041.
 
 ## สถาปัตยกรรม
 
 ```
-Backend (QNAP) → POST /ocr-upload → OCR Sidecar (Desk-5439:8765)
+Backend (New Server:3000) → POST /ocr-upload → OCR Sidecar (New Server:8765)
                                           ↓
                                     PyMuPDF (fast-path: chars > 100)
                                           ↓ (ถ้า chars ≤ 100)
@@ -34,7 +34,6 @@ Backend (QNAP) → POST /ocr-upload → OCR Sidecar (Desk-5439:8765)
 
 | Variable | Default | หน้าที่ |
 |----------|---------|---------|
-| `OCR_SIDECAR_API_KEY` | (required) | API key สำหรับ authentication (Phase 1) |
 | `OCR_SIDECAR_UPLOAD_BASE` | `/mnt/uploads` | Base path whitelist สำหรับ path traversal protection |
 | `OLLAMA_API_URL` | `http://host.docker.internal:11434` | Ollama API URL |
 | `OCR_MODEL` | `np-dms-ocr:latest` | ชื่อ OCR model ใน Ollama |
@@ -51,13 +50,13 @@ Backend (QNAP) → POST /ocr-upload → OCR Sidecar (Desk-5439:8765)
 ```bash
 # 1. คัดลอก .env.example เป็น .env และกรอกค่า
 cp .env.example .env
-# แก้ OCR_SIDECAR_API_KEY เป็นค่าจริง
+# แก้ OCR_SIDECAR_UPLOAD_BASE เป็น path จริง (ถ้าไม่ใช่ /mnt/uploads)
 
 # 2. Build และรัน
 docker compose up -d --build
 
 # 3. ตรวจสอบ
-curl http://192.168.10.100:8765/health
+curl http://192.168.10.11:8765/health
 ```
 
 ## การทดสอบ

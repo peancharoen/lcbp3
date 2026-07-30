@@ -1,7 +1,7 @@
 # Tasks: AI Model & OCR Runner Management
 
 - [x] T001: Create the feature documentation structure in `specs/200-fullstacks/233-ai-model-ocr-runner-management/`
-- [x] T002: Create Architecture Decision Record [ADR-033](file:///e:/np-dms/lcbp3/specs/06-Decision-Records/ADR-033-active-model-and-ocr-management.md) to document decisions
+- [x] T002: Create Architecture Decision Record [ADR-033](specs/06-Decision-Records/ADR-033-active-model-and-ocr-management.md) to document decisions
 - [x] T003: [Backend] Inject `OcrService` and register GET `/ai/ocr-engines` endpoint in `ai.controller.ts`
 - [x] T004: [Backend] Register POST `/ai/ocr-engines/:engineId/select` endpoint in `ai.controller.ts`
 - [x] T005: [Backend] Implement resilient fallback in `fetchAndCacheVramStatus()` within `vram-monitor.service.ts` to resolve "OOM Guard" stuck issue

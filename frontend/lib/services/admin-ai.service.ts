@@ -508,6 +508,20 @@ export const adminAiService = {
   deleteExecutionProfile: async (id: number): Promise<void> => {
     await api.delete(`/ai/execution-profiles/${id}`);
   },
+
+  clearSandboxData: async (): Promise<{
+    deletedCorrespondenceCount: number;
+    vectorDeletionJobsEnqueued: number;
+  }> => {
+    const idempotencyKey = crypto.randomUUID();
+    const { data } = await api.post('/ai/admin/sandbox/clear-data', null, {
+      headers: { 'Idempotency-Key': idempotencyKey },
+    });
+    return extractData<{
+      deletedCorrespondenceCount: number;
+      vectorDeletionJobsEnqueued: number;
+    }>(data);
+  },
 };
 
 export interface OcrEngineResponse {

@@ -28,7 +28,6 @@ describe('OcrService Parameter Wiring (T066)', () => {
       const config: Record<string, unknown> = {
         OCR_CHAR_THRESHOLD: 100,
         OCR_API_URL: 'http://localhost:8765',
-        OCR_SIDECAR_API_KEY: 'test-key',
         VRAM_HEADROOM_THRESHOLD_MB: 3000,
         OCR_RESIDENCY_WINDOW_SECONDS: 120,
         GPU_MAIN_MODEL_PRESSURE_THRESHOLD_MB: 12000,

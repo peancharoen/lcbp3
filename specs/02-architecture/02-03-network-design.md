@@ -34,27 +34,36 @@ related:
 flowchart TB
     subgraph PublicZone["🌐 PUBLIC ZONE"]
         direction LR
-        NPM["NPM (Reverse Proxy)<br/>Ports: 80, 443"]
-        SSL["SSL/TLS Termination"]
+        CF["Cloudflare Tunnel<br/>Edge SSL Termination"]
+        NPM["NPM (Internal Router)<br/>Ports: 80, 443"]
     end
 
-    subgraph AppZone["📱 APPLICATION ZONE (Docker Network 'lcbp3' on QNAP)"]
+    subgraph AppZone["📱 APPLICATION ZONE (Docker Network 'lcbp3' on np-dms-lcbp3)"]
         direction LR
         Frontend["Next.js"]
         Backend["NestJS"]
         N8N["n8n"]
         Gitea["Gitea"]
+        ClamAV["ClamAV"]
     end
 
-    subgraph DataZone["💾 DATA ZONE (QNAP - Internal Only)"]
+    subgraph DataZone["💾 DATA ZONE (np-dms-lcbp3 - Internal Only)"]
         direction LR
         MariaDB["MariaDB"]
         Redis["Redis"]
         ES["Elasticsearch"]
+        Qdrant["Qdrant"]
+    end
+
+    subgraph AIZone["🤖 AI ZONE (np-dms-lcbp3)"]
+        direction LR
+        Ollama["Ollama systemd"]
+        OCR["OCR Sidecar"]
     end
 
     subgraph InfraZone["🛠️ INFRASTRUCTURE ZONE (ASUSTOR)"]
         direction LR
+        Uploads["Uploads (temp/permanent)"]
         Backup["Backup Services"]
         Registry["Docker Registry"]
         Monitoring["Prometheus + Grafana"]
@@ -62,7 +71,10 @@ flowchart TB
     end
 
     PublicZone -->|HTTPS Only| AppZone
+    CF -->|outbound tunnel| NPM
+    NPM -->|internal proxy| AppZone
     AppZone -->|Internal API| DataZone
+    AppZone -->|Docker-internal| AIZone
     DataZone -.->|Backup| InfraZone
     AppZone -.->|Metrics| InfraZone
 ```
@@ -72,7 +84,7 @@ flowchart TB
 > [!CAUTION]
 > **MariaDB และ Redis ตั้งอยู่ใน DATA ZONE ภายใต้ Docker Network ภายในชื่อ `lcbp3` เท่านั้น**
 
-- **ห้าม Expose Port ออกสู่ Host โดยตรง:** `mariadb:3306` และ `redis:6379` จะต้องไม่ถูกเปิดสิทธิออกสู่ภายนอก Container Station
+- **ห้าม Expose Port ออกสู่ Host โดยตรง:** `mariadb:3306` และ `redis:6379` จะต้องไม่ถูกเปิดสิทธิออกสู่ภายนอก New Server host (Docker bridge `lcbp3`)
 - **การเข้าถึงจากระบบอื่น:** เฉพาะ Service ใน **APPLICATION ZONE** (เช่น NestJS Backend) และ Service อื่นบน Network `lcbp3` เท่านั้นที่จะสามารถเรียกใช้งาน Database ได้
 - **การจัดการโดย Admin:** หากผู้ดูแลระบบต้องการเข้าไปจัดการฐานข้อมูล จะต้องใช้งานผ่าน **phpMyAdmin** (`pma.np-dms.work`) ซึ่งถูกจำกัดสิทธิเข้าถึงผ่าน Nginx Proxy Manager อีกชั้น หรือผ่าน SSH Tunnel เข้าสู่เซิร์ฟเวอร์เท่านั้น
 
@@ -99,6 +111,7 @@ graph TB
     subgraph Servers["VLAN 10 - Servers"]
         QNAP[(" QNAP<br/>192.168.10.8")]
         ASUSTOR[(" ASUSTOR<br/>192.168.10.9")]
+        NewServer[(" New Server<br/>np-dms-lcbp3<br/>192.168.10.11")]
         Zyxel[(" Zyxel NAS326<br/>192.168.10.111")]
     end
 
@@ -115,6 +128,7 @@ graph TB
     CS -->|SFP+ Port 9| DS
     CS -->|Port 3-4 LACP| QNAP
     CS -->|Port 5-6 LACP| ASUSTOR
+    CS -->|Port 7 SFP+| NewServer
     CS -->|Port 8| PC
     DS -->|Port 1-16| AP
 ```
@@ -123,7 +137,7 @@ graph TB
 
 - **01_CORE_TRUNK:** Router & switch uplinks (Native: 20, Tagged: All)
 - **02_MGMT_ONLY:** Management only (Native: 20, Untagged: 20)
-- **03_SERVER_ACCESS:** QNAP / ASUSTOR (Native: 10, Untagged: 10)
+- **03_SERVER_ACCESS:** QNAP / ASUSTOR / New Server `np-dms-lcbp3` (Native: 10, Untagged: 10)
 - **04_CCTV_ACCESS:** CCTV cameras (Native: 40, Untagged: 40)
 - **05_USER_ACCESS:** PC / Printer (Native: 30, Untagged: 30)
 - **06_AP_TRUNK:** EAP610 Access Points (Native: 20, Tagged: 30, 70)
@@ -141,7 +155,7 @@ graph TB
   - Port 1&2 (Active LACP) -> Reserved
   - Port 3&4 (Active LACP) -> QNAP 192.168.10.8
   - Port 5&6 (Active LACP) -> ASUSTOR 192.168.10.9
-  - Port 7 Reserved
+  - Port 7 -> New Server `np-dms-lcbp3` (192.168.10.11)
   - Port 8 -> Admin Desktop (192.168.20.100)
   - SFP+ Port 9 -> SG2428P (192.168.20.2) Port 28
   - SFP+ Port 10 uplink ER7206 (192.168.20.1) Port 1
@@ -183,7 +197,7 @@ graph TB
 | 1-2 | Reserved (LACP) | Trunk | 20 | 10,20,30,40,50,60,70 | 01_CORE_TRUNK |
 | 3-4 | QNAP (LACP) | Access | 10 | - | 03_SERVER_ACCESS |
 | 5-6 | ASUSTOR (LACP) | Access | 10 | - | 03_SERVER_ACCESS |
-| 7 | Reserved | - | - | - | - |
+| 7 | New Server `np-dms-lcbp3` | Access | 10 | - | 03_SERVER_ACCESS |
 | 8 | Admin Desktop | Access | 20 | - | 02_MGMT_ONLY |
 | 9 (SFP+) | SG2428P | Trunk | 20 | 10,20,30,40,50,70 | 01_CORE_TRUNK |
 | 10 (SFP+) | ER7206 | Trunk | 20 | 10,20,30,40,50,70 | 01_CORE_TRUNK |
@@ -229,8 +243,8 @@ graph TB
 
 | Device  | Bonding Mode        | Member Ports | VLAN Mode | Tagged VLAN | IP Address      | Gateway      | Notes                  |
 | ------- | ------------------- | ------------ | --------- | ----------- | --------------- | ------------ | ---------------------- |
-| QNAP    | IEEE 802.3ad (LACP) | Adapter 1, 2 | Untagged  | 10 (SERVER) | 192.168.10.8/24 | 192.168.10.1 | Primary NAS for DMS    |
-| ASUSTOR | IEEE 802.3ad (LACP) | Port 1, 2    | Untagged  | 10 (SERVER) | 192.168.10.9/24 | 192.168.10.1 | Backup / Secondary NAS |
+| QNAP    | IEEE 802.3ad (LACP) | Adapter 1, 2 | Untagged  | 10 (SERVER) | 192.168.10.8/24 | 192.168.10.1 | NPM internal router (legacy edge proxy) |
+| ASUSTOR | IEEE 802.3ad (LACP) | Port 1, 2    | Untagged  | 10 (SERVER) | 192.168.10.9/24 | 192.168.10.1 | Primary NAS for DMS (uploads + backup)  |
 
 ### 3.5 PoE Budget & Power Consumption
 

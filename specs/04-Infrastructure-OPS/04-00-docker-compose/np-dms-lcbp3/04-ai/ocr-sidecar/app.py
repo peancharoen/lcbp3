@@ -1,4 +1,4 @@
-# File: specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py
+# File: specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/app.py
 # OCR HTTP Sidecar API — รับ POST /ocr แล้วคืนข้อความที่สกัดจาก PDF/Image
 # ตาม ADR-023A (revised 2026-06-11): ใช้ np-dms-ocr (Ollama) แทน Tesseract
 # Change Log:
@@ -30,6 +30,16 @@
 # - 2026-06-20: ADR-040 Phase 1-4 — ลบ default API key, เพิ่ม path whitelist, และ wire adaptive OCR residency
 # - 2026-06-20: ADR-040 Phase 6 — async I/O refactor: async process_ocr, AsyncClient via lifespan, asyncio.to_thread model loading
 # - 2026-06-20: ADR-040 Phase 8 — ลบ /normalize endpoint (ไม่มี consumers) และ pythainlp imports
+# - 2026-07-23: Feature-142 — Prompt cache invalidation: asyncio.Lock + Redis prompt hash + auto unload on prompt change
+# - 2026-07-30: ADR-040 D1 — refactor _process_pdf_doc: 'auto' engine เป็น known engine (ลด Unknown warning)
+#   - 'auto' ลอง PyMuPDF text layer ก่อน → ถ้าไม่พอ fallback ไป np-dms-ocr โดยตรง (ไม่ใช่ "Unknown engine")
+#   - ลบ code duplication ระหว่าง np-dms-ocr block และ Unknown engine fallback block
+#   - ทุก engine path นำไปสู่ np-dms-ocr (engine เดียวตาม ADR-040 D1)
+# - 2026-07-30: ADR-040 Phase 2 (T016) — ลบ X-API-Key validation ออกจาก sidecar endpoints
+#   - เปลี่ยนจาก X-API-Key auth เป็น network isolation (Docker-internal bridge, ADR-041 consolidation complete)
+#   - ลบ OCR_SIDECAR_API_KEY env var check, api_key_header, get_api_key function
+#   - ลบ Depends(get_api_key) จากทุก endpoint (/ocr, /ocr-upload, /embed, /rerank)
+#   - ลบ imports: APIKeyHeader, Security, Depends (คง status ไว้สำหรับ HTTP_403/400)
 
 import os
 import logging
@@ -45,9 +55,13 @@ from typing import Optional
 from typhoon_ocr import prepare_ocr_messages  # External library from SCB10X (PyPI) — provides OCR message preparation for np-dms-ocr
 from services.vram_monitor import get_vram_headroom
 from services.residency_policy import calculate_ocr_residency
+from services.prompt_cache import (
+    check_and_unload_if_changed,
+    clear_prompt_hash,
+    init_redis_client,
+)
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends, Security, status
-from fastapi.security.api_key import APIKeyHeader
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, status
 from pydantic import BaseModel
 from FlagEmbedding import BGEM3FlagModel, FlagReranker
 
@@ -60,6 +74,10 @@ bge_model = None
 reranker = None
 # Shared AsyncClient สำหรับ Ollama API (T043: สร้างใน lifespan context manager)
 ollama_client: httpx.AsyncClient | None = None
+# Redis client สำหรับ prompt hash storage (Feature-142)
+redis_client = None
+# asyncio.Lock สำหรับบังคับ sequential OCR processing (FR-008)
+ocr_lock = asyncio.Lock()
 
 
 def _load_bge_models() -> tuple:
@@ -78,36 +96,35 @@ def _load_bge_models() -> tuple:
 @asynccontextmanager
 async def lifespan(app_instance: FastAPI):
     """T043/T045: Lifespan context manager แทน @app.on_event('startup') — จัดการ AsyncClient และ model loading"""
-    global bge_model, reranker, ollama_client
+    global bge_model, reranker, ollama_client, redis_client
     # T043: สร้าง shared AsyncClient สำหรับ Ollama API
     ollama_client = httpx.AsyncClient(timeout=OCR_TIMEOUT)
     logger.info(f"Shared AsyncClient created (timeout={OCR_TIMEOUT}s)")
+    # Feature-142: สร้าง Redis client สำหรับ prompt hash storage
+    try:
+        redis_client = init_redis_client()
+        await redis_client.ping()
+        logger.info("Redis client connected for prompt cache invalidation")
+    except Exception as e:
+        logger.warning(f"Redis connection failed — prompt cache invalidation disabled: {e}")
+        redis_client = None
     # T046: โหลด models ผ่าน asyncio.to_thread เพื่อไม่ block startup
     bge_model, reranker = await asyncio.to_thread(_load_bge_models)
     yield
-    # Cleanup: ปิด AsyncClient
+    # Cleanup: ปิด AsyncClient และ Redis client
     if ollama_client:
         await ollama_client.aclose()
         logger.info("Shared AsyncClient closed.")
+    if redis_client:
+        await redis_client.aclose()
+        logger.info("Redis client closed.")
 
 
 app = FastAPI(title="OCR Sidecar", version="2.0.0", lifespan=lifespan)
 
 
-# กำหนดค่าโทเค็นความปลอดภัยของ Sidecar ตามข้อเสนอแนะในการรักษาความมั่นคงปลอดภัย
-OCR_SIDECAR_API_KEY = os.getenv("OCR_SIDECAR_API_KEY")
-if not OCR_SIDECAR_API_KEY:
-    raise RuntimeError("OCR_SIDECAR_API_KEY is required for OCR sidecar startup")
-
 # กำหนดค่าความยาวสูงสุดของ systemPrompt (fix-3: configurable validation)
 MAX_SYSTEM_PROMPT_LENGTH = int(os.getenv("MAX_SYSTEM_PROMPT_LENGTH", "10000"))
-api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
-async def get_api_key(api_key: str = Security(api_key_header)):
-    if not api_key:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing API Key in request headers (X-API-Key)")
-    if api_key != OCR_SIDECAR_API_KEY:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API Key")
-    return api_key
 
 # อ่านค่า config จาก environment
 OCR_CHAR_THRESHOLD = int(os.getenv("OCR_CHAR_THRESHOLD", "100"))
@@ -189,16 +206,16 @@ async def _process_pdf_doc(
     pages_to_process = list(range(min(len(doc), max_pages) if max_pages > 0 else len(doc)))
     page_count = len(pages_to_process)
 
-    fast_text_parts = []
-    total_chars = 0
+    # 'auto' engine: ลอง PyMuPDF text layer ก่อน (Fast Path) → ถ้าไม่พอ วิ่ง np-dms-ocr (ADR-040 D1)
     if selected_engine == "auto":
+        fast_text_parts = []
         for i in pages_to_process:
             page = doc[i]
             fast_text_parts.append(page.get_text())
         fast_text = "\n".join(fast_text_parts).strip()
         total_chars = len(fast_text)
         if total_chars > OCR_CHAR_THRESHOLD:
-            logger.info(f"Fast path: {total_chars} chars extracted")
+            logger.info(f"Auto Fast Path: {total_chars} chars extracted from text layer")
             return OcrResponse(
                 text=fast_text,
                 ocrUsed=False,
@@ -206,41 +223,20 @@ async def _process_pdf_doc(
                 charCount=total_chars,
                 engineUsed="fast-path",
             )
+        logger.info(f"Auto fallback: text layer only {total_chars} chars (threshold={OCR_CHAR_THRESHOLD}) — using np-dms-ocr")
+        # ตกไป np-dms-ocr branch ด้านล่าง (ไม่ใช่ "Unknown engine")
 
-    if selected_engine == "np-dms-ocr":
-        # ใช้ prepare_ocr_messages รับ PDF path โดยตรง — ไม่ต้องแปลง PIL Image อีกต่อไป
-        resolved_path = pdf_path or (str(doc.name) if hasattr(doc, 'name') and doc.name else None)
-        if not resolved_path:
-            raise ValueError("ไม่สามารถหา PDF path — ต้องส่ง pdf_path เข้ามาด้วย")
-        ocr_text_parts = []
-        for i in pages_to_process:
-            ocr_text_parts.append(
-                await process_ocr(
-                    resolved_path,
-                    page_num=i + 1,
-                    options_override=ocr_options,
-                    system_prompt=system_prompt,
-                    runtime_params=runtime_params,
-                    dms_tags=dms_tags,
-                )
-            )
-        ocr_text = filter_ocr_noise("\n".join(ocr_text_parts).strip())
-        return OcrResponse(
-            text=ocr_text,
-            ocrUsed=True,
-            pageCount=page_count,
-            charCount=len(ocr_text),
-            engineUsed=selected_engine,
-        )
-
-    # ถ้าไม่ใช่ engine ที่รู้จัก ให้ใช้ np-dms-ocr เป็น fallback
-    logger.warning(f"Unknown engine '{selected_engine}' — fallback to np-dms-ocr")
+    # np-dms-ocr engine (รวมถึง auto fallback, unknown engine, และ fast-path ที่ไม่มี text layer)
+    # ADR-040 D1: engine เดียว np-dms-ocr — ทุก path นำไปสู่ np-dms-ocr
+    if selected_engine not in ("np-dms-ocr", "auto"):
+        logger.warning(f"Engine '{selected_engine}' — fallback to np-dms-ocr")
+    # ใช้ prepare_ocr_messages รับ PDF path โดยตรง — ไม่ต้องแปลง PIL Image อีกต่อไป
     resolved_path = pdf_path or (str(doc.name) if hasattr(doc, 'name') and doc.name else None)
     if not resolved_path:
         raise ValueError("ไม่สามารถหา PDF path — ต้องส่ง pdf_path เข้ามาด้วย")
-    fallback_parts = []
+    ocr_text_parts = []
     for i in pages_to_process:
-        fallback_parts.append(
+        ocr_text_parts.append(
             await process_ocr(
                 resolved_path,
                 page_num=i + 1,
@@ -250,12 +246,12 @@ async def _process_pdf_doc(
                 dms_tags=dms_tags,
             )
         )
-    fallback_text = filter_ocr_noise("\n".join(fallback_parts).strip())
+    ocr_text = filter_ocr_noise("\n".join(ocr_text_parts).strip())
     return OcrResponse(
-        text=fallback_text,
+        text=ocr_text,
         ocrUsed=True,
         pageCount=page_count,
-        charCount=len(fallback_text),
+        charCount=len(ocr_text),
         engineUsed="np-dms-ocr",
     )
 
@@ -268,11 +264,54 @@ async def process_ocr(
     dms_tags: Optional[dict] = None,
 ) -> str:
     """เรียก np-dms-ocr ผ่าน Ollama /v1/chat/completions — รับ PDF path โดยตรง ไม่ต้องแปลง PIL Image"""
+    # FR-008: asyncio.Lock บังคับ sequential OCR processing — ป้องกัน race condition
+    # ระหว่าง unload กับ request ถัดไป (request ถัดไปต้องรอจนกว่า unload + reload + ประมวลผลเสร็จ)
+    async with ocr_lock:
+        return await _process_ocr_impl(
+            pdf_path, page_num, options_override, system_prompt, runtime_params, dms_tags
+        )
+
+
+async def _process_ocr_impl(
+    pdf_path: str,
+    page_num: int = 1,
+    options_override: Optional[dict] = None,
+    system_prompt: Optional[str] = None,
+    runtime_params: Optional[dict] = None,
+    dms_tags: Optional[dict] = None,
+) -> str:
+    """Implementation ของ process_ocr — ทำงานภายใต้ ocr_lock (FR-008)"""
     options_override = options_override or {}
     if "keep_alive" in options_override:
         raise ValueError("keep_alive must be calculated by OCR residency policy")
     residency = await asyncio.to_thread(calculate_ocr_residency, OCR_ACTIVE_PROFILE)
     model_name = OCR_MODEL
+
+    # Feature-142: Prompt cache invalidation — ตรวจจับ prompt เปลี่ยน และ unload ก่อน inference
+    # ทำหลัง residency calculation เพื่อให้ log แสดง keep_alive context (T015)
+    if redis_client is not None:
+        await check_and_unload_if_changed(
+            system_prompt=system_prompt,
+            model_name=model_name,
+            ollama_url=OLLAMA_API_URL,
+            redis_client=redis_client,
+            ollama_client=ollama_client,
+        )
+        # T015: log residency decision ควบคู่กับ prompt hash comparison สำหรับ debug บน New Server
+        from services.prompt_cache import compute_prompt_hash
+        current_hash = compute_prompt_hash(system_prompt)
+        logger.info(
+            f"OCR residency + prompt cache: keep_alive={residency.keep_alive_seconds}s "
+            f"reason={residency.reason} headroom={residency.vram_headroom_mb}MB "
+            f"prompt_hash={current_hash}"
+        )
+    else:
+        logger.info(
+            f"OCR residency decision: keep_alive={residency.keep_alive_seconds}s "
+            f"reason={residency.reason} headroom={residency.vram_headroom_mb}MB "
+            f"(prompt cache disabled — no Redis)"
+        )
+
     # prepare_ocr_messages จัดการ PDF → image ผ่าน poppler/pdftoppm ภายใน
     messages = prepare_ocr_messages(pdf_path, task_type="structure", page_num=page_num)
     # inject system prompt ถ้ามี (ก่อน DMS tags)
@@ -319,10 +358,6 @@ async def process_ocr(
         merged_params.update(options_override)
 
     # ค่า default ตาม official; options_override ยัง override ได้บางส่วน
-    logger.info(
-        f"OCR residency decision: keep_alive={residency.keep_alive_seconds}s "
-        f"reason={residency.reason} headroom={residency.vram_headroom_mb}MB"
-    )
     payload = {
         "model": model_name,
         "messages": messages,
@@ -347,12 +382,23 @@ async def process_ocr(
     client = ollama_client
     if client is None:
         client = httpx.AsyncClient(timeout=OCR_TIMEOUT)
-    response = await client.post(
-        f"{OLLAMA_API_URL}/v1/chat/completions",
-        json=payload,
-        headers={"Authorization": "Bearer ollama"},
-    )
-    response.raise_for_status()
+    try:
+        response = await client.post(
+            f"{OLLAMA_API_URL}/v1/chat/completions",
+            json=payload,
+            headers={"Authorization": "Bearer ollama"},
+        )
+        response.raise_for_status()
+    except Exception as e:
+        # T018: Edge case — Ollama ล่มหรือรีสตาร์ทระหว่างประมวลผล
+        # ล้าง Redis hash เพื่อบังคับ first-request behavior ใน retry ถัดไป
+        if redis_client is not None:
+            await clear_prompt_hash(redis_client, model_name)
+        logger.warning(
+            f"Ollama inference failed — cleared prompt hash for retry. "
+            f"model={model_name} error={e}"
+        )
+        raise
     data = response.json()
     raw_text = str(data.get("choices", [{}])[0].get("message", {}).get("content", "")).strip()
     # parse JSON output จาก model (format: {"natural_text": "..."})
@@ -376,7 +422,7 @@ async def process_ocr(
         await client.aclose()
     return result_text
 
-@app.post("/ocr", response_model=OcrResponse, dependencies=[Depends(get_api_key)])
+@app.post("/ocr", response_model=OcrResponse)
 async def ocr_extract(req: OcrRequest):
     """OCR จาก path (legacy — ใช้เมื่อ sidecar และ backend เข้าถึง storage เดียวกัน)"""
     if req.keep_alive is not None:
@@ -402,7 +448,7 @@ async def ocr_extract(req: OcrRequest):
         dms_tags=req.dms_tags,
     )
 
-@app.post("/ocr-upload", response_model=OcrResponse, dependencies=[Depends(get_api_key)])
+@app.post("/ocr-upload", response_model=OcrResponse)
 async def ocr_upload(
     file: UploadFile = File(...),
     engine: str = Form(default="auto"),
@@ -503,7 +549,7 @@ class RerankResponse(BaseModel):
     ranked_indices: list[int]
     device: Optional[str] = None
 
-@app.post("/embed", response_model=EmbedResponse, dependencies=[Depends(get_api_key)])
+@app.post("/embed", response_model=EmbedResponse)
 async def embed_text(req: EmbedRequest):
     """BGE-M3 embedding generator (Dense + Sparse) พร้อม CPU fallback และ timeout guard"""
     if bge_model is None:
@@ -566,7 +612,7 @@ async def embed_text(req: EmbedRequest):
         logger.error(f"Embedding generation failed: {e}")
         raise HTTPException(status_code=500, detail=f"Embedding generation failed: {str(e)}")
 
-@app.post("/rerank", response_model=RerankResponse, dependencies=[Depends(get_api_key)])
+@app.post("/rerank", response_model=RerankResponse)
 async def rerank_chunks(req: RerankRequest):
     """BGE-Reranker-Large chunk re-ranker พร้อม CPU fallback และ timeout guard"""
     if reranker is None:

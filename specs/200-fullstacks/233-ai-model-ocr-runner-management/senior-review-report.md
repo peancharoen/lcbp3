@@ -14,14 +14,14 @@
 ### 1. การจัดการรหัส UUID (ADR-019 Compliance) — ✅ ผ่านการประเมิน 100%
 * **เกณฑ์ตรวจสอบ:** ห้ามใช้ `parseInt()`, `Number()` หรือตัวดำเนินการ `+` บนค่า UUIDv7 และห้ามส่งออก PK เลขจำนวนเต็มใน API responses
 * **ผลการประเมิน:** 
-  - ใน [ai.controller.ts](file:///e:/np-dms/lcbp3/backend/src/modules/ai/ai.controller.ts) เอนด์พอยต์ใหม่ `selectOcrEngine` รับค่า `engineId` และตรวจสอบความถูกต้องทางรูปแบบผ่าน `ParseUuidPipe` เสมอ โดยไม่มีการแปลงเป็นจำนวนเต็ม
+  - ใน [ai.controller.ts](backend/src/modules/ai/ai.controller.ts) เอนด์พอยต์ใหม่ `selectOcrEngine` รับค่า `engineId` และตรวจสอบความถูกต้องทางรูปแบบผ่าน `ParseUuidPipe` เสมอ โดยไม่มีการแปลงเป็นจำนวนเต็ม
   - ไม่มีจุดใดในโค้ดใหม่ที่มีการแปลงชนิดข้อมูลตัวเลขกับ UUID หรือทำ rename ตัวแปรใดๆ ทั้งสิ้น
 
 ### 2. กฎการตรวจสอบสิทธิ์ความปลอดภัย (ADR-016 Security) — ✅ ผ่านการประเมิน 100%
 * **เกณฑ์ตรวจสอบ:** ติดตั้ง JWT + CASL 4-Level RBAC ในจุดที่กลายพันธุ์ข้อมูล และการควบคุมความมั่นคงปลอดภัยบน API endpoints
 * **ผลการประเมิน:**
   - เอนด์พอยต์ `POST /ai/ocr-engines/:engineId/select` และ `GET /ai/ocr-engines` มีการติดตั้ง `@UseGuards(JwtAuthGuard, RbacGuard)` และเช็ค Permission `@RequirePermission('system.manage_all')` เพื่อจำกัดความปลอดภัยของแอดมินระบบหลักอย่างเข้มขวด
-  - **การป้องกัน sidecar API:** ocr-sidecar [app.py](file:///e:/np-dms/lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py) ได้รับการติดตั้ง X-API-Key Header protection (`X-API-Key`) ป้องกันความเสี่ยงจากการเรียกประมวลผลโมเดล GPU บน Desk-5439 โดยบุคคลภายนอกโดยตรง
+  - **การป้องกัน sidecar API:** ocr-sidecar [app.py](specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py) ได้รับการติดตั้ง X-API-Key Header protection (`X-API-Key`) ป้องกันความเสี่ยงจากการเรียกประมวลผลโมเดล GPU บน Desk-5439 โดยบุคคลภายนอกโดยตรง
 
 ### 3. กฎความเข้มงวดของ TypeScript (TypeScript Strict Rules) — ✅ ผ่านการประเมิน 100%
 * **เกณฑ์ตรวจสอบ:** ห้ามใช้งานประเภทข้อมูล `any` และห้ามใช้คำสั่ง `console.log()` ในรหัสคอมพิวเตอร์ที่ถูก Commit

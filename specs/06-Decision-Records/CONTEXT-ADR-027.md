@@ -27,7 +27,7 @@
 
 เพิ่มตาราง `system_settings` ในฐานข้อมูล MariaDB เพื่อเก็บค่าการตั้งค่าแบบไดนามิก (ตามแนวทาง ADR-009)
 
-#### [MODIFY] [lcbp3-v1.9.0-schema-02-tables.sql](file:///E:/np-dms/lcbp3/specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql)
+#### [MODIFY] [lcbp3-v1.9.0-schema-02-tables.sql](specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql)
 เพิ่มตาราง `system_settings` ในส่วน Users & RBAC (หลังตาราง permissions):
 
 ```sql
@@ -62,13 +62,13 @@ ON DUPLICATE KEY UPDATE setting_key = setting_key;
 
 ### 💻 2. ส่วนของระบบหลังบ้าน (Backend Layer - NestJS)
 
-#### [MODIFY] [queue.constants.ts](file:///E:/np-dms/lcbp3/backend/src/modules/common/constants/queue.constants.ts)
+#### [MODIFY] [queue.constants.ts](backend/src/modules/common/constants/queue.constants.ts)
 - เพิ่ม priority constant สำหรับ SUPERADMIN:
 ```typescript
 export const PRIORITY_SUPERADMIN = 10; // Higher than HIGH (5)
 ```
 
-#### [NEW] [system-setting.entity.ts](file:///E:/np-dms/lcbp3/backend/src/modules/ai/entities/system-setting.entity.ts)
+#### [NEW] [system-setting.entity.ts](backend/src/modules/ai/entities/system-setting.entity.ts)
 - สร้าง Entity รองรับโครงสร้างตารางใหม่ (ไม่มีบรรทัดว่างในฟังก์ชันตามข้อตกลง):
 ```typescript
 // File: src/modules/ai/entities/system-setting.entity.ts
@@ -121,26 +121,26 @@ export class SystemSetting {
 }
 ```
 
-#### [MODIFY] [ai.module.ts](file:///E:/np-dms/lcbp3/backend/src/modules/ai/ai.module.ts)
+#### [MODIFY] [ai.module.ts](backend/src/modules/ai/ai.module.ts)
 - ลงทะเบียน `SystemSetting` ใน TypeORM `forFeature`
 
-#### [MODIFY] [ai-batch.processor.ts](file:///E:/np-dms/lcbp3/backend/src/modules/ai/processors/ai-batch.processor.ts)
+#### [MODIFY] [ai-batch.processor.ts](backend/src/modules/ai/processors/ai-batch.processor.ts)
 - เพิ่มการรองรับ job type ใหม่สำหรับ Sandbox:
   - `sandbox-rag` -> ค้นหาในเวกเตอร์และตอบคำถาม RAG พร้อมแสดง Citations (priority: SUPERADMIN)
   - `sandbox-extract` -> รัน OCR บนไฟล์ PDF เดี่ยวและประมวลผลสกัด Metadata คืนออกมาเป็นก้อนข้อมูล JSON (priority: SUPERADMIN)
 - **Dynamic Rate Limiting:** เพิ่ม middleware ตรวจสอบความยาวคิว `ai-batch` ก่อน allow sandbox request (queue length < 3 → no limit, queue length ≥ 3 → 10 req/hr)
 
-#### [MODIFY] [ai-queue.service.ts](file:///E:/np-dms/lcbp3/backend/src/modules/ai/ai-queue.service.ts)
+#### [MODIFY] [ai-queue.service.ts](backend/src/modules/ai/ai-queue.service.ts)
 - เพิ่มฟังก์ชัน `enqueueSandboxJob(type: string, payload: any)` เพื่อส่งงานของแอดมินเข้าคิว `ai-batch` พร้อม priority SUPERADMIN
 - เพิ่มฟังก์ชัน `getQueueLength(queueName: string)` เพื่อตรวจสอบความยาวคิวสำหรับ dynamic rate limiting
 
-#### [MODIFY] [ai.service.ts](file:///E:/np-dms/lcbp3/backend/src/modules/ai/ai.service.ts)
+#### [MODIFY] [ai.service.ts](backend/src/modules/ai/ai.service.ts)
 - เพิ่มเมธอดสำหรับอ่าน/เขียนการตั้งค่า:
   - `getAiFeaturesEnabled()`: ค้นหาค่า `AI_FEATURES_ENABLED` จาก Redis Key `system_settings:AI_FEATURES_ENABLED` ก่อน หากไม่มีจึงไปดึงจากตาราง `system_settings` แล้วเขียนลง Redis Cache เพื่อใช้ครั้งต่อไป
   - `setAiFeaturesEnabled(enabled: boolean, userId: number)`: อัปเดตสถานะในตารางฐานข้อมูล (TypeORM transaction) และอัปเดต Redis Cache ทันที (invalid key เดียว)
   - `getSystemHealth()`: รวบรวมข้อมูลสุขภาพของระบบ Ollama, Qdrant, และคิว BullMQ ต่างๆ (cache 30 วินาที, 5s timeout per service)
 
-#### [NEW] [ai-enabled.guard.ts](file:///E:/np-dms/lcbp3/backend/src/modules/ai/guards/ai-enabled.guard.ts)
+#### [NEW] [ai-enabled.guard.ts](backend/src/modules/ai/guards/ai-enabled.guard.ts)
 - สร้าง Guard สำหรับเช็คสถานะการปิด AI ทั่วระบบ:
   - **Layered Check Logic:** Superadmin ต้องมีทั้ง `system.manage_all` **และ** `ai.suggest`/`ai.rag_query` เพื่อ bypass เมื่อ AI disabled
   - หากคีย์การเปิดใช้งานถูกตั้งค่าเป็น `'false'` และผู้ใช้ไม่ผ่าน layered check จะปฏิเสธการเข้าใช้งาน API ด้วยรหัสข้อผิดพลาด **HTTP 503 Service Unavailable**
@@ -152,7 +152,7 @@ export class SystemSetting {
   - Backend Logger: `warn` level แต่ rate limit (log ทุก 10 ครั้งต่อ user ต่อนาที) เพื่อป้องกัน log spam
   - Frontend Error Display: Custom Global Banner + debounce 5 วินาที
 
-#### [MODIFY] [ai.controller.ts](file:///E:/np-dms/lcbp3/backend/src/modules/ai/ai.controller.ts)
+#### [MODIFY] [ai.controller.ts](backend/src/modules/ai/ai.controller.ts)
 - นำ Guard `AiEnabledGuard` ไปติดตั้งใน Endpoints ยิงทำงาน AI ของผู้ใช้ทั่วไป (AI Suggestion, RAG Query)
 - เพิ่มกลุ่ม API สำหรับ Superadmin เท่านั้น (ควบคุมด้วย `@RequirePermission('system.manage_all')` ตาม ADR-016):
   - `GET /ai/admin/settings` -> แสดงสถานะเปิด/ปิด AI ปัจจุบัน
@@ -171,7 +171,7 @@ export class SystemSetting {
 
 ### 🎨 3. ส่วนหน้าจอแสดงผล (Frontend Layer - Next.js)
 
-#### [NEW] [admin-ai.service.ts](file:///E:/np-dms/lcbp3/frontend/lib/services/admin-ai.service.ts)
+#### [NEW] [admin-ai.service.ts](frontend/lib/services/admin-ai.service.ts)
 - พัฒนา API Service สำหรับดึงข้อมูลและสั่งงานของระบบ Admin AI Panel:
   - ดึงข้อมูลสุขภาพ ตรวจสอบการตั้งค่า สลับปุ่มเปิด/ปิด
   - ส่งงาน Sandbox RAG/Extraction และ Polling เช็คผลลัพธ์ของ Job
@@ -179,7 +179,7 @@ export class SystemSetting {
   - ใช้ `publicId` (string UUID) สำหรับ job ID จาก BullMQ เท่านั้น
   - ห้ามใช้ `id ?? ''` fallback ในกรณีใดๆ
 
-#### [NEW] [page.tsx](file:///E:/np-dms/lcbp3/frontend/app/(admin)/admin/ai/page.tsx)
+#### [NEW] [page.tsx](frontend/app/(admin)/admin/ai/page.tsx)
 - หน้าต่าง **AI Control Panel & Playground** ออกแบบอย่างพรีเมียม สไตล์ Glassmorphism:
   - **Layout:** Single page พร้อม tabs (RAG Playground / OCR Sandbox)
   - **Header Switch:** สวิตช์ปุ่มเรืองแสงสีเขียว/ส้มขนาดใหญ่ สำหรับเปิด/ปิดใช้งานระบบ AI
@@ -191,10 +191,10 @@ export class SystemSetting {
   - ใช้ i18n keys สำหรับข้อความทั้งหมด (เช่น `ai.admin.panel.title`, `ai.admin.panel.health.status`)
   - ห้าม hardcode ข้อความภาษาไทยใน component
 
-#### [MODIFY] [sidebar.tsx](file:///E:/np-dms/lcbp3/frontend/components/admin/sidebar.tsx)
+#### [MODIFY] [sidebar.tsx](frontend/components/admin/sidebar.tsx)
 - เพิ่มปุ่มเมนู **"AI Console"** (ไอคอน Brain) ใน Sidebar สำหรับแอดมิน เพื่อลิงก์ไปหน้าจอ `/admin/ai`
 
-#### [MODIFY] [layout.tsx](file:///E:/np-dms/lcbp3/frontend/app/layout.tsx)
+#### [MODIFY] [layout.tsx](frontend/app/layout.tsx)
 - เพิ่มกลไก Polling ตรวจเช็คสถานะการเปิดใช้ AI **ทุก 30 วินาที** แต่ **เฉพาะ users ที่มี AI permissions** (`ai.suggest` หรือ `ai.rag_query`)
 - หากระบบ AI ปิดตัวลง จะแสดงแถบแจ้งเตือน **Global Banner** ด้านบนสุด (debounce 5 วินาที) และส่งสัญญาณบอกหน้าจอฟอร์มเพื่อ Disable ปุ่ม AI Suggestion
 - **Cache:** React Context + refresh on mount

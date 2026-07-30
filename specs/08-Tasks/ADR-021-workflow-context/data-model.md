@@ -43,7 +43,7 @@ CREATE INDEX idx_att_wfhist_created
 
 **Current state (existing columns):**
 
-```@/e:/np-dms/lcbp3/backend/src/common/file-storage/entities/attachment.entity.ts:43-58```
+```@backend/src/common/file-storage/entities/attachment.entity.ts:43-58```
 
 **Required additions:**
 
@@ -73,7 +73,7 @@ import { WorkflowHistory } from '../../../modules/workflow-engine/entities/workf
 
 **Current state:**
 
-```@/e:/np-dms/lcbp3/backend/src/modules/workflow-engine/entities/workflow-history.entity.ts:18-61```
+```@backend/src/modules/workflow-engine/entities/workflow-history.entity.ts:18-61```
 
 **Required additions:**
 

@@ -14,4 +14,4 @@
 host=mariadb
 port=3306
 user=exporter
-password=CHANGE_ME_EXPORTER_PASSWORD
+password=Center2026

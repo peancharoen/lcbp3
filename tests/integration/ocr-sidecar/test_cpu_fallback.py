@@ -1,6 +1,7 @@
 # File: tests/integration/ocr-sidecar/test_cpu_fallback.py
 # Change Log:
 # - 2026-06-20: Added ADR-040 CPU fallback integration coverage for retrieval endpoints.
+# - 2026-07-30: ADR-040 Phase 2 (T016) — ลบ X-API-Key auth (network isolation แทน).
 
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -26,7 +27,7 @@ def test_embed_uses_cpu_when_vram_headroom_is_low(tmp_path: Path) -> None:
     }
     headroom = MagicMock(total_mb=16384.0, used_mb=15000.0, available_mb=1000.0, query_success=True)
     with patch.object(app_module, "bge_model", bge_model), patch.object(app_module, "get_vram_headroom", return_value=headroom):
-        response = client.post("/embed", json={"text": "hello"}, headers={"X-API-Key": "test-key"})
+        response = client.post("/embed", json={"text": "hello"})
     assert response.status_code == 200
     assert response.json()["device"] == "cpu"
     bge_model.model.to.assert_called_with("cpu")
@@ -42,7 +43,6 @@ def test_rerank_uses_cpu_when_vram_headroom_is_low(tmp_path: Path) -> None:
         response = client.post(
             "/rerank",
             json={"query": "q", "chunks": ["chunk"]},
-            headers={"X-API-Key": "test-key"},
         )
     assert response.status_code == 200
     assert response.json()["device"] == "cpu"

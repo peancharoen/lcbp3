@@ -1,14 +1,30 @@
 # ADR-035: AI Pipeline Flow Architecture
 
-**Status:** Accepted
+**Status:** Accepted (partially amended by ADR-040 — see note below)
 **Date:** 2026-06-05
 **Decision Makers:** Development Team, AI Integration Lead
 **Supersedes:** ADR-034 Section 2 (Implementation Details — Model Switching Logic)
+**Amended by:** [ADR-040: OCR Sidecar Refactor](./ADR-040-ocr-sidecar-refactor.md) (2026-06-20) — sections: OCR engine routing, `/normalize` endpoint, model identity
 **Related Documents:**
 - [ADR-023A: Unified AI Architecture — Model Revision](./ADR-023A-unified-ai-architecture.md)
 - [ADR-030: Context-Aware Prompt Templates](./ADR-030-context-aware-prompt-templates.md)
 - [ADR-033: Active Model & OCR Management](./ADR-033-active-model-and-ocr-management.md)
 - [ADR-034: AI Model Change — Thai-Optimized Stack](./ADR-034-AI-model-change.md)
+- [ADR-040: OCR Sidecar Refactor](./ADR-040-ocr-sidecar-refactor.md) ← amends this ADR's OCR sidecar contract
+
+---
+
+> **⚠️ Amendment note (2026-07-30):** ส่วนที่เกี่ยวกับ OCR sidecar contract ใน ADR นี้ถูกแก้โดย ADR-040 ดังนี้:
+>
+> | หัวข้อใน ADR-035 | ADR-035 (ล้าสมัย) | ADR-040 (ใช้แทน) |
+> |---|---|---|
+> | OCR engine routing | PRIMARY `typhoon-np-dms-ocr` + FALLBACK Tesseract | engine เดียว `np-dms-ocr` (ไม่มี Tesseract) |
+> | `/normalize` endpoint | มี (PyThaiNLP normalize ในแต่ละ chunk) | ลบออกจาก sidecar (D2) — ไม่มี consumer |
+> | Model identity | `typhoon-np-dms-ocr:latest` | `np-dms-ocr:latest` (canonical key ตาม ADR-036) |
+> | PyMuPDF Fast-Path | "ยกเลิกแล้ว" | "คงไว้ใน sidecar" (เป็น dead branch สำหรับ PDF scan ใน corpus จริง) |
+>
+> ส่วนอื่นของ ADR-035 (4 Flows, BullMQ job type mapping, Qdrant payload) ยังคงเป็นที่ใช้
+> สำหรับ flow walkthrough แบบอ่านง่าย ดูที่ [02.5 AI Document Ingestion Flow](../02-architecture/02-05-ai-document-ingestion-flow.md)
 
 ---
 

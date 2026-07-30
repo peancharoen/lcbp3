@@ -25,6 +25,8 @@ import {
   ArrowRight,
   Loader2,
   CheckCircle,
+  Trash2,
+  FlaskConical,
 } from 'lucide-react';
 
 interface SandboxTabsProps {
@@ -89,6 +91,14 @@ export default function SandboxTabs({
   const [step2Complete, setStep2Complete] = useState<boolean>(false);
   const [step3Complete, setStep3Complete] = useState<boolean>(false);
   const allStepsComplete = step1Complete && step2Complete && step3Complete;
+
+  // ADR-042: Full Pipeline + Clear Sandbox Data state
+  const [activeTab, setActiveTab] = useState<'pipeline-sandbox' | 'full-pipeline'>('pipeline-sandbox');
+  const [clearingData, setClearingData] = useState<boolean>(false);
+  const [clearResult, setClearResult] = useState<{
+    deletedCorrespondenceCount: number;
+    vectorDeletionJobsEnqueued: number;
+  } | null>(null);
 
   // Load active prompt templates from service (FR-009, FR-010)
   const [activeOcrSystemTemplate, setActiveOcrSystemTemplate] = useState<string>('');
@@ -254,16 +264,64 @@ export default function SandboxTabs({
     }
   };
 
+  // ADR-042: Clear Sandbox Data — ลบข้อมูลทดสอบทั้งหมดใน Sandbox Project
+  const handleClearSandboxData = async () => {
+    setClearingData(true);
+    setClearResult(null);
+    try {
+      const result = await adminAiService.clearSandboxData();
+      setClearResult(result);
+      toast.success(
+        `ลบข้อมูลทดสอบสำเร็จ: ${result.deletedCorrespondenceCount} เอกสาร, ${result.vectorDeletionJobsEnqueued} vector deletion jobs`
+      );
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`ลบข้อมูลทดสอบล้มเหลว: ${msg}`);
+    } finally {
+      setClearingData(false);
+    }
+  };
+
   return (
+    <div className="space-y-4">
     <Card className="border border-border/50 bg-background/30 backdrop-blur-md transition-all duration-300 hover:shadow-md">
       <CardHeader className="pb-3 border-b border-border/10">
-        <CardTitle className="flex items-center gap-2 text-sm font-semibold tracking-wide text-foreground">
-          <Play className="h-4 w-4 text-primary" />
-          รันบอร์ดทดลองการทำงาน (3-Step Sandbox Testing)
-        </CardTitle>
-        <CardDescription className="text-xs">
-          ทดสอบความถูกต้องของเวอร์ชันพรอมต์จำลองกระบวนการจริง (OCR → AI Extract → RAG Prep)
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold tracking-wide text-foreground">
+              <Play className="h-4 w-4 text-primary" />
+              {activeTab === 'pipeline-sandbox'
+                ? 'รันบอร์ดทดลองการทำงาน (3-Step Sandbox Testing)'
+                : 'Full Pipeline Testing (ADR-042)'}
+            </CardTitle>
+            <CardDescription className="text-xs">
+              {activeTab === 'pipeline-sandbox'
+                ? 'ทดสอบความถูกต้องของเวอร์ชันพรอมต์จำลองกระบวนการจริง (OCR → AI Extract → RAG Prep)'
+                : 'ทดสอบ Production Flow แบบ end-to-end ผ่าน Sandbox Project (upload → create → submit → OCR → embedding)'}
+            </CardDescription>
+          </div>
+          {/* Tab Switcher */}
+          <div className="flex gap-1 rounded-lg border border-border/50 p-0.5 bg-background/50">
+            <Button
+              size="sm"
+              variant={activeTab === 'pipeline-sandbox' ? 'default' : 'ghost'}
+              className="h-7 text-[11px] px-3"
+              onClick={() => setActiveTab('pipeline-sandbox')}
+            >
+              <Play className="h-3 w-3 mr-1" />
+              Pipeline Sandbox
+            </Button>
+            <Button
+              size="sm"
+              variant={activeTab === 'full-pipeline' ? 'default' : 'ghost'}
+              className="h-7 text-[11px] px-3"
+              onClick={() => setActiveTab('full-pipeline')}
+            >
+              <FlaskConical className="h-3 w-3 mr-1" />
+              Full Pipeline
+            </Button>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="pt-5 space-y-6">
         {/* Prompt info banner — read-only, แสดง version + template snippet ที่กำลังทดสอบ (FR-009, FR-010) */}
@@ -587,5 +645,72 @@ export default function SandboxTabs({
         </div>
       </CardContent>
     </Card>
+
+    {/* ADR-042: Full Pipeline Tab — Clear Sandbox Data */}
+    {activeTab === 'full-pipeline' && (
+      <Card className="border border-border/50 bg-background/30 backdrop-blur-md">
+        <CardHeader className="pb-3 border-b border-border/10">
+          <CardTitle className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <FlaskConical className="h-4 w-4 text-primary" />
+            Full Pipeline Testing — Sandbox Project (ADR-042)
+          </CardTitle>
+          <CardDescription className="text-xs">
+            ทดสอบ Production Flow แบบ end-to-end ผ่าน Sandbox Project ที่แยกจากข้อมูลจริง
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pt-5 space-y-4">
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/[0.05] px-4 py-3">
+            <p className="text-xs text-muted-foreground">
+              เพื่อทดสอบ Full Pipeline ให้ใช้ Sandbox Project (project_code: SANDBOX) ในการสร้าง Correspondence
+              ผ่าน code path เดียวกับ production แล้วตรวจสอบผลลัพธ์ OCR text และ embedding status
+            </p>
+          </div>
+
+          {/* Clear Sandbox Data Section */}
+          <div className="rounded-lg border border-destructive/30 bg-destructive/[0.03] px-4 py-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Trash2 className="h-4 w-4 text-destructive" />
+                <span className="text-sm font-semibold text-foreground">
+                  Clear Sandbox Data
+                </span>
+              </div>
+              <Button
+                size="sm"
+                variant="destructive"
+                className="h-8 text-xs"
+                onClick={handleClearSandboxData}
+                disabled={clearingData}
+              >
+                {clearingData ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                    กำลังลบ...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                    ลบข้อมูลทดสอบทั้งหมด
+                  </>
+                )}
+              </Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              ลบ Correspondence, Revision, Attachment, Workflow และ Vector ทั้งหมดใน Sandbox Project — ไม่กระทบข้อมูลโครงการจริง
+            </p>
+            {clearResult && (
+              <div className="rounded border border-emerald-500/30 bg-emerald-500/[0.05] px-3 py-2 text-xs">
+                <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                  ลบสำเร็จ:
+                </span>
+                {' '}ลบ {clearResult.deletedCorrespondenceCount} เอกสาร,
+                {' '}enqueue {clearResult.vectorDeletionJobsEnqueued} vector deletion jobs
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    )}
+    </div>
   );
 }

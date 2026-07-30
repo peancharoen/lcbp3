@@ -1,6 +1,7 @@
 # File: tests/integration/ocr-sidecar/test_active_prompt.py
 # Change Log:
 # - 2026-06-20: Initial creation for US3 active prompt integration tests.
+# - 2026-07-30: ADR-040 Phase 2 (T016) — ลบ X-API-Key auth (network isolation แทน).
 
 import sys
 from pathlib import Path
@@ -76,7 +77,6 @@ def test_ocr_injects_system_prompt_and_dms_tags(tmp_path: Path) -> None:
                     "max_tokens": 4096
                 }
             },
-            headers={"X-API-Key": "test-key"}
         )
 
     assert response.status_code == 200

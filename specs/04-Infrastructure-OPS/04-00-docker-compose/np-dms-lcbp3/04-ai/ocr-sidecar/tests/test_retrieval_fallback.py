@@ -1,6 +1,7 @@
-# File: specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/tests/test_retrieval_fallback.py
+# File: specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/tests/test_retrieval_fallback.py
 # Change Log:
 # - 2026-06-11: Initial integration tests for retrieval fallback using pytest
+# - 2026-07-30: ADR-040 Phase 2 (T016) — ลบ X-API-Key auth (network isolation แทน)
 
 import pytest
 from unittest.mock import patch, MagicMock
@@ -9,14 +10,12 @@ import os
 import asyncio
 
 # Setup env variables before importing app
-os.environ["OCR_SIDECAR_API_KEY"] = "test-key"
 os.environ["VRAM_HEADROOM_THRESHOLD_MB"] = "3000.0"
 os.environ["RETRIEVAL_TIMEOUT_SECONDS"] = "2.0"
 
-from app import app, EmbedRequest, RerankRequest, get_api_key
+from app import app, EmbedRequest, RerankRequest
 
 client = TestClient(app)
-API_HEADERS = {"X-API-Key": "test-key"}
 
 @pytest.fixture
 def mock_bge_model():
@@ -39,7 +38,7 @@ def test_embed_gpu_when_headroom_sufficient(mock_bge_model):
     vram_mock = MagicMock(total_mb=16384.0, used_mb=2000.0, available_mb=14384.0, query_success=True)
     with patch("app.get_vram_headroom", return_value=vram_mock), \
          patch("torch.cuda.is_available", return_value=True):
-        response = client.post("/embed", json={"text": "hello test"}, headers=API_HEADERS)
+        response = client.post("/embed", json={"text": "hello test"})
         assert response.status_code == 200
         data = response.json()
         assert data["device"] == "cuda"
@@ -48,7 +47,7 @@ def test_embed_gpu_when_headroom_sufficient(mock_bge_model):
 def test_embed_cpu_when_headroom_insufficient(mock_bge_model):
     vram_mock = MagicMock(total_mb=16384.0, used_mb=14000.0, available_mb=2384.0, query_success=True)
     with patch("app.get_vram_headroom", return_value=vram_mock):
-        response = client.post("/embed", json={"text": "hello test"}, headers=API_HEADERS)
+        response = client.post("/embed", json={"text": "hello test"})
         assert response.status_code == 200
         data = response.json()
         assert data["device"] == "cpu"
@@ -57,7 +56,7 @@ def test_embed_cpu_when_headroom_insufficient(mock_bge_model):
 def test_embed_cpu_when_gpu_query_failed(mock_bge_model):
     vram_mock = MagicMock(total_mb=16384.0, used_mb=16384.0, available_mb=0.0, query_success=False)
     with patch("app.get_vram_headroom", return_value=vram_mock):
-        response = client.post("/embed", json={"text": "hello test"}, headers=API_HEADERS)
+        response = client.post("/embed", json={"text": "hello test"})
         assert response.status_code == 200
         data = response.json()
         assert data["device"] == "cpu"
@@ -72,14 +71,14 @@ def test_embed_timeout_returns_504(mock_bge_model):
         return {"dense_vecs": [[0.1]], "lexical_weights": [{"1": 0.1}]}
     mock_bge_model.encode.side_effect = slow_encode
     with patch("app.get_vram_headroom", return_value=vram_mock):
-        response = client.post("/embed", json={"text": "hello test"}, headers=API_HEADERS)
+        response = client.post("/embed", json={"text": "hello test"})
         assert response.status_code == 504
 
 def test_rerank_gpu_when_headroom_sufficient(mock_reranker):
     vram_mock = MagicMock(total_mb=16384.0, used_mb=2000.0, available_mb=14384.0, query_success=True)
     with patch("app.get_vram_headroom", return_value=vram_mock), \
          patch("torch.cuda.is_available", return_value=True):
-        response = client.post("/rerank", json={"query": "test query", "chunks": ["chunk1"]}, headers=API_HEADERS)
+        response = client.post("/rerank", json={"query": "test query", "chunks": ["chunk1"]})
         assert response.status_code == 200
         data = response.json()
         assert data["device"] == "cuda"
@@ -88,7 +87,7 @@ def test_rerank_gpu_when_headroom_sufficient(mock_reranker):
 def test_rerank_cpu_when_headroom_insufficient(mock_reranker):
     vram_mock = MagicMock(total_mb=16384.0, used_mb=14000.0, available_mb=2384.0, query_success=True)
     with patch("app.get_vram_headroom", return_value=vram_mock):
-        response = client.post("/rerank", json={"query": "test query", "chunks": ["chunk1"]}, headers=API_HEADERS)
+        response = client.post("/rerank", json={"query": "test query", "chunks": ["chunk1"]})
         assert response.status_code == 200
         data = response.json()
         assert data["device"] == "cpu"

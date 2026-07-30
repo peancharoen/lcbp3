@@ -47,6 +47,7 @@ import { MigrationService } from '../../migration/migration.service';
 import { MigrationErrorType } from '../../migration/entities/migration-error.entity';
 import { AiPromptsService } from '../prompts/ai-prompts.service';
 import { AiPolicyService } from '../services/ai-policy.service';
+import { AiQueueService } from '../ai-queue.service';
 import type { ExecutionProfile } from '../interfaces/execution-policy.interface';
 
 interface MigrateDocumentMetadata extends Record<string, unknown> {
@@ -223,6 +224,7 @@ export class AiBatchProcessor extends WorkerHost {
     private readonly migrationService: MigrationService,
     private readonly aiPromptsService: AiPromptsService,
     private readonly aiPolicyService: AiPolicyService,
+    private readonly aiQueueService: AiQueueService,
     @InjectRedis() private readonly redis: Redis
   ) {
     super();
@@ -977,6 +979,8 @@ export class AiBatchProcessor extends WorkerHost {
     const documentDate = (payload.documentDate as string) || undefined;
     let cachedOcrText = (payload.cachedOcrText as string) || undefined;
     const attachmentPath = (payload.attachmentPath as string) || undefined;
+    const attachmentPublicId =
+      (payload.attachmentPublicId as string) || undefined;
     this.logger.log(
       `processRagPrepare: starting for doc=${documentPublicId}, project=${projectPublicId}`
     );
@@ -1008,21 +1012,40 @@ export class AiBatchProcessor extends WorkerHost {
       );
       return;
     }
+    // ADR-042: Persist OCR text ก่อนเสมอก่อน enqueue embedding job
+    if (attachmentPublicId) {
+      try {
+        await this.attachmentRepo.update(
+          { publicId: attachmentPublicId },
+          { ocrText: cachedOcrText }
+        );
+        this.logger.log(
+          `processRagPrepare: persisted ocr_text for attachment ${attachmentPublicId}`
+        );
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        this.logger.error(
+          `processRagPrepare: failed to persist ocr_text for attachment ${attachmentPublicId}: ${msg}`
+        );
+      }
+    }
+    // ADR-042: Enqueue embed-document job แยกจาก rag-prepare เพื่อให้ retry ไม่ต้องรัน OCR ซ้ำ
     try {
       this.logger.log(
-        `processRagPrepare: chunking and embedding document ${documentPublicId}...`
+        `processRagPrepare: enqueuing embed-document for doc ${documentPublicId}...`
       );
-      const result = await this.embeddingService.embedDocument(
-        projectPublicId,
+      await this.aiQueueService.enqueueEmbedDocument({
         documentPublicId,
+        projectPublicId,
         correspondenceNumber,
         docType,
         statusCode,
         revisionNumber,
         subject,
         documentDate,
-        cachedOcrText
-      );
+        extractedText: cachedOcrText,
+        pdfPath: attachmentPath,
+      });
       const durationMs = Date.now() - startTime;
       await this.saveAiAuditLog({
         documentPublicId,
@@ -1033,15 +1056,14 @@ export class AiBatchProcessor extends WorkerHost {
         canonicalModel: data.canonicalModel,
         snapshotParamsJson: {
           ...(data.snapshotParams ?? {}),
-          retrievalDevice: result.device,
         },
       });
       this.logger.log(
-        `processRagPrepare: successfully processed document ${documentPublicId}`
+        `processRagPrepare: successfully persisted OCR text and enqueued embed-document for ${documentPublicId}`
       );
     } catch (err) {
       this.logger.error(
-        `processRagPrepare: embedding pipeline failed: ${err instanceof Error ? err.message : String(err)}`
+        `processRagPrepare: failed to enqueue embed-document: ${err instanceof Error ? err.message : String(err)}`
       );
       throw err;
     }

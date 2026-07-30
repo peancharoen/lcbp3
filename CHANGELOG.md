@@ -1,5 +1,73 @@
 # Version History
 
+## 1.9.13 (2026-07-30)
+
+### fix(ai): ADR-040 Phase 2 — Remove X-API-Key Auth (Network Isolation)
+
+#### Summary
+
+ลบ `X-API-Key` authentication ออกจาก OCR sidecar และ backend ทั้งหมด เปลี่ยนเป็น Docker-internal network isolation ตาม ADR-040 D6 Phase 2 (ADR-041 consolidation complete)
+
+#### Changes
+
+- **Sidecar `app.py`** — ลบ `get_api_key()`, `APIKeyHeader`, `Security`/`Depends` imports, `OCR_SIDECAR_API_KEY` env var check, `Depends(get_api_key)` จาก 4 endpoints
+- **`OcrService`** — ลบ `ocrSidecarApiKey` field + env var validation + 5 `X-API-Key` headers (health, 2x ocr-upload, embed, rerank)
+- **`SandboxOcrEngineService`** — ลบ `ocrSidecarApiKey` field + env var validation + 1 `X-API-Key` header
+- **Config cleanup** — ลบ `OCR_SIDECAR_API_KEY` จาก docker-compose (sidecar + backend), `.env.template`, `.env.example`, `MIGRATION-PLAN.md`, `backend/.env.example`
+- **Tests** — ลบ `test_api_key_validation.py`; อัปเดต 8 test files (ลบ headers + env setup); แก้ 2 pre-existing engineUsed assertions
+- **Docs** — อัปเดต curl testing guide (ลบ X-API-Key จากทุก examples), sidecar README, ADR-040 (Phase 2 Done), ADR-041 (T016 Done), ADR-033 (§7 supersede complete), ADR README
+- **Pre-existing fixes** — แก้ `ai-batch.processor.ts:1711` syntax corruption (`} }` ซ้ำ), แก้ `ocr.service.ts:545` axios.post embed call ที่ถูกทำลาย
+
+#### Verification
+
+- `tsc --noEmit` — clean (0 errors)
+- 4 OCR test suites / 34 tests — ผ่าน
+- 2 pre-existing failures (transform.interceptor, correspondence.service) — unrelated
+
+---
+
+## 1.9.12 (2026-07-30)
+
+### docs(ai): Reconcile AI Document Ingestion Flow with Actual Code + ADR-035/040 Amendment
+
+#### Summary
+
+นำเข้า `docs/AI-step.md` → `specs/02-Architecture/02-05-ai-document-ingestion-flow.md` พร้อม reconcile กับโค้ดจริง และปิด drift ระหว่าง ADR-035 กับ ADR-040 อย่างเป็นทางการ
+
+#### Changes
+
+- **New: `02-05-ai-document-ingestion-flow.md`** — ย้ายเอกสาร AI ingestion flow จาก `docs/AI-step.md` เข้า `specs/02-Architecture/` พร้อม reconcile กับโค้ดจริง: engine เดียว `np-dms-ocr` (ไม่มี Tesseract), ลบ `/normalize` endpoint, PyMuPDF `auto` branch เป็น dead code สำหรับ PDF scan, BGE-M3 + BGE-Reranker ยืนยันมีใน sidecar จริง
+- **ADR-035 amendment note** — เพิ่ม `Amended by: ADR-040` ใน header + amendment note block (4-row table) เปรียบเทียบสิ่งที่ drift กับสิ่งที่ใช้แทน (Tesseract, `/normalize`, model identity, PyMuPDF)
+- **ADR-040 fixes** — เพิ่ม `Amends: ADR-035` ใน header, แก้ dead link (`ADR-035-ai-pipeline-ocr-integration.md` → `ADR-035-ai-pipeline-flow-architecture.md`), อัปเดต T010 status `Pending` → `Done (2026-06-20, sidecar change log)`
+- **ADR Index updated** — `specs/06-Decision-Records/README.md` เพิ่ม ADR-036/037/040/041/042 ใน index table, mark ADR-035 status เป็น `⚠️ Accepted (amended by ADR-040)`
+- **Root docs synced** — ARCHITECTURE.md (v1.9.12, Section 5 + 7), AGENTS.md (v1.9.13, Tier 3 AI section), CONTRIBUTING.md (02-Architecture listing), README.md (version + ADR count)
+- **Source of Truth hierarchy clarified** — ADR-040 = OCR sidecar contract SoT, ADR-042 = OCR persistence + Sandbox Project SoT, ADR-035 = partially amended (4 Flows + Qdrant payload ยังใช้ได้)
+
+---
+
+## 1.9.11 (2026-07-23)
+
+### feat(infra): Server Consolidation + Cloudflare Tunnel Edge + Thai AI Model Stack (ADR-034/035/040/041)
+
+#### Summary
+
+ย้ายระบบทั้งหมดจาก QNAP + Desk-5439 มารวมบนเซิร์ฟเวอร์เดียว np-dms-lcbp3 (192.168.10.11) ตาม ADR-041 พร้อมเปลี่ยน Edge เป็น Cloudflare Tunnel (D5 Revised) และติดตั้งระบบ NUT/UPS สำหรับ graceful shutdown
+
+#### Changes
+
+- **ADR-034 AI Model Change**: เปลี่ยนโมเดล AI เป็น Thai-Optimized Stack — `np-dms-ai` (Typhoon 2.5 Qwen3 4B) + `np-dms-ocr` (Typhoon OCR 1.5 3B); supersedes ADR-023A Section 2.1
+- **ADR-035 AI Pipeline Flow Architecture**: กำหนด 4-flow pipeline (Sandbox, n8n Migration, User Upload, RAG); BGE-M3 + BGE-Reranker-Large แทนที่ nomic-embed-text; ยกเลิก PyMuPDF fast-path
+- **ADR-040 OCR Sidecar Refactor**: ปรับ Sidecar เป็น pure compute worker; ยกเลิก X-API-Key auth เปลี่ยนเป็น Docker-internal network isolation (post-ADR-041); path traversal hardening; adaptive residency/CPU fallback preserved
+- **ADR-041 Server Consolidation**: ย้าย services ทั้งหมด (Backend, Frontend, MariaDB, Redis, ES, Qdrant, n8n, Gitea, ClamAV, OCR Sidecar) ไปรวมบน np-dms-lcbp3 (Ryzen 5 5600, 32GB RAM, RTX 5060 Ti 16GB); Ollama รันเป็น native systemd service (ไม่ใช่ Docker); QNAP ลดบทบาทเป็น HA standby + NPM internal router; ASUSTOR เป็น Primary NAS (CIFS mount)
+- **Cloudflare Tunnel Integration (D5 Revised)**: ติดตั้ง cloudflared (systemd) เป็น internet-facing edge เดียว — ปิด public ports 80/443/8443 บน router; กำหนด ingress rules สำหรับ lcbp3.np-dms.work, backend.np-dms.work, n8n.np-dms.work, git.np-dms.work; Cloudflare Access policy ป้องกัน QNAP admin panel; HA standby cloudflared บน QNAP
+- **NUT/UPS Integration**: ติดตั้ง Network UPS Tools สำหรับ CyberPower UT2200EG — เมื่อแบตเหลือ < 20% ระบบจะ graceful stop Docker stack ทั้ง 4 layers (04-ai → 03-application → 02-platform → 01-infrastructure) ก่อน system shutdown อัตโนมัติ
+- **Docker Compose 4-Layer Stack**: 01-infrastructure (MariaDB, Redis, ES, Qdrant, ClamAV) → 02-platform (n8n, Gitea) → 03-application (Backend, Frontend) → 04-ai (OCR Sidecar); Ollama รันนอก Docker เป็น systemd service
+- **Post-Migration Verification**: DB restored (lcbp3, gitea, npm databases), all services healthy, functional tests passed (login, OCR, Git SSH port 2222)
+- **Root Docs Updated**: ARCHITECTURE.md (v1.9.11), README.md (v1.9.11), AGENTS.md (v1.9.10), CONTEXT.md (post-migration), MIGRATION-PLAN.md (all phases [X] complete)
+- **Total: 41 ADRs** ครอบคลุมทุก Architectural Decision (ADR-001~ADR-041)
+
+---
+
 ## 1.9.10 (2026-06-08)
 
 ### bugfix(ai): Fix LLM JSON Response Truncation in OCR Sandbox & Migration

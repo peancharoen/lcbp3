@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { BusinessException } from '../../common/exceptions';
 
 // Entities
 import { Project } from './entities/project.entity';
@@ -50,6 +51,9 @@ export class ProjectService {
 
     // สร้าง Query Builder
     const query = this.projectRepository.createQueryBuilder('project');
+
+    // ADR-042: กรอง Sandbox Project ออกเสมอ — ไม่รับ override จาก query param
+    query.andWhere('project.isSandbox = :isSandbox', { isSandbox: false });
 
     if (isActive !== undefined) {
       query.andWhere('project.isActive = :isActive', { isActive });
@@ -108,6 +112,15 @@ export class ProjectService {
 
   async update(publicId: string, updateDto: UpdateProjectDto) {
     const project = await this.findOneByUuid(publicId);
+
+    // ADR-042: ป้องกันการเปลี่ยน is_active ของ Sandbox Project
+    if (project.isSandbox && updateDto.isActive !== undefined) {
+      throw new BusinessException(
+        'SANDBOX_PROJECT_LOCKED',
+        'Cannot change is_active of sandbox project',
+        'ไม่สามารถเปลี่ยนสถานะของโครงการทดสอบได้'
+      );
+    }
 
     // Merge ข้อมูลใหม่ใส่ข้อมูลเดิม
     this.projectRepository.merge(project, updateDto);

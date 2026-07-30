@@ -2,7 +2,7 @@
 
 จากการตรวจสอบ spec มี test strategy ที่รองรับ Playwright:
 
-### 1. **Test Strategy** (จาก [05-04-testing-strategy.md](cci:7://file:///e:/np-dms/lcbp3/specs/05-Engineering-Guidelines/05-04-testing-strategy.md:0:0-0:0))
+### 1. **Test Strategy** (จาก [05-04-testing-strategy.md](cci:7://specs/05-Engineering-Guidelines/05-04-testing-strategy.md:0:0-0:0))
 
 **Stack**:
 - **Backend**: Jest (Unit + Integration + E2E)
@@ -20,7 +20,7 @@ npx playwright install
 
 ### 3. **MCP Server สำหรับ Devin**
 
-เพิ่มใน [.windsurfrc](cci:7://file:///e:/np-dms/lcbp3/.windsurfrc:0:0-0:0):
+เพิ่มใน [.windsurfrc](cci:7://.windsurfrc:0:0-0:0):
 
 ```json
 {

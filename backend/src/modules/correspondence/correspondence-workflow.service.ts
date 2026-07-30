@@ -256,6 +256,7 @@ export class CorrespondenceWorkflowService {
       }
       const docType = correspondence.type?.typeCode || 'LETTER';
       let attachmentPath: string | undefined;
+      let attachmentPublicId: string | undefined;
       const attachments = await this.revisionRepo.manager.find(
         CorrespondenceRevisionAttachment,
         { where: { correspondenceRevisionId: revision.id } }
@@ -272,8 +273,10 @@ export class CorrespondenceWorkflowService {
         });
         if (pdfAtt && pdfAtt.attachment) {
           attachmentPath = pdfAtt.attachment.filePath;
+          attachmentPublicId = pdfAtt.attachment.publicId;
         } else if (attachments[0].attachment) {
           attachmentPath = attachments[0].attachment.filePath;
+          attachmentPublicId = attachments[0].attachment.publicId;
         }
       }
       await this.aiQueueService.enqueueRagPrepare({
@@ -288,6 +291,7 @@ export class CorrespondenceWorkflowService {
           ? revision.documentDate.toISOString().split('T')[0]
           : undefined,
         attachmentPath: attachmentPath,
+        attachmentPublicId: attachmentPublicId,
       });
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);

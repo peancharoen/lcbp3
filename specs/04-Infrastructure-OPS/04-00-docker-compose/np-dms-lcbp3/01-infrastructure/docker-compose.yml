@@ -14,7 +14,6 @@
 #   - Elasticsearch: bind 192.168.10.11:9200 (Uptime Kuma @ ASUSTOR 192.168.10.9)
 #   - Qdrant: bind 192.168.10.11:6333 (Uptime Kuma @ ASUSTOR 192.168.10.9; gRPC 6334 internal only)
 #   - PMA: expose 192.168.10.11:8080 → NPM proxy (pma.np-dms.work)
-#   - Portainer: expose 192.168.10.11:9443 → NPM proxy (portainer.np-dms.work)
 #   - node-exporter: bind 192.168.10.11:9100 (Prometheus scrape from ASUSTOR)
 #   - cadvisor: bind 192.168.10.11:8088 (Prometheus scrape from ASUSTOR)
 #   - mariadb-exporter: bind 192.168.10.11:9104 (Prometheus scrape from ASUSTOR)
@@ -238,36 +237,7 @@ services:
       start_period: 40s
 
   # ----------------------------------------------------------------
-  # 6. Portainer — Docker Management UI
-  # Expose: 192.168.10.11:9443 → NPM proxy (portainer.np-dms.work)
-  # ต้อง mount docker.sock เพื่อจัดการ containers ทุกตัว
-  # ----------------------------------------------------------------
-  portainer:
-    <<: [*restart_policy, *default_logging]
-    image: portainer/portainer-ce:latest
-    container_name: portainer
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 256M
-        reservations:
-          cpus: '0.1'
-          memory: 64M
-    environment:
-      TZ: 'Asia/Bangkok'
-    ports:
-      - '192.168.10.11:9443:9443'
-    networks:
-      - lcbp3
-    volumes:
-      - '/var/run/docker.sock:/var/run/docker.sock'
-      - 'portainer_data:/data'
-    healthcheck:
-      disable: true
-
-  # ----------------------------------------------------------------
-  # 7. Node Exporter — Host Metrics (Prometheus scrape target)
+  # 6. Node Exporter — Host Metrics (Prometheus scrape target)
   # Bind: 192.168.10.11:9100 — Prometheus (ASUSTOR 192.168.10.9) scrape
   # Metrics: CPU, memory, disk, network, filesystem usage
   # ----------------------------------------------------------------
@@ -304,7 +274,7 @@ services:
       retries: 3
 
   # ----------------------------------------------------------------
-  # 8. cAdvisor — Container Metrics (Prometheus scrape target)
+  # 7. cAdvisor — Container Metrics (Prometheus scrape target)
   # Bind: 192.168.10.11:8088 → container 8080
   # Metrics: per-container CPU, memory, network, filesystem
   # ----------------------------------------------------------------
@@ -338,7 +308,7 @@ services:
       retries: 3
 
   # ----------------------------------------------------------------
-  # 9. MariaDB Exporter — Database Metrics (Prometheus scrape target)
+  # 8. MariaDB Exporter — Database Metrics (Prometheus scrape target)
   # Bind: 192.168.10.11:9104 — Prometheus (ASUSTOR 192.168.10.9) scrape
   # Metrics: MariaDB performance, connections, queries, buffer pool
   # ----------------------------------------------------------------
@@ -375,7 +345,3 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-
-volumes:
-  portainer_data:
-    driver: local

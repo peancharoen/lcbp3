@@ -32,6 +32,10 @@ export class Project extends UuidBaseEntity {
   @Column({ name: 'is_active', default: 1, type: 'tinyint' })
   isActive!: boolean;
 
+  // ADR-042: Flag ระบุว่าเป็นโครงการทดสอบ — กรองออกจากรายการโครงการปกติเสมอ
+  @Column({ name: 'is_sandbox', default: 0, type: 'tinyint' })
+  isSandbox!: boolean;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 

@@ -2,18 +2,23 @@
 <!-- Change Log
 - 2026-06-02: Created initial ADR-033 documenting decisions for Synchronous LLM model pre-loading, active OCR engine REST endpoints, resilient VRAM monitor fallback, and dynamic Typhoon model mapping.
 - 2026-06-02: Updated ADR-033 with active model unloading strategy (GPU VRAM releasing) and security validation (X-API-Key) for the OCR sidecar endpoints.
+- 2026-07-30: Added Superseded by ADR-040 note for §7 (X-API-Key sidecar auth).
 -->
 
 # ADR-033: Active Model and OCR Runner Management Architecture
 
-**Status:** Active  
-**Date:** 2026-06-02  
-**Decision Makers:** Development Team, AI Architect, Tech Lead  
-**Related Documents:**  
-- [ADR-023A: Unified AI Architecture — Model Revision](./ADR-023A-unified-ai-architecture.md)  
-- [ADR-027: AI Admin Console and Dynamic Control](./ADR-027-ai-admin-console-and-dynamic-control.md)  
-- [ADR-032: Typhoon OCR Integration](./ADR-032-typhoon-ocr-integration.md)  
-- [Feature Specification (spec.md)](../200-fullstacks/233-ai-model-ocr-runner-management/spec.md)  
+**Status:** Active (§7 superseded by ADR-040 — see note below)
+**Date:** 2026-06-02
+**Decision Makers:** Development Team, AI Architect, Tech Lead
+**Superseded by:** [ADR-040: OCR Sidecar Refactor](./ADR-040-ocr-sidecar-refactor.md) (2026-06-20) — §7 (X-API-Key sidecar auth) superseded by network isolation; Phase 2 removal pending
+**Related Documents:**
+- [ADR-023A: Unified AI Architecture — Model Revision](./ADR-023A-unified-ai-architecture.md)
+- [ADR-027: AI Admin Console and Dynamic Control](./ADR-027-ai-admin-console-and-dynamic-control.md)
+- [ADR-032: Typhoon OCR Integration](./ADR-032-typhoon-ocr-integration.md)
+- [ADR-040: OCR Sidecar Refactor](./ADR-040-ocr-sidecar-refactor.md) ← supersedes §7
+- [Feature Specification (spec.md)](../200-fullstacks/233-ai-model-ocr-runner-management/spec.md)
+
+> **⚠️ Supersede note (2026-07-30):** §7 (X-API-Key Security Headers Check) ถูก supersede โดย ADR-040 D6 — เปลี่ยนจาก `X-API-Key` validation เป็น network isolation (Docker-internal bridge, ADR-041 consolidation complete) ✅ Phase 2 removal ได้ทำเสร็จแล้ว (2026-07-30) — X-API-Key ถูกลบจาก sidecar + backend ทั้งหมด (ADR-040 T016–T018 Done)
 
 ---
 

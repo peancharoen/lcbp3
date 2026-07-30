@@ -2,7 +2,7 @@
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-05-27
-**Feature**: [spec.md](file:///e:/np-dms/lcbp3/specs/200-fullstacks/230-context-aware-prompt-templates/spec.md)
+**Feature**: [spec.md](specs/200-fullstacks/230-context-aware-prompt-templates/spec.md)
 
 ## Content Quality
 

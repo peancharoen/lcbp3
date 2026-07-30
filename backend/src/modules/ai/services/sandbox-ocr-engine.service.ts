@@ -7,6 +7,9 @@
 // - 2026-06-04: เพิ่ม OcrNpDmsOptions interface; รับ temperature/topP/repeatPenalty จาก frontend sandbox เพื่อ override Modelfile defaults
 // - 2026-06-13: ADR-036 — เปลี่ยน canonical SandboxOcrEngineType เป็น np-dms-ocr
 // - 2026-06-17: เพิ่ม AiPromptsService injection และส่ง systemPrompt form field จาก active ocr_system prompt (T028)
+// - 2026-07-30: ADR-040 Phase 2 (T018) — ลบ X-API-Key send-side (network isolation แทน, ADR-041 complete)
+//   - ลบ ocrSidecarApiKey field + env var validation
+//   - ลบ headers: { 'X-API-Key': ... } จาก axios call
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -46,7 +49,6 @@ export interface SandboxOcrResult {
 export class SandboxOcrEngineService {
   private readonly logger = new Logger(SandboxOcrEngineService.name);
   private readonly ocrApiUrl: string;
-  private readonly ocrSidecarApiKey: string;
   constructor(
     private readonly configService: ConfigService,
     private readonly ocrService: OcrService,
@@ -58,18 +60,9 @@ export class SandboxOcrEngineService {
       'OCR_API_URL',
       'http://localhost:8765'
     );
-    const ocrSidecarApiKey = this.configService.get<string>(
-      'OCR_SIDECAR_API_KEY'
-    );
-    if (!ocrSidecarApiKey) {
-      throw new Error(
-        'OCR_SIDECAR_API_KEY is required — กรุณาตั้งค่า environment variable'
-      );
-    }
-    this.ocrSidecarApiKey = ocrSidecarApiKey;
   }
 
-  /** รัน OCR ตาม engine ที่เลือก โดย fallback กลับไป fast-path เมื่อ np-dms-ocr ล้มเหลว */
+  /** รัน OCR ตาม engine ที่เลือก — ADR-040 D1: ทุก engine นำไปสู่ np-dms-ocr */
   async detectAndExtract(
     pdfPath: string,
     engineType: SandboxOcrEngineType = 'auto',
@@ -80,12 +73,14 @@ export class SandboxOcrEngineService {
       `detectAndExtract called — engine="${resolvedEngineType}" pdfPath="${pdfPath}" ocrOptions=${JSON.stringify(ocrOptions ?? null)}`
     );
     if (resolvedEngineType === 'auto') {
-      this.logger.log(`engine="${resolvedEngineType}" → routing to fast-path`);
+      this.logger.log(
+        `engine="auto" → routing to OcrService (np-dms-ocr with PyMuPDF auto-detect)`
+      );
       const result = await this.ocrService.detectAndExtract({ pdfPath });
       return {
         text: result.text,
         ocrUsed: result.ocrUsed,
-        engineUsed: result.ocrUsed ? 'fast-path' : 'fast-path',
+        engineUsed: 'np-dms-ocr',
         fallbackUsed: false,
       };
     }
@@ -169,7 +164,6 @@ export class SandboxOcrEngineService {
         form,
         {
           timeout: 360000, // 360s — รองรับ cold-start Ollama model (~65s) + inference หลายหน้า
-          headers: { 'X-API-Key': this.ocrSidecarApiKey },
         }
       );
       this.logger.log(

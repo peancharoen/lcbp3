@@ -1,6 +1,7 @@
 # File: tests/unit/ocr-sidecar/test_path_traversal.py
 # Change Log:
 # - 2026-06-20: Added ADR-040 path traversal tests for OCR sidecar.
+# - 2026-07-30: ADR-040 Phase 2 (T016) — ลบ X-API-Key auth (network isolation แทน).
 
 import importlib
 import os
@@ -44,7 +45,6 @@ def install_import_stubs() -> None:
 
 def load_app(upload_base: Path):
     install_import_stubs()
-    os.environ["OCR_SIDECAR_API_KEY"] = "test-key"
     os.environ["OCR_SIDECAR_UPLOAD_BASE"] = str(upload_base)
     if str(SIDECAR_DIR) not in sys.path:
         sys.path.insert(0, str(SIDECAR_DIR))
@@ -76,7 +76,6 @@ def test_ocr_rejects_parent_traversal_outside_upload_base(tmp_path: Path) -> Non
     response = client.post(
         "/ocr",
         json={"pdfPath": str(outside_path)},
-        headers={"X-API-Key": "test-key"},
     )
     assert response.status_code == 403
 
@@ -91,7 +90,6 @@ def test_ocr_rejects_prefix_sibling_path(tmp_path: Path) -> None:
     response = client.post(
         "/ocr",
         json={"pdfPath": str(sibling / "document.pdf")},
-        headers={"X-API-Key": "test-key"},
     )
     assert response.status_code == 403
 
@@ -107,7 +105,6 @@ def test_ocr_accepts_canonical_path_inside_upload_base(tmp_path: Path) -> None:
         response = client.post(
             "/ocr",
             json={"pdfPath": str(pdf_path)},
-            headers={"X-API-Key": "test-key"},
         )
     assert response.status_code == 200
     assert response.json()["engineUsed"] == "fast-path"

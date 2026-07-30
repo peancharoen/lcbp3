@@ -37,33 +37,33 @@
 
 เราจะเริ่มจากการเพิ่มเอนจิน OCR ในชนิดข้อมูลและปรับปรุง logic การตรวจสอบ VRAM, การเรียกใช้งาน Ollama และการเพิ่ม endpoint ที่ยังตกหล่นใน Controller พร้อมทั้งอัปเกรด API Key Header Guard และ VRAM Unloader
 
-#### [MODIFY] [sandbox-ocr-engine.service.ts](file:///e:/np-dms/lcbp3/backend/src/modules/ai/services/sandbox-ocr-engine.service.ts)
+#### [MODIFY] [sandbox-ocr-engine.service.ts](backend/src/modules/ai/services/sandbox-ocr-engine.service.ts)
 * ปรับปรุงชนิดข้อมูล `SandboxOcrEngineType` ให้ตรงตามตัวเลือกใน UI
 * ดึงค่า API Key จาก Config และส่ง Axios Request ไปยัง sidecar `/ocr-upload` ด้วย header `X-API-Key`
 
-#### [MODIFY] [ocr.service.ts](file:///e:/np-dms/lcbp3/backend/src/modules/ai/services/ocr.service.ts)
+#### [MODIFY] [ocr.service.ts](backend/src/modules/ai/services/ocr.service.ts)
 * ดึงค่า API Key จาก Config และแนบ header `X-API-Key` ไปกับทุกคำขอประมวลผล OCR และตรวจเช็คสุขภาพที่ส่งไปยัง sidecar
 
-#### [MODIFY] [vram-monitor.service.ts](file:///e:/np-dms/lcbp3/backend/src/modules/ai/services/vram-monitor.service.ts)
+#### [MODIFY] [vram-monitor.service.ts](backend/src/modules/ai/services/vram-monitor.service.ts)
 * ปรับปรุงฟังก์ชัน `fetchAndCacheVramStatus` ในส่วน catch block ให้ส่งกลับค่า fallback ที่ยืดหยุ่น (`hasCapacity = true`) เพื่อไม่ให้ OOM Guard ทำงานค้างตลอดเวลาเมื่อ API ขัดข้อง
 
-#### [MODIFY] [ollama.service.ts](file:///e:/np-dms/lcbp3/backend/src/modules/ai/services/ollama.service.ts)
+#### [MODIFY] [ollama.service.ts](backend/src/modules/ai/services/ollama.service.ts)
 * ปรับปรุงฟังก์ชัน `checkHealth()` ให้ดึงข้อมูลโมเดลจาก `/api/ps` เพื่อแสดงรายชื่อโมเดลที่โหลดอยู่บนหน่วยความจำ GPU จริง ๆ
 * เพิ่มฟังก์ชัน `loadModel(modelName: string): Promise<boolean>` เพื่อทำการตรวจสอบรายชื่อโมเดลใน Ollama (`/api/tags`) และสั่งโหลดโมเดลหลักขึ้น GPU memory ทันที
 * เพิ่มฟังก์ชัน `unloadModel(modelName: string): Promise<boolean>` สั่งบอกให้ Ollama ทำการสลัดล้างโมเดลนั้นออกจากหน่วยความจำ GPU ในทันทีโดยใช้ `keep_alive: 0`
 
-#### [MODIFY] [ai.service.ts](file:///e:/np-dms/lcbp3/backend/src/modules/ai/ai.service.ts)
+#### [MODIFY] [ai.service.ts](backend/src/modules/ai/ai.service.ts)
 * ปรับปรุงฟังก์ชัน `activateAiModel()` ให้เรียกใช้งาน `ollamaService.loadModel(modelName)` เพื่อยืนยันว่าโหลดโมเดลสำเร็จก่อนเขียนทับสถานะใน DB
 * หลังสลับและโหลดโมเดลตัวใหม่สำเร็จ จะสั่งเรียกใช้ `unloadModel(previousModel)` เพื่อสลัดโมเดลตัวเก่าออกและล้าง VRAM ทันที
 
-#### [MODIFY] [ai.controller.ts](file:///e:/np-dms/lcbp3/backend/src/modules/ai/ai.controller.ts)
+#### [MODIFY] [ai.controller.ts](backend/src/modules/ai/ai.controller.ts)
 * ฉีด `OcrService` เข้ามา in constructor
 * ลงทะเบียนและเปิดใช้งาน REST API endpoints:
   - `GET /ai/ocr-engines` (ดึงรายชื่อ OCR engines ทั้งหมดและสถานะ Active)
   - `POST /ai/ocr-engines/:engineId/select` (แอดมินสลับ OCR engine หลักของระบบ)
 * ตรวจสอบและ normalize `engineType` ใน `submitSandboxOcr` ให้ครอบคลุมทุกโมเดล
 
-#### [MODIFY] [app.py](file:///e:/np-dms/lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py)
+#### [MODIFY] [app.py](specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py)
 * ปรับปรุง `_process_pdf_doc` และ `process_with_typhoon_ocr` ให้แยกความแตกต่างของ `typhoon-ocr-3b` (v1.0) และ `typhoon-ocr1.5-3b` (v1.5) เพื่อส่ง model name ไปเรียกใน Ollama ได้ตรงตัวจริง
 * ติดตั้ง APIKeyHeader validation เพื่อปกป้อง endpoint `/ocr`, `/ocr-upload` และ `/normalize`
 
@@ -73,11 +73,11 @@
 
 การปรับปรุง UI ของ AI Admin Console ให้ยืดหยุ่น เรียงลำดับเมนูและแสดงสถานะได้ตอบโจทย์การทำงานจริงของแอดมิน
 
-#### [MODIFY] [page.tsx](file:///e:/np-dms/lcbp3/frontend/app/(admin)/admin/ai/page.tsx)
+#### [MODIFY] [page.tsx](frontend/app/(admin)/admin/ai/page.tsx)
 * เพิ่มแถบแสดงชื่อโมเดลที่ Active และสถานะการโหลดขึ้นหน่วยความจำ GPU ปัจจุบัน (ดึงข้อมูลจาก `health?.ollama?.models`) วางคู่กับสวิตช์ System Toggle (AI feature enabled)
 * ปรับปรุงให้ dropdown โมเดลแสดงโมเดลตัวเลือก Typhoon อื่น ๆ ที่แอดมินเพิ่มเข้ามาได้สมบูรณ์
 
-#### [MODIFY] [OcrSandboxPromptManager.tsx](file:///e:/np-dms/lcbp3/frontend/components/admin/ai/OcrSandboxPromptManager.tsx)
+#### [MODIFY] [OcrSandboxPromptManager.tsx](frontend/components/admin/ai/OcrSandboxPromptManager.tsx)
 * สลับลำดับ sub-tabs ในหน้า OCR Sandbox ให้ตัวทดสอบสกัดข้อความ (OCR Sandbox Runner) แสดงเป็นตัวแรก และอยู่ก่อน Prompt Template Editor เพื่อเรียงลำดับตามขั้นตอนประมวลผลจริง
 * เปลี่ยนค่า activeTab เริ่มต้นเป็น `'sandbox'`
 * ปรับปรุงข้อความและตัวเลือกเอนจินประมวลผลใน Dropdown:
@@ -90,7 +90,7 @@
 
 ### [Documentation]
 
-#### [NEW] [ADR-033-active-model-and-ocr-management.md](file:///e:/np-dms/lcbp3/specs/06-Decision-Records/ADR-033-active-model-and-ocr-management.md)
+#### [NEW] [ADR-033-active-model-and-ocr-management.md](specs/06-Decision-Records/ADR-033-active-model-and-ocr-management.md)
 * บันทึกสถาปัตยกรรมและกฎการตรวจสอบโมเดลล่วงหน้า (Pre-loading validation) และโครงสร้างการสลับ OCR Sandbox Runner ที่ได้รับการตัดสินใจในครั้งนี้
 
 ---

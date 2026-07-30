@@ -1,24 +1,25 @@
-# File: specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/docker-compose.yml
-# OCR Sidecar — รันบน Desk-5439 (AI Isolation Host) ตาม ADR-023A/ADR-040
+# File: specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/docker-compose.yml
+# OCR Sidecar — รันบน New Server (192.168.10.11) ตาม ADR-023A/ADR-040/ADR-041
 # Change Log:
 # - 2026-05-25: Initial compose file สำหรับ Tesseract OCR HTTP sidecar
 # - 2026-05-25: แก้ volumes ให้ถูกต้องสำหรับ Windows + Docker Desktop
 # - 2026-05-30: เพิ่ม OCR_LANG=tha+eng (Tesseract Thai + English)
 # - 2026-05-30: เพิ่ม OCR environment variables (T009b, ADR-032)
-#              OLLAMA_API_URL ชี้ไปที่ http://192.168.10.100:11434 (Admin Desktop LAN IP)
+#              OLLAMA_API_URL ชี้ไปที่ http://host.docker.internal:11434 (Ollama systemd บน host)
 # - 2026-05-30: Revert volumes กลับไปใช้ Windows Z: drive bind mount (แทน CIFS volume driver ที่พัง)
 # - 2026-06-01: ลบ volumes ออกทั้งหมด — backend ส่ง file content ผ่าน multipart /ocr-upload แทน
 #              ไม่ต้องการ shared storage อีกต่อไป
 # - 2026-06-01: เปลี่ยน OCR_MODEL เป็น scb10x/typhoon-ocr1.5-3b
 # - 2026-06-04: ADR-034 — เปลี่ยน OCR_MODEL เป็น typhoon-np-dms-ocr:latest; OLLAMA_API_URL ชี้ตรงไป Ollama (ไม่ผ่าน metrics proxy) เพื่อป้องกัน empty response
 # - 2026-06-02: เพิ่ม ollama-metrics (NorskHelsenett) — Prometheus sidecar สำหรับ Ollama metrics
-#              expose /metrics บน port 9924; Prometheus (ASUSTOR) scrape จาก 192.168.10.100:9924
+#              expose /metrics บน port 9924; Prometheus (ASUSTOR) scrape จาก 192.168.10.11:9924
 # - 2026-07-17: ย้าย ollama-metrics + nvidia-gpu-exporter ออกไป 04-ai/docker-compose.yml
 #              (telemetry ไม่ใช่ส่วนของ OCR workload)
 # - 2026-06-11: US2 & US3 - เพิ่ม VRAM headroom, residency window, pressure threshold, retrieval timeout env variables
 # - 2026-06-13: ADR-036 — เปลี่ยน TYPHOON_OCR_MODEL เป็น OCR_MODEL=np-dms-ocr:latest
 # - 2026-06-17: ลบชื่อ Typhoon ออกจากทุก environment variable และ comment (เปลี่ยนเป็น OCR_* ตาม ADR-036)
 # - 2026-06-20: ADR-040 Phase 6+8 — ลบ OCR_LANG, USE_GPU (stale Tesseract config); เพิ่ม OCR_SIDECAR_API_KEY, OCR_ACTIVE_PROFILE
+# - 2026-07-30: ADR-040 Phase 2 (T016) — ลบ OCR_SIDECAR_API_KEY env (network isolation แทน X-API-Key auth)
 #
 # วิธีรัน:
 #   docker compose --env-file ../../.env up -d --build
@@ -60,9 +61,6 @@ services:
       OCR_CHAR_THRESHOLD: "100"
       OCR_PORT: "8765"
       OCR_MAX_PAGES: "0"
-      # ─── Security (ADR-040 Phase 1) ─────────────────────────────────
-      # OCR_SIDECAR_API_KEY: อ่านจาก .env file (ห้าม hardcode ใน compose)
-      OCR_SIDECAR_API_KEY: ${OCR_SIDECAR_API_KEY}
       # ─── Adaptive OCR Residency (ADR-040 Phase 4) ───────────────────
       # OCR_ACTIVE_PROFILE: ชื่อ profile ใน ai_execution_profiles (ถ้าไม่ระบุ จะใช้ default)
       OCR_ACTIVE_PROFILE: ${OCR_ACTIVE_PROFILE:-}
@@ -79,6 +77,9 @@ services:
       GPU_TOTAL_VRAM_MB: "16384.0"
       GPU_MAIN_MODEL_PRESSURE_THRESHOLD_MB: "12000.0"
       RETRIEVAL_TIMEOUT_SECONDS: "30.0"
+      # ─── Prompt Cache Invalidation (Feature-142) ─────────────────────
+      # Redis connection สำหรับเก็บ prompt hash cross-process
+      REDIS_URL: "${REDIS_URL:-redis://redis:6379/0}"
     logging:
       driver: "json-file"
       options:

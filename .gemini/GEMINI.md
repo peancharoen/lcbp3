@@ -9,8 +9,8 @@
 
 ## 📦 Project Memory Override
 
-For this repository (`E:\np-dms\lcbp3`), use project memory from:
-`E:\np-dms\lcbp3\memory\project-memory-override.md`
+For this repository, use project memory from:
+`../memory/project-memory-override.md`
 
 **Before using global Gemini memory**, read this project memory file first when the task depends on prior repo context, conventions, decisions, or rollout history.
 

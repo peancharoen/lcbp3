@@ -128,6 +128,22 @@
 - Virtual Columns for Performance
 - Partitioning Strategy
 
+### 4. [AI Document Ingestion Flow](./02-05-ai-document-ingestion-flow.md)
+
+**เส้นทางการนำเอกสารเข้าระบบ — ส่วนที่เกี่ยวกับ AI**
+
+> [!NOTE]
+> เอกสารนี้เป็น walkthrough/อธิบายเชิงปฏิบัติ — **ADR-035 คือ Source of Truth** ของ flow หากขัดกันให้ตาม ADR-035
+
+**Key Topics:**
+
+- ✅ Production Flow (Frontend → Backend → BullMQ Worker)
+- ✅ Two-Phase File Upload (Temp → Commit) — ADR-016
+- ✅ OCR Engine Routing (Typhoon OCR primary + Tesseract fallback) — ADR-035
+- ✅ OCR Text Persistence + แยก `rag-prepare` เป็น 2 jobs — ADR-042
+- ✅ Semantic Chunking + BGE-M3 Embedding + Qdrant Upsert — ADR-023A/034
+- ✅ Sandbox Flow (Production Pipeline Sandbox + Sandbox Project) — ADR-036/042
+
 ---
 
 ## 🏗️ หลักการออกแบบ (Architecture Principles)
