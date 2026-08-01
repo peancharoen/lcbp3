@@ -7,10 +7,14 @@ describe('TransformInterceptor', () => {
   let interceptor: TransformInterceptor<unknown>;
 
   const createMockExecutionContext = (
-    statusCode: number = 200
+    statusCode: number = 200,
+    url: string = '/'
   ): ExecutionContext => {
     return {
       switchToHttp: () => ({
+        // Fix: เพิ่ม getRequest mock เพื่อรองรับ /metrics bypass logic
+        // ใน TransformInterceptor (Fix #2) ที่เรียก getRequest() เพื่อตรวจ URL
+        getRequest: () => ({ url }),
         getResponse: () => ({
           statusCode,
         }),
@@ -35,6 +39,59 @@ describe('TransformInterceptor', () => {
 
   it('should be defined', () => {
     expect(interceptor).toBeDefined();
+  });
+
+  // ==========================================================
+  // Fix #2: /metrics Bypass (Prometheus raw text format)
+  // ==========================================================
+  describe('/metrics bypass', () => {
+    it('should bypass ApiResponse envelope for /metrics endpoint', async () => {
+      const metricsText =
+        '# HELP http_requests_total Total HTTP requests\n' +
+        '# TYPE http_requests_total counter\n' +
+        'http_requests_total 42\n';
+      const context = createMockExecutionContext(200, '/metrics');
+      const callHandler = createMockCallHandler(metricsText);
+
+      const result = await lastValueFrom(
+        interceptor.intercept(context, callHandler)
+      );
+
+      // Prometheus ต้องได้ raw text กลับไป ห้าม wrap ใน ApiResponse envelope
+      expect(result).toBe(metricsText);
+    });
+
+    it('should bypass ApiResponse envelope for /metrics with query string', async () => {
+      const metricsText = 'http_requests_total 42\n';
+      const context = createMockExecutionContext(
+        200,
+        '/metrics?format=prometheus'
+      );
+      const callHandler = createMockCallHandler(metricsText);
+
+      const result = await lastValueFrom(
+        interceptor.intercept(context, callHandler)
+      );
+
+      expect(result).toBe(metricsText);
+    });
+
+    it('should NOT bypass for non-/metrics endpoints', async () => {
+      const data = { id: 'test-uuid' };
+      const context = createMockExecutionContext(200, '/api/documents');
+      const callHandler = createMockCallHandler(data);
+
+      const result = (await lastValueFrom(
+        interceptor.intercept(context, callHandler)
+      )) as ApiResponse<unknown>;
+
+      // Endpoint อื่นต้องถูก wrap ใน ApiResponse envelope ตามปกติ
+      expect(result).toEqual({
+        statusCode: 200,
+        message: 'Success',
+        data,
+      });
+    });
   });
 
   // ==========================================================

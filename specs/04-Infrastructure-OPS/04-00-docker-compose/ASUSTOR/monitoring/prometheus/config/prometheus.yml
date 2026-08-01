@@ -17,6 +17,9 @@
 #   complement ollama-metrics (which only covers token/duration/VRAM-per-model).
 #   Requires nvidia-gpu-exporter container deployed on 192.168.10.11:9835
 #   (see 04-ai/docker-compose.yml) — job will show as "down" until deployed.
+# - 2026-08-01: Removed QNAP targets (qnap-node, qnap-cadvisor) — post-ADR-041
+#   QNAP no longer runs node-exporter/cadvisor (only NPM edge proxy). These
+#   targets were perpetually DOWN (2/13 down) and added noise to alerts.
 #
 # Deploy path: /volume1/np-dms/monitoring/prometheus/config/prometheus.yml
 # Mount (read-only): docker-compose volume -> /etc/prometheus/prometheus.yml
@@ -120,20 +123,3 @@ scrape_configs:
           host: "main-server"
           service: "gpu"
           role: "ai-inference"
-
-  # ============================================
-  # QNAP Metrics (Remote - 192.168.10.8)
-  # QNAP post-ADR-041 only runs NPM (edge proxy) + its own MariaDB.
-  # Kept for host-level visibility since QNAP is still a SPOF for ingress.
-  # ============================================
-  - job_name: "qnap-node"
-    static_configs:
-      - targets: ["192.168.10.8:9100"]
-        labels:
-          host: "qnap"
-
-  - job_name: "qnap-cadvisor"
-    static_configs:
-      - targets: ["192.168.10.8:8088"]
-        labels:
-          host: "qnap"

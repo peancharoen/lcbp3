@@ -1,7 +1,7 @@
 # Project Memory Override
 
 > **Project:** NAP-DMS (LCBP3) — Laem Chabang Port Phase 3 Document Management System
-> **Version:** 1.9.15 (Last Synced: 2026-07-31 Tier 2)
+> **Version:** 1.9.15 (Last Synced: 2026-08-01 Tier 2)
 > **Stack:** NestJS 11 + Next.js 16 + TypeScript + MariaDB 11.8 + Redis + BullMQ + Elasticsearch + Ollama (on-prem AI)
 
 > [!IMPORTANT]
@@ -128,6 +128,11 @@ QDRANT_URL
 ```
 
 ## Next Session Focus
+
+### Grafana Monitoring — Pending Backend Redeploy (Session 2026-08-01)
+
+- [ ] **Redeploy backend** เพื่อ expose `bullmq_*` metrics ผ่าน `/metrics` endpoint — code พร้อมแล้ว (`BullmqMetricsService` + `bullmqMetricProviders` ใน `monitoring.module.ts`, `tsc --noEmit` PASS) แต่ยังไม่ได้ build/deploy; หลัง deploy แล้ว Grafana dashboard "LCBP3 — BullMQ Queues" (id=26) จะแสดงผลได้
+- [x] **ลบ QNAP targets ออกจาก Prometheus config** — ✅ COMPLETE 2026-08-01: ลบ `qnap-node` + `qnap-cadvisor` jobs ออกจาก `prometheus.yml` (ทั้งใน repo และบน ASUSTOR `/volume1/np-dms/monitoring/prometheus/config/prometheus.yml`); verified Prometheus targets 9/9 UP (0 DOWN) — ก่อนหน้านี้เป็น 2/13 DOWN ตลอด; QNAP post-ADR-041 เป็นเพียง NPM edge proxy ไม่มี exporters แล้ว
 
 ### CIFS Mount Bugfix + Monitor (Session 2026-07-31) ✅ COMPLETE
 
@@ -470,5 +475,5 @@ QDRANT_URL
 - [x] **Verification:** curl ทั้ง 3 exporters ตอบกลับ metrics ปกติ
 - [x] **copy-env.sh + dockerup.sh:** อัปเดตรองรับ 04-ai telemetry + exporter-my.cnf
 - [x] Prometheus (ASUSTOR) reload config + ตรวจสอบ targets ทั้งหมด up — ✅ Verified 2026-08-01: 9/11 targets UP (asustor-cadvisor, asustor-node, backend, main-server-cadvisor, main-server-node, mariadb, nvidia-gpu, ollama-metrics, prometheus); 2/11 DOWN (qnap-cadvisor, qnap-node) — QNAP ไม่มี exporters (expected post-ADR-041, QNAP เป็นเพียง NPM edge proxy); ⚠️ backend target ก่อน deploy ตอบ JSON wrapper แทน Prometheus text format เพราะ container รัน build เก่า (4 กรกฎาคม) ที่ไม่มี `/metrics` bypass ใน TransformInterceptor — แก้ด้วย deploy backend ใหม่ (build 2026-08-01) ตอนนี้ `/metrics` ตอบ raw text format ถูกต้อง
-- [x] Grafana dashboard สำหรับ main-server metrics — ✅ Verified + Fixed 2026-08-01: Grafana รัน 13 days (healthy); **ลบ dashboards ที่ใช้ไม่ได้ 3 ตัว** (Node overview — `origin_prometheus` label ไม่มี; Docker overview — metric names เก่า `node_boot_time`/`node_memory_MemTotal`; Neurix Ollama & GPU — `ollama_up`/`ollama_version_info` ไม่มีในระบบ); **สร้าง dashboards ใหม่ 2 ตัว** ที่ตรงกับ metrics จริง: "LCBP3 — Ollama & NVIDIA GPU" (id=22, 13 panels, ใช้ `ollama_loaded_models`/`ollama_model_loaded`/`ollama_model_ram_mb` + `nvidia_smi_*` 101 metrics) และ "LCBP3 — Docker Containers & Host" (id=23, 12 panels, ใช้ `node_*`/`container_*` metrics); **แก้ data sources**: MariaDB url เปลี่ยนจาก `192.168.10.8` (QNAP เก่า) → `192.168.10.11` (main server ใหม่); **ลบ data sources ที่ไม่ใช้ 2 ตัว** (Elasticsearch — url ว่าง, MySQL — url ว่าง); สุดท้ายเหลือ 3 data sources (Prometheus default, Loki, MariaDB) + 5 dashboards ที่ใช้งานได้ทั้งหมด; admin password เก็บใน env var `GF_SECURITY_ADMIN_PASSWORD`; Grafana URL: `http://192.168.10.9:3003`
-- [x] Session log: `specs/88-logs/session-2026-07-17-monitoring-stack-setup.md`
+- [x] Grafana dashboard สำหรับ main-server metrics — ✅ Verified + Fixed 2026-08-01: Grafana รัน 13 days (healthy); **ลบ dashboards ที่ใช้ไม่ได้ 3 ตัว** (Node overview — `origin_prometheus` label ไม่มี; Docker overview — metric names เก่า `node_boot_time`/`node_memory_MemTotal`; Neurix Ollama & GPU — `ollama_up`/`ollama_version_info` ไม่มีในระบบ); **สร้าง dashboards ใหม่ 4 ตัว** ที่ตรงกับ metrics จริง: "LCBP3 — Ollama & NVIDIA GPU" (id=22, 13 panels), "LCBP3 — Docker Containers & Host" (id=23, 12 panels), "LCBP3 — Redis" (id=24, 15 panels), "LCBP3 — Elasticsearch" (id=25, 15 panels), "LCBP3 — BullMQ Queues" (id=26, 12 panels), "LCBP3 — Backend API & Node.js Health" (id=27, 20 panels); **deploy exporters ใหม่ 2 ตัว**: redis-exporter (port 9121, 177 metrics) + elasticsearch-exporter (port 9114, 223 metrics) ใน `01-infrastructure/docker-compose.yml`; **เพิ่ม BullMQ metrics ใน backend**: `BullmqMetricsService` (6 gauges × 6 queues = 36 series, อัปเดตทุก 30s) — รอ redeploy; **แก้ data sources**: MariaDB url เปลี่ยนจาก `192.168.10.8` (QNAP เก่า) → `192.168.10.11` (main server ใหม่); **ลบ data sources ที่ไม่ใช้ 2 ตัว** (Elasticsearch — url ว่าง, MySQL — url ว่าง); สุดท้ายเหลือ 3 data sources (Prometheus default, Loki, MariaDB) + **9 dashboards ครอบคลุม 1,970 metrics ทั้งหมด**; Prometheus targets 11/13 UP (2 QNAP down — expected post-ADR-041); admin password เก็บใน env var `GF_SECURITY_ADMIN_PASSWORD`; Grafana URL: `http://192.168.10.9:3003`
+- [x] Session log: `specs/88-logs/session-2026-08-01-grafana-dashboards-exporters.md`
