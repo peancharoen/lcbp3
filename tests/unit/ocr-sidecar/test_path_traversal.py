@@ -33,14 +33,6 @@ def install_import_stubs() -> None:
     pil_module.Image = pil_image_module
     sys.modules["PIL"] = pil_module
     sys.modules["PIL.Image"] = pil_image_module
-    pythainlp_module = types.ModuleType("pythainlp")
-    tokenize_module = types.ModuleType("pythainlp.tokenize")
-    tokenize_module.word_tokenize = lambda text, **kwargs: text.split()
-    util_module = types.ModuleType("pythainlp.util")
-    util_module.normalize = lambda text: text
-    sys.modules["pythainlp"] = pythainlp_module
-    sys.modules["pythainlp.tokenize"] = tokenize_module
-    sys.modules["pythainlp.util"] = util_module
 
 
 def load_app(upload_base: Path):

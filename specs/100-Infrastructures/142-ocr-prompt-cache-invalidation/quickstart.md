@@ -43,13 +43,11 @@ docker-compose up -d ocr-sidecar
 ```bash
 # ส่ง OCR ครั้งที่ 1
 curl -X POST http://localhost:8765/ocr-upload \
-  -H "X-API-Key: $OCR_SIDECAR_API_KEY" \
   -F "file=@test.pdf" \
   -F "systemPrompt=Extract all text"
 
 # ส่ง OCR ครั้งที่ 2 ด้วย prompt เดียวกัน
 curl -X POST http://localhost:8765/ocr-upload \
-  -H "X-API-Key: $OCR_SIDECAR_API_KEY" \
   -F "file=@test2.pdf" \
   -F "systemPrompt=Extract all text"
 
@@ -62,13 +60,11 @@ curl -X POST http://localhost:8765/ocr-upload \
 ```bash
 # ส่ง OCR ด้วย prompt A
 curl -X POST http://localhost:8765/ocr-upload \
-  -H "X-API-Key: $OCR_SIDECAR_API_KEY" \
   -F "file=@test.pdf" \
   -F "systemPrompt=Extract all text"
 
 # เปลี่ยนเป็น prompt B
 curl -X POST http://localhost:8765/ocr-upload \
-  -H "X-API-Key: $OCR_SIDECAR_API_KEY" \
   -F "file=@test.pdf" \
   -F "systemPrompt=Extract text and identify document type"
 
@@ -79,7 +75,7 @@ curl -X POST http://localhost:8765/ocr-upload \
 
 ```bash
 # ตรวจสอบ Redis
-redis-cli get ocr:prompt:hash:np-dms-ocr
+docker exec cache redis-cli get ocr:prompt:hash:np-dms-ocr
 # ควรได้ hash 16 chars ของ prompt ล่าสุด
 ```
 
@@ -91,7 +87,6 @@ docker-compose restart ocr-sidecar
 
 # ส่ง OCR ครั้งแรกหลัง restart
 curl -X POST http://localhost:8765/ocr-upload \
-  -H "X-API-Key: $OCR_SIDECAR_API_KEY" \
   -F "file=@test.pdf" \
   -F "systemPrompt=Extract all text"
 

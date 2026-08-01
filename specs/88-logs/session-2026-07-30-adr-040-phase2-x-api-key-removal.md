@@ -73,10 +73,10 @@ ADR-041 T016 ระบุสถานะ `✅ Done` แต่ git history แล
 
 ## กฎที่ Lock แล้ว
 
-- **D38:** ADR-040 Phase 2 complete — X-API-Key auth ถูกลบทั้งหมด ใช้ Docker-internal network isolation แทน (ADR-041 consolidation complete)
-- **D39:** `OCR_SIDECAR_API_KEY` env var ไม่มีอยู่แล้วในระบบ — ห้ามเพิ่มกลับมา
-- **D40:** Sidecar endpoints (`/ocr`, `/ocr-upload`, `/embed`, `/rerank`) ไม่ต้องมี auth — พึ่ง network isolation เท่านั้น
-- **D41:** `test_api_key_validation.py` ถูกลบ — ห้ามสร้างใหม่ (feature ไม่มีแล้ว)
+- **D56:** ADR-040 Phase 2 complete — X-API-Key auth ถูกลบทั้งหมด ใช้ Docker-internal network isolation แทน (ADR-041 consolidation complete)
+- **D57:** `OCR_SIDECAR_API_KEY` env var ไม่มีอยู่แล้วในระบบ — ห้ามเพิ่มกลับมา
+- **D58:** Sidecar endpoints (`/ocr`, `/ocr-upload`, `/embed`, `/rerank`) ไม่ต้องมี auth — พึ่ง network isolation เท่านั้น
+- **D59:** `test_api_key_validation.py` ถูกลบ — ห้ามสร้างใหม่ (feature ไม่มีแล้ว)
 
 ## Verification
 

@@ -208,3 +208,4 @@ npm run test:cov
 | Date | Command | Test Files | Tests | Statements | Branches | Functions | Lines | Status |
 |------|---------|------------|-------|------------|----------|-----------|-------|--------|
 | 2026-06-14 | `pnpm --filter lcbp3-frontend exec vitest run --coverage` | 92 passed | 692 passed | 51.62% | 41.03% | 50.27% | 52.47% | Phase 2 gate passed (≥50% statements) |
+| 2026-08-01 | `pnpm --filter lcbp3-frontend exec vitest run --coverage` | 139 passed | 943 passed | 60.2% | 49.32% | 58.37% | 60.83% | Phase 3 in progress — T050-T053 audit done; target ≥70% ยังไม่ผ่าน (ขาด ~10%) |

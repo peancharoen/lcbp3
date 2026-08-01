@@ -1,3 +1,7 @@
+// File: frontend/components/ui/__tests__/button.test.tsx
+// Change Log:
+// - 2026-08-01: Added file header per T052 audit
+
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Button } from '../button';

@@ -1446,6 +1446,22 @@ export class AiBatchProcessor extends WorkerHost {
     job: Job<AiBatchJobData>
   ): Promise<Record<string, unknown>> {
     const startTime = Date.now();
+    const payload = job.data.payload || {};
+    const hasExtractedText =
+      typeof payload['extractedText'] === 'string' &&
+      payload['extractedText'].length > 0;
+
+    // Pipeline B: เรียกจาก POST /ai/jobs (type: ai-suggest) พร้อม attachmentPublicId + projectPublicId
+    // ไม่มี extractedText ใน payload → ต้องโหลด attachment จาก DB แล้ว run OCR
+    if (
+      !hasExtractedText &&
+      job.data.projectPublicId &&
+      job.data.documentPublicId
+    ) {
+      return this.processSuggestDocument(job, startTime);
+    }
+
+    // Internal flow: เรียกจาก file-storage.service.ts หลัง commit (fire-and-forget)
     try {
       if (job.data.documentPublicId) {
         await this.setAiProcessingStatus(
@@ -1453,7 +1469,6 @@ export class AiBatchProcessor extends WorkerHost {
           'PROCESSING'
         );
       }
-      const payload = job.data.payload || {};
       const extractedText =
         typeof payload['extractedText'] === 'string'
           ? payload['extractedText']
@@ -1510,6 +1525,164 @@ export class AiBatchProcessor extends WorkerHost {
         documentPublicId: job.data.documentPublicId,
         aiModel:
           job.data.canonicalModel ?? this.ollamaService.getMainModelName(),
+        status: AiAuditStatus.FAILED,
+        processingTimeMs: Date.now() - startTime,
+        errorMessage: err instanceof Error ? err.message : String(err),
+        effectiveProfile: job.data.effectiveProfile,
+        canonicalModel: job.data.canonicalModel,
+        snapshotParamsJson: job.data.snapshotParams,
+      });
+      throw err;
+    }
+  }
+
+  /**
+   * Pipeline B: ประมวลผล AI suggestion สำหรับ New Correspondence form pre-fill
+   * โหลด attachment จาก DB → OCR → AI extraction → tag suggestion (ไม่สร้าง tag ใหม่)
+   * คืนค่า AiJobResult สำหรับ frontend polling (ADR-023 D6 — human-in-the-loop)
+   */
+  private async processSuggestDocument(
+    job: Job<AiBatchJobData>,
+    startTime: number
+  ): Promise<Record<string, unknown>> {
+    const { documentPublicId, projectPublicId } = job.data;
+    const modelUsed = job.data.canonicalModel;
+    try {
+      // 1. โหลด attachment จาก DB (documentPublicId = attachment publicId สำหรับ Pipeline B)
+      const attachment = await this.attachmentRepo.findOne({
+        where: { publicId: documentPublicId },
+      });
+      if (!attachment) {
+        throw new Error(
+          `ไม่พบ attachment สำหรับ publicId: ${documentPublicId}`
+        );
+      }
+
+      // 2. โหลด project สำหรับ tag lookup scope
+      const project = await this.projectRepo.findOne({
+        where: { publicId: projectPublicId },
+      });
+      if (!project) {
+        throw new Error(`ไม่พบโครงการสำหรับ publicId: ${projectPublicId}`);
+      }
+
+      // 3. OCR extraction
+      const ocrResult = await this.ocrService.detectAndExtract({
+        pdfPath: attachment.filePath,
+        activeProfile: job.data.effectiveProfile,
+        ocrOptions: job.data.ocrSnapshotParams,
+      });
+
+      // 4. ดึง active prompt สำหรับ OCR extraction (ADR-025)
+      const activePrompt =
+        await this.aiPromptsService.getActive('ocr_extraction');
+      if (!activePrompt) {
+        throw new Error('No active prompt found for ocr_extraction');
+      }
+      const masterDataContext = await this.aiPromptsService.resolveContext(
+        activePrompt,
+        projectPublicId,
+        undefined
+      );
+      const resolvedPrompt = activePrompt.template
+        .replace('{{ocr_text}}', ocrResult.text.slice(0, MAX_OCR_TEXT_CHARS))
+        .replace(
+          '{{master_data_context}}',
+          JSON.stringify(masterDataContext, null, 2)
+        );
+
+      // 5. AI extraction (LLM)
+      const snapshotParams = job.data.snapshotParams;
+      const generateOptions: OllamaGenerateOptions = {
+        format: 'json',
+        timeoutMs: 120000,
+        model: modelUsed,
+      };
+      if (snapshotParams) {
+        generateOptions.options = {
+          temperature: snapshotParams.temperature,
+          top_p: snapshotParams.topP,
+          num_predict: snapshotParams.maxTokens ?? undefined,
+          num_ctx: snapshotParams.numCtx ?? undefined,
+          repeat_penalty: snapshotParams.repeatPenalty,
+        };
+        generateOptions.keepAlive = snapshotParams.keepAliveSeconds;
+      } else {
+        generateOptions.options = { num_ctx: 16384, num_predict: 4096 };
+      }
+      const aiResponse = await this.ollamaService.generate(
+        resolvedPrompt,
+        generateOptions
+      );
+
+      // 6. Parse AI response
+      const cleanedResponse = sanitizeLlmJsonResponse(aiResponse);
+      let extractedMetadata: MigrateDocumentMetadata;
+      try {
+        extractedMetadata = parseMigrateDocumentMetadata(cleanedResponse);
+      } catch {
+        this.logger.warn(
+          `Pipeline B: AI response ไม่ใช่ JSON ที่ถูกต้อง — ใช้ค่าเริ่มต้น`
+        );
+        extractedMetadata = {};
+      }
+
+      // 7. Tag suggestion (ไม่สร้าง tag ใหม่ — human-in-the-loop)
+      const tagNames = extractedMetadata.tags ?? [];
+      const suggestedTags =
+        tagNames.length > 0
+          ? await this.tagsService.suggestTags(project.id, tagNames)
+          : [];
+
+      // 8. สร้าง AiJobResult สำหรับ frontend pre-fill
+      const confidence =
+        typeof extractedMetadata.confidence === 'number'
+          ? extractedMetadata.confidence
+          : 0.5;
+      const result = {
+        isValid: confidence >= 0.5,
+        confidence,
+        category: 'Correspondence',
+        summary: extractedMetadata.summary ?? '',
+        suggestedTags: suggestedTags.map((t) => ({
+          name: t.name,
+          isNew: t.isNew,
+          publicId: t.publicId,
+          confidence,
+        })),
+        detectedIssues: [] as string[],
+        suggestedSubject: extractedMetadata.subject,
+        suggestedDocumentDate: extractedMetadata.documentDate,
+        suggestedSenderId: extractedMetadata.originatorOrganizationPublicId,
+        suggestedDisciplineId: extractedMetadata.disciplineCode,
+        ocrMethod: ocrResult.ocrUsed ? 'slow-path' : 'fast-path',
+        processingTimeMs: Date.now() - startTime,
+      };
+
+      // 9. Audit log
+      await this.saveAiAuditLog({
+        documentPublicId,
+        aiModel: modelUsed ?? this.ollamaService.getMainModelName(),
+        status: AiAuditStatus.SUCCESS,
+        aiSuggestionJson: extractedMetadata as unknown as Record<
+          string,
+          unknown
+        >,
+        confidenceScore: confidence,
+        processingTimeMs: Date.now() - startTime,
+        effectiveProfile: job.data.effectiveProfile,
+        canonicalModel: job.data.canonicalModel,
+        snapshotParamsJson: job.data.snapshotParams,
+      });
+
+      this.logger.log(
+        `Pipeline B AI suggestion สำเร็จ — jobId=${String(job.id)}, subject=${extractedMetadata.subject ?? 'N/A'}, tags=${suggestedTags.length}`
+      );
+      return result;
+    } catch (err) {
+      await this.saveAiAuditLog({
+        documentPublicId,
+        aiModel: modelUsed ?? this.ollamaService.getMainModelName(),
         status: AiAuditStatus.FAILED,
         processingTimeMs: Date.now() - startTime,
         errorMessage: err instanceof Error ? err.message : String(err),

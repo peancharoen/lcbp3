@@ -103,9 +103,10 @@ curl http://192.168.10.100:8765/health
 Expected response:
 ```json
 {
-  "status": "healthy",
-  "timestamp": "2026-06-20T10:30:00Z",
-  "version": "1.0.0"
+  "status": "ok",
+  "engine": "np-dms-ocr",
+  "ocrModel": "np-dms-ocr:latest",
+  "ollamaUrl": "http://localhost:11434"
 }
 ```
 
@@ -144,7 +145,7 @@ curl http://localhost:3001/api/ai/health
 # Keep common variables
 OCR_SIDECAR_UPLOAD_BASE=/mnt/uploads
 OLLAMA_API_URL=http://localhost:11434
-TYPHOON_OCR_MODEL=typhoon-np-dms-ocr:latest
+OCR_MODEL=np-dms-ocr:latest
 ```
 
 3. Rebuild and redeploy sidecar:
@@ -222,9 +223,8 @@ pnpm test ai/sandbox-ocr-engine.service.spec.ts
 ```bash
 curl -X POST http://192.168.10.100:8765/ocr \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: your-api-key" \
   -d '{
-    "pdf_path": "/mnt/uploads/temp/../../etc/passwd",
+    "pdfPath": "/mnt/uploads/temp/../../etc/passwd",
     "runtime_params": {
       "temperature": 0.7,
       "top_p": 0.9,
@@ -240,9 +240,8 @@ Expected: `403 Forbidden`
 ```bash
 curl -X POST http://192.168.10.100:8765/ocr \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: your-api-key" \
   -d '{
-    "pdf_path": "/mnt/uploads/temp/test.pdf",
+    "pdfPath": "/mnt/uploads/temp/test.pdf",
     "runtime_params": {
       "temperature": 0.7,
       "top_p": 0.9,

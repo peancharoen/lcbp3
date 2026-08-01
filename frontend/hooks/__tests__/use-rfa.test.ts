@@ -1,3 +1,7 @@
+// File: frontend/hooks/__tests__/use-rfa.test.ts
+// Change Log:
+// - 2026-08-01: Added file header per T052 audit
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { createTestQueryClient } from '@/lib/test-utils';

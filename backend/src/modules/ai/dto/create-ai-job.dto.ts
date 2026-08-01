@@ -41,10 +41,10 @@ export function IsForbidden(validationOptions?: ValidationOptions) {
 
 export class CreateAiJobDto {
   @ApiProperty({
-    enum: ['auto-fill-document', 'migrate-document', 'rag-query'],
+    enum: ['auto-fill-document', 'migrate-document', 'rag-query', 'ai-suggest'],
     description: 'ชนิดงาน AI ที่ต้อง enqueue',
   })
-  @IsEnum(['auto-fill-document', 'migrate-document', 'rag-query'])
+  @IsEnum(['auto-fill-document', 'migrate-document', 'rag-query', 'ai-suggest'])
   type!: PublicJobType;
 
   @ApiPropertyOptional({

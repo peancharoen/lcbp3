@@ -19,6 +19,12 @@ import { PerformanceInterceptor } from '../../common/interceptors/performance.in
 import { MonitoringController } from './monitoring.controller';
 import { MonitoringService } from './monitoring.service';
 
+// [NEW] BullMQ Metrics
+import {
+  BullmqMetricsService,
+  bullmqMetricProviders,
+} from './services/bullmq-metrics.service';
+
 @Global()
 @Module({
   imports: [
@@ -35,6 +41,7 @@ import { MonitoringService } from './monitoring.service';
   providers: [
     MetricsService,
     MonitoringService,
+    BullmqMetricsService,
     {
       provide: APP_INTERCEPTOR,
       useClass: PerformanceInterceptor,
@@ -51,6 +58,8 @@ import { MonitoringService } from './monitoring.service';
       labelNames: ['method', 'route', 'status_code'],
       buckets: [0.1, 0.2, 0.5, 1.0, 1.5, 2.0, 5.0],
     }),
+    // BullMQ Queue Metrics
+    ...bullmqMetricProviders,
   ],
   exports: [MetricsService, MonitoringService, PrometheusModule],
 })

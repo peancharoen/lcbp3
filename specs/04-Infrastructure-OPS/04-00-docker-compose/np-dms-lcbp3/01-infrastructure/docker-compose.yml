@@ -7,6 +7,8 @@
 #   Changes: volume paths → /opt/np-dms/, MariaDB RAM 8G, ES heap 2G
 # - 2026-07-17: เพิ่ม node-exporter (9100), cadvisor (8088), mariadb-exporter (9104)
 #   สำหรับ Prometheus scrape จาก ASUSTOR monitoring stack
+# - 2026-08-01: เพิ่ม redis-exporter (9121), elasticsearch-exporter (9114)
+#   สำหรับ Prometheus scrape Redis + ES metrics
 # ============================================================
 # 🔒 SECURITY (ADR-016, Tier-1):
 #   - MariaDB: bind 192.168.10.11:3306 (internal + NPM on QNAP via VLAN 10)
@@ -17,6 +19,8 @@
 #   - node-exporter: bind 192.168.10.11:9100 (Prometheus scrape from ASUSTOR)
 #   - cadvisor: bind 192.168.10.11:8088 (Prometheus scrape from ASUSTOR)
 #   - mariadb-exporter: bind 192.168.10.11:9104 (Prometheus scrape from ASUSTOR)
+#   - redis-exporter: bind 192.168.10.11:9121 (Prometheus scrape from ASUSTOR)
+#   - elasticsearch-exporter: bind 192.168.10.11:9114 (Prometheus scrape from ASUSTOR)
 # ============================================================
 
 x-restart: &restart_policy
@@ -342,6 +346,84 @@ services:
         condition: service_healthy
     healthcheck:
       test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:9104/metrics']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ----------------------------------------------------------------
+  # 9. Redis Exporter — Redis Metrics (Prometheus scrape target)
+  # Bind: 192.168.10.11:9121 — Prometheus (ASUSTOR 192.168.10.9) scrape
+  # Metrics: Redis connected clients, memory, commands/sec, keyspace hits
+  # ----------------------------------------------------------------
+  redis-exporter:
+    <<: [*restart_policy, *default_logging]
+    image: oliver006/redis_exporter:v1.67.0
+    container_name: redis-exporter
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 32M
+    environment:
+      TZ: 'Asia/Bangkok'
+    env_file:
+      - ../.env
+    command:
+      - '--redis.addr=cache:6379'
+      - '--redis.password=${REDIS_PASSWORD}'
+    ports:
+      - '192.168.10.11:9121:9121'
+    networks:
+      - lcbp3
+    depends_on:
+      cache:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:9121/metrics']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ----------------------------------------------------------------
+  # 10. Elasticsearch Exporter — ES Metrics (Prometheus scrape target)
+  # Bind: 192.168.10.11:9114 — Prometheus (ASUSTOR 192.168.10.9) scrape
+  # Metrics: ES cluster health, indices, shards, docs count, store size
+  # ----------------------------------------------------------------
+  elasticsearch-exporter:
+    <<: [*restart_policy, *default_logging]
+    image: prometheuscommunity/elasticsearch-exporter:v1.7.0
+    container_name: elasticsearch-exporter
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 32M
+    environment:
+      TZ: 'Asia/Bangkok'
+    env_file:
+      - ../.env
+    command:
+      - '--es.uri=http://elastic:${ELASTICSEARCH_PASSWORD}@search:9200'
+      - '--es.all'
+      - '--es.indices'
+      - '--collector.clustersettings'
+      - '--es.shards'
+      - '--collector.snapshots'
+    ports:
+      - '192.168.10.11:9114:9114'
+    networks:
+      - lcbp3
+    depends_on:
+      search:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:9114/metrics']
       interval: 30s
       timeout: 10s
       retries: 3

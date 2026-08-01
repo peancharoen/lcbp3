@@ -484,15 +484,21 @@ async def ocr_upload(
     if runtimeParams:
         try:
             runtime_params_dict = json.loads(runtimeParams)
-        except Exception as e:
-            logger.warning(f"Failed to parse runtimeParams JSON: {e}")
+        except json.JSONDecodeError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid runtimeParams JSON: {e}"
+            )
 
     dms_tags_dict = None
     if dmsTags:
         try:
             dms_tags_dict = json.loads(dmsTags)
-        except Exception as e:
-            logger.warning(f"Failed to parse dmsTags JSON: {e}")
+        except json.JSONDecodeError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid dmsTags JSON: {e}"
+            )
 
     # รวม options override สำหรับ np-dms-ocr (ถ้า frontend ส่งมา)
     ocr_options: dict = {}
@@ -506,7 +512,26 @@ async def ocr_upload(
         ocr_options["max_tokens"] = maxTokens
     if keep_alive is not None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="keep_alive is managed by OCR residency policy")
+    # SEC-3: ตรวจสอบขนาดไฟล์ (max 50MB — ตรงกับ backend whitelist)
+    MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024
+    file_size = getattr(file, 'size', None)
+    if file_size is None:
+        # อ่าน content แล้ววัดขนาด (fallback สำหรับ SpooledTemporaryFile)
+        file.file.seek(0, 2)
+        file_size = file.file.tell()
+        file.file.seek(0)
+    if file_size > MAX_FILE_SIZE_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"File too large: {file_size} bytes (max {MAX_FILE_SIZE_BYTES} bytes)"
+        )
+    # SEC-4: ตรวจสอบ file type ด้วย magic bytes (PDF = %PDF)
     pdf_bytes = file.file.read()
+    if not pdf_bytes.startswith(b'%PDF'):
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="Invalid file type: only PDF files are accepted"
+        )
     tmp_pdf_path: str | None = None
     try:
         # บันทึก PDF เป็น temp file เพื่อให้ prepare_ocr_messages อ่านได้ผ่าน path

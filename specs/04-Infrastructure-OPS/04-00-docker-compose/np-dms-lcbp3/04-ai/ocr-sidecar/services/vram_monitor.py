@@ -1,9 +1,11 @@
 # File: specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/services/vram_monitor.py
 # Change Log:
 # - 2026-06-11: Initial creation of VramMonitor service for Python OCR sidecar to query GPU VRAM headroom from Ollama /api/ps
+# - 2026-07-31: PERF-1 fix — เพิ่ม async get_vram_headroom_async() สำหรับการเรียกจาก async endpoints (ไม่บล็อก event loop)
 
 from dataclasses import dataclass
 import os
+import asyncio
 import httpx
 import logging
 
@@ -18,7 +20,7 @@ class VramHeadroom:
 
 def get_vram_headroom() -> VramHeadroom:
     """
-    ดึงข้อมูล VRAM headroom จาก Ollama /api/ps
+    ดึงข้อมูล VRAM headroom จาก Ollama /api/ps (synchronous — สำหรับ non-async context)
     และคำนวณพื้นที่คงเหลือใน VRAM เพื่อประกอบการตัดสินใจเรื่อง Residency และ CPU Fallback
     """
     ollama_url = os.getenv("OLLAMA_API_URL", "http://host.docker.internal:11434")
@@ -43,3 +45,10 @@ def get_vram_headroom() -> VramHeadroom:
         # เปลี่ยนจาก pessimistic (assume all VRAM used) เป็น optimistic (assume no VRAM used)
         # เพื่อป้องกัน false positive OOM Guard เมื่อ query ล้มเหลวแต่ไม่มี model load จริง
         return VramHeadroom(total_vram_mb, 0.0, total_vram_mb, False)
+
+async def get_vram_headroom_async() -> VramHeadroom:
+    """
+    Async version ของ get_vram_headroom — ใช้ asyncio.to_thread เพื่อไม่บล็อก event loop
+    ใช้สำหรับการเรียกจาก async endpoints (e.g., /ocr-upload, /embed, /rerank)
+    """
+    return await asyncio.to_thread(get_vram_headroom)

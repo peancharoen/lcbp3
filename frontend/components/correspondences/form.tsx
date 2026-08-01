@@ -27,7 +27,10 @@ import { numberingApi } from '@/lib/api/numbering';
 import { filesApi } from '@/lib/api/files';
 import { toast } from 'sonner';
 import { AiSuggestionButton } from '@/components/ai/ai-suggestion-button';
+import { TagSuggestionInput } from '@/components/ai/tag-suggestion-input';
 import { useAiStatus } from '@/hooks/use-ai-status';
+import { adminAiService } from '@/lib/services/admin-ai.service';
+import type { SuggestedTag } from '@/types/ai';
 
 // Updated Zod Schema with all required fields
 const correspondenceSchema = z.object({
@@ -300,6 +303,93 @@ export function CorrespondenceForm({
   }, [initialData?.disciplineId, disciplines, setValue, watch]);
 
   const [isUploading, setIsUploading] = useState(false);
+
+  // Pipeline B: AI Suggestion state (ADR-023 D6 — human-in-the-loop)
+  const [isAiSuggesting, setIsAiSuggesting] = useState(false);
+  const [aiSuggestedTags, setAiSuggestedTags] = useState<SuggestedTag[]>([]);
+  const [selectedTags, setSelectedTags] = useState<SuggestedTag[]>([]);
+
+  /**
+   * Pipeline B: เรียก AI suggestion สำหรับเอกสารใหม่
+   * Flow: Upload temp → POST /ai/jobs (ai-suggest) → poll → pre-fill form + tags
+   * Requirement: ต้องเลือก Project และแนบไฟล์ก่อน (AI ต้องการ projectPublicId สำหรับ tag scope)
+   */
+  const handleAiSuggestion = async (): Promise<void> => {
+    if (!projectId) {
+      toast.error('Please select a Project first', {
+        description: 'AI suggestion ต้องการ Project สำหรับ tag lookup scope',
+      });
+      return;
+    }
+    const validFiles = (watch('attachments') || []).filter(
+      (f): f is File => f instanceof File
+    );
+    if (validFiles.length === 0) {
+      toast.error('Please attach a file first', {
+        description: 'AI suggestion ต้องการไฟล์เพื่อวิเคราะห์เนื้อหา',
+      });
+      return;
+    }
+
+    setIsAiSuggesting(true);
+    try {
+      // 1. Upload ไฟล์ไป temp storage (ถ้ายังไม่ได้ upload)
+      toast.info('Uploading file for AI analysis...');
+      const uploaded = await filesApi.uploadMany(validFiles);
+      const firstAttachment = uploaded[0];
+      if (!firstAttachment) {
+        throw new Error('File upload failed — no attachment returned');
+      }
+
+      // 2. Submit AI job (type: ai-suggest)
+      toast.info('AI is analyzing your document...');
+      const jobResponse = await adminAiService.submitAiJob(
+        'ai-suggest',
+        firstAttachment.uuid, // attachmentPublicId (ใช้ uuid จาก upload response)
+        firstAttachment.uuid,
+        {},
+        projectId
+      );
+
+      // 3. Poll จนกว่าจะ completed/failed
+      const statusResponse = await adminAiService.pollAiJob(jobResponse.jobId);
+      const result = statusResponse.result;
+      if (!result) {
+        throw new Error('AI job completed but no result returned');
+      }
+
+      // 4. Pre-fill form fields (human-in-the-loop — user ยังแก้ไขได้)
+      if (result.suggestedSubject) {
+        setValue('subject', result.suggestedSubject, { shouldDirty: true });
+      }
+      if (result.suggestedDocumentDate) {
+        const dateStr = result.suggestedDocumentDate.split('T')[0];
+        setValue('documentDate', dateStr, { shouldDirty: true });
+      }
+      if (result.suggestedSenderId) {
+        setValue('fromOrganizationId', result.suggestedSenderId, { shouldDirty: true });
+      }
+
+      // 5. Pre-fill tags (ใช้ TagSuggestionInput component)
+      const mappedTags: SuggestedTag[] = (result.suggestedTags ?? []).map((t) => ({
+        name: t.name,
+        isNew: t.isNew,
+        publicId: t.publicId,
+        confidence: t.confidence,
+      }));
+      setAiSuggestedTags(mappedTags);
+      setSelectedTags(mappedTags); // auto-accept ทั้งหมด (user สามารถ remove ได้)
+
+      toast.success('AI suggestion applied', {
+        description: `Subject, date, and ${mappedTags.length} tag(s) pre-filled — review and edit before submit`,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'AI suggestion failed';
+      toast.error('AI Suggestion failed', { description: message });
+    } finally {
+      setIsAiSuggesting(false);
+    }
+  };
 
   const onSubmit = async (data: FormData) => {
     // Build recipients array with TO and CC
@@ -617,13 +707,25 @@ export function CorrespondenceForm({
           <Label htmlFor="subject">Subject *</Label>
           <AiSuggestionButton
             aiEnabled={aiStatus?.aiFeaturesEnabled ?? true}
-            isLoading={isAiStatusLoading}
-            onClick={() => toast.info('AI Suggestion queued')}
+            isLoading={isAiStatusLoading || isAiSuggesting}
+            onClick={handleAiSuggestion}
           />
         </div>
         <Input id="subject" {...register('subject')} placeholder="Enter subject" />
         {errors.subject && <p className="text-sm text-destructive">{errors.subject.message}</p>}
       </div>
+
+      {/* AI Tag Suggestions (Pipeline B — shown after AI suggestion runs) */}
+      {aiSuggestedTags.length > 0 && (
+        <div className="space-y-2">
+          <Label>AI Tag Suggestions</Label>
+          <TagSuggestionInput
+            suggestedTags={aiSuggestedTags}
+            selectedTags={selectedTags}
+            onChange={setSelectedTags}
+          />
+        </div>
+      )}
 
       {/* Body */}
       <div className="space-y-2">

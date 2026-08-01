@@ -710,35 +710,47 @@ export class AiPromptsService {
         throw new ValidationException('outputLanguage is required');
       }
 
-      // Validation (T027): ตรวจสอบโครงการ/สัญญาใน DB
-      if (dto.filter?.projectId) {
+      // Validation (T027): ตรวจสอบโครงการ/สัญญาใน DB — รองรับทั้ง projectPublicId และ projectId (legacy)
+      const filterProjectPublicId =
+        dto.filter?.projectPublicId ?? dto.filter?.projectId;
+      if (filterProjectPublicId) {
         const projectExists = (await this.dataSource.manager
           .createQueryBuilder()
           .select('p.id')
           .from('projects', 'p')
-          .where('p.uuid = :uuid', { uuid: dto.filter.projectId })
+          .where('p.uuid = :uuid', { uuid: filterProjectPublicId })
           .andWhere('p.deleted_at IS NULL')
           .getRawOne()) as unknown;
         if (!projectExists) {
-          throw new NotFoundException('Project', dto.filter.projectId);
+          throw new NotFoundException('Project', filterProjectPublicId);
         }
       }
 
-      if (dto.filter?.contractId) {
+      const filterContractPublicId =
+        dto.filter?.contractPublicId ?? dto.filter?.contractId;
+      if (filterContractPublicId) {
         const contractExists = (await this.dataSource.manager
           .createQueryBuilder()
           .select('c.id')
           .from('contracts', 'c')
-          .where('c.uuid = :uuid', { uuid: dto.filter.contractId })
+          .where('c.uuid = :uuid', { uuid: filterContractPublicId })
           .getRawOne()) as unknown;
         if (!contractExists) {
-          throw new NotFoundException('Contract', dto.filter.contractId);
+          throw new NotFoundException('Contract', filterContractPublicId);
         }
       }
 
-      // บันทึกลง DB
+      // บันทึกลง DB — normalize filter ให้ใช้ชื่อ publicId ที่ชัดเจน
+      const normalizedFilter = dto.filter
+        ? {
+            projectPublicId:
+              dto.filter.projectPublicId ?? dto.filter.projectId ?? null,
+            contractPublicId:
+              dto.filter.contractPublicId ?? dto.filter.contractId ?? null,
+          }
+        : null;
       const newContextConfig = {
-        filter: dto.filter || null,
+        filter: normalizedFilter,
         pageSize: dto.pageSize,
         language: dto.language,
         outputLanguage: dto.outputLanguage,

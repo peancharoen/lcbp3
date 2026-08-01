@@ -241,10 +241,9 @@ export class CorrespondenceService {
       createDto.projectId
     );
     // ADR-042: ป้องกันผู้ใช้ทั่วไปสร้างเอกสารใน Sandbox Project
-    const targetProject = await this.correspondenceRepo.manager.findOne(
-      Project,
-      { where: { id: resolvedProjectId } }
-    );
+    const targetProject = await this.dataSource.manager.findOne(Project, {
+      where: { id: resolvedProjectId },
+    });
     if (targetProject?.isSandbox) {
       const canManageAll = await this.hasSystemManageAllPermission(
         user.user_id

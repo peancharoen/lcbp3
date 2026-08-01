@@ -1,0 +1,169 @@
+- generic [active] [ref=f16e1]:
+  - generic [ref=f16e3]:
+    - banner [ref=f16e4]:
+      - link "Uptime Kuma" [ref=f16e5] [cursor=pointer]:
+        - /url: /dashboard
+      - list [ref=f16e9]:
+        - listitem [ref=f16e10]:
+          - link "Status Pages" [ref=f16e11] [cursor=pointer]:
+            - /url: /manage-status-page
+        - listitem [ref=f16e14]:
+          - link "Dashboard" [ref=f16e15] [cursor=pointer]:
+            - /url: /dashboard
+        - listitem [ref=f16e18]:
+          - generic [ref=f16e19]: "N"
+    - main [ref=f16e8]:
+      - generic [ref=f16e25]:
+        - generic [ref=f16e26]:
+          - link "Add New Monitor" [ref=f16e28] [cursor=pointer]:
+            - /url: /add
+          - generic [ref=f16e31]:
+            - generic [ref=f16e33]:
+              - textbox "Search monitored sites" [ref=f16e36]:
+                - /placeholder: Search…
+              - generic [ref=f16e37]:
+                - checkbox "Select all monitors" [ref=f16e38] [cursor=pointer]
+                - button "Status" [ref=f16e40] [cursor=pointer]
+                - button "Tags" [ref=f16e47] [cursor=pointer]
+                - button "Expand All Groups" [ref=f16e53] [cursor=pointer]
+            - generic [ref=f16e56]:
+              - 'link "97.86% CIFS Mount — legacy (read-only) Heartbeat history: 5 checks, 5 up, 0 down" [ref=f16e59] [cursor=pointer]':
+                - /url: /dashboard/24
+                - generic [ref=f16e60]:
+                  - generic [ref=f16e61]:
+                    - generic "24 hours" [ref=f16e63]: 97.86%
+                    - generic [ref=f16e64]: CIFS Mount — legacy (read-only)
+                  - 'img "Heartbeat history: 5 checks, 5 up, 0 down" [ref=f16e70]'
+              - 'link "98.17% CIFS Mount — uploads/permanent Heartbeat history: 5 checks, 5 up, 0 down" [ref=f16e73] [cursor=pointer]':
+                - /url: /dashboard/23
+                - generic [ref=f16e74]:
+                  - generic [ref=f16e75]:
+                    - generic "24 hours" [ref=f16e77]: 98.17%
+                    - generic [ref=f16e78]: CIFS Mount — uploads/permanent
+                  - 'img "Heartbeat history: 5 checks, 5 up, 0 down" [ref=f16e84]'
+              - 'link "95.28% CIFS Mount — uploads/temp Heartbeat history: 5 checks, 3 up, 0 down" [ref=f16e87] [cursor=pointer]':
+                - /url: /dashboard/22
+                - generic [ref=f16e88]:
+                  - generic [ref=f16e89]:
+                    - generic "24 hours" [ref=f16e91]: 95.28%
+                    - generic [ref=f16e92]: CIFS Mount — uploads/temp
+                  - 'img "Heartbeat history: 5 checks, 3 up, 0 down" [ref=f16e98]'
+              - 'link "100% Tier 1 — Public Heartbeat history: 5 checks, 5 up, 0 down" [ref=f16e101] [cursor=pointer]':
+                - /url: /dashboard/1
+                - generic [ref=f16e102]:
+                  - generic [ref=f16e103]:
+                    - generic "24 hours" [ref=f16e105]: 100%
+                    - generic [ref=f16e106]: Tier 1 — Public
+                  - 'img "Heartbeat history: 5 checks, 5 up, 0 down" [ref=f16e115]'
+              - 'link "100% Tier 2 — Internal infra Heartbeat history: 5 checks, 5 up, 0 down" [ref=f16e118] [cursor=pointer]':
+                - /url: /dashboard/4
+                - generic [ref=f16e119]:
+                  - generic [ref=f16e120]:
+                    - generic "24 hours" [ref=f16e122]: 100%
+                    - generic [ref=f16e123]: Tier 2 — Internal infra
+                  - 'img "Heartbeat history: 5 checks, 5 up, 0 down" [ref=f16e132]'
+              - 'link "100% Tier 3 — Docker Container monitor Heartbeat history: 5 checks, 5 up, 0 down" [ref=f16e135] [cursor=pointer]':
+                - /url: /dashboard/20
+                - generic [ref=f16e136]:
+                  - generic [ref=f16e137]:
+                    - generic "24 hours" [ref=f16e139]: 100%
+                    - generic [ref=f16e140]: Tier 3 — Docker Container monitor
+                  - 'img "Heartbeat history: 5 checks, 5 up, 0 down" [ref=f16e149]'
+        - generic [ref=f16e151]:
+          - heading "Edit" [level=1] [ref=f16e152]
+          - generic [ref=f16e154]:
+            - generic [ref=f16e155]:
+              - generic [ref=f16e156]:
+                - heading "General" [level=2] [ref=f16e157]
+                - generic [ref=f16e158]:
+                  - generic [ref=f16e159]: Monitor Type
+                  - combobox "Monitor Type" [ref=f16e160]:
+                    - option "HTTP(s)"
+                    - option "HTTP(s) - Keyword"
+                    - option "TCP Port"
+                    - option "Ping"
+                    - option "DNS"
+                    - option "Docker Container"
+                    - option "HTTP(s) - Browser Engine (Chrome/Chromium) (Beta)"
+                    - option "Group"
+                    - option "Push" [selected]
+                    - option "Manual"
+                    - option "Globalping - Access global monitoring probes"
+                    - option "gRPC(s) - Keyword"
+                    - option "HTTP(s) - Json Query"
+                    - option "Kafka Producer"
+                    - option "MQTT"
+                    - option "RabbitMQ"
+                    - option "SMTP"
+                    - option "SNMP"
+                    - option "Websocket Upgrade"
+                    - option "Microsoft SQL Server"
+                    - option "MongoDB"
+                    - option "MySQL/MariaDB"
+                    - option "Oracle Database"
+                    - option "PostgreSQL"
+                    - option "Radius"
+                    - option "Redis"
+                    - option "GameDig"
+                    - option "Steam Game Server"
+                - generic [ref=f16e161]:
+                  - generic [ref=f16e162]: Friendly Name
+                  - textbox "Friendly Name" [ref=f16e163]:
+                    - /placeholder: New Monitor
+                    - text: CIFS Mount — uploads/temp
+                - generic [ref=f16e164]:
+                  - generic [ref=f16e165]: Push URL
+                  - generic [ref=f16e166]:
+                    - textbox "Push URL" [disabled] [ref=f16e167]:
+                      - /placeholder: ""
+                      - text: https://uptime.np-dms.work/api/push/AzFTvydTq64aoykYu9714FDjkYGXomTA?status=up&msg=OK&ping=
+                    - textbox [ref=f16e168]
+                  - generic [ref=f16e172]: "You should call this URL every 60 seconds. Optional parameters: status, msg, ping"
+                  - button "Reset Token" [ref=f16e173] [cursor=pointer]
+                - generic [ref=f16e174]:
+                  - generic [ref=f16e175]: Heartbeat Interval (Check every 60 seconds)
+                  - spinbutton "Heartbeat Interval (Check every 60 seconds)" [ref=f16e176]: "60"
+                - generic [ref=f16e178]:
+                  - generic [ref=f16e179]: Retries
+                  - spinbutton "Retries" [ref=f16e180]: "1"
+                  - generic [ref=f16e181]: Maximum retries before the service is marked as down and a notification is sent
+                - generic [ref=f16e182]:
+                  - generic [ref=f16e183]: Heartbeat Retry Interval (Retry every 20 seconds)
+                  - spinbutton "Heartbeat Retry Interval (Retry every 20 seconds)" [ref=f16e184]: "20"
+                - generic [ref=f16e185]:
+                  - generic [ref=f16e186]: Resend Notification if Down X times consecutively (Resend every 30 times)
+                  - spinbutton "Resend Notification if Down X times consecutively (Resend every 30 times)" [ref=f16e187]: "30"
+                - generic [ref=f16e188]:
+                  - checkbox "Upside Down Mode" [ref=f16e189]
+                  - generic [ref=f16e190]: Upside Down Mode
+                  - generic [ref=f16e191]: Flip the status upside down. If the service is reachable, it is DOWN.
+                - generic [ref=f16e192]:
+                  - generic [ref=f16e193]: Monitor Group
+                  - generic [ref=f16e194]:
+                    - combobox "Monitor Group" [ref=f16e195]:
+                      - option "None" [selected]
+                      - option "Tier 1 — Public"
+                      - option "Tier 2 — Internal infra"
+                      - option "Tier 3 — Docker Container monitor"
+                    - button "open modal to" [ref=f16e196] [cursor=pointer]
+                - generic [ref=f16e199]:
+                  - generic [ref=f16e200]: Description
+                  - textbox "Description" [ref=f16e201]
+                  - generic [ref=f16e202]: Shown on the internal dashboard. Markdown is allowed and sanitized (preserves spaces and indentation) before display.
+                - generic [ref=f16e204]:
+                  - heading "Tags" [level=4] [ref=f16e205]
+                  - button "Add" [ref=f16e207] [cursor=pointer]
+              - generic [ref=f16e210]:
+                - heading "Notifications" [level=2] [ref=f16e211]
+                - generic [ref=f16e212]:
+                  - checkbox "NP-DMS Telegram Alert Edit" [checked] [ref=f16e213]
+                  - generic [ref=f16e214]:
+                    - text: NP-DMS Telegram Alert
+                    - link "Edit" [ref=f16e215] [cursor=pointer]:
+                      - /url: "#"
+                - button "Set Up Notification" [ref=f16e216] [cursor=pointer]
+            - button "Save" [ref=f16e218] [cursor=pointer]
+    - button [ref=f16e219] [cursor=pointer]
+  - generic [ref=f16e222]:
+    - alert [ref=f16e225]: Saved.
+    - button "close" [ref=f16e226] [cursor=pointer]: ×

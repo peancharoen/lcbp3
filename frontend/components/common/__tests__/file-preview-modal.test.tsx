@@ -1,3 +1,7 @@
+// File: frontend/components/common/__tests__/file-preview-modal.test.tsx
+// Change Log:
+// - 2026-08-01: Added file header per T052 audit
+
 // T043: Vitest component test for FilePreviewModal
 // ตรวจสอบ: PDF → iframe, Image → img, unsupported → download link, onClose callback
 

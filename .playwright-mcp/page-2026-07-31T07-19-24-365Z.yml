@@ -1,0 +1,6 @@
+- generic [ref=f10e3]:
+  - banner [ref=f10e4]:
+    - link "Uptime Kuma" [ref=f10e5] [cursor=pointer]:
+      - /url: /dashboard
+    - list
+  - main [ref=f10e8]

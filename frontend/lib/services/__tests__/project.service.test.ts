@@ -1,3 +1,7 @@
+// File: frontend/lib/services/__tests__/project.service.test.ts
+// Change Log:
+// - 2026-08-01: Added file header per T052 audit
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { projectService } from '../project.service';
 import apiClient from '@/lib/api/client';

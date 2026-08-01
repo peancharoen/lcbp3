@@ -16,10 +16,10 @@ const mockApplyProfile = vi.fn();
 
 vi.mock('@/lib/services/admin-ai.service', () => ({
   adminAiService: {
-    getSandboxProfile: (...args: any) => mockGetSandboxProfile(...args),
-    saveSandboxProfile: (...args: any) => mockSaveSandboxProfile(...args),
-    resetSandboxProfile: (...args: any) => mockResetSandboxProfile(...args),
-    applyProfile: (...args: any) => mockApplyProfile(...args),
+    getSandboxProfile: (...args: unknown[]) => mockGetSandboxProfile(...args),
+    saveSandboxProfile: (...args: unknown[]) => mockSaveSandboxProfile(...args),
+    resetSandboxProfile: (...args: unknown[]) => mockResetSandboxProfile(...args),
+    applyProfile: (...args: unknown[]) => mockApplyProfile(...args),
   },
 }));
 
@@ -56,12 +56,12 @@ describe('RuntimeParametersPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetSandboxProfile.mockResolvedValue(mockParams);
-    window.PointerEvent = MouseEvent as any;
+    window.PointerEvent = MouseEvent as unknown as typeof PointerEvent;
   });
 
   it('renders loading state initially', () => {
     // We mock promise without resolving immediately to see loading state
-    let resolvePromise: any;
+    let resolvePromise: ((value: unknown) => void) | undefined;
     mockGetSandboxProfile.mockReturnValue(new Promise((resolve) => {
       resolvePromise = resolve;
     }));

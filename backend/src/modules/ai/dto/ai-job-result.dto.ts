@@ -1,6 +1,7 @@
 // File: src/modules/ai/dto/ai-job-result.dto.ts
 // Change Log:
 // - 2026-05-22: สร้าง AiJobResultDto สำหรับจัดรูปแบบและตรวจสอบผลลัพธ์ของงาน AI (ADR-028)
+// - 2026-07-31: เพิ่ม optional pre-fill fields สำหรับ Pipeline B (suggestedSubject, suggestedDocumentDate, suggestedSenderId, suggestedDisciplineId)
 
 import { ApiProperty } from '@nestjs/swagger';
 import {
@@ -86,4 +87,36 @@ export class AiJobResultDto {
   })
   @IsNumber()
   processingTimeMs!: number;
+
+  @ApiProperty({
+    description: 'Subject ที่ AI แนะนำสำหรับ pre-fill form (Pipeline B)',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  suggestedSubject?: string;
+
+  @ApiProperty({
+    description: 'วันที่เอกสารที่ AI สกัดได้ (Pipeline B)',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  suggestedDocumentDate?: string;
+
+  @ApiProperty({
+    description: 'ID ผู้ส่งที่ AI แนะนำ (Pipeline B)',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  suggestedSenderId?: string;
+
+  @ApiProperty({
+    description: 'ID สาขางานที่ AI แนะนำ (Pipeline B)',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  suggestedDisciplineId?: string;
 }

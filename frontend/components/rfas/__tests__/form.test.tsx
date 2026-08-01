@@ -41,26 +41,26 @@ const mockUseProjects = vi.fn(() => ({ data: [], isLoading: false }));
 const mockUseAiStatus = vi.fn(() => ({ data: null, isLoading: false }));
 
 vi.mock('@/hooks/use-drawing', () => ({
-  useDrawings: (...args: any[]) => mockUseDrawings(...args),
+  useDrawings: (...args: unknown[]) => mockUseDrawings(...args),
 }));
 
 vi.mock('@/hooks/use-master-data', () => ({
-  useDisciplines: (...args: any[]) => mockUseDisciplines(...args),
-  useContracts: (...args: any[]) => mockUseContracts(...args),
-  useOrganizations: (...args: any[]) => mockUseOrganizations(...args),
+  useDisciplines: (...args: unknown[]) => mockUseDisciplines(...args),
+  useContracts: (...args: unknown[]) => mockUseContracts(...args),
+  useOrganizations: (...args: unknown[]) => mockUseOrganizations(...args),
 }));
 
 vi.mock('@/hooks/use-reference-data', () => ({
-  useCorrespondenceTypes: (...args: any[]) => mockUseCorrespondenceTypes(...args),
-  useRfaTypes: (...args: any[]) => mockUseRfaTypes(...args),
+  useCorrespondenceTypes: (...args: unknown[]) => mockUseCorrespondenceTypes(...args),
+  useRfaTypes: (...args: unknown[]) => mockUseRfaTypes(...args),
 }));
 
 vi.mock('@/hooks/use-projects', () => ({
-  useProjects: (...args: any[]) => mockUseProjects(...args),
+  useProjects: (...args: unknown[]) => mockUseProjects(...args),
 }));
 
 vi.mock('@/hooks/use-ai-status', () => ({
-  useAiStatus: (...args: any[]) => mockUseAiStatus(...args),
+  useAiStatus: (...args: unknown[]) => mockUseAiStatus(...args),
 }));
 
 vi.mock('@/lib/services/correspondence.service', () => ({

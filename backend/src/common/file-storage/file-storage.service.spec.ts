@@ -1,3 +1,7 @@
+// File: src/common/file-storage/file-storage.service.spec.ts
+// Change Log:
+// - 2026-08-01: เพิ่ม unit tests สำหรับ checksum dedup (Tier 2 #9) — ครอบ dedup hit, dedup miss, expired temp, different user.
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { FileStorageService } from './file-storage.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
@@ -104,6 +108,94 @@ describe('FileStorageService', () => {
       await expect(service.upload(mockFile, 1)).rejects.toThrow(
         BadRequestException
       );
+    });
+
+    it('ควรคืน existing temp attachment เมื่อ checksum ตรงและยังไม่หมดอายุ (dedup hit)', async () => {
+      const existingAttachment = {
+        ...mockAttachment,
+        publicId: '019505a1-7c3e-7000-8000-abc123def456',
+        isTemporary: true,
+        checksum: 'existing-checksum',
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 ชม. ข้างหน้า
+        uploadedByUserId: 1,
+      } as Attachment;
+
+      const getOneMock = jest.fn().mockResolvedValue(existingAttachment);
+      (attachmentRepo.createQueryBuilder as jest.Mock).mockReturnValueOnce({
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getOne: getOneMock,
+      });
+
+      const result = await service.upload(mockFile, 1);
+
+      expect(getOneMock).toHaveBeenCalled();
+      expect(result).toEqual(existingAttachment);
+      // ไม่ควรเขียนไฟล์ใหม่หรือสร้าง record ใหม่
+      expect(fs.writeFile as unknown as jest.Mock).not.toHaveBeenCalled();
+      expect(attachmentRepo.create as jest.Mock).not.toHaveBeenCalled();
+      expect(attachmentRepo.save as jest.Mock).not.toHaveBeenCalled();
+    });
+
+    it('ควรสร้าง record ใหม่เมื่อ checksum ตรงแต่ temp หมดอายุแล้ว (dedup miss — expired)', async () => {
+      const getOneMock = jest.fn().mockResolvedValue(null); // ไม่พบ existing (เพราะ query กรอง expiresAt > now)
+      (attachmentRepo.createQueryBuilder as jest.Mock).mockReturnValueOnce({
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getOne: getOneMock,
+      });
+
+      const result = await service.upload(mockFile, 1);
+
+      expect(getOneMock).toHaveBeenCalled();
+      expect(fs.writeFile as unknown as jest.Mock).toHaveBeenCalled();
+      expect(attachmentRepo.create as jest.Mock).toHaveBeenCalled();
+      expect(attachmentRepo.save as jest.Mock).toHaveBeenCalled();
+      expect(result).toBeDefined();
+    });
+
+    it('ควรสร้าง record ใหม่เมื่อ checksum ตรงแต่เป็นคนละ user (dedup miss — different user)', async () => {
+      const getOneMock = jest.fn().mockResolvedValue(null);
+      (attachmentRepo.createQueryBuilder as jest.Mock).mockReturnValueOnce({
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getOne: getOneMock,
+      });
+
+      await service.upload(mockFile, 2); // user 2
+
+      expect(getOneMock).toHaveBeenCalled();
+      // ตรวจว่า query กรอง userId = 2 (ผ่าน andWhere)
+      expect(attachmentRepo.create as jest.Mock).toHaveBeenCalled();
+      expect(attachmentRepo.save as jest.Mock).toHaveBeenCalled();
+    });
+
+    it('ควรคำนวณ checksum แบบ SHA-256 และเก็บใน attachment record', async () => {
+      const getOneMock = jest.fn().mockResolvedValue(null);
+      (attachmentRepo.createQueryBuilder as jest.Mock).mockReturnValueOnce({
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getOne: getOneMock,
+      });
+
+      await service.upload(mockFile, 1);
+
+      const createdCalls = (attachmentRepo.create as jest.Mock).mock
+        .calls as Array<
+        [
+          {
+            checksum?: string;
+            isTemporary?: boolean;
+            uploadedByUserId?: number;
+          },
+        ]
+      >;
+      const createdArg = createdCalls[0][0];
+      expect(createdArg.checksum).toBeDefined();
+      expect(typeof createdArg.checksum).toBe('string');
+      expect(createdArg.checksum).toHaveLength(64); // SHA-256 hex = 64 chars
+      expect(createdArg.isTemporary).toBe(true);
+      expect(createdArg.uploadedByUserId).toBe(1);
     });
   });
 

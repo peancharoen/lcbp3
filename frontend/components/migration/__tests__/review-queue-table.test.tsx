@@ -4,7 +4,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ReviewQueueTable } from '../review-queue-table';
-import { MigrationReviewStatus } from '@/types/migration';
+import { MigrationReviewStatus, MigrationReviewQueueItem } from '@/types/migration';
 
 // Mock hooks
 const mockMutateAsyncCommit = vi.fn();
@@ -43,7 +43,7 @@ class ResizeObserverMock {
 global.ResizeObserver = ResizeObserverMock;
 
 describe('ReviewQueueTable', () => {
-  const mockItems: any[] = [
+  const mockItems: MigrationReviewQueueItem[] = [
     {
       id: 1,
       publicId: 'mig-1',
@@ -105,7 +105,7 @@ describe('ReviewQueueTable', () => {
 
   it('opens sheet when review button is clicked', async () => {
     render(<ReviewQueueTable items={mockItems} isLoading={false} />);
-    
+
     const reviewButtons = screen.getAllByRole('button', { name: /รีวิว|ดูรายละเอียด/i });
     // First button is for 'รอตรวจสอบ' (PENDING)
     fireEvent.click(reviewButtons[0]);
@@ -121,7 +121,7 @@ describe('ReviewQueueTable', () => {
 
   it('allows editing subject and other fields', async () => {
     render(<ReviewQueueTable items={mockItems} isLoading={false} />);
-    
+
     const reviewButtons = screen.getAllByRole('button', { name: /รีวิว|ดูรายละเอียด/i });
     fireEvent.click(reviewButtons[0]);
 
@@ -148,7 +148,7 @@ describe('ReviewQueueTable', () => {
 
   it('allows adding and removing tags', async () => {
     render(<ReviewQueueTable items={mockItems} isLoading={false} />);
-    
+
     const reviewButtons = screen.getAllByRole('button', { name: /รีวิว|ดูรายละเอียด/i });
     fireEvent.click(reviewButtons[0]);
 
@@ -193,7 +193,7 @@ describe('ReviewQueueTable', () => {
 
   it('calls commit mutation on commit', async () => {
     render(<ReviewQueueTable items={mockItems} isLoading={false} />);
-    
+
     const reviewButtons = screen.getAllByRole('button', { name: /รีวิว|ดูรายละเอียด/i });
     fireEvent.click(reviewButtons[0]);
 
@@ -222,7 +222,7 @@ describe('ReviewQueueTable', () => {
 
   it('calls reject mutation on reject', async () => {
     render(<ReviewQueueTable items={mockItems} isLoading={false} />);
-    
+
     const reviewButtons = screen.getAllByRole('button', { name: /รีวิว|ดูรายละเอียด/i });
     fireEvent.click(reviewButtons[0]);
 
@@ -241,7 +241,7 @@ describe('ReviewQueueTable', () => {
 
   it('closes sheet when cancel is clicked', async () => {
     render(<ReviewQueueTable items={mockItems} isLoading={false} />);
-    
+
     const reviewButtons = screen.getAllByRole('button', { name: /รีวิว|ดูรายละเอียด/i });
     fireEvent.click(reviewButtons[0]);
 

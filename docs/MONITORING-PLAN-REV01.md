@@ -5,6 +5,10 @@
 > เกี่ยวข้องกับ ADR-016 (internal-only services, no host port binding), ADR-041 (Server Consolidation)
 >
 > **Rev 01 (2026-07-15):** อัปเดตหลัง ADR-041 consolidation สำเร็จ — ทุก service รันบน 192.168.10.11 แล้ว
+>
+> **Update (2026-07-31):** CIFS mount monitor (`push-monitors-cifs.sh`) implement และติดตั้ง cron แล้ว —
+> หลังพบ bug HTTP 400 ที่ `/api/ai/admin/sandbox/ocr` เนื่องจาก CIFS mount หลุด (EACCES บน `/app/uploads/temp` ใน backend container)
+> รายละเอียดดู §5 และไฟล์ `/opt/np-dms/scripts/push-monitors-cifs.sh`
 
 ---
 
@@ -174,6 +178,70 @@ fi
 # CIFS mounts — ตรวจทุกนาที (critical ถ้าหลุด)
 * * * * * np-dms /opt/np-dms/scripts/push-monitors-cifs.sh >> /opt/np-dms/logs/monitoring/cifs.log 2>&1
 ```
+
+### CIFS Mount Monitor — Implementation (2026-07-31)
+
+> **Status: ✅ Deployed** — สร้างและติดตั้ง cron แล้ว หลังพบ bug HTTP 400 ที่ `/api/ai/admin/sandbox/ocr`
+> (CIFS mount หลุด → `EACCES` บน `/app/uploads/temp` ใน backend container → `FileStorageService.upload` ล้มเหลว)
+
+**ไฟล์:**
+- `/opt/np-dms/scripts/push-monitors-cifs.sh` — script หลัก (alert-only, ไม่ auto-remount)
+- `/opt/np-dms/scripts/.cifs-monitor.env` — config (KUMA_BASE, CURL_TIMEOUT, MOUNTS, WRITABLE_MOUNTS, **TOKEN_MAP**) — ⚠️ permission 600 (มี push token = secret)
+- `/etc/cron.d/np-dms-cifs-monitor` — cron รันทุกนาทีเป็น user `np-dms`
+- `/opt/np-dms/logs/monitoring/cifs.log` — log output
+
+**พฤติกรรม:**
+- ตรวจ `mountpoint -q` สำหรับ 3 mounts: `/mnt/asustor-uploads/{temp,permanent}` + `/mnt/asustor-legacy`
+- ตรวจ write permission เพิ่มสำหรับ temp/permanent (`touch` + `rm` test file) — ตรวจจับกรณี mount ขึ้นแต่ permission ผิด (เหมือน bug ที่แก้)
+- Push ไป Uptime Kuma ด้วย **token จริงจาก TOKEN_MAP** (ทางเลือก A): `status=up` (mounted,write_ok) หรือ `status=down` (not_mounted / dir_missing / write_fail)
+- ถ้า mount path ไม่มีใน TOKEN_MAP → log `[SKIP]` + exit 1 (ป้องกัน push ผิด monitor)
+- Exit code 1 ถ้า mount ใดลง → cron ส่ง log ตามปกติ
+
+**Push monitors ที่สร้างใน Uptime Kuma (สร้างแล้ว 2026-07-31):**
+| Friendly Name | Mount | Token (ใน TOKEN_MAP) | หมายเหตุ |
+|---|---|---|---|
+| `CIFS Mount — uploads/temp` | `/mnt/asustor-uploads/temp` | `AzFTvydTq64aoykYu9714FDjkYGXomTA` | backend เขียนไฟล์ upload |
+| `CIFS Mount — uploads/permanent` | `/mnt/asustor-uploads/permanent` | `4a3ZQakOxTpoLEJvfE5AQg82hKhiNB3F` | backend ย้ายไฟล์ commit |
+| `CIFS Mount — legacy (read-only)` | `/mnt/asustor-legacy` | `VwOnDWeBjFLuYRh3ejJLwxofn7UU7Mtk` | read-only (n8n staging) |
+
+> ⚠️ **Token = secret** — อยู่ใน `.cifs-monitor.env` (permission 600) ไม่ commit ใน repo
+> หากสร้าง monitor ใหม่/ลบ ต้องอัปเดต `TOKEN_MAP` ใน `.cifs-monitor.env` ให้ตรง
+
+**ขั้นตอนถัดไป (ต้องทำใน Uptime Kuma UI):**
+1. ~~สร้าง Push monitor 3 ตัว~~ ✅ สร้างแล้ว
+2. ตั้งค่า monitor ทั้ง 3: interval = 60s, retry = 3, retry interval = 20s
+3. เชื่อม notification channel (Telegram/Email) สำหรับ monitor ทั้ง 3
+4. ทดสอบ unmount ชั่วคราวเพื่อยืนยัน alert ทำงาน
+
+### Elasticsearch Cluster Health Monitor — Implementation (2026-08-01)
+
+> **Trigger:** พบ `ECONNREFUSED` ใน backend logs ระหว่าง CIFS bugfix session (2026-07-31) — ทำให้ต้องมี monitor แจ้งเตือนเมื่อ ES ล่ม ก่อนผู้ใช้เจอ search/RAG error
+
+**Script:** `/opt/np-dms/scripts/push-monitors-es.sh` + `.es-monitor.env` (permission 600)
+**Cron:** `/etc/cron.d/np-dms-es-monitor` — รันทุก 2 นาที
+**Log:** `/opt/np-dms/logs/monitoring/es.log`
+
+**พฤติกรรม:**
+- Query `http://192.168.10.11:9200/_cluster/health` ด้วย basic auth (elastic)
+- ดึง `status` จาก JSON response (green/yellow/red)
+- Push ไป Uptime Kuma:
+  - `green`/`yellow` → `status=up` msg=`cluster_status=<color>` (yellow ใช้ได้สำหรับ single-node)
+  - `red` → `status=down` msg=`cluster_status=red`
+  - connection failed → `status=down` msg=`connection_failed`
+  - parse failed → `status=down` msg=`parse_failed_no_status`
+
+**Push monitor ที่ต้องสร้างใน Uptime Kuma UI:**
+
+| Friendly Name | Type | Token (ใน `.es-monitor.env`) | หมายเหตุ |
+|---|---|---|---|
+| `Elasticsearch Cluster Health` | Push | `PUSH_TOKEN` | วาง token จริงจาก UI ลงใน `.es-monitor.env` |
+
+**ขั้นตอนถัดไป (ต้องทำใน Uptime Kuma UI):**
+1. สร้าง Push monitor 1 ตัว ชื่อ `Elasticsearch Cluster Health`
+2. ตั้งค่า monitor: Heartbeat Interval = 120s, retry = 3, retry interval = 20s
+3. คัดลอก push token จาก UI ไปวางใน `PUSH_TOKEN` ใน `/opt/np-dms/scripts/.es-monitor.env`
+4. เชื่อม notification channel (Telegram) สำหรับ monitor นี้
+5. ทดสอบ: หยุด ES ชั่วคราว (`docker stop search`) เพื่อยืนยัน alert ทำงาน
 
 ---
 

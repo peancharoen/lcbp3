@@ -71,11 +71,11 @@
 
 | ID | Decision | ADR |
 | --- | --- | --- |
-| D33 | ADR-040 เป็น Source of Truth สำหรับ OCR sidecar contract (engine selection, /normalize removal) — ADR-035 OCR sidecar section ถูก amend อย่างเป็นทางการ | ADR-040 D1/D2 |
-| D34 | `OcrService.detectAndExtract()` ใช้ `processWithNpDmsOcr()` อย่างเดียว — ไม่มี engine selection ใน production pipeline (`getOcrEngines/selectOcrEngine` เก็บไว้สำหรับ Admin Console sandbox testing เท่านั้น) | ADR-040 D1 |
-| D35 | Audit log ต้องสะท้อนความจริง: `auto-fallback`/`auto` (ไม่ใช่ `pymupdf`) เมื่อส่ง `engine='auto'` ไป sidecar | ADR-040 |
-| D36 | Sidecar `_process_pdf_doc`: `auto` เป็น known engine — ลอง PyMuPDF text layer ก่อน → fallback ไป np-dms-ocr โดยตรง (ไม่ใช่ "Unknown engine"); ทุก engine path นำไปสู่ np-dms-ocr | ADR-040 D1 |
-| D37 | `docs/AI-step.md` deprecated — ใช้ `specs/02-architecture/02-05-ai-document-ingestion-flow.md` เป็น canonical walkthrough (ควรลบหรือทำเป็น redirect ในอนาคต) | Session 2026-07-30 |
+| D51 | ADR-040 เป็น Source of Truth สำหรับ OCR sidecar contract (engine selection, /normalize removal) — ADR-035 OCR sidecar section ถูก amend อย่างเป็นทางการ | ADR-040 D1/D2 |
+| D52 | `OcrService.detectAndExtract()` ใช้ `processWithNpDmsOcr()` อย่างเดียว — ไม่มี engine selection ใน production pipeline (`getOcrEngines/selectOcrEngine` เก็บไว้สำหรับ Admin Console sandbox testing เท่านั้น) | ADR-040 D1 |
+| D53 | Audit log ต้องสะท้อนความจริง: `auto-fallback`/`auto` (ไม่ใช่ `pymupdf`) เมื่อส่ง `engine='auto'` ไป sidecar | ADR-040 |
+| D54 | Sidecar `_process_pdf_doc`: `auto` เป็น known engine — ลอง PyMuPDF text layer ก่อน → fallback ไป np-dms-ocr โดยตรง (ไม่ใช่ "Unknown engine"); ทุก engine path นำไปสู่ np-dms-ocr | ADR-040 D1 |
+| D55 | `docs/AI-step.md` deprecated — ใช้ `specs/02-architecture/02-05-ai-document-ingestion-flow.md` เป็น canonical walkthrough (ควรลบหรือทำเป็น redirect ในอนาคต) | Session 2026-07-30 |
 
 ## Verification
 

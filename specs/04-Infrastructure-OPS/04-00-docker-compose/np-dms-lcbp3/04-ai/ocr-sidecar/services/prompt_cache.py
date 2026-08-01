@@ -220,4 +220,5 @@ def init_redis_client() -> aioredis.Redis:
         aioredis.Redis instance (ใช้สำหรับ get/set prompt hash)
     """
     redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-    return aioredis.from_url(redis_url, decode_responses=True)
+    # ใช้ protocol=2 เพื่อหลีกเลี่ยง RESP3 HELLO handshake issue กับ Redis ที่ require auth
+    return aioredis.from_url(redis_url, decode_responses=True, protocol=2)

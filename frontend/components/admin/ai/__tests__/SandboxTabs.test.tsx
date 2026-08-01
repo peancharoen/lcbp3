@@ -12,10 +12,10 @@ const mockGetSandboxJobStatus = vi.fn();
 
 vi.mock('@/lib/services/admin-ai.service', () => ({
   adminAiService: {
-    submitSandboxOcr: (...args: any) => mockSubmitSandboxOcr(...args),
-    submitSandboxAiExtract: (...args: any) => mockSubmitSandboxAiExtract(...args),
-    submitSandboxRagPrep: (...args: any) => mockSubmitSandboxRagPrep(...args),
-    getSandboxJobStatus: (...args: any) => mockGetSandboxJobStatus(...args),
+    submitSandboxOcr: (...args: unknown[]) => mockSubmitSandboxOcr(...args),
+    submitSandboxAiExtract: (...args: unknown[]) => mockSubmitSandboxAiExtract(...args),
+    submitSandboxRagPrep: (...args: unknown[]) => mockSubmitSandboxRagPrep(...args),
+    getSandboxJobStatus: (...args: unknown[]) => mockGetSandboxJobStatus(...args),
   },
 }));
 

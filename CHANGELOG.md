@@ -17,12 +17,15 @@
 - **Tests** — ลบ `test_api_key_validation.py`; อัปเดต 8 test files (ลบ headers + env setup); แก้ 2 pre-existing engineUsed assertions
 - **Docs** — อัปเดต curl testing guide (ลบ X-API-Key จากทุก examples), sidecar README, ADR-040 (Phase 2 Done), ADR-041 (T016 Done), ADR-033 (§7 supersede complete), ADR README
 - **Pre-existing fixes** — แก้ `ai-batch.processor.ts:1711` syntax corruption (`} }` ซ้ำ), แก้ `ocr.service.ts:545` axios.post embed call ที่ถูกทำลาย
+- **Eslint fix (2026-07-31)** — แก้ 8 eslint errors ใน `ai.service.ts` ที่ block commit (`manager.query()` คืน `any` → ใช้ intermediate `unknown` variable ก่อน cast เป็น typed array)
 
 #### Verification
 
 - `tsc --noEmit` — clean (0 errors)
+- `eslint` — clean (0 errors, หลัง fix 2026-07-31)
 - 4 OCR test suites / 34 tests — ผ่าน
 - 2 pre-existing failures (transform.interceptor, correspondence.service) — unrelated
+- Commit `daa3a14f` push ไป Gitea + GitHub สำเร็จ (2026-07-31)
 
 ---
 

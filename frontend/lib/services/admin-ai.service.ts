@@ -20,7 +20,7 @@
 // - 2026-06-19: แก้ response envelope ซ้อนกันเพื่อป้องกัน VRAM แสดง 0/0 และ OOM Guard ผิดพลาด
 
 import api from '../api/client';
-import { AiJobResponse } from '../../types/ai';
+import { AiJobResponse, AiJobStatusResponse, AiJobResult } from '../../types/ai';
 import { PromptType, PromptVersion, ContextConfig } from '../types/ai-prompts';
 
 export interface AiAdminSettings {
@@ -414,14 +414,74 @@ export const adminAiService = {
     payload?: Record<string, unknown>,
     projectPublicId?: string
   ): Promise<AiJobResponse> => {
-    const { data } = await api.post('/ai/jobs', {
-      type,
-      documentPublicId,
-      attachmentPublicId,
-      payload,
-      projectPublicId,
-    });
+    const { data } = await api.post(
+      '/ai/jobs',
+      {
+        type,
+        documentPublicId,
+        attachmentPublicId,
+        payload,
+        projectPublicId,
+      },
+      { headers: { 'Idempotency-Key': createIdempotencyKey() } }
+    );
     return extractData<AiJobResponse>(data);
+  },
+
+  /**
+   * ดึงสถานะ AI Job สำหรับ polling (Pipeline B — New Correspondence)
+   * ใช้ GET /ai/jobs/:jobId เพื่อ poll จนกว่า status = completed/failed
+   */
+  getAiJobStatus: async (jobId: string): Promise<AiJobStatusResponse> => {
+    const { data } = await api.get(`/ai/jobs/${jobId}`);
+    // Backend ส่ง AiJobStatusResult: { jobId, queue, status: string, result?, failedReason? }
+    // แปลง BullMQ job state ('completed'|'failed'|'active'|'waiting'|...) เป็น AiJobStatus
+    const raw = extractData<{ status: string; result?: AiJobResult; failedReason?: string }>(data);
+    const normalizedStatus: AiJobStatusResponse['status'] =
+      raw.status === 'completed'
+        ? 'completed'
+        : raw.status === 'failed'
+          ? 'failed'
+          : raw.status === 'not_found'
+            ? 'failed'
+            : 'processing';
+    return {
+      jobId,
+      status: normalizedStatus,
+      result: raw.result,
+      error: raw.failedReason,
+    };
+  },
+
+  /**
+   * Poll AI Job จนกว่าจะ completed หรือ failed (Pipeline B)
+   * @param jobId ID ของ AI job
+   * @param intervalMs ระยะเวลา poll (default 2000ms)
+   * @param timeoutMs timeout สูงสุด (default 120000ms = 2 min)
+   * @returns AiJobStatusResponse เมื่อ completed/failed
+   * @throws Error เมื่อ timeout หรือ job failed
+   */
+  pollAiJob: async (
+    jobId: string,
+    intervalMs = 2000,
+    timeoutMs = 120_000
+  ): Promise<AiJobStatusResponse> => {
+    const startTime = Date.now();
+     
+    while (true) {
+      const elapsed = Date.now() - startTime;
+      if (elapsed > timeoutMs) {
+        throw new Error(`AI job ${jobId} timed out after ${timeoutMs}ms`);
+      }
+      const status = await adminAiService.getAiJobStatus(jobId);
+      if (status.status === 'completed') {
+        return status;
+      }
+      if (status.status === 'failed') {
+        throw new Error(status.error ?? `AI job ${jobId} failed`);
+      }
+      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    }
   },
 
   listPrompts: async (type: PromptType): Promise<PromptVersion[]> => {

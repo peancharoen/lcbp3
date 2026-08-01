@@ -12,7 +12,7 @@ vi.mock('reactflow', () => ({
   Panel: () => null,
   useNodesState: () => [[], () => {}, () => {}],
   useEdgesState: () => [[], () => {}, () => {}],
-  addEdge: (params: any, edges: any) => [...edges, params],
+  addEdge: (params: unknown, edges: unknown[]) => [...edges, params],
   useReactFlow: () => ({ fitView: () => {} }),
   MarkerType: { ArrowClosed: 'arrowclosed' },
   ReactFlowProvider: ({ children }: { children: React.ReactNode }) => children,

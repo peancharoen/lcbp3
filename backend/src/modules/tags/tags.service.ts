@@ -3,6 +3,7 @@
 // - 2026-05-22: เริ่มต้นสร้าง TagsService สำหรับจัดการข้อมูลแท็กและเชื่อมโยงกับเอกสารโต้ตอบตาม ADR-028
 // - 2026-05-22: แก้ไข type compilation error ของ projectId ใน findOne และ find โดยใช้ IsNull()
 // - 2026-05-28: เพิ่ม findOrSuggestTags() คืนค่า isNew flag สำหรับ EC-001 edge case
+// - 2026-07-31: เพิ่ม suggestTags() สำหรับ Pipeline B — ค้นหา existing tags โดยไม่สร้างใหม่ (human-in-the-loop)
 
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -122,6 +123,43 @@ export class TagsService {
           createdBy,
         });
         result.push({ tag: created, isNew: true });
+      }
+    }
+    return result;
+  }
+
+  /**
+   * ค้นหาแท็กที่มีอยู่แล้วในโปรเจกต์ โดยไม่สร้างแท็กใหม่ (Pipeline B — human-in-the-loop)
+   * ใช้สำหรับ AI suggestion pre-fill: แท็กที่มีอยู่จะมี publicId, แท็กใหม่จะมี isNew=true แต่ไม่มี publicId
+   * @param projectId รหัสโครงการ (null = แท็กทั่วไป)
+   * @param tagNames รายชื่อแท็กที่ AI แนะนำ
+   * @returns รายการ { name, publicId?, isNew, confidence } สำหรับแต่ละแท็ก
+   */
+  async suggestTags(
+    projectId: number | null,
+    tagNames: string[]
+  ): Promise<Array<{ name: string; publicId?: string; isNew: boolean }>> {
+    const uniqueNames = Array.from(
+      new Set(tagNames.map((name) => this.normalize(name)))
+    ).filter(Boolean);
+    const result: Array<{ name: string; publicId?: string; isNew: boolean }> =
+      [];
+    for (const name of uniqueNames) {
+      const normalizedName = this.normalize(name);
+      const existing = await this.tagRepo.findOne({
+        where: {
+          projectId: projectId === null ? IsNull() : projectId,
+          tagName: normalizedName,
+        },
+      });
+      if (existing) {
+        result.push({
+          name: existing.tagName,
+          publicId: existing.publicId,
+          isNew: false,
+        });
+      } else {
+        result.push({ name, isNew: true });
       }
     }
     return result;

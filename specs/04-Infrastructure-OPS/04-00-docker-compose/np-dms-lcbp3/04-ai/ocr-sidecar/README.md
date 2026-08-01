@@ -22,10 +22,12 @@ Backend (New Server:3000) → POST /ocr-upload → OCR Sidecar (New Server:8765)
 | Endpoint | Method | Auth | หน้าที่ |
 |----------|--------|------|---------|
 | `/health` | GET | — | ตรวจสอบสถานะ sidecar |
-| `/ocr` | POST | X-API-Key | OCR จาก path (ใช้เมื่อ shared volume mount) |
-| `/ocr-upload` | POST | X-API-Key | OCR จาก multipart file upload |
-| `/embed` | POST | X-API-Key | BGE-M3 embedding (Dense + Sparse) พร้อม CPU fallback |
-| `/rerank` | POST | X-API-Key | BGE-Reranker-Large chunk re-ranker พร้อม CPU fallback |
+| `/ocr` | POST | Network isolation | OCR จาก path (legacy — ใช้เมื่อ shared volume mount) |
+| `/ocr-upload` | POST | Network isolation | OCR จาก multipart file upload (primary) |
+| `/embed` | POST | Network isolation | BGE-M3 embedding (Dense + Sparse) พร้อม CPU fallback |
+| `/rerank` | POST | Network isolation | BGE-Reranker-Large chunk re-ranker พร้อม CPU fallback |
+
+> **ADR-040 Phase 2 (ADR-041):** X-API-Key auth removed — sidecar accessible only via Docker internal network (`lcbp3` network). No external port exposure except monitoring. |
 
 **Removed endpoints:**
 - `POST /normalize` — ลบออกแล้วตาม ADR-040 Phase 8 (ไม่มี consumers)
@@ -102,7 +104,7 @@ python -m pytest tests/integration/ocr-sidecar/ -v
 ```
 ocr-sidecar/
 ├── app.py              — FastAPI server (async I/O, lifespan)
-├── Dockerfile          — Docker image (python:3.10-slim + poppler + curl)
+├── Dockerfile          — Docker image (python:3.11-slim + poppler + curl)
 ├── docker-compose.yml  — Compose config (ocr-sidecar + ollama-metrics)
 ├── requirements.txt    — Python dependencies
 ├── .env.example        — Environment template

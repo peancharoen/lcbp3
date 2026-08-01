@@ -224,6 +224,8 @@ import {
     VramMonitorService,
     OcrCacheService,
     AiRagService,
+    // ADR-032: Export BullModule สำหรับ MonitoringModule inject queue metrics
+    BullModule,
   ],
 })
 export class AiModule implements OnModuleInit {

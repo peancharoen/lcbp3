@@ -394,6 +394,16 @@ export class AiService {
         'documentPublicId or attachmentPublicId is required for document AI jobs'
       );
     }
+    if (dto.type === 'ai-suggest' && !dto.attachmentPublicId) {
+      throw new ValidationException(
+        'attachmentPublicId is required for ai-suggest jobs'
+      );
+    }
+    if (dto.type === 'ai-suggest' && !dto.projectPublicId) {
+      throw new ValidationException(
+        'projectPublicId is required for ai-suggest jobs (tag lookup scope)'
+      );
+    }
     if (dto.projectPublicId) {
       const project = await this.importTransactionRepo.manager.findOne(
         Project,

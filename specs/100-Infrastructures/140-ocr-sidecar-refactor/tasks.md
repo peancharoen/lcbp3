@@ -145,7 +145,7 @@
 
 ---
 
-## Phase 7: User Story 5 - Network Isolation Auth Phase 2 (Priority: P3)
+## Phase 7: User Story 5 - Network Isolation Auth Phase 2 (Priority: P3) ✅ COMPLETE (Session 2026-07-31)
 
 **Goal**: After ADR-041 server consolidation completes, remove X-API-Key validation and rely solely on Docker-internal network isolation for authentication.
 
@@ -153,18 +153,18 @@
 
 ### Tests for User Story 5
 
-- [ ] T047 [P] [US5] Create network isolation test in tests/integration/ocr-sidecar/test_network_isolation.py (verify Docker-internal requests work, external requests fail)
+- [x] T047 [P] [US5] Create network isolation test in tests/integration/ocr-sidecar/test_network_isolation.py (verify Docker-internal requests work, external requests fail) — ✅ Done 2026-07-31 (7 tests pass in ocr-sidecar container)
 
-### Implementation for User Story 5 (BLOCKED until ADR-041 consolidation complete)
+### Implementation for User Story 5 (BLOCKED until ADR-041 consolidation complete — ✅ UNBLOCKED, ADR-041 cutover done)
 
-- [ ] T048 [US5] Remove X-API-Key validation from all endpoints in specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py
-- [ ] T049 [US5] Remove OCR_SIDECAR_API_KEY from .env in specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/.env
-- [ ] T050 [US5] Remove X-API-Key send-side in backend/src/modules/ai/services/ocr.service.ts
-- [ ] T051 [US5] Remove X-API-Key send-side in backend/src/modules/ai/services/sandbox-ocr-engine.service.ts
-- [ ] T052 [US5] Remove OCR_API_KEY from backend .env in backend/.env
-- [ ] T053 [US5] Update OCR_API_URL to Docker-internal URL in backend/.env (e.g., http://sidecar:8765)
+- [x] T048 [US5] Remove X-API-Key validation from all endpoints in specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py — ✅ Done (ADR-040 Phase 2 T016, 2026-07-30)
+- [x] T049 [US5] Remove OCR_SIDECAR_API_KEY from .env in specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/.env — ✅ Done (ADR-040 Phase 2 T016, 2026-07-30)
+- [x] T050 [US5] Remove X-API-Key send-side in backend/src/modules/ai/services/ocr.service.ts — ✅ Done (ADR-040 Phase 2 T017, 2026-07-30)
+- [x] T051 [US5] Remove X-API-Key send-side in backend/src/modules/ai/services/sandbox-ocr-engine.service.ts — ✅ Done (ADR-040 Phase 2 T018, 2026-07-30)
+- [x] T052 [US5] Remove OCR_API_KEY from backend .env in backend/.env — ✅ Done (ADR-040 Phase 2, 2026-07-30)
+- [x] T053 [US5] Update OCR_API_URL to Docker-internal URL in backend/.env (e.g., http://sidecar:8765) — ✅ Done (`OCR_API_URL=http://ocr-sidecar:8765` in backend/.env.example)
 
-**Note**: Phase 7 tasks are BLOCKED until ADR-041 server consolidation completes. Do not implement until ADR-041 cutover is successful.
+**Note**: Phase 7 tasks are BLOCKED until ADR-041 server consolidation completes. Do not implement until ADR-041 cutover is successful. — ✅ UNBLOCKED (ADR-041 cutover complete 2026-07-22)
 
 ---
 

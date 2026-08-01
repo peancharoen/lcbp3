@@ -10,7 +10,8 @@
 export type PublicJobType =
   | 'auto-fill-document'
   | 'migrate-document'
-  | 'rag-query';
+  | 'rag-query'
+  | 'ai-suggest';
 
 /**
  * Internal job types used within the system.

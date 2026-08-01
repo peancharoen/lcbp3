@@ -1,3 +1,7 @@
+// File: frontend/components/workflows/__tests__/dsl-editor.test.tsx
+// Change Log:
+// - 2026-08-01: Added file header per T052 audit
+
 // T054: Vitest test for DSLEditor — validates onValidationChange callback and Save button disable logic
 // ตรวจสอบ: Validate กดแล้ว workflowApi.validateDSL ถูกเรียก; errors → onValidationChange(true); valid → onValidationChange(false)
 

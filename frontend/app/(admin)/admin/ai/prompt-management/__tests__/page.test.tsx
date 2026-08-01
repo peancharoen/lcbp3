@@ -17,11 +17,11 @@ const mockUpdateContextConfig = vi.fn();
 
 vi.mock('@/lib/services/admin-ai.service', () => ({
   adminAiService: {
-    listPrompts: (...args: any) => mockListPrompts(...args),
-    createPrompt: (...args: any) => mockCreatePrompt(...args),
-    activatePrompt: (...args: any) => mockActivatePrompt(...args),
-    deletePrompt: (...args: any) => mockDeletePrompt(...args),
-    updateContextConfig: (...args: any) => mockUpdateContextConfig(...args),
+    listPrompts: (...args: unknown[]) => mockListPrompts(...args),
+    createPrompt: (...args: unknown[]) => mockCreatePrompt(...args),
+    activatePrompt: (...args: unknown[]) => mockActivatePrompt(...args),
+    deletePrompt: (...args: unknown[]) => mockDeletePrompt(...args),
+    updateContextConfig: (...args: unknown[]) => mockUpdateContextConfig(...args),
   },
 }));
 
@@ -51,7 +51,7 @@ describe('UnifiedPromptManagementPage', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    window.PointerEvent = MouseEvent as any;
+    window.PointerEvent = MouseEvent as unknown as typeof PointerEvent;
   });
 
   const renderWithQueryClient = (component: React.ReactNode) => {

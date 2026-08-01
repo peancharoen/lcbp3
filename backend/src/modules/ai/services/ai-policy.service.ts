@@ -110,6 +110,7 @@ export class AiPolicyService {
     switch (jobType) {
       case 'auto-fill-document':
       case 'migrate-document':
+      case 'ai-suggest':
         return 'quality';
       case 'rag-query':
         return 'standard';
@@ -393,7 +394,8 @@ export class AiPolicyService {
     if (
       jobType !== 'migrate-document' &&
       jobType !== 'auto-fill-document' &&
-      jobType !== 'ocr-extract'
+      jobType !== 'ocr-extract' &&
+      jobType !== 'ai-suggest'
     ) {
       return undefined;
     }

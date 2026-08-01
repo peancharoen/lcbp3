@@ -79,7 +79,9 @@ services:
       RETRIEVAL_TIMEOUT_SECONDS: "30.0"
       # ─── Prompt Cache Invalidation (Feature-142) ─────────────────────
       # Redis connection สำหรับเก็บ prompt hash cross-process
-      REDIS_URL: "${REDIS_URL:-redis://redis:6379/0}"
+      # ใช้ 'cache' เป็น hostname เพราะ Redis container มี alias 'cache' ใน lcbp3 network
+      # ต้องใส่ password เพราะ Redis ถูก start ด้วย --requirepass ${REDIS_PASSWORD}
+      REDIS_URL: "${REDIS_URL:-redis://:${REDIS_PASSWORD}@cache:6379/0}"
     logging:
       driver: "json-file"
       options:

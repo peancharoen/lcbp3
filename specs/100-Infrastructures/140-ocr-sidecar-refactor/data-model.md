@@ -1,6 +1,6 @@
 # Data Model: OCR Sidecar Refactor
 
-**Date**: 2026-06-20  
+**Date**: 2026-06-20
 **Purpose**: Define data contracts and entity relationships for OCR sidecar refactor
 
 ## Overview
@@ -14,21 +14,20 @@ The OCR sidecar is a pure compute worker with no database access (ADR-023/023A b
 ```typescript
 interface OcrRequest {
   pdfPath: string;           // Absolute path to PDF file (whitelisted)
-  systemPrompt?: string;     // System prompt from Active Prompt
-  dmsTags?: {                // DMS extraction tags from Active Prompt
-    documentNumber?: string;
-    documentDate?: string;
-    receivedDate?: string;
-  };
-  runtimeParams: {           // Runtime parameters from ai_execution_profiles
+  maxPages?: number;         // Max pages to process (0 = all pages)
+  engine?: string;           // Optional engine override
+  keep_alive?: number;       // Optional keep_alive override (seconds)
+  runtime_params?: {         // Runtime parameters from ai_execution_profiles
     temperature: number;
     top_p: number;
     repeat_penalty: number;
     max_tokens: number;
   };
-  pageRange?: {              // Page range for processing
-    start: number;
-    end: number;
+  system_prompt?: string;    // System prompt from Active Prompt
+  dms_tags?: {               // DMS extraction tags from Active Prompt
+    documentNumber?: string;
+    documentDate?: string;
+    receivedDate?: string;
   };
 }
 ```
@@ -39,9 +38,9 @@ interface OcrRequest {
 interface OcrResponse {
   text: string;              // Extracted text (Markdown format)
   ocrUsed: boolean;          // Whether OCR was used (vs fast-path text layer)
-  modelUsed: string;         // Model identifier (e.g., "typhoon-np-dms-ocr")
-  processingTimeMs: number;  // Processing time in milliseconds
-  error?: string;            // Error message if failed
+  pageCount: number;         // จำนวนหน้าที่ประมวลผล
+  charCount: number;         // จำนวนตัวอักษรที่สกัดได้
+  engineUsed: string;        // Engine ที่ใช้ (e.g., "np-dms-ocr")
 }
 ```
 
@@ -208,26 +207,18 @@ async processSandboxOcr(request: SandboxOcrRequest): Promise<SandboxOcrResult> {
 ### POST /ocr Request Body
 
 ```python
-# specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py
+# specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/app.py
 
 from pydantic import BaseModel
 
 class OcrRequest(BaseModel):
-    pdf_path: str
+    pdfPath: str
+    maxPages: Optional[int] = None
+    engine: Optional[str] = None
+    keep_alive: Optional[int] = None
+    runtime_params: Optional[dict] = None
     system_prompt: Optional[str] = None
-    dms_tags: Optional[Dict[str, str]] = None
-    runtime_params: RuntimeParams
-    page_range: Optional[PageRange] = None
-
-class RuntimeParams(BaseModel):
-    temperature: float
-    top_p: float
-    repeat_penalty: float
-    max_tokens: int
-
-class PageRange(BaseModel):
-    start: int
-    end: int
+    dms_tags: Optional[dict] = None
 ```
 
 ### POST /ocr Response Body
@@ -235,10 +226,21 @@ class PageRange(BaseModel):
 ```python
 class OcrResponse(BaseModel):
     text: str
-    ocr_used: bool
-    model_used: str
-    processing_time_ms: float
-    error: Optional[str] = None
+    ocrUsed: bool
+    pageCount: int
+    charCount: int
+    engineUsed: str
+```
+
+### GET /health Response Body
+
+```python
+{
+  "status": "ok",
+  "engine": "np-dms-ocr",
+  "ocrModel": "np-dms-ocr:latest",
+  "ollamaUrl": "http://localhost:11434"
+}
 ```
 
 ## Environment Variables
@@ -246,7 +248,7 @@ class OcrResponse(BaseModel):
 ### Sidecar Environment Variables
 
 ```bash
-# specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/.env
+# specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/.env
 
 # Phase 1 (before ADR-041)
 OCR_SIDECAR_API_KEY=required_value  # Fail-fast if missing
@@ -256,7 +258,7 @@ OCR_SIDECAR_API_KEY=required_value  # Fail-fast if missing
 # Common variables
 OCR_SIDECAR_UPLOAD_BASE=/mnt/uploads  # CIFS mount base path
 OLLAMA_API_URL=http://localhost:11434
-TYPHOON_OCR_MODEL=typhoon-np-dms-ocr:latest
+OCR_MODEL=np-dms-ocr:latest
 ```
 
 ### Backend Environment Variables
@@ -265,7 +267,7 @@ TYPHOON_OCR_MODEL=typhoon-np-dms-ocr:latest
 # backend/.env
 
 # Phase 1 (before ADR-041)
-OCR_API_URL=http://192.168.10.100:8765
+OCR_API_URL=http://192.168.10.11:8765
 OCR_API_KEY=required_value  # Send-side X-API-Key
 
 # Phase 2 (after ADR-041) - remove OCR_API_KEY
@@ -283,14 +285,14 @@ def validate_pdf_path(pdf_path: str, base_path: str) -> str:
     """Canonicalize and whitelist PDF path"""
     # 1. Canonicalize path
     canonical = os.path.abspath(os.path.realpath(pdf_path))
-    
+
     # 2. Check whitelist
     if not canonical.startswith(base_path):
         raise HTTPException(
             status_code=403,
             detail="Path outside whitelisted base directory"
         )
-    
+
     return canonical
 ```
 

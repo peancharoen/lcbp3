@@ -1,3 +1,7 @@
+// File: frontend/components/correspondences/form.test.tsx
+// Change Log:
+// - 2026-08-01: Added file header per T052 audit
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import type { ReactElement } from 'react';

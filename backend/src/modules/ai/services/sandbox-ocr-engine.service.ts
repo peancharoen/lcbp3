@@ -108,9 +108,13 @@ export class SandboxOcrEngineService {
         where: { profileName: 'ocr-extract' },
       });
       const runtimeParams = {
-        temperature: profile ? Number(profile.temperature) : 0.1,
-        top_p: profile ? Number(profile.topP) : 0.5,
-        repeat_penalty: profile ? Number(profile.repeatPenalty) : 1.0,
+        temperature: profile?.temperature
+          ? Number(profile.temperature) || 0.1
+          : 0.1,
+        top_p: profile?.topP ? Number(profile.topP) || 0.5 : 0.5,
+        repeat_penalty: profile?.repeatPenalty
+          ? Number(profile.repeatPenalty) || 1.0
+          : 1.0,
         max_tokens: profile?.maxTokens ?? 16000,
       };
 
