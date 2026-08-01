@@ -1,7 +1,7 @@
 ---
 name: save-memory
 description: บันทึก session log และอัปเดต project memory ตามโครงสร้างใหม่
-version: 1.9.0
+version: 1.9.1
 scope: project-management
 depends-on: []
 user-invocable: true
@@ -16,12 +16,15 @@ Skill นี้ใช้สำหรับบันทึก session log แล�
 ```
 memory/
 ├── README.md (index + overview)
-├── mcp-tools.md (MCP MariaDB + Memory Tools)
+├── mcp-tools.md (MCP MariaDB + Memory + Redis + Qdrant + Fetch + Gitea Tools)
 └── project-memory-override.md (OS rules, Current Decisions, Environment, Next Session Focus)
 
 specs/88-logs/
 ├── rollouts.md (Recent rollouts table)
 └── session-YYYY-MM-DD-[topic].md (Session logs)
+
+~/.local/share/devin/mcp-memory/memory.jsonl (MCP Memory Knowledge Graph — persistent)
+~/.config/devin/mcp_config.json (MCP servers config — user-level, not committed)
 ```
 
 ## ขั้นตอนการบันทึก Memory
@@ -95,7 +98,62 @@ specs/88-logs/
 
 3. **เพิ่ม usage example และ warnings** ถ้าจำเป็น
 
-### 4. อัปเดต Root Documentation (ถ้ามีการเปลี่ยนแปลง)
+### 4. อัปเดต MCP Knowledge Graph (ถ้ามี decision หรือ feature ใหม่)
+
+เมื่อมี decision ใหม่ (D##) หรือ feature ใหม่ ให้บันทึกลง MCP Memory Knowledge Graph เพื่อให้ค้นหาได้ใน session ถัดไป:
+
+1. **ตรวจสอบ entity ที่มีอยู่** — ใช้ `search_nodes({ query: "Feature-XXX" })` ก่อน
+2. **สร้าง entity ใหม่** (ถ้ายังไม่มี) — ใช้ `create_entities`:
+   ```json
+   {
+     "entities": [
+       {
+         "name": "Feature-XXX",
+         "entityType": "SpeckitFeature",
+         "observations": ["Branch: XXX", "Status: COMPLETE", "Commits: abc123"]
+       }
+     ]
+   }
+   ```
+3. **สร้าง entity สำหรับ decision ใหม่** — ใช้ `create_entities`:
+   ```json
+   {
+     "entities": [
+       {
+         "name": "D##-Short-Name",
+         "entityType": "Decision",
+         "observations": ["Decision summary", "Context", "Impact"]
+       }
+     ]
+   }
+   ```
+4. **เชื่อมโยง entities** — ใช้ `create_relations`:
+   ```json
+   {
+     "relations": [
+       {
+         "from": "Feature-XXX",
+         "to": "D##-Short-Name",
+         "relationType": "produced"
+       }
+     ]
+   }
+   ```
+5. **เพิ่ม observations** (ถ้า entity มีอยู่แล้ว) — ใช้ `add_observations` แทนการสร้างใหม่
+
+**Entity naming convention:**
+
+- Feature: `Feature-XXX` (เช่น `Feature-143`)
+- Decision: `D##-Short-Name` (เช่น `D73-Host-Node-v24`)
+- Relation types: `produced`, `completes`, `same-as`, `depends-on`, `supersedes`
+
+**⚠️ สำคัญ:**
+
+- MCP Memory เป็น **เลเยอร์เสริม** ไม่ใช่ทดแทน file-based memory (session log + project-memory-override.md)
+- ข้อมูลใน Knowledge Graph ใช้สำหรับ **cross-session retrieval** (ค้นหาด่วนใน session ใหม่)
+- ต้องตั้ง `MEMORY_FILE_PATH` ใน `mcp_config.json` เพื่อ persistence (default = npx cache หายเมื่ออัปเดต package)
+
+### 5. อัปเดต Root Documentation (ถ้ามีการเปลี่ยนแปลง)
 
 เมื่อมีการเปลี่ยนแปลงที่ส่งผลต่อเอกสารระดับ root ให้:
 
@@ -161,6 +219,7 @@ specs/88-logs/
 - **ใช้** `specs/88-logs/` สำหรับ session history และ rollouts
 - **ใช้** `memory/project-memory-override.md` สำหรับ OS rules, decisions, environment ที่ไม่มีใน specs
 - **ใช้** `memory/mcp-tools.md` สำหรับ MCP tools documentation
+- **ใช้** MCP Memory Knowledge Graph สำหรับ cross-session context retrieval (entities + relations)
 - **อัปเดต Root Documentation** (ARCHITECTURE.md, CHANGELOG.md, CONTEXT.md, CONTRIBUTING.md, README.md) เฉพาะเมื่อมีการเปลี่ยนแปลงที่ส่งผลต่อ project architecture, version, terminology, workflow หรือ structure
 
 ## ตัวอย่างการใช้งาน

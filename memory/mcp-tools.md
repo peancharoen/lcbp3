@@ -63,44 +63,45 @@ MCP Memory server provides tools for managing Knowledge Graph and Long-term Memo
 
 ### Available Tools
 
-| Tool                       | Purpose                                        | Example Usage                                |
-| -------------------------- | ---------------------------------------------- | -------------------------------------------- |
-| `mcp3_create_entities`     | Create multiple new entities with observations | Create new entities like Project, User, Task |
-| `mcp3_create_relations`    | Create relations between entities              | Create relation: Project → has → User        |
-| `mcp3_add_observations`    | Add observations to existing entities          | Add additional context to entity             |
-| `mcp3_delete_entities`     | Delete entities and related relations          | Delete unused entities                       |
-| `mcp3_delete_relations`    | Delete relations between entities              | Delete incorrect or unused relations         |
-| `mcp3_delete_observations` | Delete observations from entity                | Delete incorrect or stale context            |
-| `mcp3_open_nodes`          | Retrieve entities by name                      | Get specific entity by name                  |
-| `mcp3_read_graph`          | Read entire knowledge graph                    | See full graph structure                     |
-| `mcp3_search_nodes`        | Search entities by query                       | Find entity by name, type, or observation    |
+| Tool                  | Purpose                                        | Example Usage                                |
+| --------------------- | ---------------------------------------------- | -------------------------------------------- |
+| `create_entities`     | Create multiple new entities with observations | Create new entities like Project, User, Task |
+| `create_relations`    | Create relations between entities              | Create relation: Project → has → User        |
+| `add_observations`    | Add observations to existing entities          | Add additional context to entity             |
+| `delete_entities`     | Delete entities and related relations          | Delete unused entities                       |
+| `delete_relations`    | Delete relations between entities              | Delete incorrect or unused relations         |
+| `delete_observations` | Delete observations from entity                | Delete incorrect or stale context            |
+| `open_nodes`          | Retrieve entities by name                      | Get specific entity by name                  |
+| `read_graph`          | Read entire knowledge graph                    | See full graph structure                     |
+| `search_nodes`        | Search entities by query                       | Find entity by name, type, or observation    |
 
 ### Usage with Development Flow
 
 **When saving new context:**
 
-1. Use `mcp3_create_entities` to create new entities (if not exist)
-2. Use `mcp3_create_relations` to link entities
-3. Use `mcp3_add_observations` to add context/observations
+1. Use `create_entities` to create new entities (if not exist)
+2. Use `create_relations` to link entities
+3. Use `add_observations` to add context/observations
 
 **When searching context:**
 
-1. Use `mcp3_search_nodes` to find relevant entities
-2. Use `mcp3_open_nodes` to get specific entity data
-3. Use `mcp3_read_graph` to see relations between entities
+1. Use `search_nodes` to find relevant entities
+2. Use `open_nodes` to get specific entity data
+3. Use `read_graph` to see relations between entities
 
 **When editing context:**
 
-1. Use `mcp3_add_observations` to add new observations
-2. Use `mcp3_delete_observations` to delete incorrect observations
-3. Use `mcp3_create_relations` or `mcp3_delete_relations` to adjust relations
+1. Use `add_observations` to add new observations
+2. Use `delete_observations` to delete incorrect observations
+3. Use `create_relations` or `delete_relations` to adjust relations
 
 ### Warnings
 
 - **✅ Use for storing context that needs to be shared across multiple sessions** — e.g., important decisions, architecture decisions, rollout history
 - **⚠️ Be careful when deleting entities** — may lose context still in use
-- **✅ Check if entity exists before creating** — use `mcp3_search_nodes` or `mcp3_open_nodes` first
+- **✅ Check if entity exists before creating** — use `search_nodes` or `open_nodes` first
 - **✅ Use clear and unique entity names** — to prevent confusion
+- **⚠️ Data is NOT persistent without `MEMORY_FILE_PATH` env var** — default stores in npx cache, lost on package update; set `MEMORY_FILE_PATH` in `mcp_config.json` under `env` for persistence
 
 ---
 
