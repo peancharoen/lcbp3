@@ -1,7 +1,7 @@
 # Project Memory Override
 
 > **Project:** NAP-DMS (LCBP3) — Laem Chabang Port Phase 3 Document Management System
-> **Version:** 1.9.15 (Last Synced: 2026-08-01 Tier 2)
+> **Version:** 1.9.15 (Last Synced: 2026-08-01 ADR-015 Compliance)
 > **Stack:** NestJS 11 + Next.js 16 + TypeScript + MariaDB 11.8 + Redis + BullMQ + Elasticsearch + Ollama (on-prem AI)
 
 > [!IMPORTANT]
@@ -75,6 +75,11 @@
 | D60 | Context Config DTO Hardening (Feature-237) — `ContextFilterDto` ใช้ `@IsUUID('7')` สำหรับ `projectPublicId`/`contractPublicId` (รองรับ legacy alias `projectId`/`contractId`); `ContextConfigDto` ใช้ `@ValidateNested()`+`@Type(() => ContextFilterDto)`, `@Max(1000)` pageSize, `@IsEnum(['th','en','mixed'])` language/outputLanguage; `SandboxRagPrepDto` ใช้ `@MaxLength(200_000)` text + `@IsUUID('7')` profileId; service normalize filter เป็น `projectPublicId`/`contractPublicId` ก่อนบันทึก | Feature-237        |
 | D61 | Pipeline B Frontend Foundation (Feature-241 Tier 2) — `SuggestedTag` type ใช้ `isNew` flag + `publicId?` (optional, เฉพาะ existing tags); `TagSuggestionInput` component แสดง pending suggestions (click to accept) + selected tags (with remove) + manual add; `pollAiJob` ใช้ GET /ai/jobs/:jobId polling จน completed/failed (timeout 120s, interval 2s); **Remaining:** wire up `CorrespondenceForm` ให้เรียก AI job จริง (replace placeholder onClick)                                            | Feature-241 Tier 2 |
 | D62 | ⚠️ n8n Owner Account Reset Incident (Session 2026-07-31) — `n8n user-management:reset` ล้าง owner account (email/password/firstName/lastName cleared); workflow data intact; **Action Required:** user ต้อง setup owner account ใหม่ผ่าน n8n UI; **Lesson:** ห้ามรัน `user-management:reset` โดยไม่ได้รับอนุมัติ — เป็น destructive operation                                                                                                                                                          | Session 2026-07-31 |
+| D63 | ADR-015 Image Tagging — ทุก deploy ต้อง tag Docker image ด้วย git SHA (12 หลัก) + `:latest` เสมอ (`lcbp3-backend:${SHA}` + `lcbp3-backend:latest`); docker-compose รับ `BACKEND_IMAGE_TAG`/`FRONTEND_IMAGE_TAG` env var เพื่อระบุ version ที่จะรัน; deploy history บันทึกที่ `/opt/np-dms/.deploy-history` (format: `SHA\|timestamp\|full_commit`)                                                                                                                                                     | ADR-015            |
+| D64 | ADR-015 Auto-Rollback — ถ้า health check fail หลัง deploy ต้อง rollback อัตโนมัติไปยัง previous version (อ่าน SHA จาก deploy history); tag previous image เป็น `:latest` + `docker compose up --force-recreate`; ยังคง `exit 1` เพื่อแจ้ง CI ว่า deploy นี้ fail แต่ระบบกลับสู่เดิมแล้ว                                                                                                                                                                                                                | ADR-015            |
+| D65 | ADR-015 Image Retention — เก็บ Docker image ไว้ 3 versions ล่าสุดเสมอ (prune เก่ากว่านั้นอัตโนมัติหลัง deploy สำเร็จ); ใช้ `awk -F'\t' '$1 ~ /^[0-9a-f]{12}$/'` สำหรับกรอง SHA tags (portable — ไม่ใช้ `grep -P`)                                                                                                                                                                                                                                                                                      | ADR-015            |
+| D66 | Rollback Pattern — `rollback.sh` ใช้ pre-built image (tag + restart, < 30s) แทน rebuild (5-10 min); fallback rebuild เฉพาะกรณี image ถูก prune ไปแล้ว; รับ parameter `rollback.sh [SHA]` หรืออ่านจาก deploy history อัตโนมัติ                                                                                                                                                                                                                                                                          | ADR-015            |
+| D67 | BullMQ Multi-Module Registration — ถ้า service ใน module A inject `@InjectQueue(X)` แต่ queue X ถูก register เฉพาะใน module B ต้องเรียก `BullModule.registerQueue({ name: X })` ใน module A ด้วย (export `BullModule` class จาก module B ไม่พอ — NestJS BullMQ DI scoping: dynamic queue providers ไม่ถูก export ไปด้วย)                                                                                                                                                                               | Session 2026-08-01 |
 | D50 | `manager.query()` raw SQL results ต้องผ่าน `unknown` intermediate ก่อน cast เป็น typed array — ห้าม cast โดยตรงบน `await` expression (eslint `no-unsafe-assignment` จะติด); pattern: `const raw: unknown = await manager.query(...); const rows = raw as Array<{...}>`                                                                                                                                                                                                                                 | Session 2026-07-31 |
 | D33 | Docker port binding ใช้ `0.0.0.0` (ไม่ใช่ IP เฉพาะ) เพื่อให้เข้าได้ทั้ง LAN IP และ localhost; `CORS_ORIGIN` ต้องมีทั้ง `http://192.168.10.11:3001` และ `http://localhost:3001,http://127.0.0.1:3001`; deploy.sh/rollback.sh default URL = `http://192.168.10.11:3000/api` (ไม่ใช่ `backend.np-dms.work`)                                                                                                                                                                                               | Session 2026-07-03 |
 | D34 | Deploy/rollback scripts ต้องมี ownership guard ตรวจสอบ runtime compose files ก่อนดำเนินการ และใช้ `install -m 644` แทน `cp` เพื่อหลีกเลี่ยง Permission denied จาก root-owned files; runtime compose files ต้องเป็นของ deploy user (`np-dms`)                                                                                                                                                                                                                                                           | Session 2026-07-03 |
@@ -93,6 +98,11 @@
 | D47 | ADR-042 OCR Text Persistence — `rag-prepare` job แยกเป็น 2 jobs: (1) OCR-extract-persist เขียน `attachments.ocr_text` ก่อนเสมอ (2) `embed-document` รับ `extractedText` เพื่อข้าม OCR ซ้ำเมื่อ retry — ลด redundant GPU calls; `attachmentPublicId` เป็น WHERE key ตาม ADR-019                                                                                                                                                                                                                         | ADR-042            |
 | D48 | Sandbox Project (`projects.is_sandbox`) — Admin-only Full Pipeline testing ผ่าน code path เดียวกับ production, scoped ด้วย `project_id`, กรองออกจาก `GET /projects` เสมอ (hardcoded `isSandbox=false`), ไม่อนุญาตให้ผู้ใช้ทั่วไปสร้างเอกสารใน Sandbox Project (guard ใน `CorrespondenceService.create()`)                                                                                                                                                                                              | ADR-042            |
 | D49 | `clearSandboxData()` endpoint (`POST /ai/admin/sandbox/clear-data`) — hard-delete cascading scoped `WHERE project_id = sandboxProjectId` + enqueue vector deletion ต่อเอกสาร, ไม่ตรวจสอบ BullMQ job active ก่อนลบ (ตาม Clarifications), ลบไฟล์กายภาพก่อน DB rows (log warning ไม่ throw ถ้า fail)                                                                                                                                                                                                      | ADR-042            |
+| D68 | Backup Retention Pattern — script ที่สร้าง `.bak.<TIMESTAMP>` ต้องมี cleanup logic เก็บเฉพาะ N ไฟล์ล่าสุด (configurable via `KEEP_BACKUPS`); ใช้ `find -printf '%T@ %p'` + `sort -rn` เรียงตาม mtime (แม่นยำกว่า parsing timestamp ในชื่อไฟล์); ต้อง log `[PURGE]` สำหรับทุกไฟล์ที่ถูกลบ; ต้องไม่ cleanup ถ้า copy ล้มเหลว (รักษา backup ที่มีอยู่); apply แล้วใน `copy-env.sh` (`KEEP_BACKUPS=2`)                                                                                                     | Session 2026-08-01 |
+| D69 | Layer 3 Deploy Decision — `03-application/docker-compose.yml` ใช้ `image: lcbp3-backend:${BACKEND_IMAGE_TAG:-latest}` (ไม่มี `build:` section) ดังนั้น `docker compose up -d` เพียงพอเฉพาะกรณีเปลี่ยน env/compose; ถ้าแก้ code ต้องใช้ `deploy.sh` (build + tag SHA + health check + auto-rollback ตาม ADR-015); ห้ามใช้ `up -d` เพื่อ deploy code ใหม่เด็ดขาด; `dockerup.sh` = start ทุก layer หลัง reboot เท่านั้น                                                                                   | ADR-015            |
+| D70 | cadvisor v0.55.1 บน ASUSTOR ต้องใช้ `--containerd=/var/run/docker/containerd/containerd.sock` เพราะ Docker CE 28.1.1 เก็บ socket ที่ path ไม่มาตรฐาน (ไม่ใช่ `/run/containerd/containerd.sock`); หากไม่ระบุ Docker factory จะ fail ทำให้ container names/labels/images หายหมด; main server ใช้ path มาตรฐานจึงไม่ต้องระบุ                                                                                                                                                                              | Session 2026-08-01 |
+| D71 | Grafana dashboard variables ห้ามใช้ `image!=""` filter เพราะซ่อน hosts ที่ Docker factory fail — ใช้ `label_values(container_cpu_usage_seconds_total, host)` แทน; dashboard `lcbp3-docker-monitoring.json` = 45 panels (7→45 overhaul) พร้อม GPU/MariaDB/BullMQ/NestJS HTTP panels + 3 variables (host/container/loglevel)                                                                                                                                                                             | Session 2026-08-01 |
+| D72 | ตรวจสอบ root cause ให้รอบคอบก่อนสรุป — ใช้ `find / -name "X" -type s` หาไฟล์/socket จริง อย่าตัดสินจาก error message อย่างเดียว; การตัดสินใจก่อนตรวจสอบทำให้เสียเวลาแก้ผิดจุด (เคยสรุปว่า ASUSTOR ไม่มี containerd socket ทั้งที่มีอยู่แค่เก็บใน path อื่น)                                                                                                                                                                                                                                            | Session 2026-08-01 |
 
 ## Environment & Services
 
@@ -109,8 +119,8 @@
 | **Gitea**               | `https://git.np-dms.work`    | New Server `192.168.10.11:3003` | Source + CI/CD; SSH via `git-ssh.np-dms.work:2222` (Cloudflare Tunnel)                                                            |
 | **Gitea Runner**        | ASUSTOR `192.168.10.9`       | `http://git.np-dms.work:3003`   | CI runner — เชื่อมตรงไป Gitea (HTTP, ไม่ผ่าน NPM); ต้องลบ `.runner` cache ถ้าเปลี่ยน URL                                          |
 | **Portainer**           | `192.168.10.11:9443`         | `portainer.np-dms.work`         | Docker management UI — Layer 00-basic; NPM proxy; mount docker.sock                                                               |
-| **node-exporter**       | `192.168.10.11:9100`         | —                               | Host metrics (CPU/RAM/disk) — Layer 01-infrastructure; Prometheus scrape from ASUSTOR                                             |
-| **cAdvisor**            | `192.168.10.11:8088`         | —                               | Container metrics — Layer 01-infrastructure; Prometheus scrape from ASUSTOR                                                       |
+| **node-exporter**       | `192.168.10.11:9100`         | —                               | Host metrics (CPU/RAM/disk) — `--path.rootfs=/rootfs` เพื่อเห็น LVM+CIFS mounts (12 mounts); Prometheus scrape from ASUSTOR       |
+| **cAdvisor**            | `192.168.10.11:8088`         | —                               | Container metrics — `--disable_metrics=disk` (หยุด fsHandler errors); v0.55.1; Prometheus scrape from ASUSTOR                     |
 | **mariadb-exporter**    | `192.168.10.11:9104`         | —                               | MariaDB metrics — Layer 01-infrastructure; user `exporter`@`%`; Prometheus scrape from ASUSTOR                                    |
 | **ollama-metrics**      | `192.168.10.11:9924`         | —                               | Ollama LLM metrics — Layer 04-ai (lcbp3-ai-telemetry); Prometheus scrape from ASUSTOR                                             |
 | **nvidia-gpu-exporter** | `192.168.10.11:9835`         | —                               | GPU telemetry (nvidia-smi) — Layer 04-ai (lcbp3-ai-telemetry); Prometheus scrape from ASUSTOR                                     |
@@ -129,9 +139,37 @@ QDRANT_URL
 
 ## Next Session Focus
 
-### Grafana Monitoring — Pending Backend Redeploy (Session 2026-08-01)
+### Monitoring Dashboard Overhaul + cadvisor Fixes (Session 2026-08-01) ✅ COMPLETE
 
-- [ ] **Redeploy backend** เพื่อ expose `bullmq_*` metrics ผ่าน `/metrics` endpoint — code พร้อมแล้ว (`BullmqMetricsService` + `bullmqMetricProviders` ใน `monitoring.module.ts`, `tsc --noEmit` PASS) แต่ยังไม่ได้ build/deploy; หลัง deploy แล้ว Grafana dashboard "LCBP3 — BullMQ Queues" (id=26) จะแสดงผลได้
+- [x] **Dashboard overhaul** — 7 → 45 panels, เพิ่ม GPU/MariaDB/BullMQ/NestJS HTTP panels, migrate graph→timeseries, collapse logs (D71)
+- [x] **node-exporter rootfs** — `--path.rootfs=/rootfs` เห็น 12 mounts (LVM+CIFS+/boot) แทน 1
+- [x] **Main server cadvisor** — v0.55.1 + `--disable_metrics=disk` หยุด fsHandler errors
+- [x] **ASUSTOR cadvisor** — v0.55.1 + `--containerd=/var/run/docker/containerd/containerd.sock` แก้ Docker factory fail (D70)
+- [x] **ASUSTOR /dev mount** — `/dev:/dev:ro` แก้ btrfs stat warning
+- [x] **Dashboard variables** — ลบ `image!=""` filter ที่ซ่อน ASUSTOR (D71)
+- [x] **Committed** — `4c7ae868` (skip ci)
+
+### copy-env.sh Backup Retention + Layer 3 Deploy Workflow (Session 2026-08-01) ✅ COMPLETE
+
+- [x] **Backup retention** — เพิ่ม `KEEP_BACKUPS=2` + `cleanup_backups()` ใน `copy-env.sh`; ลบ backup เก่าอัตโนมัติหลัง copy สำเร็จ (D68)
+- [x] **Layer 3 deploy clarification** — อธิบาย workflow: env change → `up -d` พอ; code change → `deploy.sh` (build + tag SHA + auto-rollback); reboot → `dockerup.sh` (D69)
+- [x] **Verification** — `bash -n` syntax OK; ตรวจ backup ที่มีอยู่ = 2 ไฟล์ (ตรงตาม `KEEP_BACKUPS=2`)
+
+### ADR-015 Compliance — Deploy & Rollback (Session 2026-08-01) ✅ COMPLETE
+
+- [x] **Image tagging ด้วย git SHA** — `deploy.sh` v4.0 tag ทุก image ด้วย `git rev-parse --short=12 HEAD` + `:latest`; deploy history บันทึกที่ `/opt/np-dms/.deploy-history` (D63)
+- [x] **Auto-rollback เมื่อ health check fail** — อ่าน previous SHA จาก history → tag pre-built image → restart; ยังคง `exit 1` เพื่อแจ้ง CI (D64)
+- [x] **Image retention 3 versions** — prune old SHA tags อัตโนมัติหลัง deploy สำเร็จ; ใช้ `awk` แทน `grep -P` (portable) (D65)
+- [x] **rollback.sh ใช้ pre-built image** — tag + restart (< 30s) แทน rebuild (5-10 min); fallback rebuild ถ้า image ถูก prune (D66)
+- [x] **Bugfix: BullmqMetricsService DI** — `MonitoringModule` ไม่ได้ register BullMQ queues → backend unhealthy; เพิ่ม `BullModule.registerQueue()` 6 queues (D67)
+- [x] **Bugfix: TransformInterceptor spec** — เพิ่ม `getRequest` mock + 3 regression tests สำหรับ `/metrics` bypass
+- [x] **Cleanup: ลบ `backend/docker-compose.yml`** — ซ้ำซ้อนกับ Layer 2, ไม่มี container รันจากไฟล์นี้
+- [x] **Deploy จริง:** image `6e87245574f8` + `:latest` สร้างสำเร็จ, backend healthy, `/metrics` แสดง BullMQ queue metrics ครบ 6 queues
+- [x] **Rollback ทดสอบ:** ใช้ pre-built image สำเร็จ (ไม่ต้อง rebuild)
+
+### Grafana Monitoring — Pending Backend Redeploy (Session 2026-08-01) ✅ COMPLETE
+
+- [x] **Redeploy backend** เพื่อ expose `bullmq_*` metrics ผ่าน `/metrics` endpoint — ✅ COMPLETE 2026-08-01: backend deploy สำเร็จ (image `6e87245574f8`), `/metrics` ตอบ raw text format ถูกต้อง, BullMQ queue metrics สำหรับ 6 queues ครบ (ai-ingest, ai-realtime, ai-batch, ai-rag-query, np-dms-ocr, np-dms-ai); Grafana dashboard "LCBP3 — BullMQ Queues" (id=26) จะแสดงผลได้
 - [x] **ลบ QNAP targets ออกจาก Prometheus config** — ✅ COMPLETE 2026-08-01: ลบ `qnap-node` + `qnap-cadvisor` jobs ออกจาก `prometheus.yml` (ทั้งใน repo และบน ASUSTOR `/volume1/np-dms/monitoring/prometheus/config/prometheus.yml`); verified Prometheus targets 9/9 UP (0 DOWN) — ก่อนหน้านี้เป็น 2/13 DOWN ตลอด; QNAP post-ADR-041 เป็นเพียง NPM edge proxy ไม่มี exporters แล้ว
 
 ### CIFS Mount Bugfix + Monitor (Session 2026-07-31) ✅ COMPLETE
