@@ -262,6 +262,7 @@ services:
     command:
       - '--path.procfs=/host/proc'
       - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
     ports:
       - '192.168.10.11:9100:9100'
@@ -284,7 +285,7 @@ services:
   # ----------------------------------------------------------------
   cadvisor:
     <<: [*restart_policy, *default_logging]
-    image: gcr.io/cadvisor/cadvisor:v0.47.2
+    image: gcr.io/cadvisor/cadvisor:v0.55.1
     container_name: cadvisor
     deploy:
       resources:
@@ -296,6 +297,11 @@ services:
           memory: 64M
     environment:
       TZ: 'Asia/Bangkok'
+    command:
+      # ปิด disk metric collector — containerd-snapshotter (Docker 29+) สร้าง overlayfs
+      # rootfs path แบบ lazy ทำให้ cadvisor stat ล้มเหลวตอน container (re)start
+      # ใช้ node-exporter สำหรับ disk metrics แทน (ข้อมูล host-level แม่นยำกว่า)
+      - '--disable_metrics=disk'
     ports:
       - '192.168.10.11:8088:8080'
     networks:
@@ -304,7 +310,11 @@ services:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
       - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
+      # Docker Root Dir = /opt/np-dms/docker (non-default) — mount ตาม Docker root จริง
+      # ใช้สำหรับ containerd-snapshotter layer discovery (PR #3709, cadvisor v0.55.1+)
+      - /opt/np-dms/docker/:/var/lib/docker:ro
+      # containerd socket สำหรับ containerd-snapshotter image store support (ADR: Docker 29+)
+      - /run/containerd/containerd.sock:/run/containerd/containerd.sock:ro
     healthcheck:
       test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:8080/healthz']
       interval: 30s
@@ -381,11 +391,10 @@ services:
     depends_on:
       cache:
         condition: service_healthy
-    healthcheck:
-      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:9121/metrics']
-      interval: 30s
-      timeout: 10s
-      retries: 3
+    # หมายเหตุ: ไม่กำหนด healthcheck เนื่องจาก oliver006/redis_exporter เป็น distroless image
+    # (มีเฉพาะ binary redis_exporter ไม่มี shell/wget/curl) ทำให้ CMD-based probe ใช้งานไม่ได้
+    # สถานะการทำงานจริงตรวจสอบผ่าน Prometheus scrape failure ที่ /metrics endpoint
+    # (ดู ADR-002 และ monitoring stack — scrape failure = สัญญาณ health ที่แท้จริง)
 
   # ----------------------------------------------------------------
   # 10. Elasticsearch Exporter — ES Metrics (Prometheus scrape target)
