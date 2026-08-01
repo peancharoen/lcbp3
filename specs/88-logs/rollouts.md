@@ -2,6 +2,7 @@
 
 | วันที่     | Version | รายการ                                                                                               | สถานะ                         |
 | ---------- | ------- | ---------------------------------------------------------------------------------------------------- | ----------------------------- |
+| 2026-08-01 | v1.9.15 | MCP Infrastructure Upgrade (Feature 143) — Host Node.js v22→v24.18.1 LTS, Qdrant v1.16.1→v1.18.1, 5 new MCP servers (Redis, Qdrant, Memory, Fetch, Gitea), 42/42 tasks done, zero regression (891 backend + 321 AI + 45 frontend pages) | ✅ Complete (commit b71abc3c) |
 | 2026-08-01 | v1.9.15 | Monitoring Dashboard Overhaul + cadvisor Fixes — dashboard 7→45 panels, node-exporter rootfs, cadvisor v0.55.1 both servers, ASUSTOR containerd socket path fix | ✅ Complete (commit 4c7ae868) |
 | 2026-05-23 | v1.9.6  | Specs reorganization (`100/200/300-*` folders), AGENTS.md v1.9.6 update                              | ✅ Complete                   |
 | 2026-05-23 | v1.9.6  | N8N Workflow v2 (`n8n.workflow.v2.json`) — ADR-023A compliant, ลบ Ollama direct                      | ⏳ Pending import to n8n UI   |

@@ -1,5 +1,34 @@
 # Version History
 
+## 1.9.15 (2026-08-01)
+
+### feat(infra): MCP Infrastructure Upgrade — Host Node.js v24 + Qdrant v1.18 (Feature 143)
+
+#### Summary
+
+อัปเกรด host Node.js จาก v22.22.1 → v24.18.1 LTS และ Qdrant container จาก v1.16.1 → v1.18.1 เพื่อรองรับ MCP servers ใหม่ 5 ตัว (Redis, Qdrant, Memory, Fetch, Gitea) สำหรับ Devin CLI development workflow
+
+#### Changes
+
+- **Host Node.js** — ติดตั้ง v24.18.1 ผ่าน NodeSource APT (แทน v22.22.1); pnpm 10.33.0 ยังใช้ได้; reinstall deps ทั้ง backend + frontend
+- **`backend/package.json`** — engines `node` `>=22.0.0` → `>=24.0.0` (completes feature 103's T005)
+- **`frontend/package.json`** — engines `node` `>=22.0.0` → `>=24.0.0` (completes feature 103's T006)
+- **`docker-compose.yml` (01-infrastructure)** — Qdrant image `v1.16.1` → `v1.18.1`
+- **MCP config (`~/.config/devin/mcp_config.json`)** — เพิ่ม 5 servers: redis, qdrant, memory, fetch, gitea (user-level, not committed)
+- **Speckit artifacts** — สร้าง `specs/100-Infrastructures/143-mcp-infra-upgrade/` ครบ (spec, plan, research, quickstart, tasks, checklists)
+
+#### Verification
+
+- Backend tests: 891 passed, 10 skipped, 0 failed
+- Frontend build: 45 pages compiled successfully
+- AI module tests: 321 passed, 9 skipped, 0 failed
+- Qdrant healthz: "healthz check passed" on v1.18.1
+- Qdrant collection `lcbp3_vectors`: status=green, Hybrid schema intact, 0 points
+- 8 MCP servers live via `mcp_list_servers` (3 existing + 5 new)
+- Commits: `b71abc3c` + `1c5443d4` on branch `143-mcp-infra-upgrade`
+
+---
+
 ## 1.9.13 (2026-07-30)
 
 ### fix(ai): ADR-040 Phase 2 — Remove X-API-Key Auth (Network Isolation)
