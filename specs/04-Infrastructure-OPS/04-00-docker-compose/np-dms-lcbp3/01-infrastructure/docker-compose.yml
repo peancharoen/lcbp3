@@ -211,7 +211,7 @@ services:
   # ----------------------------------------------------------------
   qdrant:
     <<: [*restart_policy, *default_logging]
-    image: qdrant/qdrant:v1.16.1
+    image: qdrant/qdrant:v1.18.1
     container_name: qdrant
     deploy:
       resources:
