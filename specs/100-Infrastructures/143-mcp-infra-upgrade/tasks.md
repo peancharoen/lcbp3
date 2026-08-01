@@ -107,11 +107,11 @@
 
 **Purpose**: Documentation, commit, and cleanup
 
-- [ ] T038 [P] Update `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/01-infrastructure/docker-compose.yml` — verify Qdrant image tag is `v1.18.1`
-- [ ] T039 [P] Verify `.nvmrc` files in `backend/` and `frontend/` still show `24.15.0` (set by 103)
-- [ ] T040 [P] Run `quickstart.md` validation steps end-to-end
-- [ ] T041 Commit changes: `git add -A && git commit -m "feat(infra): upgrade host Node.js to v24 and Qdrant to v1.18.1 for MCP server support"`
-- [ ] T042 [P] Document any deviations from plan in `research.md` (e.g., if `@qdrant/js-client-rest` bump was needed)
+- [X] T038 [P] Verify Qdrant image tag in docker-compose.yml — confirmed `v1.18.1`
+- [X] T039 [P] Verify `.nvmrc` files — both show `24.15.0` (set by 103)
+- [X] T040 [P] Run `quickstart.md` validation steps end-to-end — all phases 1-5 executed successfully
+- [X] T041 Commit changes — committed as `b71abc3c` (9 files, 810 insertions)
+- [X] T042 [P] Document deviations in `research.md` — 4 deviations documented (volume persisted, no client bump needed, pnpm permission, Node version 24.18.1 vs 24.15.0)
 
 ---
 
@@ -173,11 +173,11 @@ Task: "T020-T030: Upgrade Qdrant to v1.18.1, verify AI module"
 
 | Criteria | Task(s) | Status |
 |----------|---------|--------|
-| SC-001: Host node --version reports v24.x | T008 | ⬜ |
-| SC-002: Gitea MCP starts without EBADENGINE | T016 | ⬜ |
-| SC-003: Qdrant healthz passes on v1.18.1 | T024 | ⬜ |
-| SC-004: Qdrant MCP lists collections | T029 | ⬜ |
-| SC-005: All 5 MCP servers respond | T031-T035 | ⬜ |
-| SC-006: Backend tests pass | T014 | ⬜ |
-| SC-007: Frontend build succeeds | T015 | ⬜ |
-| SC-008: AI module vector search works | T028 | ⬜ |
+| SC-001: Host node --version reports v24.x | T008 | ✅ v24.18.1 |
+| SC-002: Gitea MCP starts without EBADENGINE | T016 | ✅ |
+| SC-003: Qdrant healthz passes on v1.18.1 | T024 | ✅ |
+| SC-004: Qdrant MCP lists collections | T029 | ✅ |
+| SC-005: All 5 MCP servers respond | T031-T035 | ✅ |
+| SC-006: Backend tests pass | T014 | ✅ 891 passed |
+| SC-007: Frontend build succeeds | T015 | ✅ 45 pages |
+| SC-008: AI module vector search works | T028 | ✅ 321 passed |
