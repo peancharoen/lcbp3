@@ -53,6 +53,11 @@ describe('AdminMobileSidebar', () => {
     render(<AdminMobileSidebar />);
     await user.click(screen.getByRole('button', { name: 'Toggle admin menu' }));
     expect(screen.getByText('Admin Navigation')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /AI Console/i })).toHaveAttribute('href', '/admin/ai');
+    // AI Console เป็น collapsible menu ที่มี children — คลิกเพื่อขยาย
+    await user.click(screen.getByRole('button', { name: /AI Console/i }));
+    expect(screen.getByRole('link', { name: 'ระบบ' })).toHaveAttribute('href', '/admin/ai/system');
+    expect(screen.getByRole('link', { name: 'RAG Playground' })).toHaveAttribute('href', '/admin/ai/rag-playground');
+    expect(screen.getByRole('link', { name: 'แก้ไข Prompt' })).toHaveAttribute('href', '/admin/ai/prompts');
+    expect(screen.getByRole('link', { name: 'ทดสอบ Sandbox' })).toHaveAttribute('href', '/admin/ai/sandbox');
   });
 });

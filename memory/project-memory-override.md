@@ -107,6 +107,10 @@
 | D74 | Qdrant = v1.18.1 — รองรับ Qdrant MCP client v1.18.0 (`@infoinlet/mcp-qdrant`); `@qdrant/js-client-rest` v1.17.0 ยัง compatible กับ server v1.18.1 (ไม่ต้อง bump); collection `lcbp3_vectors` มี Hybrid schema (`bge_dense` 1024 Cosine + `bge_sparse` SPLADE) + payload indexes (`project_public_id` tenant, `doc_public_id`, `status_code`, `doc_type`) — สืบทอดจาก v1.16.1 ผ่าน volume persistence; `ensureCollection()` ใน `qdrant.service.ts` auto-upgrade เมื่อ backend restart                   | Feature 143        |
 | D75 | MCP servers ทั้ง 8 ตัว (3 existing: StitchMCP, devin/mariadb, devin/mcp-playwright + 5 new: redis, qdrant, memory, fetch, gitea) รันผ่าน Devin CLI `~/.config/devin/mcp_config.json` — ใช้สำหรับ development workflow เท่านั้น (ไม่ใช่ production infrastructure); ไม่ commit ไฟล์นี้เข้า repo (user-level config)                                                                                                                                                                                     | Feature 143        |
 | D76 | Fetch MCP (`mcp-fetch-server`) บล็อก private IP addresses (SSRF protection by design) — ใช้ได้กับ public URLs เท่านั้น; สำหรับ internal services ให้ใช้ `curl` ผ่าน exec หรือ MCP เฉพาะทาง (เช่น Gitea MCP สำหรับ Gitea API, Redis MCP สำหรับ Redis)                                                                                                                                                                                                                                                   | Feature 143        |
+| D77 | AI Console Sub-menu Structure — sidebar AI Console เป็น collapsible menu มี 4 children: `ระบบ` (`/admin/ai/system`), `RAG Playground` (`/admin/ai/rag-playground`), `แก้ไข Prompt` (`/admin/ai/prompts`), `ทดสอบ Sandbox` (`/admin/ai/sandbox`); `/admin/ai` redirect ไป `/admin/ai/system` เป็น default                                                                                                                                                                                               | Session 2026-08-02 |
+| D78 | AI Console Infrastructure Monitoring Persistence — ใช้ Next.js `layout.tsx` ที่ `/admin/ai/` เพื่อ render `AiConsoleHeader` + `AiInfrastructureMonitoring` ในทุก sub-page; monitoring component แยกเป็นไฟล์อิสระ (`AiInfrastructureMonitoring.tsx`) พร้อม state ย่อ/ขยาย + localStorage (สืบทอดจาก Feature-240 D17)                                                                                                                                                                                    | Session 2026-08-02 |
+| D79 | AI Console Per-page State — แต่ละ sub-page มี state ของตัวเอง ไม่ใช้ shared store; `SandboxTabs` คง internal tab toggle (Pipeline Sandbox / Full Pipeline); `PromptManagementTabs` คง internal tab toggle (OCR System / AI Extraction)                                                                                                                                                                                                                                                                 | Session 2026-08-02 |
+| D80 | AI Console Shared Constants — `ai-constants.ts` เก็บ `MAIN_MODEL_NAME` (`np-dms-ai`), `OCR_MODEL_NAME` (`np-dms-ocr`), `toCanonicalModel()`, `ensureArray()` ใช้ร่วมระหว่าง sub-pages; ห้าม hardcode model names ในแต่ละหน้า                                                                                                                                                                                                                                                                           | Session 2026-08-02 |
 
 ## Environment & Services
 
@@ -143,6 +147,24 @@ QDRANT_URL
 ```
 
 ## Next Session Focus
+
+### AI Console Frontend Refactor (Session 2026-08-02) ✅ CODE COMPLETE
+
+- [x] **Shared constants** — `ai-constants.ts` (D80)
+- [x] **AiConsoleHeader** — header + AI Enabled badge
+- [x] **AiInfrastructureMonitoring** — แยก monitoring section เป็น component อิสระ (D78)
+- [x] **Layout wrapper** — `layout.tsx` ที่ `/admin/ai/` ห่อ header + monitoring (D78)
+- [x] **System Toggle** — `/admin/ai/system/page.tsx`
+- [x] **RAG Playground** — `/admin/ai/rag-playground/page.tsx`
+- [x] **Prompt Editor** — `/admin/ai/prompts/page.tsx` (ใช้ `PromptManagementTabs` เดิม)
+- [x] **Sandbox Testing** — `/admin/ai/sandbox/page.tsx` (ใช้ `SandboxTabs` เดิม)
+- [x] **Redirect** — `/admin/ai/page.tsx` → `/admin/ai/system` (D77)
+- [x] **Sidebar** — AI Console → collapsible menu 4 children (D77)
+- [x] **Sidebar test** — อัปเดต test ให้ตรง collapsible pattern
+- [x] **tsc + eslint** — ผ่าน 0 errors
+- [ ] **pnpm test** — ยังไม่ได้รัน sidebar test
+- [ ] **Browser preview** — ยังไม่ได้ทดสอบ UI
+- [x] Session log: `specs/88-logs/session-2026-08-02-ai-console-refactor.md`
 
 ### Monitoring Dashboard Overhaul + cadvisor Fixes (Session 2026-08-01) ✅ COMPLETE
 

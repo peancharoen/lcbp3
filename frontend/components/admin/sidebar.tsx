@@ -86,7 +86,17 @@ export const menuItems: MenuItem[] = [
       { href: '/admin/migration/errors', label: 'บันทึกข้อผิดพลาด' },
     ],
   },
-  { href: '/admin/ai', label: 'AI Console', icon: Brain },
+  {
+    label: 'AI Console',
+    sublabel: 'AI Intelligence',
+    icon: Brain,
+    children: [
+      { href: '/admin/ai/system', label: 'ระบบ' },
+      { href: '/admin/ai/rag-playground', label: 'RAG Playground' },
+      { href: '/admin/ai/prompts', label: 'แก้ไข Prompt' },
+      { href: '/admin/ai/sandbox', label: 'ทดสอบ Sandbox' },
+    ],
+  },
   { href: '/admin/settings', label: 'ตั้งค่าระบบ', sublabel: 'Settings', icon: Settings },
 ];
 
