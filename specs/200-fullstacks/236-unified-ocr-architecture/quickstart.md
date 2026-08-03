@@ -45,7 +45,7 @@ $env:IDEMPOTENCY_KEY = "test-$(Get-Date -UFormat %s)"
 curl -s "$BACKEND_URL/ai/sandbox-profiles/standard" \
   -H "Authorization: Bearer $TOKEN" \
   | python3 -c "import sys, json; d=json.load(sys.stdin)['data']; print(d.get('profileName'), d.get('temperature'))"
-# Expected: "standard" 0.5 (or current production value)
+# Expected: "standard" 0.3 (or current production value)
 ```
 
 **PowerShell:**
@@ -53,7 +53,7 @@ curl -s "$BACKEND_URL/ai/sandbox-profiles/standard" \
 (Invoke-RestMethod -Uri "$env:BACKEND_URL/ai/sandbox-profiles/standard" -Headers @{
   "Authorization" = "Bearer $env:TOKEN"
 }).data | Select-Object profileName, temperature
-# Expected: profileName=standard, temperature=0.5
+# Expected: profileName=standard, temperature=0.3
 ```
 
 ### 1B. Save sandbox draft (should not affect production)
@@ -85,7 +85,7 @@ curl -s "$BACKEND_URL/ai/profiles/standard" \
 curl -s -X POST "$BACKEND_URL/ai/sandbox-profiles/standard/reset" \
   -H "Authorization: Bearer $TOKEN" \
   | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('data', {}).get('temperature'))"
-# Expected: original production temperature (e.g. 0.5)
+# Expected: original production temperature (e.g. 0.3)
 ```
 
 ---

@@ -38,20 +38,20 @@ export class AiPolicyService {
   private readonly defaultProfiles: Record<ExecutionProfile, RuntimePolicy> = {
     interactive: {
       canonicalModel: 'np-dms-ai',
-      temperature: 0.7,
+      temperature: 0.15,
       topP: 0.9,
       maxTokens: 2048,
       numCtx: 4096,
-      repeatPenalty: 1.15,
+      repeatPenalty: 1.05,
       keepAliveSeconds: 300,
     },
     standard: {
       canonicalModel: 'np-dms-ai',
-      temperature: 0.5,
+      temperature: 0.3,
       topP: 0.8,
       maxTokens: 4096,
       numCtx: 8192,
-      repeatPenalty: 1.15,
+      repeatPenalty: 1.05,
       keepAliveSeconds: 600,
     },
     quality: {
@@ -60,7 +60,7 @@ export class AiPolicyService {
       topP: 0.95,
       maxTokens: 8192,
       numCtx: 8192,
-      repeatPenalty: 1.15,
+      repeatPenalty: 1.05,
       keepAliveSeconds: 600,
     },
     'deep-analysis': {
@@ -69,7 +69,7 @@ export class AiPolicyService {
       topP: 0.85,
       maxTokens: 8192,
       numCtx: 32768,
-      repeatPenalty: 1.15,
+      repeatPenalty: 1.05,
       keepAliveSeconds: 0,
     },
   };
@@ -77,11 +77,11 @@ export class AiPolicyService {
   private readonly defaultOcrPolicy: RuntimePolicy = {
     canonicalModel: 'np-dms-ocr',
     temperature: 0.1,
-    topP: 0.1,
-    maxTokens: null,
-    numCtx: null,
+    topP: 0.6,
+    maxTokens: 4096,
+    numCtx: 16384,
     repeatPenalty: 1.1,
-    keepAliveSeconds: 0,
+    keepAliveSeconds: 120,
   };
 
   constructor(

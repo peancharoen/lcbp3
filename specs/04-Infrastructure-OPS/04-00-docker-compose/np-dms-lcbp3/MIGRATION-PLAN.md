@@ -933,11 +933,14 @@
   # ตรวจสอบ
   sudo -u ollama ollama list
   # ควรเห็น 2 custom models + base models:
-  #   np-dms-ai:latest
-  #   np-dms-ocr:latest
-  #   scb10x/typhoon2.5-qwen3-4b:latest
-  #   scb10x/typhoon-ocr1.5-3b:latest
-  #   (gemma4:e4b, qwen3.6:27b — base models เดิม)
+  # NAME                                 ID              SIZE      MODIFIED
+  # np-dms-ocr:latest                    b04e7590f728    3.2 GB    5 weeks ago
+  # np-dms-ai:latest                     89b464a12a9a    2.5 GB    5 weeks ago
+  # gemma4:e4b                           c6eb396dbd59    9.6 GB    5 weeks ago
+  # qwen3.6:27b                          a50eda8ed977    17 GB     5 weeks ago
+  # scb10x/typhoon-ocr1.5-3b:latest      f8b63e075c7b    3.2 GB    5 weeks ago
+  # scb10x/typhoon2.5-qwen3-4b:latest    b1f251ef8359    2.5 GB    5 weeks ago
+  # scb10x/typhoon2.5-qwen3-30b-a3b
 
   # ตรวจสอบ VRAM usage
   sudo -u ollama ollama ps

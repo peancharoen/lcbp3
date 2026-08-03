@@ -59,10 +59,10 @@ interface CreateAiJobRequest {
 
 | Profile | `temperature` | `top_p` | `max_tokens` | `num_ctx` | `repeat_penalty` | `keep_alive` |
 |---|---|---|---|---|---|---|
-| `interactive` | 0.7 | 0.9 | 2048 | 4096 | 1.15 | `"5m"` |
-| `standard` | 0.5 | 0.8 | 4096 | 8192 | 1.15 | `"10m"` |
-| `quality` | 0.1 | 0.95 | 8192 | 8192 | 1.15 | `"10m"` |
-| `deep-analysis` | 0.3 | 0.85 | 8192 | 32768 | 1.15 | `"0"` |
+| `interactive` | 0.15 | 0.9 | 2048 | 4096 | 1.05 | `"5m"` |
+| `standard` | 0.3 | 0.8 | 4096 | 8192 | 1.05 | `"10m"` |
+| `quality` | 0.1 | 0.95 | 8192 | 8192 | 1.05 | `"10m"` |
+| `deep-analysis` | 0.3 | 0.85 | 8192 | 32768 | 1.05 | `"0"` |
 
 > ค่าเหล่านี้เป็น **default** — ops/admin calibrate ได้ผ่าน Admin Console และบันทึกใน DB ตาม ADR-029 (Dynamic Prompt Management)
 

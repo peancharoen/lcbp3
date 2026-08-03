@@ -193,7 +193,7 @@ Maps user requests → spec files to check + expected response.
 
 → Full details: [`.agents/rules/15-mcp-mariadb-tools.md`](./.agents/rules/15-mcp-mariadb-tools.md)
 
-Tools: test_connection, show_databases, show_tables, describe_table, query, insert, update, delete. ❌ No DDL.
+Tools: `mysql_test_connection`, `mysql_show_databases`, `mysql_show_tables`, `mysql_describe_table`, `mysql_query`, `mysql_insert`, `mysql_update`, `mysql_delete`. ❌ No DDL.
 
 ---
 
@@ -201,7 +201,55 @@ Tools: test_connection, show_databases, show_tables, describe_table, query, inse
 
 → Full details: [`.agents/rules/16-mcp-memory-tools.md`](./.agents/rules/16-mcp-memory-tools.md)
 
-Knowledge Graph tools: create/search/delete entities, relations, observations for long-term context.
+Knowledge Graph tools: `create_entities`, `create_relations`, `add_observations`, `delete_entities`, `delete_relations`, `delete_observations`, `open_nodes`, `read_graph`, `search_nodes` for long-term context.
+
+---
+
+## 🔴 MCP Redis Tools
+
+→ Full details: [`.agents/rules/17-mcp-redis-tools.md`](./.agents/rules/17-mcp-redis-tools.md)
+
+Tools: `set`, `get`, `delete`, `list`. Debug cache/Redlock/BullMQ. ❌ Don't delete Redlock keys (ADR-002).
+
+---
+
+## 🔍 MCP Qdrant Tools
+
+→ Full details: [`.agents/rules/18-mcp-qdrant-tools.md`](./.agents/rules/18-mcp-qdrant-tools.md)
+
+Tools: `qdrant_list_collections`, `qdrant_collection_info`, `qdrant_scroll`, `qdrant_count`, `qdrant_search`, `qdrant_health`. 🔴 Every query MUST include `projectPublicId` filter (ADR-023A).
+
+---
+
+## 🐙 MCP Gitea Tools
+
+→ Full details: [`.agents/rules/19-mcp-gitea-tools.md`](./.agents/rules/19-mcp-gitea-tools.md)
+
+60+ tools: issues, comments, labels, milestones, topics, pull requests, Gitea Actions (CI/CD), releases, wiki. 🔴 `merge_pull_request` is IRREVERSIBLE — confirm before.
+
+---
+
+## 🌐 MCP Fetch Tools
+
+→ Full details: [`.agents/rules/20-mcp-fetch-tools.md`](./.agents/rules/20-mcp-fetch-tools.md)
+
+Tools: `fetch_html`, `fetch_markdown`, `fetch_txt`, `fetch_json`, `fetch_readable`, `fetch_youtube_transcript`. Web content retrieval for research/docs.
+
+---
+
+## 🎨 MCP StitchMCP Tools
+
+→ Full details: [`.agents/rules/21-mcp-stitch-tools.md`](./.agents/rules/21-mcp-stitch-tools.md)
+
+Tools: project/screen/design-system management + `generate_screen_from_text`, `generate_variants`. ⚠️ Generated code must pass review (ADR-019, TS strict) before production.
+
+---
+
+## 🎭 MCP Playwright Tools
+
+→ Full details: [`.agents/rules/22-mcp-playwright-tools.md`](./.agents/rules/22-mcp-playwright-tools.md)
+
+Browser automation: navigate, click, fill_form, snapshot, console_messages, network_requests, screenshot. Pairs with `check-real-app` + `e2e-testing` skills.
 
 ---
 
@@ -251,6 +299,7 @@ This file is a **quick reference**. For detailed information:
 
 | Version | Date       | Changes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Updated By     |
 | ------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| 1.9.13  | 2026-08-03 | **MCP Rules Sync:** Added 6 new MCP rule files (17-22) covering Redis, Qdrant, Gitea, Fetch, StitchMCP, Playwright servers; fixed MariaDB rule (15) tool name prefixes `mcp1_*` → `mysql_*` and Memory rule (16) verified (no `mcp3_*` prefix); synced rules 17-22 from `.devin/rules/` → `.agents/rules/`; updated `.agents/README.md` architecture tree + MCP servers table; AGENTS.md MCP sections expanded from 2 → 8 servers                                                         | Devin          |
 | 1.9.12  | 2026-07-23 | **Refactoring:** Extracted 12 sections to `.agents/rules/` reference files (5 new: 12-16); merged Out of Scope into 05-forbidden-actions.md; AGENTS.md reduced from 756→283 lines (63% reduction); all content preserved in rule files with stub links in AGENTS.md                                                                                                                                                                                                                       | Windsurf AI    |
 | 1.9.10  | 2026-06-06 | Added MCP MariaDB Tools section with available tools (test_connection, show_databases, show_tables, describe_table, query, insert, update, delete), usage guidelines for development flow, and safety warnings for DDL operations; Added MCP Memory Tools section with Knowledge Graph management tools (create_entities, create_relations, add_observations, delete_entities, delete_relations, delete_observations, open_nodes, read_graph, search_nodes) for long-term context storage | Windsurf AI    |
 | 1.9.9   | 2026-06-13 | ADR-034 canonical model names sync: np-dms-ai:latest / np-dms-ocr:latest; ADR-036 parity prep; model switching and sidecar refs updated                                                                                                                                                                                                                                                                                                                                                   | Codex          |

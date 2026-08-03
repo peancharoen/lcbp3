@@ -3,11 +3,11 @@
 > **The Event Horizon of Software Quality.**
 > _Adapted for Google Antigravity IDE from [github/spec-kit](https://github.com/github/spec-kit)._
 >
-> # Speckit Agent Infrastructure (v1.9.0)
+> # Speckit Agent Infrastructure (v1.9.13)
 >
-> - Version: 1.9.0
-> - Last Updated: 2026-05-22
-> - Core Principle: **Sync with AGENTS.md v1.9.6**
+> - Version: 1.9.13
+> - Last Updated: 2026-08-03
+> - Core Principle: **Sync with AGENTS.md v1.9.13** + MCP servers (8)
 
 ---
 
@@ -95,7 +95,7 @@ The toolkit is organized into modular components that provide both the logic (Sc
 │   └── util-speckit-*.md          # Utilities (checklist, diff, migrate, etc.)
 │
 ├── rules/                         # Project Context & Validation Rules
-│   ├── 00-project-context.md      # Role, Persona, Rule Tiers (v1.9.6)
+│   ├── 00-project-context.md      # Role, Persona, Rule Tiers (v1.9.13)
 │   ├── 01-adr-019-uuid.md         # UUID Strategy (Critical)
 │   ├── 02-security.md             # Security Requirements (ADR-023/023A)
 │   ├── 03-typescript.md            # TypeScript Standards
@@ -106,7 +106,18 @@ The toolkit is organized into modular components that provide both the logic (Sc
 │   ├── 08-development-flow.md      # Development Workflow (Tier 3 SPECIALIZED WORK)
 │   ├── 09-commit-checklist.md      # Pre-commit Validation
 │   ├── 10-error-handling.md       # ADR-007 Compliance
-│   └── 11-ai-integration.md       # ADR-023/023A AI Boundaries
+│   ├── 11-ai-integration.md       # ADR-023/023A AI Boundaries
+│   ├── 12-key-spec-files.md       # Key Spec Files reference table
+│   ├── 13-specs-folder-organization.md # Specs folder structure
+│   ├── 14-context-aware-triggers.md   # Request → spec files mapping
+│   ├── 15-mcp-mariadb-tools.md    # MCP MariaDB tools (mysql_*)
+│   ├── 16-mcp-memory-tools.md     # MCP Memory Knowledge Graph tools
+│   ├── 17-mcp-redis-tools.md      # MCP Redis tools (cache/Redlock/BullMQ)
+│   ├── 18-mcp-qdrant-tools.md     # MCP Qdrant tools (vector DB, multi-tenancy)
+│   ├── 19-mcp-gitea-tools.md      # MCP Gitea tools (issues/PRs/Actions/wiki)
+│   ├── 20-mcp-fetch-tools.md      # MCP Fetch tools (web content retrieval)
+│   ├── 21-mcp-stitch-tools.md     # MCP StitchMCP tools (UI mockup + design system)
+│   └── 22-mcp-playwright-tools.md # MCP Playwright tools (browser automation, E2E)
 │
 └── scripts/
     ├── bash/                      # Bash Core (Kinetic logic)
@@ -265,7 +276,7 @@ If you change your mind mid-project:
 
 ---
 
-## 🏗️ LCBP3-DMS Project Notes (v1.9.6)
+## 🏗️ LCBP3-DMS Project Notes (v1.9.13)
 
 ### 📊 Current Status: Production Ready (2026-05-22)
 
@@ -309,6 +320,21 @@ If you change your mind mid-project:
 - ❌ DO NOT give Ollama direct DB access — all writes via DMS API (ADR-023/023A)
 - ❌ DO NOT use `any` TypeScript type anywhere
 
+### 🔌 MCP Servers (8) — Tool Reference
+
+| Server                 | Rule File                    | Purpose                                               |
+| ---------------------- | ---------------------------- | ----------------------------------------------------- |
+| `devin/mariadb`        | `15-mcp-mariadb-tools.md`    | DB inspection (mysql_query, describe_table, ฯลฯ)      |
+| `memory`               | `16-mcp-memory-tools.md`     | Knowledge Graph (entities, relations, observations)   |
+| `redis`                | `17-mcp-redis-tools.md`      | Cache/Redlock/BullMQ inspection (set/get/delete/list) |
+| `qdrant`               | `18-mcp-qdrant-tools.md`     | Vector DB inspection (search, scroll, count)          |
+| `gitea`                | `19-mcp-gitea-tools.md`      | Issues/PRs/labels/Actions CI/CD/wiki (60+ tools)      |
+| `fetch`                | `20-mcp-fetch-tools.md`      | Web content retrieval (HTML/MD/JSON/Readability)      |
+| `StitchMCP`            | `21-mcp-stitch-tools.md`     | UI mockup + design system generation                  |
+| `devin/mcp-playwright` | `22-mcp-playwright-tools.md` | Browser automation, E2E, real-app verify              |
+
+> **Usage rule:** MCP tools are for **debug/inspect** only — never substitute application code paths (e.g. `QdrantService.search()`, `StorageService`, BullMQ API). All Qdrant queries MUST include `projectPublicId` filter (ADR-023A).
+
 ---
 
 ## 🔧 Troubleshooting
@@ -325,7 +351,7 @@ If you change your mind mid-project:
 # Run version validation
 ./scripts/bash/validate-versions.sh
 
-# Fix by updating all files to v1.9.6
+# Fix by updating all files to v1.9.13
 # Then re-run validation to confirm
 ```
 

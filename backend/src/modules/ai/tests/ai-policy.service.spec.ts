@@ -225,7 +225,7 @@ describe('AiPolicyService', () => {
       mockProfileRepo.findOne.mockRejectedValue(new Error('DB error'));
       const result = await service.getModelDefaults('np-dms-ai');
       expect(result.canonicalModel).toBe('np-dms-ai');
-      expect(result.temperature).toBe(0.5);
+      expect(result.temperature).toBe(0.3);
       expect(result.keepAliveSeconds).toBe(600);
     });
   });
@@ -485,7 +485,7 @@ describe('AiPolicyService', () => {
       expect(payload.effectiveProfile).toBe('standard');
       expect(payload.canonicalModel).toBe('np-dms-ai');
       expect(payload.snapshotParams).toBeDefined();
-      expect(payload.snapshotParams.temperature).toBe(0.5);
+      expect(payload.snapshotParams.temperature).toBe(0.3);
     });
 
     it('ควรสร้าง OCR snapshot แยกสำหรับงาน OCR โดยไม่ freeze keep_alive', async () => {

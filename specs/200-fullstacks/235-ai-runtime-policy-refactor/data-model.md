@@ -44,11 +44,11 @@ export type ExecutionProfile = 'interactive' | 'standard' | 'quality' | 'deep-an
 // File: backend/src/modules/ai/interfaces/execution-policy.interface.ts
 export interface RuntimePolicy {
   canonicalModel: 'np-dms-ai' | 'np-dms-ocr';  // ชื่อ canonical เท่านั้น
-  temperature: number;       // default: interactive=0.7, standard=0.5, quality=0.1, deep-analysis=0.3
+  temperature: number;       // default: interactive=0.15, standard=0.3, quality=0.1, deep-analysis=0.3
   topP: number;              // default: interactive=0.9, standard=0.8, quality=0.95, deep-analysis=0.85
   maxTokens: number;         // default: interactive=2048, standard=4096, quality=8192, deep-analysis=8192
   numCtx: number;            // default: interactive=4096, standard=8192, quality=8192, deep-analysis=32768
-  repeatPenalty: number;     // default: 1.15 ทุก profile
+  repeatPenalty: number;     // default: 1.05 ทุก profile
   keepAliveSeconds: number;  // default: interactive=300, standard=600, quality=600, deep-analysis=0
 }
 ```

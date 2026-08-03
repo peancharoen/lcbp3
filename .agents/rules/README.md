@@ -4,9 +4,9 @@ Critical rules and guidelines for AI agents working on LCBP3-DMS.
 
 ## Version
 
-- **Current:** v1.9.12
-- **Last Updated:** 2026-07-23
-- **Synced with:** `AGENTS.md` (v1.9.12)
+- **Current:** v1.9.13
+- **Last Updated:** 2026-08-03
+- **Synced with:** `AGENTS.md` (v1.9.12) + MCP servers (8)
 
 ## Purpose
 
@@ -99,13 +99,19 @@ Best practice — follow when possible:
 
 ### Reference Tables (extracted from AGENTS.md v1.9.12)
 
-| File                              | Purpose                                                    |
-| --------------------------------- | ---------------------------------------------------------- |
-| `12-key-spec-files.md`            | Full Key Spec Files table with ADR status and paths        |
-| `13-specs-folder-organization.md` | Specs folder structure, naming conventions, categories     |
-| `14-context-aware-triggers.md`    | Request → spec files mapping with status legend            |
-| `15-mcp-mariadb-tools.md`         | MCP MariaDB tools, usage patterns, safety warnings         |
-| `16-mcp-memory-tools.md`          | MCP Memory Knowledge Graph tools, usage patterns, cautions |
+| File                              | Purpose                                                         |
+| --------------------------------- | --------------------------------------------------------------- |
+| `12-key-spec-files.md`            | Full Key Spec Files table with ADR status and paths             |
+| `13-specs-folder-organization.md` | Specs folder structure, naming conventions, categories          |
+| `14-context-aware-triggers.md`    | Request → spec files mapping with status legend                 |
+| `15-mcp-mariadb-tools.md`         | MCP MariaDB tools, usage patterns, safety warnings              |
+| `16-mcp-memory-tools.md`          | MCP Memory Knowledge Graph tools, usage patterns, cautions      |
+| `17-mcp-redis-tools.md`           | MCP Redis tools — cache debug, Redlock, BullMQ inspection       |
+| `18-mcp-qdrant-tools.md`          | MCP Qdrant tools — vector DB inspection, multi-tenancy          |
+| `19-mcp-gitea-tools.md`           | MCP Gitea tools — issues, PRs, labels, Actions CI/CD, wiki      |
+| `20-mcp-fetch-tools.md`           | MCP Fetch tools — web content retrieval (HTML/MD/JSON)          |
+| `21-mcp-stitch-tools.md`          | MCP StitchMCP tools — UI mockup + design system generation      |
+| `22-mcp-playwright-tools.md`      | MCP Playwright tools — browser automation, E2E, real-app verify |
 
 ## Maintenance
 
