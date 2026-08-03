@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Loader2,
@@ -101,6 +101,9 @@ export function AiInfrastructureMonitoring() {
     vram: false,
   });
 
+  const [throughput, setThroughput] = useState<{ realtime: number; batch: number } | null>(null);
+  const prevCompletedRef = useRef<{ realtime: number; batch: number; timestamp: number } | null>(null);
+
   const { data: vramStatus, refetch: refetchVram } = useQuery({
     queryKey: ['ai-vram-status'],
     queryFn: async () => {
@@ -123,6 +126,22 @@ export function AiInfrastructureMonitoring() {
       }
     }
   }, []);
+
+  useEffect(() => {
+    const realtimeCompleted = health?.queues?.realtime?.completed ?? 0;
+    const batchCompleted = health?.queues?.batch?.completed ?? 0;
+    const now = Date.now();
+    if (prevCompletedRef.current) {
+      const elapsedMin = (now - prevCompletedRef.current.timestamp) / 60000;
+      if (elapsedMin > 0) {
+        setThroughput({
+          realtime: Math.max(0, Math.round((realtimeCompleted - prevCompletedRef.current.realtime) / elapsedMin)),
+          batch: Math.max(0, Math.round((batchCompleted - prevCompletedRef.current.batch) / elapsedMin)),
+        });
+      }
+    }
+    prevCompletedRef.current = { realtime: realtimeCompleted, batch: batchCompleted, timestamp: now };
+  }, [health?.queues?.realtime?.completed, health?.queues?.batch?.completed]);
 
   const toggleSection = () => {
     const nextVal = !isSectionCollapsed;
@@ -250,6 +269,17 @@ export function AiInfrastructureMonitoring() {
                     )}
                   </div>
                 </div>
+                <div className="space-y-1">
+                  <span className="text-xs text-muted-foreground">โมเดลที่ใช้งานอยู่ (Active):</span>
+                  <div className="flex flex-wrap gap-1">
+                    <Badge variant="secondary" className="text-[10px] py-0 px-1 bg-primary/10 text-primary border-none">
+                      Main: {health?.activeModels?.main ?? '-'}
+                    </Badge>
+                    <Badge variant="secondary" className="text-[10px] py-0 px-1 bg-primary/10 text-primary border-none">
+                      OCR: {health?.activeModels?.ocr ?? '-'}
+                    </Badge>
+                  </div>
+                </div>
                 {health?.ollama?.error && (
                   <p className="mt-1 text-[10px] text-destructive line-clamp-2">{health.ollama.error}</p>
                 )}
@@ -375,7 +405,7 @@ export function AiInfrastructureMonitoring() {
                 <div className="space-y-1 text-xs">
                   <div className="flex items-center justify-between font-medium text-[11px] border-b pb-1 mb-1">
                     <span>คิว / สถานะงาน</span>
-                    <span>Active / Waiting / Failed</span>
+                    <span>Active / Waiting / Done / Failed</span>
                   </div>
                   <div className="flex items-center justify-between text-muted-foreground">
                     <span className="flex items-center gap-1 font-mono">
@@ -386,6 +416,7 @@ export function AiInfrastructureMonitoring() {
                     </span>
                     <span className="font-semibold text-foreground">
                       {health?.queues?.realtime?.active ?? 0} / {health?.queues?.realtime?.waiting ?? 0} /{' '}
+                      <span className="text-emerald-500">{health?.queues?.realtime?.completed ?? 0}</span> /{' '}
                       <span className={(health?.queues?.realtime?.failed ?? 0) > 0 ? 'text-destructive' : ''}>
                         {health?.queues?.realtime?.failed ?? 0}
                       </span>
@@ -400,12 +431,19 @@ export function AiInfrastructureMonitoring() {
                     </span>
                     <span className="font-semibold text-foreground">
                       {health?.queues?.batch?.active ?? 0} / {health?.queues?.batch?.waiting ?? 0} /{' '}
+                      <span className="text-emerald-500">{health?.queues?.batch?.completed ?? 0}</span> /{' '}
                       <span className={(health?.queues?.batch?.failed ?? 0) > 0 ? 'text-destructive' : ''}>
                         {health?.queues?.batch?.failed ?? 0}
                       </span>
                     </span>
                   </div>
                 </div>
+                {throughput && (throughput.realtime > 0 || throughput.batch > 0) && (
+                  <div className="flex items-center justify-between text-[10px] text-muted-foreground border-t pt-1">
+                    <span>Throughput (jobs/min)</span>
+                    <span>RT: {throughput.realtime} | Batch: {throughput.batch}</span>
+                  </div>
+                )}
                 {(health?.queues?.realtime?.error || health?.queues?.batch?.error) && (
                   <p className="mt-1 text-[10px] text-destructive line-clamp-1">
                     {health.queues.realtime.error || health.queues.batch.error}
@@ -450,6 +488,12 @@ export function AiInfrastructureMonitoring() {
                         </span>
                       </div>
                       <Progress value={vramStatus.usagePercent} className="h-2" />
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">VRAM ที่เหลือว่าง</span>
+                        <span className="font-semibold text-emerald-500">
+                          {vramStatus.totalVRAMMB - vramStatus.usedVRAMMB} MB
+                        </span>
+                      </div>
                     </div>
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-1 text-xs">

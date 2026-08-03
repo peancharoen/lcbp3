@@ -1,7 +1,7 @@
 ---
 name: save-memory
 description: บันทึก session log และอัปเดต project memory ตามโครงสร้างใหม่
-version: 1.9.1
+version: 1.9.0
 scope: project-management
 depends-on: []
 user-invocable: true

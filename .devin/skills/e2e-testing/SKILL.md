@@ -4,7 +4,7 @@ description: Playwright E2E testing patterns, Page Object Model, configuration, 
 version: 1.9.0
 scope: testing
 depends-on: []
-handoffs-to: [speckit-tester]
+handoffs-to: [109-speckit.tester]
 user-invocable: true
 ---
 

@@ -33,9 +33,9 @@ When user asks about... check these files:
 | "AI Model / OCR Active Switch" | ✅     | `ADR-032`, `ADR-033`, `specs/200-fullstacks/233-ai-model-ocr-runner-management/`      | Synchronous LLM switches, VRAM Release, sidecar API Key protection      |
 | "จัดการ document numbering"    | ✅     | `ADR-002`, `specs/03-Data-and-Storage/03-04-document-numbering.md`                    | Redis Redlock + template system + preview/override workflows            |
 | "Audit ความปลอดภัย"            | ✅     | `ADR-016`, `ADR-019`, `ADR-023`, `ADR-023A`                                           | ตรวจสอบ UUID pattern, CASL Guard, AI Boundary และ Qdrant multi-tenancy  |
-| "แก้ bug / bugfix"             | ✅     | `.agents/workflows/bugfix.md`, `error-catalog.md`                                     | ใช้ bugfix workflow สำหรับเคสที่สาเหตุชัดเจน                            |
-| "ตรวจแอปจริง"                  | ✅     | `.windsurf/workflows/check-real-app.md`                                               | ตรวจ endpoint/UI/console หลัง build pass — No Fake Evidence             |
-| "งานค้าง / resume"             | ✅     | `.windsurf/workflows/resume-pending-work.md`                                          | อ่าน checkpoint เดิม → ตรวจ build → วางแผนต่อโดยไม่ทำงานซ้ำ             |
+| "แก้ bug / bugfix"             | ✅     | `./workflows/bugfix.md`, `error-catalog.md`                                           | ใช้ bugfix workflow สำหรับเคสที่สาเหตุชัดเจน                            |
+| "ตรวจแอปจริง"                  | ✅     | `./workflows/check-real-app.md`                                                       | ตรวจ endpoint/UI/console หลัง build pass — No Fake Evidence             |
+| "งานค้าง / resume"             | ✅     | `./workflows/resume-pending-work.md`                                                  | อ่าน checkpoint เดิม → ตรวจ build → วางแผนต่อโดยไม่ทำงานซ้ำ             |
 
 ## Status Legend
 

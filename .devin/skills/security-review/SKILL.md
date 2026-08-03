@@ -4,7 +4,7 @@ description: Comprehensive security review for LCBP3-DMS with OWASP Top 10 check
 version: 1.9.0
 scope: security
 depends-on: []
-handoffs-to: [speckit-reviewer, speckit-security-audit]
+handoffs-to: [110-speckit.reviewer, 112-speckit.security-audit]
 user-invocable: true
 ---
 
@@ -358,7 +358,7 @@ const response = await fetch('http://localhost:3001/api/ai/search', {
 ```
 
 #### Verification Steps
-- [ ] AI processing on Admin Desktop only (Desk-5439)
+- [ ] AI processing on Admin Desktop only (np-dms-lcbp3)
 - [ ] No direct Ollama calls from backend/frontend
 - [ ] No direct Qdrant calls from backend/frontend
 - [ ] All AI interactions via DMS API endpoints

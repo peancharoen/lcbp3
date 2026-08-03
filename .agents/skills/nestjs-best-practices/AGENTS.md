@@ -3973,7 +3973,7 @@ const contracts = await this.contractRepo.find({
 
 All schema changes must be made **directly** in the canonical SQL file:
 
-- `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql`
+- `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql`
 
 Delta scripts (for incremental rollout to existing environments) go under:
 
@@ -3997,7 +3997,7 @@ Data migration (e.g., backfilling a new column) is handled by **n8n workflows**,
 1. **Update Data Dictionary** first:
    - `specs/03-Data-and-Storage/03-01-data-dictionary.md` — add field meaning + business rules.
 2. **Update the canonical schema**:
-   - Edit `lcbp3-v1.8.0-schema-02-tables.sql` — add/alter column, constraint, index.
+   - Edit `lcbp3-v1.9.0-schema-02-tables.sql` — add/alter column, constraint, index.
 3. **Add a delta script** (if deploying to existing env):
    - `specs/03-Data-and-Storage/deltas/2026-04-22-add-rfa-revision-column.sql`
 
@@ -4065,7 +4065,7 @@ export default {
 
 - [ADR-009 Database Migration Strategy](../../../../specs/06-Decision-Records/ADR-009-database-migration-strategy.md)
 - [Data Dictionary](../../../../specs/03-Data-and-Storage/03-01-data-dictionary.md)
-- [Schema Tables](../../../../specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql)
+- [Schema Tables](../../../../specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql)
 
 ---
 
@@ -4088,9 +4088,9 @@ Unlike standard NestJS/TypeORM practices, this project does **NOT** use TypeORM 
 
 ```
 specs/03-Data-and-Storage/
-├── lcbp3-v1.8.0-schema-01-drop.sql      # Drop statements (dev only)
-├── lcbp3-v1.8.0-schema-02-tables.sql   # CREATE TABLE statements
-├── lcbp3-v1.8.0-schema-03-views-indexes.sql  # Views, indexes, constraints
+├── lcbp3-v1.9.0-schema-01-drop.sql      # Drop statements (dev only)
+├── lcbp3-v1.9.0-schema-02-tables.sql   # CREATE TABLE statements
+├── lcbp3-v1.9.0-schema-03-views-indexes.sql  # Views, indexes, constraints
 └── deltas/                              # Incremental changes
     ├── 01-add-reference-date.sql
     ├── 02-add-rbac-bulk-permission.sql
@@ -4123,7 +4123,7 @@ TypeOrmModule.forRootAsync({
 1. **Modify SQL file directly**:
 
    ```sql
-   -- specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql
+   -- specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql
    ALTER TABLE correspondences
    ADD COLUMN priority VARCHAR(20) DEFAULT 'normal';
    ```
@@ -4179,7 +4179,7 @@ TypeOrmModule.forRoot({
 
 ### When You Need Schema Changes
 
-1. Check `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql`
+1. Check `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql`
 2. Add your DDL to the appropriate SQL file
 3. Create delta file in `deltas/` directory
 4. Apply SQL to your database
@@ -6680,7 +6680,7 @@ Frontend uses `workflow.availableActions` to render buttons — no client-side s
 - [ADR-020 AI Intelligence Integration](../../../specs/06-Decision-Records/ADR-020-ai-intelligence-integration.md)
 - [ADR-021 Workflow Context](../../../specs/06-Decision-Records/ADR-021-workflow-context.md)
 - [Backend Engineering Guidelines](../../../specs/05-Engineering-Guidelines/05-02-backend-guidelines.md)
-- [Schema — v1.8.0 Tables](../../../specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql)
+- [Schema — v1.8.0 Tables](../../../specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql)
 - [Data Dictionary](../../../specs/03-Data-and-Storage/03-01-data-dictionary.md)
 - Upstream: [Kadajett/nestjs-best-practices](https://github.com/Kadajett/nestjs-best-practices) v1.1.0
 

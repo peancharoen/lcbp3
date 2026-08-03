@@ -28,7 +28,7 @@
 - **ADR-016 Security:** JWT + CASL 4-Level RBAC; `@UseGuards(JwtAuthGuard, CaslAbilityGuard)` on every mutation controller; `ThrottlerGuard` on auth; bcrypt 12 rounds; `Idempotency-Key` required on POST/PUT/PATCH.
 - **ADR-002 Document Numbering:** Redis Redlock + TypeORM `@VersionColumn` (double-lock). Never use application-side counter alone.
 - **ADR-008 Notifications:** BullMQ queue — never inline email/notification in a request thread.
-- **ADR-023/023A AI Boundary:** Ollama on Admin Desktop only; AI → DMS API → DB (never direct DB/storage). 2-model stack: `gemma4:e4b Q8_0` + `nomic-embed-text`. BullMQ `ai-realtime` / `ai-batch` queues. Human-in-the-loop validation required. (ADR-018 superseded by ADR-023)
+- **ADR-023/023A AI Boundary:** Ollama on np-dms-lcbp3 only (post-ADR-041); AI → DMS API → DB (never direct DB/storage). Model stack: `np-dms-ai` + `np-dms-ocr` + BGE-M3 + BGE-Reranker (ADR-034/035/040). BullMQ `ai-realtime` / `ai-batch` queues. Human-in-the-loop validation required. (ADR-018 superseded by ADR-023; ADR-040 amends ADR-035 OCR sidecar contract)
 - **ADR-029 Dynamic Prompt Management:** Prompt templates in DB (`ai_prompts`), never hardcoded in processor; Redis cache `ai:prompt:active:{type}` TTL 60s; `activate()` runs in DB transaction + Redis DEL after commit; `system.manage_all` guard on all mutations.
 - **ADR-007 Error Handling:** Layered (Validation / Business / System); `BusinessException` hierarchy; user-friendly `userMessage` + `recoveryAction`; technical stack only in logs.
 - **TypeScript Strict:** Zero `any`, zero `console.log` (use NestJS `Logger`).
@@ -56,12 +56,12 @@
 
 | When you need...           | Read                                                                                                                |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| A new feature spec         | `.agents/skills/speckit-specify/templates/spec-template.md` + `specs/01-Requirements/01-06-edge-cases-and-rules.md` |
-| A plan                     | `.agents/skills/speckit-plan/templates/plan-template.md` + relevant ADRs                                            |
-| Task breakdown             | `.agents/skills/speckit-tasks/templates/tasks-template.md` + existing patterns in `specs/08-Tasks/`                 |
+| A new feature spec         | `.agents/skills/102-speckit.specify/templates/spec-template.md` + `specs/01-Requirements/01-06-edge-cases-and-rules.md` |
+| A plan                     | `.agents/skills/104-speckit.plan/templates/plan-template.md` + relevant ADRs                                            |
+| Task breakdown             | `.agents/skills/105-speckit.tasks/templates/tasks-template.md` + existing patterns in `specs/08-Tasks/`                 |
 | Acceptance criteria / UAT  | `specs/01-Requirements/01-05-acceptance-criteria.md`                                                                |
 | Schema / table definition  | `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql` + `03-01-data-dictionary.md`                          |
-| RBAC / permissions         | `specs/03-Data-and-Storage/lcbp3-v1.8.0-seed-permissions.sql` + `01-02-01-rbac-matrix.md`                           |
+| RBAC / permissions         | `specs/03-Data-and-Storage/lcbp3-v1.9.0-seed-permissions.sql` + `01-02-01-rbac-matrix.md`                           |
 | Release / hotfix           | `specs/04-Infrastructure-OPS/04-08-release-management-policy.md`                                                    |
 | ADR-024 Intent Class.      | `specs/06-Decision-Records/ADR-024-intent-classification-strategy.md`                                               |
 | ADR-025 AI Tool Layer      | `specs/06-Decision-Records/ADR-025-ai-tool-layer-architecture.md`                                                   |
@@ -83,7 +83,7 @@
 
 ---
 
-## ✅ Commit Checklist (applied automatically by speckit-implement)
+## ✅ Commit Checklist (applied automatically by 107-speckit.implement)
 
 - [ ] UUID pattern verified (no `parseInt` / `Number` / `+` on UUID, no `id ?? ''` fallback)
 - [ ] No `any`, no `console.log` in committed code

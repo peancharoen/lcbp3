@@ -3,7 +3,7 @@
 - For: Devin Cascade (and compatible: Codex CLI, opencode, Amp, Antigravity, AGENTS.md tools)
 - Version: 1.9.10 | Last synced from repo: 2026-06-06
 - Repo: [https://git.np-dms.work/np-dms/lcbp3](https://git.np-dms.work/np-dms/lcbp3)
-- Skill pack: `.agents/skills/` (v1.9.0, 21 skills) — see [`skills/README.md`](./.agents/skills/README.md) + [`skills/_LCBP3-CONTEXT.md`](./.agents/skills/_LCBP3-CONTEXT.md)
+- Skill pack: `./skills/` (v1.9.0, 21 skills) — see [`skills/README.md`](./skills/README.md) + [`skills/_LCBP3-CONTEXT.md`](./skills/_LCBP3-CONTEXT.md)
 
 ## 🧠 Role & Persona
 

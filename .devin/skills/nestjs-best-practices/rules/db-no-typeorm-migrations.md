@@ -11,7 +11,7 @@ tags: database, schema, migration, adr-009, sql, n8n
 
 All schema changes must be made **directly** in the canonical SQL file:
 
-- `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql`
+- `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql`
 
 Delta scripts (for incremental rollout to existing environments) go under:
 
@@ -35,7 +35,7 @@ Data migration (e.g., backfilling a new column) is handled by **n8n workflows**,
 1. **Update Data Dictionary** first:
    - `specs/03-Data-and-Storage/03-01-data-dictionary.md` — add field meaning + business rules.
 2. **Update the canonical schema**:
-   - Edit `lcbp3-v1.8.0-schema-02-tables.sql` — add/alter column, constraint, index.
+   - Edit `lcbp3-v1.9.0-schema-02-tables.sql` — add/alter column, constraint, index.
 3. **Add a delta script** (if deploying to existing env):
    - `specs/03-Data-and-Storage/deltas/2026-04-22-add-rfa-revision-column.sql`
 
@@ -97,4 +97,4 @@ export default {
 
 - [ADR-009 Database Migration Strategy](../../../../specs/06-Decision-Records/ADR-009-database-migration-strategy.md)
 - [Data Dictionary](../../../../specs/03-Data-and-Storage/03-01-data-dictionary.md)
-- [Schema Tables](../../../../specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql)
+- [Schema Tables](../../../../specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql)

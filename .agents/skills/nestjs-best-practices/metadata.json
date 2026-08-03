@@ -17,7 +17,7 @@
     "[ADR-020 AI Intelligence Integration](../../../specs/06-Decision-Records/ADR-020-ai-intelligence-integration.md)",
     "[ADR-021 Workflow Context](../../../specs/06-Decision-Records/ADR-021-workflow-context.md)",
     "[Backend Engineering Guidelines](../../../specs/05-Engineering-Guidelines/05-02-backend-guidelines.md)",
-    "[Schema — v1.8.0 Tables](../../../specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql)",
+    "[Schema — v1.8.0 Tables](../../../specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql)",
     "[Data Dictionary](../../../specs/03-Data-and-Storage/03-01-data-dictionary.md)",
     "Upstream: [Kadajett/nestjs-best-practices](https://github.com/Kadajett/nestjs-best-practices) v1.1.0"
   ]

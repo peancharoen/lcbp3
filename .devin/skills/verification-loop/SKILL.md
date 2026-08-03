@@ -4,7 +4,7 @@ description: A comprehensive verification system for LCBP3-DMS development sessi
 version: 1.9.0
 scope: verification
 depends-on: []
-handoffs-to: [speckit-checker, speckit-tester]
+handoffs-to: [108-speckit.checker, 109-speckit.tester]
 user-invocable: true
 ---
 
@@ -15,6 +15,7 @@ A comprehensive verification system for LCBP3-DMS development sessions.
 ## LCBP3 Context
 
 See [`_LCBP3-CONTEXT.md`](../_LCBP3-CONTEXT.md) for project-specific verification requirements:
+
 - Backend: NestJS with TypeScript strict mode
 - Frontend: Next.js with TypeScript strict mode
 - Package manager: pnpm
@@ -24,6 +25,7 @@ See [`_LCBP3-CONTEXT.md`](../_LCBP3-CONTEXT.md) for project-specific verificatio
 ## When to Use
 
 Invoke this skill:
+
 - After completing a feature or significant code change
 - Before creating a PR
 - When you want to ensure quality gates pass
@@ -89,6 +91,7 @@ npx playwright test 2>&1 | tail -50
 ```
 
 Report:
+
 - Total tests: X
 - Passed: X
 - Failed: X
@@ -137,6 +140,7 @@ git diff
 ```
 
 Review each changed file for:
+
 - Unintended changes
 - Missing error handling (ADR-007)
 - Potential edge cases
@@ -167,12 +171,49 @@ Issues to Fix:
 2. ...
 ```
 
+## 🚫 No Fake Evidence Rule
+
+> **ห้ามรายงานว่า test ผ่าน / build สำเร็จ ถ้าไม่ได้รันจริง**
+> ถ้ารันไม่ได้ ให้ระบุเหตุผลอย่างชัดเจนแทน
+
+## ✅ Mandatory Output (ทุก verification ต้องมีครบ)
+
+รายงานท้ายงานต้องมี 5 หัวข้อนี้เสมอ:
+
+### 1. Pipeline trace
+
+ลำดับขั้นตอนที่ทำจริง: Understand → Plan → Execute → Verify → Handoff
+
+### 2. Commands run
+
+รายการคำสั่งที่รันจริงพร้อมผลสรุป:
+
+```
+✅ pnpm run build          → Pass (0 errors)
+✅ pnpm run lint           → Pass (0 warnings)
+✅ pnpm run test           → 42 passed, 0 failed
+❌ ไม่ได้รัน: e2e tests    → เหตุผล: ต้องการ DB จริง, ไม่มีใน CI environment
+```
+
+### 3. Verification / Evidence
+
+หลักฐานจริง เช่น build output, test result, diff, screenshot, link
+
+### 4. Limitations / Risks
+
+สิ่งที่ยังไม่ได้ตรวจ, ความเสี่ยง, ข้อจำกัดของ environment
+
+### 5. Next steps
+
+งานที่ต้องทำต่อหลัง verification
+
 ## Continuous Mode
 
 For long sessions, run verification every 15 minutes or after major changes:
 
 ```markdown
 Set a mental checkpoint:
+
 - After completing each function
 - After finishing a component
 - Before moving to next task
@@ -183,9 +224,10 @@ Run: /verify
 ## Integration with LCBP3 Skills
 
 This skill complements:
-- **speckit-checker**: Runs static analysis (lint, typecheck)
-- **speckit-tester**: Runs tests with coverage verification
-- **speckit-security-audit**: Performs security review against OWASP Top 10
+
+- **108-speckit.checker**: Runs static analysis (lint, typecheck)
+- **109-speckit.tester**: Runs tests with coverage verification
+- **112-speckit.security-audit**: Performs security review against OWASP Top 10
 
 This skill provides a unified verification loop that combines all checks into a single report.
 

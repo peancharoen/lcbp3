@@ -22,9 +22,9 @@ Unlike standard NestJS/TypeORM practices, this project does **NOT** use TypeORM 
 
 ```
 specs/03-Data-and-Storage/
-├── lcbp3-v1.8.0-schema-01-drop.sql      # Drop statements (dev only)
-├── lcbp3-v1.8.0-schema-02-tables.sql   # CREATE TABLE statements
-├── lcbp3-v1.8.0-schema-03-views-indexes.sql  # Views, indexes, constraints
+├── lcbp3-v1.9.0-schema-01-drop.sql      # Drop statements (dev only)
+├── lcbp3-v1.9.0-schema-02-tables.sql   # CREATE TABLE statements
+├── lcbp3-v1.9.0-schema-03-views-indexes.sql  # Views, indexes, constraints
 └── deltas/                              # Incremental changes
     ├── 01-add-reference-date.sql
     ├── 02-add-rbac-bulk-permission.sql
@@ -57,7 +57,7 @@ TypeOrmModule.forRootAsync({
 1. **Modify SQL file directly**:
 
    ```sql
-   -- specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql
+   -- specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql
    ALTER TABLE correspondences
    ADD COLUMN priority VARCHAR(20) DEFAULT 'normal';
    ```
@@ -113,7 +113,7 @@ TypeOrmModule.forRoot({
 
 ### When You Need Schema Changes
 
-1. Check `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql`
+1. Check `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql`
 2. Add your DDL to the appropriate SQL file
 3. Create delta file in `deltas/` directory
 4. Apply SQL to your database
