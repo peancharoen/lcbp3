@@ -20,7 +20,7 @@ See [`_LCBP3-CONTEXT.md`](../_LCBP3-CONTEXT.md) for project-specific verificatio
 - Frontend: Next.js with TypeScript strict mode
 - Package manager: pnpm
 - Coverage goals: Backend 70%+, Business Logic 80%+
-- Security: ADR-016, ADR-018, ADR-019, ADR-023 compliance
+- Security: ADR-016, ADR-019, ADR-023/043 (AI boundary — supersedes archived ADR-018/020) compliance
 
 ## When to Use
 
@@ -262,5 +262,5 @@ This skill provides a unified verification loop that combines all checks into a 
 - ADR-007 Error Handling: `specs/06-Decision-Records/ADR-007-error-handling-strategy.md`
 - ADR-016 Security: `specs/06-Decision-Records/ADR-016-security-authentication.md`
 - ADR-019 UUID: `specs/06-Decision-Records/ADR-019-hybrid-identifier-strategy.md`
-- ADR-018 AI Boundary: `specs/06-Decision-Records/ADR-018-ai-boundary.md`
-- ADR-023 AI Architecture: `specs/06-Decision-Records/ADR-023-unified-ai-architecture.md`
+- ADR-023/043 AI Boundary (current): `specs/06-Decision-Records/ADR-023-unified-ai-architecture.md` + `specs/06-Decision-Records/ADR-043-ai-architecture-current-state.md` (Single Source of Truth)
+- ADR-018 AI Boundary (archived): `specs/06-Decision-Records/archive/ADR-018-ai-boundary.md` (superseded by ADR-023 → ADR-043)

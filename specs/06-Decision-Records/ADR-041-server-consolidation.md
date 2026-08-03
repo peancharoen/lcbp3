@@ -20,13 +20,16 @@
 
 # ADR-041: Single-Host Server Consolidation
 
-**Status:** Implemented
+> ⚠️ **D2/D6 Amended by [ADR-045](./ADR-045-edge-proxy-topology-amendment.md) (2026-08-03):** Edge proxy role revised — Cloudflare Tunnel บน `np-dms-lcbp3` เป็น sole edge proxy; QNAP ไม่รัน Docker อีกต่อไป (NAS/backup only) เอกสารนี้คงไว้เป็น audit trail ตาม ADR-REVIEW-PROCESS (ไม่ได้แก้เนื้อหา D2/D6 เดิม) ดู Addendum Section 11 สำหรับ D5 revised (Cloudflare Tunnel install) ที่เป็นจุดเริ่มต้นของการเปลี่ยนแปลงนี้
+
+**Status:** ⚠️ Implemented (D2/D6 amended by ADR-045 — see note above)
 **Date:** 2026-06-20 (Revised: 2026-06-23, Implemented: 2026-07-22)
 **Related Documents:**
 - [ADR-040: OCR Sidecar Refactor](./ADR-040-ocr-sidecar-refactor.md)
 - [ADR-016: Security & Authentication](./ADR-016-security-authentication.md)
 - [ADR-023A: Unified AI Architecture](./ADR-023A-unified-ai-architecture.md)
 - [ADR-034: AI Model Change](./ADR-034-AI-model-change.md)
+- [ADR-045: Edge Proxy Topology Amendment](./ADR-045-edge-proxy-topology-amendment.md) (amends D2/D6)
 - [CONTEXT.md](../../00-overview/CONTEXT.md)
 
 ---

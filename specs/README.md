@@ -48,7 +48,7 @@ specs/
 │   ├── 03-04-legacy-data-migration.md  # Legacy Data Migration จาก Excel (ADR-017)
 │   ├── 03-05-n8n-migration-setup-guide.md  # n8n Workflow Setup + Ollama Integration
 │   ├── 03-06-migration-business-scope.md   # ★ Gap 7: Migration Scope, 3 Tiers, Go/No-Go Gates
-│   ├── 03-07-OpenRAG.md         # OpenRAG Architecture & Implementation
+│   ├── archive/03-07-OpenRAG.md  # ❌ Archived: RAG Future Spec (ล้าสมัย — ถูกแทนที่โดย ADR-043 §4)
 │   ├── lcbp3-v1.9.0-schema-01-drop.sql     # Schema: DROP statements
 │   ├── lcbp3-v1.9.0-schema-02-tables.sql   # Schema: CREATE TABLE (Source of Truth)
 │   ├── lcbp3-v1.9.0-schema-03-views-indexes.sql  # Schema: Views + Indexes
@@ -58,7 +58,7 @@ specs/
 │   └── README.md                # ภาพรวม Data Strategy
 │
 ├── 04-Infrastructure-OPS/       # โครงสร้างพื้นฐานและการปฏิบัติการ
-│   ├── 04-00-docker-compose/    # 🔒 Live compose stacks (QNAP + ASUSTOR) — v1.8.9 hardened
+│   ├── 04-00-docker-compose/    # 🔒 Live compose stacks (np-dms-lcbp3 + ASUSTOR) — post-ADR-041
 │   │   ├── SECURITY-MIGRATION-v1.8.6.md  # Full 27-finding hardening runbook
 │   │   ├── README.md                     # Stack overview + secret roadmap
 │   │   ├── x-base.yml                    # Shared YAML anchors
@@ -86,12 +86,12 @@ specs/
 │   └── README.md                        # ภาพรวมเป้าหมายงาน Engineering
 │
 ├── 06-Decision-Records/         # Architecture Decision Records (28 ADRs)
-│   ├── ADR-001 to ADR-017...    # ไฟล์อธิบายสถาปัตยกรรม (ADR)
-│   ├── ADR-018-ai-boundary.md   # ★ Patch 1.8.1: AI/Ollama Isolation Policy (Superseded by ADR-023)
+│   ├── ADR-001 to ADR-016...   # ไฟล์อธิบายสถาปัตยกรรม (ADR)
 │   ├── ADR-019-hybrid-identifier-strategy.md  # ★ Hybrid ID: INT PK + UUIDv7 Public API
 │   ├── ADR-021-integrated-workflow-context.md  # ★ Workflow Engine & Step-specific Attachments
-│   ├── ADR-022-retrieval-augmented-generation.md  # RAG Architecture
 │   ├── ADR-023-unified-ai-architecture.md  # ★ Unified AI Architecture (Consolidates ADR-017/017B/018/020/022)
+│   ├── ADR-043-ai-architecture-current-state.md  # ⭐ AI Current State (Single Source of Truth)
+│   ├── archive/                # ❌ Archived: ADR-017, 017B, 018, 020, 022 (superseded by ADR-023 → ADR-043)
 │   ├── ADR-023A-unified-ai-architecture.md  # ★ AI Model Revision: 2-Model Stack + BullMQ 2-Queue
 │   ├── ADR-024-intent-classification-strategy.md  # ★ AI Intent Classification Strategy
 │   ├── ADR-025-ai-tool-layer-architecture.md  # ★ AI Tool Layer Architecture
@@ -169,10 +169,11 @@ specs/
 | **UAT Criteria**     | `01-Requirements/01-05-acceptance-criteria.md`              | ตรวจความสมบูรณ์ Feature             |
 | **Infra Hardening**  | `04-Infrastructure-OPS/04-00-docker-compose/SECURITY-MIGRATION-v1.8.6.md` | Compose security runbook (v1.8.9) |
 | **ADR-009**          | `06-Decision-Records/ADR-009-db-strategy.md`                | Schema Change Process               |
-| **ADR-018**          | `06-Decision-Records/ADR-018-ai-boundary.md`                | AI/Ollama Integration Rules (Superseded by ADR-023) |
+| **ADR-018**          | `06-Decision-Records/archive/ADR-018-ai-boundary.md`         | AI/Ollama Integration Rules (Archived — Superseded by ADR-023 → ADR-043) |
 | **ADR-019**          | `06-Decision-Records/ADR-019-hybrid-identifier-strategy.md` | Hybrid ID Strategy (INT + UUIDv7)   |
 | **ADR-021**          | `06-Decision-Records/ADR-021-integrated-workflow-context.md` | Workflow Context & Step Attachments |
 | **ADR-023**          | `06-Decision-Records/ADR-023-unified-ai-architecture.md`    | Unified AI Architecture             |
+| **ADR-043** ⭐       | `06-Decision-Records/ADR-043-ai-architecture-current-state.md` | AI Current State (Single Source of Truth) |
 | **ADR-023A**         | `06-Decision-Records/ADR-023A-unified-ai-architecture.md`   | 2-Model Stack + BullMQ 2-Queue      |
 | **ADR-024**          | `06-Decision-Records/ADR-024-intent-classification-strategy.md` | AI Intent Classification        |
 | **ADR-025**          | `06-Decision-Records/ADR-025-ai-tool-layer-architecture.md` | AI Tool Layer Architecture          |
@@ -194,7 +195,7 @@ specs/
 
 5. **No `any` Types:** ไม่อนุญาตให้ใช้ `any` ในโค้ด พยายามใช้ Validation ผ่าน DTO / Zod แบบ Strongly-typed เสมอ — **Enforced ✅** (0 remaining in backend as of v1.9.0, ดูเทคนิคที่ `05-02-backend-guidelines.md`)
 
-6. **AI Isolation (ADR-023/023A):** Ollama ต้องรันบน **Admin Desktop** (Desk-5439) เท่านั้น — ห้ามรันบน QNAP/Production Server ห้ามมี Direct DB Access โดยเด็ดขาด AI Output ต้องผ่าน Backend Validation ก่อน Write ทุกครั้ง ใช้ 2-Model Stack (gemma4:e2b + nomic-embed-text) + BullMQ 2-Queue (ai-realtime/ai-batch)
+6. **AI Isolation (ADR-023/023A + ADR-041 + ADR-043):** Ollama และ AI services รันบน **`np-dms-lcbp3`** (single-host Docker, 4 layers) เท่านั้น — ห้ามมี Direct DB Access โดยเด็ดขาด AI Output ต้องผ่าน Backend Validation ก่อน Write ทุกครั้ง ใช้ Model Stack `np-dms-ai` + `np-dms-ocr` + BGE-M3 + BGE-Reranker (ADR-034) + BullMQ 2-Queue (ai-realtime/ai-batch)
 
 7. **UAT Sign-off Required:** ห้าม Close UAT โดยไม่มี Acceptance Criteria ✅ ครบทุกข้อ — ดู `01-05-acceptance-criteria.md`
 
@@ -222,13 +223,13 @@ specs/
 | ADR-014    | State Management                | TanStack Query (server) + Zustand (client)                | ✅ Active |
 | ADR-015    | Deployment                      | Docker Compose + Gitea CI/CD + Blue-Green                 | ✅ Active |
 | ADR-016    | Security                        | JWT + CASL RBAC + Helmet.js + ClamAV                      | ✅ Active |
-| ADR-017    | Ollama Migration                | Local AI + n8n for legacy data import                     | ✅ Active |
-| ADR-017B   | AI Document Classification      | ML classification for document categorization             | ✅ Active |
-| ADR-018 ★  | AI Boundary (Patch 1.8.1)       | AI isolation — no direct DB/storage access                | Superseded by ADR-023 |
+| ADR-017    | Ollama Migration                | Local AI + n8n for legacy data import                     | ❌ Archived (superseded by ADR-023 → ADR-043) |
+| ADR-017B   | AI Document Classification      | ML classification for document categorization             | ❌ Archived (superseded by ADR-023 → ADR-043) |
+| ADR-018 ★  | AI Boundary (Patch 1.8.1)       | AI isolation — no direct DB/storage access                | ❌ Archived (superseded by ADR-023 → ADR-043) |
 | ADR-019 ★  | Hybrid Identifier Strategy      | INT PK (internal) + UUIDv7 (public API)                   | ✅ Active |
-| ADR-020    | AI Intelligence Integration     | AI integration pipeline architecture                      | ✅ Active |
+| ADR-020    | AI Intelligence Integration     | AI integration pipeline architecture                      | ❌ Archived (superseded by ADR-023 → ADR-043) |
 | ADR-021 ★  | Integrated Workflow Context     | Workflow Engine & step-specific attachments               | ✅ Active |
-| ADR-022    | Retrieval Augmented Generation  | RAG architecture for document search                      | ✅ Active |
+| ADR-022    | Retrieval Augmented Generation  | RAG architecture for document search                      | ❌ Archived (superseded by ADR-023 → ADR-043) |
 | ADR-023 ★  | Unified AI Architecture         | Consolidates ADR-017/017B/018/020/022                     | ✅ Active |
 | ADR-023A ★ | AI Model Revision               | 2-Model stack + BullMQ 2-Queue + OCR auto-detect          | ✅ Active |
 | ADR-024 ★  | Intent Classification Strategy  | AI intent classification for user queries (2026-05-19)    | ✅ Active |
@@ -236,5 +237,6 @@ specs/
 | ADR-026 ★  | Document Chat UI Pattern        | Document-centric chat UI (2026-05-19)                     | ✅ Active |
 | ADR-027 ★  | AI Admin Console & Dynamic Ctrl | AI Admin Panel + dynamic model/prompt control (2026-05-20) | ✅ Active |
 | ADR-028 ★  | Migration Architecture Refactor | Staging Queue & post-migration cleanup (2026-05-22)       | ✅ Active |
+| ADR-043 ⭐ | AI Architecture Current State   | Single Source of Truth — restates active AI ADRs (2026-08-03) | ✅ Active |
 
 > **Priority:** `06-Decision-Records` > `05-Engineering-Guidelines` > others

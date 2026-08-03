@@ -1,7 +1,9 @@
 # Implementation Plan: ADR-022 — RAG (Retrieval-Augmented Generation)
 
+> ⚠️ **Implementation History (superseded by ADR-023 → ADR-043):** เอกสารนี้เป็นประวัติการ implement ของ feature ที่เกี่ยวกับ AI — ADR-022 (RAG) ถูก archived ไป `06-Decision-Records/archive/ADR-022-retrieval-augmented-generation.md` โดยถูกแทนที่ด้วย ADR-023 → ADR-043 (Single Source of Truth, 2026-08-03) สถาปัตยกรรม AI ปัจจุบันรวมอยู่ใน [ADR-043](../../06-Decision-Records/ADR-043-ai-architecture-current-state.md) — ใช้เอกสารนี้เป็น audit trail เท่านั้น
+
 **Branch**: `main` (ADR-022 scope) | **Date**: 2026-04-19 | **Spec**: [v1.1.2 Guide](./LCBP3-RAG-Implementation-Guide-v1.1.2.md)
-**Input**: `specs/06-Decision-Records/ADR-022-Retrieval-Augmented-Generation/LCBP3-RAG-Implementation-Guide-v1.1.2.md`
+**Input**: `specs/08-Tasks/ADR-022-Retrieval-Augmented-Generation/LCBP3-RAG-Implementation-Guide-v1.1.2.md` (formerly mis-pathed as `06-Decision-Records/ADR-022-Retrieval-Augmented-Generation/`)
 
 ---
 

@@ -15,8 +15,9 @@ Comprehensive security review for LCBP3-DMS ensuring all code follows security b
 ## LCBP3 Context
 
 See [`_LCBP3-CONTEXT.md`](../_LCBP3-CONTEXT.md) for project-specific security requirements:
+
 - **ADR-016**: Security & Authentication (JWT, CASL, RBAC, file upload)
-- **ADR-018**: AI Boundary (Ollama on Admin Desktop only, no direct DB/storage access)
+- **ADR-023/023A + ADR-043**: AI Boundary (Ollama on `np-dms-lcbp3` only per ADR-041 — formerly Admin Desktop/Desk-5439, decommissioned; no direct DB/storage access) — supersedes archived ADR-018/020
 - **ADR-019**: UUID Strategy (no parseInt/Number/+ on UUID)
 - **ADR-023**: Unified AI Architecture (AI via DMS API only)
 - **ADR-007**: Error Handling (layered error classification)
@@ -24,6 +25,7 @@ See [`_LCBP3-CONTEXT.md`](../_LCBP3-CONTEXT.md) for project-specific security re
 ## When to Activate
 
 Invoke this skill:
+
 - Implementing authentication or authorization
 - Handling user input or file uploads
 - Creating new API endpoints
@@ -37,23 +39,26 @@ Invoke this skill:
 ### 1. Secrets Management
 
 #### FAIL: NEVER Do This
+
 ```typescript
-const apiKey = "sk-proj-xxxxx"  // Hardcoded secret
-const dbPassword = "password123" // In source code
+const apiKey = 'sk-proj-xxxxx'; // Hardcoded secret
+const dbPassword = 'password123'; // In source code
 ```
 
 #### PASS: ALWAYS Do This
+
 ```typescript
-const apiKey = process.env.OPENAI_API_KEY
-const dbUrl = process.env.DATABASE_URL
+const apiKey = process.env.OPENAI_API_KEY;
+const dbUrl = process.env.DATABASE_URL;
 
 // Verify secrets exist
 if (!apiKey) {
-  throw new Error('OPENAI_API_KEY not configured')
+  throw new Error('OPENAI_API_KEY not configured');
 }
 ```
 
 #### Verification Steps
+
 - [ ] No hardcoded API keys, tokens, or passwords
 - [ ] All secrets in environment variables
 - [ ] `.env.local` in .gitignore
@@ -63,37 +68,39 @@ if (!apiKey) {
 ### 2. Input Validation
 
 #### Always Validate User Input
+
 ```typescript
-import { z } from 'zod'
+import { z } from 'zod';
 
 // Define validation schema
 const CreateCorrespondenceSchema = z.object({
   subject: z.string().min(1).max(500),
   recipientId: z.string().uuid(),
-  typeCode: z.string().min(1).max(50)
-})
+  typeCode: z.string().min(1).max(50),
+});
 
 // Validate before processing
 export async function createCorrespondence(input: unknown) {
   try {
-    const validated = CreateCorrespondenceSchema.parse(input)
-    return await correspondenceService.create(validated)
+    const validated = CreateCorrespondenceSchema.parse(input);
+    return await correspondenceService.create(validated);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      throw new BadRequestException(error.errors)
+      throw new BadRequestException(error.errors);
     }
-    throw error
+    throw error;
   }
 }
 ```
 
 #### File Upload Validation (ADR-016)
+
 ```typescript
 function validateFileUpload(file: Express.Multer.File) {
   // Size check (50MB max per ADR-016)
-  const maxSize = 50 * 1024 * 1024
+  const maxSize = 50 * 1024 * 1024;
   if (file.size > maxSize) {
-    throw new BadRequestException('File too large (max 50MB)')
+    throw new BadRequestException('File too large (max 50MB)');
   }
 
   // Type check (whitelist: PDF, DWG, DOCX, XLSX, ZIP)
@@ -102,24 +109,25 @@ function validateFileUpload(file: Express.Multer.File) {
     'application/vnd.dwg',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'application/zip'
-  ]
+    'application/zip',
+  ];
   if (!allowedTypes.includes(file.mimetype)) {
-    throw new BadRequestException('Invalid file type')
+    throw new BadRequestException('Invalid file type');
   }
 
   // Extension check
-  const allowedExtensions = ['.pdf', '.dwg', '.docx', '.xlsx', '.zip']
-  const extension = path.extname(file.originalname).toLowerCase()
+  const allowedExtensions = ['.pdf', '.dwg', '.docx', '.xlsx', '.zip'];
+  const extension = path.extname(file.originalname).toLowerCase();
   if (!allowedExtensions.includes(extension)) {
-    throw new BadRequestException('Invalid file extension')
+    throw new BadRequestException('Invalid file extension');
   }
 
-  return true
+  return true;
 }
 ```
 
 #### Verification Steps
+
 - [ ] All user inputs validated with Zod (frontend) + class-validator (backend)
 - [ ] File uploads restricted (50MB max, whitelist types)
 - [ ] No direct use of user input in queries
@@ -129,27 +137,30 @@ function validateFileUpload(file: Express.Multer.File) {
 ### 3. SQL Injection Prevention
 
 #### FAIL: NEVER Concatenate SQL
+
 ```typescript
 // DANGEROUS - SQL Injection vulnerability
-const query = `SELECT * FROM correspondences WHERE uuid = '${correspondenceUuid}'`
-await this.connection.query(query)
+const query = `SELECT * FROM correspondences WHERE uuid = '${correspondenceUuid}'`;
+await this.connection.query(query);
 ```
 
 #### PASS: ALWAYS Use TypeORM Parameterized Queries
+
 ```typescript
 // Safe - TypeORM parameterized query
 const correspondence = await this.correspondenceRepository.findOne({
-  where: { publicId: correspondenceUuid }
-})
+  where: { publicId: correspondenceUuid },
+});
 
 // Or with QueryBuilder
 const result = await this.correspondenceRepository
   .createQueryBuilder('c')
   .where('c.publicId = :uuid', { uuid: correspondenceUuid })
-  .getOne()
+  .getOne();
 ```
 
 #### Verification Steps
+
 - [ ] All database queries use TypeORM parameterized queries
 - [ ] No string concatenation in SQL
 - [ ] TypeORM query builder used correctly
@@ -158,17 +169,17 @@ const result = await this.correspondenceRepository
 ### 4. Authentication & Authorization (ADR-016)
 
 #### JWT Token Handling
+
 ```typescript
 // FAIL: WRONG: localStorage (vulnerable to XSS)
-localStorage.setItem('token', token)
+localStorage.setItem('token', token);
 
 // PASS: CORRECT: httpOnly cookies
-response.setHeader('Set-Cookie',
-  `token=${token}; HttpOnly; Secure; SameSite=Strict; Max-Age=3600`
-)
+response.setHeader('Set-Cookie', `token=${token}; HttpOnly; Secure; SameSite=Strict; Max-Age=3600`);
 ```
 
 #### Authorization Checks (CASL)
+
 ```typescript
 // Controller with CASL guard
 @Post()
@@ -180,6 +191,7 @@ async create(@Body() dto: CreateCorrespondenceDto, @Request() req) {
 ```
 
 #### RBAC Matrix (ADR-016)
+
 - [ ] 4-Level RBAC matrix implemented (Admin, Manager, User, Viewer)
 - [ ] CASL AbilityFactory configured with correct permissions
 - [ ] JwtAuthGuard on all protected routes
@@ -187,6 +199,7 @@ async create(@Body() dto: CreateCorrespondenceDto, @Request() req) {
 - [ ] AuditLogInterceptor on all mutation endpoints
 
 #### Verification Steps
+
 - [ ] Tokens stored in httpOnly cookies (not localStorage)
 - [ ] Authorization checks before sensitive operations
 - [ ] CASL abilities configured correctly
@@ -196,6 +209,7 @@ async create(@Body() dto: CreateCorrespondenceDto, @Request() req) {
 ### 5. XSS Prevention
 
 #### Sanitize HTML
+
 ```typescript
 import DOMPurify from 'isomorphic-dompurify'
 
@@ -210,6 +224,7 @@ function renderUserContent(html: string) {
 ```
 
 #### Content Security Policy (Next.js)
+
 ```typescript
 // next.config.js
 const securityHeaders = [
@@ -222,12 +237,15 @@ const securityHeaders = [
       img-src 'self' data: https:;
       font-src 'self';
       connect-src 'self' http://localhost:3001 https://192.168.10.8;
-    `.replace(/\s{2,}/g, ' ').trim()
-  }
-]
+    `
+      .replace(/\s{2,}/g, ' ')
+      .trim(),
+  },
+];
 ```
 
 #### Verification Steps
+
 - [ ] User-provided HTML sanitized
 - [ ] CSP headers configured
 - [ ] No unvalidated dynamic content rendering
@@ -236,17 +254,15 @@ const securityHeaders = [
 ### 6. CSRF Protection
 
 #### CSRF Tokens
+
 ```typescript
-import { csrf } from '@/lib/csrf'
+import { csrf } from '@/lib/csrf';
 
 export async function POST(request: Request) {
-  const token = request.headers.get('X-CSRF-Token')
+  const token = request.headers.get('X-CSRF-Token');
 
   if (!csrf.verify(token)) {
-    return NextResponse.json(
-      { error: 'Invalid CSRF token' },
-      { status: 403 }
-    )
+    return NextResponse.json({ error: 'Invalid CSRF token' }, { status: 403 });
   }
 
   // Process request
@@ -254,13 +270,13 @@ export async function POST(request: Request) {
 ```
 
 #### SameSite Cookies
+
 ```typescript
-response.setHeader('Set-Cookie',
-  `session=${sessionId}; HttpOnly; Secure; SameSite=Strict`
-)
+response.setHeader('Set-Cookie', `session=${sessionId}; HttpOnly; Secure; SameSite=Strict`);
 ```
 
 #### Verification Steps
+
 - [ ] CSRF tokens on state-changing operations
 - [ ] SameSite=Strict on all cookies
 - [ ] Double-submit cookie pattern implemented
@@ -268,6 +284,7 @@ response.setHeader('Set-Cookie',
 ### 7. Rate Limiting (ADR-016)
 
 #### API Rate Limiting
+
 ```typescript
 import { ThrottlerGuard } from '@nestjs/throttler'
 
@@ -280,6 +297,7 @@ async login(@Body() dto: LoginDto) {
 ```
 
 #### Expensive Operations
+
 ```typescript
 // Aggressive rate limiting for AI endpoints
 @Throttle({ default: { limit: 5, ttl: 60000 } })
@@ -289,6 +307,7 @@ async extractMetadata(@Body() dto: ExtractMetadataDto) {
 ```
 
 #### Verification Steps
+
 - [ ] Rate limiting on all auth endpoints (ADR-016)
 - [ ] Rate limiting on AI endpoints (ADR-018/023)
 - [ ] IP-based rate limiting
@@ -297,17 +316,19 @@ async extractMetadata(@Body() dto: ExtractMetadataDto) {
 ### 8. Sensitive Data Exposure
 
 #### Logging
+
 ```typescript
 // FAIL: WRONG: Logging sensitive data
-this.logger.log('User login:', { email, password })
-this.logger.log('Payment:', { cardNumber, cvv })
+this.logger.log('User login:', { email, password });
+this.logger.log('Payment:', { cardNumber, cvv });
 
 // PASS: CORRECT: Redact sensitive data
-this.logger.log('User login:', { email, userId })
-this.logger.log('Payment:', { last4: card.last4, userId })
+this.logger.log('User login:', { email, userId });
+this.logger.log('Payment:', { last4: card.last4, userId });
 ```
 
 #### Error Messages (ADR-007)
+
 ```typescript
 // FAIL: WRONG: Exposing internal details
 catch (error) {
@@ -322,6 +343,7 @@ catch (error) {
 ```
 
 #### Verification Steps
+
 - [ ] No passwords, tokens, or secrets in logs
 - [ ] Error messages generic for users
 - [ ] Detailed errors only in server logs
@@ -330,76 +352,82 @@ catch (error) {
 ### 9. AI Boundary Enforcement (ADR-018/023)
 
 #### FAIL: NEVER Do This
+
 ```typescript
 // Direct AI access - FORBIDDEN
-import ollama from 'ollama'
-const response = await ollama.chat({ model: 'gemma4', messages })
+import ollama from 'ollama';
+const response = await ollama.chat({ model: 'gemma4', messages });
 
 // Direct Qdrant access - FORBIDDEN
-import { QdrantClient } from '@qdrant/js-client-rest'
-const client = new QdrantClient({ url: 'http://localhost:6333' })
+import { QdrantClient } from '@qdrant/js-client-rest';
+const client = new QdrantClient({ url: 'http://localhost:6333' });
 ```
 
 #### PASS: ALWAYS Do This
+
 ```typescript
 // AI via DMS API only
 const response = await fetch('http://localhost:3001/api/ai/extract-metadata', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ documentId })
-})
+  body: JSON.stringify({ documentId }),
+});
 
 // Qdrant via DMS API only
 const response = await fetch('http://localhost:3001/api/ai/search', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ query, projectPublicId })
-})
+  body: JSON.stringify({ query, projectPublicId }),
+});
 ```
 
 #### Verification Steps
+
 - [ ] AI processing on Admin Desktop only (np-dms-lcbp3)
 - [ ] No direct Ollama calls from backend/frontend
 - [ ] No direct Qdrant calls from backend/frontend
 - [ ] All AI interactions via DMS API endpoints
-- [ ] AI audit logging implemented (ADR-020)
+- [ ] AI audit logging implemented (ADR-023/043 — formerly ADR-020)
 - [ ] Human-in-the-loop validation for AI outputs
 
 ### 10. UUID Handling (ADR-019)
 
 #### FAIL: NEVER Do This
+
 ```typescript
 // parseInt on UUID - FORBIDDEN
-const projectId = parseInt(projectUuid) // "0195..." → 19 (WRONG!)
+const projectId = parseInt(projectUuid); // "0195..." → 19 (WRONG!)
 
 // Number on UUID - FORBIDDEN
-const projectId = Number(projectUuid)
+const projectId = Number(projectUuid);
 
 // + operator on UUID - FORBIDDEN
-const projectId = +projectUuid
+const projectId = +projectUuid;
 
 // id ?? '' fallback - FORBIDDEN
-const value = c.publicId ?? c.id ?? ''
+const value = c.publicId ?? c.id ?? '';
 ```
 
 #### PASS: ALWAYS Do This
+
 ```typescript
 // Use UUID string directly
-const projectId = projectUuid // "019505a1-7c3e-7000-8000-abc123def456"
+const projectId = projectUuid; // "019505a1-7c3e-7000-8000-abc123def456"
 
 // Backend: findOneByUuid returns entity with publicId
-const project = await this.projectService.findOneByUuid(projectUuid)
-const projectId = project.id // Internal INT for DB operations
+const project = await this.projectService.findOneByUuid(projectUuid);
+const projectId = project.id; // Internal INT for DB operations
 
 // Frontend: use publicId only
 interface ProjectOption {
   publicId?: string; // No uuid fallback
   projectName?: string;
 }
-const value = c.publicId // "019505a1-7c3e-7000-8000-abc123def456"
+const value = c.publicId; // "019505a1-7c3e-7000-8000-abc123def456"
 ```
 
 #### Verification Steps
+
 - [ ] No `parseInt()` on UUID values
 - [ ] No `Number()` on UUID values
 - [ ] No `+` operator on UUID values
@@ -410,6 +438,7 @@ const value = c.publicId // "019505a1-7c3e-7000-8000-abc123def456"
 ### 11. Dependency Security
 
 #### Regular Updates
+
 ```bash
 # Check for vulnerabilities
 pnpm audit
@@ -425,6 +454,7 @@ pnpm outdated
 ```
 
 #### Lock Files
+
 ```bash
 # ALWAYS commit lock files
 git add pnpm-lock.yaml
@@ -434,6 +464,7 @@ pnpm install --frozen-lockfile
 ```
 
 #### Verification Steps
+
 - [ ] Dependencies up to date
 - [ ] No known vulnerabilities (pnpm audit clean)
 - [ ] Lock files committed
@@ -446,38 +477,38 @@ pnpm install --frozen-lockfile
 ```typescript
 // Test authentication
 test('requires authentication', async () => {
-  const response = await fetch('/api/correspondences')
-  expect(response.status).toBe(401)
-})
+  const response = await fetch('/api/correspondences');
+  expect(response.status).toBe(401);
+});
 
 // Test authorization
 test('requires admin role', async () => {
   const response = await fetch('/api/admin/users', {
-    headers: { Authorization: `Bearer ${userToken}` }
-  })
-  expect(response.status).toBe(403)
-})
+    headers: { Authorization: `Bearer ${userToken}` },
+  });
+  expect(response.status).toBe(403);
+});
 
 // Test input validation
 test('rejects invalid input', async () => {
   const response = await fetch('/api/correspondences', {
     method: 'POST',
-    body: JSON.stringify({ subject: '', recipientId: 'invalid' })
-  })
-  expect(response.status).toBe(400)
-})
+    body: JSON.stringify({ subject: '', recipientId: 'invalid' }),
+  });
+  expect(response.status).toBe(400);
+});
 
 // Test rate limiting
 test('enforces rate limits', async () => {
-  const requests = Array(11).fill(null).map(() =>
-    fetch('/api/auth/login', { method: 'POST' })
-  )
+  const requests = Array(11)
+    .fill(null)
+    .map(() => fetch('/api/auth/login', { method: 'POST' }));
 
-  const responses = await Promise.all(requests)
-  const tooManyRequests = responses.filter(r => r.status === 429)
+  const responses = await Promise.all(requests);
+  const tooManyRequests = responses.filter((r) => r.status === 429);
 
-  expect(tooManyRequests.length).toBeGreaterThan(0)
-})
+  expect(tooManyRequests.length).toBeGreaterThan(0);
+});
 ```
 
 ## Pre-Deployment Security Checklist
@@ -500,7 +531,7 @@ Before ANY production deployment:
 - [ ] **UUID Handling**: No parseInt/Number/+ on UUID (ADR-019)
 - [ ] **AI Boundary**: AI via DMS API only (ADR-018/023)
 - [ ] **File Uploads**: Validated (50MB max, whitelist types)
-- [ ] **AI Audit**: All AI interactions logged (ADR-020)
+- [ ] **AI Audit**: All AI interactions logged (ADR-023/043 — formerly ADR-020)
 
 ## Resources
 
@@ -508,7 +539,8 @@ Before ANY production deployment:
 - [NestJS Security](https://docs.nestjs.com/security)
 - [Next.js Security](https://nextjs.org/docs/security)
 - [ADR-016 Security Authentication](../../specs/06-Decision-Records/ADR-016-security-authentication.md)
-- [ADR-018 AI Boundary](../../specs/06-Decision-Records/ADR-018-ai-boundary.md)
+- [ADR-023 Unified AI Architecture](../../specs/06-Decision-Records/ADR-023-unified-ai-architecture.md) (current) + [ADR-043 AI Current State](../../specs/06-Decision-Records/ADR-043-ai-architecture-current-state.md) (Single Source of Truth)
+- [ADR-018 AI Boundary](../../specs/06-Decision-Records/archive/ADR-018-ai-boundary.md) (archived — superseded by ADR-023 → ADR-043)
 - [ADR-019 UUID Strategy](../../specs/06-Decision-Records/ADR-019-hybrid-identifier-strategy.md)
 - [ADR-023 AI Architecture](../../specs/06-Decision-Records/ADR-023-unified-ai-architecture.md)
 

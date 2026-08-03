@@ -133,13 +133,13 @@
 **เส้นทางการนำเอกสารเข้าระบบ — ส่วนที่เกี่ยวกับ AI**
 
 > [!NOTE]
-> เอกสารนี้เป็น walkthrough/อธิบายเชิงปฏิบัติ — **ADR-035 คือ Source of Truth** ของ flow หากขัดกันให้ตาม ADR-035
+> เอกสารนี้เป็น walkthrough/อธิบายเชิงปฏิบัติ — ⭐ **ADR-043 คือ Single Source of Truth** ของสถาปัตยกรรม AI ทั้งหมด (รวม flow) หากขัดกันให้ตาม ADR-043; ADR-035 ถูก amend บางส่วนโดย ADR-040 (drift ปิดแล้วอย่างเป็นทางการโดย ADR-043)
 
 **Key Topics:**
 
 - ✅ Production Flow (Frontend → Backend → BullMQ Worker)
 - ✅ Two-Phase File Upload (Temp → Commit) — ADR-016
-- ✅ OCR Engine Routing (Typhoon OCR primary + Tesseract fallback) — ADR-035
+- ✅ OCR Engine Routing (single engine `np-dms-ocr` — ไม่มี Tesseract fallback ตาม ADR-040) — ADR-040/043
 - ✅ OCR Text Persistence + แยก `rag-prepare` เป็น 2 jobs — ADR-042
 - ✅ Semantic Chunking + BGE-M3 Embedding + Qdrant Upsert — ADR-023A/034
 - ✅ Sandbox Flow (Production Pipeline Sandbox + Sandbox Project) — ADR-036/042

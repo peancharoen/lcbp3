@@ -1,6 +1,9 @@
-# Docker Compose Stacks (v1.8.6)
+# Docker Compose Stacks (post-ADR-041)
 
 Production compose files for the NP-DMS / LCBP3 platform. All stacks share one external Docker network `lcbp3`.
+
+> **ADR-041 (Server Consolidation, 2026-06-20):** ย้าย services ทั้งหมดไปรวมบน `np-dms-lcbp3` (single-host Docker, 4 layers) — QNAP และ Desk-5439 ถูก archived (ดู `99-archives/04-00-docker-compose-QNAP/` และ `99-archives/04-00-docker-compose-Desk-5439/`)
+> **Real-world state (2026-08-03):** QNAP ไม่รัน Docker อีกต่อไป — Edge proxy ใช้ Cloudflare Tunnel บน `np-dms-lcbp3` (เปลี่ยนจาก ADR-041 เดิมที่วาง NPM ไว้บน QNAP)
 
 ## Layout
 
@@ -8,16 +11,18 @@ Production compose files for the NP-DMS / LCBP3 platform. All stacks share one e
 04-00-docker-compose/
 ├── .env.template                    # Master template (placeholders)
 ├── x-base.yml                       # Shared YAML anchors (S2)
-├── SECURITY-MIGRATION-v1.8.6.md     # Full C/H/M/L/S migration runbook
-├── QNAP/
-│   ├── app/         docker-compose-app.yml          (backend, frontend, clamav)
-│   ├── mariadb/     docker-compose-lcbp3-db.yml     (mariadb, pma)
-│   ├── service/     docker-compose.yml              (cache, search)
-│   ├── npm/         docker-compose.yml              (npm, landing)
-│   ├── gitea/       docker-compose.yml              (gitea)
-│   ├── n8n/         docker-compose.yml              (n8n, n8n-db, tika, docker-socket-proxy)
-│   ├── rocketchat/  docker-compose.yml              (mongodb, mongo-init-replica, rocketchat)
-│   └── monitoring/  docker-compose.yml              (node-exporter, cadvisor — QNAP-side exporters)
+├── SECURITY-MIGRATION-v1.8.6.md     # Full C/H/M/L/S migration runbook (historical — pre-ADR-041)
+├── np-dms-lcbp3/                    # ⭐ Current production stack (4 layers, ADR-041)
+│   ├── 00-basic/        portainer
+│   ├── 01-infrastructure/  mariadb, pma, cache (redis), search (elasticsearch), qdrant, exporters
+│   ├── 02-platform/     gitea, n8n
+│   ├── 03-application/  clamav, backend, frontend
+│   ├── 04-ai/           ocr-sidecar, ollama, ollama-metrics (ADR-040/043)
+│   ├── .env             # gitignored live env
+│   ├── .env.template    # master template
+│   ├── MIGRATION-PLAN.md  # ADR-041 migration runbook (historical)
+│   ├── README.md          # 4-layer stack overview
+│   └── SPECS-VERIFICATION-PLAN.md
 └── ASUSTOR/
     ├── registry/      docker-compose.yml            (registry, registry-ui)
     ├── gitea-runner/  docker-compose.yml            (gitea act_runner)
@@ -45,7 +50,7 @@ docker compose --env-file .env -f docker-compose.yml up -d
 - **MongoDB:** `--auth --keyFile`
 - **Registry:** htpasswd
 - **ClamAV:** mandatory upstream of backend uploads (ADR-016)
-- **AI boundary:** Ollama / AI only on Admin Desktop (ADR-018)
+- **AI boundary:** Ollama / AI on `np-dms-lcbp3` only (ADR-041 server consolidation; ADR-023/043 boundary policy — ADR-018 archived)
 
 ## Shared YAML Anchors (S2)
 

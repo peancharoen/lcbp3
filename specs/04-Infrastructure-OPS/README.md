@@ -1,8 +1,8 @@
 # Infrastructure & Operations (OPS) Guide
 
 **Project:** LCBP3-DMS
-**Version:** 1.8.9 (Infrastructure Hardening)
-**Last Updated:** 2026-04-18
+**Version:** 1.9.13 (post-ADR-041 Server Consolidation)
+**Last Updated:** 2026-08-03
 
 ---
 
@@ -12,9 +12,11 @@ This directory (`04-Infrastructure-OPS/`) serves as the single source of truth f
 
 It consolidates what was previously split across multiple operations and specification folders into a cohesive set of manuals for DevOps, System Administrators, and On-Call Engineers.
 
-> **🔒 v1.8.9 Infrastructure Hardening (Apr 2026):**
-> Full Docker Compose security pass completed — 27 findings (C1–C6, H1–H7, M1–M9, L1–L5, S1–S4) addressed.
-> All secrets externalized, container hardening applied, auth enforced on Mongo + Registry. See `04-00-docker-compose/SECURITY-MIGRATION-v1.8.6.md` for the full runbook.
+> **ADR-041 (Server Consolidation, 2026-06-20):** ย้าย services ทั้งหมดไปรวมบน `np-dms-lcbp3` (single-host Docker, 4 layers) — QNAP และ Desk-5439 stacks ถูก archived (ดู `99-archives/04-00-docker-compose-QNAP/` และ `99-archives/04-00-docker-compose-Desk-5439/`)
+>
+> **Real-world state (2026-08-03):** QNAP ไม่รัน Docker อีกต่อไป — Edge proxy ใช้ Cloudflare Tunnel บน `np-dms-lcbp3` (เปลี่ยนจาก ADR-041 เดิมที่วาง NPM ไว้บน QNAP)
+>
+> **🔒 v1.8.9 Infrastructure Hardening (Apr 2026, historical):** Full Docker Compose security pass — 27 findings addressed. See `04-00-docker-compose/SECURITY-MIGRATION-v1.8.6.md` สำหรับ runbook (pre-ADR-041 layout)
 
 ---
 
@@ -22,34 +24,33 @@ It consolidates what was previously split across multiple operations and specifi
 
 | File                                                                              | Purpose                | Key Contents                                                                                                                                    |
 | --------------------------------------------------------------------------------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| **[04-00-docker-compose/](./04-00-docker-compose/)**                              | 🔒 **Compose Stacks** | Production compose files for all QNAP + ASUSTOR stacks. See [04-00-docker-compose/README.md](./04-00-docker-compose/README.md) + `SECURITY-MIGRATION-v1.8.6.md` |
-| **[04-01-docker-compose.md](./04-01-docker-compose.md)**                          | Core Environment Setup | `.env` configs, Blue/Green Docker Compose, MariaDB & Redis optimization, **Appendix A: Live QNAP configs** (MariaDB, Redis/ES, NPM, Gitea, n8n) |
-| **[04-02-backup-recovery.md](./04-02-backup-recovery.md)**                        | Disaster Recovery      | RTO/RPO strategies, QNAP to ASUSTOR backup scripts, Restic/Mysqldump config                                                                     |
+| **[04-00-docker-compose/](./04-00-docker-compose/)**                              | 🔒 **Compose Stacks** | Production compose files — **np-dms-lcbp3 (4 layers, current)** + ASUSTOR (monitoring/registry/runner). See [04-00-docker-compose/README.md](./04-00-docker-compose/README.md) |
+| **[04-01-docker-compose.md](./04-01-docker-compose.md)**                          | Core Environment Setup | `.env` configs, Blue/Green Docker Compose, MariaDB & Redis optimization, **Appendix A: Live QNAP configs** (MariaDB, Redis/ES, NPM, Gitea, n8n) — ⚠️ pre-ADR-041, ใช้อ้างอิงประวัติ |
+| **[04-02-backup-recovery.md](./04-02-backup-recovery.md)**                        | Disaster Recovery      | RTO/RPO strategies, QNAP to ASUSTOR backup scripts, Restic/Mysqldump config (QNAP = NAS/backup only post-ADR-041)                                |
 | **[04-03-monitoring.md](./04-03-monitoring.md)**                                  | Observability          | Prometheus metrics, AlertManager rules, Grafana alerts                                                                                          |
-| **[04-04-deployment-guide.md](./04-04-deployment-guide.md)**                      | Production Rollout     | Blue-Green deployment scripts, **Appendix A: QNAP Container Station**, **Appendix B: Gitea Actions CI/CD**, **Appendix C: act_runner setup**    |
+| **[04-04-deployment-guide.md](./04-04-deployment-guide.md)**                      | Production Rollout     | Blue-Green deployment scripts, **Appendix A: QNAP Container Station** (⚠️ archived), **Appendix B: Gitea Actions CI/CD**, **Appendix C: act_runner setup**    |
 | **[04-network-infrastructure-guide.md](./04-network-infrastructure-guide.md)**    | 🔥 **Network Design**  | Omada SDN configuration, VLAN mapping, Port Profiles, STP Security, AMPCOM 2.5G integration, Security Hardening |
 | **[04-05-maintenance-procedures.md](./04-05-maintenance-procedures.md)**          | Routine Care           | Log rotation, dependency updates, scheduled DB optimizations                                                                                    |
 | **[04-06-security-operations.md](./04-06-security-operations.md)**                | Hardening & Audit      | User access review, SSL renewals, vulnerability scanning, **Appendix A: SSH Setup**, **Appendix B: Secrets Management**                         |
 | **[04-07-incident-response.md](./04-07-incident-response.md)**                    | Escalation             | P0-P3 classifications, incident commander roles, Post-Incident Review                                                                           |
 | **[🚀 04-08-release-management-policy.md](./04-08-release-management-policy.md)** | Release Policy         | SemVer, Git Flow, 5 Release Gates, Hotfix Process, Rollback Policy, CI/CD Pipeline                                                              |
 
-### 🐳 Live Docker Compose Files (v1.8.9)
+### 🐳 Live Docker Compose Files (post-ADR-041)
 
-ทั้งหมดย้ายมาอยู่ใต้ [`04-00-docker-compose/`](./04-00-docker-compose/) แล้ว พร้อม hardening (secrets ผ่าน `env_file`, `read_only`, `cap_drop`, healthchecks, resource limits, auth บน Mongo + Registry):
+หลัง ADR-041 ย้าย services ทั้งหมดไปรวมบน `np-dms-lcbp3` (single-host Docker, 4 layers) — Stack ปัจจุบันอยู่ใต้ [`04-00-docker-compose/np-dms-lcbp3/`](./04-00-docker-compose/np-dms-lcbp3/) และ ASUSTOR (monitoring/registry/runner):
 
-| Stack | File | Path on NAS |
+| Stack | File | Path on host |
 | ----- | ---- | ----------- |
-| **App** (backend + frontend + clamav) | `QNAP/app/docker-compose-app.yml` | `/share/np-dms/app/` |
-| **Database** (mariadb + pma) | `QNAP/mariadb/docker-compose-lcbp3-db.yml` | `/share/np-dms/mariadb/` |
-| **Services** (redis + elasticsearch) | `QNAP/service/docker-compose.yml` | `/share/np-dms/services/` |
-| **Reverse Proxy** (npm + landing) | `QNAP/npm/docker-compose.yml` | `/share/np-dms/npm/` |
-| **Git** (gitea) | `QNAP/gitea/docker-compose.yml` | `/share/np-dms/git/` |
-| **Automation** (n8n + tika + docker-socket-proxy) | `QNAP/n8n/docker-compose.yml` | `/share/np-dms/n8n/` |
-| **Chat** (mongodb + rocketchat) | `QNAP/rocketchat/docker-compose.yml` | `/share/np-dms/rocketchat/` |
-| **Monitoring Exporters** (node-exporter + cadvisor) | `QNAP/monitoring/docker-compose.yml` | `/share/np-dms/monitoring/` |
+| **Basic** (portainer) | `np-dms-lcbp3/00-basic/docker-compose.yml` | `/opt/stacks/00-basic/` |
+| **Infrastructure** (mariadb, pma, redis, elasticsearch, qdrant, exporters) | `np-dms-lcbp3/01-infrastructure/docker-compose.yml` | `/opt/stacks/01-infrastructure/` |
+| **Platform** (gitea, n8n) | `np-dms-lcbp3/02-platform/docker-compose.yml` | `/opt/stacks/02-platform/` |
+| **Application** (clamav, backend, frontend) | `np-dms-lcbp3/03-application/docker-compose.yml` | `/opt/stacks/03-application/` |
+| **AI** (ocr-sidecar, ollama, ollama-metrics — ADR-040/043) | `np-dms-lcbp3/04-ai/docker-compose.yml` | `/opt/stacks/04-ai/` |
 | **Registry** (registry + registry-ui, htpasswd auth) | `ASUSTOR/registry/docker-compose.yml` | `/volume1/np-dms/registry/` |
 | **Gitea Runner** (act_runner) | `ASUSTOR/gitea-runner/docker-compose.yml` | `/volume1/np-dms/gitea-runner/` |
 | **Monitoring Stack** (prometheus + grafana + loki + promtail + uptime-kuma) | `ASUSTOR/monitoring/docker-compose.yml` | `/volume1/np-dms/monitoring/` |
+
+> **Archived stacks (pre-ADR-041):** QNAP และ Desk-5439 ถูกย้ายไป `99-archives/04-00-docker-compose-QNAP/` และ `99-archives/04-00-docker-compose-Desk-5439/` ตาม ADR-041 + สถานะจริงที่ QNAP ไม่รัน Docker อีกต่อไป
 
 ไฟล์เสริม: [`x-base.yml`](./04-00-docker-compose/x-base.yml) (shared YAML anchors), [`.env.template`](./04-00-docker-compose/.env.template) (ตัวแบบ secrets), per-stack `.env.example` ในแต่ละ folder.
 

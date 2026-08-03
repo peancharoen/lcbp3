@@ -309,7 +309,7 @@ _Avoid_: Network isolation (generic), VLAN isolation (เป็น layer อื�
 - **"ai_embeddings"** vs **"ai_document_chunks"** — resolved: ใช้ `ai_document_chunks` (metadata + text) + Qdrant (vector only); ห้ามเก็บ vector ใน MariaDB
 - **"Tool Layer"** ในเอกสาร AI — resolved: ไม่ใช่ LLM-callable tools, เป็น **Server-side Intents** ที่ NestJS controlใน AI Gateway
 - **"AI = Document Controller"** — resolved: ใช้ **AI Document Assistant** (Suggest + Insight) แทน เพื่อกัน scope creep ไปทาง autonomous agent
-- **OpenRAG vs ADR-023A** — resolved: **ADR-023A เป็น canonical source** — ใช้ Qdrant + nomic-embed-text สำหรับ vector search; Elasticsearch ใช้สำหรับ keyword/full-text เท่านั้น; `specs/03-Data-and-Storage/03-07-OpenRAG.md` เป็นเอกสาร reference แต่ไม่ใช่ active spec
+- **OpenRAG vs ADR-023A** — resolved: **ADR-043 เป็น Single Source of Truth** (restates ADR-023/023A/035/040) — ใช้ Qdrant (Hybrid Dense+Sparse) + BGE-M3 + BGE-Reranker สำหรับ RAG vector search; Elasticsearch ใช้สำหรับ keyword/full-text เท่านั้น; `specs/03-Data-and-Storage/archive/03-07-OpenRAG.md` ถูก archived (ล้าสมัย — ถูกแทนที่โดย ADR-043 §4)
 - **".agents/ กับ Production AI"** — resolved: `.agents/` คือ Dev AI toolkit (ช่วยเขียนโค้ด); Production AI คือ AI Gateway + n8n + Ollama — เป็นคนละ layer กัน
 - **"np-dms-ai" vs `typhoon2.5-np-dms:latest`** — resolved: ถ้าเดินตาม AI refactor ใหม่ `np-dms-ai` คือ **Canonical AI Model Identity** ใหม่ของระบบ ไม่ใช่แค่ deploy alias
 - **"OCR keep_alive"** — resolved: policy ใหม่ควรถูกอธิบายเป็น **Adaptive OCR Residency** ตาม VRAM headroom และ active model ไม่ใช่ fixed `0` หรือ fixed `300`

@@ -33,7 +33,7 @@
 | `03-04-legacy-data-migration.md` | แผนการนำเข้าข้อมูลเก่า (Legacy Migration) |
 | `03-05-n8n-migration-setup-guide.md` | คู่มือติดตั้ง n8n สำหรับ Migration Phase |
 | `03-06-migration-business-scope.md` | ขอบเขตการทำ Migration ตาม ADR-009 |
-| `03-07-OpenRAG.md` | เอกสาร RAG Implementation Guide |
+| `03-07-OpenRAG.md` | ❌ Archived — [ดู `archive/03-07-OpenRAG.md`](./archive/03-07-OpenRAG.md) (ล้าสมัย — ถูกแทนที่โดย ADR-043 §4) |
 
 ### Configuration Files
 

@@ -6479,9 +6479,9 @@ CREATE TABLE ai_audit_log (
 
 ## Reference
 
-- [ADR-018 AI Boundary](../../../../specs/06-Decision-Records/ADR-018-ai-boundary.md)
-- [ADR-020 AI Intelligence Integration](../../../../specs/06-Decision-Records/ADR-020-ai-intelligence-integration.md)
-- [ADR-017 Ollama Data Migration](../../../../specs/06-Decision-Records/ADR-017-ollama-data-migration.md)
+- [ADR-018 AI Boundary](../../../../specs/06-Decision-Records/archive/ADR-018-ai-boundary.md)
+- [ADR-020 AI Intelligence Integration](../../../../specs/06-Decision-Records/archive/ADR-020-ai-intelligence-integration.md)
+- [ADR-017 Ollama Data Migration](../../../../specs/06-Decision-Records/archive/ADR-017-ollama-data-migration.md)
 
 ---
 
@@ -6675,9 +6675,9 @@ Frontend uses `workflow.availableActions` to render buttons — no client-side s
 - [ADR-008 Email/Notification Strategy](../../../specs/06-Decision-Records/ADR-008-email-notification-strategy.md)
 - [ADR-009 Database Migration Strategy](../../../specs/06-Decision-Records/ADR-009-database-migration-strategy.md)
 - [ADR-016 Security & Authentication](../../../specs/06-Decision-Records/ADR-016-security-authentication.md)
-- [ADR-018 AI Boundary](../../../specs/06-Decision-Records/ADR-018-ai-boundary.md)
+- [ADR-018 AI Boundary](../../../specs/06-Decision-Records/archive/ADR-018-ai-boundary.md)
 - [ADR-019 Hybrid Identifier Strategy](../../../specs/06-Decision-Records/ADR-019-hybrid-identifier-strategy.md)
-- [ADR-020 AI Intelligence Integration](../../../specs/06-Decision-Records/ADR-020-ai-intelligence-integration.md)
+- [ADR-020 AI Intelligence Integration](../../../specs/06-Decision-Records/archive/ADR-020-ai-intelligence-integration.md)
 - [ADR-021 Workflow Context](../../../specs/06-Decision-Records/ADR-021-workflow-context.md)
 - [Backend Engineering Guidelines](../../../specs/05-Engineering-Guidelines/05-02-backend-guidelines.md)
 - [Schema — v1.8.0 Tables](../../../specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql)

@@ -1,7 +1,7 @@
 # Architecture Decision Records (ADRs)
 
-**Version:** 1.9.12
-**Last Updated:** 2026-07-30
+**Version:** 1.9.13
+**Last Updated:** 2026-08-03
 **Project:** LCBP3-DMS (Laem Chabang Port Phase 3 - Document Management System)
 
 ---
@@ -88,13 +88,16 @@ Architecture Decision Records (ADRs) เป็นเอกสารที่บ�
 
 ### AI & Data Integration
 
+> ⭐ **Single Source of Truth:** สถาปัตยกรรม AI ปัจจุบันรวมอยู่ใน [ADR-043](./ADR-043-ai-architecture-current-state.md) — อ่านที่นี่ก่อนเพื่อทราบ "สถาปัตยกรรม AI ปัจจุบันคืออะไร" (restatement ของ ADR ที่ active ทั้งหมด + ปิด drift ของ ADR-035 ↔ ADR-040)
+
 | ADR | Title | Status | Date | Summary |
 | :--- | :--- | :--- | :--- | :--- |
-| [ADR-017](./ADR-017-ollama-data-migration.md) | Ollama Data Migration Architecture | ❌ Superseded | 2026-02-26 | ถูกแทนที่โดย ADR-023: Unified AI Architecture |
-| [ADR-017B](./ADR-017B-ai-document-classification.md) | AI Document Classification | ❌ Superseded | 2026-03-27 | ถูกแทนที่โดย ADR-023: Unified AI Architecture |
-| [ADR-018](./ADR-018-ai-boundary.md) | AI Boundary Policy | ❌ Superseded | 2026-03-27 | ถูกแทนที่โดย ADR-023: Unified AI Architecture |
-| [ADR-020](./ADR-020-ai-intelligence-integration.md) | AI Intelligence Integration Architecture | ❌ Superseded | 2026-04-03 | ถูกแทนที่โดย ADR-023: Unified AI Architecture |
-| [ADR-022](./ADR-022-retrieval-augmented-generation.md) | Retrieval-Augmented Generation (RAG) | ❌ Superseded | 2026-04-20 | ถูกแทนที่โดย ADR-023: Unified AI Architecture |
+| [ADR-043](./ADR-043-ai-architecture-current-state.md) | ⭐ AI Architecture — Current State (Single Source of Truth) | ✅ Accepted | 2026-08-03 | Consolidation ADR — restatement ของ ADR-023, 023A, 024–028, 030, 032–037, 040–042; ปิด drift ADR-035 ↔ ADR-040; archive กลุ่ม A (017, 017B, 018, 020, 022) |
+| [ADR-017](./archive/ADR-017-ollama-data-migration.md) | Ollama Data Migration Architecture | ❌ Superseded (archived) | 2026-02-26 | ถูกแทนที่โดย ADR-023 → ADR-043; ย้ายไป `archive/` |
+| [ADR-017B](./archive/ADR-017B-ai-document-classification.md) | AI Document Classification | ❌ Superseded (archived) | 2026-03-27 | ถูกแทนที่โดย ADR-023 → ADR-043; ย้ายไป `archive/` |
+| [ADR-018](./archive/ADR-018-ai-boundary.md) | AI Boundary Policy | ❌ Superseded (archived) | 2026-03-27 | ถูกแทนที่โดย ADR-023 → ADR-043; ย้ายไป `archive/` |
+| [ADR-020](./archive/ADR-020-ai-intelligence-integration.md) | AI Intelligence Integration Architecture | ❌ Superseded (archived) | 2026-04-03 | ถูกแทนที่โดย ADR-023 → ADR-043; ย้ายไป `archive/` |
+| [ADR-022](./archive/ADR-022-retrieval-augmented-generation.md) | Retrieval-Augmented Generation (RAG) | ❌ Superseded (archived) | 2026-04-20 | ถูกแทนที่โดย ADR-023 → ADR-043; ย้ายไป `archive/` |
 | [ADR-023](./ADR-023-unified-ai-architecture.md) | Unified AI Architecture | ✅ Accepted | 2026-05-14 | สถาปัตยกรรม AI หลักแบบรวมศูนย์ (Boundary, RAG, Workflows และ Isolation) |
 | [ADR-023A](./ADR-023A-unified-ai-architecture.md) | AI Model Revision | ✅ Accepted | 2026-05-15 | 2-Model Stack (gemma4:e4b Q8_0 + nomic-embed-text), BullMQ 2-Queue, RAG embed scope, OCR auto-detect |
 | [ADR-024](./ADR-024-intent-classification-strategy.md) | Intent Classification Strategy | ✅ Accepted | 2026-05-20 | Hybrid Pattern→LLM Fallback กับ ai_intent_patterns ใน DB และ caching 5 นาที |
@@ -111,8 +114,11 @@ Architecture Decision Records (ADRs) เป็นเอกสารที่บ�
 | [ADR-036](./ADR-036-unified-ocr-architecture.md) | Unified AI Model Architecture — Sandbox-Production Parity | 📋 Proposed (§5 amended by ADR-040) | 2026-06-13 | Sandbox-Production Parity สำหรับ np-dms-ai และ np-dms-ocr; Profile-Only Parameter Governance; §5 sidecar contract amended by ADR-040 |
 | [ADR-037](./ADR-037-unified-prompt-management-ux-ui.md) | Unified Prompt Management UX/UI | ✅ Implemented | 2026-06-14 | Unified Prompt Management UX/UI — extends ADR-029 prompt_type scope |
 | [ADR-040](./ADR-040-ocr-sidecar-refactor.md) | OCR Sidecar Refactor — Pure Compute Worker | ✅ Accepted (Phase 1 + Phase 2 implemented) | 2026-06-20 | Sidecar เป็น pure compute worker; ลบ `/normalize` endpoint; engine เดียว np-dms-ocr; path traversal hardening; amends ADR-035 + ADR-036 §5; supersedes ADR-033 §7; Phase 2 (X-API-Key removal) complete |
-| [ADR-041](./ADR-041-server-consolidation.md) | Single-Host Server Consolidation | ✅ Implemented | 2026-06-20 | ย้าย services ทั้งหมดไปรวมบน np-dms-lcbp3; 4-layer Docker compose; QNAP = HA standby; ASUSTOR = Primary NAS; T016 (X-API-Key removal) complete |
+| [ADR-041](./ADR-041-server-consolidation.md) | Single-Host Server Consolidation | ⚠️ Implemented (D2/D6 amended by ADR-045) | 2026-06-20 | ย้าย services ทั้งหมดไปรวมบน np-dms-lcbp3; 4-layer Docker compose; QNAP = NAS/backup only (no Docker post-ADR-045); ASUSTOR = Primary NAS; T016 (X-API-Key removal) complete |
 | [ADR-042](./ADR-042-sandbox-project-and-ocr-text-persistence.md) | Sandbox Project + OCR Text Persistence | 📋 Proposed | 2026-07-27 | Sandbox Project (DB-committing Full Pipeline Test) + OCR text persistence (แยก rag-prepare เป็น OCR-persist + embed-document) |
+| [ADR-043](./ADR-043-ai-architecture-current-state.md) | ⭐ AI Architecture — Current State (Single Source of Truth) | ✅ Accepted | 2026-08-03 | Consolidation ADR — restatement ของ ADR ที่ active ทั้งหมด; ปิด drift ADR-035 ↔ ADR-040; archive กลุ่ม A (017, 017B, 018, 020, 022) |
+| [ADR-044](./ADR-044-database-schema-strategy-amendment.md) | Database Schema Strategy Amendment — No TypeORM Migrations | ✅ Accepted | 2026-08-03 | Amends ADR-009 — formalize "no TypeORM migrations, edit schema SQL directly via delta files" as current decision; resolves internal contradiction in ADR-009 |
+| [ADR-045](./ADR-045-edge-proxy-topology-amendment.md) | Edge Proxy Topology Amendment — Cloudflare Tunnel as Sole Edge | ✅ Accepted | 2026-08-03 | Amends ADR-041 D2/D6 — formalize Cloudflare Tunnel on np-dms-lcbp3 as sole edge proxy; QNAP no Docker (NAS/backup only); NPM demoted to internal router |
 
 ---
 
@@ -165,6 +171,8 @@ Architecture Decision Records (ADRs) เป็นเอกสารที่บ�
 
 ### 9. AI & Data Integration
 
+- **ADR-043:** ⭐ AI Architecture — Current State (Single Source of Truth) — restatement ของ ADR ที่ active ทั้งหมด + ปิด drift ADR-035 ↔ ADR-040; อ่านที่นี่ก่อน
+- **ADR-017, 017B, 018, 020, 022:** Archived (`archive/`) — ถูกแทนที่โดย ADR-023 → ADR-043
 - **ADR-023:** Unified AI Architecture - สถาปัตยกรรม AI หลักของระบบ ครอบคลุม Boundary, Workflows, RAG และ Hardware Isolation
 - **ADR-023A:** AI Model Revision - 2-Model Stack (gemma4:e4b Q8_0 + nomic-embed-text), BullMQ 2-Queue, OCR auto-detect
 - **ADR-024 ถึง ADR-030:** Runtime dynamic system (Intent Classifier, Tool Layer, Chat UI, Dynamic prompts & contexts)

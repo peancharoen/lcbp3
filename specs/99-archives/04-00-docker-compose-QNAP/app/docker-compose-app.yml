@@ -95,7 +95,7 @@ services:
       QDRANT_HOST: 'qdrant'
       QDRANT_PORT: '6333'
       QDRANT_URL: 'http://qdrant:6333'
-      # --- PaddleOCR Sidecar (Desk-5439 — ADR-023A) ---
+      # --- OCR Sidecar (np-dms-lcbp3 04-ai layer — ADR-040/041; PaddleOCR superseded by np-dms-ocr) ---
       OCR_API_URL: ${OCR_API_URL:?OCR_API_URL required}
       OCR_CHAR_THRESHOLD: ${OCR_CHAR_THRESHOLD:-100}
       OCR_SIDECAR_UPLOAD_BASE: ${OCR_SIDECAR_UPLOAD_BASE:-/mnt/uploads}

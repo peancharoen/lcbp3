@@ -1,13 +1,13 @@
 ---
-title: AI Integration Boundary (ADR-018 / ADR-020)
+title: AI Integration Boundary (ADR-023/023A + ADR-043 — supersedes ADR-018/020)
 impact: CRITICAL
-impactDescription: AI runs on Admin Desktop only; AI → DMS API → DB (never direct); human-in-the-loop validation mandatory; full audit trail.
-tags: ai, ollama, boundary, adr-018, adr-020, privacy, audit
+impactDescription: AI runs on np-dms-lcbp3 only (post-ADR-041); AI → DMS API → DB (never direct); human-in-the-loop validation mandatory; full audit trail.
+tags: ai, ollama, boundary, adr-023, adr-043, adr-018-archived, privacy, audit
 ---
 
 ## AI Integration Boundary
 
-LCBP3 uses **on-premises AI only** (Ollama on Admin Desktop) with strict isolation from data layers.
+LCBP3 uses **on-premises AI only** (Ollama on `np-dms-lcbp3` per ADR-041 — formerly "Admin Desktop"/Desk-5439, decommissioned) with strict isolation from data layers.
 
 ---
 
@@ -153,6 +153,6 @@ CREATE TABLE ai_audit_log (
 
 ## Reference
 
-- [ADR-018 AI Boundary](../../../../specs/06-Decision-Records/ADR-018-ai-boundary.md)
-- [ADR-020 AI Intelligence Integration](../../../../specs/06-Decision-Records/ADR-020-ai-intelligence-integration.md)
-- [ADR-017 Ollama Data Migration](../../../../specs/06-Decision-Records/ADR-017-ollama-data-migration.md)
+- [ADR-018 AI Boundary](../../../../specs/06-Decision-Records/archive/ADR-018-ai-boundary.md)
+- [ADR-020 AI Intelligence Integration](../../../../specs/06-Decision-Records/archive/ADR-020-ai-intelligence-integration.md)
+- [ADR-017 Ollama Data Migration](../../../../specs/06-Decision-Records/archive/ADR-017-ollama-data-migration.md)

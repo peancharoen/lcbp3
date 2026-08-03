@@ -1,6 +1,6 @@
 ---
 name: nestjs-best-practices
-description: NestJS best practices and architecture patterns for building production-ready LCBP3-DMS backend code. Enforces ADR-009 (no TypeORM migrations), ADR-019 (hybrid UUID), ADR-016 (security), ADR-007 (error handling), ADR-008 (BullMQ), ADR-001/002 (workflow + numbering), ADR-018/020 (AI boundary), and ADR-021 (workflow context).
+description: NestJS best practices and architecture patterns for building production-ready LCBP3-DMS backend code. Enforces ADR-009 (no TypeORM migrations), ADR-019 (hybrid UUID), ADR-016 (security), ADR-007 (error handling), ADR-008 (BullMQ), ADR-001/002 (workflow + numbering), ADR-023/023A/043 (AI boundary — supersedes archived ADR-018/020), ADR-034/040/041 (model stack + sidecar + server consolidation), and ADR-021 (workflow context).
 version: 1.9.0
 scope: backend
 user-invocable: false
@@ -117,7 +117,7 @@ Reference these guidelines when:
 - `db-no-typeorm-migrations` — **CRITICAL** ADR-009: edit SQL directly
 - `lcbp3-workflow-engine` — **CRITICAL** ADR-001/002/021: DSL state machine + double-lock numbering + workflow context
 - `security-file-two-phase-upload` — **CRITICAL** ADR-016: Upload → Temp → ClamAV → Commit
-- `lcbp3-ai-boundary` — **CRITICAL** ADR-018/020: Ollama on-prem only, human-in-the-loop
+- `lcbp3-ai-boundary` — **CRITICAL** ADR-023/023A/043 (supersedes ADR-018/020): Ollama on np-dms-lcbp3 only (post-ADR-041), human-in-the-loop
 
 ## NAP-DMS Project-Specific Rules (MUST FOLLOW)
 

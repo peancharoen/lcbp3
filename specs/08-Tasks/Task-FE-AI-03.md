@@ -1,5 +1,7 @@
 # Task FE-AI-03: Frontend Human-in-the-Loop Interface
 
+> ⚠️ **Implementation History (ADRs referenced herein archived):** เอกสารนี้อ้างอิง ADR-018/020 ซึ่งถูก archived ไป `06-Decision-Records/archive/` โดยถูกแทนที่ด้วย ADR-023 → ADR-043 (Single Source of Truth, 2026-08-03) สถาปัตยกรรม AI ปัจจุบันรวมอยู่ใน [ADR-043](../06-Decision-Records/ADR-043-ai-architecture-current-state.md) — ใช้เอกสารนี้เป็น audit trail เท่านั้น
+
 **Phase:** Step 3 - AI Verification & User Experience (Next.js)
 **ADR Compliance:** ADR-018 (AI Boundary), ADR-019 (UUID Strategy)
 **Priority:** 🔴 Critical - Human validation layer for AI outputs

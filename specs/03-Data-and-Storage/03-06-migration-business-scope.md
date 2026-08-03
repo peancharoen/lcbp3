@@ -256,7 +256,7 @@ T+1 เดือน:
    - Expiry: 7 วัน (ต้อง Renew ทุกสัปดาห์)
    - Revoke ทันที หลัง Migration เสร็จ
 
-3. **AI Isolation** (ตาม ADR-018):
+3. **AI Isolation** (ตาม ADR-023 → ADR-043; ADR-018 archived):
    - Ollama ไม่มี Direct DB Access
    - Ollama เห็นแค่ Text Content จากไฟล์ PDF — ไม่เห็น System Data
    - Output ของ AI ต้องผ่าน Backend Validation ก่อน Write

@@ -6,8 +6,8 @@
 **Date:** 2026-03-13
 **Related Documents:**
 
-- [ADR-017: Ollama Data Migration](../06-Decision-Records/ADR-017-ollama-data-migration.md)
-- [ADR-018: AI Boundary Hardening](../06-Decision-Records/Patch%201.8.1.md)
+- [ADR-017: Ollama Data Migration](../06-Decision-Records/archive/ADR-017-ollama-data-migration.md) (archived — superseded by ADR-023 → ADR-043)
+- [ADR-018: AI Boundary Hardening](../06-Decision-Records/archive/ADR-018-ai-boundary.md) (archived — superseded by ADR-023 → ADR-043)
 - [n8n Migration Setup Guide](./03-05-n8n-migration-setup-guide.md)
 - [Legacy Data Migration](./03-04-legacy-data-migration.md)
 - [OpenRAG (openr.ag)](https://www.openr.ag/) — IBM open-source RAG: Docling + OpenSearch + Langflow
@@ -131,13 +131,13 @@ OpenRAG ทำงานบน **Admin Desktop** อ่าน PDF ทั้ง Fo
 }
 ```
 
-> ✅ **File Naming Convention:** `<original_pdf_basename>.json`  
+> ✅ **File Naming Convention:** `<original_pdf_basename>.json`
 > ตัวอย่าง: `TCC-COR-2024-001.pdf` → `TCC-COR-2024-001.json`
 >
-> ✅ **Idempotency:** ถ้า `.json` ไฟล์นั้นมีอยู่แล้ว → Skip (ไม่ Process ซ้ำ)  
+> ✅ **Idempotency:** ถ้า `.json` ไฟล์นั้นมีอยู่แล้ว → Skip (ไม่ Process ซ้ำ)
 > เพิ่ม field `processed_at` เพื่อ debug ว่า Extract เมื่อไหร่
 >
-> ⚠️ **Constraint (ADR-018):** OpenRAG ไม่มีสิทธิ์เข้า MariaDB  
+> ⚠️ **Constraint (ADR-018):** OpenRAG ไม่มีสิทธิ์เข้า MariaDB
 > เขียนได้เฉพาะใน `rag-output/` เท่านั้น — ไม่แตะ PDF ต้นฉบับ
 
 ---
@@ -566,7 +566,7 @@ ollama pull nomic-embed-text
 
 - Output `Files` → Input `Inputs` ของ Loop
 
-> ℹ️ Read File จะโหลดไฟล์ทั้งหมดมาเป็น list แล้วส่งให้ Loop วนลูปทีละไฟล์  
+> ℹ️ Read File จะโหลดไฟล์ทั้งหมดมาเป็น list แล้วส่งให้ Loop วนลูปทีละไฟล์
 > ถ้าต้องการเลือก folder แบบ dynamic ให้ใช้ **Directory** component แทน
 
 ---
@@ -602,8 +602,8 @@ ollama pull nomic-embed-text
 - Input `Data or DataFrame` ← `Loop → Item`
 - Output `Parsed Text` → Input `extracted_text` ของ Prompt Template
 
-> ⚠️ **ใช้ Mode: Stringify เท่านั้น**  
-> Mode: Parser ใช้ template เป็น pattern สำหรับดึงค่า — ไม่เหมาะกับงานนี้  
+> ⚠️ **ใช้ Mode: Stringify เท่านั้น**
+> Mode: Parser ใช้ template เป็น pattern สำหรับดึงค่า — ไม่เหมาะกับงานนี้
 > Mode: Stringify แปลง file object เป็น text content ที่ Ollama อ่านได้
 
 ---
@@ -622,7 +622,7 @@ ollama pull nomic-embed-text
 - Variable `extracted_text` ← `Parser → Parsed Text`
 - Output `Prompt` → Input `Input` ของ Ollama
 
-> ℹ️ Prompt Template รองรับ `{variable_name}` สำหรับแทรกค่าแบบ dynamic  
+> ℹ️ Prompt Template รองรับ `{variable_name}` สำหรับแทรกค่าแบบ dynamic
 > ต้องตั้งชื่อ variable ให้ตรงกับที่ใช้ใน template (`{extracted_text}`)
 
 ---
@@ -646,9 +646,9 @@ ollama pull nomic-embed-text
 - Input `System Message` ← ปล่อยว่าง (System Prompt อยู่ใน Prompt Template แล้ว)
 - Output `Text` → Input ของ Custom Code (Node 6)
 
-> ⚠️ **Ollama API URL:**  
-> ถ้า Langflow รันใน Docker (WSL) → ใช้ `http://host.docker.internal:11434`  
-> ถ้า Ollama bind บน VLAN IP → ใช้ `http://192.168.20.100:11434`  
+> ⚠️ **Ollama API URL:**
+> ถ้า Langflow รันใน Docker (WSL) → ใช้ `http://host.docker.internal:11434`
+> ถ้า Ollama bind บน VLAN IP → ใช้ `http://192.168.20.100:11434`
 > ทดสอบด้วย: `curl http://host.docker.internal:11434/api/tags` ใน WSL
 
 ---
@@ -753,9 +753,9 @@ class WriteJsonIdempotent(Component):
 | Max Tokens               | `2048`                        |
 | Enable Structured Output | `ON`                          |
 
-> ℹ️ **เหตุผลที่เลือก Typhoon 2.1:**  
-> `scb10x/typhoon2.1-gemma3-4b` โดย SCB10X เป็น Model ที่ออกแบบมาสำหรับภาษาไทยโดยเฉพาะ  
-> เหมาะกับเอกสารก่อสร้างที่มีทั้งไทยและอังกฤษปนกัน ดีกว่า `llama3.2:3b` มาก  
+> ℹ️ **เหตุผลที่เลือก Typhoon 2.1:**
+> `scb10x/typhoon2.1-gemma3-4b` โดย SCB10X เป็น Model ที่ออกแบบมาสำหรับภาษาไทยโดยเฉพาะ
+> เหมาะกับเอกสารก่อสร้างที่มีทั้งไทยและอังกฤษปนกัน ดีกว่า `llama3.2:3b` มาก
 > ต้องติดตั้งก่อน: `ollama pull scb10x/typhoon2.1-gemma3-4b` บน Admin Desktop
 
 ---
@@ -764,8 +764,8 @@ class WriteJsonIdempotent(Component):
 
 คัดลอก Prompt นี้ใส่ใน **Prompt Template Component** ของ Langflow:
 
-> ⚠️ **Langflow Escaping Rule:** ปีกกา `{` `}` ที่เป็น JSON literal ต้องเขียนเป็น `{{` `}}` (double)  
-> มิฉะนั้น Langflow จะตีความว่าเป็น variable → เกิด error "Invalid variables"  
+> ⚠️ **Langflow Escaping Rule:** ปีกกา `{` `}` ที่เป็น JSON literal ต้องเขียนเป็น `{{` `}}` (double)
+> มิฉะนั้น Langflow จะตีความว่าเป็น variable → เกิด error "Invalid variables"
 > **ข้อยกเว้น:** `{extracted_text}` ใช้ single เพราะเป็น variable จริงที่รับจาก Parser
 
 ```
@@ -804,7 +804,7 @@ Document text to analyze:
 {extracted_text}
 ```
 
-> ℹ️ **`{{` `}}` → แสดงเป็น `{` `}` จริงใน prompt ที่ส่งให้ LLM**  
+> ℹ️ **`{{` `}}` → แสดงเป็น `{` `}` จริงใน prompt ที่ส่งให้ LLM**
 > ⚠️ **ห้าม Hardcode** รายการ Category — ดูจาก `GET /api/master/correspondence-types` ตาม ADR-017
 
 ---

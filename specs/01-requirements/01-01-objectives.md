@@ -59,7 +59,7 @@ related:
 | **Audit Log** | บันทึกทุก Action สำคัญ | — |
 | **Notifications** | แจ้งเตือน In-App, Email, LINE | ADR-008 |
 | **Admin Panel** | จัดการ Users, Orgs, Projects, Configs | SCR-022~026 |
-| **Migration Bot** | นำเข้าเอกสารเดิม ~20K docs | ADR-017 |
+| **Migration Bot** | นำเข้าเอกสารเดิม ~20K docs | ADR-023 → ADR-043 (ADR-017 archived) |
 
 ### ❌ Out of Scope — ไม่รวมในโครงการนี้
 

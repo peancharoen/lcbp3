@@ -1,9 +1,11 @@
 # ADR-009: Database Migration & Deployment Strategy
 
-**Status:** ✅ Accepted (Penging)
+> ⚠️ **Amended by [ADR-044](./ADR-044-database-schema-strategy-amendment.md) (2026-08-03):** Decision Outcome (TypeORM Migrations) ถูก supersede โดย ADR-044 — สถานะปัจจุบันคือ **"no TypeORM migrations, edit schema SQL directly via delta files"** เอกสารนี้คงไว้เป็น audit trail ตาม ADR-REVIEW-PROCESS (ไม่ได้แก้เนื้อหาเดิม)
+
+**Status:** ⚠️ Accepted (Decision Outcome amended by ADR-044 — see note above)
 **Date:** 2026-02-24
 **Decision Makers:** Backend Team, DevOps Team, System Architect
-**Related Documents:** [TASK-BE-001](../06-tasks/TASK-BE-015-schema-v160-migration.md), [ADR-005: Technology Stack](./ADR-005-technology-stack.md)
+**Related Documents:** [TASK-BE-001](../06-tasks/TASK-BE-015-schema-v160-migration.md), [ADR-005: Technology Stack](./ADR-005-technology-stack.md), [ADR-044: Schema Strategy Amendment](./ADR-044-database-schema-strategy-amendment.md)
 **Version Applicability:** v1.8.0+
 **Next Review:** 2026-08-01 (6-month cycle)
 

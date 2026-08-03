@@ -4,6 +4,8 @@
 
 # Feature Specification: Unified AI Model Architecture — Sandbox-Production Parity
 
+> ⚠️ **Implementation History (superseded by ADR-043):** เอกสารนี้เป็นประวัติการ implement ของ feature ที่เกี่ยวกับ AI — สถาปัตยกรรม AI ปัจจุบันรวมอยู่ใน [ADR-043: AI Architecture Current State](../../06-Decision-Records/ADR-043-ai-architecture-current-state.md) (Single Source of Truth, 2026-08-03) ใช้เอกสารนี้เป็น audit trail เท่านั้น ห้ามใช้เป็นที่อ้างอิงสถาปัตยกรรมปัจจุบัน
+
 **Feature Branch**: `236-unified-ocr-architecture`  
 **Created**: 2026-06-13  
 **Status**: Draft  

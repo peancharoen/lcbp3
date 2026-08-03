@@ -20,7 +20,7 @@
 - [ADR-016: Security & Authentication](./ADR-016-security-authentication.md)
 - [ADR-019: Hybrid Identifier Strategy](./ADR-019-hybrid-identifier-strategy.md)
 - [n8n Migration Setup Guide](../03-Data-and-Storage/03-05-n8n-migration-setup-guide.md)
-- [RAG Architecture](../03-Data-and-Storage/03-07-OpenRAG.md)
+- [RAG Architecture](../03-Data-and-Storage/archive/03-07-OpenRAG.md)
 
 > **หมายเหตุ:** ADR-018 เป็น Security Policy หลักที่ควบคุมการทำงานของ AI Components ทั้งหมดในระบบ LCBP3-DMS ทุก Use Case ที่ใช้ AI (Migration, RAG, Smart Categorization) ต้องปฏิบัติตาม Policy นี้ และเป็นส่วนหนึ่งของ ADR-020 (Unified AI Architecture).
 
@@ -434,7 +434,7 @@ Response:
 - [ADR-017B: AI Document Classification](./ADR-017B-ai-document-classification.md) — AI document classification use case
 - [ADR-016: Security & Authentication](./ADR-016-security-authentication.md) — General security strategy
 - [ADR-019: Hybrid Identifier Strategy](./ADR-019-hybrid-identifier-strategy.md) — UUID strategy for API security
-- [03-07-OpenRAG.md](../03-Data-and-Storage/03-07-OpenRAG.md) — RAG architecture under ADR-018
+- [03-07-OpenRAG.md](../03-Data-and-Storage/archive/03-07-OpenRAG.md) — RAG architecture under ADR-018
 - [03-05-n8n-migration-setup-guide.md](../03-Data-and-Storage/03-05-n8n-migration-setup-guide.md) — n8n setup with AI isolation
 
 ---

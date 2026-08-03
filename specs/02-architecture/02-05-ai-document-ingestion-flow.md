@@ -3,18 +3,19 @@
 ---
 
 **title:** 'AI Document Ingestion Flow'
-**version:** 1.1.0
+**version:** 1.2.0
 **status:** active
 **owner:** Nattanin Peancharoen
-**last_updated:** 2026-07-30
-**source:** migrated from `docs/AI-step.md` (reconciled against actual code + ADR-040)
+**last_updated:** 2026-08-03
+**source:** migrated from `docs/AI-step.md` (reconciled against actual code + ADR-040; ADR-035↔ADR-040 drift formally closed by ADR-043)
 **related:**
 
-- specs/06-Decision-Records/ADR-040-ocr-sidecar-refactor.md  ← **Source of Truth สำหรับ OCR sidecar contract**
+- specs/06-Decision-Records/ADR-043-ai-architecture-current-state.md  ← ⭐ **Single Source of Truth สำหรับสถาปัตยกรรม AI ทั้งหมด** (อ่านที่นี่ก่อน)
+- specs/06-Decision-Records/ADR-040-ocr-sidecar-refactor.md  ← **Source of Truth สำหรับ OCR sidecar contract** (amends ADR-035 — ประกาศอย่างเป็นทางการโดย ADR-043)
 - specs/06-Decision-Records/ADR-042-sandbox-project-and-ocr-text-persistence.md
 - specs/06-Decision-Records/ADR-023A-unified-ai-architecture.md
-- specs/06-Decision-Records/ADR-036-unified-ocr-architecture.md
-- specs/06-Decision-Records/ADR-035-ai-pipeline-flow-architecture.md  ← ⚠️ partially amended by ADR-040 (see drift note)
+- specs/06-Decision-Records/ADR-036-unified-ocr-architecture.md  ← §5 amended by ADR-040 (ประกาศอย่างเป็นทางการโดย ADR-043)
+- specs/06-Decision-Records/ADR-035-ai-pipeline-flow-architecture.md  ← amended by ADR-040 (drift ปิดแล้วโดย ADR-043 — ดูด้านล่าง)
 - specs/06-Decision-Records/ADR-016-security-authentication.md
 - specs/06-Decision-Records/ADR-008-email-notification-strategy.md
 - specs/06-Decision-Records/ADR-019-hybrid-identifier-strategy.md
@@ -22,15 +23,16 @@
 ---
 
 > **หมายเหตุการ reconciliation:**
-> เอกสารนี้ย้ายมาจาก `docs/AI-step.md` และปรับให้สะท้อน **โค้ดจริงใน production** (ตรวจวันที่ 2026-07-30)
+> เอกสารนี้ย้ายมาจาก `docs/AI-step.md` และปรับให้สะท้อน **โค้ดจริงใน production** (ตรวจวันที่ 2026-07-30; drift reconciliation 2026-08-03)
 >
 > **Source of Truth แบ่งตามชั้น:**
+> - ⭐ **AI Architecture ทั้งหมด (Single Source of Truth):** ADR-043 (2026-08-03) — restatement ของ ADR ที่ active ทั้งหมด + ปิด drift ADR-035 ↔ ADR-040 อย่างเป็นทางการ
 > - **OCR sidecar contract (engine selection, /normalize removal, runtime params):** ADR-040 (2026-06-20)
 > - **OCR text persistence + Sandbox Project:** ADR-042
-> - **AI boundary + Qdrant projectPublicId filter:** ADR-023A
+> - **AI boundary + Qdrant projectPublicId filter:** ADR-023A (restated ใน ADR-043 §1)
 > - **Two-Phase File Upload:** ADR-016
 >
-> ⚠️ **ADR-035 drift note:** ADR-035 (2026-06-05) อ้าง Tesseract fallback, `/normalize` endpoint, และ engine `typhoon-np-dms-ocr:latest` — สิ่งเหล่านี้ถูกแก้โดย ADR-040 (2026-06-20) ในส่วน D1/D2 แต่ ADR-040 ยังไม่ได้ประกาศ `Amends: ADR-035` อย่างเป็นทางการ ทำให้ ADR-035 ยังสถานะ `Accepted` อยู่บนกระดาษ ในทางปฏิบัติ **ให้ถือ ADR-040 เป็นทางเลือกที่ถูกต้อง** สำหรับจุดที่ขัดกัน
+> ✅ **ADR-035 ↔ ADR-040 drift — ปิดแล้วอย่างเป็นทางการ:** ADR-043 (2026-08-03) ประกาศอย่างเป็นทางการว่า ADR-040 amends ADR-035 (ในส่วน D1/D2: Tesseract fallback, `/normalize` endpoint, engine `typhoon-np-dms-ocr:latest`) และ amends ADR-036 §5 — drift note เดิมที่ระบุว่า "ADR-040 ยังไม่ได้ประกาศ Amends อย่างเป็นทางการ" **ถูกปิดแล้ว** ให้อ้างอิง ADR-043 Decision Graph และ "What is current" table สำหรับสถานะปัจจุบัน
 
 ## ภาพรวม
 
@@ -121,7 +123,7 @@
 
 เมื่อ `embed-document` job ถูก dequeue รับ `extractedText` มาโดยตรง ข้าม OCR ซ้ำ:
 
-1. **Semantic Chunking** — ใช้ LLM (`typhoon2.5-np-dms` ตาม ADR-034) + prompt template จาก `ai_prompts` (ADR-030) แบ่งข้อความเป็น chunks ตาม topic
+1. **Semantic Chunking** — ใช้ LLM (`np-dms-ai` ตาม ADR-034) + prompt template จาก `ai_prompts` (ADR-030) แบ่งข้อความเป็น chunks ตาม topic
    - Fallback: แบ่งแบบ fixed-size (512 tokens, 64 overlap) ถ้า LLM ล้มเหลว
 
 2. **Embedding** — แต่ละ chunk ส่งไป Sidecar `POST /embed` → **BGE-M3** (`BAAI/bge-m3`) สร้าง **Hybrid vector** (Dense 1024 dims + Sparse)
@@ -153,7 +155,7 @@
 | Step | Endpoint | การทำงาน |
 |------|----------|----------|
 | **1. OCR Only** | `POST /ai/admin/sandbox/ocr` | อัปโหลด PDF → OCR เท่านั้น (engine `np-dms-ocr`) → cache ผลใน Redis |
-| **2. AI Extract** | `POST /ai/admin/sandbox/ai-extract` | ใช้ OCR text จาก cache → ส่งให้ LLM (`typhoon2.5-np-dms`) สกัด metadata เป็น JSON |
+| **2. AI Extract** | `POST /ai/admin/sandbox/ai-extract` | ใช้ OCR text จาก cache → ส่งให้ LLM (`np-dms-ai`) สกัด metadata เป็น JSON |
 | **3. RAG Prep** | `POST /ai/admin/sandbox/rag-prep` | รับ OCR text → semantic chunking + embedding preview (ไม่ upsert Qdrant) |
 
 Frontend (`SandboxTabs.tsx`) ใช้ polling ทุก 2 วินาที เพื่อเช็คสถานะ job ผ่าน `GET /ai/admin/sandbox/job/:id`
@@ -223,7 +225,7 @@ Superadmin ทดสอบ Production Flow แบบ end-to-end ผ่าน San
 │                                                                     │
 │  embed-document job:                                                │
 │    ├─► EmbeddingService.embedDocument()                             │
-│    │     ├─ Semantic Chunking (typhoon2.5-np-dms + ai_prompts)      │
+│    │     ├─ Semantic Chunking (np-dms-ai + ai_prompts)              │
 │    │     │   └─ fallback → fixed-size chunk (512 tokens, 64 overlap)│
 │    │     ├─ Sidecar /embed → BGE-M3 Dense + Sparse vectors         │
 │    │     │   (CPU/GPU dynamic — ADR-040 D5)                         │
@@ -252,12 +254,13 @@ Superadmin ทดสอบ Production Flow แบบ end-to-end ผ่าน San
 
 | ADR | หัวข้อ | บทบาทใน Flow นี้ | สถานะเอกสาร |
 |---|---|---|---|
-| **ADR-040** | OCR Sidecar Refactor | **Source of Truth ของ OCR sidecar contract** — engine selection, /normalize removal, runtime params, security | Proposed (แต่โค้ด implement แล้วบางส่วน) |
+| ⭐ **ADR-043** | AI Architecture — Current State (Single Source of Truth) | **Entry point ก่อน ADR อื่น** — restatement ของ ADR ที่ active ทั้งหมด + ปิด drift ADR-035 ↔ ADR-040 | Accepted |
+| **ADR-040** | OCR Sidecar Refactor | **Source of Truth ของ OCR sidecar contract** — engine selection, /normalize removal, runtime params, security (amends ADR-035 + ADR-036 §5 — ประกาศอย่างเป็นทางการโดย ADR-043) | Accepted (Phase 1 + 2 implemented) |
 | **ADR-042** | Sandbox Project + OCR Text Persistence | แยก `rag-prepare` เป็น OCR-persist + `embed-document`; Sandbox Project สำหรับ Full Pipeline Testing | Proposed |
-| **ADR-023/023A** | Unified AI Architecture | AI boundary (Ollama on Admin Desktop only), Qdrant `projectPublicId` filter, BullMQ 2-queue | Accepted |
-| **ADR-036** | Unified OCR Architecture | นิยาม Production Pipeline Sandbox (3 step, ไม่ commit DB) | Accepted |
-| **ADR-034** | AI Model Change (Thai-Optimized Stack) | โมเดล `np-dms-ocr` + `typhoon2.5-np-dms` + BGE-M3 + BGE-Reranker | Accepted |
-| **ADR-035** | AI Pipeline Flow Architecture | เคยเป็น flow SoT — **ถูก amend บางส่วนโดย ADR-040** (Tesseract, /normalize, engine name) | Accepted บนกระดาษ แต่ drift ในทางปฏิบัติ |
+| **ADR-023/023A** | Unified AI Architecture | AI boundary (Ollama บน `np-dms-lcbp3` ตาม ADR-041), Qdrant `projectPublicId` filter, BullMQ 2-queue | Accepted |
+| **ADR-036** | Unified OCR Architecture | นิยาม Production Pipeline Sandbox (3 step, ไม่ commit DB) — §5 amended by ADR-040 | Accepted (§5 amended) |
+| **ADR-034** | AI Model Change (Thai-Optimized Stack) | โมเดล `np-dms-ai` + `np-dms-ocr` + BGE-M3 + BGE-Reranker | Accepted |
+| **ADR-035** | AI Pipeline Flow Architecture | เคยเป็น flow SoT — **ถูก amend บางส่วนโดย ADR-040** (Tesseract, /normalize, engine name) — **drift ปิดแล้วอย่างเป็นทางการโดย ADR-043** | Accepted (amended by ADR-040) |
 | **ADR-030** | Context-Aware Prompt Templates | prompt template ดึงจาก `ai_prompts` table | Accepted |
 | **ADR-016** | Security & Authentication | Two-Phase File Upload (Temp → Commit) | Accepted |
 | **ADR-008** | Email/Notification Strategy | BullMQ for background jobs (ไม่ inline) | Accepted |
@@ -267,5 +270,6 @@ Superadmin ทดสอบ Production Flow แบบ end-to-end ผ่าน San
 
 ## Change Log
 
+- **2026-08-03 v1.2.0:** Reconcile กับ ADR-043 (AI Architecture Current State — Single Source of Truth) — เพิ่ม ADR-043 เป็น entry point ใน related list + SoT แบ่งตามชั้น; ปิด drift note ADR-035 ↔ ADR-040 อย่างเป็นทางการ (ADR-043 ประกาศ ADR-040 amends ADR-035 + ADR-036 §5); อัปเดตสถานะ ADR-040 เป็น Accepted (Phase 1+2 implemented); แก้ host ref "Admin Desktop" → `np-dms-lcbp3` (ADR-041); แก้ model name `typhoon2.5-np-dms` → `np-dms-ai` (ADR-034)
 - **2026-07-30 v1.1.0:** Reconcile กับโค้ดจริง + ใช้ ADR-040 เป็น Source of Truth ของ OCR sidecar contract (แทน ADR-035) — ลบ Tesseract, ลบ `/normalize`, ระบุ engine เดียว `np-dms-ocr`, อธิบาย PyMuPDF `auto` branch ว่าเป็น dead code สำหรับ PDF scan (ไม่ใช่ "ยกเลิก"), ยืนยัน BGE-M3 + BGE-Reranker มีใน sidecar จริง, เพิ่ม drift note ชี้ไป ADR-035
 - **2026-07-30 v1.0.0:** นำเข้าจาก `docs/AI-step.md` พร้อม reconcile กับ ADR-035/023A/042 — ตัด label "ใหม่", แปลง code citation เป็น function-level, ปรับ OCR routing ตาม ADR-035, เพิ่ม cross-link + drift flag
