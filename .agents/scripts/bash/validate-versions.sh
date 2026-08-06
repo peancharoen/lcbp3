@@ -74,8 +74,8 @@ if [[ -f "$SKILL_VERSIONS_FILE" ]]; then
     echo "Skills version file: v$skills_version"
 fi
 
-# Check workflow versions (in .windsurf/workflows)
-WORKFLOWS_DIR="$BASE_DIR/.windsurf/workflows"
+# Check workflow versions (in .devin/workflows)
+WORKFLOWS_DIR="$BASE_DIR/.devin/workflows"
 if [[ -d "$WORKFLOWS_DIR" ]]; then
     echo "Checking workflow files..."
     workflow_count=0

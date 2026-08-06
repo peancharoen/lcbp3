@@ -8,7 +8,7 @@ const path = require('path');
 
 // Test configuration
 const BASE_DIR = path.resolve(__dirname, '..');
-const WORKFLOWS_DIR = path.join(BASE_DIR, '.windsurf', 'workflows');
+const WORKFLOWS_DIR = path.join(BASE_DIR, '.devin', 'workflows');
 const AGENTS_DIR = path.join(BASE_DIR, '.agents');
 
 // Test utilities
@@ -201,7 +201,7 @@ function runWorkflowTests() {
   if (fs.existsSync(readmePath)) {
     const readmeContent = fs.readFileSync(readmePath, 'utf8');
     workflowTestSuite.assert(
-      readmeContent.includes('.windsurf/workflows'),
+      readmeContent.includes('.devin/workflows'),
       'README.md references correct workflows path'
     );
   }

@@ -230,7 +230,7 @@ class PerformanceMonitor {
         // Directory sizes
         const agentsSize = this.getDirectorySize(AGENTS_DIR);
         const skillsSize = this.getDirectorySize(SKILLS_DIR);
-        const workflowsDir = path.join(BASE_DIR, '.windsurf', 'workflows');
+        const workflowsDir = path.join(BASE_DIR, '.devin', 'workflows');
         const workflowsSize = fs.existsSync(workflowsDir) ? this.getDirectorySize(workflowsDir) : 0;
         
         // File counts
@@ -435,7 +435,7 @@ class PerformanceMonitor {
 
         // Analyze workflows
         this.log('Analyzing workflow performance...', 'info');
-        const workflowsDir = path.join(BASE_DIR, '.windsurf', 'workflows');
+        const workflowsDir = path.join(BASE_DIR, '.devin', 'workflows');
         if (fs.existsSync(workflowsDir)) {
             const workflowFiles = fs.readdirSync(workflowsDir).filter(file => file.endsWith('.md'));
             

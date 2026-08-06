@@ -21,7 +21,7 @@ init_agent_registry() {
         [qwen]="$repo_root/QWEN.md"
         [opencode]="$repo_root/AGENTS.md"
         [codex]="$repo_root/AGENTS.md"
-        [windsurf]="$repo_root/.windsurf/rules/specify-rules.md"
+        [devin]="$repo_root/.devin/rules/specify-rules.md"
         [kilocode]="$repo_root/.kilocode/rules/specify-rules.md"
         [auggie]="$repo_root/.augment/rules/specify-rules.md"
         [roo]="$repo_root/.roo/rules/specify-rules.md"

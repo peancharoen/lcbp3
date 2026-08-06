@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# sync-workflows.sh - Sync workflow references between .agents and .windsurf
+# sync-workflows.sh - Sync workflow references between .agents and .devin
 # Part of LCBP3-DMS Phase 2 improvements
 
 set -euo pipefail
@@ -15,8 +15,8 @@ NC='\033[0m' # No Color
 # Base directory
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 AGENTS_DIR="$BASE_DIR/.agents"
-WINDSURF_DIR="$BASE_DIR/.windsurf"
-WORKFLOWS_DIR="$WINDSURF_DIR/workflows"
+DEVIN_DIR="$BASE_DIR/.devin"
+WORKFLOWS_DIR="$DEVIN_DIR/workflows"
 
 echo "=== Workflow Synchronization Check ==="
 echo "Base directory: $BASE_DIR"
@@ -26,7 +26,7 @@ echo
 check_workflow() {
     local workflow_name="$1"
     local workflow_file="$WORKFLOWS_DIR/$workflow_name"
-    
+
     if [[ -f "$workflow_file" ]]; then
         echo -e "${GREEN}  EXISTS${NC}: $workflow_name"
         return 0
@@ -54,10 +54,10 @@ else
     exit 1
 fi
 
-if [[ -d "$WINDSURF_DIR" ]]; then
-    echo -e "${GREEN}  OK${NC}: .windsurf directory exists"
+if [[ -d "$DEVIN_DIR" ]]; then
+    echo -e "${GREEN}  OK${NC}: .devin directory exists"
 else
-    echo -e "${RED}  ERROR${NC}: .windsurf directory not found"
+    echo -e "${RED}  ERROR${NC}: .devin directory not found"
     exit 1
 fi
 

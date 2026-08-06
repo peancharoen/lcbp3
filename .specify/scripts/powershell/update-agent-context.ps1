@@ -9,7 +9,7 @@ Mirrors the behavior of scripts/bash/update-agent-context.sh:
  2. Plan Data Extraction
  3. Agent File Management (create from template or update existing)
  4. Content Generation (technology stack, recent changes, timestamp)
- 5. Multi-Agent Support (claude, gemini, copilot, cursor-agent, qwen, opencode, codex, windsurf, kilocode, auggie, roo, codebuddy, amp, shai, q, bob)
+ 5. Multi-Agent Support (claude, gemini, copilot, cursor-agent, qwen, opencode, codex, devin, kilocode, auggie, roo, codebuddy, amp, shai, q, bob)
 
 .PARAMETER AgentType
 Optional agent key to update a single agent. If omitted, updates all existing agent files (creating a default Claude file if none exist).
@@ -25,7 +25,7 @@ Relies on common helper functions in common.ps1
 #>
 param(
     [Parameter(Position=0)]
-    [ValidateSet('claude','gemini','copilot','cursor-agent','qwen','opencode','codex','windsurf','kilocode','auggie','roo','codebuddy','amp','shai','q','bob')]
+    [ValidateSet('claude','gemini','copilot','cursor-agent','qwen','opencode','codex','devin','kilocode','auggie','roo','codebuddy','amp','shai','q','bob')]
     [string]$AgentType
 )
 
@@ -50,7 +50,7 @@ $COPILOT_FILE  = Join-Path $REPO_ROOT '.github/agents/copilot-instructions.md'
 $CURSOR_FILE   = Join-Path $REPO_ROOT '.cursor/rules/specify-rules.mdc'
 $QWEN_FILE     = Join-Path $REPO_ROOT 'QWEN.md'
 $AGENTS_FILE   = Join-Path $REPO_ROOT 'AGENTS.md'
-$WINDSURF_FILE = Join-Path $REPO_ROOT '.windsurf/rules/specify-rules.md'
+$DEVIN_FILE    = Join-Path $REPO_ROOT '.devin/rules/specify-rules.md'
 $KILOCODE_FILE = Join-Path $REPO_ROOT '.kilocode/rules/specify-rules.md'
 $AUGGIE_FILE   = Join-Path $REPO_ROOT '.augment/rules/specify-rules.md'
 $ROO_FILE      = Join-Path $REPO_ROOT '.roo/rules/specify-rules.md'
@@ -421,7 +421,7 @@ function Print-Summary {
     if ($NEW_FRAMEWORK) { Write-Host "  - Added framework: $NEW_FRAMEWORK" }
     if ($NEW_DB -and $NEW_DB -ne 'N/A') { Write-Host "  - Added database: $NEW_DB" }
     Write-Host ''
-    Write-Info 'Usage: ./update-agent-context.ps1 [-AgentType claude|gemini|copilot|cursor-agent|qwen|opencode|codex|windsurf|kilocode|auggie|roo|codebuddy|amp|shai|q|bob]'
+    Write-Info 'Usage: ./update-agent-context.ps1 [-AgentType claude|gemini|copilot|cursor-agent|qwen|opencode|codex|devin|kilocode|auggie|roo|codebuddy|amp|shai|q|bob]'
 }
 
 function Main {

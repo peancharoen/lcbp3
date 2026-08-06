@@ -83,8 +83,8 @@ if (Test-Path $SkillsVersionFile) {
     Write-Host "Skills version file: v$skillsVersion"
 }
 
-# Check workflow versions (in .windsurf\workflows)
-$WorkflowsDir = Join-Path $BaseDir ".windsurf\workflows"
+# Check workflow versions (in .devin\workflows)
+$WorkflowsDir = Join-Path $BaseDir ".devin\workflows"
 if (Test-Path $WorkflowsDir) {
     Write-Host "Checking workflow files..."
     $workflowCount = (Get-ChildItem -Path $WorkflowsDir -Filter "*.md" -File | Measure-Object).Count

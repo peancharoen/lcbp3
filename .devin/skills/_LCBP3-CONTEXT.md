@@ -54,21 +54,21 @@
 
 ## 📁 Key Files for Generating / Validating Artifacts
 
-| When you need...           | Read                                                                                                                |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| When you need...           | Read                                                                                                                    |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | A new feature spec         | `.agents/skills/102-speckit.specify/templates/spec-template.md` + `specs/01-Requirements/01-06-edge-cases-and-rules.md` |
 | A plan                     | `.agents/skills/104-speckit.plan/templates/plan-template.md` + relevant ADRs                                            |
 | Task breakdown             | `.agents/skills/105-speckit.tasks/templates/tasks-template.md` + existing patterns in `specs/08-Tasks/`                 |
-| Acceptance criteria / UAT  | `specs/01-Requirements/01-05-acceptance-criteria.md`                                                                |
-| Schema / table definition  | `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql` + `03-01-data-dictionary.md`                          |
-| RBAC / permissions         | `specs/03-Data-and-Storage/lcbp3-v1.9.0-seed-permissions.sql` + `01-02-01-rbac-matrix.md`                           |
-| Release / hotfix           | `specs/04-Infrastructure-OPS/04-08-release-management-policy.md`                                                    |
-| ADR-024 Intent Class.      | `specs/06-Decision-Records/ADR-024-intent-classification-strategy.md`                                               |
-| ADR-025 AI Tool Layer      | `specs/06-Decision-Records/ADR-025-ai-tool-layer-architecture.md`                                                   |
-| ADR-026 Chat UI            | `specs/06-Decision-Records/ADR-026-document-chat-ui-pattern.md`                                                     |
-| ADR-027 AI Admin Console   | `specs/06-Decision-Records/ADR-027-ai-admin-console-and-dynamic-control.md`                                         |
-| ADR-028 Migration Refactor | `specs/06-Decision-Records/ADR-028-migration-architecture-refactor.md`                                              |
-| ADR-029 Dynamic Prompts    | `specs/06-Decision-Records/ADR-029-dynamic-prompt-management.md`                                                    |
+| Acceptance criteria / UAT  | `specs/01-Requirements/01-05-acceptance-criteria.md`                                                                    |
+| Schema / table definition  | `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql` + `03-01-data-dictionary.md`                              |
+| RBAC / permissions         | `specs/03-Data-and-Storage/lcbp3-v1.9.0-seed-permissions.sql` + `01-02-01-rbac-matrix.md`                               |
+| Release / hotfix           | `specs/04-Infrastructure-OPS/04-08-release-management-policy.md`                                                        |
+| ADR-024 Intent Class.      | `specs/06-Decision-Records/ADR-024-intent-classification-strategy.md`                                                   |
+| ADR-025 AI Tool Layer      | `specs/06-Decision-Records/ADR-025-ai-tool-layer-architecture.md`                                                       |
+| ADR-026 Chat UI            | `specs/06-Decision-Records/ADR-026-document-chat-ui-pattern.md`                                                         |
+| ADR-027 AI Admin Console   | `specs/06-Decision-Records/ADR-027-ai-admin-console-and-dynamic-control.md`                                             |
+| ADR-028 Migration Refactor | `specs/06-Decision-Records/ADR-028-migration-architecture-refactor.md`                                                  |
+| ADR-029 Dynamic Prompts    | `specs/06-Decision-Records/ADR-029-dynamic-prompt-management.md`                                                        |
 
 ---
 
@@ -76,7 +76,7 @@
 
 - `./.agents/scripts/bash/check-prerequisites.sh` / `powershell/*.ps1`
 - `./.agents/scripts/bash/setup-plan.sh`
-- `./.agents/scripts/bash/update-agent-context.sh windsurf`
+- `./.agents/scripts/bash/update-agent-context.sh devin`
 - `./.agents/scripts/bash/audit-skills.sh`
 - `./.agents/scripts/bash/validate-versions.sh`
 - `./.agents/scripts/bash/sync-workflows.sh`

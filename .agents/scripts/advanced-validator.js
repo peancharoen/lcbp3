@@ -13,7 +13,7 @@ const yaml = require('js-yaml');
 const BASE_DIR = path.resolve(__dirname, '../..');
 const AGENTS_DIR = path.join(BASE_DIR, '.agents');
 const SKILLS_DIR = path.join(AGENTS_DIR, 'skills');
-const WORKFLOWS_DIR = path.join(BASE_DIR, '.windsurf', 'workflows');
+const WORKFLOWS_DIR = path.join(BASE_DIR, '.devin', 'workflows');
 
 // Advanced validation class
 class AdvancedValidator {
@@ -273,9 +273,9 @@ class AdvancedValidator {
             const readmeContent = fs.readFileSync(readmePath, 'utf8');
             
             // Check if README references correct workflow path
-            if (readmeContent.includes('.agents/workflows') && !readmeContent.includes('.windsurf/workflows')) {
+            if (readmeContent.includes('.agents/workflows') && !readmeContent.includes('.devin/workflows')) {
                 this.addValidationResult('readme_workflow_reference', 'critical', {
-                    message: 'README.md references .agents/workflows instead of .windsurf/workflows',
+                    message: 'README.md references .agents/workflows instead of .devin/workflows',
                     path: readmePath
                 });
             }

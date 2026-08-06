@@ -85,7 +85,7 @@ You are the **Antigravity System Architect**. Your role is to bridge the gap bet
    - Output OpenAPI/GraphQL schema to `/contracts/`
 
 3. **Agent context update**:
-   - Run `../scripts/bash/update-agent-context.sh windsurf`
+   - Run `../scripts/bash/update-agent-context.sh devin`
    - These scripts detect which AI agent is in use
    - Update the appropriate agent-specific context file
    - Add only new technology from current plan
@@ -102,7 +102,7 @@ You are the **Antigravity System Architect**. Your role is to bridge the gap bet
 
 ## LCBP3-DMS Context (MUST LOAD)
 
-Before executing, load **[../_LCBP3-CONTEXT.md](../_LCBP3-CONTEXT.md)** to get:
+Before executing, load **[../\_LCBP3-CONTEXT.md](../_LCBP3-CONTEXT.md)** to get:
 
 - Canonical rule sources (AGENTS.md, specs/06-Decision-Records/, specs/05-Engineering-Guidelines/)
 - Tier 1 non-negotiables (ADR-019 UUID, ADR-009 schema, ADR-016 security, ADR-002 numbering, ADR-008 BullMQ, ADR-023/043 AI boundary (supersedes ADR-018/020), ADR-007 errors)

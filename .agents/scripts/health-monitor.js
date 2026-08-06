@@ -238,7 +238,7 @@ class HealthMonitor {
 
     checkWorkflowHealth() {
         this.log('Checking workflow health...', 'info');
-        const workflowsDir = path.join(BASE_DIR, '.windsurf', 'workflows');
+        const workflowsDir = path.join(BASE_DIR, '.devin', 'workflows');
         
         if (!fs.existsSync(workflowsDir)) {
             this.log('Workflows directory not found', 'fail');
@@ -304,7 +304,7 @@ class HealthMonitor {
         this.checkDirectoryExists(path.join(AGENTS_DIR, 'skills'), 'skills_directory');
         this.checkDirectoryExists(path.join(AGENTS_DIR, 'scripts'), 'scripts_directory');
         this.checkDirectoryExists(path.join(AGENTS_DIR, 'rules'), 'rules_directory');
-        this.checkDirectoryExists(path.join(BASE_DIR, '.windsurf', 'workflows'), 'workflows_directory');
+        this.checkDirectoryExists(path.join(BASE_DIR, '.devin', 'workflows'), 'workflows_directory');
         
         // Core file checks
         this.checkFileExists(path.join(AGENTS_DIR, 'README.md'), 'readme_file');

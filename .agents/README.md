@@ -364,7 +364,7 @@ If you change your mind mid-project:
 
 #### **Missing Workflow Files**
 
-**Problem**: Workflows not found in `.windsurf/workflows/`.
+**Problem**: Workflows not found in `.devin/workflows/`.
 
 **Solution**:
 
@@ -455,7 +455,7 @@ $VerbosePreference = "Continue"
 
 # 4. Check directory structure
 find .agents -type f -name "*.md" | wc -l
-find .windsurf/workflows -name "*.md" | wc -l
+find .devin/workflows -name "*.md" | wc -l
 ```
 
 **PowerShell equivalent**:
@@ -469,7 +469,7 @@ find .windsurf/workflows -name "*.md" | wc -l
 
 # 3. Count files
 (Get-ChildItem -Path .agents -Recurse -Filter "*.md").Count
-(Get-ChildItem -Path .windsurf/workflows -Filter "*.md").Count
+(Get-ChildItem -Path .devin/workflows -Filter "*.md").Count
 ```
 
 ### Getting Help
@@ -480,7 +480,7 @@ find .windsurf/workflows -name "*.md" | wc -l
 2. Verify `.specify/` directory structure (if using templates)
 3. Ensure all dependencies are installed (bash, powershell core)
 4. Review the specific error messages in script output
-5. Check this README for workflow path updates (`.windsurf/workflows`)
+5. Check this README for workflow path updates (`.devin/workflows`)
 
 ---
 

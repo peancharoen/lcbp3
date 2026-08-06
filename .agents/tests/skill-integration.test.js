@@ -11,7 +11,7 @@ const { execSync } = require('child_process');
 const BASE_DIR = path.resolve(__dirname, '..');
 const AGENTS_DIR = path.join(BASE_DIR, '.agents');
 const SKILLS_DIR = path.join(AGENTS_DIR, 'skills');
-const WORKFLOWS_DIR = path.join(BASE_DIR, '.windsurf', 'workflows');
+const WORKFLOWS_DIR = path.join(BASE_DIR, '.devin', 'workflows');
 
 // Test utilities
 class SkillTestSuite {
