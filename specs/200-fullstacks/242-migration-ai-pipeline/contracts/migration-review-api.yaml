@@ -1,0 +1,543 @@
+# File: specs/200-fullstacks/242-migration-ai-pipeline/contracts/migration-review-api.yaml
+# Change Log:
+# - 2026-08-06: Initial OpenAPI contract for review-queue deltas (compare result, multi-attachment, field resolutions)
+
+openapi: 3.1.0
+info:
+  title: LCBP3-DMS — Migration Review Queue API (Feature 242 deltas)
+  version: 1.0.0
+  description: |
+    Additions to the existing ADR-028 review-queue endpoints for Feature 242.
+
+    This contract documents **only what changes**:
+
+    - Queue listing gains a compare-status filter and a derived review group
+      (FR-010, FR-012d).
+    - Queue item gains the per-field compare result and an attachments array
+      (FR-005, FR-007, FR-012).
+    - Commit payload gains per-field source resolutions (FR-011, FR-011b).
+
+    All identifiers exposed here are `publicId` (UUID) — internal INT ids never appear
+    in a response (ADR-019).
+
+servers:
+  - url: /api
+    description: LCBP3-DMS backend
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Migration Review
+    description: Human-in-the-loop review queue (ADR-028)
+
+paths:
+  /migration/review-queue:
+    get:
+      tags: [Migration Review]
+      operationId: listReviewQueue
+      summary: List review-queue records
+      description: |
+        Returns queue records with their compare result and attachments.
+
+        `reviewGroup` is **computed at read time** from the thresholds captured when the
+        record was processed — it is never stored, so a later threshold change does not
+        retroactively reclassify existing records (FR-010c).
+      parameters:
+        - name: status
+          in: query
+          description: Lifecycle status filter
+          schema:
+            type: string
+            enum: [PENDING, PENDING_REVIEW, IMPORTED, REJECTED]
+        - name: compareStatus
+          in: query
+          description: |
+            Isolate records that could not be compared so they can be worked as a
+            separate manual-inspection batch (FR-012d).
+          schema:
+            type: string
+            enum: [COMPARED, UNAVAILABLE]
+        - name: reviewGroup
+          in: query
+          description: Derived classification filter (FR-010)
+          schema:
+            type: string
+            enum: [READY_TO_CONFIRM, MANUAL_REVIEW]
+        - name: batchId
+          in: query
+          schema:
+            type: string
+            maxLength: 100
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: Paginated queue records
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, total, page, limit]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ReviewQueueItem'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /migration/review-queue/{publicId}:
+    get:
+      tags: [Migration Review]
+      operationId: getReviewQueueItem
+      summary: Read one review-queue record
+      parameters:
+        - name: publicId
+          in: path
+          required: true
+          description: Queue record public identifier (UUID — never an INT id)
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Queue record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewQueueItem'
+              examples:
+                compared:
+                  summary: Compared with two mismatches
+                  value:
+                    publicId: 019505a1-7c3e-7000-8000-abc123def456
+                    batchId: TIER1-2026-08-06-001
+                    status: PENDING_REVIEW
+                    compareStatus: COMPARED
+                    reviewGroup: READY_TO_CONFIRM
+                    confidence: 0.87
+                    documentNumber: LCBP3-CSC-RFA-00123
+                    attachments:
+                      - publicId: 019505b0-1111-7000-8000-aaaaaaaaaaaa
+                        originalFilename: RFA-00123.pdf
+                        mimeType: application/pdf
+                        fileSize: 2481920
+                        isMainDocument: true
+                        hasOcrText: true
+                      - publicId: 019505b0-2222-7000-8000-bbbbbbbbbbbb
+                        originalFilename: SD-00123-A.dwg
+                        mimeType: image/vnd.dwg
+                        fileSize: 8493021
+                        isMainDocument: false
+                        hasOcrText: false
+                    compareResult:
+                      confidence: 0.87
+                      mismatches: [subject, documentDate]
+                      fieldResults:
+                        - field: documentNumber
+                          excelValue: LCBP3-CSC-RFA-00123
+                          ocrValue: LCBP3-CSC-RFA-00123
+                          match: true
+                          foundInDocument: true
+                        - field: subject
+                          excelValue: ขออนุมัติแบบก่อสร้างงานโครงสร้าง
+                          ocrValue: ขออนุมัติแบบก่อสร้างงานโครงสร้าง (แก้ไขครั้งที่ 2)
+                          match: false
+                          foundInDocument: true
+                        - field: documentDate
+                          excelValue: '2019-03-14'
+                          ocrValue: '2019-04-14'
+                          match: false
+                          foundInDocument: true
+                        - field: revision
+                          excelValue: 'A'
+                          ocrValue: null
+                          match: false
+                          foundInDocument: false
+                unavailable:
+                  summary: Comparison could not run — register values used as-is
+                  value:
+                    publicId: 019505a1-7c3e-7000-8000-abc123def499
+                    batchId: TIER1-2026-08-06-001
+                    status: PENDING_REVIEW
+                    compareStatus: UNAVAILABLE
+                    compareUnavailableReason: ข้อความที่อ่านได้จากเอกสารสั้นเกินกว่าจะเปรียบเทียบได้
+                    reviewGroup: MANUAL_REVIEW
+                    confidence: 0
+                    documentNumber: LCBP3-CSC-LTR-00456
+                    attachments:
+                      - publicId: 019505b0-3333-7000-8000-cccccccccccc
+                        originalFilename: LTR-00456-scan.pdf
+                        mimeType: application/pdf
+                        fileSize: 1048576
+                        isMainDocument: true
+                        hasOcrText: false
+                    compareResult: null
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /migration/review-queue/{publicId}/commit:
+    post:
+      tags: [Migration Review]
+      operationId: commitReviewRecord
+      summary: Confirm a review-queue record into the system
+      description: |
+        Creates the Correspondence and its current revision, links **all** attachments via
+        `correspondence_revision_attachments` with exactly one marked as the main document
+        (FR-001, FR-002), and applies the reviewer's per-field source choices.
+
+        Records with `compareStatus = UNAVAILABLE` may be committed — the status is
+        informational and never blocks confirmation (FR-012c).
+
+        Reference-data links and tags are **not** resolved here — that happens in the
+        post-migration batch (FR-016). Semantic-search preparation is **not** triggered
+        here either (FR-026).
+
+        Every field's chosen source is recorded for audit (FR-011b).
+      parameters:
+        - name: publicId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommitReviewRequest'
+            examples:
+              mixedSources:
+                summary: Keep register subject, take document date, retype revision
+                value:
+                  fieldResolutions:
+                    - field: subject
+                      source: EXCEL
+                      finalValue: ขออนุมัติแบบก่อสร้างงานโครงสร้าง
+                    - field: documentDate
+                      source: DOCUMENT
+                      finalValue: '2019-04-14'
+                    - field: revision
+                      source: MANUAL
+                      finalValue: 'B'
+              acceptRegister:
+                summary: Accept register values for everything (default)
+                value:
+                  fieldResolutions: []
+      responses:
+        '201':
+          description: Correspondence created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommitReviewResult'
+              example:
+                correspondencePublicId: 019505c0-7c3e-7000-8000-ddddddddddd1
+                revisionPublicId: 019505c0-7c3e-7000-8000-ddddddddddd2
+                attachmentsLinked: 2
+                mainDocumentPublicId: 019505b0-1111-7000-8000-aaaaaaaaaaaa
+                committedAt: '2026-08-06T12:00:00Z'
+        '400':
+          description: |
+            Validation failed — e.g. `source = DOCUMENT` for a field the system did not
+            locate in the document (FR-011c), or a referenced attachment is missing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                documentValueUnavailable:
+                  value:
+                    statusCode: 400
+                    errorCode: MIGRATION_FIELD_SOURCE_UNAVAILABLE
+                    userMessage: ไม่สามารถใช้ค่าจากเอกสารสำหรับช่อง "ฉบับแก้ไข" ได้ เนื่องจากระบบไม่พบค่านี้ในเอกสาร
+                    recoveryAction: เลือกใช้ค่าจากทะเบียน หรือพิมพ์ค่าใหม่เอง
+                attachmentMissing:
+                  value:
+                    statusCode: 400
+                    errorCode: MIGRATION_ATTACHMENT_NOT_FOUND
+                    userMessage: ไม่พบไฟล์แนบ SD-00123-A.dwg ในที่จัดเก็บชั่วคราว
+                    recoveryAction: อัปโหลดไฟล์แนบใหม่แล้วยืนยันรายการอีกครั้ง
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/IdempotencyConflict'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 200
+
+  schemas:
+    ReviewQueueItem:
+      type: object
+      required:
+        - publicId
+        - batchId
+        - status
+        - compareStatus
+        - reviewGroup
+        - documentNumber
+        - attachments
+      properties:
+        publicId:
+          type: string
+          format: uuid
+          description: Queue record public identifier (ADR-019)
+        batchId:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, PENDING_REVIEW, IMPORTED, REJECTED]
+        compareStatus:
+          type: string
+          enum: [COMPARED, UNAVAILABLE]
+        compareUnavailableReason:
+          type: [string, 'null']
+          description: Present only when `compareStatus = UNAVAILABLE` (FR-012b)
+        reviewGroup:
+          type: string
+          enum: [READY_TO_CONFIRM, MANUAL_REVIEW]
+          description: Derived at read time from captured thresholds (FR-010, FR-010c)
+        confidence:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        documentNumber:
+          type: string
+        attachments:
+          type: array
+          minItems: 1
+          description: All attachments for this record (FR-005)
+          items:
+            $ref: '#/components/schemas/QueueAttachment'
+        compareResult:
+          oneOf:
+            - $ref: '#/components/schemas/CompareResult'
+            - type: 'null'
+          description: '`null` when `compareStatus = UNAVAILABLE`'
+        createdAt:
+          type: string
+          format: date-time
+
+    QueueAttachment:
+      type: object
+      required:
+        [publicId, originalFilename, mimeType, isMainDocument, hasOcrText]
+      properties:
+        publicId:
+          type: string
+          format: uuid
+          description: Attachment public identifier — internal INT id is never exposed
+        originalFilename:
+          type: string
+        mimeType:
+          type: string
+          description: Drives the file-type icon in the review UI (FR-005)
+        fileSize:
+          type: integer
+          minimum: 0
+        isMainDocument:
+          type: boolean
+          description: Exactly one attachment per record is the main document (FR-002)
+        hasOcrText:
+          type: boolean
+          description: |
+            Whether readable text was persisted for this file. `false` for files with no
+            text layer (FR-015) — such files are excluded from semantic-search
+            preparation (FR-022).
+
+    CompareResult:
+      type: object
+      required: [fieldResults, mismatches, confidence]
+      properties:
+        fieldResults:
+          type: array
+          description: One entry per compared field (FR-006, FR-007)
+          items:
+            $ref: '#/components/schemas/CompareFieldResult'
+        mismatches:
+          type: array
+          description: Field names where `match = false`
+          items:
+            type: string
+        confidence:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Overall confidence in the comparison (FR-008)
+
+    CompareFieldResult:
+      type: object
+      required: [field, match, foundInDocument]
+      properties:
+        field:
+          $ref: '#/components/schemas/ComparedField'
+        excelValue:
+          type: [string, 'null']
+          description: Value from the register — the default (FR-011a)
+        ocrValue:
+          type: [string, 'null']
+          description: Value located in the document; `null` when not found
+        match:
+          type: boolean
+        foundInDocument:
+          type: boolean
+          description: |
+            Gates the "use document value" option in the UI — the option must not be
+            offered when this is `false` (FR-011c).
+
+    ComparedField:
+      type: string
+      description: The nine register fields subject to comparison (FR-006)
+      enum:
+        - documentNumber
+        - subject
+        - documentDate
+        - fromOrganization
+        - toOrganization
+        - correspondenceType
+        - discipline
+        - project
+        - revision
+
+    CommitReviewRequest:
+      type: object
+      required: [fieldResolutions]
+      additionalProperties: false
+      properties:
+        fieldResolutions:
+          type: array
+          description: |
+            Per-field source choices. Omitted fields default to the register value
+            (FR-011a), so an empty array means "accept the register for everything".
+          items:
+            $ref: '#/components/schemas/FieldResolution'
+        remarks:
+          type: string
+          maxLength: 1000
+
+    FieldResolution:
+      type: object
+      required: [field, source, finalValue]
+      additionalProperties: false
+      properties:
+        field:
+          $ref: '#/components/schemas/ComparedField'
+        source:
+          type: string
+          enum: [EXCEL, DOCUMENT, MANUAL]
+          description: |
+            Which value the reviewer accepted (FR-011). Recorded for audit (FR-011b).
+            `DOCUMENT` is rejected when `foundInDocument = false` (FR-011c).
+        finalValue:
+          type: string
+          maxLength: 500
+
+    CommitReviewResult:
+      type: object
+      required:
+        - correspondencePublicId
+        - revisionPublicId
+        - attachmentsLinked
+        - committedAt
+      properties:
+        correspondencePublicId:
+          type: string
+          format: uuid
+        revisionPublicId:
+          type: string
+          format: uuid
+        attachmentsLinked:
+          type: integer
+          minimum: 1
+        mainDocumentPublicId:
+          type: string
+          format: uuid
+        committedAt:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      required: [statusCode, userMessage]
+      description: ADR-007 layered error shape
+      properties:
+        statusCode:
+          type: integer
+        errorCode:
+          type: string
+        userMessage:
+          type: string
+        recoveryAction:
+          type: string
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid JWT
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Caller lacks the required ability
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Queue record not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    IdempotencyConflict:
+      description: This `Idempotency-Key` was already used
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

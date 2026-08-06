@@ -317,6 +317,22 @@ else
     >&2 echo "[specify] Warning: Git repository not detected; skipped branch creation for $BRANCH_NAME"
 fi
 
+# Default category to 200 (fullstacks) if not provided
+if [ -z "$CATEGORY" ]; then
+    CATEGORY=200
+fi
+
+# Map category number to directory name
+case "$CATEGORY" in
+    100) CATEGORY_NAME="Infrastructures" ;;
+    200) CATEGORY_NAME="fullstacks" ;;
+    300) CATEGORY_NAME="others" ;;
+    *)
+        echo "Error: Invalid category '$CATEGORY'. Use 100, 200, or 300." >&2
+        exit 1
+        ;;
+esac
+
 FEATURE_DIR="$SPECS_DIR/${CATEGORY}-${CATEGORY_NAME}/${BRANCH_NAME}"
 mkdir -p "$FEATURE_DIR"
 

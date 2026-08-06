@@ -612,6 +612,9 @@ update_specific_agent() {
         devin)
             update_agent_file "$DEVIN_FILE" "Devin"
             ;;
+        windsurf)
+            update_agent_file "$WINDSURF_FILE" "Windsurf"
+            ;;
         kilocode)
             update_agent_file "$KILOCODE_FILE" "Kilo Code"
             ;;

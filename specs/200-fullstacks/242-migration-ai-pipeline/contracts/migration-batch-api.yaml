@@ -1,0 +1,459 @@
+# File: specs/200-fullstacks/242-migration-ai-pipeline/contracts/migration-batch-api.yaml
+# Change Log:
+# - 2026-08-06: Initial OpenAPI contract for post-migration batch operations
+
+openapi: 3.1.0
+info:
+  title: LCBP3-DMS — Migration Post-Processing Batch API
+  version: 1.0.0
+  description: |
+    Post-migration batch operations for the legacy migration pipeline (Feature 242).
+
+    Both operations are admin-only, scoped by import batch, and idempotent.
+
+    - `resolve-batch` — synchronous SQL resolution of register values into reference-data
+      links and tags (no GPU, no queue).
+    - `trigger-rag-batch` — enqueues `rag-prepare` jobs for committed attachments that
+      already have persisted OCR text; returns immediately (ADR-008).
+
+    Related requirements: FR-017 … FR-020a, FR-021 … FR-026b, FR-027, FR-029.
+
+servers:
+  - url: /api
+    description: LCBP3-DMS backend
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Migration Batch
+    description: Post-migration batch operations (admin only)
+
+paths:
+  /migration/resolve-batch:
+    post:
+      tags: [Migration Batch]
+      operationId: resolveBatchMetadata
+      summary: Resolve register values into reference-data links and tags
+      description: |
+        Converts raw Excel register values stored during import into concrete
+        reference-data links (originator organisation, recipients, correspondence type,
+        discipline) and creates/links tags derived from register fields.
+
+        **Deterministic** — tags come from register fields only, never from the compare
+        result or document text (FR-018a).
+
+        **Idempotent** — rows whose `originator_id` and `correspondence_type_id` are
+        already set are skipped. Tag links use `INSERT ... ON DUPLICATE KEY` so a re-run
+        produces zero duplicates (FR-020, SC-010).
+
+        Runs as bounded set-based SQL; no GPU and no BullMQ job. Unresolvable values are
+        reported per item and never abort the run (FR-019).
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchScopeRequest'
+            examples:
+              scopedToBatch:
+                summary: Resolve one import batch
+                value:
+                  batchId: TIER1-2026-08-06-001
+              allPending:
+                summary: Resolve every pending record (FR-020a)
+                value: {}
+      responses:
+        '200':
+          description: Batch completed (may include per-item failures)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResolveBatchResult'
+              examples:
+                partialFailure:
+                  summary: Two organisations missing from reference data
+                  value:
+                    batchId: TIER1-2026-08-06-001
+                    total: 200
+                    succeeded: 198
+                    skipped: 0
+                    failed: 2
+                    startedAt: '2026-08-06T10:00:00Z'
+                    completedAt: '2026-08-06T10:00:24Z'
+                    tagsCreated: 14
+                    tagsLinked: 198
+                    failures:
+                      - correspondencePublicId: 019505a1-7c3e-7000-8000-abc123def456
+                        field: fromOrganization
+                        unresolvedValue: บริษัท ทดสอบ จำกัด
+                        reason: ไม่พบหน่วยงานที่ตรงกับค่าในทะเบียน
+                      - correspondencePublicId: 019505a1-7c3e-7000-8000-abc123def457
+                        field: discipline
+                        unresolvedValue: STRUCT-X
+                        reason: ไม่พบสาขางานที่ตรงกับค่าในทะเบียน
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/IdempotencyConflict'
+        '500':
+          $ref: '#/components/responses/SystemError'
+
+  /migration/trigger-rag-batch:
+    post:
+      tags: [Migration Batch]
+      operationId: triggerRagBatch
+      summary: Enqueue semantic-search preparation for migrated attachments
+      description: |
+        Selects committed attachments that already have persisted OCR text and enqueues
+        one `rag-prepare` job per attachment on the `ai-batch` queue, passing the stored
+        text so no document is re-read (FR-014, SC-006).
+
+        **Skips**: files without a text layer (DWG/DXF by MIME or extension), attachments
+        with empty `ocr_text`, and attachments already at `ai_processing_status = 'DONE'`
+        (FR-022, FR-023, FR-025).
+
+        Returns as soon as jobs are enqueued. Embedding proceeds one document at a time
+        (queue concurrency = 1) to respect the GPU VRAM limit (FR-024).
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchScopeRequest'
+            examples:
+              scopedToBatch:
+                summary: Prepare one import batch
+                value:
+                  batchId: TIER1-2026-08-06-001
+              allPending:
+                summary: Prepare every pending attachment (FR-026a)
+                value: {}
+      responses:
+        '202':
+          description: Jobs enqueued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TriggerRagBatchResult'
+              examples:
+                withSkips:
+                  summary: DWG files and already-embedded documents skipped
+                  value:
+                    batchId: TIER1-2026-08-06-001
+                    total: 200
+                    enqueued: 172
+                    skipped: 28
+                    failed: 0
+                    enqueuedAt: '2026-08-06T11:00:00Z'
+                    skipBreakdown:
+                      noTextLayer: 21
+                      emptyOcrText: 3
+                      alreadyEmbedded: 4
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/IdempotencyConflict'
+        '500':
+          $ref: '#/components/responses/SystemError'
+
+  /migration/review-thresholds:
+    get:
+      tags: [Migration Batch]
+      operationId: getReviewThresholds
+      summary: Read the review-classification thresholds
+      description: |
+        Returns the thresholds used to classify queue records as ready-to-confirm or
+        manual-review (FR-010). Admin only (FR-010d).
+      responses:
+        '200':
+          description: Current thresholds
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewThresholds'
+              example:
+                maxMismatchFields: 3
+                minConfidence: 0.6
+                updatedAt: '2026-08-06T09:00:00Z'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    patch:
+      tags: [Migration Batch]
+      operationId: updateReviewThresholds
+      summary: Update the review-classification thresholds
+      description: |
+        Updates either or both thresholds without a redeploy (FR-010a). The change applies
+        only to records processed afterwards — already-processed records are never
+        reclassified (FR-010c). Every change is recorded for audit (FR-010d).
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateReviewThresholds'
+            example:
+              maxMismatchFields: 1
+      responses:
+        '200':
+          description: Thresholds updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewThresholds'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/IdempotencyConflict'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token; requires the `system.manage_all` ability (ADR-016)
+
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: |
+        Unique key per logical request; a replay of the same key is rejected with 409
+        (FR-029, ADR-016). A deliberate re-run must use a new key — state-derived skip
+        logic keeps the re-run safe.
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 200
+
+  schemas:
+    BatchScopeRequest:
+      type: object
+      additionalProperties: false
+      description: |
+        Optional scope. Omit `batchId` to process every pending record
+        (FR-020a, FR-026a).
+      properties:
+        batchId:
+          type: string
+          maxLength: 100
+          description: Import batch identifier; omit to process all pending records
+          example: TIER1-2026-08-06-001
+
+    BatchRunSummary:
+      type: object
+      required: [total, failed]
+      description: Common per-run counters (FR-026b)
+      properties:
+        batchId:
+          type: [string, 'null']
+          description: Scope that was run; `null` means all pending records
+        total:
+          type: integer
+          minimum: 0
+          description: Candidate records considered
+        failed:
+          type: integer
+          minimum: 0
+
+    ResolveBatchResult:
+      allOf:
+        - $ref: '#/components/schemas/BatchRunSummary'
+        - type: object
+          required: [succeeded, skipped, startedAt, completedAt]
+          properties:
+            succeeded:
+              type: integer
+              minimum: 0
+              description: Records whose reference data was linked
+            skipped:
+              type: integer
+              minimum: 0
+              description: Records already resolved on a previous run
+            tagsCreated:
+              type: integer
+              minimum: 0
+              description: New tags created from register values (FR-018)
+            tagsLinked:
+              type: integer
+              minimum: 0
+              description: Tag links written (duplicates ignored)
+            startedAt:
+              type: string
+              format: date-time
+            completedAt:
+              type: string
+              format: date-time
+            failures:
+              type: array
+              description: Per-item unresolved values; never aborts the run (FR-019)
+              items:
+                $ref: '#/components/schemas/ResolutionFailure'
+
+    ResolutionFailure:
+      type: object
+      required: [correspondencePublicId, field, unresolvedValue, reason]
+      properties:
+        correspondencePublicId:
+          type: string
+          format: uuid
+          description: Public identifier of the affected Correspondence (ADR-019)
+        field:
+          type: string
+          enum:
+            [
+              fromOrganization,
+              toOrganization,
+              correspondenceType,
+              discipline,
+              tag,
+            ]
+        unresolvedValue:
+          type: string
+          description: The register value that had no match
+        reason:
+          type: string
+          description: Operator-facing explanation (ADR-007 userMessage)
+
+    TriggerRagBatchResult:
+      allOf:
+        - $ref: '#/components/schemas/BatchRunSummary'
+        - type: object
+          required: [enqueued, skipped, enqueuedAt]
+          properties:
+            enqueued:
+              type: integer
+              minimum: 0
+              description: Number of `rag-prepare` jobs enqueued
+            skipped:
+              type: integer
+              minimum: 0
+            enqueuedAt:
+              type: string
+              format: date-time
+            skipBreakdown:
+              $ref: '#/components/schemas/RagSkipBreakdown'
+
+    RagSkipBreakdown:
+      type: object
+      description: Why candidates were skipped (FR-022, FR-023, FR-025)
+      properties:
+        noTextLayer:
+          type: integer
+          minimum: 0
+          description: DWG/DXF files — no text layer to embed
+        emptyOcrText:
+          type: integer
+          minimum: 0
+          description: No persisted OCR text available
+        alreadyEmbedded:
+          type: integer
+          minimum: 0
+          description: Attachment already at `ai_processing_status = 'DONE'`
+
+    ReviewThresholds:
+      type: object
+      required: [maxMismatchFields, minConfidence]
+      properties:
+        maxMismatchFields:
+          type: integer
+          minimum: 0
+          maximum: 9
+          default: 3
+          description: Mismatch count above which a record requires manual review
+        minConfidence:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          default: 0.6
+          description: Confidence below which a record requires manual review
+        updatedAt:
+          type: string
+          format: date-time
+
+    UpdateReviewThresholds:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        maxMismatchFields:
+          type: integer
+          minimum: 0
+          maximum: 9
+        minConfidence:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+
+    ErrorResponse:
+      type: object
+      required: [statusCode, userMessage]
+      description: ADR-007 layered error shape — no technical detail reaches the client
+      properties:
+        statusCode:
+          type: integer
+        errorCode:
+          type: string
+          example: MIGRATION_BATCH_INVALID_SCOPE
+        userMessage:
+          type: string
+          description: User-friendly message
+        recoveryAction:
+          type: string
+          description: What the operator should do next
+
+  responses:
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Missing or invalid JWT
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Caller lacks the `system.manage_all` ability (FR-027)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    IdempotencyConflict:
+      description: This `Idempotency-Key` was already used (FR-029)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    SystemError:
+      description: Unexpected system failure
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
