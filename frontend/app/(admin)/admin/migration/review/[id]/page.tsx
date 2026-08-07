@@ -1,3 +1,8 @@
+// File: app/(admin)/admin/migration/review/[id]/page.tsx
+// Change Log:
+// - 2026-05-22: Initial creation of Migration Review detail page (T024)
+// - 2026-08-06: เพิ่ม CompareResultTable และ fieldResolutions state สำหรับ Feature 242 (FR-011, FR-012c)
+
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
@@ -6,7 +11,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { migrationService } from '@/lib/services/migration.service';
-import { MigrationReviewQueueItem } from '@/types/migration';
+import { MigrationReviewQueueItem, FieldResolution } from '@/types/migration';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription as _FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -16,6 +21,7 @@ import { ArrowLeftIcon, CheckCircleIcon, XCircleIcon } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
+import { CompareResultTable } from '@/components/migration/compare-result-table';
 
 interface MigrationAiIssues {
   documentDate?: string;
@@ -50,6 +56,7 @@ export default function MigrationReviewPage() {
   const [item, setItem] = useState<MigrationReviewQueueItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [fieldResolutions, setFieldResolutions] = useState<FieldResolution[]>([]);
 
   const form = useForm<ReviewFormValues>({
     resolver: zodResolver(reviewFormSchema),
@@ -128,7 +135,12 @@ export default function MigrationReviewPage() {
         return;
       }
       const idempotencyKey = `review-${item.id}-${Date.now()}`;
-      await migrationService.approveQueueItem(item.id, payload, idempotencyKey);
+      // Feature 242: ส่ง fieldResolutions ใน commit payload (FR-011b)
+      const commitPayload = {
+        ...payload,
+        fieldResolutions: fieldResolutions.length > 0 ? fieldResolutions : undefined,
+      };
+      await migrationService.approveQueueItem(item.id, commitPayload, idempotencyKey);
       toast.success('Document approved and imported successfully');
       router.push('/admin/migration');
     } catch (error: unknown) {
@@ -189,22 +201,35 @@ export default function MigrationReviewPage() {
       </div>
 
       <div className="flex flex-1 gap-6 overflow-hidden">
-        {/* Left Side: PDF Viewer */}
-        <Card className="flex-1 hidden md:flex flex-col overflow-hidden border-2 border-primary/10 shadow-md">
-          <CardContent className="p-0 flex-1 relative bg-slate-100">
-            {pdfUrl ? (
-              <iframe
-                src={`${pdfUrl}#toolbar=0&navpanes=0`}
-                className="absolute inset-0 w-full h-full"
-                title="Document Viewer"
-              />
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                <p>No Source File Path found for this document</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Left Side: PDF Viewer + Compare Result */}
+        <div className="flex-1 hidden md:flex flex-col gap-4 overflow-hidden">
+          <Card className="flex-1 flex flex-col overflow-hidden border-2 border-primary/10 shadow-md">
+            <CardContent className="p-0 flex-1 relative bg-slate-100">
+              {pdfUrl ? (
+                <iframe
+                  src={`${pdfUrl}#toolbar=0&navpanes=0`}
+                  className="absolute inset-0 w-full h-full"
+                  title="Document Viewer"
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                  <p>No Source File Path found for this document</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          {/* Feature 242: Compare Result Table (FR-007, FR-011, FR-012c) */}
+          {item.compareStatus && (
+            <CompareResultTable
+              compareStatus={item.compareStatus}
+              compareResult={item.compareResult}
+              compareUnavailableReason={item.compareUnavailableReason}
+              capturedThresholds={item.capturedThresholds}
+              fieldResolutions={fieldResolutions}
+              onFieldResolutionChange={setFieldResolutions}
+            />
+          )}
+        </div>
 
         {/* Right Side: Form */}
         <Card className="w-full md:w-[450px] lg:w-[500px] flex-shrink-0 flex flex-col overflow-hidden border-2 border-primary/10 shadow-md">

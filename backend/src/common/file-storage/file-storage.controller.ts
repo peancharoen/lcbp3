@@ -19,6 +19,7 @@ import {
 import type { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { FileStorageService } from './file-storage.service';
+import { ALLOWED_UPLOAD_FILE_TYPE_REGEX } from './file-storage.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RbacGuard } from '../guards/rbac.guard';
 import { RequirePermission } from '../decorators/require-permission.decorator';
@@ -36,10 +37,9 @@ export class FileStorageController {
       new ParseFilePipe({
         validators: [
           new MaxFileSizeValidator({ maxSize: 50 * 1024 * 1024 }), // 50MB
-          // ตรวจสอบประเภทไฟล์ (Regex) - รวม image, pdf, docs, zip
+          // ตรวจสอบประเภทไฟล์ (Regex) - รวม PDF, DOCX, DWG, XLSX, ZIP, image (FR-004)
           new FileTypeValidator({
-            fileType:
-              /(pdf|msword|openxmlformats|zip|octet-stream|image|jpeg|png)/,
+            fileType: ALLOWED_UPLOAD_FILE_TYPE_REGEX,
           }),
         ],
       })

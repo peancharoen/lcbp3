@@ -49,6 +49,15 @@ import { AiPromptsService } from '../prompts/ai-prompts.service';
 import { AiPolicyService } from '../services/ai-policy.service';
 import { AiQueueService } from '../ai-queue.service';
 import type { ExecutionProfile } from '../interfaces/execution-policy.interface';
+import {
+  parseCompareResult,
+  type CompareResult,
+} from '../types/migration-compare-result.type';
+import { isDwgFile } from '../../migration/constants/dwg-exclusion.constant';
+import { deriveTagName } from '../../migration/types/tag-mapping-rule';
+import { CompareStatus } from '../../migration/entities/migration-review-queue.entity';
+import { ReviewThresholdService } from '../../migration/services/review-threshold.service';
+import type { ExcelMetadataDto } from '../dto/excel-metadata.dto';
 
 interface MigrateDocumentMetadata extends Record<string, unknown> {
   projectPublicId?: string;
@@ -225,6 +234,7 @@ export class AiBatchProcessor extends WorkerHost {
     private readonly aiPromptsService: AiPromptsService,
     private readonly aiPolicyService: AiPolicyService,
     private readonly aiQueueService: AiQueueService,
+    private readonly reviewThresholdService: ReviewThresholdService,
     @InjectRedis() private readonly redis: Redis
   ) {
     super();
@@ -984,6 +994,19 @@ export class AiBatchProcessor extends WorkerHost {
     this.logger.log(
       `processRagPrepare: starting for doc=${documentPublicId}, project=${projectPublicId}`
     );
+    // FR-014, SC-006: อ่าน persisted ocr_text จาก attachment ก่อนเสมอ — ไม่เรียก OCR ซ้ำ
+    if (!cachedOcrText && documentPublicId) {
+      const attachment = await this.attachmentRepo.findOne({
+        where: { publicId: documentPublicId },
+        select: ['id', 'ocrText', 'originalFilename', 'mimeType'],
+      });
+      if (attachment?.ocrText && attachment.ocrText.trim().length > 0) {
+        cachedOcrText = attachment.ocrText;
+        this.logger.log(
+          `processRagPrepare: reused persisted ocr_text (${cachedOcrText.length} chars) for ${documentPublicId} — no re-OCR (FR-014, SC-006)`
+        );
+      }
+    }
     if (!cachedOcrText && attachmentPath) {
       this.logger.log(
         `processRagPrepare: No cached OCR text. Extracting text from ${attachmentPath}...`
@@ -1069,6 +1092,33 @@ export class AiBatchProcessor extends WorkerHost {
     }
   }
 
+  /**
+   * สร้าง ExcelMetadataDto จาก migrate-document job payload (FR-006)
+   * ดึงค่าจาก payload.excelMetadata ถ้ามี, ถ้าไม่มี fallback จาก payload ระดับบนสุด
+   */
+  private buildExcelMetadata(
+    payload: Record<string, unknown>,
+    docNumber: string
+  ): ExcelMetadataDto {
+    const excelMeta =
+      payload.excelMetadata &&
+      typeof payload.excelMetadata === 'object' &&
+      !Array.isArray(payload.excelMetadata)
+        ? (payload.excelMetadata as Record<string, unknown>)
+        : {};
+    return {
+      documentNumber: readString(excelMeta.documentNumber) || docNumber,
+      subject: readString(excelMeta.subject) || readString(payload.title),
+      documentDate: readString(excelMeta.documentDate),
+      fromOrganization: readString(excelMeta.fromOrganization),
+      toOrganization: readString(excelMeta.toOrganization),
+      correspondenceType: readString(excelMeta.correspondenceType),
+      discipline: readString(excelMeta.discipline),
+      project: readString(excelMeta.project),
+      revision: readString(excelMeta.revision),
+    };
+  }
+
   private async processMigrateDocument(
     job: Job<AiBatchJobData>
   ): Promise<void> {
@@ -1082,7 +1132,7 @@ export class AiBatchProcessor extends WorkerHost {
       !Array.isArray(payload.contextOverride)
         ? (payload.contextOverride as Record<string, unknown>)
         : {};
-    const contractPublicId = readString(contextOverride.contractPublicId);
+    const _contractPublicId = readString(contextOverride.contractPublicId);
     const attachment = await this.attachmentRepo.findOne({
       where: { publicId: documentPublicId },
     });
@@ -1124,193 +1174,190 @@ export class AiBatchProcessor extends WorkerHost {
       throw err;
     }
 
-    const activePrompt =
-      await this.aiPromptsService.getActive('ocr_extraction');
-    if (!activePrompt) {
-      throw new Error('No active prompt found for ocr_extraction');
-    }
-
-    // ดึงบริบทอ้างอิงโครงการที่กรองแล้ว (Data Isolation)
-    const masterDataContext = await this.aiPromptsService.resolveContext(
-      activePrompt,
-      projectPublicId,
-      contractPublicId
-    );
-
-    const resolvedPrompt = activePrompt.template
-      .replace('{{ocr_text}}', ocrResult.text)
-      .replace(
-        '{{master_data_context}}',
-        JSON.stringify(masterDataContext, null, 2)
-      );
-
-    let aiResponse: string;
+    // ADR-042: Persist OCR text ก่อนเสมอก่อน enqueue review queue (FR-009)
     try {
-      const snapshotParams = job.data.snapshotParams;
-      const generateOptions: OllamaGenerateOptions = {
-        format: 'json',
-        timeoutMs: 120000,
-        model: modelUsed,
-      };
-      if (snapshotParams) {
-        generateOptions.options = {
-          temperature: snapshotParams.temperature,
-          top_p: snapshotParams.topP,
-          num_predict: snapshotParams.maxTokens ?? undefined,
-          num_ctx: snapshotParams.numCtx ?? undefined,
-          repeat_penalty: snapshotParams.repeatPenalty,
-        };
-        generateOptions.keepAlive = snapshotParams.keepAliveSeconds;
-      } else {
-        generateOptions.options = { num_ctx: 16384, num_predict: 4096 };
-      }
-      aiResponse = await this.ollamaService.generate(
-        resolvedPrompt,
-        generateOptions
+      await this.attachmentRepo.update(
+        { publicId: documentPublicId },
+        { ocrText: ocrResult.text }
+      );
+      this.logger.log(
+        `processMigrateDocument: persisted ocr_text for attachment ${documentPublicId}`
       );
     } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      this.logger.error(`การวิเคราะห์ของ AI ล้มเหลว: ${errMsg}`);
-      await this.migrationService.createError({
-        batchId: batchId || 'unknown',
-        documentNumber: docNumber,
-        errorType: MigrationErrorType.API_ERROR,
-        errorMessage: errMsg,
-      });
-      await this.saveAiAuditLog({
-        documentPublicId,
-        aiModel: modelUsed ?? this.ollamaService.getMainModelName(),
-        status: AiAuditStatus.FAILED,
-        errorMessage: errMsg,
-        processingTimeMs: Date.now() - startTime,
-        effectiveProfile: job.data.effectiveProfile,
-        canonicalModel: job.data.canonicalModel,
-        snapshotParamsJson: job.data.snapshotParams,
-      });
-      throw err;
-    }
-    const cleanedResponse = aiResponse
-      .replace(/```json/g, '')
-      .replace(/```/g, '')
-      .trim();
-    let extractedMetadata: MigrateDocumentMetadata;
-    try {
-      extractedMetadata = parseMigrateDocumentMetadata(cleanedResponse);
-    } catch (_err: unknown) {
-      const errMsg = `ไม่สามารถแปลงผลลัพธ์ของ AI เป็น JSON ได้: ${cleanedResponse}`;
-      this.logger.error(errMsg);
-      await this.migrationService.createError({
-        batchId: batchId || 'unknown',
-        documentNumber: docNumber,
-        errorType: MigrationErrorType.AI_PARSE_ERROR,
-        errorMessage: errMsg,
-        rawAiResponse: aiResponse,
-      });
-      await this.saveAiAuditLog({
-        documentPublicId,
-        aiModel: modelUsed ?? this.ollamaService.getMainModelName(),
-        status: AiAuditStatus.FAILED,
-        errorMessage: errMsg,
-        processingTimeMs: Date.now() - startTime,
-        effectiveProfile: job.data.effectiveProfile,
-        canonicalModel: job.data.canonicalModel,
-        snapshotParamsJson: job.data.snapshotParams,
-      });
-      throw new Error(errMsg);
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(
+        `processMigrateDocument: failed to persist ocr_text for ${documentPublicId}: ${msg}`
+      );
     }
 
-    // 3. ตรวจสอบและค้นหา Tags Suggestion ร่วมกับ Auto-Diff (EC-001)
+    // FR-012a: ตรวจสอบว่าเอกสารหลักเป็น DWG/DXF หรือไม่ — ถ้าใช่ compare_status = UNAVAILABLE
+    const isMainDocDwg = isDwgFile(
+      attachment.mimeType,
+      attachment.originalFilename
+    );
+    let compareStatus: CompareStatus = CompareStatus.COMPARED;
+    let compareUnavailableReason: string | undefined;
+    let compareResult: CompareResult | null = null;
+
+    if (isMainDocDwg) {
+      // FR-012b: เอกสารหลักเป็น DWG ไม่สามารถ OCR เพื่อเปรียบเทียบได้
+      compareStatus = CompareStatus.UNAVAILABLE;
+      compareUnavailableReason =
+        'เอกสารหลักเป็นไฟล์ DWG/DXF ไม่มี text layer จึงไม่สามารถ OCR เพื่อเปรียบเทียบกับทะเบียนได้';
+      this.logger.warn(
+        `processMigrateDocument: ${documentPublicId} is DWG — compare unavailable`
+      );
+    } else {
+      // FR-006, FR-007: เรียก migration_compare prompt เพื่อเปรียบเทียบทะเบียนกับเอกสารจริง
+      const activePrompt =
+        await this.aiPromptsService.getActive('migration_compare');
+      if (!activePrompt) {
+        throw new Error('No active prompt found for migration_compare');
+      }
+
+      // FR-006: สร้าง excel_metadata จาก payload (ทะเบียนเอกสารจาก n8n)
+      const excelMetadata = this.buildExcelMetadata(payload, docNumber);
+      const ocrTruncated =
+        ocrResult.text.length > MAX_OCR_TEXT_CHARS ? 'true' : 'false';
+      const truncatedOcrText = ocrResult.text.slice(0, MAX_OCR_TEXT_CHARS);
+
+      const resolvedPrompt = activePrompt.template
+        .replace('{{ocr_text}}', truncatedOcrText)
+        .replace('{{excel_metadata}}', JSON.stringify(excelMetadata, null, 2))
+        .replace('{{ocr_truncated}}', ocrTruncated);
+
+      let aiResponse: string;
+      try {
+        const snapshotParams = job.data.snapshotParams;
+        const generateOptions: OllamaGenerateOptions = {
+          format: 'json',
+          timeoutMs: 120000,
+          model: modelUsed,
+        };
+        if (snapshotParams) {
+          generateOptions.options = {
+            temperature: snapshotParams.temperature,
+            top_p: snapshotParams.topP,
+            num_predict: snapshotParams.maxTokens ?? undefined,
+            num_ctx: snapshotParams.numCtx ?? undefined,
+            repeat_penalty: snapshotParams.repeatPenalty,
+          };
+          generateOptions.keepAlive = snapshotParams.keepAliveSeconds;
+        } else {
+          generateOptions.options = { num_ctx: 16384, num_predict: 4096 };
+        }
+        aiResponse = await this.ollamaService.generate(
+          resolvedPrompt,
+          generateOptions
+        );
+      } catch (err: unknown) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        this.logger.error(`การเปรียบเทียบของ AI ล้มเหลว: ${errMsg}`);
+        await this.migrationService.createError({
+          batchId: batchId || 'unknown',
+          documentNumber: docNumber,
+          errorType: MigrationErrorType.API_ERROR,
+          errorMessage: errMsg,
+        });
+        await this.saveAiAuditLog({
+          documentPublicId,
+          aiModel: modelUsed ?? this.ollamaService.getMainModelName(),
+          status: AiAuditStatus.FAILED,
+          errorMessage: errMsg,
+          processingTimeMs: Date.now() - startTime,
+          effectiveProfile: job.data.effectiveProfile,
+          canonicalModel: job.data.canonicalModel,
+          snapshotParamsJson: job.data.snapshotParams,
+        });
+        throw err;
+      }
+
+      // FR-007, FR-008: parse compare result ด้วย typed parser guard
+      compareResult = parseCompareResult(aiResponse);
+      if (!compareResult) {
+        const errMsg = `ไม่สามารถแปลงผลลัพธ์การเปรียบเทียบเป็น JSON ที่ถูกต้องได้: ${aiResponse.substring(0, 200)}`;
+        this.logger.error(errMsg);
+        await this.migrationService.createError({
+          batchId: batchId || 'unknown',
+          documentNumber: docNumber,
+          errorType: MigrationErrorType.AI_PARSE_ERROR,
+          errorMessage: errMsg,
+          rawAiResponse: aiResponse,
+        });
+        await this.saveAiAuditLog({
+          documentPublicId,
+          aiModel: modelUsed ?? this.ollamaService.getMainModelName(),
+          status: AiAuditStatus.FAILED,
+          errorMessage: errMsg,
+          processingTimeMs: Date.now() - startTime,
+          effectiveProfile: job.data.effectiveProfile,
+          canonicalModel: job.data.canonicalModel,
+          snapshotParamsJson: job.data.snapshotParams,
+        });
+        throw new Error(errMsg);
+      }
+    }
+
+    // FR-010c: จับภาพ threshold ณ เวลาประมวลผลเพื่อให้ reviewGroup คำนวณซ้ำได้เหมือนเดิม
+    const capturedThresholds =
+      await this.reviewThresholdService.getThresholds();
+
+    // ค่า confidence จาก compare result (หรือ 0.5 เมื่อ unavailable)
+    const confidence = compareResult ? compareResult.confidence : 0.5;
+
+    // FR-018: สร้าง tags จาก register fields (discipline, correspondenceType) — deterministic
     const aiIssues: Record<string, unknown>[] = [];
+    const registerTags: string[] = [];
+    const excelMeta = this.buildExcelMetadata(payload, docNumber);
+    if (excelMeta.discipline) {
+      const tagName = deriveTagName('discipline', excelMeta.discipline);
+      if (tagName) registerTags.push(tagName);
+    }
+    if (excelMeta.correspondenceType) {
+      const tagName = deriveTagName(
+        'correspondenceType',
+        excelMeta.correspondenceType
+      );
+      if (tagName) registerTags.push(tagName);
+    }
+
     let mappedTags: Record<string, string>[] = [];
-    if (extractedMetadata.tags && extractedMetadata.tags.length > 0) {
+    if (registerTags.length > 0) {
       const tagResults = await this.tagsService.findOrSuggestTags(
         project.id,
-        extractedMetadata.tags,
+        registerTags,
         attachment.uploadedByUserId
       );
       mappedTags = tagResults.map(({ tag }) => ({
         publicId: tag.publicId,
         tagName: tag.tagName,
       }));
-      // บันทึก Tag ใหม่ที่ไม่มีในระบบเป็น aiIssues เพื่อให้มนุษย์ตรวจสอบ
       for (const { tag, isNew } of tagResults) {
         if (isNew) {
           aiIssues.push({
             type: 'NEW_TAG_SUGGESTED',
             tagPublicId: tag.publicId,
             tagName: tag.tagName,
-            message: `Tag '${tag.tagName}' ถูกสร้างใหม่โดย AI — ต้องการการตรวจสอบจากมนุษย์`,
+            message: `Tag '${tag.tagName}' ถูกสร้างใหม่จาก register field — ต้องการการตรวจสอบจากมนุษย์`,
           });
         }
       }
     }
-    const confidence =
-      typeof extractedMetadata.confidence === 'number'
-        ? extractedMetadata.confidence
-        : 0.5;
 
-    // 4. Resolve UUIDs of Sender/Recipient Organizations to Database IDs (ADR-019)
-    // EC-002: UUID ที่หาไม่พบใน Master Data จะถูก flag ใน aiIssues และ isValid = false
-    let senderOrgId: number | undefined = undefined;
-    if (extractedMetadata.originatorOrganizationPublicId) {
-      const foundOrg = await this.attachmentRepo.manager
-        .createQueryBuilder()
-        .select('org.id', 'id')
-        .from('organizations', 'org')
-        .where('org.uuid = :uuid', {
-          uuid: extractedMetadata.originatorOrganizationPublicId,
-        })
-        .getRawOne<{ id: number }>();
-      if (foundOrg) {
-        senderOrgId = Number(foundOrg.id);
-      } else {
-        // EC-002: UUID ของผู้ส่งไม่มีใน Master Data — flag เพื่อ human review
-        aiIssues.push({
-          type: 'UNRESOLVED_SENDER_UUID',
-          uuid: extractedMetadata.originatorOrganizationPublicId,
-          message: `UUID ผู้ส่ง '${extractedMetadata.originatorOrganizationPublicId}' ไม่พบใน Master Data — ต้องการการตรวจสอบจากมนุษย์`,
-        });
-      }
-    }
+    // FR-017: Resolve org names from register to system reference data (batch in Phase 5)
+    // สำหรับตอนนี้ใช้ค่าจาก register โดยตรง — MetadataResolutionService จะ resolve ในภายหลัง
+    const senderOrgId = readNumberId(payload.senderOrgId);
+    const primaryReceiverOrgId = readNumberId(payload.receiverOrgId);
 
-    let primaryReceiverOrgId: number | undefined = undefined;
-    if (
-      extractedMetadata.recipients &&
-      extractedMetadata.recipients.length > 0
-    ) {
-      // ดึงผู้รับที่เป็นประเภท TO รายแรกเป็นผู้รับหลัก (Primary Receiver)
-      const primaryReceiverObj =
-        extractedMetadata.recipients.find((r) => r.recipientType === 'TO') ||
-        extractedMetadata.recipients[0];
-      const foundOrg = await this.attachmentRepo.manager
-        .createQueryBuilder()
-        .select('org.id', 'id')
-        .from('organizations', 'org')
-        .where('org.uuid = :uuid', {
-          uuid: primaryReceiverObj.organizationPublicId,
-        })
-        .getRawOne<{ id: number }>();
-      if (foundOrg) {
-        primaryReceiverOrgId = Number(foundOrg.id);
-      } else {
-        // EC-002: UUID ของผู้รับไม่มีใน Master Data — flag เพื่อ human review
-        aiIssues.push({
-          type: 'UNRESOLVED_RECIPIENT_UUID',
-          uuid: primaryReceiverObj.organizationPublicId,
-          message: `UUID ผู้รับ '${primaryReceiverObj.organizationPublicId}' ไม่พบใน Master Data — ต้องการการตรวจสอบจากมนุษย์`,
-        });
-      }
-    }
-
-    // 5. ดึงประเภทเอกสารโต้ตอบ (Category Type) และสาขางาน (Discipline)
+    // 5. ดึงประเภทเอกสารโต้ตอบ (Category Type) และสาขางาน (Discipline) จาก register
     let matchedCategory = 'Correspondence';
-    if (extractedMetadata.correspondenceTypeCode) {
+    if (excelMeta.correspondenceType) {
       const foundType = await this.attachmentRepo.manager
         .createQueryBuilder()
         .select('t.type_name', 'name')
         .from('correspondence_types', 't')
         .where('t.type_code = :code', {
-          code: extractedMetadata.correspondenceTypeCode,
+          code: excelMeta.correspondenceType,
         })
         .getRawOne<{ name: string }>();
       if (foundType) {
@@ -1319,13 +1366,13 @@ export class AiBatchProcessor extends WorkerHost {
     }
 
     let matchedDisciplineId: number | undefined = undefined;
-    if (extractedMetadata.disciplineCode) {
+    if (excelMeta.discipline) {
       const foundDisp = await this.attachmentRepo.manager
         .createQueryBuilder()
         .select('d.id', 'id')
         .from('disciplines', 'd')
         .where('d.discipline_code = :code', {
-          code: extractedMetadata.disciplineCode,
+          code: excelMeta.discipline,
         })
         .getRawOne<{ id: number }>();
       if (foundDisp) {
@@ -1333,29 +1380,28 @@ export class AiBatchProcessor extends WorkerHost {
       }
     }
 
-    // 6. ส่งบันทึกเข้าสู่ Review Queue พร้อมคืนค่าผู้รับ Object Array ใน JSON metadata details
-    // EC-002: หากมี UUID ที่ไม่สามารถ resolve ได้ ให้ isValid = false เพื่อส่งเข้า review เสมอ
-    const hasUnresolvedUuids = aiIssues.some(
-      (issue) =>
-        issue.type === 'UNRESOLVED_SENDER_UUID' ||
-        issue.type === 'UNRESOLVED_RECIPIENT_UUID'
-    );
-    const isValid = confidence >= 0.6 && !!docNumber && !hasUnresolvedUuids;
+    // 6. ส่งบันทึกเข้าสู่ Review Queue พร้อม compareResult และ capturedThresholds
+    // FR-010b: isValid คำนวณจาก mismatches count vs capturedThresholds และ confidence
+    const mismatchCount = compareResult ? compareResult.mismatches.length : 0;
+    const isValid =
+      !!docNumber &&
+      compareStatus === CompareStatus.COMPARED &&
+      mismatchCount <= capturedThresholds.maxMismatchFields &&
+      confidence >= capturedThresholds.minConfidence;
     const payloadTitle = readString(payload.title);
 
     await this.migrationService.enqueueRecord({
       documentNumber: docNumber,
-      subject: extractedMetadata.subject || payloadTitle,
+      subject: excelMeta.subject || payloadTitle,
       originalSubject: payloadTitle,
-      body: extractedMetadata.summary || '',
+      body: '',
       category: matchedCategory,
-      aiSummary: extractedMetadata.summary || '',
+      aiSummary: '',
       projectId: project.id,
-      senderOrgId: senderOrgId || readNumberId(payload.senderOrgId),
-      receiverOrgId:
-        primaryReceiverOrgId || readNumberId(payload.receiverOrgId),
-      issuedDate: extractedMetadata.documentDate || undefined,
-      receivedDate: extractedMetadata.documentDate || undefined,
+      senderOrgId: senderOrgId,
+      receiverOrgId: primaryReceiverOrgId,
+      issuedDate: excelMeta.documentDate || undefined,
+      receivedDate: excelMeta.documentDate || undefined,
       extractedTags: mappedTags,
       tempAttachmentId: attachment.id,
       isValid,
@@ -1363,17 +1409,28 @@ export class AiBatchProcessor extends WorkerHost {
       aiJobId: String(job.id),
       aiIssues: aiIssues.length > 0 ? aiIssues : undefined,
       details: {
-        disciplineCode: extractedMetadata.disciplineCode,
+        disciplineCode: excelMeta.discipline,
         disciplineId: matchedDisciplineId,
-        recipientsList: extractedMetadata.recipients, // บันทึก Object Array สกัดใหม่
+        recipientsList: [],
+        compareResult: compareResult ?? undefined,
+        compareStatus,
+        compareUnavailableReason,
+        capturedThresholds,
       },
+      compareResult: compareResult ?? undefined,
+      compareStatus: compareStatus,
+      compareUnavailableReason,
+      capturedThresholds,
     });
 
     await this.saveAiAuditLog({
       documentPublicId,
       aiModel: modelUsed ?? this.ollamaService.getMainModelName(),
       status: AiAuditStatus.SUCCESS,
-      aiSuggestionJson: extractedMetadata as unknown as Record<string, unknown>,
+      aiSuggestionJson: (compareResult ?? {
+        compareStatus,
+        confidence,
+      }) as unknown as Record<string, unknown>,
       confidenceScore: confidence,
       processingTimeMs: Date.now() - startTime,
       effectiveProfile: job.data.effectiveProfile,

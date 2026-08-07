@@ -7,7 +7,7 @@ import {
   ValidationException,
 } from '../../common/exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, In } from 'typeorm';
 import { ImportCorrespondenceDto } from './dto/import-correspondence.dto';
 import { EnqueueMigrationDto } from './dto/enqueue-migration.dto';
 import { CommitBatchDto } from './dto/commit-batch.dto';
@@ -445,6 +445,18 @@ export class MigrationService {
     queueItem.status = autoStatus;
     queueItem.aiJobId = dto.aiJobId;
 
+    // Feature 242: เพิ่ม multi-attachment และ compare fields
+    if (dto.tempAttachmentIds && dto.tempAttachmentIds.length > 0) {
+      queueItem.tempAttachmentIds = dto.tempAttachmentIds;
+    } else if (dto.tempAttachmentId) {
+      // R4: backward compatibility — แปลง tempAttachmentId เดี่ยวเป็น array
+      queueItem.tempAttachmentIds = [dto.tempAttachmentId];
+    }
+    if (dto.compareStatus) {
+      queueItem.compareStatus = dto.compareStatus;
+    }
+    queueItem.compareUnavailableReason = dto.compareUnavailableReason;
+
     if (dto.issuedDate) {
       const parsed = new Date(dto.issuedDate);
       if (!isNaN(parsed.getTime())) queueItem.issuedDate = parsed;
@@ -481,8 +493,11 @@ export class MigrationService {
 
     const [items, total] = await queryBuilder.getManyAndCount();
 
+    // Feature 242: enrich items with attachments[] metadata (FR-005)
+    const enrichedItems = await this.enrichWithAttachments(items);
+
     return {
-      items,
+      items: enrichedItems,
       total,
       page,
       limit,
@@ -490,12 +505,69 @@ export class MigrationService {
     };
   }
 
+  /**
+   * เพิ่มข้อมูล attachments[] ให้แต่ละ queue item (FR-005)
+   * คืนรายการพร้อม publicId, originalFilename, mimeType, hasOcrText, isMainDocument
+   */
+  private async enrichWithAttachments(
+    items: MigrationReviewQueue[]
+  ): Promise<MigrationReviewQueue[]> {
+    // รวบรวม attachment IDs ทั้งหมดจากทุก item
+    const allAttachmentIds: number[] = [];
+    const itemAttachmentMap = new Map<number, number[]>();
+    for (const item of items) {
+      const ids: number[] = [];
+      if (item.tempAttachmentIds && item.tempAttachmentIds.length > 0) {
+        ids.push(...item.tempAttachmentIds);
+      } else if (item.tempAttachmentId) {
+        ids.push(item.tempAttachmentId);
+      }
+      itemAttachmentMap.set(item.id, ids);
+      allAttachmentIds.push(...ids);
+    }
+    if (allAttachmentIds.length === 0) return items;
+    // ดึง attachment metadata ทั้งหมดในครั้งเดียว
+    const attachments = await this.dataSource.manager.find(Attachment, {
+      where: { id: In(allAttachmentIds) },
+      select: ['id', 'publicId', 'originalFilename', 'mimeType', 'ocrText'],
+    });
+    const attachmentMap = new Map(attachments.map((a) => [a.id, a]));
+    // แนบ attachments[] ให้แต่ละ item ผ่าน details field
+    for (const item of items) {
+      const ids = itemAttachmentMap.get(item.id) ?? [];
+      const itemAttachments = ids
+        .map((id, index) => {
+          const att = attachmentMap.get(id);
+          if (!att) return null;
+          return {
+            publicId: att.publicId,
+            originalFilename: att.originalFilename,
+            mimeType: att.mimeType,
+            hasOcrText: !!(att.ocrText && att.ocrText.length > 0),
+            isMainDocument: index === 0,
+          };
+        })
+        .filter(Boolean);
+      // เก็บใน details เพื่อให้ serialize ออก API ได้
+      if (!item.details) {
+        (
+          item as MigrationReviewQueue & { details: Record<string, unknown> }
+        ).details = {};
+      }
+      (item.details as Record<string, unknown>)['attachments'] =
+        itemAttachments;
+    }
+    return items;
+  }
+
   async getQueueItemById(id: number) {
     const item = await this.reviewQueueRepo.findOne({ where: { id } });
     if (!item) {
       throw new NotFoundException('Queue item', String(id));
     }
-    return item;
+    // Feature 242: enrich single item with attachments[] (FR-005)
+    const enriched = await this.enrichWithAttachments([item]);
+    return enriched[0];
   }
 
   async createError(dto: CreateMigrationErrorDto) {

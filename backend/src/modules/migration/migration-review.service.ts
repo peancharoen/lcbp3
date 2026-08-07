@@ -41,6 +41,18 @@ export class MigrationReviewService {
   ) {}
 
   /**
+   * คืนรายการ attachment id ที่ใช้จริง โดยรองรับรูปแบบเดิมที่มีไฟล์เดียว (R4)
+   * ถ้า tempAttachmentIds มีค่าจะใช้ค่านั้น; ถ้าไม่มีจะ fallback ไป [tempAttachmentId]
+   * @returns รายการ attachment id (อาจว่าง)
+   */
+  private resolveAttachmentIds(record: MigrationReviewQueue): number[] {
+    if (record.tempAttachmentIds && record.tempAttachmentIds.length > 0) {
+      return record.tempAttachmentIds;
+    }
+    return record.tempAttachmentId ? [record.tempAttachmentId] : [];
+  }
+
+  /**
    * ทำการ Commit ข้อมูลเอกสารจาก Staging Review Queue เข้าระบบจริงอย่างเป็นระบบ
    * มีการทำ SELECT FOR UPDATE เพื่อป้องกันการกดเบิ้ลหรือการทำงานพร้อมกัน
    */
@@ -181,15 +193,36 @@ export class MigrationReviewService {
           [correspondence.id, resolvedReceiverId, 'TO']
         );
       }
-      let attachmentId: number | null = null;
-      if (queueItem.tempAttachmentId) {
-        attachmentId = queueItem.tempAttachmentId;
+      // Feature 242: Multi-attachment support (FR-001, FR-002, FR-003)
+      // ใช้ resolveAttachmentIds เพื่อรองรับทั้ง tempAttachmentIds ใหม่และ tempAttachmentId เดิม (R4)
+      const attachmentIds = this.resolveAttachmentIds(queueItem);
+      if (attachmentIds.length === 0) {
+        // Edge Case: missing attachment — ส่ง 400 พร้อม Thai userMessage
+        throw new ValidationException(
+          'ไม่พบไฟล์แนบในรายการรีวิว — กรุณาตรวจสอบว่ามีการอัปโหลดไฟล์ก่อน commit'
+        );
+      }
+      // ตรวจสอบว่า attachment IDs ทั้งหมดมีอยู่จริงในระบบ
+      for (const attId of attachmentIds) {
+        const exists = await queryRunner.manager.findOne(Attachment, {
+          where: { id: attId },
+          select: ['id'],
+        });
+        if (!exists) {
+          throw new ValidationException(
+            `ไม่พบไฟล์แนบ ID ${attId} ในระบบ — กรุณาตรวจสอบรายการรีวิว`
+          );
+        }
+      }
+      // ทำเครื่องหมาย attachments ทั้งหมดเป็นถาวร (isTemporary = false)
+      for (const attId of attachmentIds) {
         await queryRunner.manager.update(
           Attachment,
-          { id: attachmentId },
+          { id: attId },
           { isTemporary: false }
         );
       }
+      const attachmentId = attachmentIds[0]; // เอกสารหลัก (FR-003)
       const parseDateStr = (d?: string | Date) => {
         if (!d) return undefined;
         if (d instanceof Date) return d;
@@ -233,6 +266,10 @@ export class MigrationReviewService {
           ai_confidence: queueItem.aiConfidence,
           ai_issues: queueItem.aiIssues,
           attachment_id: attachmentId,
+          attachment_ids: attachmentIds,
+          // Feature 242: บันทึก fieldResolutions ของผู้ตรวจสอบใน audit trail (FR-011b, R7)
+          field_resolutions: dto.fieldResolutions,
+          compare_status: queueItem.compareStatus,
         },
         schemaVersion: 1,
         createdBy: userId,
@@ -245,6 +282,14 @@ export class MigrationReviewService {
         );
       }
       await queryRunner.manager.save(revision);
+      // Feature 242: เชื่อม attachments ทั้งหมดเข้ากับ revision ผ่าน junction table (FR-001, FR-002, FR-003)
+      // element [0] คือเอกสารหลัก (is_main_document=1), ที่เหลือเป็นเอกสารรอง (is_main_document=0)
+      for (let i = 0; i < attachmentIds.length; i += 1) {
+        await queryRunner.manager.query(
+          'INSERT IGNORE INTO correspondence_revision_attachments (revision_id, attachment_id, is_main_document) VALUES (?, ?, ?)',
+          [revision.id, attachmentIds[i], i === 0 ? 1 : 0]
+        );
+      }
       const isRFA = type?.typeCode === 'RFA' || category === 'RFA';
       if (isRFA) {
         const rfaStatusRes = await queryRunner.manager.query<{ id: number }[]>(
@@ -288,8 +333,9 @@ export class MigrationReviewService {
           );
           tagId = insertRes.insertId;
         }
+        // R7: register-derived tags ต้องมี is_ai_suggested=0 (deterministic, ไม่ใช่ AI suggestion)
         await queryRunner.manager.query(
-          'INSERT IGNORE INTO correspondence_tags (correspondence_id, tag_id) VALUES (?, ?)',
+          'INSERT IGNORE INTO correspondence_tags (correspondence_id, tag_id, is_ai_suggested) VALUES (?, ?, 0)',
           [correspondence.id, tagId]
         );
       }

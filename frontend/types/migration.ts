@@ -1,12 +1,60 @@
 // File: types/migration.ts
 // Change Log:
 // - 2026-05-22: Initial creation and update for ADR-019 compatibility and added subject fields
+// - 2026-08-06: เพิ่ม CompareStatus, CompareResult, CompareFieldResult, FieldResolution สำหรับ Feature 242
 
 export enum MigrationReviewStatus {
   PENDING = 'PENDING',
   APPROVED = 'APPROVED',
   REJECTED = 'REJECTED',
   IMPORTED = 'IMPORTED',
+}
+
+/** สถานะการเปรียบเทียบทะเบียนกับเอกสารจริง (FR-012a) */
+export enum CompareStatus {
+  COMPARED = 'COMPARED',
+  UNAVAILABLE = 'UNAVAILABLE',
+}
+
+/** ชื่อช่องที่เปรียบเทียบ (FR-006) */
+export type ComparedField =
+  | 'documentNumber'
+  | 'subject'
+  | 'documentDate'
+  | 'fromOrganization'
+  | 'toOrganization'
+  | 'correspondenceType'
+  | 'discipline'
+  | 'project'
+  | 'revision';
+
+/** ผลการเปรียบเทียบรายช่อง (FR-007) */
+export interface CompareFieldResult {
+  field: ComparedField;
+  excelValue: string | null;
+  ocrValue: string | null;
+  match: boolean;
+  foundInDocument: boolean;
+}
+
+/** ผลการเปรียบเทียบทั้งฉบับ (FR-007, FR-008) */
+export interface CompareResult {
+  fieldResults: CompareFieldResult[];
+  mismatches: string[];
+  confidence: number;
+}
+
+/** การตัดสินใจของผู้ตรวจสอบรายช่อง (FR-011, FR-011b) */
+export interface FieldResolution {
+  field: string;
+  source: 'EXCEL' | 'DOCUMENT' | 'MANUAL';
+  finalValue: string;
+}
+
+/** ค่า threshold ที่จับภาพไว้ ณ เวลาประมวลผล (FR-010c) */
+export interface CapturedThresholds {
+  maxMismatchFields: number;
+  minConfidence: number;
 }
 
 export interface MigrationReviewQueueItem {
@@ -35,6 +83,12 @@ export interface MigrationReviewQueueItem {
   aiSummary?: string;
   extractedTags?: Record<string, unknown>[];
   tempAttachmentId?: number | string; // ADR-019: Accept UUID
+  // Feature 242: multi-attachment + compare
+  tempAttachmentIds?: number[];
+  compareStatus?: CompareStatus;
+  compareUnavailableReason?: string;
+  compareResult?: CompareResult;
+  capturedThresholds?: CapturedThresholds;
 }
 
 export interface CommitBatchItemDto {

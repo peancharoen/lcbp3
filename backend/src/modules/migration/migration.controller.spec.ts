@@ -1,6 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { Reflector } from '@nestjs/core';
 import { MigrationController } from './migration.controller';
 import { MigrationService } from './migration.service';
+import { MetadataResolutionService } from './services/metadata-resolution.service';
+import { ReviewThresholdService } from './services/review-threshold.service';
+import { RagBatchService } from './services/rag-batch.service';
+import { UserService } from '../user/user.service';
 import { ImportCorrespondenceDto } from './dto/import-correspondence.dto';
 import { User } from '../user/entities/user.entity';
 
@@ -12,6 +17,7 @@ describe('MigrationController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [MigrationController],
       providers: [
+        Reflector,
         {
           provide: MigrationService,
           useValue: {
@@ -19,6 +25,22 @@ describe('MigrationController', () => {
               .fn()
               .mockResolvedValue({ message: 'Success' }),
           },
+        },
+        {
+          provide: MetadataResolutionService,
+          useValue: { resolveBatch: jest.fn().mockResolvedValue({}) },
+        },
+        {
+          provide: ReviewThresholdService,
+          useValue: { getThresholds: jest.fn(), updateThresholds: jest.fn() },
+        },
+        {
+          provide: RagBatchService,
+          useValue: { triggerRagBatch: jest.fn().mockResolvedValue({}) },
+        },
+        {
+          provide: UserService,
+          useValue: { getUserPermissions: jest.fn().mockResolvedValue([]) },
         },
       ],
     }).compile();

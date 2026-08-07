@@ -34,8 +34,8 @@ import {
 } from '@/components/ui/select';
 import { useCommitMigrationReview, useRejectMigrationReview } from '@/hooks/use-migration-review';
 import { useProjects, useOrganizations } from '@/hooks/use-master-data';
-import { MigrationReviewQueueItem, MigrationReviewStatus } from '@/types/migration';
-import { Loader2, Calendar, Tag, AlertCircle, Edit, Check, X, Plus } from 'lucide-react';
+import { MigrationReviewQueueItem, MigrationReviewStatus, CompareStatus } from '@/types/migration';
+import { Loader2, Calendar, Tag, AlertCircle, Edit, Check, X, Plus, GitCompare } from 'lucide-react';
 
 interface ReviewTag {
   name?: string;
@@ -179,6 +179,43 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
     const config = configs[status] || { label: status, className: '' };
     return <Badge className={config.className}>{config.label}</Badge>;
   };
+  /** Feature 242: ป้ายสถานะการเปรียบเทียบทะเบียนกับเอกสารจริง (FR-012c) */
+  const getCompareStatusBadge = (
+    compareStatus?: CompareStatus,
+    mismatchCount?: number
+  ) => {
+    if (!compareStatus) return <span className="text-muted-foreground text-xs">—</span>;
+    if (compareStatus === CompareStatus.UNAVAILABLE) {
+      return (
+        <Badge variant="outline" className="text-orange-600 border-orange-500/30 bg-orange-500/5">
+          <GitCompare className="h-3 w-3 mr-1" />
+          ไม่สามารถเปรียบเทียบ
+        </Badge>
+      );
+    }
+    if (mismatchCount === undefined) {
+      return (
+        <Badge variant="outline" className="text-blue-600 border-blue-500/30 bg-blue-500/5">
+          <GitCompare className="h-3 w-3 mr-1" />
+          เปรียบเทียบแล้ว
+        </Badge>
+      );
+    }
+    if (mismatchCount === 0) {
+      return (
+        <Badge variant="outline" className="text-green-600 border-green-500/30 bg-green-500/5">
+          <GitCompare className="h-3 w-3 mr-1" />
+          ตรงทั้งหมด
+        </Badge>
+      );
+    }
+    return (
+      <Badge variant="outline" className="text-red-600 border-red-500/30 bg-red-500/5">
+        <GitCompare className="h-3 w-3 mr-1" />
+        ไม่ตรง {mismatchCount} ช่อง
+      </Badge>
+    );
+  };
   return (
     <div className="w-full">
       <div className="rounded-md border bg-card text-card-foreground shadow-sm overflow-hidden">
@@ -189,6 +226,7 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
               <TableHead>หัวข้อเอกสาร (Subject)</TableHead>
               <TableHead className="w-[120px]">หมวดหมู่ AI</TableHead>
               <TableHead className="w-[100px] text-center">ความมั่นใจ AI</TableHead>
+              <TableHead className="w-[120px] text-center">การเปรียบเทียบ</TableHead>
               <TableHead className="w-[120px]">สถานะ</TableHead>
               <TableHead className="w-[100px] text-right">การกระทำ</TableHead>
             </TableRow>
@@ -196,7 +234,7 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-32 text-center">
+                <TableCell colSpan={7} className="h-32 text-center">
                   <div className="flex flex-col items-center justify-center space-y-2">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     <span className="text-sm text-muted-foreground">กำลังโหลดรายการรอรีวิว...</span>
@@ -205,7 +243,7 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
               </TableRow>
             ) : items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
+                <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
                   ไม่พบรายการที่รอตรวจสอบในคิวขณะนี้
                 </TableCell>
               </TableRow>
@@ -221,6 +259,9 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
                   </TableCell>
                   <TableCell className="text-center font-mono">
                     {item.aiConfidence ? `${(Number(item.aiConfidence) * 100).toFixed(1)}%` : '-'}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {getCompareStatusBadge(item.compareStatus, item.compareResult?.mismatches.length)}
                   </TableCell>
                   <TableCell>{getStatusBadge(item.status)}</TableCell>
                   <TableCell className="text-right">

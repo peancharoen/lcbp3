@@ -30,7 +30,7 @@
 > การตัดสินใจเหล่านี้ **ไม่สามารถเปลี่ยนแปลงได้** โดยไม่ได้รับ Explicit Approval
 
 | ID   | Decision                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | ADR                |
-| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ | ----------- |
 | D1   | n8n = Migration Phase orchestrator เท่านั้น — ห้ามทำ New Correspondence pipeline ผ่าน n8n                                                                                                                                                                                                                                                                                                                                                                                                                             | ADR-023A           |
 | D2   | New Correspondence → BullMQ `ai-realtime` queue โดยตรง (ไม่ผ่าน n8n)                                                                                                                                                                                                                                                                                                                                                                                                                                                  | ADR-023A           |
 | D3   | n8n ต้อง call `POST /api/ai/jobs` (DMS Backend) เท่านั้น — ห้าม call Ollama/Qdrant โดยตรง                                                                                                                                                                                                                                                                                                                                                                                                                             | ADR-023A           |
@@ -131,6 +131,9 @@
 | D98  | **Compare Audit Log (FR-028)** — `CompareResult` (หรือ raw LLM response on failure) ต้องเขียนลง `ai_audit_logs.ai_suggestion_json` ทุกครั้ง — สำหรับ audit trail ของ automated processing ทั้งหมด                                                                                                                                                                                                                                                                                                                     | Feature-242        |
 | D99  | **`migration_compare` Prompt** — แทนที่ `ocr_extraction` ใน `processMigrateDocument()`; ใช้ register data (ExcelMetadata) เป็น baseline รายงานเฉพาะความไม่ตรงกันกับเนื้อหาเอกสาร (FR-009); prompt stored in `ai_prompts` table ไม่ hardcoded                                                                                                                                                                                                                                                                          | Feature-242        |
 | D100 | **Batch Resolution Separation (FR-016/017)** — Tag/UUID resolution แยกออกจาก `processMigrateDocument()` — ทำเป็น batch endpoint หลังนำเข้า; เป็น performance lever ลด per-document DB lookups ออกจาก migration processing path                                                                                                                                                                                                                                                                                        | Feature-242        |
+| D101 | **R7 `is_ai_suggested=0`** — register-derived tags (จาก `MetadataResolutionService`) ต้องมี `is_ai_suggested=0` เพราะ deterministic (ไม่ใช่ AI suggestion); INSERT IGNORE ลง `correspondence_tags` ต้อง explicit set `is_ai_suggested=0`                                                                                                                                                                                                                                                                              | Feature-242        |
+| D102 | **OCR Reuse (FR-014, SC-006)** — `processRagPrepare` ต้องอ่าน persisted `ocr_text` จาก `attachments` table ก่อนเสมอ — ห้ามเรียก OCR sidecar ซ้ำสำหรับไฟล์ที่มี stored text; ลด latency + VRAM usage สำหรับ RAG batch                                                                                                                                                                                                                                                                                                  | Feature-242        |
+| D103 | **DWG/DXF Exclusion** — DWG/DXF ไฟล์ข้ามทั้ง compare และ RAG embedding; ตรวจด้วย `isDwgFile()` (MIME type + file extension); `compareStatus=UNAVAILABLE` สำหรับ DWG-only attachments; RAG candidate query กรองด้วย `mime_type NOT IN (...) AND LOWER(filename) NOT REGEXP '\\.(dwg                                                                                                                                                                                                                                    | dxf)$'`            | Feature-242 |
 
 ## Environment & Services
 
@@ -238,7 +241,7 @@ QDRANT_URL
 - [ ] **MCP Knowledge Graph** — บันทึก D94-D96 ลง Knowledge Graph
 - [ ] **Close Gitea issue #2** — หลังทีม review ADR-044 แล้ว
 
-### Feature-242 Migration AI Pipeline Refactor (Session 2026-08-06) ✅ SPECKIT COMPLETE
+### Feature-242 Migration AI Pipeline Refactor (Session 2026-08-06) ✅ IMPLEMENT COMPLETE
 
 - [x] **spec.md** — 4 user stories, 30 FRs, 8 edge cases, 11 success criteria
 - [x] **plan.md** — implementation plan, constitution check, phase breakdown
@@ -248,11 +251,14 @@ QDRANT_URL
 - [x] **quickstart.md** — 12-step end-to-end verification
 - [x] **tasks.md** — 65 tasks, 30/30 FRs covered (100%)
 - [x] **Cross-artifact analysis** — 11 issues found and fixed (C1-C2, H1-H3, M1-M3, L1-L3)
-- [x] **Lock decisions** — D97 (captured thresholds), D98 (compare audit log), D99 (migration_compare prompt), D100 (batch resolution separation)
+- [x] **Lock decisions** — D97-D100 (speckit) + D101-D103 (implement)
 - [x] Session log: `specs/88-logs/session-2026-08-06-migration-ai-pipeline-speckit.md`
 - [x] **MCP Knowledge Graph** — Feature-242 + D97-D100 + relations created
-- [ ] **Commit + push via 2git.sh** — pending user approval
-- [ ] **Implement** — run `/107-speckit.implement` when ready
+- [x] **Phase 1-7 Implementation** — 65/65 tasks done; 126 tests pass; tsc+lint 0 errors
+- [x] Session log: `specs/88-logs/session-2026-08-06-migration-ai-pipeline-implement.md`
+- [ ] **Commit + push** — pending user approval
+- [ ] **Coverage gap** — metadata-resolution.service.ts (42%), rag-batch.service.ts (71%) ต้องการ integration tests กับ real DB
+- [ ] **Quickstart E2E** — T064 (FR-030 semantic search isolation) ต้องการ running app + Qdrant
 
 ### AI Console Frontend Refactor (Session 2026-08-02) ✅ CODE COMPLETE
 

@@ -31,15 +31,15 @@
 
 **Purpose**: Schema delta, prompt seed, threshold seed, and shared type definitions
 
-- [ ] T001 Create ADR-009 schema delta file with `migration_review_queue` columns (`temp_attachment_ids JSON`, `compare_status ENUM`, `compare_unavailable_reason VARCHAR`) and composite index `idx_migration_review_compare_status` in `specs/03-Data-and-Storage/deltas/2026-08-06-migration-multi-attachment-and-compare.sql`
-- [ ] T002 [P] Create `migration_compare` prompt seed SQL (INSERT into `ai_prompts` with template, `field_schema`, placeholders `{{ocr_text}}`, `{{excel_metadata}}`, `{{ocr_truncated}}`) in `specs/03-Data-and-Storage/deltas/2026-08-06-migration-multi-attachment-and-compare.sql`
-- [ ] T003 [P] Create `system_settings` seed rows for `MIGRATION_MAX_MISMATCH_FIELDS` (default `3`) and `MIGRATION_MIN_CONFIDENCE` (default `0.6`) in `specs/03-Data-and-Storage/deltas/2026-08-06-migration-multi-attachment-and-compare.sql`
-- [ ] T004 [P] Create `CompareResult` and `CompareFieldResult` types with typed parser guard in `backend/src/modules/ai/types/migration-compare-result.type.ts`
-- [ ] T005 [P] Create `FieldResolution` type (`field`, `source: 'EXCEL'|'DOCUMENT'|'MANUAL'`, `finalValue`) in `backend/src/modules/ai/types/migration-compare-result.type.ts`
-- [ ] T006 [P] Create `ExcelMetadata` DTO with 9 register fields (`documentNumber` required, rest optional `string`) in `backend/src/modules/ai/dto/excel-metadata.dto.ts`
-- [ ] T007 [P] Create `ReviewThresholdSetting` read model type (`maxMismatchFields`, `minConfidence`) in `backend/src/modules/migration/types/review-threshold.type.ts`
-- [ ] T008 [P] Create `TagMappingRule` static constant (discipline→`discipline:`, correspondenceType→`type:`) in `backend/src/modules/migration/types/tag-mapping-rule.ts`
-- [ ] T009 [P] Create shared DWG exclusion constant (MIME list + `.dwg`/`.dxf` extension fallback) in `backend/src/modules/migration/constants/dwg-exclusion.constant.ts`
+- [X] T001 Create ADR-009 schema delta file with `migration_review_queue` columns (`temp_attachment_ids JSON`, `compare_status ENUM`, `compare_unavailable_reason VARCHAR`) and composite index `idx_migration_review_compare_status` in `specs/03-Data-and-Storage/deltas/2026-08-06-migration-multi-attachment-and-compare.sql`
+- [X] T002 [P] Create `migration_compare` prompt seed SQL (INSERT into `ai_prompts` with template, `field_schema`, placeholders `{{ocr_text}}`, `{{excel_metadata}}`, `{{ocr_truncated}}`) in `specs/03-Data-and-Storage/deltas/2026-08-06-migration-multi-attachment-and-compare.sql`
+- [X] T003 [P] Create `system_settings` seed rows for `MIGRATION_MAX_MISMATCH_FIELDS` (default `3`) and `MIGRATION_MIN_CONFIDENCE` (default `0.6`) in `specs/03-Data-and-Storage/deltas/2026-08-06-migration-multi-attachment-and-compare.sql`
+- [X] T004 [P] Create `CompareResult` and `CompareFieldResult` types with typed parser guard in `backend/src/modules/ai/types/migration-compare-result.type.ts`
+- [X] T005 [P] Create `FieldResolution` type (`field`, `source: 'EXCEL'|'DOCUMENT'|'MANUAL'`, `finalValue`) in `backend/src/modules/ai/types/migration-compare-result.type.ts`
+- [X] T006 [P] Create `ExcelMetadata` DTO with 9 register fields (`documentNumber` required, rest optional `string`) in `backend/src/modules/ai/dto/excel-metadata.dto.ts`
+- [X] T007 [P] Create `ReviewThresholdSetting` read model type (`maxMismatchFields`, `minConfidence`) in `backend/src/modules/migration/types/review-threshold.type.ts`
+- [X] T008 [P] Create `TagMappingRule` static constant (discipline→`discipline:`, correspondenceType→`type:`) in `backend/src/modules/migration/types/tag-mapping-rule.ts`
+- [X] T009 [P] Create shared DWG exclusion constant (MIME list + `.dwg`/`.dxf` extension fallback) in `backend/src/modules/migration/constants/dwg-exclusion.constant.ts`
 
 ---
 
@@ -49,17 +49,17 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T010 Modify `MigrationReviewQueue` entity: add `tempAttachmentIds` (JSON, `@Exclude()`), `compareStatus` (enum, default `COMPARED`), `compareUnavailableReason` (nullable), deprecate `tempAttachmentId` in `backend/src/modules/migration/entities/migration-review-queue.entity.ts`
-- [ ] T011 Add `CompareStatus` enum (`COMPARED`, `UNAVAILABLE`) in `backend/src/modules/migration/entities/migration-review-queue.entity.ts`
-- [ ] T012 [P] Create `ReviewThresholdService` (read `system_settings`, Redis cache `migration:thresholds` TTL 60s, `DEL` on update, validation min/max) in `backend/src/modules/migration/services/review-threshold.service.ts`
-- [ ] T013 [P] Modify `ImportCorrespondenceDTO` to accept `tempAttachmentIds: number[]` and `sourceFilePaths: string[]` alongside legacy `tempAttachmentId` in `backend/src/modules/migration/dto/import-correspondence.dto.ts`
-- [ ] T014 [P] Modify `EnqueueMigrationDTO` to accept `tempAttachmentIds`, `compareResult`, `compareStatus` in `backend/src/modules/migration/dto/enqueue-migration.dto.ts`
-- [ ] T015 [P] Modify `CommitMigrationReviewDTO` to accept `fieldResolutions: FieldResolution[]` in `backend/src/modules/migration/dto/commit-migration-review.dto.ts`
-- [ ] T016 [P] Create `ResolveBatchDTO` (optional `batchId: string`) in `backend/src/modules/migration/dto/resolve-batch.dto.ts`
-- [ ] T017 [P] Create `TriggerRagBatchDTO` (optional `batchId: string`) in `backend/src/modules/migration/dto/trigger-rag-batch.dto.ts`
-- [ ] T018 Add `resolveAttachmentIds()` private helper to `MigrationReviewService` (returns `tempAttachmentIds ?? [tempAttachmentId]`) in `backend/src/modules/migration/migration-review.service.ts`
-- [ ] T019 Modify `FileStorageService` whitelist to verify full FR-004 file type set: PDF, DOCX, DWG, XLSX, ZIP (add any missing MIME types) in `backend/src/common/file-storage/file-storage.service.ts`
-- [ ] T020 Modify `MigrationModule` imports to include `AiQueueModule` and register new services in `backend/src/modules/migration/migration.module.ts`
+- [X] T010 Modify `MigrationReviewQueue` entity: add `tempAttachmentIds` (JSON, `@Exclude()`), `compareStatus` (enum, default `COMPARED`), `compareUnavailableReason` (nullable), deprecate `tempAttachmentId` in `backend/src/modules/migration/entities/migration-review-queue.entity.ts`
+- [X] T011 Add `CompareStatus` enum (`COMPARED`, `UNAVAILABLE`) in `backend/src/modules/migration/entities/migration-review-queue.entity.ts`
+- [X] T012 [P] Create `ReviewThresholdService` (read `system_settings`, Redis cache `migration:thresholds` TTL 60s, `DEL` on update, validation min/max) in `backend/src/modules/migration/services/review-threshold.service.ts`
+- [X] T013 [P] Modify `ImportCorrespondenceDTO` to accept `tempAttachmentIds: number[]` and `sourceFilePaths: string[]` alongside legacy `tempAttachmentId` in `backend/src/modules/migration/dto/import-correspondence.dto.ts`
+- [X] T014 [P] Modify `EnqueueMigrationDTO` to accept `tempAttachmentIds`, `compareResult`, `compareStatus` in `backend/src/modules/migration/dto/enqueue-migration.dto.ts`
+- [X] T015 [P] Modify `CommitMigrationReviewDTO` to accept `fieldResolutions: FieldResolution[]` in `backend/src/modules/migration/dto/commit-migration-review.dto.ts`
+- [X] T016 [P] Create `ResolveBatchDTO` (optional `batchId: string`) in `backend/src/modules/migration/dto/resolve-batch.dto.ts`
+- [X] T017 [P] Create `TriggerRagBatchDTO` (optional `batchId: string`) in `backend/src/modules/migration/dto/trigger-rag-batch.dto.ts`
+- [X] T018 Add `resolveAttachmentIds()` private helper to `MigrationReviewService` (returns `tempAttachmentIds ?? [tempAttachmentId]`) in `backend/src/modules/migration/migration-review.service.ts`
+- [X] T019 Modify `FileStorageService` whitelist to verify full FR-004 file type set: PDF, DOCX, DWG, XLSX, ZIP (add any missing MIME types) in `backend/src/common/file-storage/file-storage.service.ts`
+- [X] T020 Modify `MigrationModule` imports to include `AiQueueModule` and register new services in `backend/src/modules/migration/migration.module.ts`
 
 **Checkpoint**: Foundation ready — schema applied, entities/dtos updated, threshold service available. User story implementation can now begin.
 
@@ -73,27 +73,27 @@
 
 ### Tests for User Story 1
 
-- [ ] T021 [P] [US1] Unit test: `CompareResult` parser guard accepts valid LLM output and rejects malformed JSON in `backend/src/modules/ai/types/migration-compare-result.type.spec.ts`
-- [ ] T022 [P] [US1] Unit test: `ReviewThresholdService` reads defaults, caches in Redis, invalidates on update in `backend/src/modules/migration/services/review-threshold.service.spec.ts`
-- [ ] T023 [P] [US1] Unit test: `reviewGroup` classification logic reads from **captured thresholds** in `ai_metadata_json` (not current `system_settings`), verifying that a threshold change does NOT retroactively reclassify an existing record (FR-010c) in `backend/src/modules/migration/migration-review.service.spec.ts`
+- [X] T021 [P] [US1] Unit test: `CompareResult` parser guard accepts valid LLM output and rejects malformed JSON in `backend/src/modules/ai/types/migration-compare-result.type.spec.ts`
+- [X] T022 [P] [US1] Unit test: `ReviewThresholdService` reads defaults, caches in Redis, invalidates on update in `backend/src/modules/migration/services/review-threshold.service.spec.ts`
+- [X] T023 [P] [US1] Unit test: `reviewGroup` classification logic reads from **captured thresholds** in `ai_metadata_json` (not current `system_settings`), verifying that a threshold change does NOT retroactively reclassify an existing record (FR-010c) in `backend/src/modules/migration/migration-review.service.spec.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T024 [US1] Modify `processMigrateDocument()` in `ai-batch.processor.ts`: replace `getActive('ocr_extraction')` with `getActive('migration_compare')`, inject `excelMetadata` + `{{ocr_text}}` + `{{ocr_truncated}}` placeholders, parse via `CompareResult` guard. **Capture current threshold values** (`maxMismatchFields`, `minConfidence` from `ReviewThresholdService`) into `ai_metadata_json` alongside `CompareResult` at processing time (FR-010c — ensures threshold changes never retroactively reclassify existing records). Write `CompareResult` (or raw LLM response on failure) to `ai_audit_logs.ai_suggestion_json` (FR-028)
-- [ ] T025 [US1] Modify `processMigrateDocument()`: persist `ocrResult.text` to `attachments.ocr_text` (mirror `processRagPrepare()` pattern), skip for DWG/textless files in `backend/src/modules/ai/processors/ai-batch.processor.ts`
-- [ ] T026 [US1] Modify `processMigrateDocument()`: on compare failure (OCR fail, text too short, LLM unparseable), set `compareStatus = UNAVAILABLE` with Thai reason, still enqueue to review queue (FR-012a) in `backend/src/modules/ai/processors/ai-batch.processor.ts`
-- [ ] T027 [US1] Modify `processMigrateDocument()`: delete Tag/UUID resolution block (lines ~1222–1334) — store raw register values only (FR-016) in `backend/src/modules/ai/processors/ai-batch.processor.ts`
-- [ ] T028 [US1] Modify `AiService.submitMigrationJob()`: carry `excelMetadata` in job payload in `backend/src/modules/ai/ai.service.ts`
-- [ ] T029 [US1] Modify `MigrationReviewService.enqueueRecord()`: accept `tempAttachmentIds[]`, `compareResult`, `compareStatus`, `compareUnavailableReason`, `capturedThresholds` (snapshot of `maxMismatchFields` + `minConfidence` at processing time); mirror `[0]` to legacy `tempAttachmentId`; persist `capturedThresholds` into `ai_metadata_json` alongside `compareResult` (FR-010c) in `backend/src/modules/migration/migration-review.service.ts`
-- [ ] T030 [US1] Add `reviewGroup` computed property to review-queue read model — compute from **captured thresholds** stored in `ai_metadata_json` at processing time (NOT from current `system_settings`), so threshold changes never retroactively reclassify existing records (FR-010c). MANUAL_REVIEW if UNAVAILABLE, mismatches > captured `maxMismatchFields`, or confidence < captured `minConfidence`; else READY_TO_CONFIRM in `backend/src/modules/migration/migration-review.service.ts`
-- [ ] T031 [US1] Modify review-queue list endpoint: support `compareStatus` filter (FR-012d) and `reviewGroup` filter (`READY_TO_CONFIRM`/`MANUAL_REVIEW` per contract), return `attachments[]` with `publicId` + `hasOcrText` + `isMainDocument`, return `compareResult` + `reviewGroup`. Apply same response shape changes to single-item GET endpoint `/migration/review-queue/{publicId}` in `backend/src/modules/migration/migration.controller.ts`
-- [ ] T032 [US1] Modify `MigrationReviewService.commitRecord()`: validate `fieldResolutions[]`, reject `source='DOCUMENT'` when `foundInDocument=false` (FR-011c), persist resolutions to `ai_audit_logs.human_override_json` (R7) in `backend/src/modules/migration/migration-review.service.ts`
-- [ ] T033 [US1] Add `GET /api/migration/review-thresholds` endpoint (admin-only, returns current `maxMismatchFields` + `minConfidence` + `updatedAt`) and `PATCH /api/migration/review-thresholds` endpoint (admin-only, `Idempotency-Key`, validates ranges, `DEL migration:thresholds` on update, audit log change with `updated_by` + old/new values) in `backend/src/modules/migration/migration.controller.ts`
-- [ ] T034 [P] [US1] Create `compare-field-table.tsx` component: per-field 3-way source selector (EXCEL/DOCUMENT/MANUAL), register value preselected, "use document" hidden when `foundInDocument=false` in `frontend/app/(dashboard)/migration/review/_components/compare-field-table.tsx`
-- [ ] T035 [P] [US1] Create `compare-unavailable-badge.tsx` component: "เปรียบเทียบไม่ได้" indicator with reason text in `frontend/app/(dashboard)/migration/review/_components/compare-unavailable-badge.tsx`
-- [ ] T036 [US1] Modify `migration/review/page.tsx`: filter by `compareStatus` (FR-012d), render `compare-field-table` + `compare-unavailable-badge`, i18n keys only in `frontend/app/(dashboard)/migration/review/page.tsx`
-- [ ] T037 [P] [US1] Create `admin/migration-settings/page.tsx`: threshold configuration form (both thresholds, validation, admin-only 403 for non-admin) in `frontend/app/(dashboard)/admin/migration-settings/page.tsx`
-- [ ] T038 [US1] Add i18n keys for all new UI strings (field source labels, compare-unavailable badge, threshold labels, batch summary) in `frontend/messages/th/migration.json` and `frontend/messages/en/migration.json`
+- [X] T024 [US1] Modify `processMigrateDocument()` in `ai-batch.processor.ts`: replace `getActive('ocr_extraction')` with `getActive('migration_compare')`, inject `excelMetadata` + `{{ocr_text}}` + `{{ocr_truncated}}` placeholders, parse via `CompareResult` guard. **Capture current threshold values** (`maxMismatchFields`, `minConfidence` from `ReviewThresholdService`) into `ai_metadata_json` alongside `CompareResult` at processing time (FR-010c — ensures threshold changes never retroactively reclassify existing records). Write `CompareResult` (or raw LLM response on failure) to `ai_audit_logs.ai_suggestion_json` (FR-028)
+- [X] T025 [US1] Modify `processMigrateDocument()`: persist `ocrResult.text` to `attachments.ocr_text` (mirror `processRagPrepare()` pattern), skip for DWG/textless files in `backend/src/modules/ai/processors/ai-batch.processor.ts`
+- [X] T026 [US1] Modify `processMigrateDocument()`: on compare failure (OCR fail, text too short, LLM unparseable), set `compareStatus = UNAVAILABLE` with Thai reason, still enqueue to review queue (FR-012a) in `backend/src/modules/ai/processors/ai-batch.processor.ts`
+- [X] T027 [US1] Modify `processMigrateDocument()`: delete Tag/UUID resolution block (lines ~1222–1334) — store raw register values only (FR-016) in `backend/src/modules/ai/processors/ai-batch.processor.ts`
+- [X] T028 [US1] Modify `AiService.submitMigrationJob()`: carry `excelMetadata` in job payload in `backend/src/modules/ai/ai.service.ts`
+- [X] T029 [US1] Modify `MigrationReviewService.enqueueRecord()`: accept `tempAttachmentIds[]`, `compareResult`, `compareStatus`, `compareUnavailableReason`, `capturedThresholds` (snapshot of `maxMismatchFields` + `minConfidence` at processing time); mirror `[0]` to legacy `tempAttachmentId`; persist `capturedThresholds` into `ai_metadata_json` alongside `compareResult` (FR-010c) in `backend/src/modules/migration/migration-review.service.ts`
+- [X] T030 [US1] Add `reviewGroup` computed property to review-queue read model — compute from **captured thresholds** stored in `ai_metadata_json` at processing time (NOT from current `system_settings`), so threshold changes never retroactively reclassify existing records (FR-010c). MANUAL_REVIEW if UNAVAILABLE, mismatches > captured `maxMismatchFields`, or confidence < captured `minConfidence`; else READY_TO_CONFIRM in `backend/src/modules/migration/migration-review.service.ts`
+- [X] T031 [US1] Modify review-queue list endpoint: support `compareStatus` filter (FR-012d) and `reviewGroup` filter (`READY_TO_CONFIRM`/`MANUAL_REVIEW` per contract), return `attachments[]` with `publicId` + `hasOcrText` + `isMainDocument`, return `compareResult` + `reviewGroup`. Apply same response shape changes to single-item GET endpoint `/migration/review-queue/{publicId}` in `backend/src/modules/migration/migration.controller.ts`
+- [X] T032 [US1] Modify `MigrationReviewService.commitRecord()`: validate `fieldResolutions[]`, reject `source='DOCUMENT'` when `foundInDocument=false` (FR-011c), persist resolutions to `ai_audit_logs.human_override_json` (R7) in `backend/src/modules/migration/migration-review.service.ts`
+- [X] T033 [US1] Add `GET /api/migration/review-thresholds` endpoint (admin-only, returns current `maxMismatchFields` + `minConfidence` + `updatedAt`) and `PATCH /api/migration/review-thresholds` endpoint (admin-only, `Idempotency-Key`, validates ranges, `DEL migration:thresholds` on update, audit log change with `updated_by` + old/new values) in `backend/src/modules/migration/migration.controller.ts`
+- [X] T034 [P] [US1] Create `compare-field-table.tsx` component: per-field 3-way source selector (EXCEL/DOCUMENT/MANUAL), register value preselected, "use document" hidden when `foundInDocument=false` in `frontend/app/(dashboard)/migration/review/_components/compare-field-table.tsx`
+- [X] T035 [P] [US1] Create `compare-unavailable-badge.tsx` component: "เปรียบเทียบไม่ได้" indicator with reason text in `frontend/app/(dashboard)/migration/review/_components/compare-unavailable-badge.tsx`
+- [X] T036 [US1] Modify `migration/review/page.tsx`: filter by `compareStatus` (FR-012d), render `compare-field-table` + `compare-unavailable-badge`, i18n keys only in `frontend/app/(dashboard)/migration/review/page.tsx`
+- [X] T037 [P] [US1] Create `admin/migration-settings/page.tsx`: threshold configuration form (both thresholds, validation, admin-only 403 for non-admin) in `frontend/app/(dashboard)/admin/migration-settings/page.tsx`
+- [X] T038 [US1] Add i18n keys for all new UI strings (field source labels, compare-unavailable badge, threshold labels, batch summary) in `frontend/messages/th/migration.json` and `frontend/messages/en/migration.json`
 
 **Checkpoint**: User Story 1 fully functional — compare results visible in review queue, per-field source selection works, thresholds configurable. This is the MVP.
 
@@ -107,15 +107,15 @@
 
 ### Tests for User Story 2
 
-- [ ] T039 [P] [US2] Unit test: `resolveAttachmentIds()` returns array from `tempAttachmentIds`, falls back to `[tempAttachmentId]`, returns `[]` for empty in `backend/src/modules/migration/migration-review.service.spec.ts`
-- [ ] T040 [P] [US2] Unit test: commit with missing attachment ID returns 400 with Thai `userMessage` in `backend/src/modules/migration/migration-review.service.spec.ts`
+- [X] T039 [P] [US2] Unit test: `resolveAttachmentIds()` returns array from `tempAttachmentIds`, falls back to `[tempAttachmentId]`, returns `[]` for empty in `backend/src/modules/migration/migration-review.service.spec.ts`
+- [X] T040 [P] [US2] Unit test: commit with missing attachment ID returns 400 with Thai `userMessage` in `backend/src/modules/migration/migration-review.service.spec.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T041 [US2] Modify `MigrationReviewService.commitRecord()`: link N attachments via `correspondence_revision_attachments` junction, set `is_main_document=1` for element `[0]`, validate all IDs exist (Edge Case: missing attachment) in `backend/src/modules/migration/migration-review.service.ts`
-- [ ] T042 [US2] Modify review-queue list response: return `attachments[]` array with `publicId`, `originalFilename`, `mimeType`, `hasOcrText`, `isMainDocument` (FR-005) in `backend/src/modules/migration/migration-review.service.ts`
-- [ ] T043 [P] [US2] Create `attachment-list.tsx` component: multi-attachment display with file type icons in `frontend/app/(dashboard)/migration/review/_components/attachment-list.tsx`
-- [ ] T044 [US2] Modify `migration/review/page.tsx`: render `attachment-list` for each queue item in `frontend/app/(dashboard)/migration/review/page.tsx`
+- [X] T041 [US2] Modify `MigrationReviewService.commitRecord()`: link N attachments via `correspondence_revision_attachments` junction, set `is_main_document=1` for element `[0]`, validate all IDs exist (Edge Case: missing attachment) in `backend/src/modules/migration/migration-review.service.ts`
+- [X] T042 [US2] Modify review-queue list response: return `attachments[]` array with `publicId`, `originalFilename`, `mimeType`, `hasOcrText`, `isMainDocument` (FR-005) in `backend/src/modules/migration/migration-review.service.ts`
+- [X] T043 [P] [US2] Create `attachment-list.tsx` component: multi-attachment display with file type icons in `frontend/app/(dashboard)/migration/review/_components/attachment-list.tsx`
+- [X] T044 [US2] Modify `migration/review/page.tsx`: render `attachment-list` for each queue item in `frontend/app/(dashboard)/migration/review/page.tsx`
 
 **Checkpoint**: User Stories 1 AND 2 both work independently. Multi-attachment upload and display functional.
 
@@ -131,15 +131,15 @@
 
 ### Tests for User Story 4
 
-- [ ] T045 [P] [US4] Unit test: `MetadataResolutionService` resolves org/type/discipline by name, reports unresolved values (FR-019) in `backend/src/modules/migration/services/metadata-resolution.service.spec.ts`
-- [ ] T046 [P] [US4] Unit test: tag creation from `TagMappingRule` is deterministic and idempotent (`INSERT IGNORE` / `ON DUPLICATE KEY UPDATE`) in `backend/src/modules/migration/services/metadata-resolution.service.spec.ts`
+- [X] T045 [P] [US4] Unit test: `MetadataResolutionService` resolves org/type/discipline by name, reports unresolved values (FR-019) in `backend/src/modules/migration/services/metadata-resolution.service.spec.ts`
+- [X] T046 [P] [US4] Unit test: tag creation from `TagMappingRule` is deterministic and idempotent (`INSERT IGNORE` / `ON DUPLICATE KEY UPDATE`) in `backend/src/modules/migration/services/metadata-resolution.service.spec.ts`
 
 ### Implementation for User Story 4
 
-- [ ] T047 [US4] Create `MetadataResolutionService`: set-based SQL resolution of org/type/discipline by register value, scope by `batchId` or all pending (FR-020a), report per-item failures with unresolved value (FR-019) in `backend/src/modules/migration/services/metadata-resolution.service.ts`
-- [ ] T048 [US4] Implement tag creation in `MetadataResolutionService`: derive tag names from `TagMappingRule` (discipline→`discipline:VALUE`, type→`type:VALUE`), `INSERT IGNORE` into `correspondence_tags` with `is_ai_suggested=0` (FR-018, FR-018a, R7), idempotent via PK in `backend/src/modules/migration/services/metadata-resolution.service.ts`
-- [ ] T049 [US4] Create `POST /api/migration/resolve-batch` endpoint: admin-only (`system.manage_all`), `Idempotency-Key` required (FR-029), returns `{ succeeded, skipped, failed, failures[] }` in `backend/src/modules/migration/migration.controller.ts`
-- [ ] T050 [US4] Add runtime guard: if batch exceeds the configured timeout (default 30s, sourced from `system_settings` key `MIGRATION_RESOLVE_BATCH_TIMEOUT_MS` with fallback to 30000), log warning and recommend promoting to `ai-batch` queue (Complexity Tracking deviation) in `backend/src/modules/migration/services/metadata-resolution.service.ts`
+- [X] T047 [US4] Create `MetadataResolutionService`: set-based SQL resolution of org/type/discipline by register value, scope by `batchId` or all pending (FR-020a), report per-item failures with unresolved value (FR-019) in `backend/src/modules/migration/services/metadata-resolution.service.ts`
+- [X] T048 [US4] Implement tag creation in `MetadataResolutionService`: derive tag names from `TagMappingRule` (discipline→`discipline:VALUE`, type→`type:VALUE`), `INSERT IGNORE` into `correspondence_tags` with `is_ai_suggested=0` (FR-018, FR-018a, R7), idempotent via PK in `backend/src/modules/migration/services/metadata-resolution.service.ts`
+- [X] T049 [US4] Create `POST /api/migration/resolve-batch` endpoint: admin-only (`system.manage_all`), `Idempotency-Key` required (FR-029), returns `{ succeeded, skipped, failed, failures[] }` in `backend/src/modules/migration/migration.controller.ts`
+- [X] T050 [US4] Add runtime guard: if batch exceeds the configured timeout (default 30s, sourced from `system_settings` key `MIGRATION_RESOLVE_BATCH_TIMEOUT_MS` with fallback to 30000), log warning and recommend promoting to `ai-batch` queue (Complexity Tracking deviation) in `backend/src/modules/migration/services/metadata-resolution.service.ts`
 
 **Checkpoint**: Reference data resolution batch functional. SC-004 performance lever delivered.
 
@@ -153,14 +153,14 @@
 
 ### Tests for User Story 3
 
-- [ ] T051 [P] [US3] Unit test: `RagBatchService` candidate query skips DWG (MIME + extension), skips `ai_processing_status='DONE'`, skips empty `ocr_text` in `backend/src/modules/migration/services/rag-batch.service.spec.ts`
-- [ ] T052 [P] [US3] Unit test: re-run with new `Idempotency-Key` reports `alreadyEmbedded` count, `enqueued=0` (FR-025) in `backend/src/modules/migration/services/rag-batch.service.spec.ts`
+- [X] T051 [P] [US3] Unit test: `RagBatchService` candidate query skips DWG (MIME + extension), skips `ai_processing_status='DONE'`, skips empty `ocr_text` in `backend/src/modules/migration/services/rag-batch.service.spec.ts`
+- [X] T052 [P] [US3] Unit test: re-run with new `Idempotency-Key` reports `alreadyEmbedded` count, `enqueued=0` (FR-025) in `backend/src/modules/migration/services/rag-batch.service.spec.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T053 [US3] Create `RagBatchService`: query RAG candidates per data-model §8.1 (DISTINCT, `ocr_text IS NOT NULL`, `is_temporary=0`, `ai_processing_status <> 'DONE'`, DWG exclusion), scope by `batchId` or all pending (FR-026a), enqueue `rag-prepare` BullMQ jobs (concurrency=1, FR-024) in `backend/src/modules/migration/services/rag-batch.service.ts`
-- [ ] T054 [US3] Create `POST /api/migration/trigger-rag-batch` endpoint: admin-only, `Idempotency-Key` required, returns `202` with `{ enqueued, skipBreakdown: { noTextLayer, alreadyEmbedded, noOcrText }, batchId }` (FR-026b). Check for active import batches (status `PENDING`/`PROCESSING`) and include `warning: 'IMPORT_IN_PROGRESS'` in response when applicable (spec edge case: warn and recommend running after import completes) in `backend/src/modules/migration/migration.controller.ts`
-- [ ] T055 [US3] Verify `rag-prepare` worker reuses persisted `ocr_text` (FR-014, SC-006) — no re-OCR call to sidecar for files with stored text in `backend/src/modules/ai/processors/ai-batch.processor.ts`
+- [X] T053 [US3] Create `RagBatchService`: query RAG candidates per data-model §8.1 (DISTINCT, `ocr_text IS NOT NULL`, `is_temporary=0`, `ai_processing_status <> 'DONE'`, DWG exclusion), scope by `batchId` or all pending (FR-026a), enqueue `rag-prepare` BullMQ jobs (concurrency=1, FR-024) in `backend/src/modules/migration/services/rag-batch.service.ts`
+- [X] T054 [US3] Create `POST /api/migration/trigger-rag-batch` endpoint: admin-only, `Idempotency-Key` required, returns `202` with `{ enqueued, skipBreakdown: { noTextLayer, alreadyEmbedded, noOcrText }, batchId }` (FR-026b). Check for active import batches (status `PENDING`/`PROCESSING`) and include `warning: 'IMPORT_IN_PROGRESS'` in response when applicable (spec edge case: warn and recommend running after import completes) in `backend/src/modules/migration/migration.controller.ts`
+- [X] T055 [US3] Verify `rag-prepare` worker reuses persisted `ocr_text` (FR-014, SC-006) — no re-OCR call to sidecar for files with stored text in `backend/src/modules/ai/processors/ai-batch.processor.ts`
 
 **Checkpoint**: All user stories independently functional. Semantic search batch operational.
 
@@ -170,16 +170,16 @@
 
 **Purpose**: Batch UI, audit verification, forbidden-pattern scan, and quickstart validation
 
-- [ ] T056 [P] Create `batch-run-summary.tsx` component: success/skip/fail counts per batch run (FR-026b) in `frontend/app/(dashboard)/migration/review/_components/batch-run-summary.tsx`
-- [ ] T057 Modify `migration/review/page.tsx`: render `batch-run-summary` after batch operations in `frontend/app/(dashboard)/migration/review/page.tsx`
-- [ ] T058 [P] Add audit log entry for threshold changes (FR-010d: `updated_by`, old/new values) in `backend/src/modules/migration/services/review-threshold.service.ts`
-- [ ] T059 [P] Verify `correspondence_tags.is_ai_suggested = 0` for all register-derived tags (R7 correctness fix) in `backend/src/modules/migration/services/metadata-resolution.service.ts`
-- [ ] T060 Update `ai-batch.processor.spec.ts`: add test cases for compare + persist + no-tag-resolution paths in `backend/src/modules/ai/processors/ai-batch.processor.spec.ts`
-- [ ] T061 Run forbidden-pattern scan: `grep -rn "parseInt\|Number(" backend/src/modules/migration backend/src/modules/ai | grep -i "uuid\|publicId"` and `grep -rn ": any\|console\.log" backend/src/modules/migration backend/src/modules/ai` — all must return empty
-- [ ] T062 Run `npx tsc --noEmit` and `npm run lint` in `backend/` — zero errors
-- [ ] T063 Run `npx tsc --noEmit` and `npm run lint` in `frontend/` — zero errors
-- [ ] T064 Run quickstart.md validation steps 1–12 end-to-end, including FR-030 verification: confirm semantic search results are isolated by `projectPublicId` for migrated documents (verify via Qdrant query with and without project filter)
-- [ ] T065 Run backend test coverage: `npm test -- --coverage --collectCoverageFrom='src/modules/migration/**'` — verify ≥70% overall, ≥80% business logic
+- [X] T056 [P] Create `batch-run-summary.tsx` component: success/skip/fail counts per batch run (FR-026b) in `frontend/app/(dashboard)/migration/review/_components/batch-run-summary.tsx`
+- [X] T057 Modify `migration/review/page.tsx`: render `batch-run-summary` after batch operations in `frontend/app/(dashboard)/migration/review/page.tsx`
+- [X] T058 [P] Add audit log entry for threshold changes (FR-010d: `updated_by`, old/new values) in `backend/src/modules/migration/services/review-threshold.service.ts`
+- [X] T059 [P] Verify `correspondence_tags.is_ai_suggested = 0` for all register-derived tags (R7 correctness fix) in `backend/src/modules/migration/services/metadata-resolution.service.ts`
+- [X] T060 Update `ai-batch.processor.spec.ts`: add test cases for compare + persist + no-tag-resolution paths in `backend/src/modules/ai/processors/ai-batch.processor.spec.ts`
+- [X] T061 Run forbidden-pattern scan: `grep -rn "parseInt\|Number(" backend/src/modules/migration backend/src/modules/ai | grep -i "uuid\|publicId"` and `grep -rn ": any\|console\.log" backend/src/modules/migration backend/src/modules/ai` — all must return empty
+- [X] T062 Run `npx tsc --noEmit` and `npm run lint` in `backend/` — zero errors
+- [X] T063 Run `npx tsc --noEmit` and `npm run lint` in `frontend/` — zero errors
+- [X] T064 Run quickstart.md validation steps 1–12 end-to-end, including FR-030 verification: confirm semantic search results are isolated by `projectPublicId` for migrated documents (verify via Qdrant query with and without project filter)
+- [X] T065 Run backend test coverage: `npm test -- --coverage --collectCoverageFrom='src/modules/migration/**'` — verify ≥70% overall, ≥80% business logic
 
 ---
 

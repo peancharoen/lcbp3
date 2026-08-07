@@ -4,6 +4,7 @@ import {
   IsOptional,
   IsNumber,
   IsObject,
+  IsArray,
 } from 'class-validator';
 
 export class ImportCorrespondenceDto {
@@ -23,9 +24,21 @@ export class ImportCorrespondenceDto {
   @IsOptional()
   sourceFilePath?: string;
 
+  /** @deprecated ใช้ tempAttachmentIds แทน — retained for backward compatibility (R4) */
   @IsNumber()
   @IsOptional()
   tempAttachmentId?: number;
+
+  /** รายการ internal attachment IDs หลายไฟล์ (FR-001, FR-002) */
+  @IsArray()
+  @IsOptional()
+  tempAttachmentIds?: number[];
+
+  /** รายการ source file paths สำหรับ import หลายไฟล์ */
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  sourceFilePaths?: string[];
 
   @IsNumber()
   @IsOptional()

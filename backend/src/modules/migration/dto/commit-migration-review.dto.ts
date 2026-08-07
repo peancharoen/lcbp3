@@ -1,10 +1,41 @@
-// File: src/modules/migration/dto/commit-migration-review.dto.ts
+// File: backend/src/modules/migration/dto/commit-migration-review.dto.ts
 // Change Log:
 // - 2026-05-22: Initial creation for ADR-028 Migration Review Commit (US2)
 // - 2026-05-22: Update to support hybrid ID (number | string) for projects and organizations per ADR-019
+// - 2026-08-06: เพิ่ม fieldResolutions สำหรับ per-field source selection (Feature 242, FR-011, FR-011b)
 
-import { IsString, IsNotEmpty, IsOptional, IsArray } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsArray,
+  ValidateNested,
+  IsIn,
+} from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+
+/**
+ * การตัดสินใจของผู้ตรวจสอบรายช่อง (FR-011, FR-011b)
+ * source: EXCEL (ทะเบียน), DOCUMENT (เอกสารจริง), MANUAL (พิมพ์เอง)
+ */
+export class FieldResolutionDto {
+  @ApiProperty({ description: 'ชื่อช่อง' })
+  @IsString()
+  @IsNotEmpty()
+  field!: string;
+
+  @ApiProperty({
+    description: 'แหล่งที่มาของค่าที่เลือก',
+    enum: ['EXCEL', 'DOCUMENT', 'MANUAL'],
+  })
+  @IsIn(['EXCEL', 'DOCUMENT', 'MANUAL'])
+  source!: 'EXCEL' | 'DOCUMENT' | 'MANUAL';
+
+  @ApiProperty({ description: 'ค่าที่ใช้จริง' })
+  @IsString()
+  finalValue!: string;
+}
 
 export class CommitMigrationReviewDto {
   @ApiProperty({
@@ -69,4 +100,15 @@ export class CommitMigrationReviewDto {
   @IsString()
   @IsOptional()
   body?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'การตัดสินใจรายช่องของผู้ตรวจสอบ (FR-011, FR-011b) — ว่าง = ใช้ค่าทะเบียนทั้งหมด',
+    type: [FieldResolutionDto],
+  })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => FieldResolutionDto)
+  @IsOptional()
+  fieldResolutions?: FieldResolutionDto[];
 }

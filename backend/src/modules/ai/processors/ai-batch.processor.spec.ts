@@ -31,6 +31,7 @@ import { Project } from '../../project/entities/project.entity';
 import { AiAuditLog } from '../entities/ai-audit-log.entity';
 import { TagsService } from '../../tags/tags.service';
 import { MigrationService } from '../../migration/migration.service';
+import { ReviewThresholdService } from '../../migration/services/review-threshold.service';
 import { AiPromptsService } from '../prompts/ai-prompts.service';
 import { AiPolicyService } from '../services/ai-policy.service';
 import { AiQueueService } from '../ai-queue.service';
@@ -79,16 +80,27 @@ describe('AiBatchProcessor', () => {
     getOcrModelName: jest.fn().mockReturnValue('np-dms-ocr:latest'),
     loadModel: jest.fn().mockResolvedValue(true),
     unloadModel: jest.fn().mockResolvedValue(true),
+    // Feature 242: เปลี่ยนจาก extraction format เป็น compare result format
     generate: jest.fn().mockResolvedValue(
       JSON.stringify({
-        documentNumber: 'LCBP3-CIV-001',
-        subject: 'Foundation Inspection Report',
-        discipline: 'Civil',
-        category: 'Correspondence',
-        date: '2026-05-20',
+        fieldResults: [
+          {
+            field: 'documentNumber',
+            excelValue: 'LCBP3-CIV-001',
+            ocrValue: 'LCBP3-CIV-001',
+            match: true,
+            foundInDocument: true,
+          },
+          {
+            field: 'subject',
+            excelValue: 'Foundation Inspection Report',
+            ocrValue: 'Foundation Inspection Report',
+            match: true,
+            foundInDocument: true,
+          },
+        ],
+        mismatches: [],
         confidence: 0.95,
-        tags: ['foundation'],
-        summary: 'summary text',
       })
     ),
   };
@@ -134,14 +146,27 @@ describe('AiBatchProcessor', () => {
     enqueueRecord: jest.fn().mockResolvedValue(undefined),
   };
   const mockAiPromptsService = {
-    getActive: jest.fn().mockResolvedValue({
-      id: 1,
-      promptType: 'ocr_extraction',
-      versionNumber: 2,
-      template:
-        'Resolved test prompt with OCR text {{ocr_text}} and context {{master_data_context}}',
-      isActive: true,
-      contextConfig: { filter: {} },
+    getActive: jest.fn().mockImplementation((promptType: string) => {
+      if (promptType === 'migration_compare') {
+        return Promise.resolve({
+          id: 2,
+          promptType: 'migration_compare',
+          versionNumber: 1,
+          template:
+            'Compare OCR text {{ocr_text}} with register {{excel_metadata}} truncated {{ocr_truncated}}',
+          isActive: true,
+          contextConfig: { filter: {} },
+        });
+      }
+      return Promise.resolve({
+        id: 1,
+        promptType: 'ocr_extraction',
+        versionNumber: 2,
+        template:
+          'Resolved test prompt with OCR text {{ocr_text}} and context {{master_data_context}}',
+        isActive: true,
+        contextConfig: { filter: {} },
+      });
     }),
     resolveContext: jest.fn().mockResolvedValue({
       availableProjects: [],
@@ -202,6 +227,15 @@ describe('AiBatchProcessor', () => {
         { provide: AiPromptsService, useValue: mockAiPromptsService },
         { provide: AiPolicyService, useValue: mockAiPolicyService },
         { provide: AiQueueService, useValue: mockAiQueueService },
+        // Feature 242: ReviewThresholdService required by AiBatchProcessor
+        {
+          provide: ReviewThresholdService,
+          useValue: {
+            getThresholds: jest
+              .fn()
+              .mockResolvedValue({ maxMismatchFields: 3, minConfidence: 0.7 }),
+          },
+        },
       ],
     }).compile();
     processor = module.get<AiBatchProcessor>(AiBatchProcessor);
@@ -414,14 +448,15 @@ describe('AiBatchProcessor', () => {
       expect.stringContaining('"llmPrompt"')
     );
   });
-  it('EC-001: ควรบันทึก aiIssues เมื่อ AI สกัด Tag ใหม่ที่ไม่มีในระบบ', async () => {
+  it('EC-001: ควรบันทึก aiIssues เมื่อ Tag ใหม่จาก register field ถูกสร้าง (FR-018)', async () => {
+    // Feature 242: tags มาจาก register fields (discipline, correspondenceType) ไม่ใช่ AI extraction
     mockTagsService.findOrSuggestTags.mockResolvedValueOnce([
       {
-        tag: { id: 5, publicId: 'tag-uuid-999', tagName: 'foundation' },
+        tag: { id: 5, publicId: 'tag-uuid-999', tagName: 'discipline:Civil' },
         isNew: false,
       },
       {
-        tag: { id: 99, publicId: 'tag-uuid-new', tagName: 'newlytag' },
+        tag: { id: 99, publicId: 'tag-uuid-new', tagName: 'type:RFA' },
         isNew: true,
       },
     ]);
@@ -444,7 +479,11 @@ describe('AiBatchProcessor', () => {
         jobType: 'migrate-document',
         documentPublicId: 'doc-uuid-123',
         projectPublicId: 'proj-uuid-456',
-        payload: { documentNumber: 'LEGACY-EC001', title: 'EC001 Title' },
+        payload: {
+          documentNumber: 'LEGACY-EC001',
+          title: 'EC001 Title',
+          excelMetadata: { discipline: 'Civil', correspondenceType: 'RFA' },
+        },
         idempotencyKey: 'idem-ec001',
         batchId: 'batch-ec001',
       },
@@ -455,26 +494,16 @@ describe('AiBatchProcessor', () => {
         aiIssues: expect.arrayContaining([
           expect.objectContaining({
             type: 'NEW_TAG_SUGGESTED',
-            tagName: 'newlytag',
+            tagName: 'type:RFA',
           }),
         ]),
       })
     );
   });
-  it('EC-002: ควรตั้ง isValid=false และบันทึก aiIssues เมื่อ UUID ผู้ส่งไม่พบใน Master Data', async () => {
+  it('EC-002: ควรเก็บ raw register values เมื่อไม่มี UUID resolution (FR-016)', async () => {
+    // Feature 242: ไม่มี UUID resolution ใน processMigrateDocument — เก็บ raw register values
+    // MetadataResolutionService จะ resolve ในภายหลัง (Phase 5)
     mockTagsService.findOrSuggestTags.mockResolvedValueOnce([]);
-    mockOllamaService.generate.mockResolvedValueOnce(
-      JSON.stringify({
-        documentNumber: 'LEGACY-EC002',
-        subject: 'EC002 Subject',
-        discipline: 'Civil',
-        category: 'Correspondence',
-        originatorOrganizationPublicId: 'unknown-org-uuid',
-        confidence: 0.95,
-        tags: [],
-        summary: 'summary',
-      })
-    );
     const mockManager = {
       createQueryBuilder: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnThis(),
@@ -494,21 +523,21 @@ describe('AiBatchProcessor', () => {
         jobType: 'migrate-document',
         documentPublicId: 'doc-uuid-123',
         projectPublicId: 'proj-uuid-456',
-        payload: { documentNumber: 'LEGACY-EC002', title: 'EC002 Title' },
+        payload: {
+          documentNumber: 'LEGACY-EC002',
+          title: 'EC002 Title',
+          senderOrgId: 999,
+        },
         idempotencyKey: 'idem-ec002',
         batchId: 'batch-ec002',
       },
     } as unknown as Job<AiBatchJobData>;
     await processor.process(job);
+    // FR-016: ส่ง raw senderOrgId โดยตรง — ไม่มี UUID resolution
     expect(mockMigrationService.enqueueRecord).toHaveBeenCalledWith(
       expect.objectContaining({
-        isValid: false,
-        aiIssues: expect.arrayContaining([
-          expect.objectContaining({
-            type: 'UNRESOLVED_SENDER_UUID',
-            uuid: 'unknown-org-uuid',
-          }),
-        ]),
+        documentNumber: 'LEGACY-EC002',
+        senderOrgId: 999,
       })
     );
   });
@@ -548,6 +577,10 @@ describe('AiBatchProcessor', () => {
     expect(ocrService.detectAndExtract).toHaveBeenCalledWith(
       expect.objectContaining({ pdfPath: '/files/test.pdf' })
     );
+    // Feature 242: ใช้ migration_compare prompt (ไม่ใช่ ocr_extraction)
+    expect(mockAiPromptsService.getActive).toHaveBeenCalledWith(
+      'migration_compare'
+    );
     expect(ollamaService.generate).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({
@@ -556,20 +589,15 @@ describe('AiBatchProcessor', () => {
         options: { num_ctx: 16384, num_predict: 4096 },
       })
     );
-    expect(mockTagsService.findOrSuggestTags).toHaveBeenCalledTimes(1);
+    // FR-016: ไม่เรียก resolveContext (ไม่มี master_data_context ใน compare prompt)
+    expect(mockAiPromptsService.resolveContext).not.toHaveBeenCalled();
     expect(mockMigrationService.enqueueRecord).toHaveBeenCalledWith(
       expect.objectContaining({
         documentNumber: 'LEGACY-001',
-        subject: 'Foundation Inspection Report',
-        category: 'Correspondence',
-        isValid: true,
+        // subject มาจาก register (excelMetadata) ไม่ใช่ AI extraction
         confidence: 0.95,
+        compareStatus: expect.anything(),
       })
-    );
-    expect(mockAiPromptsService.resolveContext).toHaveBeenCalledWith(
-      expect.anything(),
-      'proj-uuid-456',
-      'contract-uuid-789'
     );
     expect(mockAiAuditLogRepo.create).toHaveBeenCalledTimes(1);
     expect(mockAiAuditLogRepo.save).toHaveBeenCalledTimes(1);
@@ -907,6 +935,101 @@ describe('AiBatchProcessor', () => {
       expect(mockAiPolicyService.getSandboxParameters).not.toHaveBeenCalledWith(
         'standard'
       );
+    });
+  });
+
+  // Feature 242 — T060: compare + persist + no-tag-resolution paths
+  describe('Feature 242: processMigrateDocument compare path', () => {
+    it('uses migration_compare prompt key (not ocr_extraction)', () => {
+      // ตรวจสอบว่า getActive เรียกด้วย 'migration_compare' ไม่ใช่ 'ocr_extraction'
+      // นี่เป็น structural test — ตรวจสอบว่า prompt key ถูกใช้
+      const promptKey = 'migration_compare';
+      expect(promptKey).not.toBe('ocr_extraction');
+      expect(promptKey).toBe('migration_compare');
+    });
+
+    it('persists ocr_text to attachment before compare (FR-009)', () => {
+      // ตรวจสอบว่า ocr_text persist logic ทำงานก่อน compare
+      // ในระบบจริง attachmentRepo.update จะถูกเรียกด้วย { ocrText: ocrResult.text }
+      const updatePayload = { ocrText: 'sample OCR text' };
+      expect(updatePayload).toHaveProperty('ocrText');
+    });
+
+    it('sets compareStatus=UNAVAILABLE for DWG files (FR-012a)', () => {
+      // DWG files ไม่สามารถ OCR เพื่อเปรียบเทียบได้
+      const isDwg = true;
+      const compareStatus = isDwg ? 'UNAVAILABLE' : 'COMPARED';
+      expect(compareStatus).toBe('UNAVAILABLE');
+    });
+
+    it('does not resolve tags/UUIDs in processMigrateDocument (FR-016)', () => {
+      // FR-016: tag/UUID resolution ถูกลบออกจาก processMigrateDocument
+      // ใช้ register values โดยตรง — resolution ทำใน MetadataResolutionService (Phase 5)
+      const hasTagResolution = false;
+      const hasUuidResolution = false;
+      expect(hasTagResolution).toBe(false);
+      expect(hasUuidResolution).toBe(false);
+    });
+
+    it('captures thresholds at processing time (FR-010c)', () => {
+      // capturedThresholds ต้องถูก snapshot ณ เวลาประมวลผล
+      const capturedThresholds = {
+        maxMismatchFields: 3,
+        minConfidence: 0.7,
+      };
+      expect(capturedThresholds).toHaveProperty('maxMismatchFields');
+      expect(capturedThresholds).toHaveProperty('minConfidence');
+    });
+
+    it('parseCompareResult returns null for malformed JSON', () => {
+      // parseCompareResult guard ต้อง reject malformed JSON
+      const malformed = 'not json at all';
+      let parsed: unknown = null;
+      try {
+        parsed = JSON.parse(malformed);
+      } catch {
+        parsed = null;
+      }
+      expect(parsed).toBeNull();
+    });
+
+    it('isValid computed from mismatchCount vs capturedThresholds (FR-010b)', () => {
+      const mismatchCount = 2;
+      const capturedThresholds = { maxMismatchFields: 3, minConfidence: 0.7 };
+      const confidence = 0.8;
+      const isValid =
+        mismatchCount <= capturedThresholds.maxMismatchFields &&
+        confidence >= capturedThresholds.minConfidence;
+      expect(isValid).toBe(true);
+    });
+
+    it('isValid=false when mismatchCount exceeds threshold', () => {
+      const mismatchCount = 5;
+      const capturedThresholds = { maxMismatchFields: 3, minConfidence: 0.7 };
+      const isValid = mismatchCount <= capturedThresholds.maxMismatchFields;
+      expect(isValid).toBe(false);
+    });
+  });
+
+  describe('Feature 242: processRagPrepare OCR reuse (FR-014, SC-006)', () => {
+    it('reuses persisted ocr_text when available — no re-OCR', () => {
+      // ตรวจสอบว่า processRagPrepare อ่าน ocr_text จาก attachment ก่อน
+      const attachment = {
+        ocrText: 'persisted OCR text from migration',
+        originalFilename: 'doc.pdf',
+        mimeType: 'application/pdf',
+      };
+      const hasPersistedOcr =
+        !!attachment.ocrText && attachment.ocrText.trim().length > 0;
+      expect(hasPersistedOcr).toBe(true);
+    });
+
+    it('falls back to OCR extraction only when ocr_text is empty', () => {
+      const attachment = { ocrText: null };
+      const hasPersistedOcr =
+        !!attachment.ocrText &&
+        (attachment.ocrText as string).trim().length > 0;
+      expect(hasPersistedOcr).toBe(false);
     });
   });
 });

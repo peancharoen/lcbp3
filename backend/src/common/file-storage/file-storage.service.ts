@@ -1,4 +1,6 @@
-// File: src/common/file-storage/file-storage.service.ts
+// File: backend/src/common/file-storage/file-storage.service.ts
+// Change Log:
+// - 2026-08-06: เพิ่ม ALLOWED_UPLOAD_MIME_TYPES constant สำหรับ FR-004 (PDF, DOCX, DWG, XLSX, ZIP)
 import {
   Injectable,
   NotFoundException,
@@ -21,6 +23,39 @@ import {
   QUEUE_AI_BATCH,
   QUEUE_AI_REALTIME,
 } from '../../modules/common/constants/queue.constants';
+
+/**
+ * รายการ MIME types ที่อนุญาตสำหรับ upload (FR-004)
+ * PDF, DOCX, DWG, XLSX, ZIP รวมภาพทั่วไป
+ */
+export const ALLOWED_UPLOAD_MIME_TYPES: readonly string[] = [
+  // PDF
+  'application/pdf',
+  // DOCX
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/msword',
+  // XLSX
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-excel',
+  // ZIP
+  'application/zip',
+  'application/x-zip-compressed',
+  // DWG (FR-004 — เพิ่มการรองรับ DWG สำหรับ migration)
+  'image/vnd.dwg',
+  'application/acad',
+  'application/x-acad',
+  'application/dwg',
+  'drawing/dwg',
+  // รูปภาพทั่วไป
+  'image/jpeg',
+  'image/png',
+  // octet-stream (fallback สำหรับ DWG ที่ browser รายงานไม่สม่ำเสมอ)
+  'application/octet-stream',
+] as const;
+
+/** Regex สำหรับ FileTypeValidator ใน controller — ครอบคลุม MIME ทั้งหมดข้างต้น */
+export const ALLOWED_UPLOAD_FILE_TYPE_REGEX =
+  /(pdf|msword|openxmlformats|zip|octet-stream|image|jpeg|png|vnd\.dwg|acad|dwg|drawing)/;
 
 @Injectable()
 export class FileStorageService {

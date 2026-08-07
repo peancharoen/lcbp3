@@ -5,7 +5,13 @@ import {
   IsNumber,
   IsBoolean,
   IsArray,
+  IsEnum,
 } from 'class-validator';
+import type {
+  CompareResult,
+  CapturedThresholds,
+} from '../../ai/types/migration-compare-result.type';
+import { CompareStatus } from '../entities/migration-review-queue.entity';
 
 export class EnqueueMigrationDto {
   @IsString()
@@ -63,9 +69,15 @@ export class EnqueueMigrationDto {
   @IsOptional()
   details?: Record<string, unknown>;
 
+  /** @deprecated ใช้ tempAttachmentIds แทน — retained for backward compatibility (R4) */
   @IsNumber()
   @IsOptional()
   tempAttachmentId?: number;
+
+  /** รายการ internal attachment IDs หลายไฟล์ (FR-001, FR-002) */
+  @IsArray()
+  @IsOptional()
+  tempAttachmentIds?: number[];
 
   @IsBoolean()
   @IsOptional()
@@ -82,4 +94,22 @@ export class EnqueueMigrationDto {
   @IsString()
   @IsOptional()
   aiJobId?: string;
+
+  /** ผลการเปรียบเทียบทะเบียนกับเอกสารจริง (FR-007) */
+  @IsOptional()
+  compareResult?: CompareResult;
+
+  /** สถานะการเปรียบเทียบ (FR-012a) */
+  @IsEnum(CompareStatus)
+  @IsOptional()
+  compareStatus?: CompareStatus;
+
+  /** เหตุผลภาษาไทยเมื่อ compareStatus = UNAVAILABLE (FR-012b) */
+  @IsString()
+  @IsOptional()
+  compareUnavailableReason?: string;
+
+  /** ค่า threshold ที่จับภาพไว้ ณ เวลาประมวลผล (FR-010c) */
+  @IsOptional()
+  capturedThresholds?: CapturedThresholds;
 }

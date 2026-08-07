@@ -1,6 +1,7 @@
-// File: src/modules/migration/entities/migration-review-queue.entity.ts
+// File: backend/src/modules/migration/entities/migration-review-queue.entity.ts
 // Change Log:
 // - 2026-05-22: เพิ่มฟิลด์ aiJobId สำหรับเก็บ jobId ของ BullMQ (ADR-028)
+// - 2026-08-06: เพิ่ม tempAttachmentIds (JSON), compareStatus (enum), compareUnavailableReason สำหรับ Feature 242 (FR-001, FR-002, FR-012a, FR-012b)
 
 import {
   Entity,
@@ -8,6 +9,7 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
 } from 'typeorm';
+import { Exclude } from 'class-transformer';
 
 import { UuidBaseEntity } from '../../../common/entities/uuid-base.entity';
 
@@ -16,6 +18,12 @@ export enum MigrationReviewStatus {
   APPROVED = 'APPROVED',
   IMPORTED = 'IMPORTED',
   REJECTED = 'REJECTED',
+}
+
+/** สถานะการเปรียบเทียบทะเบียนกับเอกสารจริง (FR-012a) */
+export enum CompareStatus {
+  COMPARED = 'COMPARED',
+  UNAVAILABLE = 'UNAVAILABLE',
 }
 
 @Entity('migration_review_queue')
@@ -90,8 +98,41 @@ export class MigrationReviewQueue extends UuidBaseEntity {
   @Column({ name: 'extracted_tags', type: 'json', nullable: true })
   extractedTags?: Record<string, string>[];
 
+  /** Feature 242: JSON metadata เก็บ compareResult, capturedThresholds, attachments[] (FR-005, FR-007, FR-010c) */
+  @Column({ name: 'ai_metadata_json', type: 'json', nullable: true })
+  details?: Record<string, unknown> | null;
+
+  /** @deprecated ใช้ tempAttachmentIds แทน — retained for backward compatibility (R4) */
   @Column({ name: 'temp_attachment_id', type: 'int', nullable: true })
+  @Exclude()
   tempAttachmentId?: number;
+
+  /**
+   * รายการ internal attachment IDs หลายไฟล์ (FR-001, FR-002)
+   * element [0] คือเอกสารหลัก (is_main_document=1)
+   * @Exclude เพราะเป็น internal INT id ไม่ expose ใน API (ADR-019)
+   */
+  @Column({ name: 'temp_attachment_ids', type: 'json', nullable: true })
+  @Exclude()
+  tempAttachmentIds?: number[] | null;
+
+  /** สถานะการเปรียบเทียบทะเบียนกับเอกสารจริง (FR-012a) */
+  @Column({
+    name: 'compare_status',
+    type: 'enum',
+    enum: CompareStatus,
+    default: CompareStatus.COMPARED,
+  })
+  compareStatus!: CompareStatus;
+
+  /** เหตุผลภาษาไทยเมื่อ compareStatus = UNAVAILABLE (FR-012b) */
+  @Column({
+    name: 'compare_unavailable_reason',
+    type: 'varchar',
+    length: 500,
+    nullable: true,
+  })
+  compareUnavailableReason?: string | null;
 
   @Column({ name: 'ai_job_id', type: 'varchar', length: 36, nullable: true })
   aiJobId?: string | null;
