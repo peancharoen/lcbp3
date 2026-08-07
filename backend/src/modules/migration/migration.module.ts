@@ -20,6 +20,7 @@ import { Project } from '../project/entities/project.entity';
 import { FileStorageModule } from '../../common/file-storage/file-storage.module';
 import { Attachment } from '../../common/file-storage/entities/attachment.entity';
 import { User } from '../user/entities/user.entity';
+import { UserModule } from '../user/user.module';
 import { NotificationModule } from '../notification/notification.module';
 import { CaslModule } from '../../common/auth/casl/casl.module';
 import { SystemSetting } from '../ai/entities/system-setting.entity';
@@ -50,6 +51,7 @@ import { RagBatchService } from './services/rag-batch.service';
     NotificationModule,
     CaslModule,
     RedisModule,
+    UserModule, // สำหรับ RbacGuard (ต้องการ UserService)
   ],
   controllers: [MigrationController, MigrationReviewController],
   providers: [
