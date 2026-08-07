@@ -18,6 +18,7 @@
 // - 2026-06-06: เพิ่ม OCR text truncation (MAX_OCR_TEXT_CHARS=15000) เพื่อป้องกัน context overflow เมื่อเอกสารยาวมากชน num_ctx 8192
 // - 2026-06-06: [T036] เพิ่ม ollamaOptions: { num_ctx: 8192 } ใน generateStructuredJson เพื่อรองรับ prompt ยาว 18k+ chars และแก้ไข bug response ว่างจาก context window ไม่พอ
 // - 2026-06-11: แก้ไข ESLint errors โดยการเพิ่ม properties (effectiveProfile, canonicalModel, snapshotParams) ใน AiBatchJobData และยกเลิกการใช้ as any
+// - 2026-08-07: แก้ sandbox-rag-prep timeout 30s → ใช้ OllamaService.getBatchTimeoutMs() (env AI_BATCH_TIMEOUT_MS, default 120000) ทั้ง 6 จุด แทน hardcoded 120000/missing
 
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
@@ -530,7 +531,7 @@ export class AiBatchProcessor extends WorkerHost {
       this.logger.log(`[ModelSwitch] Running OCR extraction with ${ocrModel}`);
       ocrText = await this.ollamaService.generate(prompt, {
         model: ocrModel,
-        timeoutMs: 120000,
+        timeoutMs: this.ollamaService.getBatchTimeoutMs(),
         keepAlive: 0,
       });
     } finally {
@@ -657,7 +658,7 @@ export class AiBatchProcessor extends WorkerHost {
         keepAlive?: number;
       } = {
         format: 'json',
-        timeoutMs: 120000,
+        timeoutMs: this.ollamaService.getBatchTimeoutMs(),
         ollamaOptions: {
           num_ctx: sandboxParams?.numCtx ?? 16384,
           num_predict: sandboxParams?.maxTokens ?? 4096,
@@ -917,7 +918,7 @@ export class AiBatchProcessor extends WorkerHost {
         keepAlive?: number;
       } = {
         format: 'json',
-        timeoutMs: 120000,
+        timeoutMs: this.ollamaService.getBatchTimeoutMs(),
         ollamaOptions: {
           num_ctx: sandboxParams?.numCtx ?? 16384,
           num_predict: sandboxParams?.maxTokens ?? 4096,
@@ -1231,7 +1232,7 @@ export class AiBatchProcessor extends WorkerHost {
         const snapshotParams = job.data.snapshotParams;
         const generateOptions: OllamaGenerateOptions = {
           format: 'json',
-          timeoutMs: 120000,
+          timeoutMs: this.ollamaService.getBatchTimeoutMs(),
           model: modelUsed,
         };
         if (snapshotParams) {
@@ -1652,7 +1653,7 @@ export class AiBatchProcessor extends WorkerHost {
       const snapshotParams = job.data.snapshotParams;
       const generateOptions: OllamaGenerateOptions = {
         format: 'json',
-        timeoutMs: 120000,
+        timeoutMs: this.ollamaService.getBatchTimeoutMs(),
         model: modelUsed,
       };
       if (snapshotParams) {
@@ -1840,6 +1841,7 @@ export class AiBatchProcessor extends WorkerHost {
         }
       }
       const generateOptions = {
+        timeoutMs: this.ollamaService.getBatchTimeoutMs(),
         options: {
           num_ctx: sandboxParams?.numCtx ?? 8192,
           num_predict: sandboxParams?.maxTokens ?? 4096,

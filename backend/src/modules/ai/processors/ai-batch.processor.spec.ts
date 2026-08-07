@@ -78,6 +78,7 @@ describe('AiBatchProcessor', () => {
   const mockOllamaService = {
     getMainModelName: jest.fn().mockReturnValue('np-dms-ai:latest'),
     getOcrModelName: jest.fn().mockReturnValue('np-dms-ocr:latest'),
+    getBatchTimeoutMs: jest.fn().mockReturnValue(120000),
     loadModel: jest.fn().mockResolvedValue(true),
     unloadModel: jest.fn().mockResolvedValue(true),
     // Feature 242: เปลี่ยนจาก extraction format เป็น compare result format

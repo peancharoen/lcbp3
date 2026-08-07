@@ -47,5 +47,12 @@
     }
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist", "documentation"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "documentation",
+    "src/**/*.spec.ts",
+    "src/**/*.mock.ts",
+    "tests"
+  ]
 }

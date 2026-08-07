@@ -24,9 +24,9 @@ module.exports = {
     '<rootDir>/tests/**/*.perf-spec.ts',
   ],
 
-  // TypeScript transformation
+  // TypeScript transformation — ใช้ tsconfig.spec.json สำหรับ jest globals (describe, it, expect)
   transform: {
-    '^.+\\.(t|j)s$': 'ts-jest',
+    '^.+\\.(t|j)s$': ['ts-jest', { tsconfig: 'tsconfig.spec.json' }],
   },
 
   // ใช้ V8 built-in coverage แทน babel-plugin-istanbul

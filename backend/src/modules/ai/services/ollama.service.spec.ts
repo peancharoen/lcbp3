@@ -22,6 +22,7 @@ describe('OllamaService (ADR-034)', () => {
     OLLAMA_MODEL_OCR: 'np-dms-ocr:latest',
     OLLAMA_MODEL_EMBED: 'nomic-embed-text', // ยังตั้งค่าใน test เพื่อทดสอบ generateEmbedding path
     AI_TIMEOUT_MS: 30000,
+    AI_BATCH_TIMEOUT_MS: 120000,
   };
   const mockConfigService = {
     get: jest.fn(<T>(key: string, defaultValue?: T): T | undefined => {
@@ -145,6 +146,11 @@ describe('OllamaService (ADR-034)', () => {
   describe('getEmbeddingModelName()', () => {
     it('ควรคืนค่า ENV ที่กำหนด เป็น embedding model', () => {
       expect(service.getEmbeddingModelName()).toBe('nomic-embed-text');
+    });
+  });
+  describe('getBatchTimeoutMs()', () => {
+    it('ควรคืนค่า AI_BATCH_TIMEOUT_MS จาก ENV (default 120000ms สำหรับ BullMQ ai-batch)', () => {
+      expect(service.getBatchTimeoutMs()).toBe(120000);
     });
   });
   describe('generateEmbedding()', () => {

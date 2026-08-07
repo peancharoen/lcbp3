@@ -9,6 +9,7 @@
 // - 2026-06-08: เพิ่ม num_predict ใน OllamaGenerateOptions.options — ป้องกัน JSON truncation เมื่อ LLM สร้าง structured output
 // - 2026-06-13: ADR-036 — เปลี่ยน default model tags เป็น np-dms-ai/np-dms-ocr
 // - 2026-06-29: ADR-035 — embedModel default เปลี่ยนจาก nomic-embed-text เป็นค่าว่าง (embedding ย้ายไป BGE-M3 ใน OCR Sidecar แล้ว)
+// - 2026-08-07: เพิ่ม batchTimeoutMs (env AI_BATCH_TIMEOUT_MS, default 120000) สำหรับ BullMQ ai-batch jobs ที่ใช้เวลานานกว่า realtime — แก้ sandbox-rag-prep timeout 30s
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -46,6 +47,8 @@ export class OllamaService {
   private readonly ocrModel: string;
   private readonly embedModel: string;
   private readonly timeoutMs: number;
+  /** Timeout สำหรับ BullMQ ai-batch jobs (LLM นานกว่า realtime) — env AI_BATCH_TIMEOUT_MS, default 120000ms */
+  private readonly batchTimeoutMs: number;
 
   constructor(private readonly configService: ConfigService) {
     this.ollamaUrl = this.configService.get<string>(
@@ -68,6 +71,10 @@ export class OllamaService {
       this.configService.get<string>('OLLAMA_EMBED_MODEL', '')
     );
     this.timeoutMs = this.configService.get<number>('AI_TIMEOUT_MS', 30000);
+    this.batchTimeoutMs = this.configService.get<number>(
+      'AI_BATCH_TIMEOUT_MS',
+      120000
+    );
   }
 
   /** สร้างข้อความตอบกลับด้วย np-dms-ai:latest หรือโมเดลที่ระบุใน options.model / ENV */
@@ -133,6 +140,12 @@ export class OllamaService {
   /** คืนชื่อ embedding model สำหรับ audit log */
   getEmbeddingModelName(): string {
     return this.embedModel;
+  }
+
+  /** คืน timeout สำหรับ BullMQ ai-batch jobs (env AI_BATCH_TIMEOUT_MS, default 120000ms)
+   *  ใช้สำหรับงาน batch ที่ LLM ใช้เวลานานกว่า realtime calls (เช่น sandbox-rag-prep, migrate-document) */
+  getBatchTimeoutMs(): number {
+    return this.batchTimeoutMs;
   }
 
   /** ตรวจสอบสุขภาพและความเร็ว (Latency) ของระบบ Ollama */

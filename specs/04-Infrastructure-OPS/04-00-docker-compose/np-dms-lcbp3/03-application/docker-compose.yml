@@ -133,6 +133,9 @@ services:
       OCR_SIDECAR_UPLOAD_BASE: ${OCR_SIDECAR_UPLOAD_BASE:-/mnt/uploads}
       # --- Ollama (native systemd — D11, ไม่ใช่ Docker internal) ---
       OLLAMA_URL: 'http://192.168.10.11:11434'
+      # --- AI timeouts (ms) — realtime default 30s, batch 120s (ADR-023A) ---
+      AI_TIMEOUT_MS: ${AI_TIMEOUT_MS:-30000}
+      AI_BATCH_TIMEOUT_MS: ${AI_BATCH_TIMEOUT_MS:-120000}
       # --- Numbering ---
       NUMBERING_LOCK_TIMEOUT: '5000'
       NUMBERING_RESERVATION_TTL: '300'
