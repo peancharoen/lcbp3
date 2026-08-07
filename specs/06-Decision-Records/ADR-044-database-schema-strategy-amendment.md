@@ -104,7 +104,7 @@ graph LR
 
 ### Decision (formalized)
 
-1. **❌ No TypeORM migration files** — ห้ามสร้างไฟล์ใน `backend/src/migrations/` หรือใช้ `typeorm migration:generate`
+1. **❌ No TypeORM migration files** — ห้ามสร้างไฟล์ใน `backend/src/database/migrations/` หรือใช้ `typeorm migration:generate`
 2. **✅ Edit schema SQL directly** — เปลี่ยนแปลง schema ผ่าน:
    - Canonical schema SQL: `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-{01,02,03}.sql` (regenerated เมื่อ major version)
    - Delta SQL: `specs/03-Data-and-Storage/deltas/{version}-delta-{description}.sql` (รายการเปลี่ยนแปลงระหว่างเวอร์ชัน)
@@ -138,9 +138,11 @@ graph LR
 ### Required Changes
 
 - [x] สร้าง ADR-044 (เอกสารนี้)
-- [ ] เพิ่ม ADR-044 ใน `06-Decision-Records/README.md` index
-- [ ] เพิ่ม cross-link ใน ADR-009 (ไม่แก้เนื้อหา — เพิ่ม note บนสุดว่า "Amended by ADR-044")
-- [ ] อัปเดต skills/rules ที่อ้าง "ADR-009" ให้เป็น "ADR-009 → ADR-044" (optional)
+- [x] เพิ่ม ADR-044 ใน `06-Decision-Records/README.md` index
+- [x] เพิ่ม cross-link ใน ADR-009 (ไม่แก้เนื้อหา — เพิ่ม note บนสุดว่า "Amended by ADR-044")
+- [x] อัปเดต skills/rules ที่อ้าง "ADR-009" ให้เป็น "ADR-009 → ADR-044"
+- [x] แก้ `backend/src/config/database.config.ts` เป็น `migrations: []` ตาม ADR-044
+- [x] ย้าย legacy TypeORM migration files ออกจาก `backend/src/database/migrations/`
 
 ---
 

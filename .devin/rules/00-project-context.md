@@ -134,7 +134,7 @@ Best practice — follow when possible:
 | ----------------------------------------------- | ------------------------------------------------------- | ---------------------------------------------------- |
 | SQL Triggers for business logic                 | NestJS Service methods                                  | Untestable; bypasses audit log                       |
 | `.env` files in production                      | `docker-compose.yml` environment section                | Secrets exposed in version control                   |
-| TypeORM migration files                         | Edit schema SQL directly (ADR-009)                      | Migration drift risk; schema managed via SQL delta   |
+| TypeORM migration files                         | Edit schema SQL directly (ADR-009 → ADR-044)            | Migration drift risk; schema managed via SQL delta   |
 | Inventing table/column names                    | Verify against `schema-02-tables.sql`                   | Schema mismatch causes silent runtime errors         |
 | `any` TypeScript type                           | Proper types / generics                                 | Defeats strict mode; hides runtime type errors       |
 | `console.log` in committed code                 | NestJS Logger (backend) / remove (frontend)             | Log flooding in production; risk of data leakage     |

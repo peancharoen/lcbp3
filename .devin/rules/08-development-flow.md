@@ -13,7 +13,7 @@ trigger: always_on
 3. **Check schema** — verify table/column in `lcbp3-v1.9.0-schema-02-tables.sql`
 4. **Check data dictionary** — confirm field meanings + business rules
 5. **Scan edge cases** — `01-06-edge-cases-and-rules.md`
-6. **Check ADRs** — verify decisions align (ADR-009, ADR-019, ADR-023)
+6. **Check ADRs** — verify decisions align (ADR-009 → ADR-044, ADR-019, ADR-023)
 7. **Write code** — TypeScript strict, no `any`, no `console.log`
 
 ## 🟡 Normal Work — UI / Feature / Integration
@@ -88,9 +88,9 @@ trigger: always_on
 | --------------------------- | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
 | "สร้าง API ใหม่"            | `05-02-backend-guidelines.md`, `lcbp3-v1.9.0-schema-02-tables.sql`                    | NestJS Controller + Service + DTO + CASL Guard                          |
 | "แก้ฟอร์ม frontend"         | `05-03-frontend-guidelines.md`, `01-06-edge-cases-and-rules.md`                       | RHF+Zod + TanStack Query + Thai comments                                |
-| "เพิ่ม field ใหม่"          | `ADR-009`, `03-01-data-dictionary.md`, `lcbp3-v1.9.0-schema-02-tables.sql`            | Edit SQL directly + update Data Dictionary + Entity                     |
+| "เพิ่ม field ใหม่"          | `ADR-044`, `03-01-data-dictionary.md`, `lcbp3-v1.9.0-schema-02-tables.sql`            | Edit SQL directly + update Data Dictionary + Entity                     |
 | "ตรวจสอบ UUID"              | `ADR-019`, `05-07-hybrid-uuid-implementation-plan.md`                                 | UUIDv7 MariaDB native UUID + TransformInterceptor                       |
-| "สร้าง migration"           | `ADR-009`, `03-06-migration-business-scope.md`                                        | Edit SQL schema directly + n8n workflow                                 |
+| "สร้าง migration"           | `ADR-044`, `03-06-migration-business-scope.md`                                        | Edit SQL schema directly + n8n workflow                                 |
 | "ตรวจสอบ permission"        | `lcbp3-v1.9.0-seed-permissions.sql`, `ADR-016`                                        | CASL 4-Level RBAC matrix                                                |
 | "deploy production"         | `04-08-release-management-policy.md`, `ADR-015`                                       | Release Gates + Blue-Green strategy                                     |
 | "เพิ่ม test"                | `05-04-testing-strategy.md`                                                           | Coverage goals + test patterns                                          |
@@ -149,7 +149,7 @@ MCP MariaDB server ให้เครื่องมือสำหรับต�
 2. เปรียบเทียบกับ `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql`
 3. ใช้ `mcp1_mysql_query` เพื่อทดสอบ query ก่อน implement
 
-**เมื่อเปลี่ยน schema (ADR-009):**
+**เมื่อเปลี่ยน schema (ADR-009 → ADR-044):**
 
 1. ใช้ `mcp1_mysql_describe_table` เพื่อดู structure ปัจจุบัน
 2. สร้าง SQL delta ใน `specs/03-Data-and-Storage/deltas/`
@@ -163,7 +163,7 @@ MCP MariaDB server ให้เครื่องมือสำหรับต�
 
 ### ข้อควรระวัง
 
-- **❌ ห้ามใช้ MCP MariaDB สำหรับ DDL operations** (CREATE/ALTER/DROP) โดยตรง — ต้องใช้ SQL delta ตาม ADR-009
+- **❌ ห้ามใช้ MCP MariaDB สำหรับ DDL operations** (CREATE/ALTER/DROP) โดยตรง — ต้องใช้ SQL delta ตาม ADR-044
 - **✅ ใช้สำหรับ DQL/DML operations** (SELECT/INSERT/UPDATE/DELETE) เพื่อ debug และ test เท่านั้น
 - **⚠️ ระวัง DELETE operations** — อาจทำให้เสีย data ใน production
 - **✅ ตรวจสอบ schema กับ spec file เสมอ** ก่อนเขียน query

@@ -6,7 +6,7 @@
 | ----------------------------------------------- | ------------------------------------------------------- | ---------------------------------------------------- |
 | SQL Triggers for business logic                 | NestJS Service methods                                  | Untestable; bypasses audit log                       |
 | `.env` files in production                      | `docker-compose.yml` environment section                | Secrets exposed in version control                   |
-| TypeORM migration files                         | Edit schema SQL directly (ADR-009)                      | Migration drift risk; schema managed via SQL delta   |
+| TypeORM migration files                         | Edit schema SQL directly (ADR-009 → ADR-044)            | Migration drift risk; schema managed via SQL delta   |
 | Inventing table/column names                    | Verify against `schema-02-tables.sql`                   | Schema mismatch causes silent runtime errors         |
 | `any` TypeScript type                           | Proper types / generics                                 | Defeats strict mode; hides runtime type errors       |
 | `console.log` in committed code                 | NestJS Logger (backend) / remove (frontend)             | Log flooding in production; risk of data leakage     |
@@ -22,7 +22,7 @@
 | n8n calling Ollama/Qdrant directly              | n8n → DMS API → BullMQ → Ollama (ADR-023A)              | Bypasses audit log, RBAC, and error handling layer   |
 | Qdrant query without `projectPublicId` filter   | `QdrantService.search(projectPublicId, ...)` (ADR-023A) | Cross-project data leak via vector search            |
 
-## Schema Changes (ADR-009)
+## Schema Changes (ADR-009 → ADR-044)
 
 - **NO TypeORM migrations** — edit SQL schema directly
 - Always check `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql` before writing queries

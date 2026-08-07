@@ -105,7 +105,7 @@ You are the **Antigravity System Architect**. Your role is to bridge the gap bet
 Before executing, load **[../\_LCBP3-CONTEXT.md](../_LCBP3-CONTEXT.md)** to get:
 
 - Canonical rule sources (AGENTS.md, specs/06-Decision-Records/, specs/05-Engineering-Guidelines/)
-- Tier 1 non-negotiables (ADR-019 UUID, ADR-009 schema, ADR-016 security, ADR-002 numbering, ADR-008 BullMQ, ADR-023/043 AI boundary (supersedes ADR-018/020), ADR-007 errors)
+- Tier 1 non-negotiables (ADR-019 UUID, ADR-044 schema (amends ADR-009), ADR-016 security, ADR-002 numbering, ADR-008 BullMQ, ADR-023/043 AI boundary (supersedes ADR-018/020), ADR-007 errors)
 - Domain glossary (Correspondence / RFA / Transmittal / Circulation)
 - Helper script real paths
 - Commit checklist

@@ -28,7 +28,7 @@ MCP MariaDB server ให้เครื่องมือสำหรับต�
 2. เปรียบเทียบกับ `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql`
 3. ใช้ `mysql_query` เพื่อทดสอบ query ก่อน implement
 
-**เมื่อเปลี่ยน schema (ADR-009):**
+**เมื่อเปลี่ยน schema (ADR-009 → ADR-044):**
 
 1. ใช้ `mysql_describe_table` เพื่อดู structure ปัจจุบัน
 2. สร้าง SQL delta ใน `specs/03-Data-and-Storage/deltas/`
@@ -42,7 +42,7 @@ MCP MariaDB server ให้เครื่องมือสำหรับต�
 
 ## ข้อควรระวัง
 
-- **❌ ห้ามใช้ MCP MariaDB สำหรับ DDL operations** (CREATE/ALTER/DROP) โดยตรง — ต้องใช้ SQL delta ตาม ADR-009
+- **❌ ห้ามใช้ MCP MariaDB สำหรับ DDL operations** (CREATE/ALTER/DROP) โดยตรง — ต้องใช้ SQL delta ตาม ADR-044
 - **✅ ใช้สำหรับ DQL/DML operations** (SELECT/INSERT/UPDATE/DELETE) เพื่อ debug และ test เท่านั้น
 - **⚠️ ระวัง DELETE operations** — อาจทำให้เสีย data ใน production
 - **✅ ตรวจสอบ schema กับ spec file เสมอ** ก่อนเขียน query

@@ -6,9 +6,9 @@ When user asks about... check these files:
 | ------------------------------ | ------ | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
 | "สร้าง API ใหม่"               | ✅     | `05-02-backend-guidelines.md`, `lcbp3-v1.9.0-schema-02-tables.sql`                    | NestJS Controller + Service + DTO + CASL Guard                          |
 | "แก้ฟอร์ม frontend"            | ✅     | `05-03-frontend-guidelines.md`, `01-06-edge-cases-and-rules.md`                       | RHF+Zod + TanStack Query + Thai comments                                |
-| "เพิ่ม field ใหม่"             | ✅     | `ADR-009`, `03-01-data-dictionary.md`, `lcbp3-v1.9.0-schema-02-tables.sql`            | Edit SQL directly + update Data Dictionary + Entity                     |
+| "เพิ่ม field ใหม่"             | ✅     | `ADR-044`, `03-01-data-dictionary.md`, `lcbp3-v1.9.0-schema-02-tables.sql`            | Edit SQL directly + update Data Dictionary + Entity                     |
 | "ตรวจสอบ UUID"                 | ✅     | `ADR-019`, `05-07-hybrid-uuid-implementation-plan.md`                                 | UUIDv7 MariaDB native UUID + TransformInterceptor                       |
-| "สร้าง migration"              | ✅     | `ADR-009`, `03-06-migration-business-scope.md`                                        | Edit SQL schema directly + n8n workflow                                 |
+| "สร้าง migration"              | ✅     | `ADR-044`, `03-06-migration-business-scope.md`                                        | Edit SQL schema directly + n8n workflow                                 |
 | "ตรวจสอบ permission"           | ✅     | `lcbp3-v1.9.0-seed-permissions.sql`, `ADR-016`                                        | CASL 4-Level RBAC matrix                                                |
 | "deploy production"            | ✅     | `04-08-release-management-policy.md`, `ADR-015`                                       | Release Gates + Blue-Green strategy                                     |
 | "เพิ่ม test"                   | ✅     | `05-04-testing-strategy.md`                                                           | Coverage goals + test patterns                                          |

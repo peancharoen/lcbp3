@@ -286,7 +286,7 @@ This file is a **quick reference**. For detailed information:
 
 - **Architecture:** `specs/02-architecture/`
 - **Requirements:** `specs/01-requirements/`
-- **Data & Storage:** `specs/03-Data-and-Storage/` (canonical schema + `deltas/` incremental SQL per ADR-009)
+- **Data & Storage:** `specs/03-Data-and-Storage/` (canonical schema + `deltas/` incremental SQL per ADR-044)
 - **Engineering Guidelines:** `specs/05-Engineering-Guidelines/`
 - **Decision Records:** `specs/06-Decision-Records/`
 - **Infrastructure:** `specs/04-Infrastructure-OPS/`

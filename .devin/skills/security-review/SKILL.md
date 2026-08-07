@@ -164,7 +164,7 @@ const result = await this.correspondenceRepository
 - [ ] All database queries use TypeORM parameterized queries
 - [ ] No string concatenation in SQL
 - [ ] TypeORM query builder used correctly
-- [ ] Schema verified before writing queries (ADR-009)
+- [ ] Schema verified before writing queries (ADR-044)
 
 ### 4. Authentication & Authorization (ADR-016)
 

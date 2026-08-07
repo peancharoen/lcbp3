@@ -13,7 +13,7 @@ trigger: always_on
 - [ ] Code identifiers in English
 - [ ] Schema changes via SQL directly (not migration)
 - [ ] Test coverage meets targets (Backend 70%+, Business Logic 80%+)
-- [ ] Relevant ADRs checked (ADR-009, ADR-018, ADR-019)
+- [ ] Relevant ADRs checked (ADR-009 → ADR-044, ADR-018, ADR-019)
 - [ ] Glossary terms used correctly
 - [ ] Error handling complete (Logger + HttpException)
 - [ ] i18n keys used instead of hardcode text
@@ -31,6 +31,7 @@ type(scope): description
 Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
 
 Examples:
+
 - `feat(correspondence): add originator organization validation`
 - `fix(uuid): correct parseInt usage to string comparison`
 - `spec(agents): bump to v1.8.5 - refactor structure`

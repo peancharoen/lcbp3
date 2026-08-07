@@ -14,7 +14,7 @@
 
 ## Abstract
 
-Comprehensive NestJS best-practices guide compiled for the LCBP3-DMS backend. Contains 40+ rules across 11 categories (10 general + 1 project-specific), prioritized by impact. Forked from Kadajett/nestjs-best-practices (v1.1.0) and aligned to LCBP3 ADRs: ADR-001 (workflow engine), ADR-002 (document numbering), ADR-007 (error handling), ADR-008 (notifications/BullMQ), ADR-009 (no TypeORM migrations), ADR-016 (security), ADR-023/023A (AI boundary — supersedes ADR-018/020), ADR-019 (hybrid UUID identifier — March 2026 pattern), ADR-021 (workflow context), ADR-034/040/041 (AI model stack + OCR sidecar refactor + server consolidation).
+Comprehensive NestJS best-practices guide compiled for the LCBP3-DMS backend. Contains 40+ rules across 11 categories (10 general + 1 project-specific), prioritized by impact. Forked from Kadajett/nestjs-best-practices (v1.1.0) and aligned to LCBP3 ADRs: ADR-001 (workflow engine), ADR-002 (document numbering), ADR-007 (error handling), ADR-008 (notifications/BullMQ), ADR-044 (no TypeORM migrations; amends ADR-009), ADR-016 (security), ADR-023/023A (AI boundary — supersedes ADR-018/020), ADR-019 (hybrid UUID identifier — March 2026 pattern), ADR-021 (workflow context), ADR-034/040/041 (AI model stack + OCR sidecar refactor + server consolidation).
 
 This document is the single, consolidated reference used by Cascade and other AI coding agents when writing, reviewing, or refactoring backend code in this repository. All LCBP3-specific overrides live in section 11.
 
@@ -59,8 +59,8 @@ This document is the single, consolidated reference used by Cascade and other AI
 7. [Database & ORM](#7-database-orm) — **MEDIUM-HIGH**
    - 7.1 [Avoid N+1 Query Problems](#71-avoid-n-1-query-problems)
    - 7.2 [Hybrid Identifier Strategy (ADR-019)](#72-hybrid-identifier-strategy-adr-019-)
-   - 7.3 [No TypeORM Migrations (ADR-009)](#73-no-typeorm-migrations-adr-009-)
-   - 7.4 [No TypeORM Migrations (ADR-009)](#74-no-typeorm-migrations-adr-009-)
+   - 7.3 [No TypeORM Migrations (ADR-044)](#73-no-typeorm-migrations-adr-044-)
+   - 7.4 [No TypeORM Migrations (ADR-044)](#74-no-typeorm-migrations-adr-044-)
    - 7.5 [Use Transactions for Multi-Step Operations](#75-use-transactions-for-multi-step-operations)
 8. [API Design](#8-api-design) — **MEDIUM**
    - 8.1 [Use DTOs and Serialization for API Responses](#81-use-dtos-and-serialization-for-api-responses)
@@ -3965,7 +3965,7 @@ const contracts = await this.contractRepo.find({
 
 ---
 
-### 7.3 No TypeORM Migrations (ADR-009)
+### 7.3 No TypeORM Migrations (ADR-044)
 
 **Impact: CRITICAL** — Edit SQL schema files directly; n8n handles data migration. Do not generate TypeORM migration files.
 
@@ -4063,23 +4063,24 @@ export default {
 
 ## Reference
 
-- [ADR-009 Database Migration Strategy](../../../../specs/06-Decision-Records/ADR-009-database-migration-strategy.md)
+- [ADR-044 Database Schema Strategy Amendment](../../../../specs/06-Decision-Records/ADR-044-database-schema-strategy-amendment.md)
+- [ADR-009 Database Migration Strategy (amended)](../../../../specs/06-Decision-Records/ADR-009-database-migration-strategy.md)
 - [Data Dictionary](../../../../specs/03-Data-and-Storage/03-01-data-dictionary.md)
 - [Schema Tables](../../../../specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql)
 
 ---
 
-### 7.4 No TypeORM Migrations (ADR-009)
+### 7.4 No TypeORM Migrations (ADR-044)
 
 **Impact: HIGH** — Use direct SQL schema files instead of TypeORM migrations per project ADR
 
-**This project follows ADR-009: Direct SQL Schema Management**
+**This project follows ADR-044: Direct SQL Schema Management**
 
 Unlike standard NestJS/TypeORM practices, this project does **NOT** use TypeORM migrations. Instead, we manage database schema through direct SQL files.
 
 ### Why No Migrations?
 
-- **ADR-009 Decision**: Explicit schema control over auto-generated migrations
+- **ADR-044 Decision**: Explicit schema control over auto-generated migrations
 - **MariaDB-specific features**: Native UUID type, virtual columns, custom indexing
 - **Team workflow**: Schema changes reviewed as SQL, not TypeORM migration classes
 - **Audit trail**: Single source of truth in `specs/03-Data-and-Storage/`
@@ -4112,13 +4113,13 @@ TypeOrmModule.forRootAsync({
     database: config.get('DB_NAME'),
     entities: ['dist/**/*.entity.js'],
     synchronize: false, // NEVER true, even in development
-    migrationsRun: false, // Disabled per ADR-009
+    migrationsRun: false, // Disabled per ADR-044
     // Migrations are managed via SQL files, not TypeORM
   }),
 });
 ```
 
-### Schema Change Process (ADR-009)
+### Schema Change Process (ADR-044)
 
 1. **Modify SQL file directly**:
 
@@ -4172,7 +4173,7 @@ export class AddUserAge1705312800000 implements MigrationInterface {
 
 // ❌ WRONG - Do not enable migrationsRun
 TypeOrmModule.forRoot({
-  migrationsRun: true, // Disabled per ADR-009
+  migrationsRun: true, // Disabled per ADR-044
   migrations: ['dist/migrations/*.js'],
 });
 ```
@@ -4187,11 +4188,11 @@ TypeOrmModule.forRoot({
 
 ### Reference
 
-- [ADR-009 Database Strategy](../../../../specs/06-Decision-Records/ADR-009-db-strategy.md)
+- [ADR-044 Database Schema Strategy Amendment](../../../../specs/06-Decision-Records/ADR-044-database-schema-strategy-amendment.md)
 - [Schema SQL Files](../../../../specs/03-Data-and-Storage/)
 - [Data Dictionary](../../../../specs/03-Data-and-Storage/03-01-data-dictionary.md)
 
-> **Warning**: Attempting to use TypeORM migrations in this project violates ADR-009 and will be rejected in code review.
+> **Warning**: Attempting to use TypeORM migrations in this project violates ADR-044 and will be rejected in code review.
 
 ---
 
@@ -6673,7 +6674,8 @@ Frontend uses `workflow.availableActions` to render buttons — no client-side s
 - [ADR-002 Document Numbering Strategy](../../../specs/06-Decision-Records/ADR-002-document-numbering-strategy.md)
 - [ADR-007 Error Handling Strategy](../../../specs/06-Decision-Records/ADR-007-error-handling-strategy.md)
 - [ADR-008 Email/Notification Strategy](../../../specs/06-Decision-Records/ADR-008-email-notification-strategy.md)
-- [ADR-009 Database Migration Strategy](../../../specs/06-Decision-Records/ADR-009-database-migration-strategy.md)
+- [ADR-009 Database Migration Strategy (amended by ADR-044)](../../../specs/06-Decision-Records/ADR-009-database-migration-strategy.md)
+- [ADR-044 Database Schema Strategy Amendment](../../../specs/06-Decision-Records/ADR-044-database-schema-strategy-amendment.md)
 - [ADR-016 Security & Authentication](../../../specs/06-Decision-Records/ADR-016-security-authentication.md)
 - [ADR-018 AI Boundary](../../../specs/06-Decision-Records/archive/ADR-018-ai-boundary.md)
 - [ADR-019 Hybrid Identifier Strategy](../../../specs/06-Decision-Records/ADR-019-hybrid-identifier-strategy.md)
