@@ -110,7 +110,95 @@
 
 ## งานที่เหลือ (Phase 2 — Medium Priority)
 
-- [ ] **2.1** Batch Operations สำหรับ N+1 Updates ใน `metadata-resolution.service.ts`
-- [ ] **2.2** ADR-023 AI Boundary Refactor
-- [ ] **2.3** File Type Magic Bytes Validation ใน `FileStorageService`
-- [ ] **2.4** Centralize Constants & Enums
+- [x] **2.1** Batch Operations สำหรับ N+1 Updates ใน `metadata-resolution.service.ts`
+- [x] **2.2** ADR-023 AI Boundary Refactor
+- [x] **2.3** File Type Magic Bytes Validation ใน `FileStorageService`
+- [x] **2.4** Centralize Constants & Enums
+
+---
+
+## Phase 2 — Medium Priority (2026-08-17, ต่อจาก Phase 1)
+
+### Phase 2.1 — Batch Operations (N+1 Elimination)
+
+**Target:** `metadata-resolution.service.ts`
+
+**Root Cause:** `resolveBatch()` เดิมใช้ per-item UPDATE loop และ per-tag INSERT/SELECT loop ทำให้จำนวน DB queries เป็น O(n)
+
+**Fix:**
+- แทนที่ per-item UPDATE loop ด้วย `applyBatchQueueUpdates()` — batch CASE WHEN UPDATE เดียว
+- แทนที่ per-tag INSERT/SELECT loop ด้วย `batchCreateAndLinkTags()` — multi-row INSERT IGNORE + SELECT IN
+- ค่า parameters ทั้งหมดผ่าน `?` placeholder (ไม่มี SQL injection)
+
+| ไฟล์ | การเปลี่ยนแปลง |
+|---|---|
+| `backend/src/modules/migration/services/metadata-resolution.service.ts` | Refactor เป็น batch operations |
+| `backend/src/modules/migration/services/metadata-resolution.service.spec.ts` | อัปเดต mocks สำหรับ batch SQL path |
+
+### Phase 2.2 — ADR-023 AI Boundary Audit
+
+**Root Cause:** ต้องตรวจสอบว่า migration module ไม่ได้เรียก AI infrastructure โดยตรง
+
+**Audit Result:** ไม่พบ violations
+- Migration module ไม่ได้ import Ollama/Qdrant/AiService โดยตรง (เฉพาะ `SystemSetting` entity และ type definitions)
+- `RagBatchService` ใช้ `@InjectQueue('ai-batch')` อย่างถูกต้อง
+- `MetadataResolutionService` เป็น pure data resolution (ไม่มี AI calls)
+- Audit report: `specs/88-logs/phase2-2-ai-boundary-audit.md`
+
+### Phase 2.3 — Magic Bytes Validation
+
+**Root Cause:** `FileStorageService` เดิมตรวจเฉพาะ MIME type ที่ client ส่งมา (trust client) ไม่ได้ตรวจ magic bytes จริง
+
+**Fix:**
+- สร้าง `file-magic-bytes.util.ts` ใหม่ (214 lines) รองรับ PDF, DOCX, XLSX, ZIP, DOC, XLS, JPG, PNG, DWG
+- เพิ่ม `validateFileType()` ใน `upload()` และ `importStagingFile()`
+- ป้องกัน MIME spoofing จาก client
+- DWG ยอมให้ client MIME ต่างจาก detected เพราะ browser รายงานไม่สม่ำเสมอ
+
+| ไฟล์ | การเปลี่ยนแปลง |
+|---|---|
+| `backend/src/common/file-storage/file-magic-bytes.util.ts` | ไฟล์ใหม่ — magic bytes signatures + validation utilities |
+| `backend/src/common/file-storage/file-storage.service.ts` | เพิ่ม `validateFileType()` ใน `upload()` + `importStagingFile()` |
+| `backend/src/common/file-storage/file-storage.service.spec.ts` | อัปเดต mock buffer ให้มี PDF magic bytes จริง (`makePdfBuffer()`) |
+
+### Phase 2.4 — Centralize Constants & Enums
+
+**Root Cause:** Magic strings กระจายอยู่ทั่ว migration module ทำให้ refactor ยาก
+
+**Fix:**
+- สร้าง `migration.constants.ts` ใหม่ (50 lines)
+- รวม: `RFA_TYPE_CODE_GENERIC`, `RFA_STATUS_CODE_APPROVED`, `CORRESPONDENCE_STATUS_*`, `BATCH_ID_HUMAN_REVIEW`, `IMPORT_TX_STATUS_*`, `QUEUE_STATUS_PENDING`, `ENV_STAGING_DIR`, `STAGING_DIR_DEFAULT`, `DEFAULT_BATCH_TIMEOUT_MS`, `SETTING_KEY_*`
+- Refactor 4 ไฟล์ให้ใช้ constants แทน string literals
+- Raw SQL queries เปลี่ยนจาก string interpolation เป็น `?` parameter
+
+| ไฟล์ | การเปลี่ยนแปลง |
+|---|---|
+| `backend/src/modules/migration/constants/migration.constants.ts` | ไฟล์ใหม่ — centralized constants |
+| `backend/src/modules/migration/migration.service.ts` | ใช้ constants แทน string literals |
+| `backend/src/modules/migration/migration-review.service.ts` | ใช้ constants แทน string literals |
+| `backend/src/modules/migration/services/metadata-resolution.service.ts` | ใช้ constants แทน string literals + ลบ duplicate local constants |
+| `backend/src/modules/migration/services/rag-batch.service.ts` | ใช้ constants แทน string literals + parameterized SQL |
+| `backend/src/modules/migration/services/rag-batch.service.spec.ts` | อัปเดต test ให้ค้นหา query call ที่ถูกต้อง |
+
+## Verification (Phase 1 + Phase 2)
+
+| ขั้นตอน | ผล |
+|---|---|
+| TypeScript compile (`tsc --noEmit`) | ✅ ผ่าน |
+| ESLint (`--max-warnings=0`) | ✅ ผ่าน |
+| Nest build (`npm run build`) | ✅ ผ่าน |
+| Tests (475 tests) | ✅ ผ่านทั้งหมด (9 skipped) |
+
+## กฎที่ Lock แล้ว
+
+- **D104:** Migration Security Hardening — ห้าม hardcoded fallback สำหรับ userId/master-data; บังคับ RBAC + Idempotency + Path Traversal Guard + UUID routes + pessimistic lock
+- **D105:** Batch Operations — `MetadataResolutionService` ใช้ batch SQL operations เท่านั้น (ไม่ per-item loops)
+- **D106:** Magic Bytes Validation — `FileStorageService` ต้องตรวจ magic bytes จริง ไม่ trust client MIME
+- **D107:** Migration Constants — ใช้ `migration.constants.ts` สำหรับ magic strings ทั้งหมด
+
+## Commit & Push
+
+- **Commit:** `56284be6`
+- **Branch:** `main` (pushed to origin)
+- **Files:** 17 files changed, +1433 / -515 lines
+- **Gitea Issue #3:** comment #25 (Phase 2 completion)

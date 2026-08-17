@@ -1,5 +1,49 @@
 # Version History
 
+## 1.9.15 (2026-08-17)
+
+### fix(migration): Resolve Critical Pre-Merge Blockers + Phase 2 Improvements (Issue #3)
+
+#### Summary
+
+แก้ไข critical security/data-integrity/identity/architectural-compliance defects ใน migration module ก่อน merge ครบทั้ง Phase 1 (Critical/High) และ Phase 2 (Medium) ตาม Gitea Issue #3
+
+#### Phase 1 — Critical & High Priority (ADR-016/019/002/007)
+
+- ลบ hardcoded `userId` fallback (`|| 5`) — throw `UnauthorizedException`
+- ลบ hardcoded master-data fallback (`|| 1`, `|| 3`) — throw `BusinessException`
+- Path traversal guard ใน `getStagingFileStream` + `importStagingFile`
+- Idempotency key persistence ใน `commitRecord` (ไม่เช็คเฉพาะ header)
+- `RbacGuard` + `@RequirePermission` ทุก migration endpoint
+- `@Exclude()` บน internal PK ใน `MigrationReviewQueue`
+- Routes `:id`(INT) → `:publicId`(UUIDv7) + `ParseUUIDPipe`
+- `*ByPublicId()` service methods
+- `pessimistic_write` lock แทน `count()`-based revision numbering
+- `BusinessException` hierarchy + Thai `userMessage` + `recoveryActions`
+
+#### Phase 2 — Medium Priority
+
+- **2.1 Batch operations** — `applyBatchQueueUpdates` (CASE WHEN UPDATE) + `batchCreateAndLinkTags` (multi-row INSERT IGNORE + SELECT IN)
+- **2.2 ADR-023 AI boundary audit** — ไม่พบ violations (migration module ใช้ BullMQ queue อย่างถูกต้อง)
+- **2.3 Magic bytes validation** — `file-magic-bytes.util.ts` ใหม่ (PDF/DOCX/XLSX/ZIP/DWG/JPG/PNG signatures)
+- **2.4 Centralize constants** — `migration.constants.ts` ใหม่ (RFA_TYPE_CODE_GENERIC, RFA_STATUS_CODE_APPROVED, etc.)
+
+#### Verification
+
+- TypeScript compile: PASS
+- ESLint `--max-warnings=0`: PASS
+- Nest build: PASS
+- Tests: 475 passed, 9 skipped, 0 failed
+
+#### Files Changed
+
+17 files, +1433 / -515 lines (2 new files: `file-magic-bytes.util.ts`, `migration.constants.ts`)
+
+#### Tracking
+
+- Gitea Issue: http://192.168.10.11:3003/np-dms/lcbp3/issues/3
+- Commit: `56284be6`
+
 ## 1.9.15 (2026-08-01)
 
 ### feat(infra): MCP Infrastructure Upgrade — Host Node.js v24 + Qdrant v1.18 (Feature 143)

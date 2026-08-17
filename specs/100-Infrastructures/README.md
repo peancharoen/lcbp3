@@ -16,6 +16,13 @@
 ## ตัวอย่างงานที่อยู่ในโฟลเดอร์นี้
 
 - `102-infra-ops` - Infrastructure Operations & Deployment Automation
+- `103-node-upgrade` - Node.js runtime upgrade (Docker containers)
+- `134-ai-model-change` - AI model change (ADR-034)
+- `140-ocr-sidecar-refactor` - OCR Sidecar refactor (ADR-040)
+- `141-server-consolidation` - Server consolidation (ADR-041)
+- `142-ocr-prompt-cache-invalidation` - OCR prompt cache invalidation
+- `143-mcp-infra-upgrade` - MCP infrastructure upgrade (Node 24 host + Qdrant v1.18)
+- `144-rclone-gdrive-sync` - Rclone Google Drive sync (offsite repo backup + specs sharing)
 
 ## การตั้งชื่อโฟลเดอร์
 

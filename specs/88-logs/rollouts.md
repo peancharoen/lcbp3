@@ -2,6 +2,8 @@
 
 | วันที่     | Version | รายการ                                                                                               | สถานะ                         |
 | ---------- | ------- | ---------------------------------------------------------------------------------------------------- | ----------------------------- |
+| 2026-08-17 | v1.9.15 | Rclone GDrive Sync Spec Migration (Feature 144) — ย้าย `docs/Rclone gdrive sync setup.md` เข้า `specs/100-Infrastructures/144-rclone-gdrive-sync/` (spec/plan/tasks/quickstart/checklist); cross-link `04-02-backup-recovery.md` Offsite Backup section; 7 files, no source code changes (documentation retro-fit) | ✅ Complete (no commit yet) |
+| 2026-08-17 | v1.9.15 | Migration Module Critical Pre-Merge Fixes (Issue #3) — Phase 1 (ADR-019/016/002/007) + Phase 2 (N+1 batch ops, ADR-023 audit, magic bytes validation, constants centralization); 17 files, +1433/-515, 475 tests pass | ✅ Complete (commit 56284be6) |
 | 2026-08-01 | v1.9.15 | MCP Infrastructure Upgrade (Feature 143) — Host Node.js v22→v24.18.1 LTS, Qdrant v1.16.1→v1.18.1, 5 new MCP servers (Redis, Qdrant, Memory, Fetch, Gitea), 42/42 tasks done, zero regression (891 backend + 321 AI + 45 frontend pages) | ✅ Complete (commit b71abc3c) |
 | 2026-08-01 | v1.9.15 | Monitoring Dashboard Overhaul + cadvisor Fixes — dashboard 7→45 panels, node-exporter rootfs, cadvisor v0.55.1 both servers, ASUSTOR containerd socket path fix | ✅ Complete (commit 4c7ae868) |
 | 2026-05-23 | v1.9.6  | Specs reorganization (`100/200/300-*` folders), AGENTS.md v1.9.6 update                              | ✅ Complete                   |
