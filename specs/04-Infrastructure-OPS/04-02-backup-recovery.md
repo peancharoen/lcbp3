@@ -53,7 +53,7 @@ This document outlines backup strategies, recovery procedures, and disaster reco
 
 **Primary Backup:** ASUSTOR AS5403T `/backup/lcbp3-dms` — เก็บ uploads, permanent files, และ database backups (pulling from New Server `np-dms-lcbp3`)
 **Secondary Backup:** QNAP TS-473A `/backup/lcbp3-dms` — legacy standby (QNAP คงบท NPM internal router เท่านั้น)
-**Offsite Backup:** Google Drive ผ่าน rclone — sync repo ทั้งหมด daily + sync `specs/` ทุก 2 ชม. (ดู [`specs/100-Infrastructures/144-rclone-gdrive-sync/`](../100-Infrastructures/144-rclone-gdrive-sync/spec.md) และ runbook [`docs/Rclone gdrive sync setup.md`](../../docs/Rclone%20gdrive%20sync%20setup.md))
+**Offsite Backup:** Google Drive ผ่าน rclone — sync repo ทั้งหมด เวลา 00:00 และ 12:00 ทุกวัน + sync `specs/` ทุก 4 ชม. (03:00, 07:00, 11:00, 15:00, 19:00, 23:00) (ดู [`specs/100-Infrastructures/144-rclone-gdrive-sync/`](../100-Infrastructures/144-rclone-gdrive-sync/spec.md) และ runbook [`docs/Rclone gdrive sync setup.md`](../../docs/Rclone%20gdrive%20sync%20setup.md))
 
 ---
 

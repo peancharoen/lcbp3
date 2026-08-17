@@ -1,6 +1,7 @@
 // File: specs/100-Infrastructures/144-rclone-gdrive-sync/plan.md
 // Change Log:
 // - 2026-08-17: Initial implementation plan — migrated from docs/Rclone gdrive sync setup.md
+// - 2026-08-17: Update cron schedule to 00:00/12:00 and 03/07/11/15/19/23
 
 # Implementation Plan: Rclone Google Drive Sync — Offsite Repo Backup & Specs Sharing
 
@@ -10,7 +11,7 @@
 
 ## Summary
 
-ติดตั้ง rclone บนเครื่อง `np-dms-lcbp3` (192.168.10.11) และตั้งค่า remote `gdrive` โดยใช้ OAuth Client ของตัวเองใน Google Cloud project `lcbp3-dms` (หลีกเลี่ยง shared client_id ที่โดน Google rate limit) เนื่องจาก server เป็น headless ต้อง authenticate ผ่านเครื่อง Windows ที่มี browser แล้ว copy token กลับมา จากนั้นตั้ง cron สอง job ในนาม user `np-dms`: Job A backup repo ทั้งหมดเวลา 01:00 ทุกวัน (exclude `.git`, `node_modules`, `dist`, `.env`) และ Job B sync `specs/` กับทีมเวลา 08-18 ทุก 2 ชม. ทั้งสอง job push สถานะไป Uptime Kuma Push Monitor (Tier 4) และมี logrotate คุมขนาด log ที่ `/var/log/rclone/`
+ติดตั้ง rclone บนเครื่อง `np-dms-lcbp3` (192.168.10.11) และตั้งค่า remote `gdrive` โดยใช้ OAuth Client ของตัวเองใน Google Cloud project `lcbp3-dms` (หลีกเลี่ยง shared client_id ที่โดน Google rate limit) เนื่องจาก server เป็น headless ต้อง authenticate ผ่านเครื่อง Windows ที่มี browser แล้ว copy token กลับมา จากนั้นตั้ง cron สอง job ในนาม user `np-dms`: Job A backup repo ทั้งหมดเวลา 00:00 และ 12:00 ทุกวัน (exclude `.git`, `node_modules`, `dist`, `.env`) และ Job B sync `specs/` กับทีมเวลา 03:00, 07:00, 11:00, 15:00, 19:00, 23:00 ทุกวัน (ทุก 4 ชม.) ทั้งสอง job push สถานะไป Uptime Kuma Push Monitor (Tier 4) และมี logrotate คุมขนาด log ที่ `/var/log/rclone/`
 
 งานนี้เป็น **infrastructure-only** — ไม่มีการเปลี่ยนแปลง source code ของ backend/frontend ทั้งหมดอยู่ในรูปแบบของ system config (rclone config, crontab, logrotate, Uptime Kuma UI) และเอกสาร
 
@@ -41,7 +42,7 @@
 
 **Target Platform**: Linux (host server `np-dms-lcbp3` at 192.168.10.11) + Windows (สำหรับ OAuth flow เท่านั้น)
 **Project Type**: Infrastructure / DevOps runbook (no application code changes)
-**Performance Goals**: sync ทั้ง repo ใน Job A ควรเสร็จภายในหน้าต่าง 01:00-06:00 (ก่อนเริ่มเวลาทำงาน)
+**Performance Goals**: sync ทั้ง repo ใน Job A ควรเสร็จภายใน 6 ชม. หลังเริ่มรัน (00:00-06:00 และ 12:00-18:00)
 **Constraints**:
 - ห้าม sync `.env` และ `.git/` (security + ขนาด)
 - ห้ามใช้ shared rclone client_id (rate limit)
@@ -97,7 +98,7 @@ specs/100-Infrastructures/144-rclone-gdrive-sync/
 ~/.config/rclone/rclone.conf           # user np-dms — remote "gdrive" with OAuth token
 
 # Cron schedule (user np-dms crontab)
-/var/spool/cron/crontabs/np-dms        # 2 jobs: Job A (01:00 daily) + Job B (08-18 every 2h)
+/var/spool/cron/crontabs/np-dms        # 2 jobs: Job A (00:00, 12:00 daily) + Job B (03/07/11/15/19/23 every 4h)
 
 # Log management
 /var/log/rclone/                       # log directory (owned by np-dms:np-dms-dev)

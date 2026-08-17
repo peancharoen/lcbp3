@@ -1,8 +1,8 @@
 # Setup: Sync LCBP3-DMS Repo กับ Google Drive ผ่าน rclone
 
 ## วัตถุประสงค์
-1. **Backup repo ทั้งหมด** จาก `/opt/np-dms-lcbp3` ไป Google Drive แบบ one-way (daily)
-2. **แชร์ folder specs/docs** กับทีมผ่าน Google Drive แบบ one-way sync (ทุก 2 ชม. ในเวลาทำงาน)
+1. **Backup repo ทั้งหมด** จาก `/opt/np-dms-lcbp3` ไป Google Drive แบบ one-way (เวลา 00:00 และ 12:00 ทุกวัน)
+2. **แชร์ folder specs/docs** กับทีมผ่าน Google Drive แบบ one-way sync (ทุก 4 ชม. — 03:00, 07:00, 11:00, 15:00, 19:00, 23:00)
 
 รันในนาม user **`np-dms`** บนเครื่อง `np-dms-lcbp3` (192.168.10.11)
 
@@ -135,15 +135,15 @@ sudo crontab -u np-dms -e
 เลือก editor (nano = ตัวเลือก 1) แล้วเพิ่ม:
 
 ```cron
-0 1 * * * /usr/bin/rclone sync /opt/np-dms-lcbp3 gdrive:backups/lcbp3-repo --exclude ".git/**" --exclude "node_modules/**" --exclude "dist/**" --exclude ".env" --log-file=/var/log/rclone/backup.log --log-level INFO
+0 0,12 * * * /usr/bin/rclone sync /opt/np-dms-lcbp3 gdrive:backups/lcbp3-repo --exclude ".git/**" --exclude "node_modules/**" --exclude "dist/**" --exclude ".env" --log-file=/var/log/rclone/backup.log --log-level INFO
 
-0 8,10,12,14,16,18 * * * /usr/bin/rclone sync /opt/np-dms-lcbp3/specs gdrive:shared/lcbp3-specs --log-file=/var/log/rclone/specs.log --log-level INFO
+0 3,7,11,15,19,23 * * * /usr/bin/rclone sync /opt/np-dms-lcbp3/specs gdrive:shared/lcbp3-specs --log-file=/var/log/rclone/specs.log --log-level INFO
 ```
 
 | Job | เวลา | รายละเอียด |
 |---|---|---|
-| Backup repo | 01:00 ทุกวัน | Full backup, exclude `.git`, `node_modules`, `dist`, `.env` |
-| Sync specs/docs | 08:00, 10:00, 12:00, 14:00, 16:00, 18:00 | แชร์เอกสารกับทีม |
+| Backup repo | 00:00, 12:00 ทุกวัน | Full backup, exclude `.git`, `node_modules`, `dist`, `.env` |
+| Sync specs/docs | 03:00, 07:00, 11:00, 15:00, 19:00, 23:00 | แชร์เอกสารกับทีม |
 
 บันทึกด้วย `Ctrl+O` → Enter → ออกด้วย `Ctrl+X`
 
@@ -221,7 +221,7 @@ ls -la /var/log/rclone/
 |---|---|
 | Monitor Type | `Push` |
 | Friendly Name | `rclone - Backup repo` (สร้างแยกอีกตัวสำหรับ `rclone - Specs sync`) |
-| Heartbeat Interval | ตั้งมากกว่ารอบ cron เล็กน้อย เช่น backup รายวัน ตั้ง ~1500 วินาที |
+| Heartbeat Interval | ตั้งมากกว่ารอบ cron เล็กน้อย เช่น backup ทุก 12 ชม. ตั้ง ~43800 วินาที, specs ทุก 4 ชม. ตั้ง ~15000 วินาที |
 
 บันทึกแล้วจะได้ **Push URL** รูปแบบ:
 ```
@@ -236,9 +236,9 @@ sudo crontab -u np-dms -e
 ```
 
 ```cron
-0 1 * * * /bin/sh -c '/usr/bin/rclone sync /opt/np-dms-lcbp3 gdrive:backups/lcbp3-repo --exclude ".git/**" --exclude "node_modules/**" --exclude "dist/**" --exclude ".env" --log-file=/var/log/rclone/backup.log --log-level INFO && curl -fsS "https://uptime.np-dms.work/api/push/RD64Hz4JdgbWKAJLoLVGHjDmjowMwfHi?status=up&msg=OK" || curl -fsS "https://uptime.np-dms.work/api/push/RD64Hz4JdgbWKAJLoLVGHjDmjowMwfHi?status=down&msg=rclone_failed"'
+0 0,12 * * * /bin/sh -c '/usr/bin/rclone sync /opt/np-dms-lcbp3 gdrive:backups/lcbp3-repo --exclude ".git/**" --exclude "node_modules/**" --exclude "dist/**" --exclude ".env" --log-file=/var/log/rclone/backup.log --log-level INFO && curl -fsS "https://uptime.np-dms.work/api/push/RD64Hz4JdgbWKAJLoLVGHjDmjowMwfHi?status=up&msg=OK" || curl -fsS "https://uptime.np-dms.work/api/push/RD64Hz4JdgbWKAJLoLVGHjDmjowMwfHi?status=down&msg=rclone_failed"'
 
-0 8,10,12,14,16,18 * * * /bin/sh -c '/usr/bin/rclone sync /opt/np-dms-lcbp3/specs gdrive:shared/lcbp3-specs --log-file=/var/log/rclone/specs.log --log-level INFO && curl -fsS "https://uptime.np-dms.work/api/push/va1hlAh8fawmq1nfjZAkoMCncx907wZX?status=up&msg=OK" || curl -fsS "https://uptime.np-dms.work/api/push/va1hlAh8fawmq1nfjZAkoMCncx907wZX?status=down&msg=rclone_failed"'
+0 3,7,11,15,19,23 * * * /bin/sh -c '/usr/bin/rclone sync /opt/np-dms-lcbp3/specs gdrive:shared/lcbp3-specs --log-file=/var/log/rclone/specs.log --log-level INFO && curl -fsS "https://uptime.np-dms.work/api/push/va1hlAh8fawmq1nfjZAkoMCncx907wZX?status=up&msg=OK" || curl -fsS "https://uptime.np-dms.work/api/push/va1hlAh8fawmq1nfjZAkoMCncx907wZX?status=down&msg=rclone_failed"'
 ```
 
 > **ข้อควรระวัง:** ใช้แค่ `<base URL>?status=up&msg=...` เท่านั้น — อย่า copy ทั้ง URL ที่ Uptime Kuma แสดงมาเต็ม ๆ (ซึ่งมี `?status=up&msg=OK&ping=` ติดมาอยู่แล้ว) มาต่อ query string เพิ่มอีกชุด จะกลายเป็น URL ซ้อนกันสองชุดและได้ error 404

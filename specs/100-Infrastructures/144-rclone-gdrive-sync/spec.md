@@ -1,6 +1,7 @@
 // File: specs/100-Infrastructures/144-rclone-gdrive-sync/spec.md
 // Change Log:
 // - 2026-08-17: Initial specification — migrated from docs/Rclone gdrive sync setup.md
+// - 2026-08-17: Update cron schedule to 00:00/12:00 and 03/07/11/15/19/23 to match deployed crontab
 
 # Feature Specification: Rclone Google Drive Sync — Offsite Repo Backup & Specs Sharing
 
@@ -9,14 +10,14 @@
 **Status**: Implemented
 **Category**: 100-Infrastructures
 **Source**: `docs/Rclone gdrive sync setup.md` (runbook ที่ใช้งานจริงบน `np-dms-lcbp3` แล้ว)
-**Input**: User description: "ตั้ง sync ระหว่าง repo `/opt/np-dms-lcbp3` กับ Google Drive ผ่าน rclone — (1) backup repo ทั้งหมด daily, (2) แชร์ folder specs/docs กับทีมทุก 2 ชม. ในเวลาทำงาน"
+**Input**: User description: "ตั้ง sync ระหว่าง repo `/opt/np-dms-lcbp3` กับ Google Drive ผ่าน rclone — (1) backup repo ทั้งหมด เวลา 00:00 และ 12:00 ทุกวัน, (2) แชร์ folder specs/docs กับทีมทุก 4 ชม. (03:00, 07:00, 11:00, 15:00, 19:00, 23:00)"
 
 ## บทสรุป
 
 ติดตั้งและตั้งค่า rclone เพื่อ sync ข้อมูลจากเครื่อง `np-dms-lcbp3` (192.168.10.11) ไป Google Drive แบบ one-way ในนาม user `np-dms` ผ่าน cron สอง job:
 
-- **Job A — Backup repo**: `rclone sync /opt/np-dms-lcbp3 gdrive:backups/lcbp3-repo` เวลา 01:00 ทุกวัน (exclude `.git`, `node_modules`, `dist`, `.env`)
-- **Job B — Sync specs/docs**: `rclone sync /opt/np-dms-lcbp3/specs gdrive:shared/lcbp3-specs` เวลา 08:00, 10:00, 12:00, 14:00, 16:00, 18:00 ทุกวัน
+- **Job A — Backup repo**: `rclone sync /opt/np-dms-lcbp3 gdrive:backups/lcbp3-repo` เวลา 00:00 และ 12:00 ทุกวัน (exclude `.git`, `node_modules`, `dist`, `.env`)
+- **Job B — Sync specs/docs**: `rclone sync /opt/np-dms-lcbp3/specs gdrive:shared/lcbp3-specs` เวลา 03:00, 07:00, 11:00, 15:00, 19:00, 23:00 ทุกวัน
 
 ทั้งสอง job ผูกกับ Uptime Kuma Push Monitor (Tier 4 ตาม `docs/MONITORING-PLAN.md`) เพื่อ alert เมื่อ sync ล้มเหลว และมี logrotate คุมขนาด log ที่ `/var/log/rclone/`
 
@@ -35,14 +36,14 @@ As a DevOps administrator, I need the entire LCBP3-DMS repository (`/opt/np-dms-
 1. **Given** rclone ติดตั้งและ config remote `gdrive` แล้ว, **When** รัน `rclone lsd gdrive:`, **Then** ระบบแสดงรายชื่อ folder ใน Google Drive โดยไม่มี error
 2. **Given** remote `gdrive` ใช้งานได้, **When** รัน `rclone sync /opt/np-dms-lcbp3 gdrive:backups/lcbp3-repo --exclude ".git/**" --exclude "node_modules/**" --exclude "dist/**" --exclude ".env" --dry-run -v`, **Then** dry-run log ไม่แสดงการ transfer ของ `.git/`, `node_modules/`, `dist/`, หรือ `.env`
 3. **Given** dry-run ผ่าน, **When** รัน sync จริง, **Then** `rclone size gdrive:backups/lcbp3-repo` รายงานขนาด > 0 และ `rclone ls gdrive:backups/lcbp3-repo --include ".env"` คืนผลลัพธ์ว่าง (ไม่มี `.env` หลุดไป)
-4. **Given** cron job ของ user `np-dms` มี Job A ตั้งเวลา 01:00 ทุกวัน, **When** ตรวจ `sudo crontab -u np-dms -l`, **Then** พบบรรทัด Job A ครบทั้ง exclude flags + log-file + Uptime Kuma push
+4. **Given** cron job ของ user `np-dms` มี Job A ตั้งเวลา 00:00 และ 12:00 ทุกวัน, **When** ตรวจ `sudo crontab -u np-dms -l`, **Then** พบบรรทัด Job A ครบทั้ง exclude flags + log-file + Uptime Kuma push
 5. **Given** Job A รันสำเร็จ, **When** ตรวจ Uptime Kuma monitor `rclone - Backup repo`, **Then** heartbeat ล่าสุดมีสถานะ "Up" และเวลาตรงกับการรัน
 
 ---
 
 ### User Story 2 - แชร์ Specs/Docs กับทีมผ่าน Google Drive (Priority: P2)
 
-As a project lead, I need the `specs/` folder shared to Google Drive every 2 hours during working hours so that team members without direct repo access can read the latest specifications and ADRs.
+As a project lead, I need the `specs/` folder shared to Google Drive every 4 hours so that team members without direct repo access can read the latest specifications and ADRs.
 
 **Why this priority**: การแชร์ specs/docs ช่วยให้ทีมอ่านเอกสารล่าสุดได้โดยไม่ต้อง clone repo ทั้งหมด — เป็น one-way sync (ทีมไม่ควรแก้ไฟล์บน Drive แล้วคาดหวังให้ sync กลับ)
 
@@ -52,7 +53,7 @@ As a project lead, I need the `specs/` folder shared to Google Drive every 2 hou
 
 1. **Given** remote `gdrive` ใช้งานได้, **When** รัน `rclone sync /opt/np-dms-lcbp3/specs gdrive:shared/lcbp3-specs --dry-run -v`, **Then** dry-run แสดงการ transfer เฉพาะไฟล์ใต้ `specs/` เท่านั้น
 2. **Given** dry-run ผ่าน, **When** รัน sync จริง, **Then** โครงสร้าง folder ใน `gdrive:shared/lcbp3-specs` ตรงกับ local `specs/`
-3. **Given** cron job ของ user `np-dms` มี Job B ตั้งเวลา 08:00, 10:00, 12:00, 14:00, 16:00, 18:00, **When** ตรวจ `sudo crontab -u np-dms -l`, **Then** พบบรรทัด Job B ครบทั้ง log-file + Uptime Kuma push
+3. **Given** cron job ของ user `np-dms` มี Job B ตั้งเวลา 03:00, 07:00, 11:00, 15:00, 19:00, 23:00, **When** ตรวจ `sudo crontab -u np-dms -l`, **Then** พบบรรทัด Job B ครบทั้ง log-file + Uptime Kuma push
 4. **Given** Job B รันสำเร็จ, **When** ตรวจ Uptime Kuma monitor `rclone - Specs sync`, **Then** heartbeat ล่าสุดมีสถานะ "Up"
 
 ---
@@ -96,8 +97,8 @@ As a DevOps administrator, I need rclone sync failures to alert via Uptime Kuma 
 
 ### Operational
 - **Cron schedule**:
-  - Job A (Backup repo): `0 1 * * *` (01:00 ทุกวัน)
-  - Job B (Sync specs): `0 8,10,12,14,16,18 * * *` (ทุก 2 ชม. ในเวลาทำงาน)
+  - Job A (Backup repo): `0 0,12 * * *` (00:00 และ 12:00 ทุกวัน)
+  - Job B (Sync specs): `0 3,7,11,15,19,23 * * *` (ทุก 4 ชม.)
 - **Exclude patterns (Job A)**: `.git/**`, `node_modules/**`, `dist/**`, `.env`
 - **Retention**: ควบคุมโดย Google Drive เอง (ไม่มี retention policy เฉพาะ rclone) — ดู `04-02-backup-recovery.md` สำหรับ retention ของ backup อื่น ๆ
 
@@ -110,11 +111,11 @@ As a DevOps administrator, I need rclone sync failures to alert via Uptime Kuma 
 ```
 np-dms-lcbp3 (192.168.10.11)
 └── /opt/np-dms-lcbp3/                ──┐
-    ├── (repo ทั้งหมด)                  │ Job A (01:00 daily)
+    ├── (repo ทั้งหมด)                  │ Job A (00:00, 12:00 daily)
     │   exclude: .git, node_modules,    │   → gdrive:backups/lcbp3-repo
     │            dist, .env             │
     └── specs/                          ──┘
-                                        ──┐ Job B (08-18 ทุก 2 ชม.)
+                                        ──┐ Job B (03/07/11/15/19/23 ทุก 4 ชม.)
                                           │   → gdrive:shared/lcbp3-specs
                                           ──┘
                                               ↓

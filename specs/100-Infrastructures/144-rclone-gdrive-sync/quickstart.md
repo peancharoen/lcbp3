@@ -125,7 +125,7 @@ rclone sync /opt/np-dms-lcbp3/specs gdrive:shared/lcbp3-specs --dry-run -v
 |---|---|
 | Monitor Type | `Push` |
 | Friendly Name | `rclone - Backup repo` (แยกอีกตัวสำหรับ `rclone - Specs sync`) |
-| Heartbeat Interval | มากกว่ารอบ cron เล็กน้อย (เช่น backup daily → ~1500 วินาที) |
+| Heartbeat Interval | มากกว่ารอบ cron เล็กน้อย (เช่น backup ทุก 12 ชม. → ~43800 วินาที หรือ specs ทุก 4 ชม. → ~15000 วินาที) |
 
 บันทึกแล้วจะได้ **Push URL**:
 ```
@@ -151,15 +151,15 @@ sudo crontab -u np-dms -e
 เลือก editor (nano = ตัวเลือก 1) แล้วเพิ่ม:
 
 ```cron
-0 1 * * * /bin/sh -c '/usr/bin/rclone sync /opt/np-dms-lcbp3 gdrive:backups/lcbp3-repo --exclude ".git/**" --exclude "node_modules/**" --exclude "dist/**" --exclude ".env" --log-file=/var/log/rclone/backup.log --log-level INFO && curl -fsS "https://uptime.np-dms.work/api/push/RD64Hz4JdgbWKAJLoLVGHjDmjowMwfHi?status=up&msg=OK" || curl -fsS "https://uptime.np-dms.work/api/push/RD64Hz4JdgbWKAJLoLVGHjDmjowMwfHi?status=down&msg=rclone_failed"'
+0 0,12 * * * /bin/sh -c '/usr/bin/rclone sync /opt/np-dms-lcbp3 gdrive:backups/lcbp3-repo --exclude ".git/**" --exclude "node_modules/**" --exclude "dist/**" --exclude ".env" --log-file=/var/log/rclone/backup.log --log-level INFO && curl -fsS "https://uptime.np-dms.work/api/push/RD64Hz4JdgbWKAJLoLVGHjDmjowMwfHi?status=up&msg=OK" || curl -fsS "https://uptime.np-dms.work/api/push/RD64Hz4JdgbWKAJLoLVGHjDmjowMwfHi?status=down&msg=rclone_failed"'
 
-0 8,10,12,14,16,18 * * * /bin/sh -c '/usr/bin/rclone sync /opt/np-dms-lcbp3/specs gdrive:shared/lcbp3-specs --log-file=/var/log/rclone/specs.log --log-level INFO && curl -fsS "https://uptime.np-dms.work/api/push/va1hlAh8fawmq1nfjZAkoMCncx907wZX?status=up&msg=OK" || curl -fsS "https://uptime.np-dms.work/api/push/va1hlAh8fawmq1nfjZAkoMCncx907wZX?status=down&msg=rclone_failed"'
+0 3,7,11,15,19,23 * * * /bin/sh -c '/usr/bin/rclone sync /opt/np-dms-lcbp3/specs gdrive:shared/lcbp3-specs --log-file=/var/log/rclone/specs.log --log-level INFO && curl -fsS "https://uptime.np-dms.work/api/push/va1hlAh8fawmq1nfjZAkoMCncx907wZX?status=up&msg=OK" || curl -fsS "https://uptime.np-dms.work/api/push/va1hlAh8fawmq1nfjZAkoMCncx907wZX?status=down&msg=rclone_failed"'
 ```
 
 | Job | เวลา | รายละเอียด |
 |---|---|---|
-| Backup repo | 01:00 ทุกวัน | Full backup, exclude `.git`, `node_modules`, `dist`, `.env` |
-| Sync specs/docs | 08:00, 10:00, 12:00, 14:00, 16:00, 18:00 | แชร์เอกสารกับทีม |
+| Backup repo | 00:00, 12:00 ทุกวัน | Full backup, exclude `.git`, `node_modules`, `dist`, `.env` |
+| Sync specs/docs | 03:00, 07:00, 11:00, 15:00, 19:00, 23:00 | แชร์เอกสารกับทีม |
 
 บันทึกด้วย `Ctrl+O` → Enter → ออกด้วย `Ctrl+X`
 

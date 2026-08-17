@@ -29,7 +29,7 @@
 
 ## กฎที่ Lock แล้ว
 
-- **D108:** Rclone GDrive Offsite Backup — one-way sync เท่านั้น (ไม่ใช้ `bisync`); ห้าม sync `.env`/`.git` (ใช้ `--exclude`); ใช้ OAuth Client ของตัวเอง (ไม่ใช่ shared rclone client_id); รันในนาม user `np-dms` ผ่าน `sudo crontab -u np-dms -e` (ห้าม `sudo -u` ซ้อนใน crontab — `$HOME` ผิด → fail เงียบ ๆ); full path `/usr/bin/rclone` ใน crontab; Uptime Kuma Push Monitor (Tier 4) + logrotate weekly; 2 jobs: Backup repo 01:00 daily + Sync specs 08-18 ทุก 2 ชม.
+- **D108:** Rclone GDrive Offsite Backup — one-way sync เท่านั้น (ไม่ใช้ `bisync`); ห้าม sync `.env`/`.git` (ใช้ `--exclude`); ใช้ OAuth Client ของตัวเอง (ไม่ใช่ shared rclone client_id); รันในนาม user `np-dms` ผ่าน `sudo crontab -u np-dms -e` (ห้าม `sudo -u` ซ้อนใน crontab — `$HOME` ผิด → fail เงียบ ๆ); full path `/usr/bin/rclone` ใน crontab; Uptime Kuma Push Monitor (Tier 4) + logrotate weekly; 2 jobs: Backup repo 00:00 และ 12:00 ทุกวัน + Sync specs ทุก 4 ชม. 03/07/11/15/19/23.
 
 ## Verification
 
