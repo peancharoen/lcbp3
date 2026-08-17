@@ -8,6 +8,10 @@ import { DataSource } from 'typeorm';
 import { Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
 import { isDwgFile } from '../constants/dwg-exclusion.constant';
+import {
+  IMPORT_TX_STATUS_PENDING,
+  IMPORT_TX_STATUS_PROCESSING,
+} from '../constants/migration.constants';
 
 /** ผลลัพธ์การ trigger RAG batch (FR-026b) */
 export interface RagBatchResult {
@@ -191,7 +195,8 @@ export class RagBatchService {
   private async checkActiveImportBatches(): Promise<string | undefined> {
     try {
       const rows = await this.dataSource.query<{ active_count: number }[]>(
-        "SELECT COUNT(*) as active_count FROM import_transactions WHERE status IN ('PENDING', 'PROCESSING')"
+        'SELECT COUNT(*) as active_count FROM import_transactions WHERE status IN (?, ?)',
+        [IMPORT_TX_STATUS_PENDING, IMPORT_TX_STATUS_PROCESSING]
       );
       if (rows.length > 0 && rows[0].active_count > 0) {
         return 'IMPORT_IN_PROGRESS';

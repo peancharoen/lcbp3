@@ -29,6 +29,7 @@ export enum CompareStatus {
 @Entity('migration_review_queue')
 export class MigrationReviewQueue extends UuidBaseEntity {
   @PrimaryGeneratedColumn()
+  @Exclude()
   id!: number;
 
   @Column({ name: 'document_number', length: 100, unique: true })

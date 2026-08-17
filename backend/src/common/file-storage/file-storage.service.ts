@@ -1,6 +1,8 @@
 // File: backend/src/common/file-storage/file-storage.service.ts
 // Change Log:
 // - 2026-08-06: เพิ่ม ALLOWED_UPLOAD_MIME_TYPES constant สำหรับ FR-004 (PDF, DOCX, DWG, XLSX, ZIP)
+// - 2026-08-17: Phase 2.3 — เพิ่ม magic bytes validation ใน upload และ importStagingFile
+//   เพื่อป้องกัน MIME spoofing (Issue #3, ADR-016)
 import {
   Injectable,
   NotFoundException,
@@ -23,6 +25,7 @@ import {
   QUEUE_AI_BATCH,
   QUEUE_AI_REALTIME,
 } from '../../modules/common/constants/queue.constants';
+import { validateFileType } from './file-magic-bytes.util';
 
 /**
  * รายการ MIME types ที่อนุญาตสำหรับ upload (FR-004)
@@ -97,6 +100,21 @@ export class FileStorageService {
   async upload(file: Express.Multer.File, userId: number): Promise<Attachment> {
     // Fix: แปลงชื่อไฟล์จาก Latin1 → UTF-8 (Multer/busboy decodes as Latin1 by default)
     const originalFilename = this.fixMulterFilename(file.originalname);
+
+    // Phase 2.3: Magic bytes validation — ตรวจสอบไฟล์จริง ไม่ trust client MIME
+    const fileTypeResult = validateFileType(
+      file.buffer,
+      originalFilename,
+      file.mimetype
+    );
+    if (!fileTypeResult.valid) {
+      this.logger.warn(
+        `Magic bytes validation failed for "${originalFilename}": ${fileTypeResult.reason}`
+      );
+      throw new BadRequestException(
+        `File type validation failed: ${fileTypeResult.reason}`
+      );
+    }
 
     // 1. คำนวณ Checksum (SHA-256) เพื่อความปลอดภัยและความถูกต้องของไฟล์
     const checksum = this.calculateChecksum(file.buffer);
@@ -408,15 +426,41 @@ export class FileStorageService {
     userId: number,
     options?: { issueDate?: Date; documentType?: string }
   ): Promise<Attachment> {
-    if (!(await fs.pathExists(sourceFilePath))) {
-      this.logger.error(`Staging file not found: ${sourceFilePath}`);
-      throw new NotFoundException(`Source file not found: ${sourceFilePath}`);
+    // ADR-016: Path Traversal Guard — ตรวจสอบว่า sourceFilePath อยู่ภายใต้
+    // staging directory (tempDir หรือ MIGRATION_STAGING_DIR) เท่านั้น
+    const resolvedSource = path.resolve(sourceFilePath);
+    const allowedStagingRoots = [
+      path.resolve(this.tempDir),
+      path.resolve(
+        this.configService.get<string>('MIGRATION_STAGING_DIR') ||
+          path.join(process.cwd(), 'uploads', 'staging')
+      ),
+    ];
+    // Note: constants สำหรับ staging dir อยู่ใน migration.constants.ts
+    // file-storage เป็น common module จึงไม่ import migration constants โดยตรง
+    // (avoid circular dependency between common/ and modules/)
+    const isWithinAllowed = allowedStagingRoots.some(
+      (root) =>
+        resolvedSource === root || resolvedSource.startsWith(root + path.sep)
+    );
+    if (!isWithinAllowed) {
+      this.logger.warn(
+        `Path traversal blocked in importStagingFile: "${sourceFilePath}" resolves outside allowed staging dirs`
+      );
+      throw new BadRequestException(
+        'Invalid staging file path — access denied (path traversal guard)'
+      );
+    }
+
+    if (!(await fs.pathExists(resolvedSource))) {
+      this.logger.error(`Staging file not found: ${resolvedSource}`);
+      throw new NotFoundException(`Source file not found: ${resolvedSource}`);
     }
 
     // 1. Get file stats & checksum
-    const stats = await fs.stat(sourceFilePath);
-    const fileExt = path.extname(sourceFilePath);
-    const originalFilename = path.basename(sourceFilePath);
+    const stats = await fs.stat(resolvedSource);
+    const fileExt = path.extname(resolvedSource);
+    const originalFilename = path.basename(resolvedSource);
     const storedFilename = `${uuidv4()}${fileExt}`;
 
     // Determine mime type basic
@@ -426,7 +470,27 @@ export class FileStorageService {
       mimeType =
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
-    const fileBuffer = await fs.readFile(sourceFilePath);
+    const fileBuffer = await fs.readFile(resolvedSource);
+
+    // Phase 2.3: Magic bytes validation — ตรวจสอบไฟล์จริงก่อน commit
+    const fileTypeResult = validateFileType(
+      fileBuffer,
+      originalFilename,
+      mimeType
+    );
+    if (!fileTypeResult.valid) {
+      this.logger.warn(
+        `Magic bytes validation failed for staging file "${originalFilename}": ${fileTypeResult.reason}`
+      );
+      throw new BadRequestException(
+        `Staging file type validation failed: ${fileTypeResult.reason}`
+      );
+    }
+    // Override MIME ด้วยค่าที่ตรวจพบจริง (ถ้ามี)
+    if (fileTypeResult.detectedMimeType) {
+      mimeType = fileTypeResult.detectedMimeType;
+    }
+
     const checksum = this.calculateChecksum(fileBuffer);
 
     // 2. Generate Permanent Path
@@ -448,7 +512,7 @@ export class FileStorageService {
 
     // 3. Move File
     try {
-      await fs.move(sourceFilePath, newPath, { overwrite: true });
+      await fs.move(resolvedSource, newPath, { overwrite: true });
     } catch (error) {
       this.logger.error(`Failed to move staging file to ${newPath}`, error);
       throw new BadRequestException('Failed to process staging file');

@@ -2,9 +2,13 @@
 // Change Log:
 // - 2026-08-06: Initial creation
 // - 2026-08-07: Added tests for resolve-batch, trigger-rag-batch, review-thresholds endpoints
+// - 2026-08-17: Updated tests for ADR-016/019 compliance — Idempotency-Key
+//   missing now throws ValidationException (not return 400 object), undefined
+//   user now throws UnauthorizedException (not fallback to 0). Issue #3.
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { Reflector } from '@nestjs/core';
+import { UnauthorizedException } from '@nestjs/common';
 import { MigrationController } from './migration.controller';
 import { MigrationService } from './migration.service';
 import { MetadataResolutionService } from './services/metadata-resolution.service';
@@ -13,6 +17,7 @@ import { RagBatchService } from './services/rag-batch.service';
 import { UserService } from '../user/user.service';
 import { ImportCorrespondenceDto } from './dto/import-correspondence.dto';
 import { User } from '../user/entities/user.entity';
+import { ValidationException } from '../../common/exceptions';
 
 describe('MigrationController', () => {
   let controller: MigrationController;
@@ -153,13 +158,10 @@ describe('MigrationController', () => {
       );
     });
 
-    it('returns 400 error when Idempotency-Key is missing', async () => {
-      const result = await controller.resolveBatch({ batchId: 'b1' });
-
-      expect(result).toEqual({
-        error: 'Idempotency-Key header is required (FR-029)',
-        statusCode: 400,
-      });
+    it('throws ValidationException when Idempotency-Key is missing (ADR-016)', async () => {
+      await expect(controller.resolveBatch({ batchId: 'b1' })).rejects.toThrow(
+        ValidationException
+      );
       expect(metadataResolutionService.resolveBatch).not.toHaveBeenCalled();
     });
   });
@@ -208,34 +210,44 @@ describe('MigrationController', () => {
       expect(result).toEqual(mockResult);
     });
 
-    it('uses user_id 0 when user is undefined', async () => {
+    it('throws UnauthorizedException when user is undefined (ADR-016)', async () => {
       reviewThresholdService.updateThresholds.mockResolvedValue({
         maxMismatchFields: 3,
         minConfidence: 0.7,
       });
 
-      await controller.updateReviewThresholds(
-        { maxMismatchFields: 3 },
-        'idem-key-004',
-        undefined
-      );
-
-      expect(reviewThresholdService.updateThresholds).toHaveBeenCalledWith(
-        { maxMismatchFields: 3, minConfidence: undefined },
-        0
-      );
+      await expect(
+        controller.updateReviewThresholds(
+          { maxMismatchFields: 3 },
+          'idem-key-004',
+          undefined as unknown as User
+        )
+      ).rejects.toThrow(UnauthorizedException);
+      expect(reviewThresholdService.updateThresholds).not.toHaveBeenCalled();
     });
 
-    it('returns 400 error when Idempotency-Key is missing', async () => {
-      const result = await controller.updateReviewThresholds(
-        { maxMismatchFields: 5 },
-        undefined
-      );
+    it('throws ValidationException when Idempotency-Key is missing (ADR-016)', async () => {
+      const user: User = {
+        user_id: 42,
+        username: 'admin',
+        password: 'hashed',
+        email: 'admin@test.com',
+        publicId: 'uuid-admin',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isActive: true,
+        failedAttempts: 0,
+        primaryOrganizationPublicId: undefined,
+        generatePublicId: jest.fn(),
+      };
 
-      expect(result).toEqual({
-        error: 'Idempotency-Key header is required',
-        statusCode: 400,
-      });
+      await expect(
+        controller.updateReviewThresholds(
+          { maxMismatchFields: 5 },
+          undefined,
+          user
+        )
+      ).rejects.toThrow(ValidationException);
       expect(reviewThresholdService.updateThresholds).not.toHaveBeenCalled();
     });
   });
@@ -288,13 +300,10 @@ describe('MigrationController', () => {
       expect(ragBatchService.triggerRagBatch).toHaveBeenCalledWith(undefined);
     });
 
-    it('returns 400 error when Idempotency-Key is missing', async () => {
-      const result = await controller.triggerRagBatch({ batchId: 'b1' });
-
-      expect(result).toEqual({
-        error: 'Idempotency-Key header is required (FR-029)',
-        statusCode: 400,
-      });
+    it('throws ValidationException when Idempotency-Key is missing (ADR-016)', async () => {
+      await expect(
+        controller.triggerRagBatch({ batchId: 'b1' })
+      ).rejects.toThrow(ValidationException);
       expect(ragBatchService.triggerRagBatch).not.toHaveBeenCalled();
     });
   });

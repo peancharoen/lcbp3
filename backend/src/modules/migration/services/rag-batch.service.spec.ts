@@ -399,11 +399,13 @@ describe('RagBatchService (Feature 242)', () => {
     it('passes batchId to fetchRagCandidates when provided', async () => {
       setupCandidates([]);
       await service.triggerRagBatch('batch-scope-123');
-      // query should have been called with batchId in params
-      const lastCall = dataSource.query.mock.calls[0];
-      if (lastCall && Array.isArray(lastCall[1])) {
-        expect(lastCall[1]).toContain('batch-scope-123');
-      }
+      // ค้นหา query call ที่มี batchId ใน params (ข้าม checkActiveImportBatches ที่เป็น query แรก)
+      const candidateCall = dataSource.query.mock.calls.find(
+        (call: unknown[]) =>
+          Array.isArray(call[1]) &&
+          (call[1] as unknown[]).includes('batch-scope-123')
+      );
+      expect(candidateCall).toBeDefined();
     });
 
     it('passes correct job data to queue.add', async () => {

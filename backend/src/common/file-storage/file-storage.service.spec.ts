@@ -1,6 +1,8 @@
 // File: src/common/file-storage/file-storage.service.spec.ts
 // Change Log:
 // - 2026-08-01: เพิ่ม unit tests สำหรับ checksum dedup (Tier 2 #9) — ครอบ dedup hit, dedup miss, expired temp, different user.
+// - 2026-08-17: Phase 2.3 — อัปเดต mock buffer ให้มี PDF magic bytes จริง
+//   เพื่อผ่าน magic bytes validation (Issue #3, ADR-016)
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { FileStorageService } from './file-storage.service';
@@ -17,6 +19,21 @@ import { Repository } from 'typeorm';
 
 // Mock fs-extra
 jest.mock('fs-extra');
+
+/**
+ * สร้าง buffer ที่มี PDF magic bytes จริง (%PDF-)
+ * ใช้สำหรับ test ที่ต้องผ่าน magic bytes validation
+ */
+function makePdfBuffer(content: string = 'test-content'): Buffer {
+  // %PDF-1.4 + content + EOF marker
+  const header = Buffer.from('%PDF-1.4\n');
+  const body = Buffer.from(content);
+  const padding = Buffer.alloc(
+    Math.max(0, 16 - header.length - body.length),
+    0x00
+  );
+  return Buffer.concat([header, body, padding]);
+}
 
 describe('FileStorageService', () => {
   let service: FileStorageService;
@@ -35,7 +52,7 @@ describe('FileStorageService', () => {
     originalname: 'test.pdf',
     mimetype: 'application/pdf',
     size: 1024,
-    buffer: Buffer.from('test-content'),
+    buffer: makePdfBuffer('test-content'),
   } as Express.Multer.File;
 
   beforeEach(async () => {
@@ -81,7 +98,7 @@ describe('FileStorageService', () => {
     (fs.move as unknown as jest.Mock).mockResolvedValue(undefined);
     (fs.remove as unknown as jest.Mock).mockResolvedValue(undefined);
     (fs.readFile as unknown as jest.Mock).mockResolvedValue(
-      Buffer.from('test')
+      makePdfBuffer('test')
     );
     (fs.stat as unknown as jest.Mock).mockResolvedValue({ size: 1024 });
     (fs.ensureDir as unknown as jest.Mock).mockResolvedValue(undefined);

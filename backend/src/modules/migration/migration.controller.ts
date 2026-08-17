@@ -8,9 +8,10 @@ import {
   Param,
   Query,
   Res,
-  ParseIntPipe,
+  ParseUUIDPipe,
   Patch,
   HttpCode,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { MigrationService } from './migration.service';
 import { ImportCorrespondenceDto } from './dto/import-correspondence.dto';
@@ -36,7 +37,34 @@ import { MigrationQueueQueryDto } from './dto/migration-queue-query.dto';
 import { MetadataResolutionService } from './services/metadata-resolution.service';
 import { ReviewThresholdService } from './services/review-threshold.service';
 import { RagBatchService } from './services/rag-batch.service';
+import { ValidationException } from '../../common/exceptions';
 import type { Response } from 'express';
+
+/**
+ * Helper: บังคับให้ user ต้องมี user_id จริง (ADR-016)
+ * ห้ามใช้ hardcoded fallback (เช่น `|| 5`) เพราะจะทำให้ audit log
+ * ระบุตัวตนผิดและ bypass RBAC ได้
+ */
+function requireUserId(user: User | undefined): number {
+  if (!user?.user_id) {
+    throw new UnauthorizedException(
+      'Authentication context missing user identity'
+    );
+  }
+  return user.user_id;
+}
+
+/**
+ * Helper: บังคับ Idempotency-Key header จริง (ADR-016)
+ * ใช้ร่วมกับ @ApiHeader({ required: true }) และส่งเข้า service
+ * เพื่อบันทึกลง import_transactions ป้องกัน duplicate submit
+ */
+function requireIdempotencyKey(key: string | undefined): string {
+  if (!key) {
+    throw new ValidationException('Idempotency-Key header is required');
+  }
+  return key;
+}
 
 @ApiTags('Migration')
 @ApiBearerAuth()
@@ -50,7 +78,8 @@ export class MigrationController {
   ) {}
 
   @Post('import')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @RequirePermission('migration.import')
   @ApiOperation({
     summary: 'Import generic legacy correspondence record via n8n integration',
   })
@@ -62,19 +91,17 @@ export class MigrationController {
   })
   async importCorrespondence(
     @Body() dto: ImportCorrespondenceDto,
-    @Headers('idempotency-key') idempotencyKey: string,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
     @CurrentUser() user: User
   ) {
-    const userId = user?.user_id || 5;
-    return this.migrationService.importCorrespondence(
-      dto,
-      idempotencyKey,
-      userId
-    );
+    const userId = requireUserId(user);
+    const key = requireIdempotencyKey(idempotencyKey);
+    return this.migrationService.importCorrespondence(dto, key, userId);
   }
 
   @Post('commit_batch')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @RequirePermission('migration.commit')
   @ApiOperation({
     summary: 'Batch approve and import migration review queue items',
   })
@@ -86,15 +113,17 @@ export class MigrationController {
   })
   async commitBatch(
     @Body() dto: CommitBatchDto,
-    @Headers('idempotency-key') idempotencyKey: string,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
     @CurrentUser() user: User
   ) {
-    const userId = user?.user_id || 5;
-    return this.migrationService.commitBatch(dto, idempotencyKey, userId);
+    const userId = requireUserId(user);
+    const key = requireIdempotencyKey(idempotencyKey);
+    return this.migrationService.commitBatch(dto, key, userId);
   }
 
   @Post('queue')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @RequirePermission('migration.enqueue')
   @ApiOperation({
     summary: 'Enqueue a record into the staging migration review queue',
   })
@@ -103,29 +132,35 @@ export class MigrationController {
   }
 
   @Get('queue')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @RequirePermission('migration.view')
   @ApiOperation({ summary: 'Get migration review queue' })
   async getReviewQueue(@Query() query: MigrationQueueQueryDto) {
     return this.migrationService.getReviewQueue(query);
   }
 
-  @Get('queue/:id')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Get a specific queue item by ID' })
-  @ApiParam({ name: 'id', type: Number })
-  async getQueueItemById(@Param('id', ParseIntPipe) id: number) {
-    return this.migrationService.getQueueItemById(id);
+  @Get('queue/:publicId')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @RequirePermission('migration.view')
+  @ApiOperation({ summary: 'Get a specific queue item by publicId (ADR-019)' })
+  @ApiParam({ name: 'publicId', type: String, format: 'uuid' })
+  async getQueueItemByPublicId(
+    @Param('publicId', ParseUUIDPipe) publicId: string
+  ) {
+    return this.migrationService.getQueueItemByPublicId(publicId);
   }
 
   @Post('errors')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @RequirePermission('migration.error_log')
   @ApiOperation({ summary: 'Log a migration error from n8n workflow' })
   async createError(@Body() dto: CreateMigrationErrorDto) {
     return this.migrationService.createError(dto);
   }
 
   @Get('errors')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @RequirePermission('migration.view')
   @ApiOperation({ summary: 'Get migration errors' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
@@ -136,10 +171,11 @@ export class MigrationController {
     return this.migrationService.getErrors(page, limit);
   }
 
-  @Post('queue/:id/approve')
-  @UseGuards(JwtAuthGuard)
+  @Post('queue/:publicId/approve')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @RequirePermission('migration.commit')
   @ApiOperation({ summary: 'Approve and import a queued migration item' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'publicId', type: String, format: 'uuid' })
   @ApiHeader({
     name: 'Idempotency-Key',
     description:
@@ -147,35 +183,40 @@ export class MigrationController {
     required: true,
   })
   async approveQueueItem(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('publicId', ParseUUIDPipe) publicId: string,
     @Body() dto: ImportCorrespondenceDto,
-    @Headers('idempotency-key') idempotencyKey: string,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
     @CurrentUser() user: User
   ) {
-    const userId = user?.user_id || 5;
-    return this.migrationService.approveQueueItem(
-      id,
+    const userId = requireUserId(user);
+    const key = requireIdempotencyKey(idempotencyKey);
+    return this.migrationService.approveQueueItemByPublicId(
+      publicId,
       dto,
-      idempotencyKey,
+      key,
       userId
     );
   }
 
-  @Post('queue/:id/reject')
-  @UseGuards(JwtAuthGuard)
+  @Post('queue/:publicId/reject')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @RequirePermission('migration.commit')
   @ApiOperation({ summary: 'Reject a queued migration item' })
-  @ApiParam({ name: 'id', type: Number })
+  @ApiParam({ name: 'publicId', type: String, format: 'uuid' })
   async rejectQueueItem(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('publicId', ParseUUIDPipe) publicId: string,
     @CurrentUser() user: User
   ) {
-    const userId = user?.user_id || 5;
-    return this.migrationService.rejectQueueItem(id, userId);
+    const userId = requireUserId(user);
+    return this.migrationService.rejectQueueItemByPublicId(publicId, userId);
   }
 
   @Get('staging-file')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Stream a file from staging' })
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @RequirePermission('migration.view')
+  @ApiOperation({
+    summary: 'Stream a file from staging (path-traversal guarded)',
+  })
   @ApiQuery({ name: 'path', required: true, type: String })
   getStagingFile(@Query('path') filePath: string, @Res() res: Response) {
     const stream = this.migrationService.getStagingFileStream(filePath);
@@ -202,18 +243,10 @@ export class MigrationController {
   })
   async resolveBatch(
     @Body() dto: ResolveBatchDto,
-    @Headers('idempotency-key') idempotencyKey?: string
+    @Headers('idempotency-key') idempotencyKey: string | undefined
   ) {
-    if (!idempotencyKey) {
-      return {
-        error: 'Idempotency-Key header is required (FR-029)',
-        statusCode: 400,
-      };
-    }
-    const result = await this.metadataResolutionService.resolveBatch(
-      dto.batchId
-    );
-    return result;
+    requireIdempotencyKey(idempotencyKey);
+    return this.metadataResolutionService.resolveBatch(dto.batchId);
   }
 
   // Feature 242 — T033: GET /api/migration/review-thresholds (admin-only)
@@ -243,23 +276,18 @@ export class MigrationController {
   })
   async updateReviewThresholds(
     @Body() body: { maxMismatchFields?: number; minConfidence?: number },
-    @Headers('idempotency-key') idempotencyKey?: string,
-    @CurrentUser() user?: User
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @CurrentUser() user: User
   ) {
-    if (!idempotencyKey) {
-      return {
-        error: 'Idempotency-Key header is required',
-        statusCode: 400,
-      };
-    }
-    const result = await this.reviewThresholdService.updateThresholds(
+    requireIdempotencyKey(idempotencyKey);
+    const userId = requireUserId(user);
+    return this.reviewThresholdService.updateThresholds(
       {
         maxMismatchFields: body.maxMismatchFields,
         minConfidence: body.minConfidence,
       },
-      user?.user_id ?? 0
+      userId
     );
-    return result;
   }
 
   // Feature 242 — T054: POST /api/migration/trigger-rag-batch (FR-026b)
@@ -279,15 +307,9 @@ export class MigrationController {
   @HttpCode(202)
   async triggerRagBatch(
     @Body() dto: TriggerRagBatchDto,
-    @Headers('idempotency-key') idempotencyKey?: string
+    @Headers('idempotency-key') idempotencyKey: string | undefined
   ) {
-    if (!idempotencyKey) {
-      return {
-        error: 'Idempotency-Key header is required (FR-029)',
-        statusCode: 400,
-      };
-    }
-    const result = await this.ragBatchService.triggerRagBatch(dto.batchId);
-    return result;
+    requireIdempotencyKey(idempotencyKey);
+    return this.ragBatchService.triggerRagBatch(dto.batchId);
   }
 }

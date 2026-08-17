@@ -2,6 +2,9 @@
 // Change Log:
 // - 2026-05-22: Initial creation for US2 - Migration Review Queue Commit (T020a)
 // - 2026-05-22: Integrated UuidResolverService to resolve hybrid identifiers (T020a)
+// - 2026-08-17: ADR-016/002/007 compliance — รับ idempotencyKey จริง, ลบ hardcoded
+//   fallback `|| 1` / `|| 3`, ใช้ BusinessException สำหรับ missing master data,
+//   ใช้ SELECT FOR UPDATE ป้องกัน revision race condition (Issue #3)
 
 import { Injectable, Logger } from '@nestjs/common';
 import { DataSource } from 'typeorm';
@@ -21,11 +24,20 @@ import { RfaRevision } from '../rfa/entities/rfa-revision.entity';
 import { CommitMigrationReviewDto } from './dto/commit-migration-review.dto';
 import { UuidResolverService } from '../../common/services/uuid-resolver.service';
 import {
+  BusinessException,
   ConflictException,
   NotFoundException,
   SystemException,
   ValidationException,
 } from '../../common/exceptions';
+import {
+  RFA_TYPE_CODE_GENERIC,
+  RFA_STATUS_CODE_APPROVED,
+  CORRESPONDENCE_STATUS_CLBOWN,
+  CORRESPONDENCE_STATUS_DRAFT,
+  BATCH_ID_HUMAN_REVIEW,
+  IMPORT_TX_STATUS_SUCCESS,
+} from './constants/migration.constants';
 
 const readTagName = (value: Record<string, string>): string => {
   return value.name || value.tagName || '';
@@ -55,12 +67,40 @@ export class MigrationReviewService {
   /**
    * ทำการ Commit ข้อมูลเอกสารจาก Staging Review Queue เข้าระบบจริงอย่างเป็นระบบ
    * มีการทำ SELECT FOR UPDATE เพื่อป้องกันการกดเบิ้ลหรือการทำงานพร้อมกัน
+   *
+   * @param idempotencyKey Idempotency-Key header จาก client (ADR-016) —
+   *   บันทึกลง import_transactions เพื่อตรวจจับ duplicate submit จริง
    */
-  async commitRecord(dto: CommitMigrationReviewDto, userId: number) {
+  async commitRecord(
+    dto: CommitMigrationReviewDto,
+    userId: number,
+    idempotencyKey: string
+  ) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
     try {
+      // ADR-016: ตรวจจับ duplicate submit จริงด้วย idempotencyKey ใน DB
+      const existingTx = await queryRunner.manager.findOne(ImportTransaction, {
+        where: { idempotencyKey },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (existingTx) {
+        if (existingTx.statusCode === 201) {
+          return {
+            success: true,
+            message: 'Already processed (idempotency replay)',
+            transactionId: existingTx.id,
+          };
+        }
+        throw new ConflictException(
+          'MIGRATION_DUPLICATE_TRANSACTION',
+          `Transaction failed previously with status ${existingTx.statusCode}`,
+          'รายการนี้เคยดำเนินการไปแล้วและล้มเหลว',
+          ['ตรวจสอบสถานะ Transaction ก่อนหน้า', 'ลองใช้ Idempotency-Key ใหม่']
+        );
+      }
+
       const queueItem = await queryRunner.manager.findOne(
         MigrationReviewQueue,
         {
@@ -128,11 +168,11 @@ export class MigrationReviewService {
         );
       }
       let status = await queryRunner.manager.findOne(CorrespondenceStatus, {
-        where: { statusCode: 'CLBOWN' },
+        where: { statusCode: CORRESPONDENCE_STATUS_CLBOWN },
       });
       if (!status) {
         status = await queryRunner.manager.findOne(CorrespondenceStatus, {
-          where: { statusCode: 'DRAFT' },
+          where: { statusCode: CORRESPONDENCE_STATUS_DRAFT },
         });
       }
       if (!status) {
@@ -168,11 +208,25 @@ export class MigrationReviewService {
         const isRFA = type?.typeCode === 'RFA' || category === 'RFA';
         if (isRFA) {
           const rfaTypeRes = await queryRunner.manager.query<{ id: number }[]>(
-            "SELECT id FROM rfa_types WHERE type_code = 'GEN' LIMIT 1"
+            'SELECT id FROM rfa_types WHERE type_code = ? LIMIT 1',
+            [RFA_TYPE_CODE_GENERIC]
           );
+          if (!rfaTypeRes[0]?.id) {
+            // ADR-016/007: ห้าม fallback ค่า Master Data อัตโนมัติ — throw เพื่อ
+            // ป้องกัน data corruption และบังคับให้ DBA ตรวจสอบ seed data
+            throw new BusinessException(
+              'RFA_TYPE_NOT_FOUND',
+              `RFA type '${RFA_TYPE_CODE_GENERIC}' not found in rfa_types — seed data missing`,
+              'ไม่พบประเภท RFA ในระบบ กรุณาติดต่อผู้ดูแลระบบเพื่อตรวจสอบข้อมูลมาตรฐาน',
+              [
+                'ติดต่อผู้ดูแลระบบ',
+                'ตรวจสอบตาราง rfa_types ว่ามี type_code=GEN',
+              ]
+            );
+          }
           const rfa = queryRunner.manager.create(Rfa, {
             id: correspondence.id,
-            rfaTypeId: rfaTypeRes[0]?.id || 1,
+            rfaTypeId: rfaTypeRes[0].id,
             createdBy: userId,
           });
           await queryRunner.manager.save(Rfa, rfa);
@@ -243,12 +297,17 @@ export class MigrationReviewService {
         (queueItem.receivedDate
           ? queueItem.receivedDate.toISOString()
           : undefined);
-      const revisionCount = await queryRunner.manager.count(
+      // ADR-002: ป้องกัน revision race condition — ใช้ pessimistic lock ค้นหา
+      // revision ปัจจุบันแทน count() ที่อ่าน snapshot แล้ว race กับ concurrent tx
+      const currentRevisions = await queryRunner.manager.find(
         CorrespondenceRevision,
         {
           where: { correspondenceId: correspondence.id },
+          lock: { mode: 'pessimistic_write' },
+          order: { revisionNumber: 'DESC' },
         }
       );
+      const revisionCount = currentRevisions.length;
       const revNum = revisionCount;
       const revision = queryRunner.manager.create(CorrespondenceRevision, {
         correspondenceId: correspondence.id,
@@ -293,11 +352,25 @@ export class MigrationReviewService {
       const isRFA = type?.typeCode === 'RFA' || category === 'RFA';
       if (isRFA) {
         const rfaStatusRes = await queryRunner.manager.query<{ id: number }[]>(
-          "SELECT id FROM rfa_status_codes WHERE status_code = 'APP' LIMIT 1"
+          'SELECT id FROM rfa_status_codes WHERE status_code = ? LIMIT 1',
+          [RFA_STATUS_CODE_APPROVED]
         );
+        if (!rfaStatusRes[0]?.id) {
+          // ADR-016/007: ห้าม fallback ค่า Master Data อัตโนมัติ — throw เพื่อ
+          // ป้องกัน data corruption และบังคับให้ DBA ตรวจสอบ seed data
+          throw new BusinessException(
+            'RFA_STATUS_NOT_FOUND',
+            `RFA status '${RFA_STATUS_CODE_APPROVED}' not found in rfa_status_codes — seed data missing`,
+            'ไม่พบสถานะ RFA Approved ในระบบ กรุณาติดต่อผู้ดูแลระบบเพื่อตรวจสอบข้อมูลมาตรฐาน',
+            [
+              'ติดต่อผู้ดูแลระบบ',
+              'ตรวจสอบตาราง rfa_status_codes ว่ามี status_code=APP',
+            ]
+          );
+        }
         const rfaRev = queryRunner.manager.create(RfaRevision, {
           id: revision.id,
-          rfaStatusCodeId: rfaStatusRes[0]?.id || 3,
+          rfaStatusCodeId: rfaStatusRes[0].id,
           details: { drawingCount: 0 },
           schemaVersion: 1,
         });
@@ -339,12 +412,13 @@ export class MigrationReviewService {
           [correspondence.id, tagId]
         );
       }
-      const idempotencyKey = `migration_review_${queueItem.id}`;
+      // ADR-016: ใช้ idempotencyKey จริงจาก caller (ไม่ generate ภายใน) เพื่อ
+      // ให้ duplicate submit ที่ใช้ key เดิมถูกตรวจจับที่ด้านบนของ method
       const transaction = queryRunner.manager.create(ImportTransaction, {
         idempotencyKey,
         documentNumber: docNum,
-        batchId: 'HUMAN_REVIEW',
-        statusCode: 201,
+        batchId: BATCH_ID_HUMAN_REVIEW,
+        statusCode: IMPORT_TX_STATUS_SUCCESS,
       });
       await queryRunner.manager.save(transaction);
       queueItem.status = MigrationReviewStatus.IMPORTED;

@@ -1,8 +1,17 @@
 // File: src/modules/migration/migration-review.controller.ts
 // Change Log:
 // - 2026-05-22: Initial creation for US2 - Staging Migration Review Commit (T020b)
+// - 2026-08-17: ADR-016/019 compliance — ลบ hardcoded `|| 5` userId fallback,
+//   ส่ง idempotencyKey เข้า service เพื่อบันทึกลง import_transactions จริง (Issue #3)
 
-import { Controller, Post, Body, Headers, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Headers,
+  UseGuards,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { MigrationReviewService } from './migration-review.service';
 import { CommitMigrationReviewDto } from './dto/commit-migration-review.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -38,13 +47,17 @@ export class MigrationReviewController {
   })
   async commitRecord(
     @Body() dto: CommitMigrationReviewDto,
-    @Headers('idempotency-key') idempotencyKey: string,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
     @CurrentUser() user: User
   ) {
     if (!idempotencyKey) {
       throw new ValidationException('Idempotency-Key header is required');
     }
-    const userId = user?.user_id || 5;
-    return this.reviewService.commitRecord(dto, userId);
+    if (!user?.user_id) {
+      throw new UnauthorizedException(
+        'Authentication context missing user identity'
+      );
+    }
+    return this.reviewService.commitRecord(dto, user.user_id, idempotencyKey);
   }
 }

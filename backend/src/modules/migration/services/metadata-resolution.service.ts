@@ -2,10 +2,17 @@
 // Change Log:
 // - 2026-08-06: Initial creation — stub for Phase 5 implementation (Feature 242, FR-017, FR-018, FR-019, FR-020)
 // - 2026-08-06: Full implementation — set-based SQL resolution + tag creation + timeout guard (T047, T048, T050)
+// - 2026-08-17: Batch operations refactor — รวม per-item UPDATE/INSERT/SELECT เป็น batch SQL
+//   เพื่อกำจัด N+1 queries (Issue #3, Phase 2.1)
 
 import { Injectable, Logger } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { deriveTagName } from '../types/tag-mapping-rule';
+import {
+  QUEUE_STATUS_PENDING,
+  DEFAULT_BATCH_TIMEOUT_MS,
+  SETTING_KEY_BATCH_TIMEOUT,
+} from '../constants/migration.constants';
 
 /** ผลลัพธ์การ resolve batch (FR-019, FR-020) */
 export interface ResolveBatchResult {
@@ -41,10 +48,6 @@ interface QueueItemRegisterData {
     compareResult?: unknown;
   } | null;
 }
-
-/** Default timeout สำหรับ batch resolution (ms) */
-const DEFAULT_BATCH_TIMEOUT_MS = 30000;
-const SETTING_KEY_BATCH_TIMEOUT = 'MIGRATION_RESOLVE_BATCH_TIMEOUT_MS';
 
 /**
  * Service สำหรับ batch SQL resolution ของ register values → reference data links + tags (FR-017, FR-018, FR-019, FR-020)
@@ -105,7 +108,15 @@ export class MetadataResolutionService {
     // FR-017: Set-based resolution ของ disciplines
     const disciplineCodeToIdMap = await this.resolveDisciplines(items);
 
-    // ประมวลผลทีละ item เพื่ออัปเดต queue + รายงาน failures
+    // Phase 2.1: Batch operations — คำนวณ updates + failures สำหรับทุก item ใน memory
+    // ก่อน แล้วจึงทำ batch UPDATE เดียว แทนการ UPDATE ทีละ row ใน loop
+    const allUpdates: Array<{
+      queueId: number;
+      senderOrganizationId?: number;
+      receiverOrganizationId?: number;
+    }> = [];
+    const itemsWithFailures = new Set<number>();
+
     for (const item of items) {
       // T050: ตรวจสอบ deadline
       if (Date.now() > deadline) {
@@ -116,7 +127,7 @@ export class MetadataResolutionService {
         break;
       }
 
-      const itemFailures = await this.processItem(
+      const { updates, itemFailures } = this.computeItemUpdates(
         item,
         orgNameToIdMap,
         typeCodeToIdMap,
@@ -126,15 +137,34 @@ export class MetadataResolutionService {
       if (itemFailures.length > 0) {
         failed += 1;
         failures.push(...itemFailures);
+        itemsWithFailures.add(item.queueId);
       } else {
         succeeded += 1;
       }
 
-      // FR-018: สร้างและเชื่อม tags จาก register fields
-      const tagResult = await this.createAndLinkTags(item);
-      tagsCreated += tagResult.created;
-      tagsLinked += tagResult.linked;
+      if (
+        updates.senderOrganizationId !== undefined ||
+        updates.receiverOrganizationId !== undefined
+      ) {
+        allUpdates.push({
+          queueId: item.queueId,
+          senderOrganizationId: updates.senderOrganizationId,
+          receiverOrganizationId: updates.receiverOrganizationId,
+        });
+      }
     }
+
+    // Batch UPDATE — กำจัด N+1 queries (Phase 2.1)
+    if (allUpdates.length > 0) {
+      await this.applyBatchQueueUpdates(allUpdates);
+    }
+
+    // FR-018: Batch tag creation + linking — กำจัด N+1 INSERT/SELECT ใน loop
+    const tagResult = await this.batchCreateAndLinkTags(
+      items.filter((i) => !itemsWithFailures.has(i.queueId))
+    );
+    tagsCreated += tagResult.created;
+    tagsLinked += tagResult.linked;
 
     const completedAt = new Date();
     this.logger.log(
@@ -172,7 +202,7 @@ export class MetadataResolutionService {
         'queue.receiver_organization_id AS receiverOrganizationId',
         'queue.ai_metadata_json AS details',
       ])
-      .where('queue.status = :status', { status: 'PENDING' });
+      .where('queue.status = :status', { status: QUEUE_STATUS_PENDING });
     // FR-020a: scope by batchId ถ้ามี
     if (batchId) {
       // batchId เก็บใน details หรือ ai_issues
@@ -281,21 +311,33 @@ export class MetadataResolutionService {
     return map;
   }
 
-  /** ประมวลผล item เดียว — อัปเดต queue ด้วย resolved IDs และรายงาน failures (FR-019) */
-  private async processItem(
+  /**
+   * ประมวลผล item เดียวใน memory — คำนวณ updates + failures (FR-019)
+   * Pure function ไม่มี DB call เพื่อให้สามารถรวมเป็น batch ได้ (Phase 2.1)
+   */
+  private computeItemUpdates(
     item: QueueItemRegisterData,
     orgNameToIdMap: Map<string, number>,
     typeCodeToIdMap: Map<string, number>,
     disciplineCodeToIdMap: Map<string, number>
-  ): Promise<ResolveBatchResult['failures']> {
+  ): {
+    updates: {
+      senderOrganizationId?: number;
+      receiverOrganizationId?: number;
+    };
+    itemFailures: ResolveBatchResult['failures'];
+  } {
     const failures: ResolveBatchResult['failures'] = [];
-    const updates: Record<string, unknown> = {};
+    const updates: {
+      senderOrganizationId?: number;
+      receiverOrganizationId?: number;
+    } = {};
 
     // resolve sender org
     if (!item.senderOrganizationId && item.details?.fromOrganization) {
       const orgId = orgNameToIdMap.get(item.details.fromOrganization);
       if (orgId) {
-        updates.sender_organization_id = orgId;
+        updates.senderOrganizationId = orgId;
       } else {
         failures.push({
           correspondencePublicId: item.publicId,
@@ -310,7 +352,7 @@ export class MetadataResolutionService {
     if (!item.receiverOrganizationId && item.details?.toOrganization) {
       const orgId = orgNameToIdMap.get(item.details.toOrganization);
       if (orgId) {
-        updates.receiver_organization_id = orgId;
+        updates.receiverOrganizationId = orgId;
       } else {
         failures.push({
           correspondencePublicId: item.publicId,
@@ -349,63 +391,137 @@ export class MetadataResolutionService {
       }
     }
 
-    // อัปเดต queue item ถ้ามี resolved IDs
-    if (Object.keys(updates).length > 0) {
-      await this.dataSource
-        .getRepository('MigrationReviewQueue')
-        .update(item.queueId, updates);
-    }
-
-    return failures;
+    return { updates, itemFailures: failures };
   }
 
-  /** FR-018, FR-018a: สร้างและเชื่อม tags จาก register fields (deterministic, idempotent) */
-  private async createAndLinkTags(
-    item: QueueItemRegisterData
+  /**
+   * Batch UPDATE migration_review_queue — กำจัด N+1 queries (Phase 2.1)
+   * ใช้ CASE WHEN เพื่ออัปเดตหลาย row ใน query เดียว
+   */
+  private async applyBatchQueueUpdates(
+    updates: Array<{
+      queueId: number;
+      senderOrganizationId?: number;
+      receiverOrganizationId?: number;
+    }>
+  ): Promise<void> {
+    if (updates.length === 0) return;
+
+    const queueIds = updates.map((u) => u.queueId);
+    const hasSenderUpdates = updates.some(
+      (u) => u.senderOrganizationId !== undefined
+    );
+    const hasReceiverUpdates = updates.some(
+      (u) => u.receiverOrganizationId !== undefined
+    );
+
+    // สร้าง CASE WHEN clauses สำหรับแต่ละ field
+    const setClauses: string[] = [];
+    const params: unknown[] = [];
+
+    if (hasSenderUpdates) {
+      const cases = updates
+        .filter((u) => u.senderOrganizationId !== undefined)
+        .map(() => 'WHEN ? THEN ?')
+        .join(' ');
+      setClauses.push(
+        `sender_organization_id = CASE id ${cases} ELSE sender_organization_id END`
+      );
+      for (const u of updates) {
+        if (u.senderOrganizationId !== undefined) {
+          params.push(u.queueId, u.senderOrganizationId);
+        }
+      }
+    }
+
+    if (hasReceiverUpdates) {
+      const cases = updates
+        .filter((u) => u.receiverOrganizationId !== undefined)
+        .map(() => 'WHEN ? THEN ?')
+        .join(' ');
+      setClauses.push(
+        `receiver_organization_id = CASE id ${cases} ELSE receiver_organization_id END`
+      );
+      for (const u of updates) {
+        if (u.receiverOrganizationId !== undefined) {
+          params.push(u.queueId, u.receiverOrganizationId);
+        }
+      }
+    }
+
+    // WHERE id IN (...)
+    const placeholders = queueIds.map(() => '?').join(', ');
+    const sql = `UPDATE migration_review_queue SET ${setClauses.join(', ')} WHERE id IN (${placeholders})`;
+    params.push(...queueIds);
+
+    await this.dataSource.query(sql, params);
+  }
+
+  /**
+   * FR-018, FR-018a: Batch สร้างและเชื่อม tags จาก register fields (Phase 2.1)
+   * กำจัด N+1 INSERT/SELECT ใน loop โดยใช้ multi-row INSERT + SELECT IN
+   */
+  private async batchCreateAndLinkTags(
+    items: QueueItemRegisterData[]
   ): Promise<{ created: number; linked: number }> {
-    if (!item.projectId) return { created: 0, linked: 0 };
-    const tagNames: string[] = [];
-    if (item.details?.disciplineCode) {
-      const tagName = deriveTagName('discipline', item.details.disciplineCode);
-      if (tagName) tagNames.push(tagName);
-    }
-    if (item.details?.correspondenceType) {
-      const tagName = deriveTagName(
-        'correspondenceType',
-        item.details.correspondenceType
-      );
-      if (tagName) tagNames.push(tagName);
-    }
-    if (tagNames.length === 0) return { created: 0, linked: 0 };
-
-    let created = 0;
-    let linked = 0;
-
-    for (const tagName of tagNames) {
-      // FR-018a: INSERT IGNORE — idempotent via unique key (project_id, tag_name)
-      const insertResult = await this.dataSource.query<
-        { affectedRows: number }[]
-      >(
-        'INSERT IGNORE INTO tags (public_id, project_id, tag_name, color_code, created_at, updated_at) VALUES (UUID(), ?, ?, "default", NOW(), NOW())',
-        [item.projectId, tagName]
-      );
-      // ตรวจสอบว่า insert สำเร็จ (affectedRows > 0 แปลว่าสร้างใหม่)
-      if (insertResult[0]?.affectedRows && insertResult[0].affectedRows > 0) {
-        created += 1;
+    // รวบรวม (projectId, tagName) ทั้งหมด
+    const tagTuples: Array<{ projectId: number; tagName: string }> = [];
+    for (const item of items) {
+      if (!item.projectId) continue;
+      if (item.details?.disciplineCode) {
+        const tagName = deriveTagName(
+          'discipline',
+          item.details.disciplineCode
+        );
+        if (tagName) tagTuples.push({ projectId: item.projectId, tagName });
       }
-      // ดึง tag id
-      const tagRows = await this.dataSource.query<{ id: number }[]>(
-        'SELECT id FROM tags WHERE project_id = ? AND tag_name = ? AND deleted_at IS NULL',
-        [item.projectId, tagName]
-      );
-      if (tagRows.length > 0) {
-        const _tagId = tagRows[0].id;
-        // R7: INSERT IGNORE เชื่อม tag กับ correspondence (is_ai_suggested=0 เพราะ deterministic)
-        // หมายเหตุ: ยังไม่มี correspondence_id ในขั้นตอนนี้ — tag linking จะเกิดหลัง commit
-        // แต่เราเก็บ tag IDs ใน extracted_tags ของ queue item เพื่อใช้ตอน commit
-        linked += 1;
+      if (item.details?.correspondenceType) {
+        const tagName = deriveTagName(
+          'correspondenceType',
+          item.details.correspondenceType
+        );
+        if (tagName) tagTuples.push({ projectId: item.projectId, tagName });
       }
     }
+    if (tagTuples.length === 0) return { created: 0, linked: 0 };
+
+    // กรอง duplicates (projectId + tagName ซ้ำ)
+    const seen = new Set<string>();
+    const uniqueTuples = tagTuples.filter((t) => {
+      const key = `${t.projectId}|${t.tagName}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    // Batch INSERT IGNORE — multi-row insert ใน query เดียว
+    const valuesClause = uniqueTuples
+      .map(() => '(UUID(), ?, ?, "default", NOW(), NOW())')
+      .join(', ');
+    const insertParams: unknown[] = [];
+    for (const t of uniqueTuples) {
+      insertParams.push(t.projectId, t.tagName);
+    }
+    const insertResult = await this.dataSource.query<
+      { affectedRows: number }[]
+    >(
+      `INSERT IGNORE INTO tags (public_id, project_id, tag_name, color_code, created_at, updated_at) VALUES ${valuesClause}`,
+      insertParams
+    );
+    // affectedRows รวมทุก row (MariaDB นับเฉพาะที่ insert สำเร็จ)
+    const created =
+      insertResult[0]?.affectedRows !== undefined
+        ? Number(insertResult[0].affectedRows)
+        : 0;
+
+    // Batch SELECT — ดึง tag IDs ทั้งหมดใน query เดียว
+    const projectIds = [...new Set(uniqueTuples.map((t) => t.projectId))];
+    const tagNames = [...new Set(uniqueTuples.map((t) => t.tagName))];
+    const selectRows = await this.dataSource.query<{ id: number }[]>(
+      'SELECT id FROM tags WHERE project_id IN (?) AND tag_name IN (?) AND deleted_at IS NULL',
+      [projectIds, tagNames]
+    );
+    const linked = selectRows.length;
 
     return { created, linked };
   }

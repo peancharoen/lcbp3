@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   BusinessException,
   ConflictException,
@@ -30,13 +31,30 @@ import { createReadStream, existsSync } from 'fs';
 import * as path from 'path';
 import { Rfa } from '../rfa/entities/rfa.entity';
 import { RfaRevision } from '../rfa/entities/rfa-revision.entity';
+import {
+  RFA_TYPE_CODE_GENERIC,
+  RFA_STATUS_CODE_APPROVED,
+  CORRESPONDENCE_STATUS_CLBOWN,
+  CORRESPONDENCE_STATUS_DRAFT,
+  IMPORT_TX_STATUS_SUCCESS,
+  ENV_STAGING_DIR,
+  STAGING_DIR_DEFAULT,
+} from './constants/migration.constants';
+
+/**
+ * ADR-016: โฟลเดอร์ staging ที่อนุญาตให้ stream ได้ — ใช้ env var
+ * MIGRATION_STAGING_DIR (default: ./uploads/staging) ป้องกัน path traversal
+ */
+const STAGING_DIR_FALLBACK = path.join(process.cwd(), STAGING_DIR_DEFAULT);
 
 @Injectable()
 export class MigrationService {
   private readonly logger = new Logger(MigrationService.name);
+  private readonly stagingDir: string;
 
   constructor(
     private readonly dataSource: DataSource,
+    private readonly configService: ConfigService,
     @InjectRepository(ImportTransaction)
     private readonly importTransactionRepo: Repository<ImportTransaction>,
     @InjectRepository(CorrespondenceType)
@@ -50,7 +68,10 @@ export class MigrationService {
     @InjectRepository(MigrationError)
     private readonly errorRepo: Repository<MigrationError>,
     private readonly fileStorageService: FileStorageService
-  ) {}
+  ) {
+    this.stagingDir =
+      this.configService.get<string>(ENV_STAGING_DIR) || STAGING_DIR_FALLBACK;
+  }
 
   async importCorrespondence(
     dto: ImportCorrespondenceDto,
@@ -67,7 +88,7 @@ export class MigrationService {
     });
 
     if (existingTransaction) {
-      if (existingTransaction.statusCode === 201) {
+      if (existingTransaction.statusCode === IMPORT_TX_STATUS_SUCCESS) {
         this.logger.log(
           `Idempotency key ${idempotencyKey} already processed. Returning cached success.`
         );
@@ -125,11 +146,11 @@ export class MigrationService {
 
     // Default status for correspondence
     let status = await this.correspondenceStatusRepo.findOne({
-      where: { statusCode: 'CLBOWN' },
+      where: { statusCode: CORRESPONDENCE_STATUS_CLBOWN },
     });
     if (!status) {
       status = await this.correspondenceStatusRepo.findOne({
-        where: { statusCode: 'DRAFT' },
+        where: { statusCode: CORRESPONDENCE_STATUS_DRAFT },
       });
     }
     if (!status) {
@@ -175,13 +196,26 @@ export class MigrationService {
 
         // --- CTI: insert RFA class ---
         if (isRFA) {
-          // Default RFA type generic mapping
+          // ADR-016: ห้าม fallback ค่า Master Data อัตโนมัติ — throw เพื่อ
+          // ป้องกัน data corruption และบังคับให้ DBA ตรวจสอบ seed data
           const rfaTypeRes = await queryRunner.manager.query<{ id: number }[]>(
-            "SELECT id FROM rfa_types WHERE type_code = 'GEN' LIMIT 1"
+            'SELECT id FROM rfa_types WHERE type_code = ? LIMIT 1',
+            [RFA_TYPE_CODE_GENERIC]
           );
+          if (!rfaTypeRes[0]?.id) {
+            throw new BusinessException(
+              'RFA_TYPE_NOT_FOUND',
+              `RFA type '${RFA_TYPE_CODE_GENERIC}' not found in rfa_types — seed data missing`,
+              'ไม่พบประเภท RFA ในระบบ กรุณาติดต่อผู้ดูแลระบบเพื่อตรวจสอบข้อมูลมาตรฐาน',
+              [
+                'ติดต่อผู้ดูแลระบบ',
+                'ตรวจสอบตาราง rfa_types ว่ามี type_code=GEN',
+              ]
+            );
+          }
           const rfa = queryRunner.manager.create(Rfa, {
             id: correspondence.id,
-            rfaTypeId: rfaTypeRes[0]?.id || 1, // fallback to id 1
+            rfaTypeId: rfaTypeRes[0].id,
             createdBy: userId,
           });
           await queryRunner.manager.save(Rfa, rfa);
@@ -253,12 +287,17 @@ export class MigrationService {
       };
 
       // 5. Create Revision
-      const revisionCount = await queryRunner.manager.count(
+      // ADR-002: ป้องกัน revision race condition — ใช้ pessimistic lock ค้นหา
+      // revision ปัจจุบันแทน count() ที่อ่าน snapshot แล้ว race กับ concurrent tx
+      const currentRevisions = await queryRunner.manager.find(
         CorrespondenceRevision,
         {
           where: { correspondenceId: correspondence.id },
+          lock: { mode: 'pessimistic_write' },
+          order: { revisionNumber: 'DESC' },
         }
       );
+      const revisionCount = currentRevisions.length;
 
       const revNum = revisionCount;
       const revision = queryRunner.manager.create(CorrespondenceRevision, {
@@ -296,14 +335,27 @@ export class MigrationService {
 
       // --- CTI: insert RfaRevision ---
       if (isRFA) {
-        // Map Status code to RFA Equivalent 'APP' (Approved) if exist, or id 3 (typically Approved)
+        // ADR-016: ห้าม fallback ค่า Master Data อัตโนมัติ — throw เพื่อ
+        // ป้องกัน data corruption และบังคับให้ DBA ตรวจสอบ seed data
         const rfaStatusRes = await queryRunner.manager.query<{ id: number }[]>(
-          "SELECT id FROM rfa_status_codes WHERE status_code = 'APP' LIMIT 1"
+          'SELECT id FROM rfa_status_codes WHERE status_code = ? LIMIT 1',
+          [RFA_STATUS_CODE_APPROVED]
         );
+        if (!rfaStatusRes[0]?.id) {
+          throw new BusinessException(
+            'RFA_STATUS_NOT_FOUND',
+            `RFA status '${RFA_STATUS_CODE_APPROVED}' not found in rfa_status_codes — seed data missing`,
+            'ไม่พบสถานะ RFA Approved ในระบบ กรุณาติดต่อผู้ดูแลระบบเพื่อตรวจสอบข้อมูลมาตรฐาน',
+            [
+              'ติดต่อผู้ดูแลระบบ',
+              'ตรวจสอบตาราง rfa_status_codes ว่ามี status_code=APP',
+            ]
+          );
+        }
 
         const rfaRev = queryRunner.manager.create(RfaRevision, {
           id: revision.id,
-          rfaStatusCodeId: rfaStatusRes[0]?.id || 3, // Fallback to 3 if APP not found
+          rfaStatusCodeId: rfaStatusRes[0].id,
           details: {
             // Keep drawingCount as 0 for migration stub
             drawingCount: 0,
@@ -364,7 +416,7 @@ export class MigrationService {
         idempotencyKey,
         documentNumber: dto.documentNumber,
         batchId: dto.batchId,
-        statusCode: 201,
+        statusCode: IMPORT_TX_STATUS_SUCCESS,
       });
       await queryRunner.manager.save(transaction);
 
@@ -570,6 +622,21 @@ export class MigrationService {
     return enriched[0];
   }
 
+  /**
+   * ADR-019: ค้นหา queue item ด้วย publicId (UUIDv7) แทน INT PK
+   * ใช้สำหรับ public API endpoints เพื่อไม่ leak internal row id
+   */
+  async getQueueItemByPublicId(publicId: string) {
+    const item = await this.reviewQueueRepo.findOne({
+      where: { publicId },
+    });
+    if (!item) {
+      throw new NotFoundException('Queue item', publicId);
+    }
+    const enriched = await this.enrichWithAttachments([item]);
+    return enriched[0];
+  }
+
   async createError(dto: CreateMigrationErrorDto) {
     const error = this.errorRepo.create({
       batchId: dto.batchId,
@@ -626,6 +693,40 @@ export class MigrationService {
     const result = await this.importCorrespondence(dto, idempotencyKey, userId);
 
     // If successful, update the queue item status
+    queueItem.status = MigrationReviewStatus.APPROVED;
+    queueItem.reviewedBy = userId.toString();
+    queueItem.reviewedAt = new Date();
+    await this.reviewQueueRepo.save(queueItem);
+
+    return result;
+  }
+
+  /**
+   * ADR-019: approve queue item ด้วย publicId (UUIDv7) แทน INT PK
+   */
+  async approveQueueItemByPublicId(
+    publicId: string,
+    dto: ImportCorrespondenceDto,
+    idempotencyKey: string,
+    userId: number
+  ) {
+    const queueItem = await this.reviewQueueRepo.findOne({
+      where: { publicId },
+    });
+    if (!queueItem) {
+      throw new NotFoundException('Queue item', publicId);
+    }
+
+    if (queueItem.status !== MigrationReviewStatus.PENDING) {
+      throw new BusinessException(
+        'MIGRATION_ITEM_NOT_PENDING',
+        `Queue item ${publicId} is already ${queueItem.status}`,
+        'รายการนี้ไม่อยู่ในสถานะ PENDING'
+      );
+    }
+
+    const result = await this.importCorrespondence(dto, idempotencyKey, userId);
+
     queueItem.status = MigrationReviewStatus.APPROVED;
     queueItem.reviewedBy = userId.toString();
     queueItem.reviewedAt = new Date();
@@ -701,12 +802,54 @@ export class MigrationService {
     };
   }
 
+  /**
+   * ADR-019: reject queue item ด้วย publicId (UUIDv7) แทน INT PK
+   */
+  async rejectQueueItemByPublicId(publicId: string, userId: number) {
+    const queueItem = await this.reviewQueueRepo.findOne({
+      where: { publicId },
+    });
+    if (!queueItem) {
+      throw new NotFoundException('Queue item', publicId);
+    }
+
+    queueItem.status = MigrationReviewStatus.REJECTED;
+    queueItem.reviewedBy = userId.toString();
+    queueItem.reviewedAt = new Date();
+    await this.reviewQueueRepo.save(queueItem);
+
+    return {
+      message: 'Document rejected successfully',
+      publicId: queueItem.publicId,
+    };
+  }
+
+  /**
+   * ADR-016: Stream ไฟล์จาก staging directory โดยตรวจ path traversal เข้มงวด
+   * อนุญาตเฉพาะ path ที่ resolve แล้วอยู่ภายใต้ stagingDir เท่านั้น
+   * ป้องกัน Local File Inclusion (LFI) เช่น `?path=../../etc/passwd`
+   */
   getStagingFileStream(filePath: string) {
     if (!filePath) {
       throw new ValidationException('File path is required');
     }
 
     const resolvedPath = path.resolve(filePath);
+    const normalizedStaging = path.resolve(this.stagingDir);
+
+    // Path Traversal Guard: resolvedPath ต้องอยู่ภายใต้ stagingDir
+    if (
+      resolvedPath !== normalizedStaging &&
+      !resolvedPath.startsWith(normalizedStaging + path.sep)
+    ) {
+      this.logger.warn(
+        `Path traversal blocked: "${filePath}" resolves outside staging dir "${normalizedStaging}"`
+      );
+      throw new ValidationException(
+        'Invalid staging file path — access denied (path traversal guard)'
+      );
+    }
+
     if (!existsSync(resolvedPath)) {
       throw new NotFoundException('File', filePath);
     }

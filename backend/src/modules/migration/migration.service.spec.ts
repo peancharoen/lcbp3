@@ -2,8 +2,10 @@
 // Change Log:
 // - 2026-08-06: Initial creation
 // - 2026-08-07: Added enrichWithAttachments tests via getQueueItemById (Feature 242, FR-005)
+// - 2026-08-17: Added ConfigService mock for path traversal guard (Issue #3, ADR-016)
 
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import { MigrationService } from './migration.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ImportTransaction } from './entities/import-transaction.entity';
@@ -60,8 +62,9 @@ describe('MigrationService', () => {
       create: jest.fn(),
       save: jest.fn(),
       count: jest.fn(),
+      find: jest.fn(),
       update: jest.fn(),
-      find: mockAttachmentFind,
+      query: jest.fn(),
     },
   };
 
@@ -108,6 +111,12 @@ describe('MigrationService', () => {
         {
           provide: FileStorageService,
           useValue: { importStagingFile: jest.fn() },
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn().mockReturnValue(undefined),
+          },
         },
       ],
     }).compile();

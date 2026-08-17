@@ -2,6 +2,8 @@
 // Change Log:
 // - 2026-08-06: Initial creation — unit tests for MetadataResolutionService (T045, T046, Feature 242)
 // - 2026-08-07: Added integration tests for resolveBatch main flow, processItem, createAndLinkTags, timeout guard
+// - 2026-08-17: Updated tests for batch operations (Phase 2.1) — UPDATE ใช้ dataSource.query
+//   แทน repo.update, INSERT/SELECT ใช้ multi-row batch แทน per-tag loop (Issue #3)
 
 import { Test } from '@nestjs/testing';
 import { DataSource } from 'typeorm';
@@ -167,8 +169,12 @@ describe('MetadataResolutionService (Feature 242)', () => {
       expect(result.succeeded).toBe(1);
       expect(result.failed).toBe(0);
       expect(result.failures).toEqual([]);
-      // org update should have been called
-      expect(repoMock.update).toHaveBeenCalled();
+      // Phase 2.1: batch UPDATE ใช้ dataSource.query แทน repo.update
+      // ตรวจว่ามีการเรียก UPDATE migration_review_queue ผ่าน query
+      expect(queryMock).toHaveBeenCalledWith(
+        expect.stringContaining('UPDATE migration_review_queue'),
+        expect.any(Array)
+      );
     });
 
     it('reports failures for unresolved org names (FR-019)', async () => {
@@ -347,7 +353,7 @@ describe('MetadataResolutionService (Feature 242)', () => {
   });
 
   describe('createAndLinkTags (FR-018, FR-018a)', () => {
-    it('creates tags from discipline and correspondenceType', async () => {
+    it('creates tags from discipline and correspondenceType (batch)', async () => {
       const items = [
         {
           queueId: 1,
@@ -365,12 +371,18 @@ describe('MetadataResolutionService (Feature 242)', () => {
       queryMock.mockImplementation((sql: string) => {
         if (sql.includes('system_settings')) return Promise.resolve([]);
         if (sql.includes('organizations')) return Promise.resolve([]);
-        if (sql.includes('correspondence_types')) return Promise.resolve([]);
-        if (sql.includes('disciplines')) return Promise.resolve([]);
+        if (sql.includes('correspondence_types'))
+          return Promise.resolve([
+            { id: 300, type_code: 'RFA', type_name: 'RFA' },
+          ]);
+        if (sql.includes('disciplines'))
+          return Promise.resolve([{ id: 400, discipline_code: 'CIV' }]);
+        // Phase 2.1: batch INSERT multi-row → affectedRows=2 สำหรับ 2 tags
         if (sql.includes('INSERT IGNORE INTO tags'))
-          return Promise.resolve([{ affectedRows: 1 }]);
+          return Promise.resolve([{ affectedRows: 2 }]);
+        // Phase 2.1: batch SELECT IN → return 2 rows
         if (sql.includes('SELECT id FROM tags'))
-          return Promise.resolve([{ id: 10 }]);
+          return Promise.resolve([{ id: 10 }, { id: 11 }]);
         return Promise.resolve([]);
       });
 
@@ -426,7 +438,7 @@ describe('MetadataResolutionService (Feature 242)', () => {
       expect(result.tagsLinked).toBe(0);
     });
 
-    it('counts linked but not created when tag already exists (affectedRows=0)', async () => {
+    it('counts linked but not created when tag already exists (batch affectedRows=0)', async () => {
       const items = [
         {
           queueId: 1,
@@ -442,9 +454,12 @@ describe('MetadataResolutionService (Feature 242)', () => {
         if (sql.includes('system_settings')) return Promise.resolve([]);
         if (sql.includes('organizations')) return Promise.resolve([]);
         if (sql.includes('correspondence_types')) return Promise.resolve([]);
-        if (sql.includes('disciplines')) return Promise.resolve([]);
+        if (sql.includes('disciplines'))
+          return Promise.resolve([{ id: 400, discipline_code: 'CIV' }]);
+        // Phase 2.1: batch INSERT → affectedRows=0 (already exists)
         if (sql.includes('INSERT IGNORE INTO tags'))
-          return Promise.resolve([{ affectedRows: 0 }]); // already exists
+          return Promise.resolve([{ affectedRows: 0 }]);
+        // Phase 2.1: batch SELECT IN → return 1 row (tag exists)
         if (sql.includes('SELECT id FROM tags'))
           return Promise.resolve([{ id: 10 }]);
         return Promise.resolve([]);
