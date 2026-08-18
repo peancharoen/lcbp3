@@ -3,7 +3,6 @@
   "workflow.priority.HIGH": "ด่วน",
   "workflow.priority.MEDIUM": "ปกติ",
   "workflow.priority.LOW": "ไม่ด่วน",
-
   "workflow.action.APPROVE": "อนุมัติ",
   "workflow.action.REJECT": "ปฏิเสธ",
   "workflow.action.RETURN": "ส่งคืน",
@@ -13,9 +12,7 @@
   "workflow.action.commentPlaceholder": "ระบุเหตุผล (ถ้ามี)...",
   "workflow.action.confirm": "ยืนยัน",
   "workflow.action.cancel": "ยกเลิก",
-
   "workflow.status.default": "—",
-
   "workflow.timeline.noHistory": "ยังไม่มีประวัติ Workflow สำหรับเอกสารนี้",
   "workflow.timeline.loadError": "ไม่สามารถโหลด Workflow Timeline ได้ กรุณาลองใหม่",
   "workflow.timeline.current": "ปัจจุบัน",
@@ -30,7 +27,6 @@
   "workflow.timeline.uploadTypes": "PDF, DOCX, XLSX, DWG, ZIP · สูงสุด 50 MB",
   "workflow.timeline.uploadError": "ไม่สามารถอัปโหลด",
   "workflow.timeline.removeFile": "ลบไฟล์",
-
   "filePreview.fallbackTitle": "ไฟล์",
   "filePreview.fileUnavailable": "ไฟล์ถูกลบออกจาก Storage แล้ว",
   "workflow.timeline.fileUnavailable": "ไฟล์ไม่พร้อมใช้งาน",
@@ -38,7 +34,6 @@
   "filePreview.loadError": "ไม่สามารถโหลดไฟล์ได้ กรุณาลองใหม่",
   "filePreview.download": "ดาวน์โหลด",
   "filePreview.close": "ปิด",
-
   "ai.status.offlineTitle": "ระบบ AI ไม่พร้อมใช้งาน",
   "ai.status.offlineDescription": "ไม่สามารถเชื่อมต่อ staging queue ของ AI ได้ชั่วคราว แต่ยังทำงานเอกสารแบบ manual ได้ตามปกติ",
   "ai.status.disabledDescription": "ระบบ AI ไม่พร้อมใช้งานชั่วคราว กรุณากรอกข้อมูลด้วยตนเอง",
@@ -81,7 +76,6 @@
   "ai.staging.byDocumentType": "สถิติแยกตามประเภทเอกสาร",
   "ai.staging.byDocumentTypeDesc": "เปรียบเทียบประสิทธิภาพของ AI ในแต่ละประเภทเอกสาร",
   "ai.staging.documents": "ฉบับ",
-  "ai.staging.confidence": "ความมั่นใจ",
   "ai.staging.override": "แก้ไข",
   "ai.staging.rejected": "ปฏิเสธ",
   "ai.staging.thresholdRecalibration": "Threshold Recalibration",
@@ -92,7 +86,6 @@
   "ai.staging.thresholdWarningDesc": "ตรวจพบอัตราการแก้ไขสูงถึง {{rate}}% ในช่วงที่ผ่านมา",
   "ai.staging.thresholdNote": "* การเปลี่ยนค่า Threshold ต้องทำผ่าน Environment Variables ของ Backend",
   "ai.staging.thresholdDocs": "อ่านคู่มือการตั้งค่า",
-
   "ai.prompt.tabEditor": "Prompt Template Editor",
   "ai.prompt.tabSandbox": "OCR Sandbox Runner",
   "ai.prompt.cardTitle": "Prompt Template",
@@ -151,5 +144,21 @@
   "ai.prompt.type.rag_prep_prompt": "เตรียมข้อมูล RAG (RAG Prep)",
   "ai.prompt.type.classification_prompt": "จำแนกประเภทเอกสาร (Classification)",
   "ai.prompt.contextConfig": "การตั้งค่าบริบทข้อมูล (Context Configuration)",
-  "ai.prompt.sandboxTitle": "การทดสอบ Sandbox (Sandbox Testing)"
+  "ai.prompt.sandboxTitle": "การทดสอบ Sandbox (Sandbox Testing)",
+  "tag.color.fieldLabel": "สีของ Tag",
+  "tag.color.selected": "สีที่เลือก: {{color}}",
+  "tag.color.default": "ค่าเริ่มต้น",
+  "tag.color.slate": "เทา",
+  "tag.color.red": "แดง",
+  "tag.color.orange": "ส้ม",
+  "tag.color.amber": "อำพัน",
+  "tag.color.yellow": "เหลือง",
+  "tag.color.green": "เขียว",
+  "tag.color.teal": "ฟ้าน้ำทะเล",
+  "tag.color.blue": "น้ำเงิน",
+  "tag.color.indigo": "คราม",
+  "tag.color.violet": "ม่วงอ่อน",
+  "tag.color.purple": "ม่วง",
+  "tag.color.pink": "ชมพู",
+  "tag.color.rose": "กุหลาบ"
 }

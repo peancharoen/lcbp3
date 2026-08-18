@@ -74,7 +74,7 @@ describe('TagManager Component', () => {
 
   it('ควรแสดงรายการ tags ของเอกสารอย่างถูกต้อง', () => {
     const mockTags = [
-      { publicId: '019505a1-7c3e-7000-8000-tag111111111', tagName: 'Critical', colorCode: '#ff0000' },
+      { publicId: '019505a1-7c3e-7000-8000-tag111111111', tagName: 'Critical', colorCode: 'red' },
       { publicId: '019505a1-7c3e-7000-8000-tag222222222', tagName: 'Draft', colorCode: 'default' },
     ];
 
@@ -91,7 +91,7 @@ describe('TagManager Component', () => {
 
   it('ควรเรียก remove mutation เมื่อคลิกปุ่มลบ tag และมีสิทธิ์แก้ไข', () => {
     const mockTags = [
-      { publicId: '019505a1-7c3e-7000-8000-tag111111111', tagName: 'Critical', colorCode: '#ff0000' },
+      { publicId: '019505a1-7c3e-7000-8000-tag111111111', tagName: 'Critical', colorCode: 'red' },
     ];
 
     vi.mocked(useCorrespondenceTags).mockReturnValue({
@@ -112,12 +112,12 @@ describe('TagManager Component', () => {
 
   it('ควรเปิดส่วนเลือก tag และแสดง tag ที่พร้อมให้เพิ่มเมื่อคลิก Add Tag', async () => {
     const mockAssigned = [
-      { publicId: '019505a1-7c3e-7000-8000-tag111111111', tagName: 'Critical', colorCode: '#ff0000' },
+      { publicId: '019505a1-7c3e-7000-8000-tag111111111', tagName: 'Critical', colorCode: 'red' },
     ];
     const mockAllTags = [
-      { publicId: '019505a1-7c3e-7000-8000-tag111111111', tagName: 'Critical', colorCode: '#ff0000' },
-      { publicId: '019505a1-7c3e-7000-8000-tag222222222', tagName: 'Draft', colorCode: '#00ff00' },
-      { publicId: '019505a1-7c3e-7000-8000-tag333333333', tagName: 'Pending Review', colorCode: '#0000ff' },
+      { publicId: '019505a1-7c3e-7000-8000-tag111111111', tagName: 'Critical', colorCode: 'red' },
+      { publicId: '019505a1-7c3e-7000-8000-tag222222222', tagName: 'Draft', colorCode: 'green' },
+      { publicId: '019505a1-7c3e-7000-8000-tag333333333', tagName: 'Pending Review', colorCode: 'blue' },
     ];
 
     vi.mocked(useCorrespondenceTags).mockReturnValue({

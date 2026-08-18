@@ -9,6 +9,8 @@ import { useCorrespondenceTags, useAddTag, useRemoveTag } from '@/hooks/use-corr
 import { useQuery } from '@tanstack/react-query';
 import { masterDataService } from '@/lib/services/master-data.service';
 import { Tag } from '@/types/master-data';
+import { getTagColor } from '@/lib/utils/tag-color';
+import { DEFAULT_TAG_COLOR_HEX } from '@/lib/constants/tag-colors';
 
 interface TagManagerProps {
   uuid: string;
@@ -41,11 +43,6 @@ export function TagManager({ uuid, canEdit }: TagManagerProps) {
     removeMutation.mutate({ uuid, tagId });
   };
 
-  const getTagColor = (color?: string) => {
-    if (!color || color === 'default') return '#e2e8f0';
-    return color;
-  };
-
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -69,19 +66,21 @@ export function TagManager({ uuid, canEdit }: TagManagerProps) {
           <p className="text-sm text-muted-foreground">No tags assigned</p>
         ) : (
           <div className="flex flex-wrap gap-1.5">
-            {assigned.map((tag) => (
+            {assigned.map((tag) => {
+              const hex = getTagColor(tag.colorCode);
+              return (
               <span
                 key={tag.publicId}
                 className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border"
                 style={{
-                  backgroundColor: `${getTagColor(tag.colorCode)}22`,
-                  borderColor: `${getTagColor(tag.colorCode)}66`,
-                  color: getTagColor(tag.colorCode) === '#e2e8f0' ? 'inherit' : getTagColor(tag.colorCode),
+                  backgroundColor: `${hex}22`,
+                  borderColor: `${hex}66`,
+                  color: hex === DEFAULT_TAG_COLOR_HEX ? 'inherit' : hex,
                 }}
               >
                 <span
                   className="w-1.5 h-1.5 rounded-full shrink-0"
-                  style={{ backgroundColor: getTagColor(tag.colorCode) }}
+                  style={{ backgroundColor: hex }}
                 />
                 {tag.tagName}
                 {canEdit && (
@@ -94,7 +93,8 @@ export function TagManager({ uuid, canEdit }: TagManagerProps) {
                   </button>
                 )}
               </span>
-            ))}
+              );
+            })}
           </div>
         )}
 

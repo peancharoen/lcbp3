@@ -1,6 +1,7 @@
 // File: frontend/components/admin/reference/__tests__/generic-crud-table.test.tsx
 // Change Log
 // - 2026-06-13: Add coverage for generic reference CRUD table states and create mutation.
+// - 2026-08-18: Add coverage for `type: 'custom'` field rendering (ADR-046).
 
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -90,5 +91,48 @@ describe('GenericCrudTable', () => {
       );
     });
     expect(toast.success).toHaveBeenCalledWith('Reference created successfully');
+  });
+
+  it('render และเรียก render prop สำหรับ type: "custom" field (ADR-046)', async () => {
+    const user = userEvent.setup();
+    const createFn = vi.fn().mockResolvedValue({ success: true });
+    const customRender = vi.fn(({ value, setValue }: { value: unknown; setValue: (v: unknown) => void }) => (
+      <div data-testid="custom-field">
+        <span data-testid="custom-value">{String(value ?? 'none')}</span>
+        <button type="button" data-testid="custom-set" onClick={() => setValue('green')}>
+          Set Green
+        </button>
+      </div>
+    ));
+
+    renderTable({
+      createFn,
+      fields: [
+        { name: 'code', label: 'Code', type: 'text', required: true },
+        {
+          name: 'colorCode',
+          label: 'Color',
+          type: 'custom',
+          render: customRender,
+        },
+      ],
+    });
+
+    await user.click(await screen.findByRole('button', { name: /add reference/i }));
+    // ตรวจว่า render prop ถูกเรียก
+    expect(customRender).toHaveBeenCalled();
+    // ตรวจว่า custom field ปรากฏใน dialog
+    expect(screen.getByTestId('custom-field')).toBeInTheDocument();
+    // คลิกปุ่มใน custom field เพื่อ setValue
+    await user.click(screen.getByTestId('custom-set'));
+    // กรอก required field แล้ว submit
+    await user.type(screen.getByLabelText(/code/i), 'AREA');
+    await user.click(screen.getByRole('button', { name: /^add reference$/i }));
+    await waitFor(() => {
+      expect(createFn).toHaveBeenCalledWith(
+        expect.objectContaining({ code: 'AREA', colorCode: 'green' }),
+        expect.any(Object)
+      );
+    });
   });
 });

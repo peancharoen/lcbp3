@@ -28,9 +28,22 @@ import { Textarea } from '@/components/ui/textarea';
 interface Field {
   name: string;
   label: string;
-  type: 'text' | 'number' | 'checkbox' | 'select' | 'textarea';
+  type: 'text' | 'number' | 'checkbox' | 'select' | 'textarea' | 'custom';
   required?: boolean;
   options?: { label: string; value: string | number }[];
+  /**
+   * ค่าเริ่มต้นเมื่อกด "Add" — ใช้สำหรับ initialize form field
+   * (เช่น `colorCode: 'default'` สำหรับ ColorPickerField)
+   */
+  defaultValue?: unknown;
+  /**
+   * Custom render function สำหรับ `type: 'custom'` (ADR-046)
+   * รับค่าปัจจุบัน + callback setValue แล้วคืน ReactNode สำหรับ render ใน form dialog
+   */
+  render?: (params: {
+    value: unknown;
+    setValue: (value: unknown) => void;
+  }) => React.ReactNode;
 }
 
 interface ApiError extends Error {
@@ -159,6 +172,7 @@ export function GenericCrudTable<T extends { id?: number; uuid?: string }>({
     reset();
     fields.forEach((f) => {
       if (f.type === 'checkbox') setValue(f.name, true);
+      if (f.defaultValue !== undefined) setValue(f.name, f.defaultValue);
     });
     setIsDialogOpen(true);
   };
@@ -280,6 +294,11 @@ export function GenericCrudTable<T extends { id?: number; uuid?: string }>({
                   </Select>
                 ) : field.type === 'textarea' ? (
                   <Textarea id={field.name} {...register(field.name, { required: field.required })} />
+                ) : field.type === 'custom' && field.render ? (
+                  field.render({
+                    value: watch(field.name),
+                    setValue: (val: unknown) => setValue(field.name, val),
+                  })
                 ) : (
                   <Input
                     id={field.name}

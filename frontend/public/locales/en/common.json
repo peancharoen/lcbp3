@@ -3,7 +3,6 @@
   "workflow.priority.HIGH": "High",
   "workflow.priority.MEDIUM": "Normal",
   "workflow.priority.LOW": "Low",
-
   "workflow.action.APPROVE": "Approve",
   "workflow.action.REJECT": "Reject",
   "workflow.action.RETURN": "Return",
@@ -13,9 +12,7 @@
   "workflow.action.commentPlaceholder": "Enter reason (optional)...",
   "workflow.action.confirm": "Confirm",
   "workflow.action.cancel": "Cancel",
-
   "workflow.status.default": "—",
-
   "workflow.timeline.noHistory": "No workflow history for this document.",
   "workflow.timeline.loadError": "Unable to load Workflow Timeline. Please try again.",
   "workflow.timeline.current": "Current",
@@ -30,7 +27,6 @@
   "workflow.timeline.uploadTypes": "PDF, DOCX, XLSX, DWG, ZIP · Max 50 MB",
   "workflow.timeline.uploadError": "Unable to upload",
   "workflow.timeline.removeFile": "Remove file",
-
   "filePreview.fallbackTitle": "File",
   "filePreview.fileUnavailable": "File has been removed from storage.",
   "workflow.timeline.fileUnavailable": "File unavailable",
@@ -38,7 +34,6 @@
   "filePreview.loadError": "Unable to load file. Please try again.",
   "filePreview.download": "Download",
   "filePreview.close": "Close",
-
   "ai.status.offlineTitle": "AI unavailable",
   "ai.status.offlineDescription": "AI staging is temporarily unavailable. Manual document operations remain available.",
   "ai.status.disabledDescription": "AI is temporarily unavailable. Please enter the information manually.",
@@ -81,7 +76,6 @@
   "ai.staging.byDocumentType": "Stats by Document Type",
   "ai.staging.byDocumentTypeDesc": "Compare AI performance across different document categories.",
   "ai.staging.documents": "docs",
-  "ai.staging.confidence": "Confidence",
   "ai.staging.override": "Override",
   "ai.staging.rejected": "Rejected",
   "ai.staging.thresholdRecalibration": "Threshold Recalibration",
@@ -92,7 +86,6 @@
   "ai.staging.thresholdWarningDesc": "Override rate reached {{rate}}% in recent records.",
   "ai.staging.thresholdNote": "* Threshold values must be set via Backend Environment Variables.",
   "ai.staging.thresholdDocs": "View Configuration Guide",
-
   "ai.prompt.tabEditor": "Prompt Template Editor",
   "ai.prompt.tabSandbox": "OCR Sandbox Runner",
   "ai.prompt.cardTitle": "Prompt Template",
@@ -151,5 +144,21 @@
   "ai.prompt.type.rag_prep_prompt": "RAG Prep",
   "ai.prompt.type.classification_prompt": "Classification",
   "ai.prompt.contextConfig": "Context Configuration",
-  "ai.prompt.sandboxTitle": "Sandbox Testing"
+  "ai.prompt.sandboxTitle": "Sandbox Testing",
+  "tag.color.fieldLabel": "Tag Color",
+  "tag.color.selected": "Selected: {{color}}",
+  "tag.color.default": "Default",
+  "tag.color.slate": "Slate",
+  "tag.color.red": "Red",
+  "tag.color.orange": "Orange",
+  "tag.color.amber": "Amber",
+  "tag.color.yellow": "Yellow",
+  "tag.color.green": "Green",
+  "tag.color.teal": "Teal",
+  "tag.color.blue": "Blue",
+  "tag.color.indigo": "Indigo",
+  "tag.color.violet": "Violet",
+  "tag.color.purple": "Purple",
+  "tag.color.pink": "Pink",
+  "tag.color.rose": "Rose"
 }

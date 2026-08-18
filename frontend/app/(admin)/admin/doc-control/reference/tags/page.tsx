@@ -1,7 +1,12 @@
+// File: frontend/app/(admin)/admin/doc-control/reference/tags/page.tsx
+// Change Log:
+// - 2026-08-18: เปลี่ยน colorCode field เป็น ColorPickerField (ADR-046) + แก้ table column ใช้ getTagColor()
+
 'use client';
 
 import { useState } from 'react';
 import { GenericCrudTable } from '@/components/admin/reference/generic-crud-table';
+import { ColorPickerField } from '@/components/admin/reference/color-picker-field';
 import { masterDataService } from '@/lib/services/master-data.service';
 import { projectService } from '@/lib/services/project.service';
 import { CreateTagDto } from '@/types/dto/master/tag.dto';
@@ -10,8 +15,11 @@ import { useQuery } from '@tanstack/react-query';
 import { Tag } from '@/types/master-data';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { getTagColor } from '@/lib/utils/tag-color';
+import { useTranslations } from '@/hooks/use-translations';
 
 export default function TagsPage() {
+  const t = useTranslations();
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
 
   const { data: projectsData } = useQuery({
@@ -45,13 +53,13 @@ export default function TagsPage() {
       accessorKey: 'tagName',
       header: 'Tag Name',
       cell: ({ row }) => {
-        const color = String(row.original.colorCode || 'default');
-        const isHex = color.startsWith('#');
+        // ADR-046: ใช้ shared getTagColor() helper — แปลง palette key → hex
+        // fallback 'default' สำหรับ legacy/invalid values อัตโนมัติ
         return (
           <div className="flex items-center gap-2">
             <span
               className="w-3 h-3 rounded-full border border-border"
-              style={{ backgroundColor: isHex ? color : color === 'default' ? '#e2e8f0' : color }}
+              style={{ backgroundColor: getTagColor(row.original.colorCode) }}
             />
             {String(row.original.tagName)}
           </div>
@@ -136,9 +144,16 @@ export default function TagsPage() {
         },
         {
           name: 'colorCode',
-          label: 'Color Code (Hex or Name)',
-          type: 'text',
+          label: t('tag.color.fieldLabel'),
+          type: 'custom',
           required: false,
+          defaultValue: 'default',
+          render: ({ value, setValue }) => (
+            <ColorPickerField
+              value={value as string | undefined}
+              onChange={(key) => setValue(key)}
+            />
+          ),
         },
         {
           name: 'description',
