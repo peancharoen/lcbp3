@@ -139,6 +139,7 @@
 | D106 | **Magic Bytes File Validation (Issue #3 Phase 2.3)** — `file-magic-bytes.util.ts` ใหม่ (214 lines) ตรวจ magic bytes จริงใน `FileStorageService.upload()` และ `importStagingFile()`; รองรับ PDF (`%PDF`), DOCX/XLSX/ZIP (`PK\x03\x04`), DOC/XLS (Compound File Binary), JPG (`FF D8 FF`), PNG (`89 PNG`), DWG (`AC10`); ป้องกัน MIME spoofing จาก client; DWG ยอมให้ client MIME ต่างจาก detected เพราะ browser รายงานไม่สม่ำเสมอ                                                                                                                                                                                                                                                                                                                                                                                                                | ADR-016             |
 | D107 | **Migration Constants Centralization (Issue #3 Phase 2.4)** — `migration.constants.ts` ใหม่ (50 lines) รวม magic strings: `RFA_TYPE_CODE_GENERIC` (`GEN`), `RFA_STATUS_CODE_APPROVED` (`APP`), `CORRESPONDENCE_STATUS_CLBOWN`/`_DRAFT`, `BATCH_ID_HUMAN_REVIEW`, `IMPORT_TX_STATUS_*`, `QUEUE_STATUS_PENDING`, `ENV_STAGING_DIR`, `STAGING_DIR_DEFAULT`, `DEFAULT_BATCH_TIMEOUT_MS`, `SETTING_KEY_*`; refactor 4 ไฟล์ให้ใช้ constants แทน string literals; raw SQL queries ใช้ `?` parameter แทน string interpolation                                                                                                                                                                                                                                                                                                                           | Session 2026-08-17  |
 | D108 | **Rclone GDrive Offsite Backup (Feature 144)** — one-way sync เท่านั้น (ไม่ใช้ `bisync`); ห้าม sync `.env`/`.git` (ใช้ `--exclude`); ใช้ OAuth Client ของตัวเองใน Google Cloud project `lcbp3-dms` (ไม่ใช่ shared rclone client_id — โดน Google rate limit); รันในนาม user `np-dms` ผ่าน `sudo crontab -u np-dms -e` (ห้าม `sudo -u` ซ้อนใน crontab — `$HOME` ผิด → rclone หา config ไม่เจอ → fail เงียบ ๆ exit 1); full path `/usr/bin/rclone` ใน crontab (cron ไม่โหลด `$PATH`); Uptime Kuma Push Monitor (Tier 4) + logrotate weekly; 2 jobs: Backup repo 00:00/12:00 (`gdrive:backups/lcbp3-repo`, exclude `.git`/`node_modules`/`dist`/`.env`) + Sync specs ทุก 4 ชม. 03/07/11/15/19/23 (`gdrive:shared/lcbp3-specs`); spec ที่ `specs/100-Infrastructures/144-rclone-gdrive-sync/`, runbook ต้นฉบับที่ `docs/Rclone gdrive sync setup.md` | Feature 144         |
+| D109 | **Tag Color Palette Key (Feature 243, ADR-046)** — `tags.color_code` เป็น 14 palette key enum (frontend = source of truth, backend mirror); palette keys: `default, slate, red, orange, amber, yellow, green, teal, blue, indigo, violet, purple, pink, rose`; `@IsIn(TAG_COLOR_KEYS)` ใน DTO ทั้งสอง path; `?? 'default'` ใน service ทุก method (create + update); `DEFAULT_TAG_COLOR_HEX` export เป็น constant (ห้าม magic value `'#e2e8f0'`); `TagColorKey` เป็น literal union (ห้าม explicit `readonly string[]` annotation); SQL delta ต้องครอบคลุม NULL (`OR color_code IS NULL`); n8n AI บังคับ `colorCode='default'` (AI ไม่เลือกสี); `GenericCrudTable.Field.defaultValue` สำหรับ init custom field ตอน Add                                                                                                                            | ADR-046             |
 
 ## Environment & Services
 
@@ -175,6 +176,21 @@ QDRANT_URL
 ```
 
 ## Next Session Focus
+
+### Tag Color Palette Picker (Feature 243, ADR-046) ✅ COMPLETE (Session 2026-08-18)
+
+- [x] Speckit preparation pipeline (Specify → Clarify → Plan → Tasks → Analyze)
+- [x] Foundation: ADR-046, CONTEXT.md, schema comment, data dictionary, SQL delta, n8n v3
+- [x] Backend: palette mirror, `@IsIn` validation (master + tags DTO), `?? 'default'` (create + update), 16 tests
+- [x] Frontend: `TAG_PALETTE` + `getTagColor()` helper, `ColorPickerField` (14-swatch grid, a11y), `GenericCrudTable` `type:'custom'` + `render` + `defaultValue`, tags page integration, `tag-manager.tsx` shared helper, i18n 16 keys × 2 locales
+- [x] Tests: 961 frontend + 1029 backend pass, 100% coverage สำหรับไฟล์ใหม่
+- [x] Code review: ผ่านครบหลังแก้ไข 6 ข้อ (1 HIGH + 3 MEDIUM + 2 LOW)
+- [x] SQL delta รันสำเร็จผ่าน MCP MariaDB (0 rows — DB ว่าง)
+- [x] 3 commits: `0643e84b` (foundation) + `33b5dbdd` (backend) + `b5ad4d66` (frontend)
+- [x] Push สำเร็จทั้ง Gitea + GitHub (branch `main`)
+- [x] Deploy สำเร็จ + ทดสอบเพิ่ม tag ใหม่ได้
+- [x] Lock decision D109 (Tag Color Palette Key pattern)
+- [x] Session log: `specs/88-logs/session-2026-08-18-tag-color-palette.md`
 
 ### Rclone GDrive Sync Spec Migration (Feature 144) ✅ COMPLETE (Session 2026-08-17 + 2026-08-18)
 
