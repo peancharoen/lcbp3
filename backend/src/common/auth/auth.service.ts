@@ -85,7 +85,10 @@ export class AuthService {
   }
 
   // 2. Login: สร้าง Access & Refresh Token และบันทึกลง DB
-  async login(user: User) {
+  async login(
+    user: User,
+    deviceInfo?: { deviceName?: string; ipAddress?: string; userAgent?: string }
+  ) {
     const payload = {
       username: user.username,
       sub: user.user_id,
@@ -111,8 +114,8 @@ export class AuthService {
       expiresIn: refreshTokenExpiresIn as StringValue,
     });
 
-    // [P2-2] Store Refresh Token in DB
-    await this.storeRefreshToken(user.user_id, refreshToken);
+    // [P2-2] Store Refresh Token in DB (พร้อม device info)
+    await this.storeRefreshToken(user.user_id, refreshToken, deviceInfo);
 
     return {
       access_token: accessToken,
@@ -124,19 +127,25 @@ export class AuthService {
   // [P2-2] Store Refresh Token Logic
   private async storeRefreshToken(
     userId: number,
-    token: string
+    token: string,
+    deviceInfo?: { deviceName?: string; ipAddress?: string; userAgent?: string }
   ): Promise<void> {
     // Hash token before storing for security
     const hash = crypto.createHash('sha256').update(token).digest('hex');
     const expiresInDays = 7; // Should match JWT_REFRESH_EXPIRATION
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + expiresInDays);
+    const now = new Date();
 
     const refreshTokenEntity = this.refreshTokenRepository.create({
       userId,
       tokenHash: hash,
       expiresAt,
       isRevoked: false,
+      deviceName: deviceInfo?.deviceName ?? null,
+      ipAddress: deviceInfo?.ipAddress ?? null,
+      userAgent: deviceInfo?.userAgent ?? null,
+      lastActiveAt: now,
     });
 
     await this.refreshTokenRepository.save(refreshTokenEntity);
@@ -163,7 +172,8 @@ export class AuthService {
   // 4. Refresh Token: ตรวจสอบและออก Token ใหม่ (Rotation)
   async refreshToken(
     userId: number,
-    refreshToken: string
+    refreshToken: string,
+    deviceInfo?: { deviceName?: string; ipAddress?: string; userAgent?: string }
   ): Promise<{ access_token: string; refresh_token: string }> {
     // Hash incoming token to match with DB
     const hash = crypto.createHash('sha256').update(refreshToken).digest('hex');
@@ -246,8 +256,8 @@ export class AuthService {
     storedToken.updatedAt = new Date(); // Fallback: Manually update instead of relying solely on @UpdateDateColumn
     await this.refreshTokenRepository.save(storedToken);
 
-    // Save NEW token
-    await this.storeRefreshToken(userId, newRefreshToken);
+    // Save NEW token (พร้อม device info และ lastActiveAt)
+    await this.storeRefreshToken(userId, newRefreshToken, deviceInfo);
 
     return {
       access_token: newAccessToken,
@@ -304,12 +314,11 @@ export class AuthService {
       where: {
         isRevoked: false,
       },
-      relations: ['user'], // Ensure relations: ['user'] works if RefreshToken entity has relation
+      relations: ['user'],
       order: { createdAt: 'DESC' },
     });
 
     const now = new Date();
-    // Filter expired tokens in memory if query builder is complex, or rely on where clause if possible.
     // Filter expired tokens
     return activeTokens
       .filter((t) => new Date(t.expiresAt) > now)
@@ -321,10 +330,10 @@ export class AuthService {
           firstName: t.user?.firstName || '',
           lastName: t.user?.lastName || '',
         },
-        deviceName: 'Unknown Device', // Not stored in DB
-        ipAddress: 'Unknown IP', // Not stored in DB
-        lastActive: t.createdAt.toISOString(), // Best approximation
-        isCurrent: false, // Cannot determine isCurrent without current session context match
+        deviceName: t.deviceName || 'Unknown Device',
+        ipAddress: t.ipAddress || 'Unknown IP',
+        lastActive: (t.lastActiveAt ?? t.createdAt).toISOString(),
+        isCurrent: false,
       }));
   }
 

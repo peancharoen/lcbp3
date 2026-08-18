@@ -42,25 +42,47 @@ describe('AuthController', () => {
         refresh_token: 'refresh_token',
         user: mockUser,
       };
+      const mockReq = {
+        get: jest
+          .fn()
+          .mockReturnValue('Mozilla/5.0 (Windows NT 10.0) Chrome/127'),
+        headers: {},
+        ip: '127.0.0.1',
+        socket: { remoteAddress: '127.0.0.1' },
+      } as unknown as Express.Request;
 
       (mockAuthService.validateUser as jest.Mock).mockResolvedValue(mockUser);
       (mockAuthService.login as jest.Mock).mockResolvedValue(mockTokens);
 
-      const result = await controller.login(loginDto);
+      const result = await controller.login(loginDto, mockReq);
 
       expect(mockAuthService.validateUser).toHaveBeenCalledWith(
         'test',
         'password'
       );
-      expect(mockAuthService.login).toHaveBeenCalledWith(mockUser);
+      expect(mockAuthService.login).toHaveBeenCalledWith(
+        mockUser,
+        expect.objectContaining({
+          deviceName: expect.any(String),
+          ipAddress: expect.any(String),
+          userAgent: expect.any(String),
+        })
+      );
       expect(result).toEqual(mockTokens);
     });
 
     it('should throw UnauthorizedException when credentials are invalid', async () => {
       const loginDto = { username: 'test', password: 'wrong' };
+      const mockReq = {
+        get: jest.fn().mockReturnValue(undefined),
+        headers: {},
+        ip: '127.0.0.1',
+        socket: { remoteAddress: '127.0.0.1' },
+      } as unknown as Express.Request;
+
       (mockAuthService.validateUser as jest.Mock).mockResolvedValue(null);
 
-      await expect(controller.login(loginDto)).rejects.toThrow(
+      await expect(controller.login(loginDto, mockReq)).rejects.toThrow(
         UnauthorizedException
       );
     });

@@ -11,8 +11,6 @@ import {
   Req,
   HttpCode,
   HttpStatus,
-  Delete,
-  Param,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
@@ -31,6 +29,79 @@ import type {
   RequestWithUser,
   RequestWithRefreshUser,
 } from '../interfaces/request-with-user.interface';
+import type { Request } from 'express';
+
+/**
+ * ดึง IP จริงของ client จาก request headers (รองรับ Cloudflare proxy)
+ * ลำดับความสำคัญ: CF-Connecting-IP → X-Forwarded-For → request.ip → socket.remoteAddress
+ */
+function getClientIp(req: Request): string | undefined {
+  const cfIp = req.headers['cf-connecting-ip'] as string | undefined;
+  if (cfIp) return cfIp.trim();
+
+  const xff = req.headers['x-forwarded-for'] as string | undefined;
+  if (xff) {
+    const firstIp = xff.split(',')[0]?.trim();
+    if (firstIp) return firstIp;
+  }
+
+  const rawIp = req.ip ?? req.socket.remoteAddress;
+  return rawIp;
+}
+
+/**
+ * Parse ชื่อ device จาก User-Agent string (เช่น "Windows · Chrome 127")
+ * ไม่ใช้ library เพื่อลด dependency — parse แบบง่ายเพียงพอสำหรับ session display
+ */
+function parseDeviceName(userAgent: string | undefined): string | undefined {
+  if (!userAgent) return undefined;
+
+  // OS detection
+  let os = 'Unknown OS';
+  if (/Windows NT 10/i.test(userAgent)) os = 'Windows';
+  else if (/Windows NT/i.test(userAgent)) os = 'Windows';
+  else if (/iPhone|iPad|iPod/i.test(userAgent)) os = 'iOS';
+  else if (/Android/i.test(userAgent)) os = 'Android';
+  else if (/Mac OS X/i.test(userAgent)) os = 'macOS';
+  else if (/Linux/i.test(userAgent)) os = 'Linux';
+
+  // Browser detection (เช็ค Edge ก่อน Chrome เพราะ Edge มี "Chrome" ใน UA ด้วย)
+  let browser = 'Unknown Browser';
+  if (/Edg\//i.test(userAgent)) {
+    const m = userAgent.match(/Edg\/(\d+)/);
+    browser = `Edge${m ? ' ' + m[1] : ''}`;
+  } else if (/OPR\//i.test(userAgent)) {
+    const m = userAgent.match(/OPR\/(\d+)/);
+    browser = `Opera${m ? ' ' + m[1] : ''}`;
+  } else if (/Firefox\//i.test(userAgent)) {
+    const m = userAgent.match(/Firefox\/(\d+)/);
+    browser = `Firefox${m ? ' ' + m[1] : ''}`;
+  } else if (/Chrome\//i.test(userAgent)) {
+    const m = userAgent.match(/Chrome\/(\d+)/);
+    browser = `Chrome${m ? ' ' + m[1] : ''}`;
+  } else if (/Safari\//i.test(userAgent)) {
+    const m = userAgent.match(/Version\/(\d+)/);
+    browser = `Safari${m ? ' ' + m[1] : ''}`;
+  }
+
+  return `${os} · ${browser}`;
+}
+
+/**
+ * ดึง device info ทั้งหมดจาก request สำหรับ session tracking
+ */
+function getDeviceInfo(req: Request): {
+  deviceName?: string;
+  ipAddress?: string;
+  userAgent?: string;
+} {
+  const userAgent = req.get('user-agent');
+  return {
+    deviceName: parseDeviceName(userAgent),
+    ipAddress: getClientIp(req),
+    userAgent: userAgent ?? undefined,
+  };
+}
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -54,7 +125,7 @@ export class AuthController {
       },
     },
   })
-  async login(@Body() loginDto: LoginDto) {
+  async login(@Body() loginDto: LoginDto, @Req() req: Request) {
     const user = await this.authService.validateUser(
       loginDto.username,
       loginDto.password
@@ -64,7 +135,7 @@ export class AuthController {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    return this.authService.login(user);
+    return this.authService.login(user, getDeviceInfo(req));
   }
 
   @Post('register-admin')
@@ -94,7 +165,11 @@ export class AuthController {
     },
   })
   async refresh(@Req() req: RequestWithRefreshUser) {
-    return this.authService.refreshToken(req.user.sub, req.user.refreshToken);
+    return this.authService.refreshToken(
+      req.user.sub,
+      req.user.refreshToken,
+      getDeviceInfo(req as unknown as Request)
+    );
   }
 
   @UseGuards(JwtAuthGuard)
@@ -129,23 +204,5 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'User profile' })
   getProfile(@Req() req: RequestWithUser) {
     return req.user;
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Get('sessions')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get active sessions' })
-  @ApiResponse({ status: 200, description: 'List of active sessions' })
-  async getSessions() {
-    return this.authService.getActiveSessions();
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Delete('sessions/:id')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Revoke session' })
-  @ApiResponse({ status: 200, description: 'Session revoked' })
-  async revokeSession(@Param('id') id: string) {
-    return this.authService.revokeSession(Number(id));
   }
 }

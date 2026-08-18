@@ -221,17 +221,48 @@ ASUSTOR (192.168.10.9) → Monitoring + Registry + Gitea Runner
 ### Cloudflare Tunnel Setup
 
 ```
-np-dms-lcbp3:
-  cloudflared (systemd service)
-    ├── tunnel: lcbp3-dms-tunnel
-    ├── ingress rules:
-    │   ├── lcbp3.np-dms.work   → http://localhost:3001  (frontend)
-    │   ├── backend.np-dms.work → http://localhost:3000  (backend)
-    │   ├── git.np-dms.work     → http://localhost:3003  (gitea)
-    │   ├── n8n.np-dms.work     → http://localhost:5678  (n8n)
-    │   └── pma.np-dms.work     → http://localhost:8080  (pma)
-    └── config: /etc/cloudflared/config.yml
+np-dms-lcbp3 (192.168.10.11):
+  cloudflared (systemd service: /etc/systemd/system/cloudflared.service)
+    ├── tunnel UUID: b2a2ff68-b4da-41b4-8a8c-37ba0b16618e
+    ├── credentials: /etc/cloudflared/b2a2ff68-b4da-41b4-8a8c-37ba0b16618e.json
+    ├── config: /etc/cloudflared/config.yml
+    └── ingress rules (priority order — first match wins):
+        # --- SSH / TCP services ---
+        ├── ssh.np-dms.work           → ssh://localhost:22
+        ├── git-ssh.np-dms.work       → tcp://192.168.10.11:2222
+        # --- lcbp3.np-dms.work (path-based routing) ---
+        ├── lcbp3.np-dms.work ^/api/auth/sessions → http://192.168.10.11:3000  (backend — session API)
+        ├── lcbp3.np-dms.work ^/api/auth          → http://192.168.10.11:3001  (frontend — NextAuth)
+        ├── lcbp3.np-dms.work ^/api               → http://192.168.10.11:3000  (backend — API)
+        ├── lcbp3.np-dms.work (catch-all)         → http://192.168.10.11:3001  (frontend — Next.js)
+        # --- Other services ---
+        ├── api.np-dms.work           → http://192.168.10.11:3000  (backend — direct API)
+        ├── git.np-dms.work           → http://192.168.10.11:3003  (gitea web)
+        ├── pma.np-dms.work           → http://192.168.10.11:81    (phpMyAdmin)
+        ├── n8n.np-dms.work           → http://192.168.10.11:5678  (n8n, noTLSVerify: true)
+        ├── qnap.np-dms.work          → https://192.168.10.8:8443  (QNAP UI, noTLSVerify: true)
+        ├── uptime.np-dms.work        → http://192.168.10.9:3001   (uptime-kuma on ASUSTOR)
+        └── (catch-all)               → http_status:404
 ```
+
+#### Path-based Routing Notes (lcbp3.np-dms.work)
+
+`lcbp3.np-dms.work` ใช้ **path-based routing** เพื่อแยก NextAuth (frontend) จาก backend API บน hostname เดียวกัน:
+
+| Priority | Path Regex | Service | Purpose |
+|----------|------------|---------|---------|
+| 1 | `^/api/auth/sessions` | backend:3000 | Session management API (admin) |
+| 2 | `^/api/auth` | frontend:3001 | NextAuth routes (`/api/auth/session`, `/api/auth/signin`, `/api/auth/callback/*`, `/api/auth/providers`, `/api/auth/csrf`) |
+| 3 | `^/api` | backend:3000 | Backend API (ทุก endpoint อื่น) |
+| 4 | *(catch-all)* | frontend:3001 | Next.js pages + assets |
+
+> ⚠️ **Rule ordering is critical** — Cloudflare Tunnel หยุดที่ rule แรกที่ match
+> `^/api/auth/sessions` ต้องอยู่ก่อน `^/api/auth` ไม่งั้น session API จะถูก NextAuth catch-all จับแทน
+> (เพิ่ม 2026-08-18 หลังพบ bug ที่ session API คืน 400 "Bad request." จาก NextAuth)
+
+> 📌 **Config source:** cloudflared ใช้ **remote config จาก Cloudflare Zero Trust dashboard** (ไม่ใช่ local file)
+> การแก้ local file `/etc/cloudflared/config.yml` ไม่มีผล — ต้องแก้ใน dashboard แล้ว Cloudflare จะ push config ใหม่อัตโนมัติ
+> local file เก็บไว้เป็น documentation/backup reference เท่านั้น
 
 ### QNAP Role (post-ADR-045)
 
@@ -254,4 +285,5 @@ ASUSTOR AS5403T (192.168.10.9):
 
 | Version | Date | Changes | Updated By |
 |---------|------|---------|------------|
+| 1.1 | 2026-08-18 | อัปเดต Implementation Details ให้ตรง config จริง — เพิ่ม path-based routing for `lcbp3.np-dms.work`, แก้ tunnel ID เป็น UUID, แก้ service URLs เป็น IP จริง, เพิ่ม ssh/git-ssh/api/qnap/uptime hostnames, แก้ pma port 81, เพิ่มหมายเหตุ remote config + rule ordering | Devin |
 | 1.0 | 2026-08-03 | Initial creation — amend ADR-041 D2/D6 to formalize Cloudflare Tunnel as sole edge proxy + QNAP no Docker | Devin |

@@ -206,6 +206,7 @@ storybook-static/
 playwright-report/
 playwright/.cache/
 test-results/
+.playwright-mcp/
 
 # Jest
 jest-results/

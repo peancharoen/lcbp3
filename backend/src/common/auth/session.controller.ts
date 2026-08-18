@@ -1,3 +1,7 @@
+// File: backend/src/common/auth/session.controller.ts
+// Change Log:
+// - 2026-08-18: แก้ไข role names ให้ตรงกับ DB (Superadmin/Org Admin/Document Control)
+
 import {
   Controller,
   Get,
@@ -47,11 +51,12 @@ export class SessionController {
   }
 
   private checkAdminRole(user: User) {
-    // Check if user has ADMIN or DC role via assignments
+    // ตรวจสอบสิทธิ์ Admin/DC ผ่าน assignments (ใช้ role names จริงจาก DB)
     const hasPermission = user.assignments?.some(
       (assignment) =>
-        assignment.role.roleName === 'ADMIN' ||
-        assignment.role.roleName === 'DC'
+        assignment.role.roleName === 'Superadmin' ||
+        assignment.role.roleName === 'Org Admin' ||
+        assignment.role.roleName === 'Document Control'
     );
 
     if (!hasPermission) {

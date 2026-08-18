@@ -1,3 +1,7 @@
+// File: backend/src/common/auth/entities/refresh-token.entity.ts
+// Change Log:
+// - 2026-08-18: เพิ่ม device_name, ip_address, user_agent, last_active_at สำหรับ session tracking
+
 import {
   Entity,
   Column,
@@ -25,6 +29,18 @@ export class RefreshToken {
 
   @Column({ name: 'is_revoked', default: false })
   isRevoked!: boolean;
+
+  @Column({ name: 'device_name', nullable: true, length: 255, type: 'varchar' })
+  deviceName?: string | null;
+
+  @Column({ name: 'ip_address', nullable: true, length: 45, type: 'varchar' })
+  ipAddress?: string | null;
+
+  @Column({ name: 'user_agent', nullable: true, length: 512, type: 'varchar' })
+  userAgent?: string | null;
+
+  @Column({ name: 'last_active_at', nullable: true, type: 'datetime' })
+  lastActiveAt?: Date | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
