@@ -444,7 +444,7 @@ erDiagram
 | id             | INT             | PRIMARY KEY, AUTO_INCREMENT         | Unique tag ID                           |
 | **project_id** | **INT**         | **NULL, FK**                        | **[NEW] Project scope (NULL = Global)** |
 | tag_name       | VARCHAR(100)    | NOT NULL                            | Tag name                                |
-| **color_code** | **VARCHAR(30)** | **DEFAULT 'default'**               | **[NEW] UI Color/Class Code**           |
+| **color_code** | **VARCHAR(30)** | **DEFAULT 'default'**               | **[ADR-046] Palette key — default/slate/red/orange/amber/yellow/green/teal/blue/indigo/violet/purple/pink/rose; frontend map key→hex ผ่าน TAG_PALETTE** |
 | description    | TEXT            | NULL                                | Tag description                         |
 | created_at     | TIMESTAMP       | DEFAULT CURRENT_TIMESTAMP           | Record creation timestamp               |
 | updated_at     | TIMESTAMP       | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp                   |

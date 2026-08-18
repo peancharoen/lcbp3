@@ -119,6 +119,7 @@ Architecture Decision Records (ADRs) เป็นเอกสารที่บ�
 | [ADR-043](./ADR-043-ai-architecture-current-state.md) | ⭐ AI Architecture — Current State (Single Source of Truth) | ✅ Accepted | 2026-08-03 | Consolidation ADR — restatement ของ ADR ที่ active ทั้งหมด; ปิด drift ADR-035 ↔ ADR-040; archive กลุ่ม A (017, 017B, 018, 020, 022) |
 | [ADR-044](./ADR-044-database-schema-strategy-amendment.md) | Database Schema Strategy Amendment — No TypeORM Migrations | ✅ Accepted | 2026-08-03 | Amends ADR-009 — formalize "no TypeORM migrations, edit schema SQL directly via delta files" as current decision; resolves internal contradiction in ADR-009 |
 | [ADR-045](./ADR-045-edge-proxy-topology-amendment.md) | Edge Proxy Topology Amendment — Cloudflare Tunnel as Sole Edge | ✅ Accepted | 2026-08-03 | Amends ADR-041 D2/D6 — formalize Cloudflare Tunnel on np-dms-lcbp3 as sole edge proxy; QNAP no Docker (NAS/backup only); NPM demoted to internal router |
+| [ADR-046](./ADR-046-tag-color-palette-key.md) | Tag Color Palette Key — `tags.color_code` เป็น Palette Key Enum | ✅ Accepted | 2026-08-18 | เปลี่ยน `tags.color_code` จาก free-form string เป็น 14 palette key enum; frontend = source of truth (`TAG_PALETTE`), backend mirror สำหรับ `@IsIn` validation; SQL delta normalize legacy values → `'default'`; related ADR-019/030/044 |
 
 ---
 

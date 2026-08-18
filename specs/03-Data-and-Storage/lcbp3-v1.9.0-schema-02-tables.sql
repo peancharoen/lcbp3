@@ -382,7 +382,7 @@ CREATE TABLE tags (
   public_id CHAR(36) NOT NULL UNIQUE COMMENT 'UUIDv7 สำหรับการใช้งานภายนอก (ADR-019)',
   project_id INT NULL COMMENT 'ID โครงการ (NULL = Global Tag)',
   tag_name VARCHAR(100) NOT NULL COMMENT 'ชื่อแท็ก',
-  color_code VARCHAR(30) DEFAULT 'default' COMMENT 'รหัสสีสำหรับ UI',
+  color_code VARCHAR(30) DEFAULT 'default' COMMENT 'Palette key (ADR-046) — default/slate/red/orange/amber/yellow/green/teal/blue/indigo/violet/purple/pink/rose; frontend map key→hex ผ่าน TAG_PALETTE',
   description TEXT COMMENT 'คำอธิบายเพิ่มเติม',
   created_by INT COMMENT 'ผู้สร้างแท็ก',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',

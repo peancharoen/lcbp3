@@ -1,0 +1,188 @@
+openapi: "3.0.3"
+info:
+  title: Tags Management API — Color Code Contract Delta
+  description: >
+    ADR-046 — colorCode เปลี่ยนจาก free-form string เป็น palette key enum.
+    เอกสารนี้ระบุเฉพาะส่วนที่เปลี่ยนของ contract เดิม (POST/PATCH /master/tags, POST /tags)
+    ไม่ใช่ full contract ของ tags API.
+  version: "1.0.0"
+
+# Base paths: /api/master/tags (admin CRUD), /api/tags (n8n / tag-manager create)
+
+paths:
+  /master/tags:
+    post:
+      operationId: createTag
+      summary: สร้าง tag ใหม่ (admin)
+      description: colorCode ต้องเป็นหนึ่งใน TAG_COLOR_KEYS เท่านั้น — ค่านอกชุดถูกปฏิเสธด้วย 400
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTagRequest"
+      responses:
+        "201":
+          description: Tag ถูกสร้างแล้ว
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TagResponse"
+        "400":
+          description: colorCode ไม่อยู่ในชุดที่กำหนด (validation error)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+
+  /master/tags/{id}:
+    patch:
+      operationId: updateTag
+      summary: แก้ไข tag (admin) — รวมถึงเปลี่ยนสี
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTagRequest"
+      responses:
+        "200":
+          description: Tag ถูกอัปเดตแล้ว
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TagResponse"
+        "400":
+          description: colorCode ไม่อยู่ในชุดที่กำหนด
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+
+  /tags:
+    post:
+      operationId: createTagLegacyPath
+      summary: สร้าง tag ใหม่ (ใช้โดย n8n migration workflow และ tag-manager auto-create)
+      description: >
+        เดิม colorCode รับ hex/free-form ได้ — หลัง ADR-046 ต้องเป็น TAG_COLOR_KEYS เดียวกับ /master/tags.
+        n8n workflow v3 ถูกแก้ให้ส่ง 'default' เสมอ (ไม่ให้ AI เลือกสี)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTagRequest"
+      responses:
+        "201":
+          description: Tag ถูกสร้างแล้ว (หรือคืน tag เดิมถ้าชื่อซ้ำในขอบเขตเดียวกัน)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TagResponse"
+        "400":
+          description: colorCode ไม่อยู่ในชุดที่กำหนด
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    TagColorKey:
+      type: string
+      description: Palette key — ADR-046. Frontend คือ source of truth ของรายการนี้ (lib/constants/tag-colors.ts)
+      enum:
+        - default
+        - slate
+        - red
+        - orange
+        - amber
+        - yellow
+        - green
+        - teal
+        - blue
+        - indigo
+        - violet
+        - purple
+        - pink
+        - rose
+      example: red
+
+    CreateTagRequest:
+      type: object
+      required:
+        - tagName
+      properties:
+        projectId:
+          type: string
+          format: uuid
+          nullable: true
+          description: publicId ของโครงการ (ADR-019) — NULL/omitted = Global tag
+        tagName:
+          type: string
+          maxLength: 100
+          example: "URGENT"
+        colorCode:
+          $ref: "#/components/schemas/TagColorKey"
+          description: ถ้าไม่ระบุ — backend กำหนด 'default' ให้อัตโนมัติ
+        description:
+          type: string
+          nullable: true
+
+    UpdateTagRequest:
+      allOf:
+        - $ref: "#/components/schemas/CreateTagRequest"
+      description: ทุก field เป็น optional (PartialType ของ CreateTagRequest)
+
+    TagResponse:
+      type: object
+      properties:
+        publicId:
+          type: string
+          format: uuid
+          description: ADR-019 — id (INT) ไม่ expose
+        tagName:
+          type: string
+        colorCode:
+          $ref: "#/components/schemas/TagColorKey"
+        description:
+          type: string
+          nullable: true
+        projectId:
+          type: string
+          format: uuid
+          nullable: true
+
+    ValidationErrorResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          example: 400
+        message:
+          type: array
+          items:
+            type: string
+          example:
+            - "colorCode must be one of the following values: default, slate, red, orange, amber, yellow, green, teal, blue, indigo, violet, purple, pink, rose"
+        error:
+          type: string
+          example: "Bad Request"
