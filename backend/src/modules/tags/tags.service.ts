@@ -49,7 +49,7 @@ export class TagsService {
     const tag = this.tagRepo.create({
       projectId: dto.projectId,
       tagName: normalizedName,
-      colorCode: dto.colorCode || 'default',
+      colorCode: dto.colorCode ?? 'default',
       description: dto.description || null,
       createdBy: dto.createdBy || null,
     });

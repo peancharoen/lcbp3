@@ -1,12 +1,20 @@
 // File: src/modules/tags/dto/create-tag.dto.ts
 // Change Log:
 // - 2026-05-22: เริ่มต้นสร้าง CreateTagDto สำหรับรับข้อมูลการสร้างแท็กตาม ADR-028
+// - 2026-08-18: เปลี่ยน colorCode validation จาก @IsString/@Length เป็น @IsIn(TAG_COLOR_KEYS) (ADR-046)
 
-import { IsString, IsNotEmpty, IsOptional, Length } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsIn } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  TAG_COLOR_KEYS,
+  type TagColorKey,
+} from '../../master/constants/tag-colors';
 
 /**
- * DTO สำหรับการร้องขอสร้างแท็กใหม่
+ * DTO สำหรับการร้องขอสร้างแท็กใหม่ (n8n / tag-manager path: /api/tags)
+ *
+ * `colorCode` ต้องเป็น palette key ที่อยู่ใน `TAG_COLOR_KEYS` (ADR-046)
+ * ค่าที่ไม่ระบุจะถูก service แปลงเป็น `'default'`
  */
 export class CreateTagDto {
   @ApiPropertyOptional({
@@ -25,18 +33,19 @@ export class CreateTagDto {
   })
   @IsNotEmpty()
   @IsString()
-  @Length(1, 100)
   tagName!: string;
 
   @ApiPropertyOptional({
-    description: 'รหัสสีของแท็ก',
-    example: '#ff0000',
-    maxLength: 30,
+    description:
+      'Palette key (ADR-046) — default/slate/red/orange/amber/yellow/green/teal/blue/indigo/violet/purple/pink/rose',
+    example: 'red',
+    enum: TAG_COLOR_KEYS,
+  })
+  @IsIn(TAG_COLOR_KEYS, {
+    message: 'colorCode ต้องเป็น palette key ที่กำหนด (ADR-046)',
   })
   @IsOptional()
-  @IsString()
-  @Length(1, 30)
-  colorCode?: string;
+  colorCode?: TagColorKey;
 
   @ApiPropertyOptional({
     description: 'คำอธิบายเพิ่มเติมเกี่ยวกับแท็ก',

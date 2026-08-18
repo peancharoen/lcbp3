@@ -346,7 +346,7 @@ export class MasterService {
       : null;
     const tag = this.tagRepo.create({
       tagName: dto.tagName,
-      colorCode: dto.colorCode,
+      colorCode: dto.colorCode ?? 'default',
       description: dto.description,
       projectId: internalProjectId,
       createdBy: userId,
@@ -364,7 +364,7 @@ export class MasterService {
     }
     Object.assign(tag, {
       tagName: dto.tagName,
-      colorCode: dto.colorCode,
+      colorCode: dto.colorCode ?? 'default',
       description: dto.description,
       projectId: internalProjectId,
     });
