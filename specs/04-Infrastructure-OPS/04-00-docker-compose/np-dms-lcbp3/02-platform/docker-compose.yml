@@ -5,6 +5,7 @@
 # - 2026-06-23: Initial creation — Server consolidation (ADR-041)
 #   Migrated from QNAP: gitea/ + n8n/ (without tika — legacy, rejected)
 #   Changes: volume paths → /opt/np-dms/, OLLAMA_API_URL → host IP (native systemd — D11)
+# - 2026-08-19: Bump n8n 2.21.7 → 2.35.4 (latest stable, security/bug fixes 3 เดือนล่าสุด)
 # ============================================================
 # 🔒 SECURITY (ADR-016, Tier-1):
 #   - Gitea: expose 192.168.10.11:3003:3000 + 192.168.10.11:2222:22
@@ -189,7 +190,7 @@ services:
   # ----------------------------------------------------------------
   n8n:
     <<: [*restart_policy, *default_logging]
-    image: n8nio/n8n:2.21.7
+    image: n8nio/n8n:2.35.4
     container_name: n8n
     depends_on:
       n8n-db:

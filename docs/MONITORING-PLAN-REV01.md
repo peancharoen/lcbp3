@@ -213,6 +213,54 @@ fi
 3. เชื่อม notification channel (Telegram/Email) สำหรับ monitor ทั้ง 3
 4. ทดสอบ unmount ชั่วคราวเพื่อยืนยัน alert ทำงาน
 
+### CIFS Auto-remount via systemd automount (2026-08-19)
+
+> **Status: ✅ Deployed** — แก้ปัญหา CIFS mounts หลุดทุกครั้งที่บู๊ต (network ยังไม่พร้อมตอน CIFS พยายาม mount)
+> อ้างอิง: `specs/88-logs/session-2026-08-19-uptime-kuma-status-page-cifs-automount.md`
+
+**ปัญหา:** `dmesg` แสดง `cifs_mount failed w/return code = -101` (`ENETUNREACH`) ที่ ~10s หลัง boot — network ยังไม่พร้อม แม้ fstab มี `_netdev,nofail` ก็ตาม หลัง boot เสร็จ network กลับมาปกติ แต่ไม่มีอะไร remount อัตโนมัติ → CIFS หลุดจนกว่าจะมีคน `mount -av` ด้วยมือ
+
+**แนวทางที่เลือก:** `x-systemd.automount` (lazy mount ตอน first access) — ดีกว่า cron `@reboot mount -av` เพราะไม่ต้องระบุ delay ตายตัว และ mount ตอนที่ network พร้อมแน่นอน (ตอนมี access จริง)
+
+**ไฟล์ที่แก้:**
+- `/etc/fstab` — เพิ่ม `x-systemd.automount,x-systemd.mount-timeout=30` ใน 3 บรรทัด CIFS (temp, permanent, legacy)
+- `/etc/fstab.bak.20260819` — backup ก่อนแก้
+
+**Options ที่เพิ่ม:**
+| Option | หน้าที่ |
+| --- | --- |
+| `x-systemd.automount` | สร้าง automount unit — mount ตอน first access ไม่ใช่ตอน boot |
+| `x-systemd.mount-timeout=30` | ถ้า mount ล้ม (network ยังไม่พร้อม) รอแค่ 30s ไม่ hang ตลอด |
+
+**วิธีการทำงานตอน boot ครั้งถัดไป:**
+1. boot → network ขึ้น → `remote-fs.target` ทำงาน
+2. `.automount` units start (แค่ตั้ง autofs trigger ไม่ mount จริง — ไม่ติด network ยังไม่พร้อม)
+3. backend access `/mnt/asustor-uploads/*` → automount trigger → CIFS mount จริง (network พร้อมแล้ว)
+4. ถ้า mount ล้ม → `TimeoutSec=30s` ไม่ hang ตลอด
+
+**หมายเหตุ:**
+- `push-monitors-cifs.sh` ยังเป็น alert-only ตาม `CIFS-MON-1` (ไม่เปลี่ยนเป็น auto-remount — ป้องกัน data corruption จาก mount ผิด share)
+- ยังไม่ได้ทดสอบ reboot จริง — ทดสอบด้วยการ `umount` + `systemctl start .automount` + access เท่านั้น (ต้อง reboot จริงเพื่อยืนยัน end-to-end)
+
+### Uptime Kuma Status Page — slug `heartbeat` (2026-08-19)
+
+> **Status: ✅ Created** — สร้าง Status Page สำหรับให้ Devin/external tool อ่าน heartbeat ได้โดยไม่ต้อง auth
+
+**Status Page:**
+- slug: `heartbeat` (URL: `http://192.168.10.9:3001/status/heartbeat`)
+- ชื่อ: "LCBP3 Internal"
+- description: "CIFS"
+- published: true
+- ครอบคลุม: monitor 3 ตัว (CIFS Mount — temp, permanent, legacy)
+
+**Public API endpoints (ไม่ต้อง auth):**
+| Endpoint | สิ่งที่ได้ |
+| --- | --- |
+| `GET /api/status-page/heartbeat` | config + `publicGroupList` (รายการ monitor ในหน้า) |
+| `GET /api/status-page/heartbeat/heartbeat` | `heartbeatList` (beats ล่าสุด 100 ครั้ง/monitor) + `uptimeList` (uptime ratio) |
+
+**ข้อจำกัด:** ตอนนี้มีแค่ CIFS monitor (Tier 4) — Tier 1-3 ยังไม่ถูกเพิ่ม (ตาม TODO section 10)
+
 ### Elasticsearch Cluster Health Monitor — Implementation (2026-08-01)
 
 > **Trigger:** พบ `ECONNREFUSED` ใน backend logs ระหว่าง CIFS bugfix session (2026-07-31) — ทำให้ต้องมี monitor แจ้งเตือนเมื่อ ES ล่ม ก่อนผู้ใช้เจอ search/RAG error
@@ -337,9 +385,13 @@ Uptime Kuma มี built-in Status Page feature — ตั้งค่า 2 ห�
 
 - [ ] ชื่อ container จริงของ Gitea Actions CI runner บน ASUSTOR (สำหรับ Docker Container monitor)
 - [ ] ตั้งค่า public hostname สำหรับ Uptime Kuma ผ่าน NPM (เช่น `uptime.np-dms.work`) ชี้ไปที่ `192.168.10.9:3001`
-- [ ] สร้าง Telegram Bot และตั้งค่า notification channel ใน Uptime Kuma
+- [x] สร้าง Telegram Bot และตั้งค่า notification channel ใน Uptime Kuma — ✅ 2026-07-31 (session 2026-07-31-cifs-mount-monitor)
 - [ ] ตั้งค่า Email notification (SMTP) ใน Uptime Kuma
-- [ ] สร้าง push monitor script จริง (`/opt/np-dms/scripts/push-monitors.sh`) และตั้งค่า cron
-- [ ] สร้าง Uptime Kuma Status Page (public + internal)
-- [ ] ทดสอบ push monitor script ทุกตัวก่อน enable alerting
+- [x] สร้าง push monitor script จริง (`/opt/np-dms/scripts/push-monitors-cifs.sh`) และตั้งค่า cron — ✅ 2026-07-31 + ยืนยัน cron ทำงาน 2026-08-19
+- [x] สร้าง Uptime Kuma Status Page (internal) — ✅ 2026-08-19 slug `heartbeat` (ครอบคลุม CIFS monitor; Tier 1-3 ยังไม่เพิ่ม)
+- [ ] สร้าง Uptime Kuma Status Page (public) — แยกจาก internal (เฉพาะ Tier 1: Frontend, Backend, Gitea, n8n)
+- [ ] เพิ่ม Tier 1-3 monitor เข้าใน Status Page `heartbeat` (Backend, Frontend, MariaDB, Redis, ES, Qdrant, Ollama, Gitea, n8n)
+- [x] ทดสอบ push monitor script ทุกตัวก่อน enable alerting — ✅ 2026-07-31 (CIFS) + 2026-08-01 (ES)
 - [ ] กำหนด retention policy สำหรับ Uptime Kuma data (default 365 วัน)
+- [ ] ติดตั้ง logrotate สำหรับ `/opt/np-dms/logs/monitoring/cifs.log` (ตอนนี้ 6.5MB โตทุกนาที)
+- [ ] ทดสอบ reboot จริงเพื่อยืนยัน CIFS automount ทำงาน end-to-end ตอน boot (หลังติดตั้ง 2026-08-19)
