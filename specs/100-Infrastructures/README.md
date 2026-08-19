@@ -23,6 +23,7 @@
 - `142-ocr-prompt-cache-invalidation` - OCR prompt cache invalidation
 - `143-mcp-infra-upgrade` - MCP infrastructure upgrade (Node 24 host + Qdrant v1.18)
 - `144-rclone-gdrive-sync` - Rclone Google Drive sync (offsite repo backup + specs sharing)
+- `145-server-cli-tools` - Server CLI tools setup (ripgrep, bat, fd, eza, dust, lazydocker, delta, yq)
 
 ## การตั้งชื่อโฟลเดอร์
 
