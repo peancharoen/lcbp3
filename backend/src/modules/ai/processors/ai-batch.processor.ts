@@ -1393,6 +1393,7 @@ export class AiBatchProcessor extends WorkerHost {
 
     await this.migrationService.enqueueRecord({
       documentNumber: docNumber,
+      batchId: batchId || 'unknown',
       subject: excelMeta.subject || payloadTitle,
       originalSubject: payloadTitle,
       body: '',

@@ -20,6 +20,10 @@ export class EnqueueMigrationDto {
 
   @IsString()
   @IsOptional()
+  batchId?: string;
+
+  @IsString()
+  @IsOptional()
   subject?: string;
 
   @IsString()

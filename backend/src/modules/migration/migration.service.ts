@@ -479,6 +479,7 @@ export class MigrationService {
     if (!queueItem) {
       queueItem = this.reviewQueueRepo.create({
         documentNumber: dto.documentNumber,
+        batchId: dto.batchId || 'unknown',
       });
     }
 

@@ -148,6 +148,10 @@
 | D115 | **n8n HTTP Request v4.1 headerAuth bug** — HTTP Request node v4.1 ใน n8n 2.35.4 มี bug `Cannot read properties of undefined (reading 'status')` เมื่อใช้ `headerAuth` credential ที่ไม่ถูก resolve; workaround = ใช้ Code node + `this.helpers.httpRequest()` แทนสำหรับ authenticated requests; หรือใช้ `sendHeaders: true` + `specifyHeaders: 'keypair'` + `headerParameters` โดยตรง (ไม่ผ่าน credential)                                                                                                                                                                                                                                                                                                                                                                                                                                      | Session 2026-08-19  |
 | D116 | **MariaDB UUIDv1 → UUIDv7 migration** — seed data ใช้ `uuid()` ของ MariaDB = UUIDv1 ไม่ใช่ UUIDv7 ตาม ADR-019; MariaDB ไม่มี UUIDv7 function; ต้องสร้าง Python script สร้าง UUIDv7 (48-bit timestamp + version 7 + random) และ UPDATE ทุกตารางพร้อมกัน (FK constraints อ้างถึง INT `id` ไม่ใช่ `uuid` จึงไม่กระทบ); logical FK columns (`*_public_id`, `*_uuid`) ต้องอัพเดตด้วย + ใช้ `COLLATE` กรณี collation mismatch                                                                                                                                                                                                                                                                                                                                                                                                                         | Session 2026-08-19  |
 | D117 | **UUID Column Comment Convention** — คอลัมน์ `uuid`/`public_id` ที่มี `DEFAULT UUID()` ต้องระบุ "UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019)"; คอลัมน์ที่ไม่มี DEFAULT ต้องระบุ "UUIDv7 (NestJS @BeforeInsert, ADR-019) — app layer สร้างเสมอ (ไม่มี DB DEFAULT)"; คอลัมน์ TypeORM `@PrimaryGeneratedColumn('uuid')` (workflow tables, Qdrant) ต้องระบุ "UUIDv4 (ไม่ใช่ ADR-019 publicId)"; ห้ามใช้คำอธิบายกลาง "UUID Public Identifier (ADR-019)" อีก — apply แล้วใน database lcbp3 (37 คอลัมน์) + data dictionary + schema SQL; SQL delta `2026-08-20-uuid-column-comments-v1-v7.sql`                                                                                                                                                                                      | ADR-019/044         |
+| D118 | **Migration RBAC Seed Requirement** — การเพิ่ม `@RequirePermission('module.action')` ใน controller ไม่เพียงพอ — ต้อง seed permission row ใน `permissions` table + grant ใน `role_permissions` ด้วย (Bug จาก Issue #3 commit 56284be6 ที่เพิ่ม guard แต่ลืม seed ทำให้ non-Superadmin ถูก 403 ทันที); 5 migration permissions (ID 216-220: `migration.view/commit/enqueue/import/error_log`) grant ให้ role 1/2/3 ตามหลักการเดียวกับ `ai.migration_manage`; SQL delta `2026-08-20-migration-rbac-permissions.sql` + section 20 ใน `lcbp3-v1.9.0-seed-permissions.sql`                                                                                                                                                                                                                                                                            | ADR-016             |
+| D119 | **`getApiErrorMessage` ADR-007 Shape** — `getApiErrorMessage` ใน `frontend/types/api-error.ts` ต้องอ่าน ADR-007 structured shape `{ error: { message } }` ก่อน legacy Axios shape `{ response: { data: { message } } }` เพราะ response interceptor ใน `lib/api/client.ts` reject ด้วย structured shape เสมอ; ก่อน fix นี้ helper อ่านเฉพาะ legacy shape ทำให้ตกไป fallback และซ่อน error จริงจากผู้ใช้ (Bug: "Failed to load queue" แทน "User does not have required permissions: migration.view"); ใช้ type guard `isStructuredErrorResponse` + รองรับทั้ง 3 shapes (structured, Axios raw, Error.message)                                                                                                                                                                                                                                     | ADR-007             |
+| D120 | **Backend Deploy via `docker cp dist`** — Backend container ใช้ code จาก image (ไม่ใช่ volume mount) ทำให้ `npm run build` ใน host ไม่มีผลต่อ container; ต้อง `docker cp /opt/np-dms-lcbp3/backend/dist/. backend:/app/dist/` หลัง build แล้ว `docker restart backend`; ห้าม assume restart อย่างเดียวพอ — dist เก่ายังอยู่ใน image                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Session 2026-08-20  |
+| D121 | **Migration Review Queue Schema Sync** — `migration_review_queue` มี 2 entities (`MigrationReviewRecord` ใน `ai/entities/` และ `MigrationReviewQueue` ใน `migration/entities/`) สำหรับตารางเดียวกัน; ยังคงใช้ entity เก่าตาม user decision; schema drift ทำให้ BullMQ jobs ล้มเหลว — แก้ด้วย delta SQL เพิ่ม 17 columns + relax 4 NOT NULL fields; `batchId` ต้อง extract จาก `dto.payload.batchId` ขึ้น top-level ใน `submitUnifiedJob` เพราะ processor ดึงจาก `job.data.batchId` โดยตรง; delta: `2026-08-20-migration-review-queue-schema-sync.sql`                                                                                                                                                                                                                                                                                           | ADR-023A/044        |
 
 ## Environment & Services
 
@@ -186,6 +190,33 @@ QDRANT_URL
 ```
 
 ## Next Session Focus
+
+### Migration Review Queue Schema Sync + BullMQ Fix (Session 2026-08-20) ✅ COMPLETE
+
+- [x] สร้าง delta SQL `2026-08-20-migration-review-queue-schema-sync.sql` (17 columns + relax 4 NOT NULL)
+- [x] รัน delta บน MariaDB สำเร็จ (38 columns ครบ)
+- [x] อัปเดต canonical schema + data dictionary
+- [x] เพิ่ม `batchId` ใน DTO + entity + service + processor
+- [x] Extract `batchId` จาก `dto.payload` ใน `submitUnifiedJob`
+- [x] Build + `docker cp dist` + restart backend
+- [x] BullMQ job 1 รายการ completed สำเร็จ (`CHEC-LCP-C2-O-24-0005`)
+- [x] `migration_review_queue` มี record ใหม่พร้อมข้อมูลครบ
+- [x] Lock decisions D120 (Backend Deploy via docker cp dist) + D121 (Migration Review Queue Schema Sync)
+- [x] Session log: `specs/88-logs/session-2026-08-20-migration-review-queue-schema-sync.md`
+- [ ] **ทดสอบ workflow จริง** รันเอกสารหลายรายการ ดูว่าทุก job ผ่าน `Prepare AI Result` ไม่วน retry
+- [ ] **ตรวจ `Route Poll Status`** ว่ามี `failedReason` condition ที่ terminal หรือยัง (pending จาก session ก่อน)
+
+### Legacy Review Queue "Failed to load queue" Bugfix (Session 2026-08-20) ✅ COMPLETE (DB applied, browser test pending)
+
+- [x] **Fix #1: Missing RBAC permissions** — เพิ่ม 5 migration permissions (ID 216-220) ใน DB + grant ให้ role 1/2/3 ผ่าน MCP MariaDB; verified ผ่าน `v_user_all_permissions`
+- [x] **Fix #2: `getApiErrorMessage` ADR-007 shape** — แก้ helper ให้อ่าน structured error `{ error: { message } }` ก่อน legacy shapes + regression test 8 cases
+- [x] SQL delta `2026-08-20-migration-rbac-permissions.sql` + section 20 ใน `lcbp3-v1.9.0-seed-permissions.sql`
+- [x] Frontend: 969 tests pass + tsc + eslint clean
+- [x] Backend: 144 migration tests pass (ไม่แตะ backend code)
+- [x] Lock decisions D118 (Migration RBAC Seed Requirement) + D119 (`getApiErrorMessage` ADR-007 Shape)
+- [x] Session log: `specs/88-logs/session-2026-08-20-legacy-review-queue-bugfix.md`
+- [ ] **ทดสอบจาก browser จริง** ที่ `https://lcbp3.np-dms.work/admin/migration` หลัง login ด้วย Org Admin account
+- [ ] **Commit + push via 2git.sh** — pending
 
 ### UUID Column Comments v1/v7 Clarification (Session 2026-08-20) ✅ COMPLETE
 

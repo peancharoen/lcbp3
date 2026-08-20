@@ -32,6 +32,9 @@ export class MigrationReviewQueue extends UuidBaseEntity {
   @Exclude()
   id!: number;
 
+  @Column({ name: 'batch_id', length: 100, nullable: true })
+  batchId?: string;
+
   @Column({ name: 'document_number', length: 100, unique: true })
   documentNumber!: string;
 

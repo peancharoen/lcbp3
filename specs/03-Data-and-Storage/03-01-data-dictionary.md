@@ -2318,17 +2318,38 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 | `id` | INT AUTO_INCREMENT | NO | Internal PK — ห้าม expose ใน API (ADR-019) |
 | `uuid` | UUID | NO | UUIDv7 (NestJS @BeforeInsert, ADR-019) — app layer สร้างเสมอ (ไม่มี DB DEFAULT) |
 | `batch_id` | VARCHAR(100) | NO | n8n batch identifier |
-| `idempotency_key` | VARCHAR(200) | NO | Idempotency-Key สำหรับป้องกัน queue ซ้ำ |
-| `original_filename` | VARCHAR(500) | NO | ชื่อไฟล์ต้นฉบับจาก legacy source |
-| `storage_temp_path` | VARCHAR(1000) | NO | temp storage path ก่อน import |
+| `idempotency_key` | VARCHAR(200) | YES | Idempotency-Key สำหรับป้องกัน queue ซ้ำ (nullable — entity เก่าไม่ได้ใช้) |
+| `original_filename` | VARCHAR(500) | YES | ชื่อไฟล์ต้นฉบับจาก legacy source (nullable — entity เก่าไม่ได้ใช้) |
+| `storage_temp_path` | VARCHAR(1000) | YES | temp storage path ก่อน import (nullable — entity เก่าไม่ได้ใช้) |
+| `ai_job_id` | VARCHAR(36) | YES | BullMQ Job ID สำหรับงานประมวลผล AI |
 | `ai_metadata_json` | JSON | NO | AI suggestion payload เต็มสำหรับ human review |
-| `confidence_score` | DECIMAL(5,4) | NO | AI confidence score 0.0000-1.0000 |
+| `confidence_score` | DECIMAL(5,4) | YES | AI confidence score 0.0000-1.0000 (nullable — entity เก่าไม่ได้ใช้) |
 | `ocr_used` | TINYINT(1) | NO | ระบุว่าใช้ OCR path หรือไม่ (default: 0) |
-| `status` | ENUM | NO | สถานะ: PENDING / APPROVED / IMPORTED / REJECTED |
+| `status` | ENUM | NO | สถานะ: PENDING / PENDING_REVIEW / IMPORTED / REJECTED |
+| `temp_attachment_id` | INT | YES | Temporary attachment ID referencing attachments.id (ADR-028) |
+| `temp_attachment_ids` | JSON | YES | รายการ internal attachment IDs หลายไฟล์ (FR-001, FR-002) |
 | `reviewed_by` | INT | YES | Internal users.user_id ของผู้ review |
 | `reviewed_at` | DATETIME | YES | เวลาที่ review record |
 | `rejection_reason` | VARCHAR(500) | YES | เหตุผลเมื่อ reject |
 | `version` | INT | NO | Optimistic locking version |
+| `compare_status` | ENUM | NO | สถานะการเปรียบเทียบ: COMPARED / UNAVAILABLE (FR-012a) |
+| `compare_unavailable_reason` | VARCHAR(500) | YES | เหตุผลภาษาไทยเมื่อ compareStatus = UNAVAILABLE (FR-012b) |
+| `document_number` | VARCHAR(100) | YES | เลขที่เอกสารเก่า (จาก OCR/Excel) — UNIQUE |
+| `subject` | TEXT | YES | หัวข้อเรื่อง (ตรงกับ correspondence_revisions.subject) |
+| `original_subject` | TEXT | YES | หัวข้อเดิมจาก Excel (ก่อน AI แก้ไข) |
+| `body` | TEXT | YES | เนื้อความสรุปจาก AI |
+| `ai_suggested_category` | VARCHAR(50) | YES | หมวดหมู่ที่ AI แนะนำ |
+| `ai_confidence` | DECIMAL(4,3) | YES | ค่าความมั่นใจของ AI (0.000 - 1.000) |
+| `ai_issues` | JSON | YES | รายละเอียดปัญหาที่ AI พบ |
+| `review_reason` | VARCHAR(255) | YES | เหตุผลที่ต้องตรวจสอบ (เช่น Confidence ต่ำ) |
+| `project_id` | INT | YES | Project ID จาก Lookups |
+| `sender_organization_id` | INT | YES | Sender ID จาก Lookups |
+| `receiver_organization_id` | INT | YES | Receiver ID จาก Lookups |
+| `received_date` | DATE | YES | วันที่รับเอกสาร |
+| `issued_date` | DATE | YES | วันที่ออกเอกสาร |
+| `remarks` | TEXT | YES | หมายเหตุจากหน้างาน |
+| `ai_summary` | TEXT | YES | สรุปเนื้อหาจาก AI (4-5 บรรทัด) |
+| `extracted_tags` | JSON | YES | Tag ที่ AI นำเสนอหรือจับคู่ได้ |
 | `created_at` | DATETIME | NO | วันที่สร้าง |
 | `updated_at` | DATETIME | NO | วันที่แก้ไขล่าสุด |
 
@@ -2337,6 +2358,7 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 - PRIMARY KEY (id)
 - UNIQUE KEY uq_migration_review_uuid (uuid)
 - UNIQUE KEY uq_migration_review_idempotency (idempotency_key)
+- UNIQUE KEY uq_doc_number (document_number)
 - KEY idx_migration_review_status_created (status, created_at)
 - KEY idx_migration_review_batch (batch_id)
 - KEY idx_migration_review_reviewed_by (reviewed_by)

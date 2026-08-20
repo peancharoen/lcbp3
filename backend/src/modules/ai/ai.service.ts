@@ -353,6 +353,7 @@ export class AiService {
       documentPublicId: payload.documentPublicId || '',
       projectPublicId: dto.projectPublicId || '',
       payload: dto.payload || {},
+      batchId: dto.payload?.batchId as string | undefined,
       idempotencyKey,
     };
     const job = await queue.add(
