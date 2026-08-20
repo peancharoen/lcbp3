@@ -86,6 +86,7 @@ export type AiBatchJobType =
   | 'migrate-document'
   | 'rag-prepare'
   | 'ai-suggest'
+  | 'legacy-ai-enrichment'
   | 'rag-query';
 
 /** รายการ job types ที่ต้องใช้ np-dms-ocr model — จะ trigger model switching (ADR-034) */
@@ -400,6 +401,14 @@ export class AiBatchProcessor extends WorkerHost {
             `RAG prepare job processing — jobId=${String(job.id)}`
           );
           await this.processRagPrepare(job.data);
+          return;
+        case 'legacy-ai-enrichment':
+          this.logger.log(
+            `Legacy AI Enrichment job processing — jobId=${String(job.id)}`
+          );
+          await this.processLegacyAiEnrichment(
+            job.data as unknown as Record<string, unknown>
+          );
           return;
         default: {
           const unreachable: never = job.data.jobType;
@@ -1940,5 +1949,132 @@ export class AiBatchProcessor extends WorkerHost {
       chunkIndex += 1;
     }
     return chunks;
+  }
+
+  /**
+   * ประมวลผล Legacy AI Enrichment: OCR 3 หน้าแรก + LLM Tag/Metadata Extraction (ADR-047)
+   * รับ job data จาก BullMQ ที่ LegacyIngestionService enqueue ไว้
+   * ใช้ queueId (INT PK) สำหรับเรียก updateQueueEnrichment() ภายใน —
+   * ไม่ใช่ API boundary จึงใช้ INT ได้ตาม ADR-019 (อนุญาต INT ใน internal service methods)
+   */
+  private async processLegacyAiEnrichment(
+    data: Record<string, unknown>
+  ): Promise<void> {
+    // Internal BullMQ job data — queueId เป็น INT PK สำหรับ internal update เท่านั้น
+    // ADR-019: INT ใช้ได้ใน internal service/repository operations (ไม่ใช่ API boundary)
+    const queueId = Number(data.queueId);
+    const pdfPathRaw = data.pdfPath;
+    const documentNumberRaw = data.documentNumber;
+    const pdfPath =
+      typeof pdfPathRaw === 'string'
+        ? pdfPathRaw
+        : pdfPathRaw == null
+          ? ''
+          : JSON.stringify(pdfPathRaw);
+    const documentNumber =
+      typeof documentNumberRaw === 'string'
+        ? documentNumberRaw
+        : documentNumberRaw == null
+          ? ''
+          : JSON.stringify(documentNumberRaw);
+
+    if (!queueId || !pdfPath) {
+      this.logger.warn(`processLegacyAiEnrichment: missing queueId or pdfPath`);
+      return;
+    }
+
+    try {
+      // 1. OCR 3 หน้าแรก
+      let ocrText = '';
+      try {
+        const ocrResult = await this.ocrService.detectAndExtract({
+          pdfPath,
+        });
+        ocrText = ocrResult.text || '';
+      } catch (ocrErr: unknown) {
+        this.logger.warn(
+          `OCR extraction failed for legacy doc [${documentNumber}]: ${String(ocrErr)}`
+        );
+      }
+
+      // 2. LLM Tag & Metadata Extraction
+      let aiSummary: string | undefined;
+      let aiSuggestedCategory: string | undefined;
+      let aiConfidence = 0.8;
+      const extractedTags: Record<string, string>[] = [];
+
+      if (ocrText && ocrText.trim().length > 0) {
+        try {
+          const truncatedOcr = ocrText.slice(0, MAX_OCR_TEXT_CHARS);
+          const prompt = `วิเคราะห์เอกสารราชการ/เอกสารก่อสร้างต่อไปนี้ และสกัดข้อมูลเป็น JSON:
+{
+  "summary": "สรุปสาระสำคัญของเอกสาร 2-3 บรรทัด",
+  "category": "Letter หรือ RFA หรือ Drawing หรือ Report หรือ Other",
+  "tags": ["สาขางาน", "ประเภทเอกสาร", "หน่วยงาน"],
+  "confidence": 0.85
+}
+
+ข้อความเอกสาร:
+${truncatedOcr}`;
+
+          const llmResponse = await this.generateStructuredJson(prompt, {
+            timeoutMs: this.ollamaService.getBatchTimeoutMs(),
+            format: 'json',
+          });
+
+          if (llmResponse?.extractedMetadata) {
+            const parsed = llmResponse.extractedMetadata;
+            aiSummary =
+              typeof parsed.summary === 'string' ? parsed.summary : undefined;
+            aiSuggestedCategory =
+              typeof parsed.category === 'string' ? parsed.category : undefined;
+            aiConfidence =
+              typeof parsed.confidence === 'number' ? parsed.confidence : 0.8;
+            if (Array.isArray(parsed.tags)) {
+              for (const tag of parsed.tags) {
+                if (typeof tag === 'string' && tag.trim()) {
+                  extractedTags.push({ name: tag.trim() });
+                }
+              }
+            }
+          }
+        } catch (llmErr: unknown) {
+          this.logger.warn(
+            `LLM metadata extraction failed for [${documentNumber}]: ${String(llmErr)}`
+          );
+        }
+      }
+
+      // 3. บันทึกผลลัพธ์กลับสู่ migration_review_queue
+      await this.migrationService.updateQueueEnrichment(queueId, {
+        ocrText: ocrText || undefined,
+        aiSummary,
+        aiSuggestedCategory,
+        extractedTags: extractedTags.length > 0 ? extractedTags : undefined,
+        aiConfidence,
+      });
+
+      this.logger.log(
+        `processLegacyAiEnrichment: successfully enriched queue item [${queueId}]`
+      );
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      this.logger.error(
+        `processLegacyAiEnrichment failed for queue item [${queueId}]: ${errMsg}`
+      );
+      // Edge Case 4: mark ai_failed เพื่อให้มนุษย์ตรวจทานเองได้ (BullMQ retry จะจัดการพยายามใหม่
+      // แต่หาก throw ออกไปแล้ว retry ครบ 3 ครั้งยังไม่สำเร็จ จะทำให้ queue item ตกเป็น AI_FAILED)
+      try {
+        await this.migrationService.updateQueueEnrichment(queueId, {
+          aiFailed: true,
+          aiIssues: [{ type: 'AI_ENRICHMENT_FAILED', message: errMsg }],
+        });
+      } catch (markErr: unknown) {
+        this.logger.error(
+          `Failed to mark ai_failed for queue item [${queueId}]: ${String(markErr)}`
+        );
+      }
+      throw err;
+    }
   }
 }

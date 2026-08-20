@@ -11,6 +11,21 @@ import { Reflector } from '@nestjs/core';
 import { UnauthorizedException } from '@nestjs/common';
 import { MigrationController } from './migration.controller';
 import { MigrationService } from './migration.service';
+import { MigrationReviewService } from './migration-review.service';
+import { LegacyIngestionService } from './services/legacy-ingestion.service';
+
+/** Minimal Multer file shape for testing (matches controller's MulterFile) */
+interface MulterFile {
+  fieldname: string;
+  originalname: string;
+  encoding: string;
+  mimetype: string;
+  size: number;
+  destination: string;
+  filename: string;
+  path: string;
+  buffer: Buffer;
+}
 import { MetadataResolutionService } from './services/metadata-resolution.service';
 import { ReviewThresholdService } from './services/review-threshold.service';
 import { RagBatchService } from './services/rag-batch.service';
@@ -25,6 +40,8 @@ describe('MigrationController', () => {
   let metadataResolutionService: jest.Mocked<MetadataResolutionService>;
   let reviewThresholdService: jest.Mocked<ReviewThresholdService>;
   let ragBatchService: jest.Mocked<RagBatchService>;
+  let migrationReviewService: jest.Mocked<MigrationReviewService>;
+  let legacyIngestionService: jest.Mocked<LegacyIngestionService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -37,6 +54,20 @@ describe('MigrationController', () => {
             importCorrespondence: jest
               .fn()
               .mockResolvedValue({ message: 'Success' }),
+          },
+        },
+        {
+          provide: MigrationReviewService,
+          useValue: {
+            updateQueueOcr: jest.fn().mockResolvedValue({ success: true }),
+          },
+        },
+        {
+          provide: LegacyIngestionService,
+          useValue: {
+            startIngestion: jest
+              .fn()
+              .mockResolvedValue({ status: 'COMPLETED' }),
           },
         },
         {
@@ -63,6 +94,8 @@ describe('MigrationController', () => {
     metadataResolutionService = module.get(MetadataResolutionService);
     reviewThresholdService = module.get(ReviewThresholdService);
     ragBatchService = module.get(RagBatchService);
+    migrationReviewService = module.get(MigrationReviewService);
+    legacyIngestionService = module.get(LegacyIngestionService);
   });
 
   it('should be defined', () => {
@@ -93,6 +126,7 @@ describe('MigrationController', () => {
         isActive: true,
         failedAttempts: 0,
         primaryOrganizationPublicId: undefined,
+        mustChangePassword: false,
         generatePublicId: jest.fn(),
       };
 
@@ -128,7 +162,8 @@ describe('MigrationController', () => {
 
       const result = await controller.resolveBatch(
         { batchId: 'batch-001' },
-        'idem-key-001'
+        'idem-key-001',
+        { user_id: 5 } as User
       );
 
       expect(metadataResolutionService.resolveBatch).toHaveBeenCalledWith(
@@ -151,7 +186,7 @@ describe('MigrationController', () => {
         failures: [],
       });
 
-      await controller.resolveBatch({}, 'idem-key-002');
+      await controller.resolveBatch({}, 'idem-key-002', { user_id: 5 } as User);
 
       expect(metadataResolutionService.resolveBatch).toHaveBeenCalledWith(
         undefined
@@ -159,9 +194,11 @@ describe('MigrationController', () => {
     });
 
     it('throws ValidationException when Idempotency-Key is missing (ADR-016)', async () => {
-      await expect(controller.resolveBatch({ batchId: 'b1' })).rejects.toThrow(
-        ValidationException
-      );
+      await expect(
+        controller.resolveBatch({ batchId: 'b1' }, undefined, {
+          user_id: 5,
+        } as User)
+      ).rejects.toThrow(ValidationException);
       expect(metadataResolutionService.resolveBatch).not.toHaveBeenCalled();
     });
   });
@@ -194,6 +231,7 @@ describe('MigrationController', () => {
         isActive: true,
         failedAttempts: 0,
         primaryOrganizationPublicId: undefined,
+        mustChangePassword: false,
         generatePublicId: jest.fn(),
       };
 
@@ -238,6 +276,7 @@ describe('MigrationController', () => {
         isActive: true,
         failedAttempts: 0,
         primaryOrganizationPublicId: undefined,
+        mustChangePassword: false,
         generatePublicId: jest.fn(),
       };
 
@@ -271,7 +310,8 @@ describe('MigrationController', () => {
 
       const result = await controller.triggerRagBatch(
         { batchId: 'batch-rag-001' },
-        'idem-key-rag-001'
+        'idem-key-rag-001',
+        { user_id: 5 } as User
       );
 
       expect(ragBatchService.triggerRagBatch).toHaveBeenCalledWith(
@@ -295,16 +335,118 @@ describe('MigrationController', () => {
         },
       });
 
-      await controller.triggerRagBatch({}, 'idem-key-rag-002');
+      await controller.triggerRagBatch({}, 'idem-key-rag-002', {
+        user_id: 5,
+      } as User);
 
       expect(ragBatchService.triggerRagBatch).toHaveBeenCalledWith(undefined);
     });
 
     it('throws ValidationException when Idempotency-Key is missing (ADR-016)', async () => {
       await expect(
-        controller.triggerRagBatch({ batchId: 'b1' })
+        controller.triggerRagBatch({ batchId: 'b1' }, undefined, {
+          user_id: 5,
+        } as User)
       ).rejects.toThrow(ValidationException);
       expect(ragBatchService.triggerRagBatch).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('POST /queue/:publicId/reject (ADR-016)', () => {
+    it('calls migrationService.rejectQueueItemByPublicId with publicId (ADR-019)', async () => {
+      service.rejectQueueItemByPublicId = jest
+        .fn()
+        .mockResolvedValue({ success: true });
+
+      await controller.rejectQueueItem(
+        '019505a1-7c3e-7000-8000-queue001',
+        'idem-key-reject-001',
+        { user_id: 5 } as User
+      );
+
+      expect(service.rejectQueueItemByPublicId).toHaveBeenCalledWith(
+        '019505a1-7c3e-7000-8000-queue001',
+        5
+      );
+    });
+
+    it('throws ValidationException when Idempotency-Key is missing (ADR-016)', async () => {
+      await expect(
+        controller.rejectQueueItem(
+          '019505a1-7c3e-7000-8000-queue001',
+          undefined,
+          { user_id: 5 } as User
+        )
+      ).rejects.toThrow(ValidationException);
+    });
+  });
+
+  describe('ADR-047: Ingestion & OCR Endpoints', () => {
+    it('uploadExcelFile returns file info when file is provided', () => {
+      const mockFile = {
+        path: '/tmp/test.xlsx',
+        originalname: 'test.xlsx',
+        size: 1024,
+        mimetype:
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      } as MulterFile;
+
+      // SEV-001: ParseFilePipe ทำงานที่ NestJS runtime level (ไม่ใช่ใน method body)
+      // การเรียก method ตรงๆ ใน unit test จะข้าม pipe — ตรวจ method logic เท่านั้น
+      const res = controller.uploadExcelFile(mockFile);
+      expect(res.filePath).toBe('/tmp/test.xlsx');
+      expect(res.originalFilename).toBe('test.xlsx');
+    });
+
+    it('uploadExcelFile throws when file is undefined (ParseFilePipe handles at runtime)', () => {
+      // SEV-001: ParseFilePipe with MaxFileSizeValidator + FileTypeValidator
+      // จะ throw BadRequestException ที่ runtime เมื่อ file หาย —
+      // ใน unit test การเรียกตรงจะเจอ TypeError ที่ file.path
+      expect(() =>
+        controller.uploadExcelFile(undefined as unknown as MulterFile)
+      ).toThrow(TypeError);
+    });
+
+    it('startIngestion triggers legacyIngestionService in background', () => {
+      const dto = {
+        filePath: '/tmp/test.xlsx',
+        projectPublicId: '019505a1-7c3e-7000-8000-proj001',
+      };
+      const res = controller.startIngestion(dto, 'idem-key-ingest-001');
+      expect(res.message).toContain('started successfully');
+      expect(legacyIngestionService.startIngestion).toHaveBeenCalledWith(dto);
+    });
+
+    it('updateQueueOcr calls migrationReviewService.updateQueueOcr with user_id (ADR-016: Idempotency-Key)', async () => {
+      const user = { user_id: 3 } as User;
+      const dto = { ocrText: 'corrected text', reEmbed: true };
+
+      await controller.updateQueueOcr(
+        '019505a1-7c3e-7000-8000-queue001',
+        dto,
+        'idem-key-ocr-001',
+        user
+      );
+
+      expect(migrationReviewService.updateQueueOcr).toHaveBeenCalledWith(
+        '019505a1-7c3e-7000-8000-queue001',
+        dto,
+        3
+      );
+    });
+
+    it('updateQueueOcr throws ValidationException when Idempotency-Key is missing (ADR-016)', async () => {
+      const user = { user_id: 3 } as User;
+      const dto = { ocrText: 'corrected text', reEmbed: true };
+
+      await expect(
+        controller.updateQueueOcr(
+          '019505a1-7c3e-7000-8000-queue001',
+          dto,
+          undefined,
+          user
+        )
+      ).rejects.toThrow(ValidationException);
     });
   });
 });

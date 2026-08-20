@@ -79,7 +79,12 @@ export class AuthService {
         }
       }
       const { password: _password, ...result } = user;
-      return { ...result, role: derivedRole } as User & { role: string };
+      // SEV-014: ส่ง flag mustChangePassword ไป frontend เพื่อบังคับเปลี่ยนรหัสผ่าน
+      return {
+        ...result,
+        role: derivedRole,
+        mustChangePassword: user.mustChangePassword ?? false,
+      } as User & { role: string; mustChangePassword: boolean };
     }
     return null;
   }
@@ -160,7 +165,7 @@ export class AuthService {
       throw new BadRequestException('Username already exists');
     }
 
-    const salt = await bcrypt.genSalt();
+    const salt = await bcrypt.genSalt(12); // ADR-016: 12 salt rounds
     const hashedPassword = await bcrypt.hash(userDto.password, salt);
 
     return this.userService.create({

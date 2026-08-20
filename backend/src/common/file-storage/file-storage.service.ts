@@ -26,6 +26,7 @@ import {
   QUEUE_AI_REALTIME,
 } from '../../modules/common/constants/queue.constants';
 import { validateFileType } from './file-magic-bytes.util';
+import { ClamAVService } from '../clamav/clamav.service';
 
 /**
  * รายการ MIME types ที่อนุญาตสำหรับ upload (FR-004)
@@ -76,7 +77,9 @@ export class FileStorageService {
     private readonly aiRealtimeQueue?: Queue,
     @Optional()
     @InjectQueue(QUEUE_AI_BATCH)
-    private readonly aiBatchQueue?: Queue
+    private readonly aiBatchQueue?: Queue,
+    @Optional()
+    private readonly clamavService?: ClamAVService
   ) {
     // ใช้ env vars จาก docker-compose สำหรับ Production
     // ถ้าไม่ได้กำหนดจะ fallback เป็น ./uploads/temp และ ./uploads/permanent
@@ -144,6 +147,23 @@ export class FileStorageService {
     } catch (error) {
       this.logger.error(`Failed to write file: ${tempPath}`, error);
       throw new BadRequestException('File upload failed');
+    }
+
+    // 3.5 ADR-016: ClamAV virus scan — สแกนไฟล์ก่อนสร้าง attachment record
+    // หาก ClamAV ไม่ available จะข้ามการสแกน (graceful degradation)
+    if (this.clamavService) {
+      const scanResult = await this.clamavService.scanFile(tempPath);
+      if (scanResult.isInfected) {
+        // ลบไฟล์ที่ติดไวรัสทิ้งทันที
+        await fs.unlink(tempPath).catch(() => undefined);
+        const virusNames = scanResult.viruses?.join(', ') ?? 'UNKNOWN';
+        this.logger.warn(
+          `Virus detected in uploaded file "${originalFilename}": ${virusNames}`
+        );
+        throw new BadRequestException(
+          `ไฟล์ที่อัปโหลดติดไวรัส (${virusNames}) — กรุณาสแกนไฟล์ด้วย antivirus ก่อนอัปโหลด`
+        );
+      }
     }
 
     // 4. สร้าง Record ใน Database

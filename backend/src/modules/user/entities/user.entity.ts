@@ -43,6 +43,10 @@ export class User extends UuidBaseEntity {
   @Column({ name: 'is_active', default: true })
   isActive!: boolean;
 
+  /** SEV-014: บังคับเปลี่ยนรหัสผ่านหลัง login ครั้งแรก (สำหรับ seed users) */
+  @Column({ name: 'must_change_password', type: 'tinyint', default: 0 })
+  mustChangePassword!: boolean;
+
   @Column({ name: 'failed_attempts', default: 0 })
   failedAttempts!: number;
 

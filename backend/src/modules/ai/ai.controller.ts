@@ -1054,7 +1054,16 @@ export class AiController {
   })
   async ingestLegacyMigration(
     @Body() dto: LegacyMigrationIngestDto,
-    @UploadedFiles() files: Express.Multer.File[] = []
+    @UploadedFiles(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 50 * 1024 * 1024 }), // 50MB per file
+          new FileTypeValidator({ fileType: 'pdf' }),
+        ],
+        fileIsRequired: false, // files array may be empty for metadata-only ingest
+      })
+    )
+    files: Express.Multer.File[] = []
   ) {
     return this.aiIngestService.ingest(dto, files);
   }

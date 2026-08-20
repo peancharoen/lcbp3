@@ -82,6 +82,7 @@ export interface MigrationReviewQueueItem {
   remarks?: string;
   aiSummary?: string;
   extractedTags?: Record<string, unknown>[];
+  ocrText?: string | null;
   tempAttachmentId?: number | string; // ADR-019: Accept UUID
   // Feature 242: multi-attachment + compare
   tempAttachmentIds?: number[];
@@ -89,10 +90,13 @@ export interface MigrationReviewQueueItem {
   compareUnavailableReason?: string;
   compareResult?: CompareResult;
   capturedThresholds?: CapturedThresholds;
+  /** Edge Case 4: flag แสดงว่า AI enrichment ล้มเหลวหลัง retry ครบ */
+  aiFailed?: boolean;
 }
 
 export interface CommitBatchItemDto {
-  queueId: number;
+  /** ADR-019: ใช้ publicId (UUIDv7) เท่านั้น ห้ามใช้ INT id */
+  queuePublicId: string;
   dto: Record<string, unknown>;
 }
 
@@ -127,4 +131,19 @@ export interface PaginatedResponse<T> {
   page: number;
   limit: number;
   totalPages: number;
+}
+
+export interface StartIngestPayload {
+  filePath: string;
+  projectPublicId: string;
+  contractCode?: string;
+  sheetName?: string;
+  pdfFolderPath?: string;
+  batchId?: string;
+  resume?: boolean;
+}
+
+export interface UpdateQueueOcrPayload {
+  ocrText: string;
+  reEmbed?: boolean;
 }

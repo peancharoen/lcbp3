@@ -1,5 +1,8 @@
 // File: src/modules/monitoring/controllers/health.controller.ts
-import { Controller, Get } from '@nestjs/common';
+// Change Log:
+// - 2026-08-20: SEV-013 — แยก /ping (public, no infra details) จาก /health (auth required)
+
+import { Controller, Get, UseGuards } from '@nestjs/common';
 import {
   HealthCheckService,
   HttpHealthIndicator,
@@ -8,6 +11,7 @@ import {
   MemoryHealthIndicator,
   DiskHealthIndicator,
 } from '@nestjs/terminus';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 
 @Controller()
 export class HealthController {
@@ -19,12 +23,15 @@ export class HealthController {
     private disk: DiskHealthIndicator
   ) {}
 
+  /** SEV-013: /ping เป็น public endpoint สำหรับ load balancer — ไม่เปิดเผยข้อมูล infra */
   @Get('ping')
   ping() {
     return { status: 'ok', timestamp: new Date().toISOString() };
   }
 
+  /** SEV-013: /health ต้องมี JWT auth — แสดงรายละเอียด infrastructure */
   @Get('health')
+  @UseGuards(JwtAuthGuard)
   @HealthCheck()
   check() {
     return this.health.check([

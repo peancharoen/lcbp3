@@ -22,6 +22,7 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { CompareResultTable } from '@/components/migration/compare-result-table';
+import { OcrTextEditor } from '@/components/migration/ocr-text-editor';
 
 interface MigrationAiIssues {
   documentDate?: string;
@@ -51,7 +52,8 @@ type ReviewFormValues = z.infer<typeof reviewFormSchema>;
 export default function MigrationReviewPage() {
   const params = useParams();
   const router = useRouter();
-  const id = Number(params.id);
+  // ADR-019: ใช้ publicId (UUIDv7) จาก route param ห้ามแปลงเป็น number
+  const publicId = Array.isArray(params.id) ? params.id[0] : params.id;
 
   const [item, setItem] = useState<MigrationReviewQueueItem | null>(null);
   const [loading, setLoading] = useState(true);
@@ -73,10 +75,10 @@ export default function MigrationReviewPage() {
   });
 
   const fetchItem = useCallback(
-    async (itemId: number) => {
+    async (itemPublicId: string) => {
       try {
         setLoading(true);
-        const res = await migrationService.getQueueItem(itemId);
+        const res = await migrationService.getQueueItem(itemPublicId);
         setItem(res);
 
         if (res) {
@@ -103,9 +105,9 @@ export default function MigrationReviewPage() {
   );
 
   useEffect(() => {
-    if (!id) return;
-    fetchItem(id);
-  }, [id, fetchItem]);
+    if (!publicId) return;
+    fetchItem(publicId);
+  }, [publicId, fetchItem]);
 
   const onSubmit = async (values: ReviewFormValues) => {
     if (!item) return;
@@ -130,17 +132,17 @@ export default function MigrationReviewPage() {
           aiConfidence: item.aiConfidence,
         },
       };
-      if (!item?.id) {
-        toast.error('Invalid item ID');
+      if (!item?.publicId) {
+        toast.error('Invalid item publicId');
         return;
       }
-      const idempotencyKey = `review-${item.id}-${Date.now()}`;
+      const idempotencyKey = `review-${item.publicId}-${Date.now()}`;
       // Feature 242: ส่ง fieldResolutions ใน commit payload (FR-011b)
       const commitPayload = {
         ...payload,
         fieldResolutions: fieldResolutions.length > 0 ? fieldResolutions : undefined,
       };
-      await migrationService.approveQueueItem(item.id, commitPayload, idempotencyKey);
+      await migrationService.approveQueueItem(item.publicId, commitPayload, idempotencyKey);
       toast.success('Document approved and imported successfully');
       router.push('/admin/migration');
     } catch (error: unknown) {
@@ -152,11 +154,13 @@ export default function MigrationReviewPage() {
   };
 
   const onReject = async () => {
-    if (!item || !item.id || !confirm('Are you sure you want to REJECT this document? It will not be imported.')) return;
+    if (!item || !item.publicId || !confirm('Are you sure you want to REJECT this document? It will not be imported.')) return;
 
     try {
       setSubmitting(true);
-      await migrationService.rejectQueueItem(item.id);
+      // ADR-016: ส่ง Idempotency-Key สำหรับ rejection mutation
+      const idempotencyKey = `reject-${item.publicId}-${Date.now()}`;
+      await migrationService.rejectQueueItem(item.publicId, idempotencyKey);
       toast.success('Document rejected');
       router.push('/admin/migration');
     } catch (_error: unknown) {
@@ -227,6 +231,17 @@ export default function MigrationReviewPage() {
               capturedThresholds={item.capturedThresholds}
               fieldResolutions={fieldResolutions}
               onFieldResolutionChange={setFieldResolutions}
+            />
+          )}
+
+          {/* ADR-047: OCR 3 หน้าแรก Text Editor — superadmin/admin แก้ไขและ Re-embed RAG ได้ */}
+          {item.publicId && (
+            <OcrTextEditor
+              publicId={item.publicId}
+              initialOcrText={item.ocrText}
+              onSaved={(newText) =>
+                setItem((prev) => (prev ? { ...prev, ocrText: newText } : prev))
+              }
             />
           )}
         </div>

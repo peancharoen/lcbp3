@@ -1,8 +1,14 @@
+// File: backend/src/modules/migration/migration.controller.ts
+// Change Log:
+// - 2026-08-06: Initial creation with resolution & review endpoints
+// - 2026-08-20: Added Streaming Legacy Ingestion & OCR sync endpoints (ADR-047)
+
 import {
   Controller,
   Post,
   Body,
   Headers,
+  Logger,
   UseGuards,
   Get,
   Param,
@@ -12,14 +18,40 @@ import {
   Patch,
   HttpCode,
   UnauthorizedException,
+  UseInterceptors,
+  UploadedFile,
+  ParseFilePipe,
+  MaxFileSizeValidator,
+  FileTypeValidator,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+
+/**
+ * Minimal shape of a Multer file object (avoids relying on global Express.Multer
+ * namespace augmentation which some IDEs/linters fail to resolve).
+ */
+interface MulterFile {
+  fieldname: string;
+  originalname: string;
+  encoding: string;
+  mimetype: string;
+  size: number;
+  destination: string;
+  filename: string;
+  path: string;
+  buffer: Buffer;
+}
 import { MigrationService } from './migration.service';
+import { MigrationReviewService } from './migration-review.service';
+import { LegacyIngestionService } from './services/legacy-ingestion.service';
 import { ImportCorrespondenceDto } from './dto/import-correspondence.dto';
 import { EnqueueMigrationDto } from './dto/enqueue-migration.dto';
 import { CommitBatchDto } from './dto/commit-batch.dto';
 import { CreateMigrationErrorDto } from './dto/create-migration-error.dto';
 import { ResolveBatchDto } from './dto/resolve-batch.dto';
 import { TriggerRagBatchDto } from './dto/trigger-rag-batch.dto';
+import { StartIngestDto } from './dto/start-ingest.dto';
+import { UpdateQueueOcrDto } from './dto/update-queue-ocr.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../common/guards/rbac.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -32,6 +64,7 @@ import {
   ApiHeader,
   ApiQuery,
   ApiParam,
+  ApiConsumes,
 } from '@nestjs/swagger';
 import { MigrationQueueQueryDto } from './dto/migration-queue-query.dto';
 import { MetadataResolutionService } from './services/metadata-resolution.service';
@@ -42,8 +75,7 @@ import type { Response } from 'express';
 
 /**
  * Helper: บังคับให้ user ต้องมี user_id จริง (ADR-016)
- * ห้ามใช้ hardcoded fallback (เช่น `|| 5`) เพราะจะทำให้ audit log
- * ระบุตัวตนผิดและ bypass RBAC ได้
+ * ห้ามใช้ hardcoded fallback เพราะจะทำให้ audit log ระบุตัวตนผิด
  */
 function requireUserId(user: User | undefined): number {
   if (!user?.user_id) {
@@ -56,8 +88,6 @@ function requireUserId(user: User | undefined): number {
 
 /**
  * Helper: บังคับ Idempotency-Key header จริง (ADR-016)
- * ใช้ร่วมกับ @ApiHeader({ required: true }) และส่งเข้า service
- * เพื่อบันทึกลง import_transactions ป้องกัน duplicate submit
  */
 function requireIdempotencyKey(key: string | undefined): string {
   if (!key) {
@@ -70,11 +100,15 @@ function requireIdempotencyKey(key: string | undefined): string {
 @ApiBearerAuth()
 @Controller('migration')
 export class MigrationController {
+  private readonly logger = new Logger(MigrationController.name);
+
   constructor(
     private readonly migrationService: MigrationService,
+    private readonly migrationReviewService: MigrationReviewService,
     private readonly metadataResolutionService: MetadataResolutionService,
     private readonly reviewThresholdService: ReviewThresholdService,
-    private readonly ragBatchService: RagBatchService
+    private readonly ragBatchService: RagBatchService,
+    private readonly legacyIngestionService: LegacyIngestionService
   ) {}
 
   @Post('import')
@@ -103,7 +137,8 @@ export class MigrationController {
   @UseGuards(JwtAuthGuard, RbacGuard)
   @RequirePermission('migration.commit')
   @ApiOperation({
-    summary: 'Batch approve and import migration review queue items',
+    summary:
+      'Batch approve and import migration review queue items (ADR-019: queuePublicId)',
   })
   @ApiHeader({
     name: 'Idempotency-Key',
@@ -127,7 +162,16 @@ export class MigrationController {
   @ApiOperation({
     summary: 'Enqueue a record into the staging migration review queue',
   })
-  async enqueueRecord(@Body() dto: EnqueueMigrationDto) {
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    description: 'Unique key per enqueue request to prevent duplicate records',
+    required: true,
+  })
+  async enqueueRecord(
+    @Body() dto: EnqueueMigrationDto,
+    @Headers('idempotency-key') idempotencyKey: string | undefined
+  ) {
+    requireIdempotencyKey(idempotencyKey);
     return this.migrationService.enqueueRecord(dto);
   }
 
@@ -154,7 +198,16 @@ export class MigrationController {
   @UseGuards(JwtAuthGuard, RbacGuard)
   @RequirePermission('migration.error_log')
   @ApiOperation({ summary: 'Log a migration error from n8n workflow' })
-  async createError(@Body() dto: CreateMigrationErrorDto) {
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    description: 'Unique key per error log to prevent duplicate entries',
+    required: true,
+  })
+  async createError(
+    @Body() dto: CreateMigrationErrorDto,
+    @Headers('idempotency-key') idempotencyKey: string | undefined
+  ) {
+    requireIdempotencyKey(idempotencyKey);
     return this.migrationService.createError(dto);
   }
 
@@ -203,10 +256,18 @@ export class MigrationController {
   @RequirePermission('migration.commit')
   @ApiOperation({ summary: 'Reject a queued migration item' })
   @ApiParam({ name: 'publicId', type: String, format: 'uuid' })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    required: true,
+    description:
+      'Unique key per rejection to prevent duplicate state changes (ADR-016)',
+  })
   async rejectQueueItem(
     @Param('publicId', ParseUUIDPipe) publicId: string,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
     @CurrentUser() user: User
   ) {
+    requireIdempotencyKey(idempotencyKey);
     const userId = requireUserId(user);
     return this.migrationService.rejectQueueItemByPublicId(publicId, userId);
   }
@@ -243,9 +304,14 @@ export class MigrationController {
   })
   async resolveBatch(
     @Body() dto: ResolveBatchDto,
-    @Headers('idempotency-key') idempotencyKey: string | undefined
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @CurrentUser() user: User
   ) {
     requireIdempotencyKey(idempotencyKey);
+    const userId = requireUserId(user);
+    this.logger.log(
+      `resolveBatch called by user [${userId}] for batch [${dto.batchId}]`
+    );
     return this.metadataResolutionService.resolveBatch(dto.batchId);
   }
 
@@ -307,9 +373,111 @@ export class MigrationController {
   @HttpCode(202)
   async triggerRagBatch(
     @Body() dto: TriggerRagBatchDto,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @CurrentUser() user: User
+  ) {
+    requireIdempotencyKey(idempotencyKey);
+    const userId = requireUserId(user);
+    this.logger.log(
+      `triggerRagBatch called by user [${userId}] for batch [${dto.batchId}]`
+    );
+    return this.ragBatchService.triggerRagBatch(dto.batchId);
+  }
+
+  // ADR-047: Streaming Legacy Ingestion API Endpoints
+  @Post('ingest/upload')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @RequirePermission('migration.import')
+  @ApiOperation({
+    summary: 'Upload Excel file for legacy document ingestion (ADR-047)',
+  })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file'))
+  uploadExcelFile(
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 50 * 1024 * 1024 }), // 50MB
+          new FileTypeValidator({
+            fileType:
+              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          }),
+        ],
+      })
+    )
+    file: MulterFile
+  ) {
+    return {
+      message: 'File uploaded successfully',
+      filePath: file.path,
+      originalFilename: file.originalname,
+      size: file.size,
+    };
+  }
+
+  @Post('ingest/start')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @RequirePermission('migration.import')
+  @ApiOperation({
+    summary: 'Start streaming legacy ingestion from Excel file (ADR-047)',
+  })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    required: true,
+    description:
+      'Unique key per batch ingestion request to prevent duplicate triggers',
+  })
+  @HttpCode(202)
+  startIngestion(
+    @Body() dto: StartIngestDto,
     @Headers('idempotency-key') idempotencyKey: string | undefined
   ) {
     requireIdempotencyKey(idempotencyKey);
-    return this.ragBatchService.triggerRagBatch(dto.batchId);
+    // สร้าง batchId ล่วงหน้าเพื่อส่งกลับทันที (ป้องกัน 'GENERATING' สับสน)
+    const batchId = dto.batchId || `BATCH-${Date.now()}`;
+    dto.batchId = batchId;
+
+    // รันการ Ingest เบื้องหลัง และตอบกลับผลลัพธ์ทันที (ADR-008: BullMQ-style background)
+    const summaryPromise = this.legacyIngestionService.startIngestion(dto);
+    summaryPromise.catch((err: unknown) => {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      this.logger.error(
+        `Background ingestion failed for batch [${batchId}]: ${errMsg}`
+      );
+    });
+
+    return {
+      message: 'Legacy ingestion process started successfully in background',
+      batchId,
+      filePath: dto.filePath,
+    };
+  }
+
+  @Patch('queue/:publicId/ocr')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @RequirePermission('migration.commit')
+  @ApiOperation({
+    summary:
+      'Update OCR text for a staging document and trigger RAG re-embedding (ADR-042/047)',
+  })
+  @ApiParam({
+    name: 'publicId',
+    description: 'UUIDv7 of the migration review queue item',
+  })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    required: true,
+    description:
+      'Unique key per OCR update to prevent duplicate re-embedding (ADR-016)',
+  })
+  async updateQueueOcr(
+    @Param('publicId', ParseUUIDPipe) publicId: string,
+    @Body() dto: UpdateQueueOcrDto,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @CurrentUser() user: User
+  ) {
+    requireIdempotencyKey(idempotencyKey);
+    const userId = requireUserId(user);
+    return this.migrationReviewService.updateQueueOcr(publicId, dto, userId);
   }
 }

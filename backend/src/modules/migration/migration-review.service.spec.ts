@@ -6,39 +6,112 @@ import { Test } from '@nestjs/testing';
 import { DataSource } from 'typeorm';
 import { MigrationReviewService } from './migration-review.service';
 import { UuidResolverService } from '../../common/services/uuid-resolver.service';
+import { RagBatchService } from './services/rag-batch.service';
 import {
   MigrationReviewQueue,
   CompareStatus,
 } from './entities/migration-review-queue.entity';
-import { ValidationException } from '../../common/exceptions';
+import {
+  ValidationException,
+  NotFoundException,
+} from '../../common/exceptions';
+
+/** Minimal mock repository shape for testing */
+interface MockRepo {
+  findOne: jest.Mock;
+  save: jest.Mock;
+}
 
 /**
- * Unit tests สำหรับ MigrationReviewService — multi-attachment support (Feature 242)
- * T039: resolveAttachmentIds() returns array from tempAttachmentIds, falls back to [tempAttachmentId]
- * T040: commit with missing attachment ID returns 400 with Thai userMessage
+ * Unit tests สำหรับ MigrationReviewService — multi-attachment support (Feature 242) และ OCR Sync (ADR-047)
  */
-describe('MigrationReviewService (Feature 242)', () => {
-  let _service: MigrationReviewService;
+describe('MigrationReviewService (Feature 242 & ADR-047)', () => {
+  let service: MigrationReviewService;
   let dataSource: jest.Mocked<DataSource>;
+  let mockRagBatchService: jest.Mocked<RagBatchService>;
+  let mockQueueRepo: MockRepo;
+  let mockProjectRepo: MockRepo;
 
   beforeEach(async () => {
+    mockQueueRepo = {
+      findOne: jest.fn(),
+      save: jest.fn().mockImplementation((entity) => Promise.resolve(entity)),
+    };
+    mockProjectRepo = {
+      findOne: jest.fn(),
+      save: jest.fn(),
+    };
+
     dataSource = {
       createQueryRunner: jest.fn(),
+      getRepository: jest.fn().mockImplementation((entity) => {
+        if (entity === MigrationReviewQueue) return mockQueueRepo;
+        return mockProjectRepo;
+      }),
     } as unknown as jest.Mocked<DataSource>;
+
     const uuidResolver = {
       resolveProjectId: jest.fn(),
       resolveOrganizationId: jest.fn(),
     } as unknown as jest.Mocked<UuidResolverService>;
+
+    mockRagBatchService = {
+      triggerEmbeddingForQueueItem: jest.fn().mockResolvedValue(undefined),
+    } as unknown as jest.Mocked<RagBatchService>;
 
     const module = await Test.createTestingModule({
       providers: [
         MigrationReviewService,
         { provide: DataSource, useValue: dataSource },
         { provide: UuidResolverService, useValue: uuidResolver },
+        { provide: RagBatchService, useValue: mockRagBatchService },
       ],
     }).compile();
 
-    _service = module.get<MigrationReviewService>(MigrationReviewService);
+    service = module.get<MigrationReviewService>(MigrationReviewService);
+  });
+
+  describe('updateQueueOcr (ADR-042/047)', () => {
+    it('throw NotFoundException if queue item not found', async () => {
+      mockQueueRepo.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.updateQueueOcr('invalid-uuid', { ocrText: 'test' }, 1)
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('updates OCR text and dispatches re-embedding to Qdrant', async () => {
+      const mockItem = {
+        id: 1,
+        publicId: '019505a1-7c3e-7000-8000-queue001',
+        projectId: 5,
+        ocrText: 'old ocr text',
+        details: { source_file_path: '/share/np-dms/staging_ai/doc.pdf' },
+      };
+      mockQueueRepo.findOne.mockResolvedValue(mockItem);
+      mockProjectRepo.findOne.mockResolvedValue({
+        id: 5,
+        publicId: '019505a1-7c3e-7000-8000-proj123',
+      });
+
+      const res = await service.updateQueueOcr(
+        '019505a1-7c3e-7000-8000-queue001',
+        { ocrText: 'new corrected OCR text', reEmbed: true },
+        2
+      );
+
+      expect(res.success).toBe(true);
+      expect(mockItem.ocrText).toBe('new corrected OCR text');
+      expect(mockQueueRepo.save).toHaveBeenCalledWith(mockItem);
+      expect(
+        mockRagBatchService.triggerEmbeddingForQueueItem
+      ).toHaveBeenCalledWith(
+        '019505a1-7c3e-7000-8000-queue001',
+        '019505a1-7c3e-7000-8000-proj123',
+        'new corrected OCR text',
+        '/share/np-dms/staging_ai/doc.pdf'
+      );
+    });
   });
 
   describe('T039: resolveAttachmentIds (via commitRecord behavior)', () => {

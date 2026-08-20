@@ -254,7 +254,8 @@ INSERT INTO users (
     last_name,
     email,
     line_id,
-    primary_organization_id
+    primary_organization_id,
+    must_change_password
   )
 VALUES (
     1,
@@ -264,7 +265,8 @@ VALUES (
     'Admin',
     'superadmin @example.com',
     NULL,
-    NULL
+    NULL,
+    1
   ),
   (
     2,
@@ -274,6 +276,7 @@ VALUES (
     'คคง.',
     'admin@example.com',
     NULL,
+    1,
     1
   ),
   (
@@ -284,7 +287,8 @@ VALUES (
     'C1',
     'editor01 @example.com',
     NULL,
-    41
+    41,
+    1
   ),
   (
     4,
@@ -294,7 +298,8 @@ VALUES (
     'สคฉ.03',
     'viewer01@example.com',
     NULL,
-    10
+    10,
+    1
   );
 
 INSERT INTO users (
@@ -305,7 +310,8 @@ INSERT INTO users (
     last_name,
     email,
     line_id,
-    primary_organization_id
+    primary_organization_id,
+    must_change_password
   )
 VALUES (
     5,
@@ -315,7 +321,8 @@ VALUES (
     'Bot',
     'migration@system.internal',
     NULL,
-    1
+    1,
+    0
   );
 
 -- ==========================================================

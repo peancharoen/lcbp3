@@ -1202,7 +1202,77 @@ VALUES (3, 181),
 -- ai.migration_manage
 -- ai.audit_log_delete (184) — Superadmin เท่านั้น, ไม่ grant ให้ Role อื่น
 -- ==========================================================
--- 19. RBAC Bulk Permission (Delta 02)
+-- 19. Migration Module Permissions (ID 216-220) — ADR-047
+-- Added: 2026-08-20 (SEV-003/004 — migration RBAC)
+-- ==========================================================
+INSERT INTO permissions (
+    permission_id,
+    permission_name,
+    description,
+    module,
+    is_active
+  )
+VALUES (
+    216,
+    'migration.view',
+    'ดู Migration Review Queue และรายการ errors',
+    'migration',
+    1
+  ),
+  (
+    217,
+    'migration.commit',
+    'อนุมัติ/Commit/Reject รายการใน Migration Review Queue',
+    'migration',
+    1
+  ),
+  (
+    218,
+    'migration.enqueue',
+    'Enqueue รายการเข้า Migration Review Queue (n8n integration)',
+    'migration',
+    1
+  ),
+  (
+    219,
+    'migration.import',
+    'Import legacy correspondence record ผ่าน n8n integration',
+    'migration',
+    1
+  ),
+  (
+    220,
+    'migration.error_log',
+    'Log migration errors จาก n8n workflow',
+    'migration',
+    1
+  ) ON DUPLICATE KEY
+UPDATE description =
+VALUES(description),
+  module =
+VALUES(module),
+  is_active =
+VALUES(is_active);
+
+-- Role 1: Superadmin — ได้รับทุก permission โดยอัตโนมัติผ่าน SELECT-all pattern (บรรทัด 825-829)
+-- Role 2: Org Admin — migration.view, migration.commit, migration.enqueue, migration.import, migration.error_log
+INSERT IGNORE INTO role_permissions (role_id, permission_id)
+VALUES (2, 216),
+  (2, 217),
+  (2, 218),
+  (2, 219),
+  (2, 220);
+
+-- Role 3: Document Control — migration.view, migration.commit, migration.enqueue, migration.import, migration.error_log
+INSERT IGNORE INTO role_permissions (role_id, permission_id)
+VALUES (3, 216),
+  (3, 217),
+  (3, 218),
+  (3, 219),
+  (3, 220);
+
+-- ==========================================================
+-- 20. RBAC Bulk Permission (Delta 02)
 -- ==========================================================
 -- Grant user.manage_assignments to ADMIN, Org Admin, DC, Document Control roles
 INSERT IGNORE INTO role_permissions (role_id, permission_id)

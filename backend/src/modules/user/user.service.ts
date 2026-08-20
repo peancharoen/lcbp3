@@ -31,7 +31,7 @@ export class UserService {
 
   // 1. สร้างผู้ใช้ (Hash Password ก่อนบันทึก)
   async create(createUserDto: CreateUserDto): Promise<User> {
-    const salt = await bcrypt.genSalt();
+    const salt = await bcrypt.genSalt(12); // ADR-016: 12 salt rounds
     const hashedPassword = await bcrypt.hash(createUserDto.password, salt);
 
     // ADR-019: Resolve UUID→INT for primaryOrganizationId
@@ -187,7 +187,7 @@ export class UserService {
     const user = await this.findOneByUuid(uuid);
 
     if (updateUserDto.password) {
-      const salt = await bcrypt.genSalt();
+      const salt = await bcrypt.genSalt(12); // ADR-016: 12 salt rounds
       updateUserDto.password = await bcrypt.hash(updateUserDto.password, salt);
     }
 

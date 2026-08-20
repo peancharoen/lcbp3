@@ -102,6 +102,10 @@ export class MigrationReviewQueue extends UuidBaseEntity {
   @Column({ name: 'extracted_tags', type: 'json', nullable: true })
   extractedTags?: Record<string, string>[];
 
+  /** ข้อความ OCR 3 หน้าแรกสำหรับตรวจแก้คำผิดและ Re-embed ลง Qdrant (ADR-042/047) */
+  @Column({ name: 'ocr_text', type: 'longtext', nullable: true })
+  ocrText?: string | null;
+
   /** Feature 242: JSON metadata เก็บ compareResult, capturedThresholds, attachments[] (FR-005, FR-007, FR-010c) */
   @Column({ name: 'ai_metadata_json', type: 'json', nullable: true })
   details?: Record<string, unknown> | null;
@@ -140,6 +144,10 @@ export class MigrationReviewQueue extends UuidBaseEntity {
 
   @Column({ name: 'ai_job_id', type: 'varchar', length: 36, nullable: true })
   aiJobId?: string | null;
+
+  /** Edge Case 4: flag แสดงว่า AI enrichment ล้มเหลวหลัง retry ครบ — ให้มนุษย์ตรวจเอง */
+  @Column({ name: 'ai_failed', type: 'boolean', default: false })
+  aiFailed?: boolean;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

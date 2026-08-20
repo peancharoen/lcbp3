@@ -96,7 +96,7 @@ export async function seedUsers(dataSource: DataSource) {
     },
   ];
 
-  const salt = await bcrypt.genSalt();
+  const salt = await bcrypt.genSalt(12); // ADR-016: 12 salt rounds
   const password = await bcrypt.hash('Center2025', salt); // Default password (ADR-019 aligned)
 
   for (const u of usersData) {
@@ -108,6 +108,7 @@ export async function seedUsers(dataSource: DataSource) {
         firstName: u.firstName,
         lastName: u.lastName,
         password, // Fixed: password instead of passwordHash
+        mustChangePassword: true, // SEV-014: บังคับเปลี่ยนรหัสผ่านหลัง login ครั้งแรก
       });
       user = await userRepo.save(user);
 

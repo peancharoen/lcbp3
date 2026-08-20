@@ -120,6 +120,7 @@ Architecture Decision Records (ADRs) เป็นเอกสารที่บ�
 | [ADR-044](./ADR-044-database-schema-strategy-amendment.md) | Database Schema Strategy Amendment — No TypeORM Migrations | ✅ Accepted | 2026-08-03 | Amends ADR-009 — formalize "no TypeORM migrations, edit schema SQL directly via delta files" as current decision; resolves internal contradiction in ADR-009 |
 | [ADR-045](./ADR-045-edge-proxy-topology-amendment.md) | Edge Proxy Topology Amendment — Cloudflare Tunnel as Sole Edge | ✅ Accepted | 2026-08-03 | Amends ADR-041 D2/D6 — formalize Cloudflare Tunnel on np-dms-lcbp3 as sole edge proxy; QNAP no Docker (NAS/backup only); NPM demoted to internal router |
 | [ADR-046](./ADR-046-tag-color-palette-key.md) | Tag Color Palette Key — `tags.color_code` เป็น Palette Key Enum | ✅ Accepted | 2026-08-18 | เปลี่ยน `tags.color_code` จาก free-form string เป็น 14 palette key enum; frontend = source of truth (`TAG_PALETTE`), backend mirror สำหรับ `@IsIn` validation; SQL delta normalize legacy values → `'default'`; related ADR-019/030/044 |
+| [ADR-047](./ADR-047-native-backend-legacy-ingestion.md) | Native Backend Legacy Ingestion & OCR Persistence | 📋 Proposed | 2026-08-20 | ย้าย Legacy Ingestion จาก n8n สู่ NestJS Module (Streaming Excel + BullMQ ai-batch + OCR Persistence + Review Queue UI + CLI); amends ADR-028/042, supersedes 03-04 §3 |
 
 ---
 
@@ -183,6 +184,7 @@ Architecture Decision Records (ADRs) เป็นเอกสารที่บ�
 - **ADR-040:** OCR Sidecar Refactor — Pure compute worker, ลบ `/normalize`, engine เดียว `np-dms-ocr`, path traversal hardening (amends ADR-035 + ADR-036 §5; supersedes ADR-033 §7; Phase 2 X-API-Key removal complete)
 - **ADR-041:** Server Consolidation — ย้ายทุก services ไป np-dms-lcbp3 (single-host Docker); T016 (X-API-Key removal) complete
 - **ADR-042:** Sandbox Project + OCR Text Persistence — DB-committing full pipeline test + แยก rag-prepare เป็น 2 jobs
+- **ADR-047:** Native Backend Legacy Ingestion & OCR Persistence — ย้าย Ingestion จาก n8n สู่ NestJS Module (Streaming Excel, BullMQ ai-batch, Staging Queue, OCR Editor UI, RAG Sync)
 
 > 📖 **AI Document Ingestion Flow walkthrough:** ดู [`02-Architecture/02-05-ai-document-ingestion-flow.md`](../02-architecture/02-05-ai-document-ingestion-flow.md) สำหรับ end-to-end flow (Production + Sandbox)
 

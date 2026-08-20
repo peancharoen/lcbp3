@@ -1,0 +1,32 @@
+# ClamAV Docker Compose Snippet (ADR-016 — SEV-002)
+# Add this service to your docker-compose.yml to enable virus scanning
+#
+# Environment variables to set in backend:
+#   CLAMAV_ENABLED=true
+#   CLAMAV_HOST=clamav
+#   CLAMAV_PORT=3310
+#
+# ----------------------------------------------------------
+services:
+  clamav:
+    image: clamav/clamav:latest
+    container_name: lcbp3-clamav
+    restart: unless-stopped
+    ports:
+      - "3310:3310"  # ClamAV TCP socket
+    volumes:
+      - clamav-data:/var/lib/clamav
+      - /share/np-dms/uploads:/scan:ro  # Mount upload dir read-only for scanning
+    networks:
+      - lcbp3-network
+    resources:
+      limits:
+        memory: 2G  # ClamAV needs ~1-2GB for virus database
+    healthcheck:
+      test: ["CMD", "clamdcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  clamav-data:

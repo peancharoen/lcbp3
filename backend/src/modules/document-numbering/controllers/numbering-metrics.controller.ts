@@ -1,15 +1,20 @@
-import { Controller, Get } from '@nestjs/common';
+// File: src/modules/document-numbering/controllers/numbering-metrics.controller.ts
+// Change Log:
+// - 2026-08-20: SEV-006 — เปิดใช้งาน JwtAuthGuard + RbacGuard (ก่อนหน้านี้ comment ไว้)
+
+import { Controller, Get, UseGuards } from '@nestjs/common';
 import { MetricsService } from '../services/metrics.service';
-// import { PermissionGuard } from '../../auth/guards/permission.guard';
-// import { Permissions } from '../../auth/decorators/permissions.decorator';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
+import { RbacGuard } from '../../../common/guards/rbac.guard';
+import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
 
 @Controller('admin/document-numbering/metrics')
-// @UseGuards(PermissionGuard)
+@UseGuards(JwtAuthGuard, RbacGuard)
 export class NumberingMetricsController {
   constructor(private readonly metricsService: MetricsService) {}
 
   @Get()
-  // @Permissions('system.view_logs')
+  @RequirePermission('system.view_logs')
   getMetrics() {
     // Determine how to return metrics.
     // Standard Prometheus metrics are usually exposed via a separate /metrics endpoint processing all metrics.

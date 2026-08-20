@@ -22,7 +22,9 @@ import { Attachment } from '../../common/file-storage/entities/attachment.entity
 import { Rfa } from '../rfa/entities/rfa.entity';
 import { RfaRevision } from '../rfa/entities/rfa-revision.entity';
 import { CommitMigrationReviewDto } from './dto/commit-migration-review.dto';
+import { UpdateQueueOcrDto } from './dto/update-queue-ocr.dto';
 import { UuidResolverService } from '../../common/services/uuid-resolver.service';
+import { RagBatchService } from './services/rag-batch.service';
 import {
   BusinessException,
   ConflictException,
@@ -49,8 +51,60 @@ export class MigrationReviewService {
 
   constructor(
     private readonly dataSource: DataSource,
-    private readonly uuidResolverService: UuidResolverService
+    private readonly uuidResolverService: UuidResolverService,
+    private readonly ragBatchService: RagBatchService
   ) {}
+
+  /**
+   * อัปเดตข้อความ OCR 3 หน้าแรก และส่ง Re-embed ลง Qdrant อัตโนมัติ (ADR-042/047)
+   */
+  async updateQueueOcr(
+    publicId: string,
+    dto: UpdateQueueOcrDto,
+    userId: number
+  ) {
+    const queueRepo = this.dataSource.getRepository(MigrationReviewQueue);
+    const queueItem = await queueRepo.findOne({
+      where: { publicId },
+    });
+
+    if (!queueItem) {
+      throw new NotFoundException('MigrationReviewQueue', publicId);
+    }
+
+    queueItem.ocrText = dto.ocrText;
+    queueItem.reviewedBy = userId.toString();
+    queueItem.reviewedAt = new Date();
+    await queueRepo.save(queueItem);
+
+    // If reEmbed is requested (default true), trigger RAG embedding
+    if (dto.reEmbed !== false && queueItem.projectId) {
+      const project = await this.dataSource.getRepository(Project).findOne({
+        where: { id: queueItem.projectId },
+      });
+      if (project) {
+        // ดึง pdfPath จาก details.source_file_path ที่ ingestion เก็บไว้ (ADR-047)
+        const details = queueItem.details as Record<string, unknown> | null;
+        const pdfPath =
+          details && typeof details.source_file_path === 'string'
+            ? details.source_file_path
+            : undefined;
+        await this.ragBatchService.triggerEmbeddingForQueueItem(
+          queueItem.publicId,
+          project.publicId,
+          dto.ocrText,
+          pdfPath
+        );
+      }
+    }
+
+    return {
+      success: true,
+      message: 'OCR text updated and queued for RAG re-embedding',
+      publicId: queueItem.publicId,
+      ocrTextLength: dto.ocrText.length,
+    };
+  }
 
   /**
    * คืนรายการ attachment id ที่ใช้จริง โดยรองรับรูปแบบเดิมที่มีไฟล์เดียว (R4)
@@ -426,6 +480,32 @@ export class MigrationReviewService {
       queueItem.reviewedAt = new Date();
       await queryRunner.manager.save(queueItem);
       await queryRunner.commitTransaction();
+
+      // FR-011: Trigger RAG re-embed หลัง commit เสร็จ (ADR-042/047)
+      // ใช้ OCR text จาก queue item เป็น source สำหรับ embedding
+      if (queueItem.ocrText && queueItem.ocrText.trim().length > 0) {
+        const details = queueItem.details as Record<string, unknown> | null;
+        const pdfPath =
+          details && typeof details.source_file_path === 'string'
+            ? details.source_file_path
+            : undefined;
+        try {
+          await this.ragBatchService.triggerEmbeddingForQueueItem(
+            queueItem.publicId,
+            project.publicId,
+            queueItem.ocrText,
+            pdfPath
+          );
+        } catch (embedErr: unknown) {
+          // ไม่ throw — commit สำเร็จแล้ว การ embed ล้มเหลวไม่ควร rollback
+          const embedMsg =
+            embedErr instanceof Error ? embedErr.message : String(embedErr);
+          this.logger.warn(
+            `Post-commit RAG re-embed failed for [${queueItem.publicId}]: ${embedMsg}`
+          );
+        }
+      }
+
       return {
         success: true,
         message: 'Staging record successfully imported',

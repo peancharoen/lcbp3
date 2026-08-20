@@ -9,6 +9,8 @@ import {
   PaginatedResponse,
   MigrationReviewStatus,
   CommitBatchDto,
+  StartIngestPayload,
+  UpdateQueueOcrPayload,
 } from '@/types/migration';
 
 interface WrappedData {
@@ -93,8 +95,9 @@ export const migrationService = {
     return normalizePaginatedResponse<MigrationReviewQueueItem>(data);
   },
 
-  getQueueItem: async (id: number): Promise<MigrationReviewQueueItem> => {
-    const { data } = await api.get(`/migration/queue/${id}`);
+  // ADR-019: ใช้ publicId (UUIDv7) เท่านั้น ห้ามใช้ INT id ใน API
+  getQueueItem: async (publicId: string): Promise<MigrationReviewQueueItem> => {
+    const { data } = await api.get(`/migration/queue/${publicId}`);
     return extractNestedData<MigrationReviewQueueItem>(data);
   },
 
@@ -103,8 +106,13 @@ export const migrationService = {
     return normalizePaginatedResponse<MigrationErrorItem>(data);
   },
 
-  approveQueueItem: async (id: number, payload: Record<string, unknown>, idempotencyKey: string) => {
-    const { data } = await api.post(`/migration/queue/${id}/approve`, payload, {
+  // ADR-019: ใช้ publicId (UUIDv7) เท่านั้น
+  approveQueueItem: async (
+    publicId: string,
+    payload: Record<string, unknown>,
+    idempotencyKey: string
+  ) => {
+    const { data } = await api.post(`/migration/queue/${publicId}/approve`, payload, {
       headers: {
         'idempotency-key': idempotencyKey,
       },
@@ -112,8 +120,14 @@ export const migrationService = {
     return data?.data || data;
   },
 
-  rejectQueueItem: async (id: number) => {
-    const { data } = await api.post(`/migration/queue/${id}/reject`);
+  // ADR-019: ใช้ publicId (UUIDv7) เท่านั้น
+  // ADR-016: ต้องส่ง Idempotency-Key สำหรับ state mutation
+  rejectQueueItem: async (publicId: string, idempotencyKey: string) => {
+    const { data } = await api.post(`/migration/queue/${publicId}/reject`, {}, {
+      headers: {
+        'idempotency-key': idempotencyKey,
+      },
+    });
     return data?.data || data;
   },
 
@@ -133,5 +147,40 @@ export const migrationService = {
     // If working with raw <img> or <iframe>, you might need to append the token,
     // or handle it via a fetch wrapper that downloads creating an object URL.
     return `/api/migration/staging-file?path=${encodeURIComponent(filePath)}`;
+  },
+
+  // ADR-047: Streaming Legacy Ingestion API Methods
+  uploadExcelFile: async (file: File): Promise<{ filePath: string; originalFilename: string; size: number }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const { data } = await api.post('/migration/ingest/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return data?.data || data;
+  },
+
+  startIngestion: async (payload: StartIngestPayload, idempotencyKey: string) => {
+    const { data } = await api.post('/migration/ingest/start', payload, {
+      headers: {
+        'idempotency-key': idempotencyKey,
+      },
+    });
+    return data?.data || data;
+  },
+
+  // ADR-019 + ADR-016: ใช้ publicId และต้องส่ง Idempotency-Key
+  updateQueueOcr: async (
+    publicId: string,
+    payload: UpdateQueueOcrPayload,
+    idempotencyKey: string
+  ) => {
+    const { data } = await api.patch(`/migration/queue/${publicId}/ocr`, payload, {
+      headers: {
+        'idempotency-key': idempotencyKey,
+      },
+    });
+    return data?.data || data;
   },
 };

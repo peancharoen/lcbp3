@@ -72,28 +72,33 @@ async function bootstrap() {
   // ⚠️ TransformInterceptor & HttpExceptionFilter ลงทะเบียนผ่าน APP_INTERCEPTOR/APP_FILTER ใน CommonModule แล้ว
   // ห้ามลงทะเบียนซ้ำที่นี่ เพราะจะทำให้ Response ถูก wrap ซ้อน 2 ชั้น
 
-  // 📘 6. Swagger Configuration
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle('LCBP3 DMS API')
-    .setDescription('Document Management System API Documentation')
-    .setVersion('1.8.1')
-    .addBearerAuth() // เพิ่มปุ่มใส่ Token (รูปกุญแจ)
-    .build();
+  // 📘 6. Swagger Configuration (SEV-011: เฉพาะ non-production environment)
+  const nodeEnv = configService.get<string>('NODE_ENV', 'development');
+  if (nodeEnv !== 'production') {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle('LCBP3 DMS API')
+      .setDescription('Document Management System API Documentation')
+      .setVersion('1.8.1')
+      .addBearerAuth() // เพิ่มปุ่มใส่ Token (รูปกุญแจ)
+      .build();
 
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
 
-  // ตั้งค่าให้เข้าถึง Swagger ได้ที่ /docs
-  SwaggerModule.setup('docs', app, document, {
-    swaggerOptions: {
-      persistAuthorization: true, // จำ Token ไว้ไม่ต้องใส่ใหม่เวลารีเฟรชหน้าจอ
-    },
-  });
+    // ตั้งค่าให้เข้าถึง Swagger ได้ที่ /docs
+    SwaggerModule.setup('docs', app, document, {
+      swaggerOptions: {
+        persistAuthorization: true, // จำ Token ไว้ไม่ต้องใส่ใหม่เวลารีเฟรชหน้าจอ
+      },
+    });
+    logger.log(`Swagger UI is available at: ${await app.getUrl()}/docs`);
+  } else {
+    logger.log('Swagger UI disabled in production (NODE_ENV=production)');
+  }
 
   // 🚀 7. Start Server
   const port = configService.get<number>('PORT') || 3001;
   await app.listen(port, '0.0.0.0');
 
   logger.log(`Application is running on: ${await app.getUrl()}/api`);
-  logger.log(`Swagger UI is available at: ${await app.getUrl()}/docs`);
 }
 void bootstrap();

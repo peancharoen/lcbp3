@@ -50,4 +50,9 @@ export const envValidationSchema = Joi.object({
   AI_MAX_RETRIES: Joi.number().default(3),
   // Base URL ของ Backend เพื่อสร้าง Callback URL
   APP_BASE_URL: Joi.string().uri().optional(),
+
+  // 6. ClamAV Configuration (ADR-016 — SEV-002)
+  CLAMAV_ENABLED: Joi.string().default('false'),
+  CLAMAV_HOST: Joi.string().default('clamav'),
+  CLAMAV_PORT: Joi.number().default(3310),
 });

@@ -156,6 +156,53 @@ export class RagBatchService {
     };
   }
 
+  /**
+   * Enqueue embedding สำหรับข้อความ OCR ของเอกสารใน Staging Queue (ADR-042/047)
+   * ต้องส่ง pdfPath เพื่อให้ processEmbedDocument ทำงานได้ (ต้องการ pdfPath ตาม contract)
+   */
+  async triggerEmbeddingForQueueItem(
+    queuePublicId: string,
+    projectPublicId: string,
+    ocrText: string,
+    pdfPath?: string
+  ): Promise<void> {
+    if (!this.aiBatchQueue) {
+      this.logger.warn(
+        `triggerEmbeddingForQueueItem: ai-batch queue not available for ${queuePublicId}`
+      );
+      return;
+    }
+    const jobId = `embed-queue-${queuePublicId}`;
+    try {
+      await this.aiBatchQueue.add(
+        'embed-document',
+        {
+          jobType: 'embed-document',
+          documentPublicId: queuePublicId,
+          projectPublicId,
+          payload: {
+            extractedText: ocrText,
+            pdfPath: pdfPath || '',
+          },
+          idempotencyKey: `embed-queue-${queuePublicId}-${Date.now()}`,
+        },
+        {
+          jobId,
+          removeOnComplete: 1000,
+          removeOnFail: 5000,
+        }
+      );
+      this.logger.log(
+        `triggerEmbeddingForQueueItem: enqueued embed-document for ${queuePublicId}`
+      );
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      this.logger.error(
+        `triggerEmbeddingForQueueItem: failed to enqueue embedding for ${queuePublicId}: ${errMsg}`
+      );
+    }
+  }
+
   /** ดึง RAG candidates ตาม data-model §8.1 (FR-021, R5) */
   private async fetchRagCandidates(batchId?: string): Promise<RagCandidate[]> {
     // Query ตาม spec: DISTINCT, ocr_text IS NOT NULL, is_temporary=0, ai_processing_status <> 'DONE', DWG exclusion

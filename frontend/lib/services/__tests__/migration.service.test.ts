@@ -65,17 +65,18 @@ describe('migrationService', () => {
   });
 
   describe('getQueueItem', () => {
-    it('ควรดึงข้อมูล Queue item เดี่ยวตาม ID สำเร็จ', async () => {
+    it('ควรดึงข้อมูล Queue item เดี่ยวตาม publicId สำเร็จ (ADR-019)', async () => {
+      const mockPublicId = '019505a1-7c3e-7000-8000-item111111111';
       const mockResponse = {
-        data: { publicId: '019505a1-7c3e-7000-8000-item111111111', status: 'PENDING' },
+        data: { publicId: mockPublicId, status: 'PENDING' },
       };
 
       vi.mocked(api.get).mockResolvedValue({ data: mockResponse });
 
-      const result = await migrationService.getQueueItem(1);
+      const result = await migrationService.getQueueItem(mockPublicId);
 
       expect(result).toEqual(mockResponse.data);
-      expect(api.get).toHaveBeenCalledWith('/migration/queue/1');
+      expect(api.get).toHaveBeenCalledWith(`/migration/queue/${mockPublicId}`);
     });
   });
 
@@ -99,42 +100,56 @@ describe('migrationService', () => {
   });
 
   describe('approveQueueItem', () => {
-    it('ควรอนุมัติรายการคิวสำเร็จพร้อมส่ง Idempotency-Key', async () => {
+    it('ควรอนุมัติรายการคิวสำเร็จพร้อมส่ง Idempotency-Key (ADR-019: publicId)', async () => {
+      const mockPublicId = '019505a1-7c3e-7000-8000-item222222222';
       const mockPayload = { remarks: 'Approve' };
       const mockResponse = { data: { success: true } };
 
       vi.mocked(api.post).mockResolvedValue({ data: mockResponse });
 
-      const result = await migrationService.approveQueueItem(1, mockPayload, 'idemp-key-123');
+      const result = await migrationService.approveQueueItem(mockPublicId, mockPayload, 'idemp-key-123');
 
       expect(result).toEqual(mockResponse.data);
-      expect(api.post).toHaveBeenCalledWith('/migration/queue/1/approve', mockPayload, {
+      expect(api.post).toHaveBeenCalledWith(`/migration/queue/${mockPublicId}/approve`, mockPayload, {
         headers: { 'idempotency-key': 'idemp-key-123' },
       });
     });
   });
 
   describe('rejectQueueItem', () => {
-    it('ควรปฏิเสธรายการคิวสำเร็จ', async () => {
+    it('ควรปฏิเสธรายการคิวสำเร็จ (ADR-019: publicId, ADR-016: Idempotency-Key)', async () => {
+      const mockPublicId = '019505a1-7c3e-7000-8000-item333333333';
       const mockResponse = { data: { success: true } };
 
       vi.mocked(api.post).mockResolvedValue({ data: mockResponse });
 
-      const result = await migrationService.rejectQueueItem(1);
+      const result = await migrationService.rejectQueueItem(mockPublicId, 'idemp-key-reject');
 
       expect(result).toEqual(mockResponse.data);
-      expect(api.post).toHaveBeenCalledWith('/migration/queue/1/reject');
+      expect(api.post).toHaveBeenCalledWith(
+        `/migration/queue/${mockPublicId}/reject`,
+        {},
+        { headers: { 'idempotency-key': 'idemp-key-reject' } }
+      );
     });
   });
 
   describe('commitBatch', () => {
-    it('ควรบันทึก commit batch สำเร็จพร้อมส่ง Idempotency-Key', async () => {
-      const mockPayload = { batchId: 10, items: [] };
+    it('ควรบันทึก commit batch สำเร็จพร้อมส่ง Idempotency-Key (ADR-019: queuePublicId)', async () => {
+      const mockPayload = {
+        batchId: 'BATCH_UI_123',
+        items: [
+          {
+            queuePublicId: '019505a1-7c3e-7000-8000-item444444444',
+            dto: { document_number: 'DOC-001' },
+          },
+        ],
+      };
       const mockResponse = { data: { success: true } };
 
       vi.mocked(api.post).mockResolvedValue({ data: mockResponse });
 
-      const result = await migrationService.commitBatch(mockPayload as any, 'idemp-key-456');
+      const result = await migrationService.commitBatch(mockPayload, 'idemp-key-456');
 
       expect(result).toEqual(mockResponse.data);
       expect(api.post).toHaveBeenCalledWith('/migration/commit_batch', mockPayload, {

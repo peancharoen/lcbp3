@@ -35,6 +35,7 @@ import { OrganizationModule } from './modules/organization/organization.module';
 import { ContractModule } from './modules/contract/contract.module';
 import { MasterModule } from './modules/master/master.module'; // [NEW] ✅ เพิ่ม MasterModule
 import { FileStorageModule } from './common/file-storage/file-storage.module';
+import { ClamAVModule } from './common/clamav/clamav.module';
 import { DocumentNumberingModule } from './modules/document-numbering/document-numbering.module';
 import { JsonSchemaModule } from './modules/json-schema/json-schema.module';
 import { WorkflowEngineModule } from './modules/workflow-engine/workflow-engine.module';
@@ -170,6 +171,7 @@ import { TagsModule } from './modules/tags/tags.module';
 
     // 📦 Feature Modules
     CommonModule, // Must be imported first to provide global services
+    ClamAVModule, // ADR-016: ClamAV virus scanning (SEV-002)
     AuthModule,
     UserModule,
     ProjectModule,

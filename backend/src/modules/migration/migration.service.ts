@@ -532,6 +532,40 @@ export class MigrationService {
     };
   }
 
+  /**
+   * อัปเดตผลลัพธ์จากการประมวลผล AI (OCR, Tags, Category, Confidence) ลงใน Staging Queue (ADR-047)
+   * Edge Case 4: รองรับการ mark ai_failed เมื่อ BullMQ retry ครบแล้วยังไม่สำเร็จ
+   */
+  async updateQueueEnrichment(
+    queueId: number,
+    data: {
+      ocrText?: string;
+      aiSummary?: string;
+      aiSuggestedCategory?: string;
+      extractedTags?: Record<string, string>[];
+      aiConfidence?: number;
+      aiIssues?: Record<string, unknown>[];
+      aiFailed?: boolean;
+    }
+  ) {
+    const queueItem = await this.reviewQueueRepo.findOne({
+      where: { id: queueId },
+    });
+    if (queueItem) {
+      if (data.ocrText !== undefined) queueItem.ocrText = data.ocrText;
+      if (data.aiSummary !== undefined) queueItem.aiSummary = data.aiSummary;
+      if (data.aiSuggestedCategory !== undefined)
+        queueItem.aiSuggestedCategory = data.aiSuggestedCategory;
+      if (data.extractedTags !== undefined)
+        queueItem.extractedTags = data.extractedTags;
+      if (data.aiConfidence !== undefined)
+        queueItem.aiConfidence = data.aiConfidence;
+      if (data.aiIssues !== undefined) queueItem.aiIssues = data.aiIssues;
+      if (data.aiFailed !== undefined) queueItem.aiFailed = data.aiFailed;
+      await this.reviewQueueRepo.save(queueItem);
+    }
+  }
+
   async getReviewQueue(query: MigrationQueueQueryDto) {
     const { page = 1, limit = 10, status } = query;
     const skip = (page - 1) * limit;
@@ -748,30 +782,30 @@ export class MigrationService {
     const results = [];
     const errors = [];
 
-    // We let each import have its own transaction via approveQueueItem
+    // We let each import have its own transaction via approveQueueItemByPublicId
     // to avoid one bad record failing the entire batch of valid ones.
 
     for (const item of dto.items) {
       // Create a unique sub-key for each item to avoid idempotency conflicts
-      // when using a batch idempotency key.
-      const subKey = `${idempotencyKey}_${item.queueId}`;
+      // when using a batch idempotency key. (ADR-019: use publicId in sub-key)
+      const subKey = `${idempotencyKey}_${item.queuePublicId}`;
 
       // Force batchId on the item dto
       item.dto.batchId = dto.batchId;
 
       try {
-        const result = await this.approveQueueItem(
-          item.queueId,
+        const result = await this.approveQueueItemByPublicId(
+          item.queuePublicId,
           item.dto,
           subKey,
           userId
         );
-        results.push({ queueId: item.queueId, result });
+        results.push({ queuePublicId: item.queuePublicId, result });
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : String(err);
-        errors.push({ queueId: item.queueId, error: errorMessage });
+        errors.push({ queuePublicId: item.queuePublicId, error: errorMessage });
         this.logger.error(
-          `Batch commit failed for queue ID ${item.queueId}: ${errorMessage}`
+          `Batch commit failed for queue publicId ${item.queuePublicId}: ${errorMessage}`
         );
       }
     }

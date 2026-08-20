@@ -19,6 +19,7 @@ import { EyeIcon, FileXIcon, CheckCircleIcon, XCircleIcon, RefreshCwIcon } from 
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getApiErrorMessage } from '@/types/api-error';
+import { LegacyIngestionCard } from '@/components/migration/legacy-ingestion-card';
 import { v4 as uuidv4 } from 'uuid';
 
 // --- AI Migration Tab ---
@@ -357,7 +358,8 @@ function LegacyQueueTab() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('PENDING');
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  // ADR-019: ใช้ publicId (string) สำหรับ selection ห้ามใช้ INT id
+  const [selectedPublicIds, setSelectedPublicIds] = useState<string[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
@@ -369,7 +371,7 @@ function LegacyQueueTab() {
         limit: 50,
       });
       setItems(Array.isArray(res.items) ? res.items : []);
-      setSelectedIds([]);
+      setSelectedPublicIds([]);
     } catch (error: unknown) {
       setItems([]);
       setErrorMessage(getApiErrorMessage(error, 'Failed to load queue'));
@@ -382,27 +384,37 @@ function LegacyQueueTab() {
     fetchData();
   }, [fetchData]);
 
+  // ADR-019: toggle โดยใช้ publicId (string)
+  // FR-014: "Select All" เลือกเฉพาะรายการที่ ai_confidence >= 0.85 (High Confidence)
+  const HIGH_CONFIDENCE_THRESHOLD = 0.85;
+  const isHighConfidence = (item: typeof items[number]) =>
+    item.aiConfidence !== undefined && item.aiConfidence >= HIGH_CONFIDENCE_THRESHOLD;
+
   const handleToggleSelectAll = () => {
-    if (selectedIds.length === items.length) {
-      setSelectedIds([]);
+    const highConfidenceItems = items.filter(isHighConfidence);
+    if (selectedPublicIds.length === highConfidenceItems.length && highConfidenceItems.length > 0) {
+      setSelectedPublicIds([]);
     } else {
-      setSelectedIds(items.map((i) => i.id).filter((id): id is number => id !== undefined));
+      setSelectedPublicIds(highConfidenceItems.map((i) => i.publicId));
     }
   };
 
-  const handleToggleSelect = (id: number) => {
-    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
+  const handleToggleSelect = (publicId: string) => {
+    setSelectedPublicIds((prev) =>
+      prev.includes(publicId) ? prev.filter((id) => id !== publicId) : [...prev, publicId]
+    );
   };
 
+  // Batch approve — ส่งผ่าน background queue (ADR-008)
+  // ADR-019: ใช้ queuePublicId (UUIDv7) ไม่ใช่ INT id
   const handleBatchApprove = async () => {
-    if (selectedIds.length === 0) return;
+    if (selectedPublicIds.length === 0) return;
     try {
       setSubmitting(true);
       const batchItems = items
-        .filter((i): i is typeof i & { id: number } => i.id !== undefined)
-        .filter((i) => selectedIds.includes(i.id))
+        .filter((i) => selectedPublicIds.includes(i.publicId))
         .map((item) => ({
-          queueId: item.id,
+          queuePublicId: item.publicId,
           dto: {
             document_number: item.documentNumber,
             subject: item.title || item.originalTitle || 'Untitled',
@@ -421,6 +433,7 @@ function LegacyQueueTab() {
         }));
       const batchId = `BATCH_UI_${Date.now()}`;
       await migrationService.commitBatch({ items: batchItems, batchId }, batchId);
+      toast.success(`Batch approve ${batchItems.length} รายการเรียบร้อย`);
       await fetchData();
     } catch (_error) {
       toast.error('Batch commit failed.');
@@ -430,15 +443,18 @@ function LegacyQueueTab() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-wrap justify-between items-center gap-4">
-          <CardTitle>Legacy Review Queue - {statusFilter}</CardTitle>
+    <div className="space-y-6">
+      <LegacyIngestionCard onIngestionStarted={fetchData} />
+
+      <Card>
+        <CardHeader>
+          <div className="flex flex-wrap justify-between items-center gap-4">
+            <CardTitle>Legacy Review Queue - {statusFilter}</CardTitle>
           <div className="flex items-center gap-3">
-            {selectedIds.length > 0 && (
+            {selectedPublicIds.length > 0 && (
               <Button variant="default" onClick={handleBatchApprove} disabled={submitting}>
                 <CheckCircleIcon className="mr-2 h-4 w-4" />
-                {submitting ? 'Processing...' : `Batch Approve (${selectedIds.length})`}
+                {submitting ? 'Processing...' : `Batch Approve High Conf (${selectedPublicIds.length})`}
               </Button>
             )}
             <Link href="/admin/migration/errors">
@@ -477,9 +493,13 @@ function LegacyQueueTab() {
                 <TableRow>
                   <TableHead className="w-[50px]">
                     <Checkbox
-                      checked={items.length > 0 && selectedIds.length === items.length}
+                      checked={
+                        items.length > 0 &&
+                        selectedPublicIds.length === items.filter(isHighConfidence).length &&
+                        items.filter(isHighConfidence).length > 0
+                      }
                       onCheckedChange={handleToggleSelectAll}
-                      aria-label="Select all"
+                      aria-label="เลือกรายการคะแนนสูง (>= 0.85)"
                     />
                   </TableHead>
                   <TableHead>Document No.</TableHead>
@@ -492,12 +512,13 @@ function LegacyQueueTab() {
               </TableHeader>
               <TableBody>
                 {items.map((item) => (
-                  <TableRow key={item.id ?? item.publicId}>
+                  // ADR-019: ใช้ publicId เป็น key
+                  <TableRow key={item.publicId}>
                     <TableCell>
                       <Checkbox
-                        checked={item.id !== undefined && selectedIds.includes(item.id)}
-                        onCheckedChange={() => item.id !== undefined && handleToggleSelect(item.id)}
-                        aria-label={`Select item ${item.id}`}
+                        checked={selectedPublicIds.includes(item.publicId)}
+                        onCheckedChange={() => handleToggleSelect(item.publicId)}
+                        aria-label={`Select item ${item.publicId}`}
                       />
                     </TableCell>
                     <TableCell className="font-medium">{item.documentNumber}</TableCell>
@@ -529,16 +550,20 @@ function LegacyQueueTab() {
                       >
                         {item.status}
                       </Badge>
+                      {item.aiFailed && (
+                        <Badge variant="destructive" className="ml-1 text-xs">
+                          AI Failed
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell>{format(new Date(item.createdAt), 'dd MMM yyyy, HH:mm')}</TableCell>
                     <TableCell className="text-right">
-                      {item.id !== undefined && (
-                        <Link href={`/admin/migration/review/${item.id}`}>
-                          <Button size="sm" variant="ghost">
-                            <EyeIcon className="h-4 w-4 mr-2" /> Review
-                          </Button>
-                        </Link>
-                      )}
+                      {/* ADR-019: ใช้ publicId ใน route */}
+                      <Link href={`/admin/migration/review/${item.publicId}`}>
+                        <Button size="sm" variant="ghost">
+                          <EyeIcon className="h-4 w-4 mr-2" /> Review
+                        </Button>
+                      </Link>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -548,6 +573,7 @@ function LegacyQueueTab() {
         )}
       </CardContent>
     </Card>
+    </div>
   );
 }
 

@@ -79,7 +79,8 @@ export default function MigrationErrorsPage() {
                 </TableHeader>
                 <TableBody>
                   {items.map((item) => (
-                    <TableRow key={item.id}>
+                    // ADR-019: ใช้ publicId เป็น key ห้ามใช้ INT id
+                    <TableRow key={item.publicId ?? `${item.batchId}-${item.documentNumber}`}>
                       <TableCell className="font-mono text-sm">{item.batchId || '-'}</TableCell>
                       <TableCell className="font-medium">{item.documentNumber || '-'}</TableCell>
                       <TableCell>

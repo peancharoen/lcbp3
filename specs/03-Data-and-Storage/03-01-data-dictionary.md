@@ -176,7 +176,7 @@ erDiagram
         UNIQUE | Login username | | password_hash | VARCHAR(255) | NOT NULL | Hashed PASSWORD (bcrypt) | | first_name | VARCHAR(50) | NULL | User 's first name |
         | last_name | VARCHAR(50) | NULL | User' s last name | | email | VARCHAR(100) | NOT NULL,
         UNIQUE | Email address | | line_id | VARCHAR(100) | NULL | LINE messenger ID | | primary_organization_id | INT | NULL,
-        FK | PRIMARY organization affiliation | | is_active | TINYINT(1) | DEFAULT 1 | Active STATUS | | failed_attempts | INT | DEFAULT 0 | Failed login attempts counter | | locked_until | DATETIME | NULL | Account LOCK expiration time | | last_login_at | TIMESTAMP | NULL | Last successful login timestamp | | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation timestamp | | updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last
+        FK | PRIMARY organization affiliation | | is_active | TINYINT(1) | DEFAULT 1 | Active STATUS | | must_change_password | TINYINT(1) | NOT NULL, DEFAULT 0 | SEV-014: บังคับเปลี่ยนรหัสผ่านหลัง login ครั้งแรก (ADR-016) | | failed_attempts | INT | DEFAULT 0 | Failed login attempts counter | | locked_until | DATETIME | NULL | Account LOCK expiration time | | last_login_at | TIMESTAMP | NULL | Last successful login timestamp | | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation timestamp | | updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last
         UPDATE timestamp | | deleted_at | DATETIME | NULL | Deleted at | ** INDEXES **: - PRIMARY KEY (user_id) - UNIQUE (username) - UNIQUE (email) - FOREIGN KEY (primary_organization_id) REFERENCES organizations(id) ON DELETE
         SET NULL - INDEX (is_active) - INDEX (email) ** Relationships \*\*: - Parent: organizations (primary_organization_id) - Referenced by: user_assignments,
         audit_logs,
@@ -2941,5 +2941,44 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 - **ไม่มี FK constraint** บน recipient_public_id โดยออกแบบ (Polymorphic Pattern)
 - Service Layer ต้องตรวจสอบ existence ก่อน save
 - ใช้ index `idx_dr_type_recipient (recipient_type, recipient_public_id)` สำหรับ lookup performance
+
+---
+
+### 12. AI Migration Review Queue (ADR-023, ADR-023A, ADR-047)
+
+**Purpose**: Staging queue สำหรับ AI migration ตาม ADR-023A — เก็บผลลัพธ์ AI enrichment ก่อน human review และ commit เข้าระบบ
+
+| Column               | Data Type       | Constraints                          | Description                                                        |
+| -------------------- | --------------- | ------------------------------------ | ------------------------------------------------------------------ |
+| id                   | INT             | PRIMARY KEY, AUTO_INCREMENT          | Internal PK (ห้าม expose ใน API, ADR-019)                          |
+| uuid                 | UUID            | NOT NULL, UNIQUE, DEFAULT UUID()     | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 fallback      |
+| batch_id             | VARCHAR(100)    | NOT NULL                             | n8n batch identifier                                               |
+| idempotency_key      | VARCHAR(200)    | NULL                                 | Idempotency-Key สำหรับป้องกัน queue ซ้ำ                            |
+| original_filename    | VARCHAR(500)    | NULL                                 | ชื่อไฟล์ต้นฉบับจาก legacy source                                    |
+| storage_temp_path    | VARCHAR(1000)   | NULL                                 | temp storage path ก่อน import                                      |
+| ai_job_id            | VARCHAR(36)     | NULL                                 | BullMQ Job ID สำหรับงานประมวลผล AI                                 |
+| ai_failed            | TINYINT(1)      | NOT NULL, DEFAULT 0                  | Edge Case 4: AI enrichment failed after retries (ADR-047)          |
+| ai_metadata_json     | LONGTEXT        | NOT NULL, CHECK(json_valid)          | AI suggestion payload เต็มสำหรับ human review                      |
+| confidence_score     | DECIMAL(5,4)    | NULL                                 | AI confidence score 0.0000-1.0000                                  |
+| extracted_tags       | JSON            | NULL                                 | Tag ที่ AI นำเสนอหรือจับคู่ได้                                       |
+| ocr_text             | LONGTEXT        | NULL                                 | ข้อความ OCR 3 หน้าแรก (ADR-042/047)                                |
+| status               | VARCHAR(50)     | NOT NULL, DEFAULT 'PENDING_REVIEW'   | PENDING_REVIEW, APPROVED, REJECTED, COMMITTED                      |
+| reviewed_by          | VARCHAR(50)     | NULL                                 | ผู้ review (userId)                                                 |
+| reviewed_at          | DATETIME        | NULL                                 | วันที่ review                                                       |
+| rejection_reason     | TEXT            | NULL                                 | เหตุผลการ reject                                                    |
+| created_at           | TIMESTAMP       | DEFAULT CURRENT_TIMESTAMP            | Record creation timestamp                                           |
+| updated_at           | TIMESTAMP       | DEFAULT CURRENT_TIMESTAMP ON UPDATE  | Last update timestamp                                               |
+
+**Indexes**:
+- PRIMARY KEY (id)
+- UNIQUE (uuid)
+- INDEX (batch_id)
+- INDEX (status)
+
+**Business Rules**:
+- API ใช้ `uuid` (publicId) เท่านั้น — ห้าม expose `id` (ADR-019)
+- `ai_failed = 1` เมื่อ BullMQ retry ครบ 3 ครั้งแล้วยังไม่สำเร็จ (Edge Case 4)
+- `ocr_text` เก็บ OCR 3 หน้าแรกและสามารถแก้ไขได้โดย Admin (ADR-042)
+- การแก้ไข `ocr_text` ต้อง trigger RAG re-embedding ลง Qdrant
 
 ---

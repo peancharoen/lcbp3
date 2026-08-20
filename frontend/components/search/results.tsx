@@ -6,6 +6,15 @@ import Link from 'next/link';
 import { FileText, Clipboard, Image, Loader2 } from 'lucide-react';
 import { SearchResult } from '@/types/search';
 import { format } from 'date-fns';
+import DOMPurify from 'dompurify';
+
+/** SEV-007: Sanitize HTML highlight — อนุญาตเฉพาะ <em>, <strong> tags เท่านั้น */
+function sanitizeHighlight(html: string): string {
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ['em', 'strong'],
+    ALLOWED_ATTR: [],
+  });
+}
 
 interface SearchResultsProps {
   results: SearchResult[];
@@ -94,7 +103,9 @@ export function SearchResults({ results, query, loading }: SearchResultsProps) {
 
                   <h3
                     className="text-sm font-semibold group-hover:text-primary transition-colors line-clamp-1"
-                    dangerouslySetInnerHTML={{ __html: result.highlight || result.title }}
+                    dangerouslySetInnerHTML={{
+                      __html: sanitizeHighlight(result.highlight || result.title),
+                    }}
                   />
 
                   {result.description && (
