@@ -1,0 +1,1677 @@
+{
+  "name": "LCBP3 Migration Workflow v4.0.0",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "LCBP3 Migration v4 - Safe Sequential Migration",
+        "formDescription": "ประมวลผลทีละรายการ พร้อม resumable checkpoint — กรอก Migration Token ที่ได้จาก Admin",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Migration Run ID",
+              "placeholder": "เช่น C22024-RUN-001",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Excel File Path",
+              "placeholder": "/home/node/.n8n-files/staging_ai/C22024.xlsx",
+              "defaultValue": "/home/node/.n8n-files/staging_ai/C22024.xlsx",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Project Code",
+              "placeholder": "เช่น LCBP3 (รหัสโครงการ — ระบบจะ resolve เป็น UUID อัตโนมัติ)",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Contract Code",
+              "placeholder": "เช่น C22024 (เว้นว่างได้เมื่อไม่มี contract scope)"
+            },
+            {
+              "fieldLabel": "Migration Token",
+              "placeholder": "Bearer eyJhbGciOiJIUzI1NiIs...",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Confidence Threshold High (optional)",
+              "placeholder": "0.85 (default ตาม ADR-023A)",
+              "requiredField": false
+            },
+            {
+              "fieldLabel": "Confidence Threshold Mid (optional)",
+              "placeholder": "0.60 (default ตาม ADR-023A)",
+              "requiredField": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8cf0c7a9-7166-463f-8b8b-b622bf46c605",
+      "name": "Form Trigger",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -11376,
+        6272
+      ],
+      "webhookId": "3698859a-0217-4675-ae92-eb67e4242236",
+      "notes": "v4: Migration Token ใส่ใน form (ไม่ใช้ env var หรือ credential) — token ไม่ถูก persist ใน workflow definition"
+    },
+    {
+      "parameters": {
+        "jsCode": "// v4: configuration + validation — ไม่ใช้ env vars (ถูกบล็อกใน n8n 2.21.7+)\n// MIGRATION_TOKEN ใช้ผ่าน HTTP Header Auth credential แทน\n// AI_THRESHOLD_HIGH/MID อ่านจาก form fields (optional, default ตาม ADR-023A)\nconst formData = $('Form Trigger').first()?.json || {};\n\nconst runId = String(formData['Migration Run ID'] || '').trim();\nconst excelFile = String(formData['Excel File Path'] || '').trim();\nconst projectCode = String(formData['Project Code'] || '').trim();\nconst contractCode = String(formData['Contract Code'] || '').trim();\n\n// ── Validation ───────────────────────────────────────────────\nif (!/^[A-Za-z0-9][A-Za-z0-9._-]{2,79}$/.test(runId)) {\n  throw new Error('Migration Run ID must be 3-80 characters: letters, numbers, dot, underscore, hyphen');\n}\nif (!excelFile || excelFile.includes('..') || excelFile.includes('~')) {\n  throw new Error('Invalid Excel file path');\n}\nif (!projectCode) throw new Error('Project Code is required');\nif (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,49}$/.test(projectCode)) {\n  throw new Error('Project Code must be 1-50 characters: letters, numbers, dot, underscore, hyphen');\n}\nif (contractCode && !/^[A-Za-z0-9][A-Za-z0-9._-]{0,49}$/.test(contractCode)) {\n  throw new Error('Contract Code must be 1-50 characters or empty');\n}\n\n// ── Token validation ──────────────────────────────────────────\nconst migrationToken = String(formData['Migration Token'] || '').trim();\nif (!migrationToken) throw new Error('Migration Token is required');\n// ถ้าผู้ใช้ใส่แค่ token (ไม่มี Bearer prefix) → เติมให้อัตโนมัติ\nconst authToken = migrationToken.startsWith('Bearer ') ? migrationToken : 'Bearer ' + migrationToken;\n\n// ── Thresholds จาก form (optional) หรือ default ตาม ADR-023A ────\nconst confidenceHigh = Number(formData['Confidence Threshold High (optional)'] || 0.85);\nconst confidenceMid = Number(formData['Confidence Threshold Mid (optional)'] || 0.60);\n\nif (isNaN(confidenceHigh) || confidenceHigh < 0 || confidenceHigh > 1) {\n  throw new Error('Confidence Threshold High must be a number between 0 and 1');\n}\nif (isNaN(confidenceMid) || confidenceMid < 0 || confidenceMid > 1) {\n  throw new Error('Confidence Threshold Mid must be a number between 0 and 1');\n}\nif (confidenceMid > confidenceHigh) {\n  throw new Error('Confidence Threshold Mid must not be greater than High');\n}\n\n// ── Config output ─────────────────────────────────────────────\nreturn [{ json: { config: {\n  BACKEND_URL: 'http://backend:3000',\n  AUTH_TOKEN: authToken,\n  BATCH_ID: runId,\n  DELAY_MS: 2000,\n  AI_JOB_POLL_INTERVAL_MS: 5000,\n  AI_JOB_TIMEOUT_MS: 50000,\n  EXCEL_FILE: excelFile,\n  SOURCE_PDF_DIR: '/home/node/.n8n-files/staging_ai/pdfs',\n  LOG_PATH: '/home/node/.n8n-files/staging_ai/logs',\n  PROJECT_CODE: projectCode,\n  CONTRACT_CODE: contractCode || null,\n  CONFIDENCE_THRESHOLD_HIGH: confidenceHigh,\n  CONFIDENCE_THRESHOLD_MID: confidenceMid,\n  WORKFLOW_VERSION: '4.0.0',\n} } }];"
+      },
+      "id": "c785a235-4992-4396-884d-4c2137fb2304",
+      "name": "Set Configuration",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -11184,
+        6272
+      ],
+      "notes": "v4: Code node — validation + config build รวมใน node เดียว, ไม่ใช้ $env (token ใช้ credential, thresholds จาก form)"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Set Configuration').first().json.config.BACKEND_URL}}/health",
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "id": "0c23585c-33e3-4eaa-bc54-3cff5079745f",
+      "name": "Check Backend Health",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -11008,
+        6272
+      ],
+      "notes": "ตรวจสอบ Backend พร้อมใช้งาน"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Set Configuration').first().json.config.BACKEND_URL}}/api/auth/profile",
+        "options": {
+          "timeout": 5000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + ($('Set Configuration').first().json.config.AUTH_TOKEN || '').replace(/^Bearer\\s+/i, '') }}"
+            }
+          ]
+        }
+      },
+      "id": "69db8e96-2203-47fc-b8a8-c6573c53178e",
+      "name": "Validate Token",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -10832,
+        6272
+      ],
+      "notes": "FR-010a: ตรวจสอบ MIGRATION_TOKEN ก่อนเริ่ม Batch — M4: scope check ทำที่ node ถัดไป (Verify Migration Scope) ตาม ADR-016"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Set Configuration').first().json.config.BACKEND_URL}}/api/master/correspondence-types",
+        "options": {
+          "timeout": 10000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + ($('Set Configuration').first().json.config.AUTH_TOKEN || '').replace(/^Bearer\\s+/i, '') }}"
+            }
+          ]
+        }
+      },
+      "id": "c9e3959b-4019-4ec6-b254-4a89156ca0d0",
+      "name": "Fetch Categories",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -11184,
+        6464
+      ],
+      "notes": "ดึง Categories จาก Backend"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Set Configuration').first().json.config.BACKEND_URL}}/api/master/tags",
+        "options": {
+          "timeout": 10000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + ($('Set Configuration').first().json.config.AUTH_TOKEN || '').replace(/^Bearer\\s+/i, '') }}"
+            }
+          ]
+        }
+      },
+      "id": "e3ed851e-1ef2-42d4-84bd-df29cfe6e13e",
+      "name": "Fetch Tags",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -11008,
+        6464
+      ],
+      "notes": "ดึง Tags ที่มีอยู่แล้วจาก Backend"
+    },
+    {
+      "parameters": {
+        "jsCode": "const fs = require('fs');\nconst config = $('Set Configuration').first().json.config;\n\ntry {\n  if (!fs.existsSync(config.EXCEL_FILE)) {\n    throw new Error(`Excel file not found at: ${config.EXCEL_FILE}`);\n  }\n  if (!fs.existsSync(config.SOURCE_PDF_DIR)) {\n    throw new Error(`PDF Source directory not found at: ${config.SOURCE_PDF_DIR}`);\n  }\n  \n  const files = fs.readdirSync(config.SOURCE_PDF_DIR).filter(f => f.toLowerCase().endsWith('.pdf'));\n  \n  // L4: ตรวจ write permission โดยไม่ทิ้ง sentinel file\n  if (!fs.existsSync(config.LOG_PATH)) fs.mkdirSync(config.LOG_PATH, { recursive: true });\n  fs.accessSync(config.LOG_PATH, fs.constants.W_OK);\n  \n  // Grab categories\n  let categories = ['Correspondence','RFA','Drawing','Transmittal','Report','Other'];\n  try {\n    const upstreamData = $('Fetch Categories').first()?.json?.data;\n    if (upstreamData && Array.isArray(upstreamData)) {\n      categories = upstreamData.map(c => c.name || c.type || c);\n    }\n  } catch(e) {}\n  \n  // Grab existing tags\n  let existingTags = [];\n  try {\n    const tagData = $('Fetch Tags').first()?.json?.data || [];\n    existingTags = Array.isArray(tagData)\n      ? tagData.map(t => ({ publicId: t.publicId, tagName: t.tag_name || t.name || '' })).filter(t => t.tagName && t.publicId)\n      : [];\n  } catch(e) {}\n    \n  return [{ json: { \n    preflight_ok: true, \n    pdf_count_in_source: files.length,\n    excel_target: config.EXCEL_FILE,\n    system_categories: categories,\n    existing_tags: existingTags,\n    timestamp: new Date().toISOString()\n  }}];\n} catch (err) {\n  throw new Error(`Pre-flight check failed: ${err.message}`);\n}"
+      },
+      "id": "6568ed41-da80-4f00-9378-905cc95d86f0",
+      "name": "File Mount Check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -10832,
+        6464
+      ],
+      "notes": "ตรวจสอบ File System + รวบรวม master data สำหรับ AI payload"
+    },
+    {
+      "parameters": {
+        "fileSelector": "={{ $json.excel_target }}",
+        "options": {}
+      },
+      "id": "1802f33d-7fc6-42cb-897b-e312dc7c9626",
+      "name": "Read Excel Binary",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        -11184,
+        6656
+      ],
+      "notes": "ดึงไฟล์ Excel ขึ้นมาไว้ในหน่วยความจำ"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "af6a69f5-7f04-40f6-9608-1cfe231ee85f",
+      "name": "Read Excel",
+      "type": "n8n-nodes-base.spreadsheetFile",
+      "typeVersion": 2,
+      "position": [
+        -11008,
+        6656
+      ],
+      "notes": "แปลงข้อมูล Excel เป็น JSON Data"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Set Configuration').first().json.config.BACKEND_URL + '/api/ai/migration/checkpoint/' + $('Set Configuration').first().json.config.BATCH_ID }}",
+        "options": {
+          "timeout": 10000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + ($('Set Configuration').first().json.config.AUTH_TOKEN || '').replace(/^Bearer\\s+/i, '') }}"
+            }
+          ]
+        }
+      },
+      "id": "ebddd4ee-0f4e-471b-9f01-179dbcb7f0ba",
+      "name": "Read Checkpoint",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -10832,
+        6672
+      ],
+      "alwaysOutputData": true,
+      "notes": "GET /api/ai/migration/checkpoint/:batchId — ADR-023A (ไม่ใช้ MySQL โดยตรง) — H3: continueRegularOutput เพื่อให้ 404 (batch ใหม่) ไปต่อด้วย startIndex=0",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const cpJson = $input.first()?.json || {};\nconst startIndex = cpJson.data?.lastProcessedIndex ?? cpJson.lastProcessedIndex ?? cpJson.data?.last_processed_index ?? cpJson.last_processed_index ?? 0;\nconst config = $('Set Configuration').first().json.config;\n\nconst allItems = $('Read Excel').all().map(i => i.json);\nconst remaining = allItems.slice(startIndex);\nconst currentBatch = remaining.slice(0, 1); // v4: exactly one row per loop\n\n// Exit condition: ไม่มี records เหลือ\nif (currentBatch.length === 0) {\n  return [{ json: { batch_complete: true, total_processed: startIndex } }];\n}\n\nconst normalize = (str) => {\n  if (!str) return '';\n  return String(str).normalize('NFC').trim();\n};\n\nreturn currentBatch.map((item, i) => {\n  const getVal = (possibleKeys) => {\n    const exactMatch = possibleKeys.find(k => item[k] !== undefined);\n    if (exactMatch) return item[exactMatch];\n    const lowerTrimmedKeys = Object.keys(item).map(k => ({ original: k, parsed: k.toLowerCase().trim() }));\n    for (const pk of possibleKeys) {\n      const found = lowerTrimmedKeys.find(k => k.parsed === pk.toLowerCase().trim());\n      if (found) return item[found.original];\n    }\n    return '';\n  };\n\n  const docNum = getVal(['document_number', 'correspondence_number', 'Document Number', 'Corr. No.']);\n  const excelFileName = getVal(['File name', 'file_name', 'File Name', 'filename']);\n  \n  if (!excelFileName) {\n    // Fix 1: ไม่ throw — ส่ง error item ไปใน flow ปกติเพื่อให้ checkpoint advance\n    // ถ้า throw จะทำให้ execution หยุดและ checkpoint ไม่ advance → infinite crash loop on resume\n    return {\n      json: {\n        batch_complete: false,\n        document_number: normalize(docNum),\n        title: normalize(getVal(['title', 'Title', 'Subject', 'subject'])),\n        legacy_number: normalize(getVal(['legacy_number', 'Legacy Number', 'Response Doc.'])),\n        excel_revision: revVal || 1,\n        revision_missing: !revVal,\n        original_index: startIndex + i,\n        batch_id: config.BATCH_ID,\n        file_name: '',\n        row_key: [config.BATCH_ID, startIndex + i, normalize(docNum), revVal || 1].join(':'),\n        file_valid: false,\n        error: `Missing 'File name' column for row ${startIndex + i + 1}, document: ${docNum}`,\n        error_type: 'MISSING_FILENAME',\n      }\n    };\n  }\n  \n  const revVal = getVal(['revision', 'Revision', 'rev']);\n  // L5: flag missing revision เพื่อ route ไป Flagged (ไม่ mask ด้วย default 1)\n  const revisionMissing = !revVal;\n  return {\n    json: {\n      batch_complete: false,\n      document_number: normalize(docNum),\n      title: normalize(getVal(['title', 'Title', 'Subject', 'subject'])),\n      legacy_number: normalize(getVal(['legacy_number', 'Legacy Number', 'Response Doc.'])),\n      excel_revision: revVal || 1, // ใช้ 1 สำหรับ row_key stability แต่ flag แยก\n      revision_missing: revisionMissing,\n      original_index: startIndex + i,\n      batch_id: config.BATCH_ID,\n      file_name: normalize(excelFileName),\n      row_key: [config.BATCH_ID, startIndex + i, normalize(docNum), revVal || 1].join(':'),\n    }\n  };\n});"
+      },
+      "id": "b488f4ac-4864-4a16-ac26-71bd850fa49b",
+      "name": "Process Batch + Encoding",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -11184,
+        6880
+      ],
+      "alwaysOutputData": true,
+      "notes": "v4: ประมวลผลทีละแถว (sequential) + Normalize UTF-8 + Exit condition เมื่อ records หมด — BATCH_SIZE ถูกลบออกจาก config (M2)"
+    },
+    {
+      "parameters": {
+        "jsCode": "const fs = require('fs');\nconst path = require('path');\nconst config = $('Set Configuration').first().json.config;\n\nconst items = $input.all();\nif (!items || items.length === 0) return [];\n\n// ตรวจสอบ exit condition\nif (items[0]?.json?.batch_complete === true) {\n  return items;\n}\n\nconst validated = [];\nconst errors = [];\n\nfor (const item of items) {\n  // Fix 1: ถ้า item มาจาก Process Batch + Encoding ที่มี file_valid: false อยู่แล้ว → ส่งตรงไป errors\n  if (item.json?.file_valid === false) {\n    errors.push(item);\n    continue;\n  }\n  const fileName = item.json?.file_name;\n  if (!fileName) {\n    errors.push({ ...item, json: { ...item.json, file_valid: false, error: 'file_name is missing', error_type: 'MISSING_FILENAME' } });\n    continue;\n  }\n  \n  let safeName = path.basename(String(fileName)).normalize('NFC');\n  if (!safeName.toLowerCase().endsWith('.pdf')) safeName += '.pdf';\n  const filePath = path.resolve(config.SOURCE_PDF_DIR, safeName);\n  \n  if (!filePath.startsWith(path.resolve(config.SOURCE_PDF_DIR))) {\n    errors.push({ ...item, json: { ...item.json, file_valid: false, error: 'Path traversal detected', error_type: 'SECURITY' } });\n    continue;\n  }\n  \n  try {\n    if (fs.existsSync(filePath)) {\n      const stats = fs.statSync(filePath);\n      validated.push({ ...item, json: { ...item.json, file_valid: true, file_path: filePath, file_size: stats.size } });\n    } else {\n      errors.push({ ...item, json: { ...item.json, file_valid: false, error: `File not found: ${safeName}`, error_type: 'FILE_NOT_FOUND' } });\n    }\n  } catch (err) {\n    errors.push({ ...item, json: { ...item.json, file_valid: false, error: err.message, error_type: 'FILE_ERROR' } });\n  }\n}\n\nreturn [...validated, ...errors];"
+      },
+      "id": "e831cd28-880c-4f93-99fc-901383d1cda3",
+      "name": "File Validator",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -10640,
+        6272
+      ],
+      "notes": "ตรวจสอบไฟล์ PDF ใน Directory"
+    },
+    {
+      "parameters": {
+        "fileSelector": "={{ $json.file_path }}",
+        "options": {}
+      },
+      "id": "20625b33-17e8-4730-94f1-37c9b6c24df9",
+      "name": "Read PDF File",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        -10640,
+        6464
+      ],
+      "onError": "continueErrorOutput",
+      "notes": "อ่าน PDF Binary เพื่อเตรียม Upload"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Set Configuration').first().json.config.BACKEND_URL}}/api/files/upload",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + ($('Set Configuration').first().json.config.AUTH_TOKEN || '').replace(/^Bearer\\s+/i, '') }}"
+            },
+            {
+              "name": "Idempotency-Key",
+              "value": "={{ $json.row_key + ':upload' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "id": "2677c8b3-223a-4952-b4e2-41b92bd7f059",
+      "name": "Upload PDF to Backend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -10416,
+        6272
+      ],
+      "onError": "continueErrorOutput",
+      "notes": "ADR-023A: อัพโหลด PDF เข้า Backend Temp Storage → รับ temp_attachment_id — L8: Backend มี FileCleanupService รัน cron ทุกเที่ยงคืน ลบ temp files ที่หมดอายุ (TTL 24 ชม.) จึงไม่ต้อง cleanup เองใน workflow — ดู backend file-cleanup.service.ts"
+    },
+    {
+      "parameters": {
+        "jsCode": "// v3: Build AI Job Payload พร้อม contextOverride สำหรับ Master Data filter (ADR-030)\nconst config = $('Set Configuration').first().json.config;\nconst uploadResponse = $json || {};\nconst metaItem = $('File Validator').first()?.json || {};\nconst mountCheckData = $('File Mount Check').first()?.json || {};\n\n// Backend returns { data: { publicId, tempId, ... } } per ADR-019 (id is @Exclude'd)\nconst tempAttachmentPublicId = uploadResponse?.data?.publicId || uploadResponse?.publicId;\nif (!tempAttachmentPublicId) {\n  throw new Error(`Upload failed — no temp_attachment_public_id returned. Upload response: ${JSON.stringify(uploadResponse)}`);\n}\n\n// Validate required fields per DTO\nconst docNumber = String(metaItem.document_number || '').trim();\nconst docTitle = String(metaItem.title || '').trim();\nif (!docNumber) {\n  throw new Error(`document_number is empty for item: ${JSON.stringify(metaItem)}`);\n}\nif (!docTitle) {\n  throw new Error(`title is empty for document: ${docNumber}`);\n}\n\n// Normalize existingTags to match TagOptionDto (tagName is required)\n// L2: ใช้ null แทน undefined เพื่อป้องกัน JSON.stringify ตัดฟิลด์ทิ้ง\nconst existingTags = (mountCheckData.existing_tags || [])\n  .filter(t => t.tagName && t.tagName.trim())\n  .map(t => ({\n    publicId: t.publicId || null,\n    tagName: String(t.tagName).trim(),\n    colorCode: t.colorCode || null,\n  }));\n\n// v3: contextOverride — ส่ง public UUID ให้ backend resolve master data context\n// ตาม ADR-030: filter master data ตาม project/contract scope เพื่อลด context size\n// null = ไม่ filter (ใช้ค่าจาก context_config ของ active prompt template)\n// อ่าน UUID จาก Set Resolved UUIDs (resolve จาก Code ผ่าน backend API)\nconst resolved = $('Set Resolved UUIDs').first()?.json || {};\nconst contextOverride = {\n  projectPublicId: resolved.projectPublicId || null,\n  contractPublicId: resolved.contractPublicId || null,\n};\n\n// สร้าง SubmitAiJobDto ตาม Backend DTO (v3)\nconst submitPayload = {\n  type: 'migrate-document',\n  payload: {\n    tempAttachmentId: String(tempAttachmentPublicId),\n    documentNumber: docNumber,\n    title: docTitle,\n    batchId: String(config.BATCH_ID),\n    existingTags: existingTags,\n    systemCategories: mountCheckData.system_categories || [],\n    // v3 NEW: contextOverride สำหรับ ADR-030 Master Data Context Filter\n    contextOverride: contextOverride,\n  }\n};\n\n// Idempotency-Key: deterministic format ตาม FR-001a\nconst idempotencyKey = String(metaItem.row_key || [config.BATCH_ID, metaItem.original_index, docNumber, metaItem.excel_revision || 1].join(':'));\n\nreturn [{\n  json: {\n    ...metaItem,\n    temp_attachment_public_id: tempAttachmentPublicId,\n    submit_payload: submitPayload,\n    idempotency_key: idempotencyKey,\n  }\n}];",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "fad3f363-a595-4a43-a48f-cefb258c2687",
+      "name": "Build AI Job Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -10400,
+        6496
+      ],
+      "notes": "v4: เพิ่ม contextOverride (projectPublicId, contractPublicId) ตาม ADR-019/030 — Idempotency-Key ตาม FR-001a"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Set Configuration').first().json.config.BACKEND_URL}}/api/ai/jobs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + ($('Set Configuration').first().json.config.AUTH_TOKEN || '').replace(/^Bearer\\s+/i, '') }}"
+            },
+            {
+              "name": "Idempotency-Key",
+              "value": "={{ $json.idempotency_key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.submit_payload) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "7fb24018-9739-4ae9-8650-d118d73e38d7",
+      "name": "Submit AI Job",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -10400,
+        6672
+      ],
+      "onError": "continueErrorOutput",
+      "notes": "ADR-023A: POST /api/ai/jobs — Backend จัดการ Ollama ผ่าน BullMQ"
+    },
+    {
+      "parameters": {
+        "jsCode": "// v3: Parse & Validate AI Response — รองรับ 11-field schema (ADR-030)\n// recipients เป็น Array<{ organizationPublicId, recipientType }> แทน parallel arrays\nconst config = $('Set Configuration').first().json.config;\nconst items = $input.all();\n\n// H1: UUIDv7 format validation (ADR-019) — format-invalid UUIDs treated as missing\nconst UUID_V7_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\nconst isUuidV7 = (s) => typeof s === 'string' && s.trim().length > 0 && UUID_V7_RE.test(s.trim());\nconst results = [];\n\nfor (const item of items) {\n  const data = item.json;\n  \n  // ถ้า poll ส่ง error กลับมาโดยตรง (route_index = 3)\n  if (data.route_index === 3 || data.ai_status === 'failed') {\n    results.push({ json: { ...data, route_index: 3 } });\n    continue;\n  }\n  \n  const ai = data.ai_result || {};\n  \n  if (!ai || typeof ai !== 'object') {\n    results.push({ json: { ...data, parse_error: 'Empty or invalid ai_result', error_type: 'PARSE_ERROR', route_index: 3 } });\n    continue;\n  }\n  \n  // ================================================================\n  // v3: 11-field schema validation (ADR-030)\n  // ================================================================\n  \n  // 1. projectPublicId — UUID string หรือ null\n  const projectPublicId = isUuidV7(ai.projectPublicId) ? ai.projectPublicId.trim() : null;\n  \n  // 2. correspondenceTypeCode — รหัสประเภท เช่น RFA, LETTER, TRANSMITTAL\n  const correspondenceTypeCode = typeof ai.correspondenceTypeCode === 'string' && ai.correspondenceTypeCode.trim()\n    ? ai.correspondenceTypeCode.trim().toUpperCase()\n    : null;\n  \n  // 3. disciplineCode — รหัสสาขางาน เช่น GEN, STR\n  const disciplineCode = typeof ai.disciplineCode === 'string' && ai.disciplineCode.trim()\n    ? ai.disciplineCode.trim().toUpperCase()\n    : null;\n  \n  // 4. originatorOrganizationPublicId — UUID string หรือ null\n  const originatorOrganizationPublicId = isUuidV7(ai.originatorOrganizationPublicId) ? ai.originatorOrganizationPublicId.trim() : null;\n  \n  // 5. recipients — Object Array ตาม spec ADR-030\n  // รูปแบบ: Array<{ organizationPublicId: string, recipientType: 'TO' | 'CC' }>\n  // ห้ามใช้ parallel arrays (recipientOrganizationPublicIds + recipientTypes)\n  let recipients = [];\n  if (Array.isArray(ai.recipients)) {\n    recipients = ai.recipients\n      .filter(r => r && typeof r === 'object' && isUuidV7(r.organizationPublicId))\n      .map(r => ({\n        organizationPublicId: String(r.organizationPublicId).trim(),\n        recipientType: ['TO', 'CC'].includes(String(r.recipientType || '').trim().toUpperCase())\n          ? String(r.recipientType).trim().toUpperCase()\n          : 'TO',\n      }));\n  }\n  \n  // 6. subject — หัวข้อเอกสาร\n  const subject = typeof ai.subject === 'string' && ai.subject.trim()\n    ? ai.subject.trim()\n    : data.title || '';\n  \n  // 7. documentDate — YYYY-MM-DD\n  const documentDate = typeof ai.documentDate === 'string' && /^\\d{4}-\\d{2}-\\d{2}$/.test(ai.documentDate.trim())\n    ? ai.documentDate.trim()\n    : null;\n  \n  // 8. tags — string[]\n  const suggestedTags = Array.isArray(ai.tags)\n    ? ai.tags.map(t => {\n        if (typeof t === 'string') return { tagName: t.trim(), isNew: true, colorCode: 'default' };\n        if (typeof t === 'object' && t.tagName) return {\n          tagName: String(t.tagName || t.tag_name || '').trim(),\n          publicId: t.publicId || t.public_id || undefined,\n          isNew: Boolean(t.isNew ?? t.is_new ?? !t.publicId),\n          colorCode: t.colorCode || t.color_code || 'default',\n        };\n        return null;\n      }).filter(t => t && t.tagName)\n    : [];\n  \n  // 9. summary — ภาษาไทย 4-5 ประโยค\n  const summary = typeof ai.summary === 'string' && ai.summary.trim() ? ai.summary.trim() : null;\n  \n  // 10. confidence — float 0-1\n  const confidence = typeof ai.confidence === 'number' ? Math.max(0, Math.min(1, ai.confidence)) : 0;\n  \n  // ================================================================\n  // Confidence-based routing (เหมือน v2)\n  // route_index: 0=Auto Ready, 1=Review Flagged, 2=Rejected, 3=Error Log\n  // L10: thresholds จาก env (ADR-023A: AI_THRESHOLD_HIGH=0.85, AI_THRESHOLD_MID=0.60)\n  // ================================================================\n  const thresholdHigh = Number($('Set Configuration').first().json.config.CONFIDENCE_THRESHOLD_HIGH);\n  const thresholdMid = Number($('Set Configuration').first().json.config.CONFIDENCE_THRESHOLD_MID);\n  let route_index;\n  let review_reason = '';\n  let reject_reason = '';\n  \n  // ตรวจสอบ UUID fields ที่จำเป็น — ถ้าไม่มี → Flagged เพื่อ human validation\n  const missingUuids = [];\n  if (!projectPublicId) missingUuids.push('projectPublicId');\n  if (!originatorOrganizationPublicId) missingUuids.push('originatorOrganizationPublicId');\n  if (recipients.length === 0) missingUuids.push('recipients');\n  // H1: ถ้า AI คืน UUID ที่รูปแบบผิด → ถือเหมือน missing (route ไป Flagged)\n  \n  // L5: missing revision → Flagged เพื่อ human validation\n  const revisionMissing = Boolean(data.revision_missing);\n  \n  if (missingUuids.length > 0) {\n    route_index = 1;\n    review_reason = `UUID fields ไม่ครบ: ${missingUuids.join(', ')} — ต้องการ human validation (ADR-030)`;\n  } else if (revisionMissing) {\n    route_index = 1;\n    review_reason = `Excel revision ขาด — ต้องการ human review (L5)`;\n  } else if (confidence >= thresholdHigh) {\n    route_index = 0; // Auto Ready\n  } else if (confidence >= thresholdMid) {\n    route_index = 1; // Review Flagged\n    review_reason = `confidence ต่ำ (${confidence.toFixed(2)}) — ต้องการ human review`;\n  } else if (confidence > 0) {\n    route_index = 2; // Rejected\n    reject_reason = `confidence ต่ำเกิน (${confidence.toFixed(2)}) — ต่ำกว่า threshold ${thresholdMid}`;\n  } else {\n    route_index = 3; // Error\n  }\n  \n  const normalizedAi = {\n    // v3: 11-field schema (ADR-030)\n    projectPublicId,\n    correspondenceTypeCode,\n    disciplineCode,\n    originatorOrganizationPublicId,\n    recipients,\n    subject,\n    documentDate,\n    tags: suggestedTags,\n    summary,\n    confidence,\n  };\n  \n  results.push({\n    json: {\n      ...data,\n      ai_result: normalizedAi,\n      review_reason,\n      reject_reason,\n      route_index,\n    }\n  });\n}\n\nreturn results;"
+      },
+      "id": "419d8d1a-06c7-4cca-b1ed-53cf0a632c7e",
+      "name": "Parse & Validate AI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -10208,
+        6496
+      ],
+      "notes": "v4: 11-field schema (ADR-030) — recipients เป็น Object Array + UUIDv7 validation routing (H1)"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route_index }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Auto Ready"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route_index }}",
+                    "rightValue": 1,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Review Flagged"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route_index }}",
+                    "rightValue": 2,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Rejected"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route_index }}",
+                    "rightValue": 3,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Error Log"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5abd2557-cb16-4102-aca3-db8e8d009286",
+      "name": "Route by Confidence",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -10048,
+        6560
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const fs = require('fs');\nconst item = $input.first();\nconst config = $('Set Configuration').first().json.config;\n\nconst csvPath = `${config.LOG_PATH}/reject_log_${config.BATCH_ID}.csv`;\nconst header = 'timestamp,document_number,title,reject_reason,ai_confidence,job_id\\n';\nconst esc = (s) => `\"${String(s || '').replace(/\"/g, '\"\"')}\"`;\n\nif (!fs.existsSync(csvPath)) {\n  fs.writeFileSync(csvPath, header, 'utf8');\n}\n\nconst line = [\n  new Date().toISOString(),\n  esc(item.json.document_number),\n  esc(item.json.title),\n  esc(item.json.reject_reason),\n  item.json.ai_result?.confidence ?? 'N/A',\n  esc(item.json.job_id || '')\n].join(',') + '\\n';\n\nfs.appendFileSync(csvPath, line, 'utf8');\n\nreturn [$input.first()];"
+      },
+      "id": "62c48542-9b36-4db3-83ef-23bf1af39875",
+      "name": "Log Reject to CSV",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -9808,
+        6784
+      ],
+      "notes": "บันทึกรายการที่ถูกปฏิเสธลง CSV"
+    },
+    {
+      "parameters": {
+        "jsCode": "const fs = require('fs');\nconst items = $input.all();\nconst config = $('Set Configuration').first().json.config;\n\nconst ERROR_TYPE_MAP = {\n  AI_JOB_FAILED: 'API_ERROR',\n  PARSE_ERROR: 'AI_PARSE_ERROR',\n  TOKEN_EXPIRED: 'API_ERROR',\n};\nconst ALLOWED_ERROR_TYPES = new Set([\n  'FILE_NOT_FOUND',\n  'MISSING_FILENAME',\n  'FILE_ERROR',\n  'AI_PARSE_ERROR',\n  'API_ERROR',\n  'DB_ERROR',\n  'SECURITY',\n  'UNKNOWN',\n]);\nconst normalizeErrorType = (type, errorMsg) => {\n  // L7: ตรวจ prefix ใน error message สำหรับ errors ที่มาจาก throw (ไม่มี error_type field)\n  if (!type && errorMsg) {\n    if (errorMsg.startsWith('AI_JOB_FAILED')) return 'API_ERROR';\n    if (errorMsg.startsWith('AI_JOB_POLL_ERROR')) return 'API_ERROR';\n    if (errorMsg.startsWith('TOKEN_EXPIRED')) return 'API_ERROR';\n  }\n  const mappedType = ERROR_TYPE_MAP[type] || type || 'UNKNOWN';\n  return ALLOWED_ERROR_TYPES.has(mappedType) ? mappedType : 'UNKNOWN';\n};\n\nconst csvPath = `${config.LOG_PATH}/error_log_${config.BATCH_ID}.csv`;\nconst header = 'timestamp,document_number,error_type,error_message,job_id\\n';\nconst esc = (s) => `\"${String(s || '').replace(/\"/g, '\"\"')}\"`;\nconst results = [];\n\nif (!fs.existsSync(csvPath)) {\n  fs.writeFileSync(csvPath, header, 'utf8');\n}\n\nfor (const item of items) {\n  // L6: ไม่ mutate input item — สร้าง object ใหม่\n  // L7: พยายาม extract document_number จาก error message ถ้าไม่มีใน item\n  let documentNumber = item.json.document_number || '';\n  if (!documentNumber && errorMsg) {\n    const m = errorMsg.match(/document=([^,]+)/);\n    if (m) documentNumber = m[1];\n  }\n  if (!documentNumber) documentNumber = 'WORKFLOW';\n  const errorType = normalizeErrorType(item.json.error_type, errorMsg);\n  const errorMsg = item.json.error || item.json.parse_error || item.json.message || '';\n  const jobId = item.json.job_id || '';\n\n  const line = [\n    new Date().toISOString(),\n    esc(documentNumber),\n    esc(errorType),\n    esc(errorMsg),\n    esc(jobId)\n  ].join(',') + '\\n';\n  fs.appendFileSync(csvPath, line, 'utf8');\n\n  // คืน object ใหม่พร้อมค่าที่ normalize แล้ว\n  results.push({ json: { ...item.json, document_number: documentNumber, error_type: errorType, error: errorMsg, job_id: jobId } });\n}\n\nreturn results;"
+      },
+      "id": "724da26e-5c71-4146-8a4c-a16299dfae17",
+      "name": "Log Error to CSV",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -10416,
+        6864
+      ],
+      "notes": "บันทึก Error ลง CSV"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Set Configuration').first().json.config.BACKEND_URL}}/api/ai/migration/errors",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + ($('Set Configuration').first().json.config.AUTH_TOKEN || '').replace(/^Bearer\\s+/i, '') }}"
+            },
+            {
+              "name": "Idempotency-Key",
+              "value": "={{ ($json.batch_id || $('Set Configuration').first().json.config.BATCH_ID) + ':' + ($json.document_number || 'WORKFLOW') + ':error' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ batchId: $('Set Configuration').first().json.config.BATCH_ID, documentNumber: $json.document_number, errorType: $json.error_type, errorMessage: $json.error, jobId: $json.job_id || '' }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "aa49b719-9133-4ab8-af24-27754c4b4cd2",
+      "name": "Log Error to DB",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -10208,
+        6864
+      ],
+      "onError": "continueErrorOutput",
+      "notes": "POST /api/ai/migration/errors — ADR-023A"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Set Configuration').first().json.config.BACKEND_URL}}/api/ai/migration/checkpoint",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + ($('Set Configuration').first().json.config.AUTH_TOKEN || '').replace(/^Bearer\\s+/i, '') }}"
+            },
+            {
+              "name": "Idempotency-Key",
+              "value": "={{ $json.batch_id + ':checkpoint:' + $json.next_index }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ batchId: $json.batch_id, lastProcessedIndex: $json.next_index, status: 'RUNNING', outcome: $json.terminal_outcome, documentNumber: $json.document_number }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "702e0d86-786c-4731-89bb-a7b80aa4d425",
+      "name": "Save Checkpoint",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -9664,
+        6384
+      ],
+      "onError": "continueErrorOutput",
+      "notes": "POST /api/ai/migration/checkpoint — ADR-023A"
+    },
+    {
+      "parameters": {
+        "amount": "={{$('Set Configuration').first().json.config.DELAY_MS / 1000}}",
+        "unit": "seconds"
+      },
+      "id": "f8eadb50-d241-423c-a62e-4c87fd96c3be",
+      "name": "Delay",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        -9536,
+        6880
+      ],
+      "webhookId": "38e97a99-4dcc-4b63-977a-a02945a1c369",
+      "notes": "หน่วงเวลาระหว่าง Records"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.batch_complete }}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "equals",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Batch Complete"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.batch_complete }}",
+                    "rightValue": false,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "equals",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Continue Loop"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0ef559e7-8ffc-4bf5-b6ef-2d5e2d44d57a",
+      "name": "Check Batch Complete",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -11008,
+        6880
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Set Configuration').first().json.config.BACKEND_URL}}/api/ai/migration/checkpoint",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + ($('Set Configuration').first().json.config.AUTH_TOKEN || '').replace(/^Bearer\\s+/i, '') }}"
+            },
+            {
+              "name": "Idempotency-Key",
+              "value": "={{ $('Set Configuration').first().json.config.BATCH_ID + ':complete' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ batchId: $('Set Configuration').first().json.config.BATCH_ID, lastProcessedIndex: $json.total_processed, status: 'COMPLETED', outcome: 'COMPLETED', documentNumber: '' }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "c059f49b-a184-43ff-aef4-a84077c10524",
+      "name": "Mark Batch Complete",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -10784,
+        6864
+      ],
+      "notes": "Update checkpoint status to COMPLETED when batch finishes — L9: เพิ่ม outcome + documentNumber ให้สอดคล้องกับ Save Checkpoint schema"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.file_valid }}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "equals",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Valid PDF"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.file_valid }}",
+                    "rightValue": false,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "equals",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Invalid PDF"
+            }
+          ]
+        }
+      },
+      "id": "v4-route-file-validation",
+      "name": "Route File Validation",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -10640,
+        6380
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Fix 2: ป้องกัน Loop History Pollution\n// $('Process Batch + Encoding') เป็น PRIMARY source เพราะ:\n//   1. รันทุก iteration (เป็น loop entry point)\n//   2. มี original_index เสมอ\n// $('Parse & Validate AI Response') ถูกถอดออกเพราะไม่รันใน error paths\n//   (เช่น file not found, upload failed) → จะคืนข้อมูลจาก iteration ก่อนหน้า (stale)\n// $input.first().json ใช้สำหรับ terminal_outcome และ route_index เท่านั้น\n//   เพราะ HTTP nodes แทนที่ JSON ทั้งหมดด้วย response\n\nconst currentItem = $json || {};\nconst config = $('Set Configuration').first().json.config;\n\n// PRIMARY: Process Batch + Encoding — รันทุก iteration, มี metadata ครบ\nlet meta = {};\ntry {\n  meta = $('Process Batch + Encoding').first()?.json || {};\n} catch (_) {\n  // ถ้าเข้าถึงไม่ได้ ใช้ currentItem เป็น fallback\n  meta = currentItem;\n}\n\nconst originalIndex = Number(meta.original_index);\nif (!Number.isInteger(originalIndex) || originalIndex < 0) {\n  throw new Error(`CHECKPOINT_METADATA_MISSING: original_index unavailable — currentItem: ${JSON.stringify(currentItem).substring(0, 200)}`);\n}\n\n// terminal_outcome มาจาก currentItem (ซึ่งอาจเป็น HTTP response หรือ Code node output)\n// ถ้า currentItem มี route_index ใช้สิ่งนั้น, ถ้าไม่มีตรวจจาก meta\nconst routeIndex = currentItem.route_index ?? meta.route_index;\nconst hasError = currentItem.error || currentItem.parse_error || meta.error || meta.parse_error;\nconst terminalOutcome = routeIndex === 2 ? 'REJECTED' : (hasError ? 'FAILED' : 'QUEUED');\n\nreturn { json: {\n  batch_id: meta.batch_id || config.BATCH_ID,\n  original_index: originalIndex,\n  next_index: originalIndex + 1,\n  row_key: meta.row_key || '',\n  document_number: meta.document_number || currentItem.document_number || 'UNKNOWN',\n  terminal_outcome: terminalOutcome,\n} };"
+      },
+      "id": "v4-prepare-checkpoint",
+      "name": "Prepare Terminal Checkpoint",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -9664,
+        6600
+      ],
+      "notes": "Fix 2: ใช้ $('Process Batch + Encoding') เป็น PRIMARY source (รันทุก iteration) — ถอด $('Parse & Validate AI Response') ออกจาก candidates เพราะไม่รันใน error paths → กัน Loop History Pollution จาก iteration ก่อนหน้า"
+    },
+    {
+      "parameters": {
+        "jsCode": "// M4: RBAC scope verification (ADR-016)\n// ตรวจสอบว่า MIGRATION_TOKEN มี permission ที่จำเป็นสำหรับ workflow นี้\n// Profile response shape: { assignments: [{ role: { roleName, permissions: [{ permissionName }] } }] }\nconst profile = $json || {};\nconst REQUIRED_PERMISSIONS = ['ai.suggest'];\nconst ADMIN_ROLES = new Set(['Superadmin', 'Org Admin']);\n\n// กรณี backend คืน { data: { ... } } หรือ { ... } โดยตรง\nconst user = profile.data || profile;\nconst assignments = Array.isArray(user.assignments) ? user.assignments : [];\n\n// กรองเฉพาะ assignments ที่มี role\nconst roles = assignments\n  .map(a => a?.role?.roleName)\n  .filter(Boolean);\n\n// Superadmin ผ่านทุก permission check\nconst isAdmin = roles.some(r => ADMIN_ROLES.has(r));\n\n// รวบรวม permission ทั้งหมดจากทุก role\nconst allPermissions = new Set();\nfor (const assignment of assignments) {\n  const perms = assignment?.role?.permissions;\n  if (Array.isArray(perms)) {\n    for (const p of perms) {\n      const name = p?.permissionName || p?.name;\n      if (name) allPermissions.add(name);\n    }\n  }\n}\n\n// ตรวจสอบ required permissions\nconst missing = REQUIRED_PERMISSIONS.filter(p => !isAdmin && !allPermissions.has(p));\n\nif (missing.length > 0) {\n  const errorMsg = `UNAUTHORIZED_SCOPE: token ขาด permission ที่จำเป็น [${missing.join(', ')}] — roles: [${roles.join(', ') || 'none'}] (ADR-016)`;\n  throw new Error(errorMsg);\n}\n\nreturn [{\n  json: {\n    scope_verified: true,\n    roles: roles,\n    permissions: Array.from(allPermissions).sort(),\n    is_admin: isAdmin,\n    username: user.username || user.user_id || 'unknown',\n  }\n}];"
+      },
+      "id": "fb5121f7-8ea0-4972-b1e6-6a1e066d3ca8",
+      "name": "Verify Migration Scope",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -10832,
+        6272
+      ],
+      "notes": "M4: ตรวจสอบ RBAC scope จาก /api/auth/profile response — ต้องมี ai.suggest หรือเป็น Superadmin/Org Admin (ADR-016)"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Set Configuration').first().json.config.BACKEND_URL}}/api/ai/migration/queue/record",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + ($('Set Configuration').first().json.config.AUTH_TOKEN || '').replace(/^Bearer\\s+/i, '') }}"
+            },
+            {
+              "name": "Idempotency-Key",
+              "value": "={{ $json.row_key + ':queue' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ batchId: $json.batch_id, documentNumber: $json.document_number, subject: ($json.ai_result?.subject || $json.title), originalSubject: $json.title, tempAttachmentId: $json.temp_attachment_public_id === undefined ? null : $json.temp_attachment_public_id, confidence: $json.ai_result?.confidence, reviewReason: $json.review_reason || '', status: $json.route_index === 0 ? 'PENDING' : 'PENDING_REVIEW', aiResult: $json.ai_result, idempotencyKey: $json.row_key, sourceRowIndex: $json.original_index, excelRevision: $json.excel_revision }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "e533ac12-d6c4-4f45-b00b-76f1bf3c992e",
+      "name": "Insert Review Queue",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -9888,
+        6420
+      ],
+      "onError": "continueErrorOutput",
+      "notes": "L3: รวม Auto+Flagged เป็น node เดียว — status ขึ้นกับ route_index (0=PENDING, 1=PENDING_REVIEW) — ADR-023A"
+    },
+    {
+      "parameters": {
+        "jsCode": "// H2: เตรียม context สำหรับ native poll loop (ไม่ใช้ while loop ใน Code node)\n// ดึง jobId จาก Submit AI Job response + metadata จาก Build AI Job Payload\nconst submitResponse = $('Submit AI Job').first()?.json || {};\nconst originalMeta = $('Build AI Job Payload').first()?.json || {};\n\nconst jobId = submitResponse?.jobId || submitResponse?.data?.jobId;\nif (!jobId) {\n  // FR-010b: ถ้า 401 → mark TOKEN_EXPIRED\n  if (submitResponse?.statusCode === 401 || submitResponse?.error?.status === 401) {\n    throw new Error('TOKEN_EXPIRED: 401 Unauthorized — กรุณา renew MIGRATION_TOKEN แล้ว resume');\n  }\n  throw new Error(`Submit AI Job failed — no jobId returned for: ${originalMeta.document_number}`);\n}\n\nreturn [{\n  json: {\n    ...originalMeta,\n    job_id: jobId,\n    poll_start_time: Date.now(),\n  }\n}];"
+      },
+      "id": "9febc773-8e0b-4012-b401-067044c3278f",
+      "name": "Prepare Poll Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -10208,
+        6272
+      ],
+      "onError": "continueErrorOutput",
+      "notes": "H2: เตรียม jobId + originalMeta + poll_start_time สำหรับ native poll loop — รันครั้งเดียวก่อนเข้า loop"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Set Configuration').first().json.config.BACKEND_URL + '/api/ai/jobs/' + $('Prepare Poll Context').first().json.job_id }}",
+        "options": {
+          "timeout": 10000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + ($('Set Configuration').first().json.config.AUTH_TOKEN || '').replace(/^Bearer\\s+/i, '') }}"
+            }
+          ]
+        }
+      },
+      "id": "524b43a2-992d-4d3a-8064-8793a88b8233",
+      "name": "Poll Job Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -10050,
+        6272
+      ],
+      "onError": "continueErrorOutput",
+      "notes": "H2: HTTP GET /api/ai/jobs/{jobId} — ไม่มี while loop ใน Code node จึงไม่มีปัญหา NODE_FUNCTION_TIMEOUT"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.status || $json.data?.status }}",
+                    "rightValue": "completed",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Completed"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.status || $json.data?.status }}",
+                    "rightValue": "failed",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Failed"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ Date.now() - $('Prepare Poll Context').first().json.poll_start_time > $('Set Configuration').first().json.config.AI_JOB_TIMEOUT_MS }}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "equals",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Timeout"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ true }}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "equals",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Retry"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "043b18bf-5135-4130-b90c-9b1c556cb924",
+      "name": "Route Poll Status",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -9900,
+        6272
+      ],
+      "notes": "H2: จัด route ตาม poll status — completed/failed/timeout/retry (fallback ใช้สำหรับยังไม่เสร็จ)"
+    },
+    {
+      "parameters": {
+        "amount": "={{ $('Set Configuration').first().json.config.AI_JOB_POLL_INTERVAL_MS / 1000 }}",
+        "unit": "seconds"
+      },
+      "id": "a7a331be-4b1a-4eea-aaac-ae6c306dd374",
+      "name": "Wait for Poll",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        -9900,
+        6600
+      ],
+      "webhookId": "d1b75f45-9ee7-4e3e-8d04-dc85d2927cfa",
+      "notes": "H2: รอ AI_JOB_POLL_INTERVAL_MS (default 5s) ก่อน poll ใหม่ — loop กลับไป Poll Job Status"
+    },
+    {
+      "parameters": {
+        "jsCode": "// H2: เตรียม AI result จาก poll response สำหรับ downstream processing\n// อ่าน metadata จาก Prepare Poll Context (รันครั้งเดียว ไม่ใช้ loop)\nconst pollResponse = $json || {};\nconst pollContext = $('Prepare Poll Context').first()?.json || {};\n\nconst aiResult = pollResponse?.result || pollResponse?.data?.result || {};\n\nreturn [{\n  json: {\n    ...pollContext,\n    job_id: pollContext.job_id,\n    ai_result: aiResult,\n    ai_status: 'completed',\n  }\n}];"
+      },
+      "id": "e6e05b83-5f7f-41a5-8834-e531f46520dd",
+      "name": "Prepare AI Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -9700,
+        6150
+      ],
+      "notes": "H2: รวม metadata จาก Prepare Poll Context + ai_result จาก poll response → ส่งต่อไป Parse & Validate"
+    },
+    {
+      "parameters": {
+        "jsCode": "// H2: จัดรูปแบบ error จาก poll loop สำหรับ Log Error to CSV\n// รับ input จาก: Route Poll Status (failed/timeout) + Poll Job Status (HTTP error)\nconst pollResponse = $json || {};\nconst pollContext = $('Prepare Poll Context').first()?.json || {};\nconst config = $('Set Configuration').first().json.config;\n\nconst documentNumber = pollContext.document_number || 'UNKNOWN';\nconst jobId = pollContext.job_id || 'UNKNOWN';\n\n// ตรวจสอบ 401 token expired (จาก HTTP error output)\nconst httpStatus = pollResponse?.statusCode || pollResponse?.error?.status;\nif (httpStatus === 401) {\n  return [{\n    json: {\n      document_number: documentNumber,\n      error_type: 'API_ERROR',\n      error: `TOKEN_EXPIRED: renew MIGRATION_TOKEN and resume — document=${documentNumber}, jobId=${jobId}`,\n      job_id: jobId,\n    }\n  }];\n}\n\n// ตรวจสอบ timeout\nconst elapsed = Date.now() - (pollContext.poll_start_time || Date.now());\nif (elapsed > (config.AI_JOB_TIMEOUT_MS || 50000)) {\n  return [{\n    json: {\n      document_number: documentNumber,\n      error_type: 'API_ERROR',\n      error: `AI Job timeout after ${config.AI_JOB_TIMEOUT_MS}ms for jobId: ${jobId}, document: ${documentNumber}`,\n      job_id: jobId,\n    }\n  }];\n}\n\n// status === 'failed' หรือ HTTP error อื่นๆ\nconst failDetail = JSON.stringify(pollResponse?.error || pollResponse?.data?.error || pollResponse?.message || 'unknown');\nreturn [{\n  json: {\n    document_number: documentNumber,\n    error_type: 'API_ERROR',\n    error: `AI_JOB_FAILED: document=${documentNumber}, jobId=${jobId}, error=${failDetail}`,\n    job_id: jobId,\n  }\n}];"
+      },
+      "id": "9b18d120-9706-4f29-998e-3a7067ff4b55",
+      "name": "Format Poll Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -9700,
+        6500
+      ],
+      "notes": "H2: จัดรูปแบบ error จาก poll loop (failed/timeout/HTTP error) → Log Error to CSV"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Set Configuration').first().json.config.BACKEND_URL + '/api/projects?search=' + encodeURIComponent($('Form Trigger').first().json['Project Code']) + '&isActive=true&limit=50' }}",
+        "options": {
+          "timeout": 10000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + ($('Set Configuration').first().json.config.AUTH_TOKEN || '').replace(/^Bearer\\s+/i, '') }}"
+            }
+          ]
+        }
+      },
+      "id": "a639084e-b147-4229-8959-74c028b09958",
+      "name": "Resolve Project",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -10640,
+        6272
+      ],
+      "onError": "continueErrorOutput",
+      "notes": "ค้นหา Project ด้วย projectCode ผ่าน GET /api/projects?search=... — ระบบจะกรอง exact match ใน Set Resolved UUIDs"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Form Trigger').first().json['Contract Code'] ? $('Set Configuration').first().json.config.BACKEND_URL + '/api/contracts?search=' + encodeURIComponent($('Form Trigger').first().json['Contract Code']) + '&limit=50' : $('Set Configuration').first().json.config.BACKEND_URL + '/health' }}",
+        "options": {
+          "timeout": 10000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + ($('Set Configuration').first().json.config.AUTH_TOKEN || '').replace(/^Bearer\\s+/i, '') }}"
+            }
+          ]
+        }
+      },
+      "id": "9741889b-95d6-4bfc-acf6-ea838242632d",
+      "name": "Resolve Contract",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -10480,
+        6272
+      ],
+      "onError": "continueErrorOutput",
+      "notes": "ค้นหา Contract ด้วย contractCode ผ่าน GET /api/contracts?search=... — ถ้า contractCode เว้นว่างจะ hit /health แทน (skip)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Resolve Project/Contract Code เป็น UUIDv7 ผ่าน backend API\n// แทนการให้ผู้ใช้พิมพ์ UUID ยาวๆ ใน form\nconst formData = $('Form Trigger').first()?.json || {};\nconst projectCode = String(formData['Project Code'] || '').trim();\nconst contractCode = String(formData['Contract Code'] || '').trim();\n\n// H1: UUIDv7 format validation (ADR-019)\nconst UUID_V7_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\nconst isUuidV7 = (s) => typeof s === 'string' && s.trim().length > 0 && UUID_V7_RE.test(s.trim());\n\n// ── Resolve Project ──────────────────────────────────────────\nconst projectResponse = $('Resolve Project').first()?.json || {};\nconst projectData = projectResponse?.data || [];\nif (!Array.isArray(projectData) || projectData.length === 0) {\n  throw new Error(`PROJECT_NOT_FOUND: ไม่พบโครงการที่ match \"${projectCode}\" — ตรวจสอบ Project Code ใน form`);\n}\n\n// กรอง exact match ที่ projectCode (search API ใช้ LIKE)\nconst projectMatch = projectData.find(p => p.projectCode === projectCode);\nif (!projectMatch) {\n  const found = projectData.map(p => p.projectCode).join(', ');\n  throw new Error(`PROJECT_NOT_FOUND: ไม่พบ exact match สำหรับ \"${projectCode}\" — ผลการค้นหา: [${found}]`);\n}\n\nconst projectPublicId = projectMatch.publicId;\nif (!isUuidV7(projectPublicId)) {\n  throw new Error(`PROJECT_UUID_INVALID: publicId ของ project \"${projectCode}\" ไม่ใช่ UUIDv7: ${projectPublicId}`);\n}\n\n// ── Resolve Contract (ถ้ามี) ─────────────────────────────────\nlet contractPublicId = null;\nif (contractCode) {\n  const contractResponse = $('Resolve Contract').first()?.json || {};\n  const contractData = contractResponse?.data || [];\n  if (!Array.isArray(contractData) || contractData.length === 0) {\n    throw new Error(`CONTRACT_NOT_FOUND: ไม่พบสัญญาที่ match \"${contractCode}\" — ตรวจสอบ Contract Code ใน form`);\n  }\n\n  // กรอง exact match ที่ contractCode\n  const contractMatch = contractData.find(c => c.contractCode === contractCode);\n  if (!contractMatch) {\n    const found = contractData.map(c => c.contractCode).join(', ');\n    throw new Error(`CONTRACT_NOT_FOUND: ไม่พบ exact match สำหรับ \"${contractCode}\" — ผลการค้นหา: [${found}]`);\n  }\n\n  contractPublicId = contractMatch.publicId;\n  if (!isUuidV7(contractPublicId)) {\n    throw new Error(`CONTRACT_UUID_INVALID: publicId ของ contract \"${contractCode}\" ไม่ใช่ UUIDv7: ${contractPublicId}`);\n  }\n}\n\nreturn [{\n  json: {\n    projectPublicId: projectPublicId,\n    contractPublicId: contractPublicId,\n    projectName: projectMatch.projectName || '',\n    contractName: contractMatch?.contractName || '',\n  }\n}];"
+      },
+      "id": "d72e2bd0-e7a3-4803-9dca-61f4a8b863c6",
+      "name": "Set Resolved UUIDs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -10320,
+        6272
+      ],
+      "notes": "Resolve Project/Contract Code → UUIDv7 ผ่าน backend API + exact match + UUIDv7 validation (ADR-019)"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Form Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Configuration": {
+      "main": [
+        [
+          {
+            "node": "Check Backend Health",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Backend Health": {
+      "main": [
+        [
+          {
+            "node": "Validate Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Token": {
+      "main": [
+        [
+          {
+            "node": "Verify Migration Scope",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Categories": {
+      "main": [
+        [
+          {
+            "node": "Fetch Tags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Tags": {
+      "main": [
+        [
+          {
+            "node": "File Mount Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "File Mount Check": {
+      "main": [
+        [
+          {
+            "node": "Read Excel Binary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Excel Binary": {
+      "main": [
+        [
+          {
+            "node": "Read Excel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Excel": {
+      "main": [
+        [
+          {
+            "node": "Read Checkpoint",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Checkpoint": {
+      "main": [
+        [
+          {
+            "node": "Process Batch + Encoding",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Batch + Encoding": {
+      "main": [
+        [
+          {
+            "node": "Check Batch Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "File Validator": {
+      "main": [
+        [
+          {
+            "node": "Route File Validation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read PDF File": {
+      "main": [
+        [
+          {
+            "node": "Upload PDF to Backend",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Error to CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload PDF to Backend": {
+      "main": [
+        [
+          {
+            "node": "Build AI Job Payload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Error to CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build AI Job Payload": {
+      "main": [
+        [
+          {
+            "node": "Submit AI Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Submit AI Job": {
+      "main": [
+        [
+          {
+            "node": "Prepare Poll Context",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Error to CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse & Validate AI Response": {
+      "main": [
+        [
+          {
+            "node": "Route by Confidence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Confidence": {
+      "main": [
+        [
+          {
+            "node": "Insert Review Queue",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert Review Queue",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Reject to CSV",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Error to CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Checkpoint": {
+      "main": [
+        [
+          {
+            "node": "Delay",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Error to CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delay": {
+      "main": [
+        [
+          {
+            "node": "Read Checkpoint",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Batch Complete": {
+      "main": [
+        [
+          {
+            "node": "Mark Batch Complete",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "File Validator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Reject to CSV": {
+      "main": [
+        [
+          {
+            "node": "Prepare Terminal Checkpoint",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Error to CSV": {
+      "main": [
+        [
+          {
+            "node": "Log Error to DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Error to DB": {
+      "main": [
+        [
+          {
+            "node": "Prepare Terminal Checkpoint",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route File Validation": {
+      "main": [
+        [
+          {
+            "node": "Read PDF File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Error to CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Terminal Checkpoint": {
+      "main": [
+        [
+          {
+            "node": "Save Checkpoint",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Migration Scope": {
+      "main": [
+        [
+          {
+            "node": "Resolve Project",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Review Queue": {
+      "main": [
+        [
+          {
+            "node": "Prepare Terminal Checkpoint",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Error to CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Poll Context": {
+      "main": [
+        [
+          {
+            "node": "Poll Job Status",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Error to CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Poll Job Status": {
+      "main": [
+        [
+          {
+            "node": "Route Poll Status",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Poll Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Poll Status": {
+      "main": [
+        [
+          {
+            "node": "Prepare AI Result",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Poll Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Poll Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait for Poll",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Poll": {
+      "main": [
+        [
+          {
+            "node": "Poll Job Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare AI Result": {
+      "main": [
+        [
+          {
+            "node": "Parse & Validate AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Poll Error": {
+      "main": [
+        [
+          {
+            "node": "Log Error to CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve Project": {
+      "main": [
+        [
+          {
+            "node": "Resolve Contract",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Error to CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve Contract": {
+      "main": [
+        [
+          {
+            "node": "Set Resolved UUIDs",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Error to CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Resolved UUIDs": {
+      "main": [
+        [
+          {
+            "node": "Fetch Categories",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1.1",
+    "binaryMode": "separate",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": false
+  },
+  "versionId": "v4.0.0-sequential-migration",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9e70e47c1eaf3bac72f497ddfbde0983f840f7d0f059537f7e37dd70de18ecb7"
+  },
+  "id": "4LlPbAKU5BZLgiTg",
+  "tags": [
+    {
+      "updatedAt": "2026-05-27T00:00:00.000Z",
+      "createdAt": "2026-05-27T00:00:00.000Z",
+      "id": "mGZTyPfxbcsAuFpR",
+      "name": "migration"
+    },
+    {
+      "updatedAt": "2026-05-27T00:00:00.000Z",
+      "createdAt": "2026-05-27T00:00:00.000Z",
+      "id": "v4TagId001",
+      "name": "v4"
+    },
+    {
+      "updatedAt": "2026-05-27T00:00:00.000Z",
+      "createdAt": "2026-05-27T00:00:00.000Z",
+      "id": "adr030TagId001",
+      "name": "adr-030"
+    }
+  ]
+}
