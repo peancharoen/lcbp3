@@ -1,6 +1,7 @@
 #!/bin/bash
 # File: 2git.sh
 # Change Log:
+# - 2026-08-20: ตัด push ไป GitHub ออก เนื่องจาก Gitea ตั้งค่า mirror ไป GitHub แล้ว
 # - 2026-07-02: Ported from 2git.ps1 for Linux server
 
 MESSAGE="${1:-Backup}"
@@ -31,12 +32,6 @@ echo -e "\033[36m🚀 Pushing to Gitea...\033[0m"
 git push origin main
 if [ $? -ne 0 ]; then
     echo -e "\033[31m❌ Push to Gitea failed\033[0m"
-fi
-
-echo -e "\033[36m🚀 Pushing to GitHub...\033[0m"
-git push github main
-if [ $? -ne 0 ]; then
-    echo -e "\033[31m❌ Push to GitHub failed\033[0m"
 fi
 
 echo -e "\033[32m✅ Done!\033[0m"

@@ -88,6 +88,23 @@ erDiagram
 
 > หมายเหตุ: PK = Primary Key, FK = Foreign Key, AI = AUTO_INCREMENT. รูปแบบ Soft Delete จะปรากฏ Column `deleted_at DATETIME NULL` เป็นมาตรฐาน
 
+> **🔖 หมายเหตุเกี่ยวกับ UUID (ADR-019 — Hybrid Identifier Strategy):**
+>
+> คอลัมน์ Public Identifier (`uuid` / `public_id`) ในทุกตารางประกอบด้วย **UUID 2 เวอร์ชัน** ที่เก็บใน BINARY(16) รูปแบบเดียวกัน:
+>
+> | เวอร์ชัน | แหล่งที่มา | ใช้เมื่อใด | ลำดับเวลา |
+> |---|---|---|---|
+> | **UUIDv7** (RFC 9562) | NestJS `@BeforeInsert() → uuidv7()` (package `uuid`) | ข้อมูลที่ backend สร้างขณะ runtime | ✅ Time-ordered (B-tree friendly) |
+> | **UUIDv1** (RFC 4122) | MariaDB `DEFAULT UUID()` / `DEFAULT (UUID())` | Seed data, migration data, fallback เมื่อ app layer ไม่ได้สร้าง | ⚠️ Time-based แต่ node part คงที่ |
+>
+> **กฎการใช้งาน:**
+> - ข้อมูลที่ insert ผ่าน NestJS backend → ได้ **UUIDv7** เสมอ (เพราะ `@BeforeInsert()` override default)
+> - ข้อมูลที่ insert ผ่าน SQL script ตรง ๆ (seed/migration) → ได้ **UUIDv1** (ใช้ DB default)
+> - ทั้งสองเวอร์ชัน expose เป็น string format `8-4-4-4-12` เท่านั้น — ห้าม `parseInt()` / `Number()` / `+` (ADR-019 critical rule)
+> - การแยก v1 จาก v7 ดูได้จากหลักที่ 3 ของ segment แรก: `xxxxxxxx-xxxx-**1**xxx-...` = v1, `xxxxxxxx-xxxx-**7**xxx-...` = v7
+> - คอลัมน์ที่ระบุ `DEFAULT UUID()` หรือ `DEFAULT (UUID())` = มี fallback v1; คอลัมน์ที่ระบุเพียง `NOT NULL UNIQUE` (ไม่มี DEFAULT) = app layer สร้าง UUIDv7 เสมอ
+> - คอลัมน์อื่น ๆ ที่ไม่ใช่ Public Identifier (เช่น `token` UUIDv4, `id` CHAR(36) ของ workflow tables, Qdrant point ID) จะระบุเวอร์ชันแยกใน description ของคอลัมน์นั้น
+
 ## **1. 🏢 Core & Master Data Tables (องค์กร, โครงการ, สัญญา)**
 
 ### 1.1 organization_roles
@@ -107,7 +124,7 @@ erDiagram
 
 - - Purpose **: MASTER TABLE storing ALL organizations involved IN the system | COLUMN Name | Data TYPE | Constraints | Description | | ----------------- | ------------ | ----------------------------------- | ---------------------------------------- |
     | id | INT | PRIMARY KEY,
-    AUTO_INCREMENT | UNIQUE identifier FOR organization | | uuid | UUID | NOT NULL, UNIQUE, DEFAULT UUID() | UUID Public Identifier (ADR-019) | | organization_code | VARCHAR(20) | NOT NULL,
+    AUTO_INCREMENT | UNIQUE identifier FOR organization | | uuid | UUID | NOT NULL, UNIQUE, DEFAULT UUID() | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) | | organization_code | VARCHAR(20) | NOT NULL,
     UNIQUE | Organization code (e.g., 'กทท.', 'TEAM') | | organization_name | VARCHAR(255) | NOT NULL | FULL organization name | | is_active | BOOLEAN | DEFAULT TRUE | Active STATUS (1 = active, 0 = inactive) | | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation timestamp | | updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last
     UPDATE timestamp |
     | deleted_at | DATETIME | NULL | Soft delete timestamp | ** INDEXES **: - PRIMARY KEY (id) - UNIQUE (organization_code) - INDEX (is_active) ** Relationships \*\*: - Referenced by: users,
@@ -119,7 +136,7 @@ erDiagram
     ### 1.3 projects
     - - Purpose **: MASTER TABLE FOR ALL projects IN the system | COLUMN Name | Data TYPE | Constraints | Description | | ------------ | ------------ | --------------------------- | ----------------------------- |
         | id | INT | PRIMARY KEY,
-        AUTO_INCREMENT | UNIQUE identifier FOR project | | uuid | UUID | NOT NULL, UNIQUE, DEFAULT UUID() | UUID Public Identifier (ADR-019) | | project_code | VARCHAR(50) | NOT NULL,
+        AUTO_INCREMENT | UNIQUE identifier FOR project | | uuid | UUID | NOT NULL, UNIQUE, DEFAULT UUID() | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) | | project_code | VARCHAR(50) | NOT NULL,
         UNIQUE | Project code (e.g., 'LCBP3') | | project_name | VARCHAR(255) | NOT NULL | FULL project name | | is_active | TINYINT(1) | DEFAULT 1 | Active STATUS |
         | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation timestamp |
         | updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp |
@@ -132,7 +149,7 @@ erDiagram
     ### 1.4 contracts
     - - Purpose **: MASTER TABLE FOR contracts within projects | COLUMN Name | Data TYPE | Constraints | Description | | ------------- | ------------ | ----------------------------------- | ------------------------------ |
         | id | INT | PRIMARY KEY,
-        AUTO_INCREMENT | UNIQUE identifier FOR contract | | uuid | UUID | NOT NULL, UNIQUE, DEFAULT UUID() | UUID Public Identifier (ADR-019) | | project_id | INT | NOT NULL,
+        AUTO_INCREMENT | UNIQUE identifier FOR contract | | uuid | UUID | NOT NULL, UNIQUE, DEFAULT UUID() | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) | | project_id | INT | NOT NULL,
         FK | Reference TO projects TABLE | | contract_code | VARCHAR(50) | NOT NULL,
         UNIQUE | Contract code | | contract_name | VARCHAR(255) | NOT NULL | FULL contract name | | description | TEXT | NULL | Contract description | | start_date | DATE | NULL | Contract START date | | end_date | DATE | NULL | Contract
         END date | | is_active | BOOLEAN | DEFAULT TRUE | Active STATUS | | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation timestamp | | updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last
@@ -155,7 +172,7 @@ erDiagram
     ### 2.1 users
     - - Purpose **: MASTER TABLE storing ALL system users | COLUMN Name | Data TYPE | Constraints | Description | | ----------------------- | ------------ | ----------------------------------- | -------------------------------- |
         | user_id | INT | PRIMARY KEY,
-        AUTO_INCREMENT | UNIQUE identifier FOR user | | uuid | UUID | NOT NULL, UNIQUE, DEFAULT UUID() | UUID Public Identifier (ADR-019) | | username | VARCHAR(50) | NOT NULL,
+        AUTO_INCREMENT | UNIQUE identifier FOR user | | uuid | UUID | NOT NULL, UNIQUE, DEFAULT UUID() | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) | | username | VARCHAR(50) | NOT NULL,
         UNIQUE | Login username | | password_hash | VARCHAR(255) | NOT NULL | Hashed PASSWORD (bcrypt) | | first_name | VARCHAR(50) | NULL | User 's first name |
         | last_name | VARCHAR(50) | NULL | User' s last name | | email | VARCHAR(100) | NOT NULL,
         UNIQUE | Email address | | line_id | VARCHAR(100) | NULL | LINE messenger ID | | primary_organization_id | INT | NULL,
@@ -169,7 +186,7 @@ erDiagram
     ### 2.2 roles
     - - Purpose **: MASTER TABLE defining system roles WITH scope levels | COLUMN Name | Data TYPE | Constraints | Description | | ----------- | ------------ | --------------------------- | ---------------------------------------------------- |
         | role_id | INT | PRIMARY KEY,
-        AUTO_INCREMENT | UNIQUE identifier FOR role | | **uuid** | **UUID** | **NOT NULL, DEFAULT (UUID()), UNIQUE** | **[delta-11] UUID Public Identifier (ADR-019) — ใช้ใน API Response / distribution_recipients** | | role_name | VARCHAR(100) | NOT NULL | Role name (e.g., 'Superadmin', 'Document Control') | | scope | ENUM | NOT NULL | Scope LEVEL: GLOBAL,
+        AUTO_INCREMENT | UNIQUE identifier FOR role | | **uuid** | **UUID** | **NOT NULL, DEFAULT (UUID()), UNIQUE** | **[delta-11] UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT (UUID()) fallback) สำหรับ seed/migration (ADR-019) — ใช้ใน API Response / distribution_recipients** | | role_name | VARCHAR(100) | NOT NULL | Role name (e.g., 'Superadmin', 'Document Control') | | scope | ENUM | NOT NULL | Scope LEVEL: GLOBAL,
         Organization,
         Project,
         Contract | | description | TEXT | NULL | Role description | | is_system | BOOLEAN | DEFAULT FALSE | System role flag (cannot be deleted) |
@@ -333,7 +350,7 @@ erDiagram
 | Column Name               | Data Type    | Constraints                 | Description                                |
 | ------------------------- | ------------ | --------------------------- | ------------------------------------------ |
 | id                        | INT          | PRIMARY KEY, AUTO_INCREMENT | Master correspondence ID                   |
-| uuid                      | UUID         | NOT NULL, UNIQUE, DEFAULT   | UUID Public Identifier (ADR-019)           |
+| uuid                      | UUID         | NOT NULL, UNIQUE, DEFAULT   | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
 | correspondence_number     | VARCHAR(100) | NOT NULL                    | Document number (from numbering system)    |
 | correspondence_type_id    | INT          | NOT NULL, FK                | Reference to correspondence_types          |
 | **discipline_id**         | **INT**      | **NULL, FK**                | **[NEW] สาขางาน (ถ้ามี)**                  |
@@ -372,7 +389,7 @@ erDiagram
 | Column Name              | Data Type    | Constraints                       | Description                                                  |
 | ------------------------ | ------------ | --------------------------------- | ------------------------------------------------------------ |
 | id                       | INT          | PRIMARY KEY, AUTO_INCREMENT       | Unique revision ID                                           |
-| uuid                     | UUID         | NOT NULL, UNIQUE, DEFAULT         | UUID Public Identifier (ADR-019)                             |
+| uuid                     | UUID         | NOT NULL, UNIQUE, DEFAULT         | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
 | correspondence_id        | INT          | NOT NULL, FK                      | Master correspondence ID                                     |
 | revision_number          | INT          | NOT NULL                          | Revision sequence (0, 1, 2...)                               |
 | revision_label           | VARCHAR(10)  | NULL                              | Display revision (A, B, 1.1...)                              |
@@ -836,7 +853,7 @@ erDiagram
 | Column Name     | Data Type    | Constraints                         | Description                              |
 | --------------- | ------------ | ----------------------------------- | ---------------------------------------- |
 | id              | INT          | PRIMARY KEY, AUTO_INCREMENT         | Unique drawing ID                        |
-| uuid            | UUID         | NOT NULL, UNIQUE, DEFAULT           | UUID Public Identifier (ADR-019)         |
+| uuid            | UUID         | NOT NULL, UNIQUE, DEFAULT           | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
 | project_id      | INT          | NOT NULL, FK                        | Reference to projects                    |
 | condwg_no       | VARCHAR(255) | NOT NULL                            | Contract drawing number                  |
 | title           | VARCHAR(255) | NOT NULL                            | Drawing title                            |
@@ -956,7 +973,7 @@ erDiagram
 | Column Name      | Data Type    | Constraints                         | Description                      |
 | ---------------- | ------------ | ----------------------------------- | -------------------------------- |
 | id               | INT          | PRIMARY KEY, AUTO_INCREMENT         | Unique drawing ID                |
-| uuid             | UUID         | NOT NULL, UNIQUE, DEFAULT           | UUID Public Identifier (ADR-019) |
+| uuid             | UUID         | NOT NULL, UNIQUE, DEFAULT           | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
 | project_id       | INT          | NOT NULL, FK                        | Reference to projects            |
 | drawing_number   | VARCHAR(100) | NOT NULL, UNIQUE                    | Shop drawing number              |
 | main_category_id | INT          | NOT NULL, FK                        | Reference to main category       |
@@ -1002,7 +1019,7 @@ erDiagram
 | Column Name               | Data Type        | Constraints                 | Description                              |
 | ------------------------- | ---------------- | --------------------------- | ---------------------------------------- |
 | id                        | INT              | PRIMARY KEY, AUTO_INCREMENT | Unique revision ID                       |
-| uuid                      | UUID             | NOT NULL, UNIQUE, DEFAULT   | UUID Public Identifier (ADR-019)         |
+| uuid                      | UUID             | NOT NULL, UNIQUE, DEFAULT   | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
 | shop_drawing_id           | INT              | NOT NULL, FK                | Master shop drawing ID                   |
 | revision_number           | INT              | NOT NULL                    | Revision sequence (0, 1, 2...)           |
 | revision_label            | VARCHAR(10)      | NULL                        | Display revision (A, B, C...)            |
@@ -1071,7 +1088,7 @@ erDiagram
 | Column Name      | Data Type    | Constraints                         | Description                      |
 | ---------------- | ------------ | ----------------------------------- | -------------------------------- |
 | id               | INT          | PRIMARY KEY, AUTO_INCREMENT         | Unique drawing ID                |
-| uuid             | UUID         | NOT NULL, UNIQUE, DEFAULT           | UUID Public Identifier (ADR-019) |
+| uuid             | UUID         | NOT NULL, UNIQUE, DEFAULT           | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
 | project_id       | INT          | NOT NULL, FK                        | Reference to projects            |
 | drawing_number   | VARCHAR(100) | NOT NULL, UNIQUE                    | AS Built drawing number          |
 | main_category_id | INT          | NOT NULL, FK                        | Reference to main category       |
@@ -1117,7 +1134,7 @@ erDiagram
 | Column Name           | Data Type    | Constraints                 | Description                      |
 | --------------------- | ------------ | --------------------------- | -------------------------------- |
 | id                    | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique revision ID               |
-| uuid                  | UUID         | NOT NULL, UNIQUE, DEFAULT   | UUID Public Identifier (ADR-019) |
+| uuid                  | UUID         | NOT NULL, UNIQUE, DEFAULT   | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
 | asbuilt_drawing_id    | INT          | NOT NULL, FK                | Master AS Built drawing ID       |
 | revision_number       | INT          | NOT NULL                    | Revision sequence (0, 1, 2...)   |
 | revision_label        | VARCHAR(10)  | NULL                        | Display revision (A, B, C...)    |
@@ -1251,7 +1268,7 @@ erDiagram
 | Column Name             | Data Type    | Constraints                         | Description                               |
 | ----------------------- | ------------ | ----------------------------------- | ----------------------------------------- |
 | id                      | INT          | PRIMARY KEY, AUTO_INCREMENT         | Unique circulation ID                     |
-| uuid                    | UUID         | NOT NULL, UNIQUE, DEFAULT           | UUID Public Identifier (ADR-019)          |
+| uuid                    | UUID         | NOT NULL, UNIQUE, DEFAULT           | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
 | correspondence_id       | INT          | UNIQUE, FK                          | Link to correspondence (1:1 relationship) |
 | organization_id         | INT          | NOT NULL, FK                        | Organization that owns this circulation   |
 | circulation_no          | VARCHAR(100) | NOT NULL                            | Circulation sheet number                  |
@@ -1362,7 +1379,7 @@ erDiagram
 | Column Name         | Data Type    | Constraints                 | Description                                                                |
 | ------------------- | ------------ | --------------------------- | -------------------------------------------------------------------------- |
 | id                  | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique attachment ID                                                       |
-| uuid                | UUID         | NOT NULL, UNIQUE, DEFAULT   | UUID Public Identifier (ADR-019)                                           |
+| uuid                | UUID         | NOT NULL, UNIQUE, DEFAULT   | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
 | original_filename   | VARCHAR(255) | NOT NULL                    | Original filename from upload                                              |
 | stored_filename     | VARCHAR(255) | NOT NULL                    | System-generated unique filename                                           |
 | file_path           | VARCHAR(500) | NOT NULL                    | Full file path on server (/share/dms-data/)                                |
@@ -1698,7 +1715,7 @@ erDiagram
 
 | Column Name   | Data Type   | Constraints  | Description                               |
 | :------------ | :---------- | :----------- | :---------------------------------------- |
-| id            | CHAR(36)    | PK, UUID     | Unique Workflow Definition ID             |
+| id            | CHAR(36)    | PK, UUID     | UUIDv4 (TypeORM `@PrimaryGeneratedColumn('uuid')` — ไม่ใช่ ADR-019 publicId). Unique Workflow Definition ID |
 | workflow_code | VARCHAR(50) | NOT NULL     | รหัส Workflow (เช่น RFA_FLOW_V1)          |
 | version       | INT         | DEFAULT 1    | หมายเลข Version                           |
 | description   | TEXT        | NULL         | คำอธิบาย Workflow                         |
@@ -1722,7 +1739,7 @@ erDiagram
 
 | Column Name   | Data Type   | Constraints                | Description                                                                                     |
 | :------------ | :---------- | :------------------------- | :---------------------------------------------------------------------------------------------- |
-| id            | CHAR(36)    | PK, UUID                   | Unique Instance ID                                                                              |
+| id            | CHAR(36)    | PK, UUID                   | UUIDv4 (TypeORM `@PrimaryGeneratedColumn('uuid')` — ไม่ใช่ ADR-019 publicId). Unique Instance ID |
 | definition_id | CHAR(36)    | FK, NOT NULL               | อ้างอิง Definition ที่ใช้                                                                           |
 | **contract_id** | **INT**   | **NULL, FK**               | **[delta-07 / ADR-021 C3]** Contract ที่ Workflow นี้สังกัด (NULL = org-scoped เช่น Circulation) |
 | entity_type   | VARCHAR(50) | NOT NULL                   | ประเภทเอกสาร (rfa, correspondence, transmittal, circulation)                             |
@@ -1756,13 +1773,13 @@ erDiagram
 
 | Column Name       | Data Type   | Constraints  | Description               |
 | :---------------- | :---------- | :----------- | :------------------------ |
-| id                | CHAR(36)    | PK, UUID     | Unique ID                 |
+| id                | CHAR(36)    | PK, UUID     | UUIDv4 (TypeORM `@PrimaryGeneratedColumn('uuid')` — ไม่ใช่ ADR-019 publicId). Unique ID |
 | instance_id       | CHAR(36)    | FK, NOT NULL | อ้างอิง Instance          |
 | from_state        | VARCHAR(50) | NOT NULL     | สถานะต้นทาง               |
 | to_state          | VARCHAR(50) | NOT NULL     | สถานะปลายทาง              |
 | action            | VARCHAR(50) | NOT NULL     | Action ที่กระทำ           |
 | action_by_user_id | INT         | FK, NULL     | User ID ผู้กระทำ          |
-| **action_by_user_uuid** | **VARCHAR(36)** | **NULL** | **[ADR-019 FR-003] UUID ของ User ผู้ดำเนินการ — ใช้ใน API Response แทน INT FK. NULL = System Action หรือ Pre-migration record** |
+| **action_by_user_uuid** | **VARCHAR(36)** | **NULL** | **[ADR-019 FR-003] UUID ของ User ผู้ดำเนินการ (คัดลอกจาก users.uuid ขณะ insert — อาจเป็น UUIDv7 หรือ UUIDv1 ตามที่มาของ user record) — ใช้ใน API Response แทน INT FK. NULL = System Action หรือ Pre-migration record** |
 | comment           | TEXT        | NULL         | ความเห็น                  |
 | metadata          | JSON        | NULL         | Snapshot ข้อมูล ณ ขณะนั้น |
 | created_at        | TIMESTAMP   | DEFAULT NOW  | เวลาที่กระทำ              |
@@ -1869,7 +1886,7 @@ erDiagram
 | Column Name       | Data Type    | Constraints                 | Description                      |
 | :---------------- | :----------- | :-------------------------- | :------------------------------- |
 | id                | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique notification ID           |
-| uuid              | UUID         | NOT NULL, DEFAULT           | UUID Public Identifier (ADR-019) |
+| uuid              | UUID         | NOT NULL, DEFAULT           | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
 | user_id           | INT          | NOT NULL, FK                | Recipient user ID                |
 | title             | VARCHAR(255) | NOT NULL                    | Notification title               |
 | message           | TEXT         | NOT NULL                    | Notification body                |
@@ -2242,7 +2259,7 @@ SELECT * FROM correspondences WHERE deleted_at IS NULL;
 | Column | Type | Nullable | Description |
 |--------|------|----------|-------------|
 | `id` | INT AUTO_INCREMENT | NO | Internal PK — ห้าม expose ใน API (ADR-019) |
-| `uuid` | UUID | NO | Public Identifier (UUIDv7) — ใช้ใน API response เป็น `publicId` |
+| `uuid` | UUID | NO | UUIDv7 (NestJS @BeforeInsert, ADR-019) — app layer สร้างเสมอ (ไม่มี DB DEFAULT). ใช้ใน API response เป็น `publicId` |
 | `source_file` | VARCHAR(255) | NO | Path หรือ publicId ของไฟล์ต้นทาง |
 | `source_metadata` | JSON | YES | Metadata จากแหล่งต้นทาง (Excel, manual input) |
 | `ai_extracted_metadata` | JSON | YES | Metadata ที่ AI สกัดได้ — ประกอบด้วย subject, date, discipline, drawingReference, contractNumber |
@@ -2299,7 +2316,7 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 | Column | Type | Nullable | Description |
 |--------|------|----------|-------------|
 | `id` | INT AUTO_INCREMENT | NO | Internal PK — ห้าม expose ใน API (ADR-019) |
-| `uuid` | UUID | NO | Public Identifier (UUIDv7) |
+| `uuid` | UUID | NO | UUIDv7 (NestJS @BeforeInsert, ADR-019) — app layer สร้างเสมอ (ไม่มี DB DEFAULT) |
 | `batch_id` | VARCHAR(100) | NO | n8n batch identifier |
 | `idempotency_key` | VARCHAR(200) | NO | Idempotency-Key สำหรับป้องกัน queue ซ้ำ |
 | `original_filename` | VARCHAR(500) | NO | ชื่อไฟล์ต้นฉบับจาก legacy source |
@@ -2341,8 +2358,8 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 | Column | Type | Nullable | Description |
 |--------|------|----------|-------------|
 | `id` | INT AUTO_INCREMENT | NO | Internal PK — ห้าม expose ใน API (ADR-019) |
-| `uuid` | UUID | NO | Public Identifier (UUIDv7) |
-| `document_public_id` | UUID | YES | Imported document publicId when available |
+| `uuid` | UUID | NO | UUIDv7 (NestJS @BeforeInsert, ADR-019) — app layer สร้างเสมอ (ไม่มี DB DEFAULT) |
+| `document_public_id` | UUID | YES | Imported document publicId (UUIDv7 หรือ UUIDv1 ตามที่มาของ document) when available |
 | `ai_model` | VARCHAR(50) | NO | Legacy AI model column used by current gateway service (default: gemma4) |
 | `model_name` | VARCHAR(100) | NO | Local model name used by ADR-023 AI pipeline |
 | `effective_profile` | VARCHAR(50) | YES | ExecutionProfile ที่ backend กำหนด: interactive\|standard\|quality\|deep-analysis (Feature-235) |
@@ -2418,7 +2435,7 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 | Column | Type | Nullable | Description |
 |--------|------|----------|-------------|
 | `id` | INT AUTO_INCREMENT | NO | ID ภายใน (ไม่ expose ใน API) |
-| `public_id` | UUID | NO | UUID Public Identifier (ADR-019) |
+| `public_id` | UUID | NO | UUIDv7 (NestJS @BeforeInsert, ADR-019) — app layer สร้างเสมอ (ไม่มี DB DEFAULT) |
 | `prompt_type` | VARCHAR(50) | NO | ประเภท prompt เช่น ocr_extraction |
 | `version_number` | INT | NO | เลข version ต่อเนื่องต่อ prompt_type (1, 2, 3...) |
 | `template` | TEXT | NO | prompt template ที่มี {{ocr_text}} placeholder บังคับ |
@@ -2528,7 +2545,7 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 
 | Column | Type | Nullable | Description |
 |--------|------|----------|-------------|
-| `id` | CHAR(36) | NO | UUID = Qdrant point ID |
+| `id` | CHAR(36) | NO | UUIDv4 = Qdrant point ID (TypeORM `@PrimaryGeneratedColumn('uuid')` สำหรับ ai_document_chunks หรือ UUID ที่ Qdrant assign) |
 | `document_id` | CHAR(36) | NO | FK → attachments.public_id (UUIDv7) |
 | `chunk_index` | INT | NO | ลำดับ chunk ภายใน document |
 | `content` | TEXT | NO | เนื้อหา chunk หลัง PyThaiNLP normalize |
@@ -2580,7 +2597,7 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 | Column Name | Data Type | Constraints | Description |
 | ----------- | --------- | ----------- | ----------- |
 | id | INT | PRIMARY KEY, AUTO_INCREMENT | Internal PK (ห้าม expose ใน API) |
-| public_id | UUID | NOT NULL, UNIQUE, DEFAULT UUID() | UUID Public Identifier (ADR-019) |
+| public_id | UUID | NOT NULL, UNIQUE, DEFAULT UUID() | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
 | intent_code | VARCHAR(50) | NOT NULL, UNIQUE | รหัส Intent เช่น RAG_QUERY, GET_RFA |
 | description_th | VARCHAR(255) | NOT NULL | คำอธิบายภาษาไทย |
 | description_en | VARCHAR(255) | NOT NULL | คำอธิบายภาษาอังกฤษ |
@@ -2609,7 +2626,7 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 | Column Name | Data Type | Constraints | Description |
 | ----------- | --------- | ----------- | ----------- |
 | id | INT | PRIMARY KEY, AUTO_INCREMENT | Internal PK (ห้าม expose ใน API) |
-| public_id | UUID | NOT NULL, UNIQUE, DEFAULT UUID() | UUID Public Identifier (ADR-019) |
+| public_id | UUID | NOT NULL, UNIQUE, DEFAULT UUID() | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
 | intent_code | VARCHAR(50) | NOT NULL, FK | รหัส Intent (FK to ai_intent_definitions) |
 | language | ENUM | NOT NULL, DEFAULT 'any' | th, en, any |
 | pattern_type | ENUM | NOT NULL, DEFAULT 'keyword' | keyword, regex |
@@ -2664,7 +2681,7 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 | Column Name           | Data Type    | Constraints                     | Description                                   |
 | --------------------- | ------------ | ------------------------------- | --------------------------------------------- |
 | id                    | INT          | PRIMARY KEY, AUTO_INCREMENT     | Internal ID                                   |
-| uuid                  | UUID         | NOT NULL, UNIQUE, DEFAULT UUID()| UUID Public Identifier (ADR-019)              |
+| uuid                  | UUID         | NOT NULL, UNIQUE, DEFAULT UUID()| UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
 | project_id            | INT          | NOT NULL, FK                    | Reference to projects                         |
 | name                  | VARCHAR(100) | NOT NULL                        | Team name                                     |
 | description           | VARCHAR(255) | NULL                            | Team description                              |
@@ -2695,7 +2712,7 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 | Column Name    | Data Type   | Constraints                     | Description                           |
 | -------------- | ----------- | ------------------------------- | ------------------------------------- |
 | id             | INT         | PRIMARY KEY, AUTO_INCREMENT     | Internal ID                           |
-| uuid           | UUID        | NOT NULL, UNIQUE, DEFAULT UUID()| UUID Public Identifier (ADR-019)      |
+| uuid           | UUID        | NOT NULL, UNIQUE, DEFAULT UUID()| UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
 | team_id        | INT         | NOT NULL, FK                    | Reference to review_teams             |
 | user_id        | INT         | NOT NULL, FK                    | Reference to users (user_id)          |
 | discipline_id  | INT         | NOT NULL, FK                    | Reference to disciplines              |
@@ -2721,7 +2738,7 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 | Column Name     | Data Type | Constraints                         | Description                                                          |
 | --------------- | --------- | ----------------------------------- | -------------------------------------------------------------------- |
 | id              | INT       | PRIMARY KEY, AUTO_INCREMENT         | Internal ID                                                          |
-| uuid            | UUID      | NOT NULL, UNIQUE, DEFAULT UUID()    | UUID Public Identifier (ADR-019)                                     |
+| uuid            | UUID      | NOT NULL, UNIQUE, DEFAULT UUID()    | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
 | code            | VARCHAR(10)| NOT NULL                           | Response code (1A, 1B, 1C, 1D, 1E, 1F, 1G, 2, 3, 4)               |
 | sub_status      | VARCHAR(10)| NULL                               | Optional sub-status                                                  |
 | category        | ENUM      | NOT NULL                            | ENGINEERING, MATERIAL, CONTRACT, TESTING, ESG                        |
@@ -2749,7 +2766,7 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 | Column Name            | Data Type   | Constraints                  | Description                              |
 | ---------------------- | ----------- | ---------------------------- | ---------------------------------------- |
 | id                     | INT         | PRIMARY KEY, AUTO_INCREMENT  | Internal ID                              |
-| uuid                   | UUID        | NOT NULL, UNIQUE             | UUID Public Identifier (ADR-019)         |
+| uuid                   | UUID        | NOT NULL, UNIQUE             | UUIDv7 (NestJS @BeforeInsert, ADR-019) — app layer สร้างเสมอ (ไม่มี DB DEFAULT) |
 | project_id             | INT         | NULL, FK                     | NULL = global default                    |
 | document_type_id       | INT         | NOT NULL, FK                 | Reference to correspondence_types        |
 | response_code_id       | INT         | NOT NULL, FK                 | Reference to response_codes              |
@@ -2775,7 +2792,7 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 | Column Name              | Data Type   | Constraints                         | Description                                   |
 | ------------------------ | ----------- | ----------------------------------- | --------------------------------------------- |
 | id                       | INT         | PRIMARY KEY, AUTO_INCREMENT         | Internal ID                                   |
-| uuid                     | UUID        | NOT NULL, UNIQUE, DEFAULT UUID()    | UUID Public Identifier (ADR-019)              |
+| uuid                     | UUID        | NOT NULL, UNIQUE, DEFAULT UUID()    | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
 | rfa_revision_id          | INT         | NOT NULL, FK                        | Reference to rfa_revisions                    |
 | team_id                  | INT         | NOT NULL, FK                        | Reference to review_teams                     |
 | discipline_id            | INT         | NOT NULL, FK                        | Reference to disciplines                      |
@@ -2812,7 +2829,7 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 | Column Name        | Data Type   | Constraints                     | Description                                                 |
 | ------------------ | ----------- | ------------------------------- | ----------------------------------------------------------- |
 | id                 | INT         | PRIMARY KEY, AUTO_INCREMENT     | Internal ID                                                 |
-| uuid               | UUID        | NOT NULL, UNIQUE, DEFAULT UUID()| UUID Public Identifier (ADR-019)                            |
+| uuid               | UUID        | NOT NULL, UNIQUE, DEFAULT UUID()| UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
 | delegator_user_id  | INT         | NOT NULL, FK                    | ผู้มอบหมาย → users(user_id)                                 |
 | delegate_user_id   | INT         | NOT NULL, FK                    | ผู้รับมอบหมาย → users(user_id)                              |
 | start_date         | DATE        | NOT NULL                        | วันที่เริ่มการมอบหมาย                                       |
@@ -2839,7 +2856,7 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 | Column Name                | Data Type   | Constraints              | Description                                              |
 | -------------------------- | ----------- | ------------------------ | -------------------------------------------------------- |
 | id                         | INT         | PRIMARY KEY, AUTO_INCREMENT | Internal ID                                           |
-| uuid                       | UUID        | NOT NULL, UNIQUE         | UUID Public Identifier (ADR-019)                         |
+| uuid                       | UUID        | NOT NULL, UNIQUE         | UUIDv7 (NestJS @BeforeInsert, ADR-019) — app layer สร้างเสมอ (ไม่มี DB DEFAULT) |
 | name                       | VARCHAR(100)| NOT NULL                 | Rule name                                                |
 | project_id                 | INT         | NULL, FK                 | NULL = global rule                                       |
 | document_type_id           | INT         | NULL, FK                 | NULL = applies to all types                              |
@@ -2862,7 +2879,7 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 | Column Name      | Data Type   | Constraints              | Description                                    |
 | ---------------- | ----------- | ------------------------ | ---------------------------------------------- |
 | id               | INT         | PRIMARY KEY, AUTO_INCREMENT | Internal ID                                 |
-| uuid             | UUID        | NOT NULL, UNIQUE         | UUID Public Identifier (ADR-019)               |
+| uuid             | UUID        | NOT NULL, UNIQUE         | UUIDv7 (NestJS @BeforeInsert, ADR-019) — app layer สร้างเสมอ (ไม่มี DB DEFAULT) |
 | name             | VARCHAR(100)| NOT NULL                 | Matrix name                                    |
 | project_id       | INT         | NULL, FK                 | NULL = global matrix                           |
 | document_type_id | INT         | NOT NULL, FK             | Reference to correspondence_types              |
@@ -2880,10 +2897,10 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 | Column Name          | Data Type   | Constraints              | Description                                                       |
 | -------------------- | ----------- | ------------------------ | ----------------------------------------------------------------- |
 | id                   | INT         | PRIMARY KEY, AUTO_INCREMENT | Internal ID                                                    |
-| uuid                 | UUID        | NOT NULL, UNIQUE         | UUID Public Identifier (ADR-019)                                  |
+| uuid                 | UUID        | NOT NULL, UNIQUE         | UUIDv7 (NestJS @BeforeInsert, ADR-019) — app layer สร้างเสมอ (ไม่มี DB DEFAULT) |
 | matrix_id            | INT         | NOT NULL, FK             | Reference to distribution_matrices                                |
 | recipient_type       | ENUM        | NOT NULL                 | USER, ORGANIZATION, TEAM, ROLE                                    |
-| recipient_public_id  | UUID        | NOT NULL                 | publicId ของ target entity (ดูตาราง Polymorphic Resolution ด้านล่าง) |
+| recipient_public_id  | UUID        | NOT NULL                 | publicId ของ target entity — UUIDv7 หรือ UUIDv1 ตามที่มาของ record อ้างอิง (ดูตาราง Polymorphic Resolution ด้านล่าง) |
 | delivery_method      | ENUM        | NOT NULL, DEFAULT 'BOTH' | EMAIL, IN_APP, BOTH                                               |
 | sequence             | INT         | NULL                     | For ordered delivery                                              |
 | created_at           | DATETIME(6) | NOT NULL, DEFAULT NOW    | Record creation timestamp                                         |

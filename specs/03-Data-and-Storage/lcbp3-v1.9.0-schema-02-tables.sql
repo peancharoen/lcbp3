@@ -2,6 +2,16 @@
 -- DMS v1.9.0 Schema Part 2/3: CREATE TABLE Statements
 -- รัน: mysql < 01-schema-drop.sql แล้วจึงรัน 02-schema-tables.sql
 -- ==========================================================
+-- 🔖 หมายเหตุ UUID (ADR-019 — Hybrid Identifier Strategy):
+--   คอลัมน์ Public Identifier (`uuid` / `public_id`) ในทุกตารางเก็บ UUID 2 เวอร์ชันใน BINARY(16) รูปแบบเดียวกัน:
+--     • UUIDv7 (RFC 9562) — NestJS `@BeforeInsert() → uuidv7()` สร้างข้อมูล runtime (time-ordered, B-tree friendly)
+--     • UUIDv1 (RFC 4122) — MariaDB `DEFAULT UUID()` / `DEFAULT (UUID())` สำหรับ seed/migration/fallback
+--   ข้อมูลที่ insert ผ่าน NestJS backend → ได้ UUIDv7 เสมอ (app layer override default)
+--   ข้อมูลที่ insert ผ่าน SQL script ตรง ๆ (seed/migration) → ได้ UUIDv1 (DB default)
+--   แยกเวอร์ชันได้จากหลักที่ 3 ของ segment แรก: `xxxxxxxx-xxxx-1xxx-...` = v1, `xxxxxxxx-xxxx-7xxx-...` = v7
+--   คอลัมน์ที่ไม่มี DEFAULT = app layer สร้าง UUIDv7 เสมอ
+--   คอลัมน์อื่น ๆ (เช่น `token` UUIDv4, `id` CHAR(36) ของ workflow tables) ระบุเวอร์ชันใน comment ของคอลัมน์นั้น
+-- ==========================================================
 SET NAMES utf8mb4;
 
 SET time_zone = '+07:00';
@@ -23,7 +33,7 @@ CREATE TABLE organization_roles (
 -- ตาราง Master เก็บข้อมูลองค์กรทั้งหมดที่เกี่ยวข้องในระบบ
 CREATE TABLE organizations (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
-  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019)',
   organization_code VARCHAR(20) NOT NULL UNIQUE COMMENT 'รหัสองค์กร',
   organization_name VARCHAR(255) NOT NULL COMMENT 'ชื่อองค์กร',
   role_id INT COMMENT 'บทบาทขององค์กร',
@@ -39,7 +49,7 @@ CREATE TABLE organizations (
 -- ตาราง Master เก็บข้อมูลโครงการ
 CREATE TABLE projects (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
-  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019)',
   project_code VARCHAR(50) NOT NULL UNIQUE COMMENT 'รหัสโครงการ',
   project_name VARCHAR(255) NOT NULL COMMENT 'ชื่อโครงการ',
   -- parent_project_id INT COMMENT 'รหัสโครงการหลัก (ถ้ามี)',
@@ -57,7 +67,7 @@ CREATE TABLE projects (
 -- ตาราง Master เก็บข้อมูลสัญญา
 CREATE TABLE contracts (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
-  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019)',
   project_id INT NOT NULL,
   contract_code VARCHAR(50) NOT NULL UNIQUE COMMENT 'รหัสสัญญา',
   contract_name VARCHAR(255) NOT NULL COMMENT 'ชื่อสัญญา',
@@ -78,7 +88,7 @@ CREATE TABLE contracts (
 -- ตาราง Master เก็บข้อมูลผู้ใช้งาน (User)
 CREATE TABLE users (
   user_id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
-  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019)',
   username VARCHAR(50) NOT NULL UNIQUE COMMENT 'ชื่อผู้ใช้งาน',
   password_hash VARCHAR(255) NOT NULL COMMENT 'รหัสผ่าน (Hashed)',
   first_name VARCHAR(50) COMMENT 'ชื่อจริง',
@@ -134,7 +144,7 @@ CREATE TABLE system_settings (
 -- ตาราง Master เก็บ "บทบาท" ของผู้ใช้ในระบบ
 CREATE TABLE roles (
   role_id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
-  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019)',
   -- role_code VARCHAR(50) NOT NULL UNIQUE COMMENT 'รหัสบทบาท (เช่น SUPER_ADMIN, ADMIN, EDITOR, VIEWER)',
   role_name VARCHAR(100) NOT NULL COMMENT 'ชื่อบทบาท',
   scope ENUM(
@@ -289,7 +299,7 @@ CREATE TABLE correspondence_status (
 -- ตาราง "แม่" ของเอกสารโต้ตอบ เก็บข้อมูลที่ไม่เปลี่ยนตาม Revision
 CREATE TABLE correspondences (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง (นี่คือ "Master ID" ที่ใช้เชื่อมโยง)',
-  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019)',
   correspondence_type_id INT NOT NULL COMMENT 'ประเภทเอกสาร ใช้แบ่งแยกว่าเป็น RFA หรือ อื่นๆ',
   correspondence_number VARCHAR(100) NOT NULL COMMENT 'เลขที่เอกสาร (สร้างจาก DocumentNumberingModule)',
   discipline_id INT NULL COMMENT 'สาขางาน (ถ้ามี)',
@@ -332,7 +342,7 @@ CREATE TABLE correspondence_recipients (
 -- ตาราง "ลูก" เก็บประวัติการแก้ไข (Revisions) ของ correspondences (1:N)
 CREATE TABLE correspondence_revisions (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของ Revision',
-  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019)',
   correspondence_id INT NOT NULL COMMENT 'Master ID',
   revision_number INT NOT NULL COMMENT 'หมายเลข Revision (0, 1, 2...)',
   revision_label VARCHAR(10) COMMENT 'Revision ที่แสดง (เช่น A, B, 1.1)',
@@ -575,7 +585,7 @@ CREATE TABLE contract_drawing_subcat_cat_maps (
 -- ตาราง Master เก็บข้อมูล "แบบคู่สัญญา"
 CREATE TABLE contract_drawings (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
-  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019)',
   project_id INT NOT NULL COMMENT 'โครงการ',
   condwg_no VARCHAR(255) NOT NULL COMMENT 'เลขที่แบบสัญญา',
   title VARCHAR(255) NOT NULL COMMENT 'ชื่อแบบสัญญา',
@@ -624,7 +634,7 @@ CREATE TABLE shop_drawing_sub_categories (
 -- ตาราง Master เก็บข้อมูล "แบบก่อสร้าง"
 CREATE TABLE shop_drawings (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
-  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019)',
   project_id INT NOT NULL COMMENT 'โครงการ',
   drawing_number VARCHAR(100) NOT NULL COMMENT 'เลขที่ Shop Drawing',
   main_category_id INT NOT NULL COMMENT 'หมวดหมู่หลัก',
@@ -643,7 +653,7 @@ CREATE TABLE shop_drawings (
 -- ตาราง "ลูก" เก็บประวัติ (Revisions) ของ shop_drawings (1:N)
 CREATE TABLE shop_drawing_revisions (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของ Revision',
-  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019)',
   shop_drawing_id INT NOT NULL COMMENT 'Master ID',
   revision_number INT NOT NULL COMMENT 'หมายเลข Revision (เช่น 0, 1, 2...)',
   revision_label VARCHAR(10) COMMENT 'Revision ที่แสดง (เช่น A, B, 1.1)',
@@ -680,7 +690,7 @@ CREATE TABLE shop_drawing_revision_contract_refs (
 -- ตาราง Master เก็บข้อมูล "AS Built"
 CREATE TABLE asbuilt_drawings (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
-  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019)',
   project_id INT NOT NULL COMMENT 'โครงการ',
   drawing_number VARCHAR(100) NOT NULL COMMENT 'เลขที่ AS Built Drawing',
   main_category_id INT NOT NULL COMMENT 'หมวดหมู่หลัก',
@@ -699,7 +709,7 @@ CREATE TABLE asbuilt_drawings (
 -- ตาราง "ลูก" เก็บประวัติ (Revisions) ของ AS Built (1:N)
 CREATE TABLE asbuilt_drawing_revisions (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของ Revision',
-  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019)',
   asbuilt_drawing_id INT NOT NULL COMMENT 'Master ID',
   revision_number INT NOT NULL COMMENT 'หมายเลข Revision (เช่น 0, 1, 2...)',
   revision_label VARCHAR(10) COMMENT 'Revision ที่แสดง (เช่น A, B, 1.1)',
@@ -800,7 +810,7 @@ CREATE TABLE circulation_status_codes (
 -- ตาราง "แม่" ของใบเวียนเอกสารภายใน
 CREATE TABLE circulations (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตารางใบเวียน',
-  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019)',
   correspondence_id INT UNIQUE COMMENT 'ID ของเอกสาร (จากตาราง correspondences)',
   organization_id INT NOT NULL COMMENT 'ID ขององค์กรณ์ที่เป็นเจ้าของใบเวียนนี้',
   circulation_no VARCHAR(100) NOT NULL COMMENT 'เลขที่ใบเวียน',
@@ -884,7 +894,7 @@ CREATE TABLE transmittal_items (
 -- เหตุผล: จัดการไฟล์ขยะ (Orphan Files) และตรวจสอบความถูกต้องไฟล์
 CREATE TABLE attachments (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของไฟล์แนบ',
-  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019)',
   original_filename VARCHAR(255) NOT NULL COMMENT 'ชื่อไฟล์ดั้งเดิมตอนอัปโหลด',
   stored_filename VARCHAR(255) NOT NULL COMMENT 'ชื่อไฟล์ที่เก็บจริงบน Server (ป้องกันชื่อซ้ำ)',
   file_path VARCHAR(500) NOT NULL COMMENT 'Path ที่เก็บไฟล์ (บน QNAP / share / dms - data /)',
@@ -917,7 +927,7 @@ CREATE TABLE attachments (
 -- =====================================================
 -- ตารางเก็บ vector metadata สำหรับ RAG ingestion
 CREATE TABLE document_chunks (
-  id CHAR(36) NOT NULL PRIMARY KEY COMMENT 'UUID = Qdrant point ID',
+  id CHAR(36) NOT NULL PRIMARY KEY COMMENT 'UUIDv4 = Qdrant point ID (TypeORM @PrimaryGeneratedColumn(''uuid'') สำหรับ ai_document_chunks หรือ UUID ที่ Qdrant assign)',
   document_id CHAR(36) NOT NULL COMMENT 'FK → attachments.public_id (UUIDv7)',
   chunk_index INT NOT NULL COMMENT 'ลำดับ chunk ภายใน document',
   content TEXT NOT NULL COMMENT 'เนื้อหา chunk หลัง PyThaiNLP normalize',
@@ -1325,7 +1335,7 @@ PARTITION BY RANGE (YEAR(created_at)) (
 -- ตารางสำหรับจัดการการแจ้งเตือน (Email/Line/System)
 CREATE TABLE notifications (
   id INT NOT NULL AUTO_INCREMENT COMMENT 'ID ของการแจ้งเตือน',
-  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019)',
   user_id INT NOT NULL COMMENT 'ID ผู้ใช้',
   title VARCHAR(255) NOT NULL COMMENT 'หัวข้อการแจ้งเตือน',
   message TEXT NOT NULL COMMENT 'รายละเอียดการแจ้งเตือน',
@@ -1397,7 +1407,7 @@ DROP TABLE IF EXISTS workflow_definitions;
 
 -- 1. ตารางเก็บนิยาม Workflow (Definition / DSL)
 CREATE TABLE workflow_definitions (
-  id CHAR(36) NOT NULL PRIMARY KEY COMMENT 'UUID ของ Workflow Definition',
+  id CHAR(36) NOT NULL PRIMARY KEY COMMENT 'UUIDv4 (TypeORM @PrimaryGeneratedColumn(''uuid'') — ไม่ใช่ ADR-019 publicId) ของ Workflow Definition',
   workflow_code VARCHAR(50) NOT NULL COMMENT 'รหัส Workflow เช่น RFA_FLOW_V1, CORRESPONDENCE_FLOW_V1',
   version INT NOT NULL DEFAULT 1 COMMENT 'หมายเลข Version',
   description TEXT NULL COMMENT 'คำอธิบาย Workflow',
@@ -1412,7 +1422,7 @@ CREATE TABLE workflow_definitions (
 
 -- 2. ตารางเก็บ Workflow Instance (สถานะเอกสารจริง)
 CREATE TABLE workflow_instances (
-  id CHAR(36) NOT NULL PRIMARY KEY COMMENT 'UUID ของ Instance',
+  id CHAR(36) NOT NULL PRIMARY KEY COMMENT 'UUIDv4 (TypeORM @PrimaryGeneratedColumn(''uuid'') — ไม่ใช่ ADR-019 publicId) ของ Instance',
   definition_id CHAR(36) NOT NULL COMMENT 'อ้างอิง Definition ที่ใช้',
   contract_id INT NULL COMMENT 'Contract ที่ Workflow นี้เป็นส่วนหนึ่ง (NULL = org-scoped หรือ legacy)',
   -- [delta-07]
@@ -1436,13 +1446,13 @@ CREATE TABLE workflow_instances (
 
 -- 3. ตารางเก็บประวัติ (Audit Log / History)
 CREATE TABLE workflow_histories (
-  id CHAR(36) NOT NULL PRIMARY KEY COMMENT 'UUID',
+  id CHAR(36) NOT NULL PRIMARY KEY COMMENT 'UUIDv4 (TypeORM @PrimaryGeneratedColumn(''uuid'') — ไม่ใช่ ADR-019 publicId)',
   instance_id CHAR(36) NOT NULL COMMENT 'อ้างอิง Instance',
   from_state VARCHAR(50) NOT NULL COMMENT 'สถานะต้นทาง',
   to_state VARCHAR(50) NOT NULL COMMENT 'สถานะปลายทาง',
   ACTION VARCHAR(50) NOT NULL COMMENT 'Action ที่กระทำ',
   action_by_user_id INT NULL COMMENT 'User ID ผู้กระทำ',
-  action_by_user_uuid VARCHAR(36) NULL COMMENT 'UUID ของ User ผู้ดำเนินการ — ใช้ใน API Response แทน INT FK (ADR-019). NULL = System Action หรือ Pre-migration record',
+  action_by_user_uuid VARCHAR(36) NULL COMMENT 'UUID ของ User ผู้ดำเนินการ (คัดลอกจาก users.uuid — อาจเป็น UUIDv7 หรือ UUIDv1 ตามที่มาของ user record) — ใช้ใน API Response แทน INT FK (ADR-019). NULL = System Action หรือ Pre-migration record',
   COMMENT TEXT NULL COMMENT 'ความเห็น',
   metadata JSON NULL COMMENT 'Snapshot ข้อมูล ณ ขณะนั้น',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -1455,7 +1465,7 @@ CREATE TABLE workflow_histories (
 -- ตารางเก็บบันทึก Migration เอกสารที่ผ่าน AI Processing
 CREATE TABLE migration_logs (
   id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Internal PK (ห้าม expose ใน API)',
-  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019)',
   source_file VARCHAR(255) NOT NULL COMMENT 'Path ของไฟล์ต้นทาง',
   source_metadata JSON NULL COMMENT 'Metadata จาก Excel/แหล่งข้อมูลต้นทาง',
   ai_extracted_metadata JSON NULL COMMENT 'Metadata ที่ AI สกัดได้',
@@ -1484,7 +1494,7 @@ CREATE TABLE migration_logs (
 -- ตาราง staging queue สำหรับ AI migration ตาม ADR-023A
 CREATE TABLE migration_review_queue (
   id INT NOT NULL AUTO_INCREMENT COMMENT 'Internal PK (ห้าม expose ใน API)',
-  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019)',
   batch_id VARCHAR(100) NOT NULL COMMENT 'n8n batch identifier',
   idempotency_key VARCHAR(200) NOT NULL COMMENT 'Idempotency-Key สำหรับป้องกัน queue ซ้ำ',
   original_filename VARCHAR(500) NOT NULL COMMENT 'ชื่อไฟล์ต้นฉบับจาก legacy source',
@@ -1519,8 +1529,8 @@ CREATE TABLE migration_review_queue (
 -- ตาราง Audit Log สำหรับการทำงานของ AI ทุกครั้ง (ADR-023, ADR-023A)
 CREATE TABLE ai_audit_logs (
   id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Internal PK (ห้าม expose ใน API)',
-  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
-  document_public_id UUID NULL COMMENT 'Imported document publicId when available',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019)',
+  document_public_id UUID NULL COMMENT 'Imported document publicId (UUIDv7 หรือ UUIDv1 ตามที่มาของ document) when available',
   ai_model VARCHAR(50) NOT NULL DEFAULT 'gemma4' COMMENT 'Legacy AI model column used by current gateway service',
   model_name VARCHAR(100) NOT NULL COMMENT 'Local model name used by ADR-023 AI pipeline',
   effective_profile VARCHAR(50) NULL COMMENT 'ExecutionProfile ที่ backend กำหนด: interactive|standard|quality|deep-analysis (Feature-235)',
@@ -1580,7 +1590,7 @@ CREATE TABLE ai_available_models (
 -- ตาราง versioned prompt templates สำหรับ OCR extraction
 CREATE TABLE ai_prompts (
   id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'ID ภายใน (ไม่ expose ใน API)',
-  public_id UUID NOT NULL UNIQUE COMMENT 'UUID Public Identifier (ADR-019)',
+  public_id UUID NOT NULL UNIQUE COMMENT 'UUIDv7 (NestJS @BeforeInsert, ADR-019) — app layer สร้างเสมอ (ไม่มี DB DEFAULT)',
   prompt_type VARCHAR(50) NOT NULL COMMENT 'ประเภท prompt เช่น ocr_extraction',
   version_number INT NOT NULL COMMENT 'เลข version ต่อเนื่องต่อ prompt_type (1, 2, 3...)',
   template TEXT NOT NULL COMMENT 'prompt template ที่มี {{ocr_text}} placeholder บังคับ',
@@ -1675,7 +1685,7 @@ CREATE TABLE migration_errors (
 -- Intent Definitions Table
 CREATE TABLE IF NOT EXISTS ai_intent_definitions (
   id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Internal PK (ห้าม expose ใน API)',
-  public_id UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
+  public_id UUID NOT NULL DEFAULT UUID() COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019)',
   intent_code VARCHAR(50) NOT NULL COMMENT 'รหัส Intent เช่น RAG_QUERY, GET_RFA',
   description_th VARCHAR(255) NOT NULL COMMENT 'คำอธิบายภาษาไทย',
   description_en VARCHAR(255) NOT NULL COMMENT 'คำอธิบายภาษาอังกฤษ',
@@ -1691,7 +1701,7 @@ CREATE TABLE IF NOT EXISTS ai_intent_definitions (
 -- Intent Patterns Table
 CREATE TABLE IF NOT EXISTS ai_intent_patterns (
   id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Internal PK (ห้าม expose ใน API)',
-  public_id UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
+  public_id UUID NOT NULL DEFAULT UUID() COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019)',
   intent_code VARCHAR(50) NOT NULL COMMENT 'รหัส Intent (FK to ai_intent_definitions)',
   language ENUM('th', 'en', 'any') NOT NULL DEFAULT 'any' COMMENT 'ภาษาของ pattern',
   pattern_type ENUM('keyword', 'regex') NOT NULL DEFAULT 'keyword' COMMENT 'ประเภท pattern',
@@ -1714,7 +1724,7 @@ CREATE TABLE IF NOT EXISTS ai_intent_patterns (
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `review_teams` (
   `id` INT NOT NULL AUTO_INCREMENT,
-  `uuid` UUID NOT NULL DEFAULT (UUID()),
+  `uuid` UUID NOT NULL DEFAULT (UUID()) COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT (UUID()) fallback) สำหรับ seed/migration (ADR-019)',
   `project_id` INT NOT NULL,
   `name` VARCHAR(100) NOT NULL,
   `description` VARCHAR(255) NULL,
@@ -1733,7 +1743,7 @@ CREATE TABLE IF NOT EXISTS `review_teams` (
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `review_team_members` (
   `id` INT NOT NULL AUTO_INCREMENT,
-  `uuid` UUID NOT NULL DEFAULT (UUID()),
+  `uuid` UUID NOT NULL DEFAULT (UUID()) COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT (UUID()) fallback) สำหรับ seed/migration (ADR-019)',
   `team_id` INT NOT NULL,
   `user_id` INT NOT NULL,
   `discipline_id` INT NOT NULL,
@@ -1755,7 +1765,7 @@ CREATE TABLE IF NOT EXISTS `review_team_members` (
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `response_codes` (
   `id` INT NOT NULL AUTO_INCREMENT,
-  `uuid` UUID NOT NULL DEFAULT (UUID()),
+  `uuid` UUID NOT NULL DEFAULT (UUID()) COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT (UUID()) fallback) สำหรับ seed/migration (ADR-019)',
   `code` VARCHAR(10) NOT NULL COMMENT '1A, 1B, 1C, 1D, 1E, 1F, 1G, 2, 3, 4',
   `sub_status` VARCHAR(10) NULL,
   `category` ENUM(
@@ -1783,7 +1793,7 @@ CREATE TABLE IF NOT EXISTS `response_codes` (
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `response_code_rules` (
   `id` INT NOT NULL AUTO_INCREMENT,
-  `uuid` UUID NOT NULL DEFAULT (UUID()),
+  `uuid` UUID NOT NULL DEFAULT (UUID()) COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT (UUID()) fallback) สำหรับ seed/migration (ADR-019)',
   `project_id` INT NULL COMMENT 'NULL = global default',
   `document_type_id` INT NOT NULL,
   `response_code_id` INT NOT NULL,
@@ -1811,7 +1821,7 @@ CREATE TABLE IF NOT EXISTS `response_code_rules` (
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `review_tasks` (
   `id` INT NOT NULL AUTO_INCREMENT,
-  `uuid` UUID NOT NULL DEFAULT (UUID()),
+  `uuid` UUID NOT NULL DEFAULT (UUID()) COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT (UUID()) fallback) สำหรับ seed/migration (ADR-019)',
   `rfa_revision_id` INT NOT NULL,
   `team_id` INT NOT NULL,
   `discipline_id` INT NOT NULL,
@@ -1853,7 +1863,7 @@ CREATE TABLE IF NOT EXISTS `review_tasks` (
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `delegations` (
   `id` INT NOT NULL AUTO_INCREMENT,
-  `uuid` UUID NOT NULL DEFAULT (UUID()),
+  `uuid` UUID NOT NULL DEFAULT (UUID()) COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT (UUID()) fallback) สำหรับ seed/migration (ADR-019)',
   `delegator_user_id` INT NOT NULL COMMENT 'ผู้มอบหมาย (FK → users.user_id)',
   `delegate_user_id` INT NOT NULL COMMENT 'ผู้รับมอบหมาย (FK → users.user_id)',
   `start_date` DATE NOT NULL,
@@ -1887,7 +1897,7 @@ CREATE TABLE IF NOT EXISTS `delegations` (
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `reminder_rules` (
   `id` INT NOT NULL AUTO_INCREMENT,
-  `uuid` UUID NOT NULL DEFAULT (UUID()),
+  `uuid` UUID NOT NULL DEFAULT (UUID()) COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT (UUID()) fallback) สำหรับ seed/migration (ADR-019)',
   `name` VARCHAR(100) NOT NULL,
   `project_id` INT NULL COMMENT 'NULL = global',
   `document_type_id` INT NULL COMMENT 'NULL = all types',
@@ -1916,7 +1926,7 @@ CREATE TABLE IF NOT EXISTS `reminder_rules` (
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `distribution_matrices` (
   `id` INT NOT NULL AUTO_INCREMENT,
-  `uuid` UUID NOT NULL DEFAULT (UUID()),
+  `uuid` UUID NOT NULL DEFAULT (UUID()) COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT (UUID()) fallback) สำหรับ seed/migration (ADR-019)',
   `name` VARCHAR(100) NOT NULL,
   `project_id` INT NULL COMMENT 'NULL = global',
   `document_type_id` INT NOT NULL,
@@ -1940,10 +1950,10 @@ CREATE TABLE IF NOT EXISTS `distribution_matrices` (
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `distribution_recipients` (
   `id` INT NOT NULL AUTO_INCREMENT,
-  `uuid` UUID NOT NULL DEFAULT (UUID()) COMMENT 'UUID Public Identifier (ADR-019)',
+  `uuid` UUID NOT NULL DEFAULT (UUID()) COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019)',
   `matrix_id` INT NOT NULL,
   `recipient_type` ENUM('USER', 'ORGANIZATION', 'TEAM', 'ROLE') NOT NULL,
-  `recipient_public_id` UUID NOT NULL COMMENT 'publicId of target: USER=users.uuid | ORGANIZATION=organizations.uuid | TEAM=review_teams.uuid | ROLE=roles.uuid',
+  `recipient_public_id` UUID NOT NULL COMMENT 'publicId ของ target entity (UUIDv7 หรือ UUIDv1 ตามที่มาของ record): USER=users.uuid | ORGANIZATION=organizations.uuid | TEAM=review_teams.uuid | ROLE=roles.uuid',
   `delivery_method` ENUM('EMAIL', 'IN_APP', 'BOTH') NOT NULL DEFAULT 'BOTH',
   `sequence` INT NULL COMMENT 'For ordered delivery',
   `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
