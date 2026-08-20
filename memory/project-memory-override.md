@@ -147,6 +147,7 @@
 | D114 | **n8n Form Trigger v2.2 field mapping** — form fields ถูก map ด้วย `field-${index}` (เช่น `field-0`, `field-1`) ไม่ใช่ field label; curl test ต้องใช้ `-F "field-0=..."` format; browser form ส่ง `name="field-N"` อัตโนมัติผ่าน n8n form HTML                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Session 2026-08-19  |
 | D115 | **n8n HTTP Request v4.1 headerAuth bug** — HTTP Request node v4.1 ใน n8n 2.35.4 มี bug `Cannot read properties of undefined (reading 'status')` เมื่อใช้ `headerAuth` credential ที่ไม่ถูก resolve; workaround = ใช้ Code node + `this.helpers.httpRequest()` แทนสำหรับ authenticated requests; หรือใช้ `sendHeaders: true` + `specifyHeaders: 'keypair'` + `headerParameters` โดยตรง (ไม่ผ่าน credential)                                                                                                                                                                                                                                                                                                                                                                                                                                      | Session 2026-08-19  |
 | D116 | **MariaDB UUIDv1 → UUIDv7 migration** — seed data ใช้ `uuid()` ของ MariaDB = UUIDv1 ไม่ใช่ UUIDv7 ตาม ADR-019; MariaDB ไม่มี UUIDv7 function; ต้องสร้าง Python script สร้าง UUIDv7 (48-bit timestamp + version 7 + random) และ UPDATE ทุกตารางพร้อมกัน (FK constraints อ้างถึง INT `id` ไม่ใช่ `uuid` จึงไม่กระทบ); logical FK columns (`*_public_id`, `*_uuid`) ต้องอัพเดตด้วย + ใช้ `COLLATE` กรณี collation mismatch                                                                                                                                                                                                                                                                                                                                                                                                                         | Session 2026-08-19  |
+| D117 | **UUID Column Comment Convention** — คอลัมน์ `uuid`/`public_id` ที่มี `DEFAULT UUID()` ต้องระบุ "UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019)"; คอลัมน์ที่ไม่มี DEFAULT ต้องระบุ "UUIDv7 (NestJS @BeforeInsert, ADR-019) — app layer สร้างเสมอ (ไม่มี DB DEFAULT)"; คอลัมน์ TypeORM `@PrimaryGeneratedColumn('uuid')` (workflow tables, Qdrant) ต้องระบุ "UUIDv4 (ไม่ใช่ ADR-019 publicId)"; ห้ามใช้คำอธิบายกลาง "UUID Public Identifier (ADR-019)" อีก — apply แล้วใน database lcbp3 (37 คอลัมน์) + data dictionary + schema SQL; SQL delta `2026-08-20-uuid-column-comments-v1-v7.sql`                                                                                                                                                                                      | ADR-019/044         |
 
 ## Environment & Services
 
@@ -185,6 +186,17 @@ QDRANT_URL
 ```
 
 ## Next Session Focus
+
+### UUID Column Comments v1/v7 Clarification (Session 2026-08-20) ✅ COMPLETE
+
+- [x] อัปเดต COLUMN_COMMENT ของ uuid/public_id 37 คอลัมน์ใน database lcbp3 (metadata-only)
+- [x] อัปเดต data dictionary (`03-01-data-dictionary.md`) — เพิ่มหมายเหตุรวมระดับ section + ระบุ UUIDv1/v7 ทุกจุด
+- [x] อัปเดต schema SQL (`lcbp3-v1.9.0-schema-02-tables.sql`) — เพิ่ม header comment block + อัปเดต COMMENT ทุกจุด
+- [x] สร้าง SQL delta `2026-08-20-uuid-column-comments-v1-v7.sql` (35 ALTER TABLE)
+- [x] Apply delta ไปยัง database lcbp3 สำเร็จ (index/PK preserved)
+- [x] Commit `458ff0ad` + push สำเร็จ
+- [x] Lock decision D117 (UUID Column Comment Convention)
+- [x] Session log: `specs/88-logs/session-2026-08-20-uuid-column-comments-v1-v7.md`
 
 ### n8n Migration Workflow v4 Fix (Session 2026-08-19) ✅ COMPLETE (curl test)
 
