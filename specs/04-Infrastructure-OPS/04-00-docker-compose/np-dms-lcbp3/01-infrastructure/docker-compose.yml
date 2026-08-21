@@ -111,8 +111,14 @@ services:
       - lcbp3
     volumes:
       - '/opt/np-dms/pma/config.user.inc.php:/etc/phpmyadmin/config.user.inc.php:ro'
+      # blowfish_secret ถาวร — bind-mount เพื่อป้องกัน regenerate ตอน recreate container
+      - '/opt/np-dms/pma/config.secret.inc.php:/etc/phpmyadmin/config.secret.inc.php:ro'
       - '/opt/np-dms/pma/zzz-custom.ini:/usr/local/etc/php/conf.d/zzz-custom.ini:ro'
       - '/opt/np-dms/pma/tmp:/var/lib/phpmyadmin/tmp:rw'
+      # BooDark 1.2.0 theme — bind-mount เข้า themes dir (ADR: persistent theme storage)
+      # ติดตั้งจาก https://files.phpmyadmin.net/themes/boodark/1.2.0/ (SHA256 verified)
+      # รองรับ phpMyAdmin 5.2 (current: 5.2.3) — เลือกในหน้า home → Appearance → Theme
+      - '/opt/np-dms/pma/themes/boodark:/var/www/html/themes/boodark:ro'
       - '/opt/np-dms/logs/pma:/var/log/apache2'
     depends_on:
       mariadb:
