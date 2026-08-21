@@ -434,6 +434,7 @@ export class LegacyIngestionService {
         mapping.docNumberCol === -1 &&
         (header.includes('doc') ||
           header.includes('number') ||
+          header.includes('correspondence_number') ||
           header.includes('เลขที่') ||
           header.includes('หนังสือ') ||
           header === 'no' ||
@@ -451,22 +452,21 @@ export class LegacyIngestionService {
       ) {
         mapping.subjectCol = col;
       } else if (
-        mapping.issuedDateCol === -1 &&
-        (header.includes('issued') ||
-          header.includes('sent') ||
-          header.includes('date') ||
-          header.includes('วันที่') ||
-          header.includes('วันที่ออก') ||
-          header.includes('ลงวันที่'))
-      ) {
-        mapping.issuedDateCol = col;
-      } else if (
         mapping.receivedDateCol === -1 &&
         (header.includes('received') ||
           header.includes('วันที่รับ') ||
           header.includes('วันรับ'))
       ) {
         mapping.receivedDateCol = col;
+      } else if (
+        mapping.issuedDateCol === -1 &&
+        (header.includes('issued') ||
+          header.includes('sent') ||
+          header === 'date' ||
+          header.includes('วันที่ออก') ||
+          header.includes('ลงวันที่'))
+      ) {
+        mapping.issuedDateCol = col;
       } else if (
         mapping.fromCol === -1 &&
         (header.includes('from') ||
@@ -488,6 +488,7 @@ export class LegacyIngestionService {
         mapping.categoryCol === -1 &&
         (header.includes('category') ||
           header.includes('type') ||
+          header.includes('correspondence_type') ||
           header.includes('ประเภท') ||
           header.includes('หมวดหมู่'))
       ) {
