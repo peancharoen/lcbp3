@@ -44,8 +44,10 @@ This document outlines backup strategies, recovery procedures, and disaster reco
 | ---------------------- | -------------- | --------- | ----------------------- |
 | Database (Full)        | Daily at 02:00 | 30 days   | mysqldump + compression |
 | Database (Incremental) | Every 6 hours  | 7 days    | Binary logs             |
+| phpMyAdmin Storage DB  | Daily at 02:00 | 30 days   | mysqldump (database `phpmyadmin`) |
 | File Uploads           | Daily at 03:00 | 30 days   | rsync to backup server  |
 | Configuration Files    | Weekly         | 90 days   | Git repository          |
+| PMA Config Files       | Weekly         | 90 days   | rsync `/opt/np-dms/pma/` (config files only — ไม่รวม tmp/) |
 | Elasticsearch Indexes  | Weekly         | 14 days   | Snapshot to S3/NFS      |
 | Application Logs       | Daily          | 90 days   | Rotation + archival     |
 
@@ -123,6 +125,66 @@ docker exec lcbp3-mariadb mysqldump \
 # Compress backup
 gzip backup_$(date +%Y%m%d).sql
 ```
+
+### phpMyAdmin Storage Database Backup
+
+> **เพิ่มเติมจาก 2026-08-21:** phpMyAdmin ใช้ database `phpmyadmin` สำหรับ Bookmark, SQL History, Tracking, User preferences — ต้อง backup รวมใน routine ปกติ
+
+```bash
+#!/bin/bash
+# File: /scripts/backup-pma-database.sh
+# Backup phpMyAdmin storage database (control user: pma)
+
+BACKUP_DIR="/backup/lcbp3-dms/database"
+DB_CONTAINER="mariadb"
+RETENTION_DAYS=30
+
+BACKUP_FILE="$BACKUP_DIR/phpmyadmin_$(date +%Y%m%d_%H%M%S).sql.gz"
+mkdir -p "$BACKUP_DIR"
+
+# Backup phpmyadmin database (ใช้ root เพราะ backup_user อาจไม่มีสิทธิ์)
+docker exec $DB_CONTAINER mysqldump \
+  --user=root \
+  --password="$DB_ROOT_PASSWORD" \
+  --single-transaction \
+  --databases phpmyadmin \
+  | gzip > "$BACKUP_FILE"
+
+if [ $? -eq 0 ]; then
+  echo "phpMyAdmin DB backup completed: $BACKUP_FILE"
+  find "$BACKUP_DIR" -name "phpmyadmin_*.sql.gz" -type f -mtime +$RETENTION_DAYS -delete
+else
+  echo "ERROR: phpMyAdmin DB backup failed!"
+  exit 1
+fi
+```
+
+```bash
+# Cron — รันต่อจาก database backup หลัก
+0 2 * * * /scripts/backup-pma-database.sh >> /var/log/backup-pma-database.log 2>&1
+```
+
+### phpMyAdmin Config Files Backup
+
+```bash
+#!/bin/bash
+# File: /scripts/backup-pma-config.sh
+# Backup PMA config files (ไม่รวม tmp/ และ themes/ ที่ดาวน์โหลดได้)
+
+SOURCE="/opt/np-dms/pma"
+DEST="/backup/lcbp3-dms/pma-config"
+RETENTION_DAYS=90
+
+# rsync เฉพาะ config files — ไม่เอา tmp/ (regenerable) และ themes/ (re-downloadable)
+rsync -av --delete \
+  --exclude='tmp/' \
+  --exclude='themes/' \
+  "$SOURCE/" "$DEST/current/"
+
+echo "PMA config backup completed: $(date)"
+```
+
+> ⚠️ **ข้อควรระวัง:** `config.secret.inc.php` มี `blowfish_secret` — ถือเป็น secret ต้องจัดเก็บอย่างปลอดภัย (เข้ารหัสถ้าเป็นไปได้ หรือเก็บใน SOPS-encrypted backup)
 
 ---
 

@@ -1690,6 +1690,19 @@ services:
         condition: service_healthy
 ```
 
+> ⚠️ **Historical (pre-ADR-041):** QNAP config ด้านบนเป็นของเดิมก่อนย้ายไป New Server
+>
+> **Config ปัจจุบัน (post-ADR-041, np-dms-lcbp3):** ดู
+> - [`04-00-docker-compose/np-dms-lcbp3/README.md`](./04-00-docker-compose/np-dms-lcbp3/README.md) — section "phpMyAdmin Configuration"
+> - [`04-00-docker-compose/np-dms-lcbp3/01-infrastructure/docker-compose.yml`](./04-00-docker-compose/np-dms-lcbp3/01-infrastructure/docker-compose.yml) — compose file จริง
+>
+> การเปลี่ยนแปลงสำคัญจาก QNAP → New Server:
+> - เพิ่ม bind-mount `config.secret.inc.php` (blowfish_secret ถาวร)
+> - เพิ่ม bind-mount `themes/boodark` (BooDark 1.2.0 theme)
+> - เพิ่ม `zzz-custom.ini` (PHP hardening: expose_php=Off, session.cookie_secure, opcache)
+> - เพิ่ม storage database `phpmyadmin` + control user `pma` (Bookmark, History, Tracking, User preferences)
+> - Path เปลี่ยนจาก `/share/np-dms/pma/` → `/opt/np-dms/pma/`
+
 ---
 
 ## A.2 Cache + Search Stack (`services`)

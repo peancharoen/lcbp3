@@ -482,7 +482,94 @@ echo "Security maintenance completed: $(date)"
 
 ---
 
-## 📚 Related Documents
+## �️ phpMyAdmin Maintenance
+
+> **ดูรายละเอียด config ที่:** [`04-00-docker-compose/np-dms-lcbp3/README.md`](./04-00-docker-compose/np-dms-lcbp3/README.md) — section "phpMyAdmin Configuration"
+
+### Weekly: Twig Cache Cleanup
+
+Twig template cache ใน `/var/lib/phpmyadmin/tmp/twig/` สะสมได้เมื่อ PMA version เปลี่ยน ควรเคลียร์เป็น weekly:
+
+```bash
+#!/bin/bash
+# File: /scripts/maintenance-pma-clear-cache.sh
+# เคลียร์ Twig cache เก่า — PMA จะ regenerate ใหม่อัตโนมัติ
+
+docker exec pma find /var/lib/phpmyadmin/tmp/twig -type f -mtime +7 -delete
+echo "PMA Twig cache cleanup completed: $(date)"
+```
+
+### Monthly: phpMyAdmin Version Check
+
+```bash
+#!/bin/bash
+# File: /scripts/maintenance-pma-version-check.sh
+# ตรวจสอบ PMA version ปัจจุบัน vs latest
+
+CURRENT=$(docker exec pma grep -oP "const VERSION = '\K[^']+" /var/www/html/libraries/classes/Version.php)
+echo "Current PMA version: $CURRENT"
+
+# ตรวจสอบ latest จาก Docker Hub (ไม่ auto-update — ต้อดู release notes ก่อน)
+LATEST=$(curl -s "https://hub.docker.com/v2/repositories/library/phpmyadmin/tags/?page_size=10" | grep -oP '"name":\s*"\K[^"]+' | grep -E "^[0-9]+-apache$" | head -1)
+echo "Latest Docker tag: $LATEST"
+echo "→ อัพเดตด้วยการแก้ image tag ใน docker-compose.yml + recreate (ไม่ใช้ :latest)"
+```
+
+### Quarterly: phpMyAdmin Theme Update
+
+BooDark theme อัพเดตไม่บ่อย แต่ควรตรวจสอบทุก quarter:
+
+```bash
+#!/bin/bash
+# File: /scripts/maintenance-pma-theme-check.sh
+# ตรวจสอ BooDark theme version และอัพเดตถ้ามีใหม่
+
+# ดาวน์โหลด SHA256 จาก https://www.phpmyadmin.net/themes/ ก่อน
+# เปรียบเทียบกับ theme.json ใน /opt/np-dms/pma/themes/boodark/
+CURRENT=$(cat /opt/np-dms/pma/themes/boodark/theme.json | grep -oP '"version":\s*"\K[^"]+')
+echo "Current BooDark version: $CURRENT"
+echo "→ ดาวน์โหลดจาก https://files.phpmyadmin.net/themes/boodark/ และ verify SHA256 ก่อน extract"
+```
+
+### PMA Recreate Procedure (หลัง config เปลี่ยน)
+
+```bash
+#!/bin/bash
+# File: /scripts/maintenance-pma-recreate.sh
+# Recreate PMA container หลังจากแก้ config files
+
+cd /opt/np-dms/01-infrastructure
+set -a && . /opt/np-dms/.env && set +a
+
+# 1. Validate compose
+docker compose config --quiet || { echo "FAIL: compose invalid"; exit 1; }
+
+# 2. Recreate PMA (ไม่กระทบ services อื่น)
+docker compose up -d --no-deps --force-recreate pma
+
+# 3. Verify
+sleep 3
+docker exec pma php -i | grep -E "^expose_php|^session.cookie_secure" | head -2
+docker exec --user www-data pma touch /var/lib/phpmyadmin/tmp/test_write \
+  && docker exec --user www-data pma rm /var/lib/phpmyadmin/tmp/test_write \
+  && echo "TempDir: OK" || echo "TempDir: FAIL"
+
+# 4. Check theme
+docker exec pma ls /var/www/html/themes/boodark/theme.json && echo "Theme: OK"
+
+echo "PMA recreate completed: $(date)"
+```
+
+### ข้อควรระวัง
+
+- **ห้ามเปลี่ยน `blowfish_secret`** ใน `config.secret.inc.php` หลังจากมี user login — session ทั้งหมดจะหมดอายุ
+- ถ้าเปลี่ยน control user password → ต้องเปลี่ยนทั้งใน MariaDB และ `config.user.inc.php` พร้อมกัน
+- การอัพเดต PMA image tag ต้องตรวจสอบ compatibility กับ BooDark theme ก่อน (theme รองรับเฉพาะ PMA 5.2)
+- `phpmyadmin` database ต้อง backup ก่อน recreate (ดู `04-02-backup-recovery.md`)
+
+---
+
+## �📚 Related Documents
 
 - [Deployment Guide](04-01-deployment-guide.md)
 - [Backup & Recovery](04-04-backup-recovery.md)

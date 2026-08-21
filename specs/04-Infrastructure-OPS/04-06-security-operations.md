@@ -437,7 +437,60 @@ echo "Account compromise response completed for User ID: $USER_ID"
 
 ---
 
-## 🔗 Related Documents
+## �️ phpMyAdmin Hardening (applied 2026-08-21)
+
+> **ดูรายละเอียดเต็มที่:** [`04-00-docker-compose/np-dms-lcbp3/README.md`](./04-00-docker-compose/np-dms-lcbp3/README.md) — section "phpMyAdmin Configuration"
+
+phpMyAdmin (PMA 5.2.3) ผ่านการ hardening ครบทุกด้าน เพื่อลด surface area ของ admin tool ที่ expose ผ่าน `pma.np-dms.work`:
+
+### PHP Hardening (`zzz-custom.ini`)
+
+| รายการ | ค่า | ผลกระทบ |
+|--------|-----|---------|
+| `expose_php` | Off | ซ่อน `X-Powered-By: PHP/8.3.31` จาก HTTP header |
+| `session.cookie_secure` | On | cookie ส่งผ่าน HTTPS เท่านั้น |
+| `session.cookie_samesite` | Strict | ป้องกัน CSRF จาก cross-site request |
+
+### Session Stability (`config.secret.inc.php`)
+
+- **blowfish_secret ถาวร** — bind-mount จาก host แทนการ regenerate ทุกครั้งที่ recreate container
+- ก่อนหน้านี้ PMA auto-generate blowfish_secret ใหม่ทุกครั้ง → session หมดอายุทั้งหมดหลัง recreate
+- ตอนนี้ค่าคงที่ → session เสถียรข้ามการ deploy
+
+### Access Control
+
+| รายการ | ค่า | หมายเหตุ |
+|--------|-----|---------|
+| `LoginCookieValidity` | 3600s (1 ชม.) | ลดช่วงเวลาที่ session ค้าง |
+| `AllowNoPassword` | false | ห้าม login โดยไม่มี password |
+| `SendErrorReports` | never | ไม่ส่ง error ไป phpmyadmin.net (data privacy) |
+| NPM/Cloudflare | HTTPS + CSP + X-Frame-Options: DENY | ป้องกัน clickjacking |
+
+### Storage Database Isolation
+
+- Control user `pma` มีสิทธิ์เฉพาะ database `phpmyadmin` เท่านั้น (GRANT ON `phpmyadmin.*`)
+- เข้าถึงได้จาก Docker network เท่านั้น (`pma@%` ภายใน `lcbp3` network)
+- ไม่มีสิทธิ์ read/write บน `lcbp3` production database
+
+### Audit Checklist (phpMyAdmin)
+
+```bash
+# ตรวจสอบ expose_php ปิดอยู่
+curl -sI -k https://pma.np-dms.work/ | grep -i "x-powered" && echo "FAIL: expose_php still On" || echo "OK: expose_php Off"
+
+# ตรวจสอบ session cookie secure
+curl -sI -k https://pma.np-dms.work/ | grep -i "set-cookie" | grep -v "Secure" && echo "FAIL: non-secure cookie" || echo "OK: all cookies Secure"
+
+# ตรวจสอบ blowfish_secret ถาวร (ไม่ regenerate)
+docker exec pma cat /etc/phpmyadmin/config.secret.inc.php | grep blowfish
+
+# ตรวจสอบ control user มีสิทธิ์จำกัด
+docker exec mariadb mariadb -u root -p -e "SHOW GRANTS FOR 'pma'@'%';"
+```
+
+---
+
+## �🔗 Related Documents
 
 - [Incident Response](04-07-incident-response.md)
 - [Monitoring & Alerting](04-03-monitoring-alerting.md)

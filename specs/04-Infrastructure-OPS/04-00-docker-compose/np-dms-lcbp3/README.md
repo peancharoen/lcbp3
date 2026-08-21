@@ -99,6 +99,75 @@ np-dms-lcbp3/
 > ✅ RAM 64GB มี headroom เพียงพอ — ไม่ต้องลด memory limit ใดๆ
 > ⚠️ ถ้า OOM (ไม่น่าเกิด) → ลด Ollama system RAM เป็น 6G หรือ ES heap เป็น 2G
 
+## phpMyAdmin Configuration (PMA 5.2.3 + BooDark 1.2.0)
+
+> **Path บน host:** `/opt/np-dms/pma/` — ทุก config files bind-mount เข้า container เพื่อความถาวรข้าม recreate
+
+### Config Files (bind-mount ทั้งหมด)
+
+| File | Mount target | หน้าที่ |
+|------|-------------|---------|
+| `config.user.inc.php` | `/etc/phpmyadmin/config.user.inc.php:ro` | Server config, storage DB, UI/UX, security |
+| `config.secret.inc.php` | `/etc/phpmyadmin/config.secret.inc.php:ro` | **blowfish_secret ถาวร** — ป้องกัน regenerate ตอน recreate |
+| `zzz-custom.ini` | `/usr/local/etc/php/conf.d/zzz-custom.ini:ro` | PHP hardening (expose_php, session cookie, opcache) |
+| `tmp/` | `/var/lib/phpmyadmin/tmp:rw` | Twig template cache (owner `33:33` = www-data) |
+| `themes/boodark/` | `/var/www/html/themes/boodark:ro` | BooDark 1.2.0 theme (SHA256 verified) |
+| `logs/pma/` | `/var/log/apache2` | Apache access/error logs |
+
+### Security Hardening (applied 2026-08-21)
+
+| รายการ | ค่า | ผล |
+|--------|-----|-----|
+| `expose_php` | Off | ซ่อนเวอร์ชัน PHP จาก `X-Powered-By` header |
+| `session.cookie_secure` | On | cookie ส่งผ่าน HTTPS เท่านั้น (วิ่งหลัง Cloudflare Tunnel) |
+| `session.cookie_samesite` | Strict | ป้องกัน CSRF |
+| `blowfish_secret` | ถาวร (bind-mount) | session เสถียรข้ามการ recreate container |
+| `LoginCookieValidity` | 3600s (1 ชม.) | อายุ login ที่เหมาะสม |
+| `SendErrorReports` | never | ไม่ส่ง error ไป phpmyadmin.net (data privacy) |
+
+### Storage Database (pmadb)
+
+phpMyAdmin ใช้ database `phpmyadmin` สำหรับ features ขั้นสูง:
+- **Bookmark** — บันทึก SQL query ที่ใช้บ่อย
+- **SQL History** — เก็บประวัติ 100 query ล่าสุดใน DB (`QueryHistoryDB=true`)
+- **Relation** — แสดง foreign key relationship ใน browse mode
+- **Tracking** — track การเปลี่ยนแปลง table structure + data
+- **User preferences** — บันทึก theme/UI settings ถาวร (ไม่หายเมื่อ logout)
+- **PDF schema, Designer, Saved searches, Central columns**
+
+```sql
+-- Control user 'pma' — เข้าถึงได้จาก Docker network เท่านั้น
+CREATE DATABASE phpmyadmin CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+CREATE USER 'pma'@'%' IDENTIFIED BY '<PMA_CONTROL_PASSWORD>';
+GRANT ALL PRIVILEGES ON phpmyadmin.* TO 'pma'@'%';
+FLUSH PRIVILEGES;
+-- จากนั้นรัน /var/www/html/sql/create_tables.sql ใน database phpmyadmin
+```
+
+### OPcache Tuning
+
+| รายการ | ค่า | เหตุผล |
+|--------|-----|--------|
+| `opcache.memory_consumption` | 256MB | PMA มี PHP files ~3000+ |
+| `opcache.interned_strings_buffer` | 16MB | ลด duplicate strings |
+| `opcache.max_accelerated_files` | 20000 | รองรับจำนวน files ทั้งหมด |
+| `opcache.enable_file_override` | On | เร่ง `file_exists`/`filemtime` |
+| `opcache.revalidate_freq` | 60s | PMA ไม่ได้เปลี่ยนบ่อย — ลด I/O |
+
+### Theme — BooDark 1.2.0
+
+- **ดาวน์โหลดจาก:** `https://files.phpmyadmin.net/themes/boodark/1.2.0/boodark-1.2.0.zip`
+- **SHA256:** `28bc5fd187727a2800cd6e1ee9f82a59ba28a54301696fa1ef068ecf27d9d9de`
+- **รองรับ:** phpMyAdmin 5.2 (current: 5.2.3)
+- **ตั้งเป็น default:** `$cfg['ThemeDefault'] = 'boodark'` ใน `config.user.inc.php`
+- **ผู้ใช้เปลี่ยนได้** ในหน้า home → Appearance → Theme (preferences บันทึกใน pmadb)
+
+### การบำรุงรักษา
+
+- **ห้ามเปลี่ยน `blowfish_secret`** หลังจากมี user login — session ทั้งหมดจะหมดอายุ
+- ถ้าเปลี่ยน control user password → ต้องเปลี่ยนทั้งใน MariaDB และ `config.user.inc.php`
+- `phpmyadmin` database ต้อง backup รวมใน backup routine ปกติ (ดู `04-02-backup-recovery.md`)
+
 ## Disk Layout (LVM — 2x NVMe 931.5G)
 
 ```
