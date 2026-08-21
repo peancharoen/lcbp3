@@ -515,28 +515,19 @@ export class MigrationController {
     description:
       'Unique key per batch ingestion request to prevent duplicate triggers',
   })
-  @HttpCode(202)
-  startIngestion(
+  async startIngestion(
     @Body() dto: StartIngestDto,
     @Headers('idempotency-key') idempotencyKey: string | undefined
   ) {
     requireIdempotencyKey(idempotencyKey);
-    // สร้าง batchId ล่วงหน้าเพื่อส่งกลับทันที (ป้องกัน 'GENERATING' สับสน)
     const batchId = dto.batchId || `BATCH-${Date.now()}`;
     dto.batchId = batchId;
 
-    // รันการ Ingest เบื้องหลัง และตอบกลับผลลัพธ์ทันที (ADR-008: BullMQ-style background)
-    const summaryPromise = this.legacyIngestionService.startIngestion(dto);
-    summaryPromise.catch((err: unknown) => {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      this.logger.error(
-        `Background ingestion failed for batch [${batchId}]: ${errMsg}`
-      );
-    });
-
+    // รันการ Ingest แล้วรอผลลัพธ์จริงเพื่อแสดงจำนวนรายการที่ประมวลผลสำเร็จ
+    const summary = await this.legacyIngestionService.startIngestion(dto);
     return {
-      message: 'Legacy ingestion process started successfully in background',
-      batchId,
+      message: 'Legacy ingestion completed',
+      ...summary,
       filePath: dto.filePath,
     };
   }

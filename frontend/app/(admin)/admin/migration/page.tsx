@@ -575,7 +575,11 @@ function LegacyManagementTab() {
                     />
                   </TableHead>
                   <TableHead>Document No.</TableHead>
-                  <TableHead>Suggested Category</TableHead>
+                  <TableHead>Correspondence Type</TableHead>
+                  <TableHead>Doc Date</TableHead>
+                  <TableHead>Issued Date</TableHead>
+                  <TableHead>Sender</TableHead>
+                  <TableHead>Receiver</TableHead>
                   <TableHead>Confidence</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Created At</TableHead>
@@ -594,7 +598,11 @@ function LegacyManagementTab() {
                       />
                     </TableCell>
                     <TableCell className="font-medium">{item.documentNumber}</TableCell>
-                    <TableCell>{item.aiSuggestedCategory || 'Unknown'}</TableCell>
+                    <TableCell>{item.aiSuggestedCategoryName || item.aiSuggestedCategory || 'Unknown'}</TableCell>
+                    <TableCell>{item.receivedDate ? format(new Date(item.receivedDate), 'dd MMM yyyy') : '—'}</TableCell>
+                    <TableCell>{item.issuedDate ? format(new Date(item.issuedDate), 'dd MMM yyyy') : '—'}</TableCell>
+                    <TableCell>{item.senderOrganizationCode ?? '—'}</TableCell>
+                    <TableCell>{item.receiverOrganizationCode ?? '—'}</TableCell>
                     <TableCell>
                       <Badge
                         variant={

@@ -26,6 +26,7 @@ import {
 } from '../entities/migration-error.entity';
 import { Project } from '../../project/entities/project.entity';
 import { Organization } from '../../organization/entities/organization.entity';
+import { CorrespondenceType } from '../../correspondence/entities/correspondence-type.entity';
 import {
   NotFoundException,
   ValidationException,
@@ -58,6 +59,7 @@ interface ColumnMapping {
   fromCol: number;
   toCol: number;
   categoryCol: number;
+  correspondenceTypeIdCol: number;
   fileNameCol: number;
   remarksCol: number;
 }
@@ -77,6 +79,8 @@ export class LegacyIngestionService {
     private readonly projectRepo: Repository<Project>,
     @InjectRepository(Organization)
     private readonly organizationRepo: Repository<Organization>,
+    @InjectRepository(CorrespondenceType)
+    private readonly correspondenceTypeRepo: Repository<CorrespondenceType>,
     @InjectQueue('ai-batch')
     private readonly aiBatchQueue: Queue
   ) {}
@@ -108,6 +112,15 @@ export class LegacyIngestionService {
     for (const org of allOrgs) {
       orgMap.set(org.organizationCode.trim().toUpperCase(), org.id);
       orgMap.set(org.organizationName.trim().toUpperCase(), org.id);
+    }
+
+    // 2b. โหลด Master Correspondence Types สำหรับ resolve ค่า type_id จาก Excel
+    const allCorrespondenceTypes = await this.correspondenceTypeRepo.find();
+    const correspondenceTypeById = new Map<number, CorrespondenceType>();
+    const correspondenceTypeByCode = new Map<string, CorrespondenceType>();
+    for (const ct of allCorrespondenceTypes) {
+      correspondenceTypeById.set(ct.id, ct);
+      correspondenceTypeByCode.set(ct.typeCode.trim().toUpperCase(), ct);
     }
 
     // 3. กำหนด Batch ID และตรวจสอบ Checkpoint เดิม
@@ -166,16 +179,23 @@ export class LegacyIngestionService {
           continue;
         }
 
+        const headerRowBuffer: unknown[][] = [];
+
         for await (const row of worksheetReader) {
           currentRowIndex++;
 
-          // แถวแรก: ตรวจจับ Header Mapping
+          // ตรวจจับ Header Mapping จากหลายแถวแรก (รองรับ Excel ที่มีหัวเรื่อง/คำอธิบายก่อนแถว Header)
           if (!columnMapping) {
-            columnMapping = this.detectHeaderMapping(row.values as unknown[]);
-            if (columnMapping.docNumberCol === -1) {
+            const rowValues = row.values as unknown[];
+            headerRowBuffer.push(rowValues);
+            if (headerRowBuffer.length > 5) {
               throw new ValidationException(
                 'ไม่พบคอลัมน์เลขที่เอกสาร (Document Number) ในหัวตาราง Excel'
               );
+            }
+            columnMapping = this.detectHeaderMapping(headerRowBuffer);
+            if (columnMapping.docNumberCol === -1) {
+              continue;
             }
             continue;
           }
@@ -212,6 +232,9 @@ export class LegacyIngestionService {
             const category = this.extractCellString(
               rawValues[columnMapping.categoryCol]
             );
+            const rawCorrespondenceTypeId = this.extractCellString(
+              rawValues[columnMapping.correspondenceTypeIdCol]
+            );
             const rawFileName = this.extractCellString(
               rawValues[columnMapping.fileNameCol]
             );
@@ -238,6 +261,21 @@ export class LegacyIngestionService {
               unresolvedOrgs.sender = rawSender.trim();
             if (rawReceiver && !receiverOrgId)
               unresolvedOrgs.receiver = rawReceiver.trim();
+
+            // แปลงค่า correspondence_type จาก Excel (ID หรือ Code) เป็น type_code
+            let resolvedCategory: string | undefined;
+            const normalizedCategory =
+              rawCorrespondenceTypeId || (category ?? '');
+            const numericCategory = Number(normalizedCategory);
+            if (!isNaN(numericCategory) && numericCategory > 0) {
+              const ct = correspondenceTypeById.get(numericCategory);
+              if (ct) resolvedCategory = ct.typeCode;
+            } else if (normalizedCategory) {
+              const ct = correspondenceTypeByCode.get(
+                normalizedCategory.trim().toUpperCase()
+              );
+              if (ct) resolvedCategory = ct.typeCode;
+            }
 
             // ตรวจสอบการมีอยู่ของไฟล์ PDF บน Staging Disk
             let resolvedPdfPath: string | null = null;
@@ -288,7 +326,8 @@ export class LegacyIngestionService {
 
             queueItem.subject = subject || undefined;
             queueItem.originalSubject = subject || undefined;
-            queueItem.aiSuggestedCategory = category || undefined;
+            queueItem.aiSuggestedCategory =
+              resolvedCategory ?? category ?? undefined;
             queueItem.projectId = project.id;
             queueItem.senderOrganizationId = senderOrgId;
             queueItem.receiverOrganizationId = receiverOrgId;
@@ -407,9 +446,10 @@ export class LegacyIngestionService {
   }
 
   /**
-   * ตรวจจับ Header Mapping จากแถวแรกของ Excel อัตโนมัติ (TH / EN)
+   * ตรวจจับ Header Mapping จากหลายแถวแรกของ Excel อัตโนมัติ (TH / EN)
+   * รองรับหัวเรื่อง/คำอธิบายก่อนแถว Header จริง (ADR-047)
    */
-  private detectHeaderMapping(rowValues: unknown[]): ColumnMapping {
+  private detectHeaderMapping(headerRows: unknown[][]): ColumnMapping {
     const mapping: ColumnMapping = {
       docNumberCol: -1,
       subjectCol: -1,
@@ -418,127 +458,161 @@ export class LegacyIngestionService {
       fromCol: -1,
       toCol: -1,
       categoryCol: -1,
+      correspondenceTypeIdCol: -1,
       fileNameCol: -1,
       remarksCol: -1,
     };
 
-    if (!Array.isArray(rowValues)) return mapping;
+    if (!Array.isArray(headerRows) || headerRows.length === 0) return mapping;
 
-    for (let col = 1; col < rowValues.length; col++) {
-      const header = this.extractCellString(rowValues[col])
-        ?.trim()
-        .toLowerCase();
-      if (!header) continue;
-
-      if (
-        mapping.docNumberCol === -1 &&
-        (header.includes('doc') ||
-          header.includes('number') ||
-          header.includes('correspondence_number') ||
-          header.includes('เลขที่') ||
-          header.includes('หนังสือ') ||
-          header === 'no' ||
-          header === 'doc id' ||
-          header === 'document id')
-      ) {
-        mapping.docNumberCol = col;
-      } else if (
-        mapping.subjectCol === -1 &&
-        (header.includes('subject') ||
-          header.includes('title') ||
-          header.includes('เรื่อง') ||
-          header.includes('ชื่อเรื่อง') ||
-          header.includes('หัวข้อ'))
-      ) {
-        mapping.subjectCol = col;
-      } else if (
-        mapping.receivedDateCol === -1 &&
-        (header.includes('received') ||
-          header.includes('วันที่รับ') ||
-          header.includes('วันรับ'))
-      ) {
-        mapping.receivedDateCol = col;
-      } else if (
-        mapping.issuedDateCol === -1 &&
-        (header.includes('issued') ||
-          header.includes('sent') ||
-          header === 'date' ||
-          header.includes('วันที่ออก') ||
-          header.includes('ลงวันที่'))
-      ) {
-        mapping.issuedDateCol = col;
-      } else if (
-        mapping.fromCol === -1 &&
-        (header.includes('from') ||
-          header.includes('sender') ||
-          header.includes('จาก') ||
-          header.includes('ผู้ส่ง'))
-      ) {
-        mapping.fromCol = col;
-      } else if (
-        mapping.toCol === -1 &&
-        (header.includes('to') ||
-          header.includes('receiver') ||
-          header.includes('recipient') ||
-          header.includes('ถึง') ||
-          header.includes('ผู้รับ'))
-      ) {
-        mapping.toCol = col;
-      } else if (
-        mapping.categoryCol === -1 &&
-        (header.includes('category') ||
-          header.includes('type') ||
-          header.includes('correspondence_type') ||
-          header.includes('ประเภท') ||
-          header.includes('หมวดหมู่'))
-      ) {
-        mapping.categoryCol = col;
-      } else if (
-        mapping.fileNameCol === -1 &&
-        (header.includes('file') ||
-          header.includes('pdf') ||
-          header.includes('ไฟล์') ||
-          header.includes('เอกสารแนบ'))
-      ) {
-        mapping.fileNameCol = col;
-      } else if (
-        mapping.remarksCol === -1 &&
-        (header.includes('remark') ||
-          header.includes('note') ||
-          header.includes('หมายเหตุ'))
-      ) {
-        mapping.remarksCol = col;
+    const colHeaders = new Map<number, string[]>();
+    for (const rowValues of headerRows) {
+      if (!Array.isArray(rowValues)) continue;
+      for (let col = 1; col < rowValues.length; col++) {
+        const header = this.extractCellString(rowValues[col])?.trim();
+        if (!header) continue;
+        const existing = colHeaders.get(col) ?? [];
+        existing.push(header.toLowerCase());
+        colHeaders.set(col, existing);
       }
     }
+
+    const firstMatch = (
+      predicates: string[],
+      mustInclude?: string[],
+      mustNotInclude?: string[]
+    ): number => {
+      for (const [col, headers] of colHeaders) {
+        if (headers.length === 0) continue;
+        for (const h of headers) {
+          if (predicates.some((p) => h.includes(p))) {
+            if (
+              mustNotInclude?.some((ex) => h.includes(ex)) ||
+              mustInclude?.some((req) => !h.includes(req))
+            ) {
+              continue;
+            }
+            return col;
+          }
+        }
+      }
+      return -1;
+    };
+
+    mapping.docNumberCol = firstMatch(
+      ['เอกสารเลขที่', 'corr', 'correspondence_number'],
+      [],
+      ['รับ', 'dc']
+    );
+    if (mapping.docNumberCol === -1) {
+      mapping.docNumberCol = firstMatch([
+        'เลขที่เอกสาร',
+        'doc no',
+        'doc number',
+        'document no',
+        'document number',
+      ]);
+    }
+    if (mapping.docNumberCol === -1) {
+      mapping.docNumberCol = firstMatch(['เลขที่หนังสือ', 'หนังสือ']);
+    }
+    if (mapping.docNumberCol === -1) {
+      mapping.docNumberCol = firstMatch(['no'], ['number']);
+    }
+
+    mapping.subjectCol = firstMatch([
+      'subject',
+      'title',
+      'เรื่อง',
+      'ชื่อเรื่อง',
+      'หัวข้อ',
+    ]);
+
+    mapping.receivedDateCol = firstMatch([
+      'วันที่รับ',
+      'วันรับ',
+      'date received',
+      'received',
+    ]);
+
+    mapping.issuedDateCol = firstMatch([
+      'วันที่ออก',
+      'วันที่ออกหนังสือ',
+      'date of issue',
+      'issued',
+      'sent',
+      'ลงวันที่',
+    ]);
+
+    mapping.fromCol = firstMatch(['ผู้ส่ง', 'จาก', 'from', 'sender', 'ส่ง']);
+
+    mapping.toCol = firstMatch([
+      'ผู้รับ',
+      'to',
+      'receiver',
+      'recipient',
+      'ถึง',
+    ]);
+
+    mapping.categoryCol = firstMatch(['category', 'ประเภท', 'หมวดหมู่']);
+
+    mapping.correspondenceTypeIdCol = firstMatch([
+      'correspondence_type',
+      'type_id',
+      'correspondence type',
+      'corr type',
+      'รหัสประเภท',
+    ]);
+
+    mapping.fileNameCol = firstMatch([
+      'ชื่อไฟล์',
+      'file name',
+      'filename',
+      'pdf',
+      'ไฟล์',
+      'เอกสารแนบ',
+    ]);
+
+    mapping.remarksCol = firstMatch(['หมายเหตุ', 'remark', 'note', 'notes']);
 
     return mapping;
   }
 
   /**
    * ตรวจสอบและค้นหาไฟล์ PDF ใน Staging Directory แบบ Case-insensitive
+   * รองรับ Excel ที่ระบุชื่อไฟล์โดยไม่มี .pdf extension
    */
   private resolveStagingPdf(
     stagingDir: string,
     fileName: string
   ): string | null {
     const cleanFileName = fileName.trim();
-    const exactPath = path.join(stagingDir, cleanFileName);
+    const candidates = [cleanFileName];
 
-    if (fs.existsSync(exactPath)) {
-      return exactPath;
+    // หากไฟล์ไม่มีนามสกุล .pdf ให้ลองเติม .pdf เพิ่ม
+    const hasPdfExt = cleanFileName.toLowerCase().endsWith('.pdf');
+    if (!hasPdfExt) {
+      candidates.push(`${cleanFileName}.pdf`);
     }
 
-    // Case-insensitive search ใน Directory
-    try {
-      if (!fs.existsSync(stagingDir)) return null;
-      const files = fs.readdirSync(stagingDir);
-      const lowerTarget = cleanFileName.toLowerCase();
-      const match = files.find((f) => f.toLowerCase() === lowerTarget);
-      if (match) {
-        return path.join(stagingDir, match);
+    for (const candidate of candidates) {
+      const exactPath = path.join(stagingDir, candidate);
+      if (fs.existsSync(exactPath)) {
+        return exactPath;
       }
-    } catch {
-      return null;
+
+      // Case-insensitive search ใน Directory
+      try {
+        if (!fs.existsSync(stagingDir)) return null;
+        const files = fs.readdirSync(stagingDir);
+        const lowerTarget = candidate.toLowerCase();
+        const match = files.find((f) => f.toLowerCase() === lowerTarget);
+        if (match) {
+          return path.join(stagingDir, match);
+        }
+      } catch {
+        return null;
+      }
     }
 
     return null;

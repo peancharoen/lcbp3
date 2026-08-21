@@ -19,6 +19,7 @@ import { CorrespondenceRevision } from '../correspondence/entities/correspondenc
 import { CorrespondenceType } from '../correspondence/entities/correspondence-type.entity';
 import { CorrespondenceStatus } from '../correspondence/entities/correspondence-status.entity';
 import { Project } from '../project/entities/project.entity';
+import { Organization } from '../organization/entities/organization.entity';
 import { FileStorageService } from '../../common/file-storage/file-storage.service';
 import {
   MigrationReviewQueue,
@@ -581,7 +582,10 @@ export class MigrationService {
     const [items, total] = await queryBuilder.getManyAndCount();
 
     // Feature 242: enrich items with attachments[] metadata (FR-005)
-    const enrichedItems = await this.enrichWithAttachments(items);
+    let enrichedItems = await this.enrichWithAttachments(items);
+
+    // Enrich ชื่อ organization_code และชื่อประเภทเอกสารเพื่อแสดงผลในหน้า Legacy Management
+    enrichedItems = await this.enrichWithReferenceData(enrichedItems);
 
     return {
       items: enrichedItems,
@@ -647,6 +651,64 @@ export class MigrationService {
     return items;
   }
 
+  /**
+   * เพิ่มข้อมูลอ้างอิง organization_code (ผู้ส่ง/ผู้รับ) และชื่อประเภทเอกสาร
+   * เพื่อแสดงผลในหน้า Legacy Management โดยไม่ต้อง query ทีละรายการ
+   */
+  private async enrichWithReferenceData(
+    items: MigrationReviewQueue[]
+  ): Promise<MigrationReviewQueue[]> {
+    const orgIds = new Set<number>();
+    const typeCodes = new Set<string>();
+    for (const item of items) {
+      if (item.senderOrganizationId) orgIds.add(item.senderOrganizationId);
+      if (item.receiverOrganizationId) orgIds.add(item.receiverOrganizationId);
+      if (item.aiSuggestedCategory) typeCodes.add(item.aiSuggestedCategory);
+    }
+
+    const orgMap = new Map<number, string>();
+    const typeMap = new Map<string, { typeName: string; typeCode: string }>();
+
+    if (orgIds.size > 0) {
+      const orgs = await this.dataSource.manager.find(Organization, {
+        where: { id: In(Array.from(orgIds)) },
+        select: ['id', 'organizationCode'],
+      });
+      for (const org of orgs) {
+        orgMap.set(org.id, org.organizationCode);
+      }
+    }
+
+    if (typeCodes.size > 0) {
+      const types = await this.correspondenceTypeRepo.find({
+        where: { typeCode: In(Array.from(typeCodes)) },
+      });
+      for (const ct of types) {
+        typeMap.set(ct.typeCode, {
+          typeName: ct.typeName,
+          typeCode: ct.typeCode,
+        });
+      }
+    }
+
+    for (const item of items) {
+      if (!item.details) {
+        (
+          item as MigrationReviewQueue & { details: Record<string, unknown> }
+        ).details = {};
+      }
+      (item.details as Record<string, unknown>)['senderOrganizationCode'] =
+        orgMap.get(item.senderOrganizationId ?? -1) ?? null;
+      (item.details as Record<string, unknown>)['receiverOrganizationCode'] =
+        orgMap.get(item.receiverOrganizationId ?? -1) ?? null;
+      (item.details as Record<string, unknown>)['aiSuggestedCategoryName'] =
+        typeMap.get(item.aiSuggestedCategory ?? '')?.typeName ??
+        item.aiSuggestedCategory ??
+        null;
+    }
+    return items;
+  }
+
   async getQueueItemById(id: number) {
     const item = await this.reviewQueueRepo.findOne({ where: { id } });
     if (!item) {
@@ -668,7 +730,8 @@ export class MigrationService {
     if (!item) {
       throw new NotFoundException('Queue item', publicId);
     }
-    const enriched = await this.enrichWithAttachments([item]);
+    let enriched = await this.enrichWithAttachments([item]);
+    enriched = await this.enrichWithReferenceData(enriched);
     return enriched[0];
   }
 

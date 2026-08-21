@@ -202,7 +202,7 @@ export function LegacyIngestionCard({ onIngestionStarted }: LegacyIngestionCardP
       }
 
       // ส่งคำสั่งเริ่ม Streaming Ingestion
-      setStatusMessage('กำลังเริ่มต้นกระบวนการ Streaming Ingestion เบื้องหลัง...');
+      setStatusMessage('กำลังประมวลผล Excel และนำเข้าลง Review Queue...');
       const idempotencyKey = `ingest-${uuidv4()}`;
       const ingestRes = await migrationService.startIngestion(
         {
@@ -216,7 +216,7 @@ export function LegacyIngestionCard({ onIngestionStarted }: LegacyIngestionCardP
         idempotencyKey
       );
 
-      setStatusMessage(`เริ่มกระบวนการสำเร็จ (Batch ID: ${ingestRes.batchId})`);
+      setStatusMessage(`ประมวลผลเสร็จสมบูรณ์ (Batch ID: ${ingestRes.batchId})`);
       const summary = `นำเข้าสำเร็จ ${ingestRes.enqueuedCount ?? 0} รายการ | ข้าม ${ingestRes.skippedCount ?? 0} | ผิดพลาด ${ingestRes.errorCount ?? 0} | ทั้งหมด ${ingestRes.totalRowsProcessed ?? 0} แถว`;
       toast.success(summary);
       if (onIngestionStarted) {

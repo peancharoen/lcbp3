@@ -68,6 +68,9 @@ export interface MigrationReviewQueueItem {
   originalSubject?: string;
   body?: string;
   aiSuggestedCategory?: string;
+  aiSuggestedCategoryName?: string | null;
+  senderOrganizationCode?: string | null;
+  receiverOrganizationCode?: string | null;
   aiConfidence?: number;
   aiIssues?: Record<string, unknown>[];
   reviewReason?: string;
@@ -146,6 +149,7 @@ export interface StartIngestPayload {
 
 /** ADR-047: ผลลัพธ์จาก startIngestion */
 export interface StartIngestResponse {
+  message: string;
   batchId: string;
   totalRowsProcessed: number;
   enqueuedCount: number;
@@ -153,6 +157,7 @@ export interface StartIngestResponse {
   errorCount: number;
   lastProcessedIndex: number;
   status: string;
+  filePath: string;
 }
 
 export interface UpdateQueueOcrPayload {

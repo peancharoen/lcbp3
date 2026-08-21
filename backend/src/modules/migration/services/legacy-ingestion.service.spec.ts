@@ -10,6 +10,7 @@ import { MigrationProgress } from '../../ai/entities/migration-progress.entity';
 import { MigrationError } from '../entities/migration-error.entity';
 import { Project } from '../../project/entities/project.entity';
 import { Organization } from '../../organization/entities/organization.entity';
+import { CorrespondenceType } from '../../correspondence/entities/correspondence-type.entity';
 import { NotFoundException } from '../../../common/exceptions';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -65,6 +66,13 @@ describe('LegacyIngestionService (ADR-047)', () => {
     find: jest.fn().mockResolvedValue([
       { id: 10, organizationCode: 'ITD', organizationName: 'Italian-Thai' },
       { id: 20, organizationCode: 'TEAM', organizationName: 'Team Consulting' },
+    ]),
+  };
+
+  const mockCorrespondenceTypeRepo = {
+    find: jest.fn().mockResolvedValue([
+      { id: 1, typeCode: 'RFA', typeName: 'Request for Approval' },
+      { id: 6, typeCode: 'LETTER', typeName: 'Letter' },
     ]),
   };
 
@@ -156,6 +164,10 @@ describe('LegacyIngestionService (ADR-047)', () => {
         {
           provide: getRepositoryToken(Organization),
           useValue: mockOrganizationRepo,
+        },
+        {
+          provide: getRepositoryToken(CorrespondenceType),
+          useValue: mockCorrespondenceTypeRepo,
         },
         {
           provide: 'BullQueue_ai-batch',
