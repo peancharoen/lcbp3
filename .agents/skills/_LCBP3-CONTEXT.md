@@ -24,7 +24,7 @@
 ## 🔴 Tier 1 Non-Negotiables
 
 - **ADR-019 UUID:** `publicId: string` exposed directly — **no** `@Expose({ name: 'id' })` rename; **no** `parseInt`/`Number`/`+` on UUID; **no** `id ?? ''` fallback in frontend.
-- **ADR-009:** No TypeORM migrations — edit `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql` or add a `deltas/*.sql` file.
+- **ADR-044 (amends ADR-009):** No TypeORM migrations — edit `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql` or add a `deltas/*.sql` file.
 - **ADR-016 Security:** JWT + CASL 4-Level RBAC; `@UseGuards(JwtAuthGuard, CaslAbilityGuard)` on every mutation controller; `ThrottlerGuard` on auth; bcrypt 12 rounds; `Idempotency-Key` required on POST/PUT/PATCH.
 - **ADR-002 Document Numbering:** Redis Redlock + TypeORM `@VersionColumn` (double-lock). Never use application-side counter alone.
 - **ADR-008 Notifications:** BullMQ queue — never inline email/notification in a request thread.

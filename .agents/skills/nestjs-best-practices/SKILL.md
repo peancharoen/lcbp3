@@ -1,6 +1,6 @@
 ---
 name: nestjs-best-practices
-description: NestJS best practices and architecture patterns for building production-ready LCBP3-DMS backend code. Enforces ADR-009 (no TypeORM migrations), ADR-019 (hybrid UUID), ADR-016 (security), ADR-007 (error handling), ADR-008 (BullMQ), ADR-001/002 (workflow + numbering), ADR-023/023A/043 (AI boundary — supersedes archived ADR-018/020), ADR-034/040/041 (model stack + sidecar + server consolidation), and ADR-021 (workflow context).
+description: NestJS best practices and architecture patterns for building production-ready LCBP3-DMS backend code. Enforces ADR-044 (no TypeORM migrations; amends ADR-009), ADR-019 (hybrid UUID), ADR-016 (security), ADR-007 (error handling), ADR-008 (BullMQ), ADR-001/002 (workflow + numbering), ADR-023/023A/043 (AI boundary — supersedes archived ADR-018/020), ADR-034/040/041 (model stack + sidecar + server consolidation), and ADR-021 (workflow context).
 version: 1.9.0
 scope: backend
 user-invocable: false
@@ -91,7 +91,7 @@ Reference these guidelines when:
 - `db-hybrid-identifier` - **CRITICAL** ADR-019: INT PK + UUID public API
 - `db-avoid-n-plus-one` - HIGH N+1 query prevention
 - `db-use-transactions` - HIGH Transaction management
-- `db-no-typeorm-migrations` - **CRITICAL** ADR-009: No TypeORM migrations - use SQL files
+- `db-no-typeorm-migrations` - **CRITICAL** ADR-044 (amends ADR-009): No TypeORM migrations - use SQL files
 
 ### 8. API Design (MEDIUM)
 
@@ -114,7 +114,7 @@ Reference these guidelines when:
 
 ### 11. LCBP3-Specific (CRITICAL — Project Overrides)
 
-- `db-no-typeorm-migrations` — **CRITICAL** ADR-009: edit SQL directly
+- `db-no-typeorm-migrations` — **CRITICAL** ADR-044 (amends ADR-009): edit SQL directly
 - `lcbp3-workflow-engine` — **CRITICAL** ADR-001/002/021: DSL state machine + double-lock numbering + workflow context
 - `security-file-two-phase-upload` — **CRITICAL** ADR-016: Upload → Temp → ClamAV → Commit
 - `lcbp3-ai-boundary` — **CRITICAL** ADR-023/023A/043 (supersedes ADR-018/020): Ollama on np-dms-lcbp3 only (post-ADR-041), human-in-the-loop
@@ -123,7 +123,7 @@ Reference these guidelines when:
 
 These rules override general NestJS best practices for the NAP-DMS project:
 
-### ADR-009: No TypeORM Migrations
+### ADR-044: No TypeORM Migrations (amends ADR-009)
 
 - **ห้ามสร้างไฟล์ migration ของ TypeORM**
 - แก้ไข schema โดยตรงที่: `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql`

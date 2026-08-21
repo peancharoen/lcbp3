@@ -1,18 +1,18 @@
 ---
 name: schema-change
-description: Manage database schema changes following ADR-009 (no migrations, modify SQL directly)
+description: Manage database schema changes following ADR-044 (no migrations, modify SQL directly; amends ADR-009)
 version: 1.9.0
 depends-on: []
 handoffs:
   - 108-speckit.checker
 ---
 
-# schema-change — Database Schema Change (ADR-009)
+# schema-change — Database Schema Change (ADR-009 → ADR-044)
 
 > 📌 See [`_LCBP3-CONTEXT.md`](../_LCBP3-CONTEXT.md) for LCBP3-specific conventions.
 
 Use this skill when modifying database schema for LCBP3-DMS.
-Follows `specs/06-Decision-Records/ADR-009-database-strategy.md` — **NO TypeORM migrations**.
+Follows `specs/06-Decision-Records/ADR-044-database-schema-strategy-amendment.md` (amends ADR-009) — **NO TypeORM migrations**.
 
 ## Pre-Change Checklist
 

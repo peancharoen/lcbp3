@@ -1,19 +1,19 @@
 ---
-title: No TypeORM Migrations (ADR-009)
+title: No TypeORM Migrations (ADR-044)
 impact: HIGH
 impactDescription: Use direct SQL schema files instead of TypeORM migrations per project ADR
-tags: database, schema, typeorm, migrations, adr-009
+tags: database, schema, typeorm, migrations, adr-044
 ---
 
-## No TypeORM Migrations (ADR-009)
+## No TypeORM Migrations (ADR-044)
 
-**This project follows ADR-009: Direct SQL Schema Management**
+**This project follows ADR-044: Direct SQL Schema Management**
 
 Unlike standard NestJS/TypeORM practices, this project does **NOT** use TypeORM migrations. Instead, we manage database schema through direct SQL files.
 
 ### Why No Migrations?
 
-- **ADR-009 Decision**: Explicit schema control over auto-generated migrations
+- **ADR-044 Decision**: Explicit schema control over auto-generated migrations
 - **MariaDB-specific features**: Native UUID type, virtual columns, custom indexing
 - **Team workflow**: Schema changes reviewed as SQL, not TypeORM migration classes
 - **Audit trail**: Single source of truth in `specs/03-Data-and-Storage/`
@@ -46,13 +46,13 @@ TypeOrmModule.forRootAsync({
     database: config.get('DB_NAME'),
     entities: ['dist/**/*.entity.js'],
     synchronize: false, // NEVER true, even in development
-    migrationsRun: false, // Disabled per ADR-009
+    migrationsRun: false, // Disabled per ADR-044
     // Migrations are managed via SQL files, not TypeORM
   }),
 });
 ```
 
-### Schema Change Process (ADR-009)
+### Schema Change Process (ADR-044)
 
 1. **Modify SQL file directly**:
 
@@ -106,7 +106,7 @@ export class AddUserAge1705312800000 implements MigrationInterface {
 
 // ❌ WRONG - Do not enable migrationsRun
 TypeOrmModule.forRoot({
-  migrationsRun: true, // Disabled per ADR-009
+  migrationsRun: true, // Disabled per ADR-044
   migrations: ['dist/migrations/*.js'],
 });
 ```
@@ -121,8 +121,8 @@ TypeOrmModule.forRoot({
 
 ### Reference
 
-- [ADR-009 Database Strategy](../../../../specs/06-Decision-Records/ADR-009-db-strategy.md)
+- [ADR-044 Database Schema Strategy Amendment](../../../../specs/06-Decision-Records/ADR-044-database-schema-strategy-amendment.md)
 - [Schema SQL Files](../../../../specs/03-Data-and-Storage/)
 - [Data Dictionary](../../../../specs/03-Data-and-Storage/03-01-data-dictionary.md)
 
-> **Warning**: Attempting to use TypeORM migrations in this project violates ADR-009 and will be rejected in code review.
+> **Warning**: Attempting to use TypeORM migrations in this project violates ADR-044 and will be rejected in code review.
