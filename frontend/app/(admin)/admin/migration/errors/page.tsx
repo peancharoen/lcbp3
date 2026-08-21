@@ -21,25 +21,32 @@ export default function MigrationErrorsPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [batchFilter, setBatchFilter] = useState<string>('ALL');
   const [batchOptions, setBatchOptions] = useState<string[]>([]);
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [totalRows, setTotalRows] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const pageSize = 20;
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setErrorMessage(null);
-      const res = await migrationService.getErrors({ limit: 100 });
+      const res = await migrationService.getErrors({ page, limit: pageSize });
       let fetchedItems = Array.isArray(res.items) ? res.items : [];
       // ADR-047: filter by batchId ฝั่ง client
       if (batchFilter !== 'ALL') {
         fetchedItems = fetchedItems.filter((i) => i.batchId === batchFilter);
       }
       setItems(fetchedItems);
+      setTotalRows(res.total ?? fetchedItems.length);
+      setTotalPages(res.totalPages ?? 1);
     } catch (error: unknown) {
       setItems([]);
       setErrorMessage(getApiErrorMessage(error, 'Failed to load errors'));
     } finally {
       setLoading(false);
     }
-  }, [batchFilter]);
+  }, [batchFilter, page]);
 
   const fetchBatches = useCallback(async () => {
     try {
@@ -167,6 +174,30 @@ export default function MigrationErrorsPage() {
               </Table>
             </div>
           )}
+          {/* Pagination + row count */}
+          <div className="flex items-center justify-between mt-4 pt-4 border-t">
+            <div className="text-sm text-muted-foreground">
+              ทั้งหมด {totalRows} รายการ (หน้า {page}/{totalPages})
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page <= 1 || loading}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                ก่อนหน้า
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages || loading}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                ถัดไป
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -144,6 +144,17 @@ export interface StartIngestPayload {
   resume?: boolean;
 }
 
+/** ADR-047: ผลลัพธ์จาก startIngestion */
+export interface StartIngestResponse {
+  batchId: string;
+  totalRowsProcessed: number;
+  enqueuedCount: number;
+  skippedCount: number;
+  errorCount: number;
+  lastProcessedIndex: number;
+  status: string;
+}
+
 export interface UpdateQueueOcrPayload {
   ocrText: string;
   reEmbed?: boolean;

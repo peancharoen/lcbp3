@@ -10,6 +10,7 @@ import {
   MigrationReviewStatus,
   CommitBatchDto,
   StartIngestPayload,
+  StartIngestResponse,
   UpdateQueueOcrPayload,
 } from '@/types/migration';
 
@@ -168,13 +169,13 @@ export const migrationService = {
     return data?.data || data;
   },
 
-  startIngestion: async (payload: StartIngestPayload, idempotencyKey: string) => {
+  startIngestion: async (payload: StartIngestPayload, idempotencyKey: string): Promise<StartIngestResponse> => {
     const { data } = await api.post('/migration/ingest/start', payload, {
       headers: {
         'idempotency-key': idempotencyKey,
       },
     });
-    return data?.data || data;
+    return (data?.data || data) as StartIngestResponse;
   },
 
   // ADR-019 + ADR-016: ใช้ publicId และต้องส่ง Idempotency-Key

@@ -82,16 +82,20 @@ export default function MigrationReviewPage() {
         setItem(res);
 
         if (res) {
-          // Pre-fill form from database item and aiIssues payload
+          // Pre-fill form from database item (Excel-extracted fields) + aiIssues payload
           const issues = (res.aiIssues || {}) as MigrationAiIssues;
           form.reset({
             documentNumber: res.documentNumber || '',
-            subject: res.title || res.originalTitle || '',
+            subject: res.title || res.originalTitle || res.subject || res.originalSubject || '',
             category: res.aiSuggestedCategory || '',
             documentDate: issues.documentDate || '',
-            issuedDate: issues.issuedDate || '',
-            receivedDate: issues.receivedDate || '',
-            senderId: issues.senderId ? String(issues.senderId) : '',
+            issuedDate: res.issuedDate || issues.issuedDate || '',
+            receivedDate: res.receivedDate || issues.receivedDate || '',
+            senderId: res.senderOrganizationId
+              ? String(res.senderOrganizationId)
+              : issues.senderId
+                ? String(issues.senderId)
+                : '',
             disciplineId: issues.disciplineId ? String(issues.disciplineId) : '',
           });
         }

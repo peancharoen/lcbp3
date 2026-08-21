@@ -217,7 +217,8 @@ export function LegacyIngestionCard({ onIngestionStarted }: LegacyIngestionCardP
       );
 
       setStatusMessage(`เริ่มกระบวนการสำเร็จ (Batch ID: ${ingestRes.batchId})`);
-      toast.success('ระบบเริ่มนำเข้าเอกสารลงใน Review Queue เรียบร้อยแล้ว');
+      const summary = `นำเข้าสำเร็จ ${ingestRes.enqueuedCount ?? 0} รายการ | ข้าม ${ingestRes.skippedCount ?? 0} | ผิดพลาด ${ingestRes.errorCount ?? 0} | ทั้งหมด ${ingestRes.totalRowsProcessed ?? 0} แถว`;
+      toast.success(summary);
       if (onIngestionStarted) {
         onIngestionStarted();
       }

@@ -364,6 +364,11 @@ function LegacyManagementTab() {
   // ADR-019: ใช้ publicId (string) สำหรับ selection ห้ามใช้ INT id
   const [selectedPublicIds, setSelectedPublicIds] = useState<string[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [totalRows, setTotalRows] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const pageSize = 20;
 
   const fetchData = useCallback(async () => {
     try {
@@ -371,7 +376,8 @@ function LegacyManagementTab() {
       setErrorMessage(null);
       const res = await migrationService.getReviewQueue({
         status: statusFilter === 'ALL' ? undefined : (statusFilter as MigrationReviewStatus),
-        limit: 50,
+        page,
+        limit: pageSize,
       });
       let fetchedItems = Array.isArray(res.items) ? res.items : [];
       // ADR-047: filter by batchId ฝั่ง client (backend ยังไม่รองรับ batchId query)
@@ -379,6 +385,8 @@ function LegacyManagementTab() {
         fetchedItems = fetchedItems.filter((i) => i.batchId === batchFilter);
       }
       setItems(fetchedItems);
+      setTotalRows(res.total ?? fetchedItems.length);
+      setTotalPages(res.totalPages ?? 1);
       setSelectedPublicIds([]);
     } catch (error: unknown) {
       setItems([]);
@@ -386,7 +394,7 @@ function LegacyManagementTab() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, batchFilter]);
+  }, [statusFilter, batchFilter, page]);
 
   // ADR-047: โหลด batch options สำหรับ filter dropdown
   const fetchBatches = useCallback(async () => {
@@ -635,6 +643,30 @@ function LegacyManagementTab() {
             </Table>
           </div>
         )}
+        {/* Pagination + row count */}
+        <div className="flex items-center justify-between mt-4 pt-4 border-t">
+          <div className="text-sm text-muted-foreground">
+            ทั้งหมด {totalRows} รายการ (หน้า {page}/{totalPages})
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1 || loading}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              ก่อนหน้า
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages || loading}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            >
+              ถัดไป
+            </Button>
+          </div>
+        </div>
       </CardContent>
     </Card>
     </div>
