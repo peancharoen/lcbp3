@@ -16,7 +16,7 @@
 | Gap/Requirement | แหล่งที่มา | วิธีการแก้ไขใน ADR นี้ |
 |----------------|-------------|-------------------|
 | **Global State Management** | [Product Vision](../00-overview/00-03-product-vision.md) - UI/UX Requirements | Zustand for client state |
-| **Server State Synchronization** | [Acceptance Criteria](../01-Requirements/01-05-acceptance-criteria.md) - AC-UI-001 | TanStack Query for API data |
+| **Server State Synchronization** | [Acceptance Criteria](../01-requirements/01-05-acceptance-criteria.md) - AC-UI-001 | TanStack Query for API data |
 | **Performance Optimization** | [Frontend Guidelines](../05-Engineering-Guidelines/05-03-frontend-guidelines.md) - Performance | Selective re-renders with Zustand |
 | **Type Safety** | [Engineering Guidelines](../05-Engineering-Guidelines/05-01-fullstack-js-guidelines.md) - TypeScript | Full TypeScript support |
 | **Bundle Size Constraints** | [Architecture](../02-architecture/02-02-software-architecture.md) - Performance | Lightweight solutions (Zustand 1.2kb) |
@@ -471,7 +471,7 @@ export const useUIStore = create<UIState>()(
 ## Related ADRs
 
 - [ADR-011: Next.js App Router](./ADR-011-nextjs-app-router.md) - Server Components
-- [ADR-007: API Design](./ADR-007-api-design-error-handling.md)
+- [ADR-007: API Design](../99-archives/ADR-007-api-design-error-handling.md)
 
 ---
 

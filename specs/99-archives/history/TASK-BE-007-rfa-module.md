@@ -498,8 +498,8 @@ describe('RfaService', () => {
 
 ## 📚 Related Documents
 
-- [Data Model - RFAs](../02-architecture/data-model.md#rfas)
-- [Functional Requirements - RFA](../01-requirements/03.3-rfa.md)
+- [Data Model - RFAs](../../99-archives/02-03-data-model.md#rfas)
+- [Functional Requirements - RFA](../../01-requirements/01-03-modules/01-03-03-rfa.md)
 
 ---
 

@@ -5,8 +5,8 @@
 **Decision Makers:** Development Team, CTO
 **Related Documents:**
 
-- [System Architecture](../02-Architecture/02-01-system-architecture.md)
-- [FullStack JS Guidelines](../03-implementation/03-01-fullftack-js-v1.7.0.md)
+- [System Architecture](../02-architecture/02-02-software-architecture.md)
+- [FullStack JS Guidelines](../05-Engineering-Guidelines/05-01-fullstack-js-guidelines.md)
 
 ---
 
@@ -377,15 +377,15 @@ lcbp3-dms/
 
 เป็นไปตาม:
 
-- [FullStack JS Guidelines](../03-implementation/03-01-fullftack-js-v1.7.0.md)
-- [Backend Guidelines](../03-implementation/03-02-backend-guidelines.md)
-- [Frontend Guidelines](../03-implementation/03-03-frontend-guidelines.md)
+- [FullStack JS Guidelines](../05-Engineering-Guidelines/05-01-fullstack-js-guidelines.md)
+- [Backend Guidelines](../05-Engineering-Guidelines/05-02-backend-guidelines.md)
+- [Frontend Guidelines](../05-Engineering-Guidelines/05-03-frontend-guidelines.md)
 
 ---
 
 ## Related ADRs
 
-- [ADR-007: Deployment Strategy](./ADR-007-deployment-strategy.md) - Docker deployment details
+- [ADR-007: Deployment Strategy](./ADR-015-deployment-infrastructure.md) - Docker deployment details
 
 ---
 

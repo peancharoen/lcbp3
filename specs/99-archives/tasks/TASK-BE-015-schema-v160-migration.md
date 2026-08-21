@@ -227,8 +227,8 @@ pnpm test:watch rfa
 
 ## 📚 Related Documents
 
-- [Schema v1.6.0](../07-database/lcbp3-v1.6.0-schema.sql)
-- [Data Dictionary v1.6.0](../07-database/data-dictionary-v1.6.0.md)
+- [Schema v1.6.0](../../03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql)
+- [Data Dictionary v1.6.0](../../03-Data-and-Storage/03-01-data-dictionary.md)
 - [CHANGELOG v1.6.0](../../CHANGELOG.md)
 
 ---

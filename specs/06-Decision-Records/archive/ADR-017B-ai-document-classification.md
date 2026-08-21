@@ -1,6 +1,6 @@
 # ADR-017B: AI Document Classification
 
-**Status:** Superseded by [ADR-023: Unified AI Architecture](./ADR-023-unified-ai-architecture.md)
+**Status:** Superseded by [ADR-023: Unified AI Architecture](../ADR-023-unified-ai-architecture.md)
 **Date:** 2026-03-27
 **Version:** 1.8.2 (Aligned with ADR-020)
 **Review Cycle:** Core ADR (Review every 6 months or Major Version upgrade)
@@ -17,10 +17,10 @@
 - [ADR-020: AI Intelligence Integration Architecture](./ADR-020-ai-intelligence-integration.md) — Overall AI Architecture & RFA-First Strategy
 - [ADR-017: Ollama Data Migration Architecture](./ADR-017-ollama-data-migration.md)
 - [ADR-018: AI Boundary Policy](./ADR-018-ai-boundary.md) — AI Physical Isolation (No Direct DB/Storage Access)
-- [n8n Migration Setup Guide](../03-Data-and-Storage/03-05-n8n-migration-setup-guide.md)
-- [Legacy Data Migration Plan](../03-Data-and-Storage/03-04-legacy-data-migration.md)
-- [Migration Business Scope](../03-Data-and-Storage/03-06-migration-business-scope.md)
-- [Glossary](../00-Overview/00-02-glossary.md)
+- [n8n Migration Setup Guide](../../03-Data-and-Storage/03-05-n8n-migration-setup-guide.md)
+- [Legacy Data Migration Plan](../../03-Data-and-Storage/03-04-legacy-data-migration.md)
+- [Migration Business Scope](../../03-Data-and-Storage/03-06-migration-business-scope.md)
+- [Glossary](../../00-overview/00-02-glossary.md)
 
 > **Note:** ADR-017B extends ADR-017's scope from batch migration to AI-powered document classification, enabling automatic categorization and metadata extraction. Complies with ADR-018 (AI Isolation Policy) and is part of ADR-020 (Unified AI Architecture).
 
@@ -446,10 +446,10 @@ Phase 2: Final Commit (โดย Admin ผ่าน Frontend)
 
 - [ADR-017: Ollama Data Migration Architecture](./ADR-017-ollama-data-migration.md) — Architecture หลักสำหรับ Migration
 - [ADR-018: AI Boundary Policy](./ADR-018-ai-boundary.md) — Security Isolation สำหรับ AI
-- [03-05-n8n-migration-setup-guide.md](../03-Data-and-Storage/03-05-n8n-migration-setup-guide.md) — คู่มือติดตั้ง n8n Workflow
-- [03-04-legacy-data-migration.md](../03-Data-and-Storage/03-04-legacy-data-migration.md) — แผน Migration แบบละเอียด
-- [03-06-migration-business-scope.md](../03-Data-and-Storage/03-06-migration-business-scope.md) — Go/No-Go Gates และ Business Scope
-- [00-02-glossary.md](../00-Overview/00-02-glossary.md) — คำศัพท์และตัวย่อในระบบ DMS
+- [03-05-n8n-migration-setup-guide.md](../../03-Data-and-Storage/03-05-n8n-migration-setup-guide.md) — คู่มือติดตั้ง n8n Workflow
+- [03-04-legacy-data-migration.md](../../03-Data-and-Storage/03-04-legacy-data-migration.md) — แผน Migration แบบละเอียด
+- [03-06-migration-business-scope.md](../../03-Data-and-Storage/03-06-migration-business-scope.md) — Go/No-Go Gates และ Business Scope
+- [00-02-glossary.md](../../00-overview/00-02-glossary.md) — คำศัพท์และตัวย่อในระบบ DMS
 
 ---
 
@@ -461,7 +461,7 @@ Phase 2: Final Commit (โดย Admin ผ่าน Frontend)
 | 1.8.1   | 2026-03-27 | Tech Lead  | **Refactored to ADR format** — Aligned with ADR-017, ADR-018, and Project Specs |
 | 1.8.3   | 2026-04-04 | System Architect | **Renamed** — Changed from "Smart Legacy Document Digitization" to "AI Document Classification" for clarity and simplicity |
 | 1.8.4   | 2026-04-04 | System Architect | **Enhanced** — Added Impact Analysis template, ADR Review Cycle process, Gap Linking to requirements, and Version Dependency tracking |
-| 1.8.5   | 2026-05-14 | System Architect | **Superseded** — Consolidated into master AI architecture [ADR-023](./ADR-023-unified-ai-architecture.md) |
+| 1.8.5   | 2026-05-14 | System Architect | **Superseded** — Consolidated into master AI architecture [ADR-023](../ADR-023-unified-ai-architecture.md) |
 
 ---
 

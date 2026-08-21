@@ -1,13 +1,13 @@
 # ADR-022: Retrieval-Augmented Generation (RAG) System
 
-**Status:** Superseded by [ADR-023: Unified AI Architecture](./ADR-023-unified-ai-architecture.md)
+**Status:** Superseded by [ADR-023: Unified AI Architecture](../ADR-023-unified-ai-architecture.md)
 **Date:** 2026-04-19
 **Decision Makers:** Development Team, System Architect
 **Related Documents:**
 
-- [RAG Implementation Guide v1.1.2](../08-Tasks/ADR-022-Retrieval-Augmented-Generation/LCBP3-RAG-Implementation-Guide-v1.1.2.md)
-- [Implementation Plan](../08-Tasks/ADR-022-Retrieval-Augmented-Generation/plan.md)
-- [Tasks](../08-Tasks/ADR-022-Retrieval-Augmented-Generation/tasks.md)
+- [RAG Implementation Guide v1.1.2](../../08-Tasks/ADR-022-Retrieval-Augmented-Generation/LCBP3-RAG-Implementation-Guide-v1.1.2.md)
+- [Implementation Plan](../../08-Tasks/ADR-022-Retrieval-Augmented-Generation/plan.md)
+- [Tasks](../../08-Tasks/ADR-022-Retrieval-Augmented-Generation/tasks.md)
 - [ADR-018: AI Boundary](./ADR-018-ai-boundary.md)
 - [ADR-020: AI Intelligence Integration](./ADR-020-ai-intelligence-integration.md)
 

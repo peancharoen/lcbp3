@@ -170,9 +170,9 @@ graph TB
 ## 🔗 Related Documentation
 
 - [Architecture Documentation](../02-architecture/)
-- [Implementation Guidelines](../03-implementation/)
-- [Architecture Decision Records](../05-decisions/)
-- [Backend Development Tasks](../06-tasks/)
+- [Implementation Guidelines](../05-Engineering-Guidelines/)
+- [Architecture Decision Records](../06-Decision-Records/)
+- [Backend Development Tasks](../08-Tasks/)
 
 ---
 

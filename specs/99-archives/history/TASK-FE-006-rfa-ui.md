@@ -400,7 +400,7 @@ export function RFADetail({ data }: { data: any }) {
 ## 🔗 Related Documents
 
 - [TASK-BE-007: RFA Module](./TASK-BE-007-rfa-module.md)
-- [ADR-013: Form Handling](../../05-decisions/ADR-013-form-handling-validation.md)
+- [ADR-013: Form Handling](../../06-Decision-Records/ADR-013-form-handling-validation.md)
 
 ---
 

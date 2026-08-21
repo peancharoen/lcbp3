@@ -413,8 +413,8 @@ curl -X POST http://localhost:3000/correspondences \
 
 ## 📚 Related Documents
 
-- [ADR-003: Two-Phase File Storage](../05-decisions/ADR-003-file-storage-approach.md)
-- [Backend Guidelines - File Storage](../03-implementation/backend-guidelines.md#file-storage)
+- [ADR-003: Two-Phase File Storage](../../99-archives/ADR-003-file-storage-approach.md)
+- [Backend Guidelines - File Storage](../../05-Engineering-Guidelines/05-02-backend-guidelines.md#file-storage)
 
 ---
 

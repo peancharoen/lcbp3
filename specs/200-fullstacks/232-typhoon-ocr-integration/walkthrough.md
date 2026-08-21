@@ -26,7 +26,7 @@
 - **[MODIFY] [admin-ai.service.ts](frontend/lib/services/admin-ai.service.ts)**:
   - เพิ่ม interface `LoadedModelInfo` และ `VramStatusResponse`
   - อัปเดต `getVramStatus`, `getAvailableModels`, `setActiveModel`, และ `addModel` ให้รองรับ Dynamic UUIDv7 (`modelId`) และ Idempotency headers ตามมาตรฐานความปลอดภัย (ADR-016 / ADR-019)
-- **[MODIFY] [page.tsx](frontend/app/(admin)/admin/ai/page.tsx)**:
+- **[MODIFY] [page.tsx](frontend/app/%28admin%29/admin/ai/page.tsx)**:
   - เพิ่ม **VRAM GPU Monitor Card** สดใหม่ในส่วน Overview & Health แสดง Used/Free VRAM และรายการโมเดลที่ทำงานบน GPU เรียลไทม์ (Auto-refresh ทุกๆ 15 วินาทีผ่าน React Query)
   - อัปเกรด Card การบริหารจัดการโมเดล AI ในระบบ AI Admin console ให้ทำงานสลับโมเดลหลักผ่าน UUIDv7 และแสดง VRAM Requirement ของแต่ละโมเดลอย่างสมดุลสวยงาม
 

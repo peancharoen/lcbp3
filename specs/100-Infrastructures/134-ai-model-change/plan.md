@@ -71,7 +71,7 @@ specs/100-Infrastructures/134-ai-model-change/
 ### Infrastructure Files (already exist)
 
 ```text
-specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/
+specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/
 ├── typhoon2.5-np-dms.model.md            # Main model Modelfile ✅ exists
 └── typhoon-np-dms-ocr.model.md           # OCR model Modelfile  ✅ exists
 ```

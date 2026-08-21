@@ -133,7 +133,7 @@ Architecture Decision Records (ADRs) เป็นเอกสารที่บ�
 ### 2. Data Integrity & Concurrency
 
 - **ADR-002:** Document Numbering - Double-lock (Redis Redlock + DB Optimistic) เพื่อป้องกัน Race Condition
-  - 📋 [Requirements](../01-Requirements/01-03.11-document-numbering.md)
+  - 📋 [Requirements](../99-archives/01-03.11-document-numbering.md)
   - 📘 [Implementation Guide](../05-Engineering-Guidelines/05-02-backend-guidelines.md)
   - 📗 [Operations Guide](../04-Infrastructure-OPS/04-04-deployment-guide.md)
 - **ADR-009:** Database Migration - TypeORM Migrations พร้อม Blue-Green Deployment

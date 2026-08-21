@@ -10,10 +10,10 @@
 
 | ไฟล์                                                                                        | การเปลี่ยนแปลย                                                                  |
 | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/Dockerfile`         | ✅ สร้างใหม่ — Python 3.10 slim, ลบ pre-download step (segfault)                |
-| `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py`             | ✅ สร้างใหม่ — FastAPI: `/health`, `/ocr` (PaddleOCR), `/normalize` (PyThaiNLP) |
-| `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/requirements.txt`   | ✅ สร้างใหม่ — `numpy<2.0` ต้องอยู่ก่อน paddlepaddle (ABI fix)                  |
-| `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/docker-compose.yml` | ✅ สร้างใหม่ — CIFS volume mount + named volume สำหรับ model cache              |
+| `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/Dockerfile`         | ✅ สร้างใหม่ — Python 3.10 slim, ลบ pre-download step (segfault)                |
+| `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/app.py`             | ✅ สร้างใหม่ — FastAPI: `/health`, `/ocr` (PaddleOCR), `/normalize` (PyThaiNLP) |
+| `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/requirements.txt`   | ✅ สร้างใหม่ — `numpy<2.0` ต้องอยู่ก่อน paddlepaddle (ABI fix)                  |
+| `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/docker-compose.yml` | ✅ สร้างใหม่ — CIFS volume mount + named volume สำหรับ model cache              |
 | `specs/04-Infrastructure-OPS/04-00-docker-compose/QNAP/app/docker-compose-app.yml`          | เพิ่ม `OCR_API_URL`, `OCR_CHAR_THRESHOLD`, `OCR_SIDECAR_UPLOAD_BASE`            |
 | `specs/04-Infrastructure-OPS/04-00-docker-compose/QNAP/app/.env.example`                    | เพิ่ม `OCR_API_URL`, `OCR_CHAR_THRESHOLD`, `OCR_SIDECAR_UPLOAD_BASE`            |
 | `backend/src/modules/ai/services/ocr.service.ts`                                            | เพิ่ม `remapPath()`, AggregateError fix                                         |

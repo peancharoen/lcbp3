@@ -3,7 +3,7 @@
 **Status:** ✅ Accepted
 **Date:** 2026-02-24
 **Decision Makers:** Security Team, System Architect
-**Related Documents:** [ADR-004: RBAC Implementation](./ADR-004-rbac-implementation.md), [ADR-007: API Design](./ADR-007-api-design-error-handling.md)
+**Related Documents:** [ADR-004: RBAC Implementation](../99-archives/ADR-004-rbac-implementation.md), [ADR-007: API Design](../99-archives/ADR-007-api-design-error-handling.md)
 **Version Applicability:** v1.8.0+
 **Next Review:** 2026-08-01 (6-month cycle)
 
@@ -16,9 +16,9 @@
 | Gap/Requirement | แหล่งที่มา | วิธีการแก้ไขใน ADR นี้ |
 |----------------|-------------|-------------------|
 | **Authentication & Authorization** | [Product Vision](../00-overview/00-03-product-vision.md) - Security Requirements | JWT + RBAC 4-level implementation |
-| **Data Protection** | [Acceptance Criteria](../01-Requirements/01-05-acceptance-criteria.md) - AC-SEC-001 | AES-256 encryption at rest + HTTPS in transit |
-| **Audit Trail** | [Business Rules](../01-Requirements/01-02-business-rules/01-02-01-rbac-matrix.md) | Comprehensive security event logging |
-| **Session Management** | [Edge Cases](../01-Requirements/01-06-edge-cases-and-rules.md) - Session timeout | Stateless JWT + 15min access token expiry |
+| **Data Protection** | [Acceptance Criteria](../01-requirements/01-05-acceptance-criteria.md) - AC-SEC-001 | AES-256 encryption at rest + HTTPS in transit |
+| **Audit Trail** | [Business Rules](../01-requirements/01-02-business-rules/01-02-01-rbac-matrix.md) | Comprehensive security event logging |
+| **Session Management** | [Edge Cases](../01-requirements/01-06-edge-cases-and-rules.md) - Session timeout | Stateless JWT + 15min access token expiry |
 | **Input Validation** | [API Design](../02-architecture/02-04-api-design.md) - Validation layer | Class-validator + Zod + Sanitization |
 
 ### แก้ไขความขัดแย้ง:
@@ -519,8 +519,8 @@ await this.auditLogService.create({
 
 ## Related ADRs
 
-- [ADR-004: RBAC Implementation](./ADR-004-rbac-implementation.md)
-- [ADR-007: API Design & Error Handling](./ADR-007-api-design-error-handling.md)
+- [ADR-004: RBAC Implementation](../99-archives/ADR-004-rbac-implementation.md)
+- [ADR-007: API Design & Error Handling](../99-archives/ADR-007-api-design-error-handling.md)
 - [ADR-015: Deployment & Infrastructure](./ADR-015-deployment-infrastructure.md)
 
 ---

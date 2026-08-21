@@ -32,7 +32,7 @@
 - อัปเดต `activateAiModel()` ใน [ai.service.ts](backend/src/modules/ai/ai.service.ts) ดึงข้อมูลโมเดล Active ตัวเดิมก่อนหน้า และทำการสั่ง Unload คืนค่า VRAM ของโมเดลเก่าทันทีเมื่อการโหลดและสลับโมเดลตัวใหม่สำเร็จ
 
 ### 3. ระบบป้องกัน APIs ใน ocr-sidecar ด้วย API Key (X-API-Key) — [💡 Suggestion 2 เสร็จสิ้น]
-- **ฝั่ง ocr-sidecar [app.py](specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py):**
+- **ฝั่ง ocr-sidecar [app.py](specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/app.py):**
   - นำเข้า `APIKeyHeader`, `Security`, และ `status` เพื่อประกาศและกำหนดการใช้งาน `X-API-Key`
   - สร้าง Dependency `get_api_key` เพื่อตรวจสอบและแกะคีย์เปรียบเทียบ หากไม่ตรงจะส่งกลับข้อผิดพลาด `401 Unauthorized`
   - นำไปติดตั้งเป็น Dependencies ใน endpoints หลัก ได้แก่ `/ocr`, `/ocr-upload` และ `/normalize`
@@ -60,9 +60,9 @@
 | [sandbox-ocr-engine.service.ts](backend/src/modules/ai/services/sandbox-ocr-engine.service.ts) | ส่ง API Key (`X-API-Key` header) ยิงเรียกใช้ OCR Sandbox (Suggestion 2) | **[MODIFY]** |
 | [vram-monitor.service.ts](backend/src/modules/ai/services/vram-monitor.service.ts) | มอนิเตอร์ GPU และ VRAM พร้อมความทนทานต่อ OOM ในบล็อก catch | **[MODIFY]** |
 | [ai.service.spec.ts](backend/src/modules/ai/ai.service.spec.ts) | เขียนชุดยูนิตเทสครอบคลุมสถานการณ์การโหลดแบบ synchronous ล้มเหลว | **[MODIFY]** |
-| [page.tsx](frontend/app/(admin)/admin/ai/page.tsx) | เพิ่ม active status badge สำหรับโมเดล AI หลักบนหน้าจอ Admin Dashboard | **[MODIFY]** |
+| [page.tsx](frontend/app/%28admin%29/admin/ai/page.tsx) | เพิ่ม active status badge สำหรับโมเดล AI หลักบนหน้าจอ Admin Dashboard | **[MODIFY]** |
 | [OcrSandboxPromptManager.tsx](frontend/components/admin/ai/OcrSandboxPromptManager.tsx) | จัดโครงสร้างปุ่มแท็บ Sandbox เริ่มต้นและป้ายชื่อ dropdown ให้ตรงความจริง | **[MODIFY]** |
-| [app.py](specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py) | เพิ่ม API Key protection (`X-API-Key`) และ Dynamic engine map (Suggestion 2) | **[MODIFY]** |
+| [app.py](specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/app.py) | เพิ่ม API Key protection (`X-API-Key`) และ Dynamic engine map (Suggestion 2) | **[MODIFY]** |
 | `backend/package.json` | อัปเกรด `axios` เป็นเวอร์ชันล่าสุดที่ปลอดภัย | **[MODIFY]** |
 | `frontend/package.json` | อัปเกรด `axios` เป็นเวอร์ชันล่าสุดที่ปลอดภัย | **[MODIFY]** |
 

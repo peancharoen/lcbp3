@@ -119,7 +119,7 @@ Checks:
 This is expected until Typhoon OCR runtime integration is implemented in:
 - `backend/src/modules/ai/services/ocr.service.ts`
 - `backend/src/modules/ai/processors/ai-batch.processor.ts`
-- `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py`
+- `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/app.py`
 
 ## Security Notes
 

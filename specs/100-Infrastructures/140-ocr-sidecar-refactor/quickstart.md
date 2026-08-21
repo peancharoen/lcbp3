@@ -16,7 +16,7 @@
 
 1. Navigate to sidecar directory:
 ```bash
-cd specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar
+cd specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/ocr-sidecar
 ```
 
 2. Update `app.py` with the following changes:
@@ -81,7 +81,7 @@ OCR_SIDECAR_UPLOAD_BASE=/app/uploads
 
 1. Build Docker image on Desk-5439:
 ```bash
-cd specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar
+cd specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/ocr-sidecar
 docker-compose build
 ```
 
@@ -186,7 +186,7 @@ pnpm run build
 
 1. Navigate to sidecar tests directory:
 ```bash
-cd specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/tests
+cd specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/tests
 ```
 
 2. Run path traversal tests:

@@ -16,7 +16,7 @@
 | Gap/Requirement | แหล่งที่มา | วิธีการแก้ไขใน ADR นี้ |
 |----------------|-------------|-------------------|
 | **Design Consistency** | [Product Vision](../00-overview/00-03-product-vision.md) - UI/UX Requirements | Shadcn/UI for consistent design system |
-| **Accessibility Support** | [Acceptance Criteria](../01-Requirements/01-05-acceptance-criteria.md) - AC-UI-003 | Radix UI primitives for WCAG 2.1 AA |
+| **Accessibility Support** | [Acceptance Criteria](../01-requirements/01-05-acceptance-criteria.md) - AC-UI-003 | Radix UI primitives for WCAG 2.1 AA |
 | **Performance Optimization** | [Frontend Guidelines](../05-Engineering-Guidelines/05-03-frontend-guidelines.md) - Performance | Tree-shakeable components, minimal bundle |
 | **Customization Flexibility** | [Engineering Guidelines](../05-Engineering-Guidelines/05-01-fullstack-js-guidelines.md) - DX | Full ownership of component code |
 | **Bundle Size Constraints** | [Architecture](../02-architecture/02-02-software-architecture.md) - Performance | Copy-only-what-you-use approach |

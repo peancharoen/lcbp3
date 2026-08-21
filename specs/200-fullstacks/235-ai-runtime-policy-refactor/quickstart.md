@@ -283,7 +283,7 @@ cd backend
 pnpm test -- --testPathPattern="ai-policy|ocr-residency|execution-profile"
 
 # Sidecar tests
-cd specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar
+cd specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/ocr-sidecar
 pytest tests/ -v
 ```
 

@@ -1,6 +1,6 @@
 # ADR-020: AI Intelligence Integration Architecture
 
-**Status:** Superseded by [ADR-023: Unified AI Architecture](./ADR-023-unified-ai-architecture.md)
+**Status:** Superseded by [ADR-023: Unified AI Architecture](../ADR-023-unified-ai-architecture.md)
 **Date:** 2026-04-03
 **Version:** 1.8.5
 **Review Cycle:** Core ADR (Review every 6 months or Major Version upgrade)
@@ -17,8 +17,8 @@
 - [ADR-017: Ollama Data Migration Architecture](./ADR-017-ollama-data-migration.md)
 - [ADR-017B: AI Document Classification](./ADR-017B-ai-document-classification.md)
 - [ADR-018: AI Boundary Policy](./ADR-018-ai-boundary.md) — AI Physical Isolation
-- [ADR-019: Hybrid Identifier Strategy](./ADR-019-hybrid-identifier-strategy.md) — UUID Strategy
-- [n8n Migration Setup Guide](../03-Data-and-Storage/03-05-n8n-migration-setup-guide.md)
+- [ADR-019: Hybrid Identifier Strategy](../ADR-019-hybrid-identifier-strategy.md) — UUID Strategy
+- [n8n Migration Setup Guide](../../03-Data-and-Storage/03-05-n8n-migration-setup-guide.md)
 
 > **หมายุ:** ADR-020 กำหนดสถาปัตยกรรมการผสานรวม AI Intelligence เข้ากับระบบ NAP-DMS แบบครบวงจร โดยใช้แนวทาง "RFA-First" เพื่อให้ครอบคลุมทั้งการนำเข้าเอกสารเก่า (Legacy Migration) และการสร้างเอกสารใหม่ (New Ingestion)
 
@@ -528,22 +528,22 @@ OUTPUT FORMAT:
 - **[ADR-017: Ollama Data Migration](./ADR-017-ollama-data-migration.md)** — Foundation migration architecture
 - **[ADR-017B: Smart Categorization](./ADR-017B-ollama.md)** — AI categorization use cases
 - **[ADR-018: AI Boundary Policy](./ADR-018-ai-boundary.md)** — Security isolation requirements (CRITICAL)
-- **[ADR-019: Hybrid Identifier Strategy](./ADR-019-hybrid-identifier-strategy.md)** — UUID usage patterns (CRITICAL)
+- **[ADR-019: Hybrid Identifier Strategy](../ADR-019-hybrid-identifier-strategy.md)** — UUID usage patterns (CRITICAL)
 
 ### Implementation Tasks
-- **[Task BE-AI-01: Pipeline Infrastructure Setup](../08-Tasks/Task%20BE-AI-01.md)** — n8n + PaddleOCR + Gemma 4 setup
-- **[Task BE-AI-02: Backend AI Gateway Development](../08-Tasks/Task%20BE-AI-02.md)** — NestJS integration layer
-- **[Task FE-AI-03: Frontend Human-in-the-Loop Interface](../08-Tasks/Task-FE-AI-03.md)** — User experience and validation
+- **[Task BE-AI-01: Pipeline Infrastructure Setup](../../08-Tasks/Task%20BE-AI-01.md)** — n8n + PaddleOCR + Gemma 4 setup
+- **[Task BE-AI-02: Backend AI Gateway Development](../../08-Tasks/Task%20BE-AI-02.md)** — NestJS integration layer
+- **[Task FE-AI-03: Frontend Human-in-the-Loop Interface](../../08-Tasks/Task-FE-AI-03.md)** — User experience and validation
 
 ### Technical Specifications
-- **[03-05-n8n-migration-setup-guide.md](../03-Data-and-Storage/03-05-n8n-migration-setup-guide.md)** — n8n configuration details
-- **[05-02-backend-guidelines.md](../05-Engineering-Guidelines/05-02-backend-guidelines.md)** — NestJS patterns and conventions
-- **[05-03-frontend-guidelines.md](../05-Engineering-Guidelines/05-03-frontend-guidelines.md)** — Next.js patterns and UI standards
-- **[03-01-data-dictionary.md](../03-Data-and-Storage/03-01-data-dictionary.md)** — Field definitions and business rules
+- **[03-05-n8n-migration-setup-guide.md](../../03-Data-and-Storage/03-05-n8n-migration-setup-guide.md)** — n8n configuration details
+- **[05-02-backend-guidelines.md](../../05-Engineering-Guidelines/05-02-backend-guidelines.md)** — NestJS patterns and conventions
+- **[05-03-frontend-guidelines.md](../../05-Engineering-Guidelines/05-03-frontend-guidelines.md)** — Next.js patterns and UI standards
+- **[03-01-data-dictionary.md](../../03-Data-and-Storage/03-01-data-dictionary.md)** — Field definitions and business rules
 
 ### Compliance & Security
-- **[ADR-016: Security & Authentication](./ADR-016-security-authentication.md)** — Overall security framework
-- **[04-08-release-management-policy.md](../04-Infrastructure-OPS/04-08-release-management-policy.md)** — Deployment procedures
+- **[ADR-016: Security & Authentication](../ADR-016-security-authentication.md)** — Overall security framework
+- **[04-08-release-management-policy.md](../../04-Infrastructure-OPS/04-08-release-management-policy.md)** — Deployment procedures
 
 ---
 
@@ -654,7 +654,7 @@ OUTPUT FORMAT:
 | 1.8.5 | 2026-04-03 | AI Integration Lead | Initial ADR — AI Intelligence Integration Architecture |
 | 1.8.6 | 2026-04-03 | Tech Lead | Updated — Aligned with detailed task specifications and implementation requirements |
 | 1.8.7 | 2026-04-04 | System Architect | Enhanced — Added Impact Analysis template, ADR Review Cycle process, Gap Linking to requirements, and Version Dependency tracking |
-| 1.8.8 | 2026-05-14 | System Architect | Superseded — Consolidated into master AI architecture [ADR-023](./ADR-023-unified-ai-architecture.md) |
+| 1.8.8 | 2026-05-14 | System Architect | Superseded — Consolidated into master AI architecture [ADR-023](../ADR-023-unified-ai-architecture.md) |
 
 ---
 

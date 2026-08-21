@@ -165,12 +165,12 @@ curl -f https://lcbp3-dms.example.com/health
 
 - Requirements: [specs/01-requirements](../01-requirements/)
 - Architecture: [specs/02-architecture](../02-architecture/)
-- Tasks: [specs/06-tasks](../06-tasks/)
+- Tasks: [specs/06-tasks](../08-Tasks/)
 
 **Metrics:**
 
 - Check [Monitoring Dashboard](http://localhost:9200) (if setup)
-- Review [Task Board](../06-tasks/README.md)
+- Review [Task Board](../08-Tasks/)
 
 ---
 
@@ -501,15 +501,15 @@ SHOW CREATE TABLE document_number_counters;
 
 ### Learn More
 
-1. **Architecture** - [System Architecture](../02-architecture/02-01-system-architecture.md)
-2. **Development** - [Backend Guidelines](../03-implementation/03-02-backend-guidelines.md)
-3. **Deployment** - [Deployment Guide](../04-operations/04-01-deployment-guide.md)
-4. **Decisions** - [ADR Index](../05-decisions/README.md)
+1. **Architecture** - [System Architecture](../02-architecture/02-02-software-architecture.md)
+2. **Development** - [Backend Guidelines](../05-Engineering-Guidelines/05-02-backend-guidelines.md)
+3. **Deployment** - [Deployment Guide](../04-Infrastructure-OPS/04-04-deployment-guide.md)
+4. **Decisions** - [ADR Index](../06-Decision-Records/README.md)
 
 ### Join the Team
 
 1. Read [Contributing Guidelines](../../CONTRIBUTING.md)
-2. Pick a task from [Backend Tasks](../06-tasks/README.md)
+2. Pick a task from [Backend Tasks](../08-Tasks/)
 3. Create a branch: `git checkout -b feature/my-feature`
 4. Make changes and write tests
 5. Submit Pull Request
@@ -546,7 +546,7 @@ git push origin feature/my-feature
 
 ### Code Review
 
-- Review [Backend Guidelines](../03-implementation/03-02-backend-guidelines.md)
+- Review [Backend Guidelines](../05-Engineering-Guidelines/05-02-backend-guidelines.md)
 - Check test coverage
 - Verify documentation updated
 - Run linter: `npm run lint`
@@ -582,9 +582,9 @@ git push origin feature/my-feature
 - [ ] Access frontend (<http://localhost:3001>)
 - [ ] Login with default credentials
 - [ ] Run tests
-- [ ] Read [System Architecture](../02-architecture/02-01-system-architecture.md)
-- [ ] Read [Backend Guidelines](../03-implementation/03-02-backend-guidelines.md)
-- [ ] Pick first task from [Tasks](../06-tasks/README.md)
+- [ ] Read [System Architecture](../02-architecture/02-02-software-architecture.md)
+- [ ] Read [Backend Guidelines](../05-Engineering-Guidelines/05-02-backend-guidelines.md)
+- [ ] Pick first task from [Tasks](../08-Tasks/)
 
 ---
 

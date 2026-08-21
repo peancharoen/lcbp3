@@ -571,7 +571,7 @@ curl http://localhost:3000/master-data/disciplines
 
 ## 📚 Related Documents
 
-- [Data Model - Master Data](../02-architecture/data-model.md#core--master-data)
+- [Data Model - Master Data](../../99-archives/02-03-data-model.md#core--master-data)
 - [Data Dictionary v1.4.5](../../docs/4_Data_Dictionary_V1_4_5.md)
 
 ---

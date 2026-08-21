@@ -34,7 +34,7 @@
 ### Frontend (Next.js)
 - **[MODIFY] [admin-ai.service.ts](frontend/lib/services/admin-ai.service.ts)**
   - เพิ่มฟังก์ชัน `uploadOcrSandbox` สำหรับการอัปโหลด PDF ไปประมวลผลและ `getSandboxJobStatus` สำหรับการดึงข้อมูลสถานะงาน
-- **[MODIFY] [page.tsx](frontend/app/(admin)/admin/ai/page.tsx)**
+- **[MODIFY] [page.tsx](frontend/app/%28admin%29/admin/ai/page.tsx)**
   - ปรับแก้โครงสร้างของแท็บ OCR Playground ให้รองรับการ Drag-and-Drop ไฟล์ และแสดงความก้าวหน้าการสกัดผลลัพธ์ผ่าน Progress bar
   - ทำการพ่นโค้ด JSON syntax highlight ให้สวยงาม และแสดงกล่องข้อความสีแดงเตือนกรณีเกิดข้อผิดพลาดในการประมวลผล
 

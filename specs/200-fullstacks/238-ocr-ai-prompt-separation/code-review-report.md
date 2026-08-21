@@ -36,7 +36,7 @@ This blocks FR-006/FR-007 and the core acceptance scenario for "OCR System Promp
 
 ### HIGH: Sidecar fallback path crashes with `NameError`
 
-**File**: `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py:179`
+**File**: `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/app.py:179`
 
 After renaming `typhoon_options` to `ocr_options`, the unknown-engine fallback still calls:
 

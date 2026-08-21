@@ -332,8 +332,8 @@ export function MobileSidebar() {
 
 ## 🔗 Related Documents
 
-- [ADR-011: Next.js App Router](../../05-decisions/ADR-011-nextjs-app-router.md)
-- [ADR-014: State Management](../../05-decisions/ADR-014-state-management.md)
+- [ADR-011: Next.js App Router](../../06-Decision-Records/ADR-011-nextjs-app-router.md)
+- [ADR-014: State Management](../../06-Decision-Records/ADR-014-state-management.md)
 - [TASK-FE-002: Auth UI](./TASK-FE-002-auth-ui.md)
 
 ---

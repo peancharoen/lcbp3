@@ -171,6 +171,6 @@ Refactor Document Numbering module ตาม specification v1.6.2 และ Impl
 
 ## References
 
-- [Requirements v1.6.2](../01-requirements/01-03.11-document-numbering.md)
-- [Implementation Guide v1.6.2](../03-implementation/03-04-document-numbering.md)
-- [ADR-002](../05-decisions/ADR-002-document-numbering-strategy.md)
+- [Requirements v1.6.2](../../99-archives/01-03.11-document-numbering.md)
+- [Implementation Guide v1.6.2](../../99-archives/03-04-document-numbering.md)
+- [ADR-002](../../06-Decision-Records/ADR-002-document-numbering-strategy.md)

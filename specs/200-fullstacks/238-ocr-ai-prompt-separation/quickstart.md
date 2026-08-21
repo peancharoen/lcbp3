@@ -50,7 +50,7 @@ WHERE NOT EXISTS (
 
 ```bash
 # บน Admin Desktop (Desk-5439)
-cd specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar
+cd specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/ocr-sidecar
 
 # แก้ไข app.py:
 # 1. เพิ่ม systemPrompt parameter ใน /ocr-upload endpoint

@@ -96,7 +96,7 @@ backend/src/modules/ai/
 backend/src/config/
 └── bullmq.config.ts                   # [MODIFY] ai-realtime concurrency uplift config
 
-specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/
+specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/
 ├── app.py                             # [MODIFY] adaptive keep_alive, CPU fallback embed/rerank
 ├── services/
 │   ├── vram_monitor.py                # [NEW] VRAM headroom query via Ollama API

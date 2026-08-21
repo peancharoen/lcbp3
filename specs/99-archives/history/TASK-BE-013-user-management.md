@@ -647,8 +647,8 @@ describe('PasswordService', () => {
 
 ## 📚 Related Documents
 
-- [Data Model - Users](../02-architecture/data-model.md#users--rbac)
-- [ADR-004: RBAC Implementation](../05-decisions/ADR-004-rbac-implementation.md)
+- [Data Model - Users](../../99-archives/02-03-data-model.md#users--rbac)
+- [ADR-004: RBAC Implementation](../../99-archives/ADR-004-rbac-implementation.md)
 
 ---
 

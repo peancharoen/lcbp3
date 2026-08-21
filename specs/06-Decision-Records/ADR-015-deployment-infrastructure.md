@@ -16,9 +16,9 @@
 | Gap/Requirement | แหล่งที่มา | วิธีการแก้ไขใน ADR นี้ |
 |----------------|-------------|-------------------|
 | **Deployment Strategy** | [Product Vision](../00-overview/00-03-product-vision.md) - Infrastructure Requirements | Docker Compose + Blue-Green on QNAP |
-| **Zero Downtime** | [Acceptance Criteria](../01-Requirements/01-05-acceptance-criteria.md) - AC-DEPLOY-001 | Blue-Green deployment with NGINX proxy |
+| **Zero Downtime** | [Acceptance Criteria](../01-requirements/01-05-acceptance-criteria.md) - AC-DEPLOY-001 | Blue-Green deployment with NGINX proxy |
 | **Resource Constraints** | [Infrastructure OPS](../04-Infrastructure-OPS/04-01-docker-compose.md) - QNAP limitations | Single-server Docker Compose (not K8s) |
-| **Rollback Capability** | [Edge Cases](../01-Requirements/01-06-edge-cases-and-rules.md) - Deployment failures | Tagged images + NGINX switchback |
+| **Rollback Capability** | [Edge Cases](../01-requirements/01-06-edge-cases-and-rules.md) - Deployment failures | Tagged images + NGINX switchback |
 | **Environment Management** | [Security ADR-016](./ADR-016-security-authentication.md) - Secrets management | .env files on QNAP only |
 
 ### แก้ไขความขัดแย้ง:

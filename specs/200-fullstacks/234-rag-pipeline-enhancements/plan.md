@@ -64,7 +64,7 @@ specs/200-fullstacks/234-rag-pipeline-enhancements/
 ### Source Code
 
 ```text
-specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/
+specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/
 ├── app.py                    ← เพิ่ม /embed + /rerank + BGE-M3 init
 └── requirements.txt          ← เพิ่ม FlagEmbedding>=1.2.0
 

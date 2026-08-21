@@ -65,7 +65,7 @@ ON DUPLICATE KEY UPDATE display_name = VALUES(display_name), updated_at = NOW();
 | top_p | 0.85 |
 | repeat_penalty | 1.15 |
 | Role | Extraction, RAG Q&A, AI Suggestion, OCR Post-processing |
-| Modelfile Path | `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/typhoon2.5-np-dms.model.md` |
+| Modelfile Path | `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/typhoon2.5-np-dms.model.md` |
 
 ### typhoon-np-dms-ocr (OCR Model)
 
@@ -81,7 +81,7 @@ ON DUPLICATE KEY UPDATE display_name = VALUES(display_name), updated_at = NOW();
 | top_p | 0.1 |
 | repeat_penalty | 1.1 |
 | Role | Thai OCR extraction from PDF images |
-| Modelfile Path | `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/typhoon-np-dms-ocr.model.md` |
+| Modelfile Path | `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/typhoon-np-dms-ocr.model.md` |
 
 ---
 

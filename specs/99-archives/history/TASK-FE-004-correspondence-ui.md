@@ -397,7 +397,7 @@ export default async function CorrespondenceDetailPage({
 
 ## 🔗 Related Documents
 
-- [ADR-013: Form Handling](../../05-decisions/ADR-013-form-handling-validation.md)
+- [ADR-013: Form Handling](../../06-Decision-Records/ADR-013-form-handling-validation.md)
 - [TASK-BE-005: Correspondence Module](./TASK-BE-005-correspondence-module.md)
 
 ---

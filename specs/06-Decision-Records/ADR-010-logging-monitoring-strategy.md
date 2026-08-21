@@ -3,7 +3,7 @@
 **Status:** ✅ Accepted (Pending)
 **Date:** 2026-02-24
 **Decision Makers:** Backend Team, DevOps Team
-**Related Documents:** [Backend Guidelines](../03-implementation/03-02-backend-guidelines.md)
+**Related Documents:** [Backend Guidelines](../05-Engineering-Guidelines/05-02-backend-guidelines.md)
 **Version Applicability:** v1.8.0+
 **Next Review:** 2026-08-01 (6-month cycle)
 
@@ -16,8 +16,8 @@
 | Gap/Requirement | แหล่งที่มา | วิธีการแก้ไขใน ADR นี้ |
 |----------------|-------------|-------------------|
 | **Structured Logging** | [Product Vision](../00-overview/00-03-product-vision.md) - Operations Requirements | Winston with JSON format for searchability |
-| **Performance Monitoring** | [Acceptance Criteria](../01-Requirements/01-05-acceptance-criteria.md) - AC-PERF-002 | Request logging and performance interceptors |
-| **Error Tracking** | [Business Rules](../01-Requirements/01-02-business-rules/01-02-03-ui-ux-rules.md) - User Experience | Global exception filter with context |
+| **Performance Monitoring** | [Acceptance Criteria](../01-requirements/01-05-acceptance-criteria.md) - AC-PERF-002 | Request logging and performance interceptors |
+| **Error Tracking** | [Business Rules](../01-requirements/01-02-business-rules/01-02-03-ui-ux-rules.md) - User Experience | Global exception filter with context |
 | **Audit Trail** | [Security ADR-016](./ADR-016-security-authentication.md) - Security events | Structured audit logging for compliance |
 | **Scalability** | [Architecture](../02-architecture/02-02-software-architecture.md) - Performance | Phase 2 ELK Stack for centralized logging |
 
@@ -528,7 +528,7 @@ logger.add(
 
 ## Related ADRs
 
-- [ADR-007: API Design & Error Handling](./ADR-007-api-design-error-handling.md)
+- [ADR-007: API Design & Error Handling](../99-archives/ADR-007-api-design-error-handling.md)
 - [ADR-005: Technology Stack](./ADR-005-technology-stack.md)
 
 ---

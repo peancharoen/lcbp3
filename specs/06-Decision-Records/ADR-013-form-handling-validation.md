@@ -16,7 +16,7 @@
 | Gap/Requirement | แหล่งที่มา | วิธีการแก้ไขใน ADR นี้ |
 |----------------|-------------|-------------------|
 | **Form Validation** | [Product Vision](../00-overview/00-03-product-vision.md) - Data Integrity | React Hook Form + Zod validation |
-| **Performance Optimization** | [Acceptance Criteria](../01-Requirements/01-05-acceptance-criteria.md) - AC-UI-002 | Uncontrolled components for minimal re-renders |
+| **Performance Optimization** | [Acceptance Criteria](../01-requirements/01-05-acceptance-criteria.md) - AC-UI-002 | Uncontrolled components for minimal re-renders |
 | **Type Safety** | [Engineering Guidelines](../05-Engineering-Guidelines/05-01-fullstack-js-guidelines.md) - TypeScript | Zod schema to TypeScript types |
 | **Developer Experience** | [Frontend Guidelines](../05-Engineering-Guidelines/05-03-frontend-guidelines.md) - DX | Clean API with minimal boilerplate |
 | **Bundle Size Constraints** | [Architecture](../02-architecture/02-02-software-architecture.md) - Performance | Lightweight solution (8.5kb) |
@@ -563,7 +563,7 @@ import { Controller } from 'react-hook-form';
 
 ## Related ADRs
 
-- [ADR-007: API Design & Error Handling](./ADR-007-api-design-error-handling.md)
+- [ADR-007: API Design & Error Handling](../99-archives/ADR-007-api-design-error-handling.md)
 - [ADR-012: UI Component Library](./ADR-012-ui-component-library.md)
 
 ---

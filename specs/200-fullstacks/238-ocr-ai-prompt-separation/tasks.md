@@ -70,7 +70,7 @@
 
 ### Sidecar Integration (ยืนยัน pattern แล้ว — append เข้า messages[0]["content"])
 
-- [x] T026 [US1] แก้ `/ocr-upload` endpoint ใน `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py`:
+- [x] T026 [US1] แก้ `/ocr-upload` endpoint ใน `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/app.py`:
   - เพิ่ม parameter: `systemPrompt: Optional[str] = Form(default=None)` ใน signature ของ `ocr_upload()`
   - เพิ่มพารามิเตอร์ `system_prompt: Optional[str] = None` ใน signature ของ `_process_pdf_doc()`
   - เพิ่มพารามิเตอร์ `system_prompt: Optional[str] = None` ใน signature ของ `process_ocr()`

@@ -111,7 +111,7 @@ frontend/
 └── tests/
     └── prompt-management.spec.ts
 
-specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/
+specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/
 └── app.py                                  # Modified: accept systemPrompt parameter ใน /ocr-upload
                                             # (NOTE: /embed + /rerank มีอยู่แล้วตั้งแต่ 2026-06-11)
 ```

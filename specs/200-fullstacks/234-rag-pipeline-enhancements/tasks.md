@@ -15,7 +15,7 @@
 
 **Purpose**: เพิ่ม dependency และ SQL delta ที่จำเป็นสำหรับทุก story
 
-- [X] T001 [P] เพิ่ม `FlagEmbedding>=1.2.0` ใน `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/requirements.txt`
+- [X] T001 [P] เพิ่ม `FlagEmbedding>=1.2.0` ใน `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/requirements.txt`
 - [X] T002 [P] สร้าง SQL delta `specs/03-Data-and-Storage/deltas/2026-06-05-add-rag-chunking-prompt.sql` — INSERT `ai_prompts` (`prompt_type='rag_chunking'`, placeholder `{{ocr_text}}`)
 
 **Checkpoint**: dependencies + SQL delta พร้อม — สามารถเริ่ม Phase 2 ได้
@@ -30,7 +30,7 @@
 
 ### 2A — OCR Sidecar: BGE-M3 + Reranker endpoints
 
-- [X] T003 โหลด `BGEM3FlagModel` และ `FlagReranker` เป็น global singleton ตอน startup ใน `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py` (CPU mode, `use_fp16=False`)
+- [X] T003 โหลด `BGEM3FlagModel` และ `FlagReranker` เป็น global singleton ตอน startup ใน `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/app.py` (CPU mode, `use_fp16=False`)
 - [X] T004 [P] เพิ่ม `POST /embed` endpoint ใน `app.py` — รับ `{"text": string}` คืน `{"dense": list[float], "sparse": {"indices": list[int], "values": list[float]}}`
 - [X] T005 [P] เพิ่ม `POST /rerank` endpoint ใน `app.py` — รับ `{"query": string, "chunks": list[str]}` คืน `{"scores": list[float], "ranked_indices": list[int]}`
 

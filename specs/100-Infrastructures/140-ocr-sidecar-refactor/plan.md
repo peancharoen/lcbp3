@@ -53,7 +53,7 @@ specs/100-Infrastructures/140-ocr-sidecar-refactor/
 ### Source Code
 
 ```text
-specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/
+specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/
 ├── app.py               # FastAPI application (main refactor target)
 ├── residency_policy.py  # Retain (Adaptive OCR Residency)
 ├── vram_monitor.py      # Retain (VRAM monitoring)

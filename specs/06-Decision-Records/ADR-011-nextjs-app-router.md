@@ -16,7 +16,7 @@
 | Gap/Requirement | แหล่งที่มา | วิธีการแก้ไขใน ADR นี้ |
 |----------------|-------------|-------------------|
 | **Modern Architecture** | [Product Vision](../00-overview/00-03-product-vision.md) - Technology Requirements | App Router with Server Components |
-| **Performance Optimization** | [Acceptance Criteria](../01-Requirements/01-05-acceptance-criteria.md) - AC-PERF-003 | Server Components reduce bundle size |
+| **Performance Optimization** | [Acceptance Criteria](../01-requirements/01-05-acceptance-criteria.md) - AC-PERF-003 | Server Components reduce bundle size |
 | **Layout Management** | [Frontend Guidelines](../05-Engineering-Guidelines/05-03-frontend-guidelines.md) - Architecture | Built-in nested layout system |
 | **Future-Proofing** | [Engineering Guidelines](../05-Engineering-Guidelines/05-01-fullstack-js-guidelines.md) - Technology choices | Next.js recommended approach |
 | **Code Organization** | [Architecture](../02-architecture/02-02-software-architecture.md) - Frontend structure | Route groups and file-based routing |

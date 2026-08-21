@@ -64,7 +64,7 @@
 
 ## 📖 เอกสารสถาปัตยกรรม
 
-### 1. [System Architecture](./02-01-system-architecture.md)
+### 1. [System Architecture](./02-02-software-architecture.md)
 
 **สถาปัตยกรรมระบบโดยรวม**
 
@@ -88,7 +88,7 @@
 - ✅ Caching Strategy
 - ✅ Rate Limiting
 
-### 2. [API Design](./02-02-api-design.md)
+### 2. [API Design](./02-04-api-design.md)
 
 **การออกแบบ API แบบ RESTful**
 
@@ -111,12 +111,12 @@
 - ✅ Rate Limiting per Role
 - ✅ File Upload Security
 
-### 3. [Data Model](./02-03-data-model.md)
+### 3. [Data Model](../99-archives/02-03-data-model.md)
 
 **โครงสร้างฐานข้อมูลและ Entity Relationships**
 
 > [!NOTE]
-> เอกสารนี้อยู่ระหว่างการพัฒนา กรุณาอ้างอิง [Data Dictionary](../07-database/data-dictionary-v1.7.0.md) สำหรับข้อมูลละเอียด
+> เอกสารนี้อยู่ระหว่างการพัฒนา กรุณาอ้างอิง [Data Dictionary](../03-Data-and-Storage/03-01-data-dictionary.md) สำหรับข้อมูลละเอียด
 
 **Expected Content:**
 
@@ -269,7 +269,7 @@ Layer 6: File Security (Virus Scanning, Access Control)
 - Workflow Versioning
 - Polymorphic Entity Relationships
 
-**Related:** [ADR-001](../05-decisions/ADR-001-unified-workflow-engine.md)
+**Related:** [ADR-001](../06-Decision-Records/ADR-001-unified-workflow-engine.md)
 
 ### ADR-002: Document Numbering Strategy
 
@@ -291,11 +291,11 @@ Layer 6: File Security (Virus Scanning, Access Control)
 
 **Documentation:**
 
-- 📋 [Requirements](../01-requirements/01-03.11-document-numbering.md)
-- 📘 [Implementation Guide](../03-implementation/03-04-document-numbering.md)
-- 📗 [Operations Guide](../04-operations/04-08-document-numbering-operations.md)
+- 📋 [Requirements](../99-archives/01-03.11-document-numbering.md)
+- 📘 [Implementation Guide](../99-archives/03-04-document-numbering.md)
+- 📗 [Operations Guide](../99-archives/04-08-document-numbering-operations.md)
 
-**Related:** [ADR-002](../05-decisions/ADR-002-document-numbering-strategy.md)
+**Related:** [ADR-002](../06-Decision-Records/ADR-002-document-numbering-strategy.md)
 
 ### ADR-003: Two-Phase File Storage
 
@@ -313,7 +313,7 @@ Layer 6: File Security (Virus Scanning, Access Control)
 2. Phase 2: Commit to `permanent/` when operation succeeds
 3. Cleanup: Cron Job ลบไฟล์ค้างใน `temp/` > 24h
 
-**Related:** [ADR-003](../05-decisions/ADR-003-file-storage-approach.md)
+**Related:** [ADR-003](../99-archives/ADR-003-file-storage-approach.md)
 
 ### ADR-004: 4-Level RBAC
 
@@ -331,7 +331,7 @@ Layer 6: File Security (Virus Scanning, Access Control)
 - Redis Cache for Performance
 - Permission Checking at Guard Level
 
-**Related:** [ADR-004](../05-decisions/ADR-004-rbac-implementation.md)
+**Related:** [ADR-004](../99-archives/ADR-004-rbac-implementation.md)
 
 ---
 
@@ -433,9 +433,9 @@ sequenceDiagram
 ### Other Specifications
 
 - [Requirements Specs](../01-requirements/README.md)
-- [Implementation Specs](../03-implementation/README.md)
-- [Operations Specs](../04-operations/README.md)
-- [Architecture Decisions](../05-decisions/README.md)
+- [Implementation Specs](../05-Engineering-Guidelines/README.md)
+- [Operations Specs](../04-Infrastructure-OPS/README.md)
+- [Architecture Decisions](../06-Decision-Records/README.md)
 
 ---
 
@@ -511,8 +511,8 @@ sequenceDiagram
 
 **LCBP3-DMS Architecture Specification v1.8.0**
 
-[System Architecture](02-01-system-architecture.md) • [API Design](02-02-api-design.md) • [Data Model](02-03-data-model.md)
+[System Architecture](./02-02-software-architecture.md) • [API Design](./02-04-api-design.md) • [Data Model](../99-archives/02-03-data-model.md)
 
-[Main README](../../README.md) • [Requirements](../01-requirements/README.md) • [Implementation](../03-implementation/README.md)
+[Main README](../../README.md) • [Requirements](../01-requirements/README.md) • [Implementation](../05-Engineering-Guidelines/README.md)
 
 </div>

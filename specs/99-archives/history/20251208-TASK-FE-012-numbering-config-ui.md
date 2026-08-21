@@ -527,7 +527,7 @@ export function TemplateTester({ open, onOpenChange, template }: any) {
 ## 🔗 Related Documents
 
 - [TASK-BE-004: Document Numbering](./TASK-BE-004-document-numbering.md)
-- [ADR-002: Document Numbering Strategy](../../05-decisions/ADR-002-document-numbering-strategy.md)
+- [ADR-002: Document Numbering Strategy](../../06-Decision-Records/ADR-002-document-numbering-strategy.md)
 
 ---
 

@@ -123,7 +123,7 @@ specs/03-Data-and-Storage/
     ├── 2026-06-13-extend-ai-execution-profiles-ocr.sql   # NEW: schema changes
     └── 2026-06-13-extend-ai-execution-profiles-ocr.rollback.sql # NEW: rollback
 
-specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/
+specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/
 └── ocr-sidecar/
     ├── app.py                                            # MODIFY: update model name (if needed)
     └── docker-compose.yml                               # MODIFY: update model name (if needed)

@@ -49,7 +49,7 @@ pnpm --filter backend build
 - [ ] รัน:
 
 ```powershell
-python -m pytest specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/tests -v
+python -m pytest specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/tests -v
 ```
 
 - [ ] Expected: `test_retrieval_fallback.py` ผ่านครบ

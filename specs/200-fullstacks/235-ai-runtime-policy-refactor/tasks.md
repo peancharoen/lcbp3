@@ -23,7 +23,7 @@
 - [x] T001 สร้าง interface file `backend/src/modules/ai/interfaces/execution-policy.interface.ts` — `ExecutionProfile` type (`interactive|standard|quality|deep-analysis`), `PublicJobType`, `InternalJobType`, `RuntimePolicy`, `OcrRuntimePolicy`, `AiJobPayload` (snapshot params), `VramHeadroom`
 - [x] T002 สร้าง interface file `backend/src/modules/ai/interfaces/ocr-residency.interface.ts` (OcrResidencyDecision interface)
 - [x] T003 [P] สร้าง `backend/src/modules/ai/services/vram-monitor.service.ts` — query Ollama `/api/ps` เพื่อคำนวณ VRAM headroom
-- [x] T004 [P] สร้าง `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/services/vram_monitor.py` — Python VRAM headroom query via Ollama `/api/ps`
+- [x] T004 [P] สร้าง `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/services/vram_monitor.py` — Python VRAM headroom query via Ollama `/api/ps`
 
 ---
 
@@ -38,7 +38,7 @@
 - [x] T005 สร้าง `backend/src/modules/ai/services/ai-policy.service.ts` — `InternalJobType` → `ExecutionProfile` mapping, อ่าน `ai_execution_profiles` จาก DB (Redis cache TTL 60s), snapshot `RuntimePolicy` parameters ลง `AiJobPayload` ตอน dispatch (FR-A09)
 - [x] T006 ~~ลบออก~~ ExecutionProfileGuard ไม่จำเป็นแล้ว — ไม่มี caller input เลย (Option B) *skip task นี้*
 - [x] T007 [P] แก้ `backend/src/modules/ai/dto/create-ai-job.dto.ts` — เอา `model.key`, `executionProfile`, `temperature`, `top_p`, `maxTokens` ออกทั้งหมด; เหลือเฉพาะ `type`, `documentPublicId`, `attachmentPublicId`; เพิ่ม `@IsForbidden()` validator หรือ forbidden field check ใน pipe
-- [x] T008 สร้าง `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/services/residency_policy.py` — OCR keep_alive calculation function
+- [x] T008 สร้าง `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/services/residency_policy.py` — OCR keep_alive calculation function
 - [x] T009 แก้ `backend/src/modules/ai/ai.module.ts` — register `AiPolicyService`, `VramMonitorService` (ลบ `ExecutionProfileGuard` ออก)
 
 **Checkpoint**: Foundation ready — delta SQL applied, policy services + updated DTO available
@@ -74,7 +74,7 @@
 ### Implementation for User Story 2
 
 - [x] T017 [US2] แก้ `backend/src/modules/ai/services/ocr.service.ts` — inject `VramMonitorService` และ `AiPolicyService`, เพิ่ม `calculateOcrResidency()` method, ส่ง `keep_alive` ที่คำนวณได้ไปใน OCR sidecar request, log `OcrResidencyDecision`
-- [x] T018 [P] [US2] แก้ `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py` — รับ `keep_alive` parameter จาก request body แทน hardcode `keep_alive=0`, ส่ง `keep_alive` ค่านั้นไปใน Ollama `/v1/chat/completions` call
+- [x] T018 [P] [US2] แก้ `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/app.py` — รับ `keep_alive` parameter จาก request body แทน hardcode `keep_alive=0`, ส่ง `keep_alive` ค่านั้นไปใน Ollama `/v1/chat/completions` call
 - [x] T019 [P] [US2] เพิ่ม env variables ใน docker-compose ของ Desk-5439 OCR sidecar — `VRAM_HEADROOM_THRESHOLD_MB`, `OCR_RESIDENCY_WINDOW_SECONDS`, `GPU_TOTAL_VRAM_MB`
 - [x] T020 [US2] เพิ่ม unit tests `backend/src/modules/ai/tests/ocr-residency.spec.ts` — scenarios: large-context-active, high-pressure, headroom-sufficient, query-failed fallback
 
@@ -90,10 +90,10 @@
 
 ### Implementation for User Story 3
 
-- [x] T021 [P] [US3] แก้ `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py` — เพิ่ม VRAM headroom check ใน `POST /embed` endpoint; ถ้าผ่าน threshold ใช้ GPU, ถ้าไม่ผ่านหรือ query ล้มเหลว ใช้ CPU; log `device` และ `reason`
-- [x] T022 [P] [US3] แก้ `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py` — เพิ่ม VRAM headroom check ใน `POST /rerank` endpoint; CPU fallback logic เหมือน `/embed`; เพิ่ม timeout guard (504 response ถ้า CPU timeout)
+- [x] T021 [P] [US3] แก้ `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/app.py` — เพิ่ม VRAM headroom check ใน `POST /embed` endpoint; ถ้าผ่าน threshold ใช้ GPU, ถ้าไม่ผ่านหรือ query ล้มเหลว ใช้ CPU; log `device` และ `reason`
+- [x] T022 [P] [US3] แก้ `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/app.py` — เพิ่ม VRAM headroom check ใน `POST /rerank` endpoint; CPU fallback logic เหมือน `/embed`; เพิ่ม timeout guard (504 response ถ้า CPU timeout)
 - [x] T023 [US3] แก้ `backend/src/modules/ai/processors/ai-batch.processor.ts` — รอง handle กรณีที่ `/embed` หรือ `/rerank` ตอบ `device: "cpu"` ใน response; log `retrievalDevice` ลง ai_audit_logs metadata
-- [x] T024 [P] [US3] สร้าง `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/tests/test_retrieval_fallback.py` — pytest tests สำหรับ CPU fallback behavior ของ `/embed` และ `/rerank`
+- [x] T024 [P] [US3] สร้าง `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/tests/test_retrieval_fallback.py` — pytest tests สำหรับ CPU fallback behavior ของ `/embed` และ `/rerank`
 
 **Checkpoint**: US3 functional — retrieval never hard-fails due to GPU pressure
 
@@ -128,7 +128,7 @@
 - [x] T030 [US5] ~~ExecutionProfileGuard tests — skip~~ แทนที่: เพิ่ม integration test สำหรับ forbidden fields validation ใน `ai.controller.spec.ts` — ตรวจว่า `model.*` และ `executionProfile` ใน payload → 400
 - [x] T031 [P] [US5] สร้าง `backend/src/modules/ai/tests/vram-monitor.service.spec.ts` — unit tests: successful query, Ollama timeout fallback, empty models response
 - [x] T032 [US5] ทดสอบ manual validation ตาม `quickstart.md` — รัน curl commands ทั้ง Gate 1–4, ตรวจ Admin Console labels, ตรวจ OCR Sandbox behavior; บันทึกผลใน checklist
-- [x] T033 [P] [US5] อัปเดต env template ไฟล์ `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/.env.template` — เพิ่ม `VRAM_HEADROOM_THRESHOLD_MB`, `OCR_RESIDENCY_WINDOW_SECONDS`, `GPU_TOTAL_VRAM_MB`, `GPU_MAIN_MODEL_PRESSURE_THRESHOLD_MB`, `REALTIME_CONCURRENCY`
+- [x] T033 [P] [US5] อัปเดต env template ไฟล์ `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/.env.template` — เพิ่ม `VRAM_HEADROOM_THRESHOLD_MB`, `OCR_RESIDENCY_WINDOW_SECONDS`, `GPU_TOTAL_VRAM_MB`, `GPU_MAIN_MODEL_PRESSURE_THRESHOLD_MB`, `REALTIME_CONCURRENCY`
 - [x] T034 [P] [US5] อัปเดต `backend/.env.example` — เพิ่ม `AI_VRAM_HEADROOM_THRESHOLD_MB`, `AI_GPU_MAIN_MODEL_PRESSURE_THRESHOLD_MB`, `AI_OCR_RESIDENCY_WINDOW_SECONDS`, `AI_REALTIME_CONCURRENCY`
 
 **Checkpoint**: All 5 user stories complete — big bang cutover gate ready for validation

@@ -33,13 +33,13 @@
 - [ADR-016: Security & Authentication](./ADR-016-security-authentication.md)
 - [ADR-008: Email Notification Strategy](./ADR-008-email-notification-strategy.md)
 - [ADR-029: Dynamic Prompt Management](./ADR-029-dynamic-prompt-management.md)
-- [ADR-037: Active Prompt System](./ADR-037-active-prompt-system.md)
+- [ADR-037: Active Prompt System](./ADR-037-unified-prompt-management-ux-ui.md)
 - [ADR-034: AI Model Change](./ADR-034-AI-model-change.md) (model identity confirmed — not amended)
 - [ADR-035: AI Pipeline Flow Architecture](./ADR-035-ai-pipeline-flow-architecture.md)
 - [ADR-041: Server Consolidation](./ADR-041-server-consolidation.md)
 - [CONTEXT.md](../../CONTEXT.md)
-- [OCR Sidecar Refactor Plan - Claude](../../../docs/ocr-sidecar-refactor-plan-claude.md)
-- [OCR Sidecar Refactor Plan - Qwen](../../../docs/ocr-sidecar-refactor-plan-qwen.md)
+- [OCR Sidecar Refactor Plan - Claude](../../docs/ocr-sidecar-refactor-plan-claude.md)
+- [OCR Sidecar Refactor Plan - Qwen](../../docs/ocr-sidecar-refactor-plan-qwen.md)
 
 > **Note:** ADR numbers 038–039 are intentionally reserved/skipped.
 

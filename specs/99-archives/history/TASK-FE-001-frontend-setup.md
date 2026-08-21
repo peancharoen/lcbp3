@@ -360,10 +360,10 @@ npm run format
 
 ## 🔗 Related Documents
 
-- [ADR-011: Next.js App Router](../../05-decisions/ADR-011-nextjs-app-router.md)
-- [ADR-012: UI Component Library](../../05-decisions/ADR-012-ui-component-library.md)
-- [ADR-014: State Management](../../05-decisions/ADR-014-state-management.md)
-- [Frontend Guidelines](../../03-implementation/frontend-guidelines.md)
+- [ADR-011: Next.js App Router](../../06-Decision-Records/ADR-011-nextjs-app-router.md)
+- [ADR-012: UI Component Library](../../06-Decision-Records/ADR-012-ui-component-library.md)
+- [ADR-014: State Management](../../06-Decision-Records/ADR-014-state-management.md)
+- [Frontend Guidelines](../../05-Engineering-Guidelines/05-03-frontend-guidelines.md)
 
 ---
 

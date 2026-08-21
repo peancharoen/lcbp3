@@ -928,7 +928,7 @@ docker exec lcbp3-mariadb mysql -u root -p -e "
 - [Backup & Recovery](04-04-backup-recovery.md)
 - [Monitoring & Alerting](04-03-monitoring-alerting.md)
 - [Maintenance Procedures](04-05-maintenance-procedures.md)
-- [ADR-015: Deployment Infrastructure](../05-decisions/ADR-015-deployment-infrastructure.md)
+- [ADR-015: Deployment Infrastructure](../06-Decision-Records/ADR-015-deployment-infrastructure.md)
 
 ---
 

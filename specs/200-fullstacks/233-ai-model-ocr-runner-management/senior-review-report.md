@@ -21,7 +21,7 @@
 * **เกณฑ์ตรวจสอบ:** ติดตั้ง JWT + CASL 4-Level RBAC ในจุดที่กลายพันธุ์ข้อมูล และการควบคุมความมั่นคงปลอดภัยบน API endpoints
 * **ผลการประเมิน:**
   - เอนด์พอยต์ `POST /ai/ocr-engines/:engineId/select` และ `GET /ai/ocr-engines` มีการติดตั้ง `@UseGuards(JwtAuthGuard, RbacGuard)` และเช็ค Permission `@RequirePermission('system.manage_all')` เพื่อจำกัดความปลอดภัยของแอดมินระบบหลักอย่างเข้มขวด
-  - **การป้องกัน sidecar API:** ocr-sidecar [app.py](specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py) ได้รับการติดตั้ง X-API-Key Header protection (`X-API-Key`) ป้องกันความเสี่ยงจากการเรียกประมวลผลโมเดล GPU บน Desk-5439 โดยบุคคลภายนอกโดยตรง
+  - **การป้องกัน sidecar API:** ocr-sidecar [app.py](specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/app.py) ได้รับการติดตั้ง X-API-Key Header protection (`X-API-Key`) ป้องกันความเสี่ยงจากการเรียกประมวลผลโมเดล GPU บน Desk-5439 โดยบุคคลภายนอกโดยตรง
 
 ### 3. กฎความเข้มงวดของ TypeScript (TypeScript Strict Rules) — ✅ ผ่านการประเมิน 100%
 * **เกณฑ์ตรวจสอบ:** ห้ามใช้งานประเภทข้อมูล `any` และห้ามใช้คำสั่ง `console.log()` ในรหัสคอมพิวเตอร์ที่ถูก Commit

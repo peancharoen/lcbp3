@@ -19,8 +19,8 @@
 
 **Purpose**: ยืนยัน Model files และ directory structure พร้อม; ไม่ต้องสร้างใหม่เพราะมีอยู่แล้ว
 
-- [X] T001 [P] ตรวจสอบ `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/typhoon2.5-np-dms.model.md` ว่า content ตรงกับ ADR-034 Section 1
-- [X] T002 [P] ตรวจสอบ `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/typhoon-np-dms-ocr.model.md` ว่า content ตรงกับ ADR-034 Section 1
+- [X] T001 [P] ตรวจสอบ `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/typhoon2.5-np-dms.model.md` ว่า content ตรงกับ ADR-034 Section 1
+- [X] T002 [P] ตรวจสอบ `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/typhoon-np-dms-ocr.model.md` ว่า content ตรงกับ ADR-034 Section 1
 - [X] T003 [P] สร้าง SQL delta `specs/03-Data-and-Storage/deltas/2026-06-03-update-ai-available-models-typhoon.sql` — UPDATE main model + INSERT ocr model ใน `ai_available_models` table (ตรวจสอบ schema ก่อน run)
 - [X] T003b [P] สร้าง rollback `specs/03-Data-and-Storage/deltas/2026-06-03-update-ai-available-models-typhoon.rollback.sql` — revert model_name กลับเป็น gemma4:e2b + DELETE ocr model record (ADR-009: ทุก delta ต้องมี rollback)
 
@@ -147,7 +147,7 @@ Phase 6: T018 ∥ T019 ∥ T020 ∥ T021 ∥ T022 ∥ T023 → T024 last
 
 ## Notes
 
-- T001-T002: Model files มีอยู่แล้วใน `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/` — เป็น verification task ไม่ใช่ creation
+- T001-T002: Model files มีอยู่แล้วใน `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/` — เป็น verification task ไม่ใช่ creation
 - FR-008 (nomic-embed-text) + FR-009 (n8n boundary): Preserved by existing architecture — ไม่มี task เพราะ "do nothing" คือ correct action
 - T018: ตรวจสอบ AGENTS.md version จริงก่อน bump เป็น v1.9.9
 - T003: ตรวจสอบ `lcbp3-v1.9.0-schema-02-tables.sql` ก่อน write delta — ai_available_models schema อาจต่างจากที่คาด

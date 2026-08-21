@@ -277,7 +277,7 @@ graph TB
   - Virus scanning (ClamAV)
   - File validation
   - Cleanup jobs
-- **Related ADR:** [ADR-003](../05-decisions/ADR-003-file-storage-approach.md)
+- **Related ADR:** [ADR-003](../../99-archives/ADR-003-file-storage-approach.md)
 
 ### TASK-BE-004: Document Numbering
 
@@ -289,10 +289,10 @@ graph TB
   - Comprehensive error handling (4 scenarios)
   - Monitoring & alerting (Prometheus + Grafana)
 - **Documentation:**
-  - 📋 [Requirements](../01-requirements/01-03.11-document-numbering.md)
-  - 📘 [Implementation Guide](../03-implementation/03-04-document-numbering.md)
-  - 📗 [Operations Guide](../04-operations/04-08-document-numbering-operations.md)
-- **Related ADR:** [ADR-002](../05-decisions/ADR-002-document-numbering-strategy.md)
+  - 📋 [Requirements](../../99-archives/01-03.11-document-numbering.md)
+  - 📘 [Implementation Guide](../../99-archives/03-04-document-numbering.md)
+  - 📗 [Operations Guide](../../99-archives/04-08-document-numbering-operations.md)
+- **Related ADR:** [ADR-002](../../06-Decision-Records/ADR-002-document-numbering-strategy.md)
 - **Task Details:** [TASK-BE-004](./TASK-BE-004-document-numbering.md)
 
 ### TASK-BE-006: Workflow Engine
@@ -304,7 +304,7 @@ graph TB
   - State machine management
   - Guard and effect executors
   - History tracking
-- **Related ADR:** [ADR-001](../05-decisions/ADR-001-unified-workflow-engine.md)
+- **Related ADR:** [ADR-001](../../06-Decision-Records/ADR-001-unified-workflow-engine.md)
 
 ### TASK-BE-005: Correspondence Module
 
@@ -398,7 +398,7 @@ BE-001 (Database)
 
 ### Code Quality
 
-- ✅ Code เป็นไปตาม [Backend Guidelines](../03-implementation/03-02-backend-guidelines.md)
+- ✅ Code เป็นไปตาม [Backend Guidelines](../../05-Engineering-Guidelines/05-02-backend-guidelines.md)
 - ✅ No `any` types (TypeScript Strict Mode)
 - ✅ ESLint และ Prettier passed
 - ✅ No console.log (use Logger)
@@ -448,23 +448,23 @@ Track potential blockers:
 
 ### Architecture
 
-- [System Architecture](../02-architecture/02-01-system-architecture.md)
-- [Data Model](../02-architecture/02-03-data-model.md)
-- [API Design](../02-architecture/02-02-api-design.md)
+- [System Architecture](../../02-architecture/02-02-software-architecture.md)
+- [Data Model](../../99-archives/02-03-data-model.md)
+- [API Design](../../02-architecture/02-04-api-design.md)
 
 ### Guidelines
 
-- [Backend Guidelines](../03-implementation/03-02-backend-guidelines.md)
-- [Testing Strategy](../03-implementation/03-05-testing-strategy.md)
+- [Backend Guidelines](../../05-Engineering-Guidelines/05-02-backend-guidelines.md)
+- [Testing Strategy](../../05-Engineering-Guidelines/05-04-testing-strategy.md)
 
 ### Decisions
 
-- [ADR-001: Unified Workflow Engine](../05-decisions/ADR-001-unified-workflow-engine.md)
-- [ADR-002: Document Numbering Strategy](../05-decisions/ADR-002-document-numbering-strategy.md)
-- [ADR-003: Two-Phase File Storage](../05-decisions/ADR-003-file-storage-approach.md)
-- [ADR-004: RBAC Implementation](../05-decisions/ADR-004-rbac-implementation.md)
-- [ADR-005: Technology Stack](../05-decisions/ADR-005-technology-stack.md)
-- [ADR-006: Redis Caching Strategy](../05-decisions/ADR-006-redis-caching-strategy.md)
+- [ADR-001: Unified Workflow Engine](../../06-Decision-Records/ADR-001-unified-workflow-engine.md)
+- [ADR-002: Document Numbering Strategy](../../06-Decision-Records/ADR-002-document-numbering-strategy.md)
+- [ADR-003: Two-Phase File Storage](../../99-archives/ADR-003-file-storage-approach.md)
+- [ADR-004: RBAC Implementation](../../99-archives/ADR-004-rbac-implementation.md)
+- [ADR-005: Technology Stack](../../06-Decision-Records/ADR-005-technology-stack.md)
+- [ADR-006: Redis Caching Strategy](../../06-Decision-Records/ADR-006-redis-caching-strategy.md)
 
 ---
 

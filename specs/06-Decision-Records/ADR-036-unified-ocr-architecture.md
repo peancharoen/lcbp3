@@ -17,7 +17,7 @@
 - [ADR-033: Active Model & OCR Management](./ADR-033-active-model-and-ocr-management.md)
 - [ADR-029: Dynamic Prompt Management](./ADR-029-dynamic-prompt-management.md)
 - [ADR-040: OCR Sidecar Refactor](./ADR-040-ocr-sidecar-refactor.md) ← amends §5
-- [CONTEXT.md](../../../CONTEXT.md)
+- [CONTEXT.md](../../CONTEXT.md)
 
 > **⚠️ Amendment note (2026-07-30):** §5 (Sidecar — Dynamic Params) ถูก amend โดย ADR-040 D1/D8 — sidecar เป็น pure compute worker: รับ `temperature`/`top_p`/`repeat_penalty`/`systemPrompt`/`dmsTags` จาก backend เท่านั้น (ไม่ hardcode defaults); `keep_alive` คำนวณโดย `calculate_ocr_residency()` (ADR-040 D4)
 
@@ -237,7 +237,7 @@ systemPrompt apply → ใช้ endpoint ของ ADR-029 (`ai_prompts`) ท�
 
 ### 5. Sidecar — Dynamic Params (คง endpoint เดิม)
 
-**File:** `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py` (MODIFY ถ้าจำเป็น)
+**File:** `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/app.py` (MODIFY ถ้าจำเป็น)
 
 sidecar รับ override อยู่แล้ว (`/ocr`, `/ocr-upload` → `temperature`/`top_p`/`repeat_penalty`/`keep_alive`) — ไม่ต้องสร้าง `/generate` ใหม่
 - ถ้า np-dms-ai ต้องการ dynamic params เพิ่มเติม → ขยาย contract ของ endpoint ที่มี ไม่สร้างใหม่
@@ -427,8 +427,8 @@ CREATE TABLE ai_sandbox_profiles (
 #### Sidecar (OCR)
 | File | แก้จาก | เป็น |
 |------|--------|------|
-| `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py` | `typhoon-np-dms-ocr` | `np-dms-ocr` |
-| `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/docker-compose.yml` | `typhoon-np-dms-ocr` | `np-dms-ocr` |
+| `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/app.py` | `typhoon-np-dms-ocr` | `np-dms-ocr` |
+| `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/docker-compose.yml` | `typhoon-np-dms-ocr` | `np-dms-ocr` |
 
 #### Documentation
 | File | แก้จาก | เป็น |

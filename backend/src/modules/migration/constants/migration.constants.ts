@@ -39,9 +39,11 @@ export const STAGING_DIR_DEFAULT = 'uploads/staging' as const;
 /**
  * Legacy NAS path env var name — โฟลเดอร์บน NAS ที่เก็บไฟล์ Excel และ PDF ของเอกสาร Legacy
  * ใช้สำหรับ listing ไฟล์ในหน้า Legacy Management
+ * Default = mount target ใน backend container (docker-compose: /mnt/asustor-legacy → /home/node/.n8n-files/staging_ai:ro)
  */
 export const ENV_LEGACY_NAS_PATH = 'LEGACY_NAS_PATH' as const;
-export const LEGACY_NAS_PATH_DEFAULT = '/mnt/asustor-legacy' as const;
+export const LEGACY_NAS_PATH_DEFAULT =
+  '/home/node/.n8n-files/staging_ai' as const;
 
 /**
  * Default batch timeout (ms) สำหรับ MetadataResolutionService

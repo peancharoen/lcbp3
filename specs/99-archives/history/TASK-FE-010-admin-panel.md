@@ -670,7 +670,7 @@ export function AdminSidebar() {
 
 - [TASK-BE-012: Master Data Management](./TASK-BE-012-master-data-management.md)
 - [TASK-BE-013: User Management](./TASK-BE-013-user-management.md)
-- [ADR-004: RBAC Implementation](../../05-decisions/ADR-004-rbac-implementation.md)
+- [ADR-004: RBAC Implementation](../../99-archives/ADR-004-rbac-implementation.md)
 
 ---
 

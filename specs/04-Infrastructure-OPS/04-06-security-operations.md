@@ -493,8 +493,8 @@ docker exec mariadb mariadb -u root -p -e "SHOW GRANTS FOR 'pma'@'%';"
 ## �🔗 Related Documents
 
 - [Incident Response](04-07-incident-response.md)
-- [Monitoring & Alerting](04-03-monitoring-alerting.md)
-- [ADR-004: RBAC Implementation](../05-decisions/ADR-004-rbac-implementation.md)
+- [Monitoring & Alerting](./04-03-monitoring.md)
+- [ADR-004: RBAC Implementation](../99-archives/ADR-004-rbac-implementation.md)
 
 ---
 

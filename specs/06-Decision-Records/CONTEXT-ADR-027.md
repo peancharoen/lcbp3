@@ -179,7 +179,7 @@ export class SystemSetting {
   - ใช้ `publicId` (string UUID) สำหรับ job ID จาก BullMQ เท่านั้น
   - ห้ามใช้ `id ?? ''` fallback ในกรณีใดๆ
 
-#### [NEW] [page.tsx](frontend/app/(admin)/admin/ai/page.tsx)
+#### [NEW] [page.tsx](frontend/app/%28admin%29/admin/ai/page.tsx)
 - หน้าต่าง **AI Control Panel & Playground** ออกแบบอย่างพรีเมียม สไตล์ Glassmorphism:
   - **Layout:** Single page พร้อม tabs (RAG Playground / OCR Sandbox)
   - **Header Switch:** สวิตช์ปุ่มเรืองแสงสีเขียว/ส้มขนาดใหญ่ สำหรับเปิด/ปิดใช้งานระบบ AI

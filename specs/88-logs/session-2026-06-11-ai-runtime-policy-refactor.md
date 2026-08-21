@@ -43,10 +43,10 @@ Implement Feature-235 AI Runtime Policy Refactor ตาม spec.md และ pla
 | `frontend/public/locales/en/ai.json` | เพิ่ม `ai_runtime_policy` namespace |
 | `frontend/public/locales/th/ai.json` | เพิ่ม `ai_runtime_policy` namespace |
 | `backend/.env.example` | เพิ่ม `AI_OCR_RESIDENCY_WINDOW_SECONDS` |
-| `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/.env.template` | สร้างใหม่ — VRAM + residency + concurrency vars |
-| `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py` | adaptive `keep_alive` param; CPU fallback บน `/embed` + `/rerank` |
-| `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/services/vram_monitor.py` | สร้างใหม่ — query Ollama `/api/ps` |
-| `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/services/residency_policy.py` | สร้างใหม่ — keep_alive calculation |
+| `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/.env.template` | สร้างใหม่ — VRAM + residency + concurrency vars |
+| `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/app.py` | adaptive `keep_alive` param; CPU fallback บน `/embed` + `/rerank` |
+| `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/services/vram_monitor.py` | สร้างใหม่ — query Ollama `/api/ps` |
+| `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/services/residency_policy.py` | สร้างใหม่ — keep_alive calculation |
 | `CONTEXT.md` | เพิ่ม Feature-235 ใน System Readiness + ADR-034 ใน ADRs table |
 
 ## กฎที่ Lock แล้ว

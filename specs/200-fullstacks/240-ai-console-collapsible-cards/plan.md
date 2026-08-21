@@ -56,7 +56,7 @@ frontend/
 
 ### [Component Name] Next.js Frontend Page
 
-#### [MODIFY] [page.tsx](frontend/app/(admin)/admin/ai/page.tsx)
+#### [MODIFY] [page.tsx](frontend/app/%28admin%29/admin/ai/page.tsx)
 
 1. **Imports**:
    - เพิ่มการนำเข้าไอคอน `ChevronUp` (หรือ `ChevronDown`) จาก `lucide-react`

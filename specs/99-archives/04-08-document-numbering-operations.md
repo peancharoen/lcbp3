@@ -706,8 +706,8 @@ See: [Backup & Recovery Guide](./04-04-backup-recovery.md)
 
 ## References
 
-- [Requirements](../01-requirements/01-03.11-document-numbering.md)
-- [Implementation Guide](../03-implementation/03-04-document-numbering.md)
-- [ADR-002 Document Numbering Strategy](../05-decisions/ADR-002-document-numbering-strategy.md)
-- [Monitoring & Alerting](../04-operations/04-03-monitoring-alerting.md)
-- [Incident Response](../04-operations/04-07-incident-response.md)
+- [Requirements](../99-archives/01-03.11-document-numbering.md)
+- [Implementation Guide](../99-archives/03-04-document-numbering.md)
+- [ADR-002 Document Numbering Strategy](../06-Decision-Records/ADR-002-document-numbering-strategy.md)
+- [Monitoring & Alerting](../04-Infrastructure-OPS/04-03-monitoring.md)
+- [Incident Response](../04-Infrastructure-OPS/04-07-incident-response.md)

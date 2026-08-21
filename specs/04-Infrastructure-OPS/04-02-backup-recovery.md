@@ -449,8 +449,8 @@ WHERE created_at < DATE_SUB(NOW(), INTERVAL 1 YEAR);
 
 ## 🔗 Related Documents
 
-- [Deployment Guide](04-01-deployment-guide.md)
-- [Monitoring & Alerting](04-03-monitoring-alerting.md)
+- [Deployment Guide](./04-04-deployment-guide.md)
+- [Monitoring & Alerting](./04-03-monitoring.md)
 - [Incident Response](04-07-incident-response.md)
 
 ---

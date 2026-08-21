@@ -423,8 +423,8 @@ export function UserMenu() {
 
 ## 🔗 Related Documents
 
-- [ADR-014: State Management](../../05-decisions/ADR-014-state-management.md)
-- [ADR-013: Form Handling](../../05-decisions/ADR-013-form-handling-validation.md)
+- [ADR-014: State Management](../../06-Decision-Records/ADR-014-state-management.md)
+- [ADR-013: Form Handling](../../06-Decision-Records/ADR-013-form-handling-validation.md)
 - [TASK-BE-002: Auth & RBAC](./TASK-BE-002-auth-rbac.md)
 
 ---

@@ -1,6 +1,6 @@
 # ADR-018: AI Boundary Policy (AI Isolation)
 
-**Status:** Superseded by [ADR-023: Unified AI Architecture](./ADR-023-unified-ai-architecture.md)
+**Status:** Superseded by [ADR-023: Unified AI Architecture](../ADR-023-unified-ai-architecture.md)
 **Date:** 2026-03-27
 **Version:** 1.8.2 (Aligned with ADR-020)
 **Review Cycle:** Core ADR (Review every 6 months or Major Version upgrade)
@@ -17,10 +17,10 @@
 - [ADR-020: AI Intelligence Integration Architecture](./ADR-020-ai-intelligence-integration.md) — Overall AI Architecture & RFA-First Strategy
 - [ADR-017: Ollama Data Migration Architecture](./ADR-017-ollama-data-migration.md)
 - [ADR-017B: AI Document Classification](./ADR-017B-ai-document-classification.md)
-- [ADR-016: Security & Authentication](./ADR-016-security-authentication.md)
-- [ADR-019: Hybrid Identifier Strategy](./ADR-019-hybrid-identifier-strategy.md)
-- [n8n Migration Setup Guide](../03-Data-and-Storage/03-05-n8n-migration-setup-guide.md)
-- [RAG Architecture](../03-Data-and-Storage/archive/03-07-OpenRAG.md)
+- [ADR-016: Security & Authentication](../ADR-016-security-authentication.md)
+- [ADR-019: Hybrid Identifier Strategy](../ADR-019-hybrid-identifier-strategy.md)
+- [n8n Migration Setup Guide](../../03-Data-and-Storage/03-05-n8n-migration-setup-guide.md)
+- [RAG Architecture](../../03-Data-and-Storage/archive/03-07-OpenRAG.md)
 
 > **หมายเหตุ:** ADR-018 เป็น Security Policy หลักที่ควบคุมการทำงานของ AI Components ทั้งหมดในระบบ LCBP3-DMS ทุก Use Case ที่ใช้ AI (Migration, RAG, Smart Categorization) ต้องปฏิบัติตาม Policy นี้ และเป็นส่วนหนึ่งของ ADR-020 (Unified AI Architecture).
 
@@ -432,10 +432,10 @@ Response:
 
 - [ADR-017: Ollama Data Migration Architecture](./ADR-017-ollama-data-migration.md) — Migration implementation following ADR-018
 - [ADR-017B: AI Document Classification](./ADR-017B-ai-document-classification.md) — AI document classification use case
-- [ADR-016: Security & Authentication](./ADR-016-security-authentication.md) — General security strategy
-- [ADR-019: Hybrid Identifier Strategy](./ADR-019-hybrid-identifier-strategy.md) — UUID strategy for API security
-- [03-07-OpenRAG.md](../03-Data-and-Storage/archive/03-07-OpenRAG.md) — RAG architecture under ADR-018
-- [03-05-n8n-migration-setup-guide.md](../03-Data-and-Storage/03-05-n8n-migration-setup-guide.md) — n8n setup with AI isolation
+- [ADR-016: Security & Authentication](../ADR-016-security-authentication.md) — General security strategy
+- [ADR-019: Hybrid Identifier Strategy](../ADR-019-hybrid-identifier-strategy.md) — UUID strategy for API security
+- [03-07-OpenRAG.md](../../03-Data-and-Storage/archive/03-07-OpenRAG.md) — RAG architecture under ADR-018
+- [03-05-n8n-migration-setup-guide.md](../../03-Data-and-Storage/03-05-n8n-migration-setup-guide.md) — n8n setup with AI isolation
 
 ---
 
@@ -548,7 +548,7 @@ Response:
 | 1.8.1   | 2026-03-27 | Security Lead| Initial ADR — AI Boundary Policy (Physical Isolation)    |
 | 1.8.2   | 2026-04-03 | Tech Lead    | Updated — Aligned AI Model spec with ADR-017/017B        |
 | 1.8.3   | 2026-04-04 | System Architect | Enhanced — Added Impact Analysis template, ADR Review Cycle process, Gap Linking to requirements, and Version Dependency tracking |
-| 1.8.4   | 2026-05-14 | System Architect | Superseded — Consolidated into master AI architecture [ADR-023](./ADR-023-unified-ai-architecture.md) |
+| 1.8.4   | 2026-05-14 | System Architect | Superseded — Consolidated into master AI architecture [ADR-023](../ADR-023-unified-ai-architecture.md) |
 
 ---
 

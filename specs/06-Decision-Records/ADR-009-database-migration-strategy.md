@@ -5,7 +5,7 @@
 **Status:** ⚠️ Accepted (Decision Outcome amended by ADR-044 — see note above)
 **Date:** 2026-02-24
 **Decision Makers:** Backend Team, DevOps Team, System Architect
-**Related Documents:** [TASK-BE-001](../06-tasks/TASK-BE-015-schema-v160-migration.md), [ADR-005: Technology Stack](./ADR-005-technology-stack.md), [ADR-044: Schema Strategy Amendment](./ADR-044-database-schema-strategy-amendment.md)
+**Related Documents:** [TASK-BE-001](../99-archives/tasks/TASK-BE-015-schema-v160-migration.md), [ADR-005: Technology Stack](./ADR-005-technology-stack.md), [ADR-044: Schema Strategy Amendment](./ADR-044-database-schema-strategy-amendment.md)
 **Version Applicability:** v1.8.0+
 **Next Review:** 2026-08-01 (6-month cycle)
 
@@ -18,8 +18,8 @@
 | Gap/Requirement | แหล่งที่มา | วิธีการแก้ไขใน ADR นี้ |
 |----------------|-------------|-------------------|
 | **Schema Evolution** | [Product Vision](../00-overview/00-03-product-vision.md) - Data Integrity | TypeORM migrations with version control |
-| **Zero-Downtime Deployment** | [Acceptance Criteria](../01-Requirements/01-05-acceptance-criteria.md) - AC-DEPLOY-001 | Blue-Green deployment strategy |
-| **Data Safety** | [Business Rules](../01-Requirements/01-02-business-rules/01-02-02-doc-numbering-rules.md) - Document numbering | Rollback mechanism with backups |
+| **Zero-Downtime Deployment** | [Acceptance Criteria](../01-requirements/01-05-acceptance-criteria.md) - AC-DEPLOY-001 | Blue-Green deployment strategy |
+| **Data Safety** | [Business Rules](../01-requirements/01-02-business-rules/01-02-02-doc-numbering-rules.md) - Document numbering | Rollback mechanism with backups |
 | **Team Collaboration** | [Engineering Guidelines](../05-Engineering-Guidelines/05-02-backend-guidelines.md) - Team workflows | Git-based migration collaboration |
 | **Auditability** | [Infrastructure OPS](../04-Infrastructure-OPS/04-04-deployment-guide.md) - Deployment tracking | Migration tracking table and CI/CD integration |
 
@@ -442,7 +442,7 @@ describe('Migrations', () => {
 ## Related ADRs
 
 - [ADR-005: Technology Stack](./ADR-005-technology-stack.md) - เลือกใช้ TypeORM
-- [TASK-BE-001: Database Migrations](../06-tasks/TASK-BE-015-schema-v160-migration.md)
+- [TASK-BE-001: Database Migrations](../99-archives/tasks/TASK-BE-015-schema-v160-migration.md)
 
 ---
 

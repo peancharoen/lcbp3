@@ -450,7 +450,7 @@ describe('AuditService', () => {
 
 ## 📚 Related Documents
 
-- [System Architecture - Notifications](../02-architecture/system-architecture.md#notifications)
+- [System Architecture - Notifications](../../02-architecture/02-02-software-architecture.md#notifications)
 
 ---
 

@@ -112,7 +112,7 @@
 
 - **A1**: Desk-5439 มี internet access สำหรับ pull base models (`scb10x/typhoon*`) จาก Ollama registry
 - **A2**: ADR-033 VRAM monitoring mechanism ใช้งานได้กับ Typhoon models
-- **A3**: Custom Modelfiles ถูก define ใน `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/` แล้ว
+- **A3**: Custom Modelfiles ถูก define ใน `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/` แล้ว
 - **A4**: Embedding model `nomic-embed-text` ไม่เปลี่ยนแปลง
 - **A5**: `ai_available_models` table (ADR-027) จำเป็นต้อง update seed เพื่อแสดง model ใหม่ใน admin console
 

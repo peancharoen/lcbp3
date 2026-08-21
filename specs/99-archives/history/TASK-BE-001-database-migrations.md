@@ -229,7 +229,7 @@ ORDER BY
 
 - [Data Dictionary v1.4.5](../../docs/4_Data_Dictionary_V1_4_5.md)
 - [SQL Schema](../../docs/8_lcbp3_v1_4_5.sql)
-- [Data Model](../02-architecture/data-model.md)
+- [Data Model](../../99-archives/02-03-data-model.md)
 
 ---
 

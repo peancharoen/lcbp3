@@ -83,7 +83,7 @@
 - React Hook Form + Zod for Client Validation
 - API Client Interceptors (Auth & Idempotency)
 
-### 4. [Document Numbering System](../01-Requirements/01-02-business-rules/01-02-02-doc-numbering-rules.md)
+### 4. [Document Numbering System](../01-requirements/01-02-business-rules/01-02-02-doc-numbering-rules.md)
 
 **รายละเอียดการนำระบบออกเลขที่เอกสารไปใช้งาน**
 
@@ -158,8 +158,8 @@
 
 ## 🔗 Related Documents
 
-- 📋 [Requirements Specification](../01-Requirements/README.md)
-- 🏗️ [Architecture Specification](../02-Architecture/README.md)
+- 📋 [Requirements Specification](../01-requirements/README.md)
+- 🏗️ [Architecture Specification](../02-architecture/README.md)
 - 🚀 [Operations Specification](../04-Infrastructure-OPS/README.md)
 
 ---
@@ -170,6 +170,6 @@
 
 [FullStack](./05-01-fullstack-js-guidelines.md) • [Backend](./05-02-backend-guidelines.md) • [Frontend](./05-03-frontend-guidelines.md) • [Testing](./05-04-testing-strategy.md) • [Git](./05-05-git-conventions.md) • [Snippets](./05-06-code-snippets.md) • [UUID](./05-07-hybrid-uuid-implementation-plan.md) • [i18n](./05-08-i18n-guidelines.md)
 
-[Main README](../../README.md) • [Architecture](../02-Architecture/README.md) • [Requirements](../01-Requirements/README.md)
+[Main README](../../README.md) • [Architecture](../02-architecture/README.md) • [Requirements](../01-requirements/README.md)
 
 </div>

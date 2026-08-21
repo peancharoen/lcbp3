@@ -285,7 +285,7 @@ TOKEN_EXPIRED: 401 Unauthorized — กรุณา renew MIGRATION_TOKEN แล
 mysql -h <DB_HOST> -u migration_bot -p lcbp3_production < lcbp3-v1.8.0-migration.sql
 ```
 
-> ดูรายละเอียดตาราง: [`lcbp3-v1.8.0-migration.sql`](./lcbp3-v1.8.0-migration.sql)
+> ดูรายละเอียดตาราง: [`lcbp3-v1.8.0-migration.sql`](../03-Data-and-Storage/lcbp3-v1.9.0-migration.sql)
 
 **ตารางที่สร้าง (6 ตาราง ชั่วคราว — ลบได้หลัง Migration เสร็จ):**
 

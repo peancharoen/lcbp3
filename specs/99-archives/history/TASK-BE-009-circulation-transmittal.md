@@ -507,8 +507,8 @@ describe('TransmittalService', () => {
 
 ## 📚 Related Documents
 
-- [Functional Requirements - Circulation](../01-requirements/03.8-circulation-sheet.md)
-- [Functional Requirements - Transmittal](../01-requirements/03.7-transmittals.md)
+- [Functional Requirements - Circulation](../../01-requirements/01-03-modules/01-03-08-circulation-sheet.md)
+- [Functional Requirements - Transmittal](../../01-requirements/01-03-modules/01-03-07-transmittals.md)
 
 ---
 

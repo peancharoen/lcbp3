@@ -5,8 +5,8 @@
 **Decision Makers:** Development Team, System Architect
 **Related Documents:**
 
-- [System Architecture](../02-architecture/02-01-system-architecture.md)
-- [File Handling Requirements](../01-requirements/01-03.10-file-handling.md)
+- [System Architecture](../02-architecture/02-02-software-architecture.md)
+- [File Handling Requirements](../99-archives/01-03.10-file-handling.md)
 
 ---
 
@@ -470,14 +470,14 @@ export class CorrespondenceController {
 เป็นไปตาม:
 
 - [Backend Plan Section 4.2.1](../../docs/2_Backend_Plan_V1_4_5.md) - FileStorageService
-- [Requirements 3.10](../01-requirements/01-03.10-file-handling.md) - File Handling
-- [System Architecture Section 5.2](../02-architecture/02-01-system-architecture.md) - File Upload Flow
+- [Requirements 3.10](../99-archives/01-03.10-file-handling.md) - File Handling
+- [System Architecture Section 5.2](../02-architecture/02-02-software-architecture.md) - File Upload Flow
 
 ---
 
 ## Related ADRs
 
-- [ADR-006: Security Best Practices](./ADR-006-security-best-practices.md) - Virus scanning และ file validation
+- [ADR-006: Security Best Practices](../06-Decision-Records/ADR-016-security-authentication.md) - Virus scanning และ file validation
 
 ---
 

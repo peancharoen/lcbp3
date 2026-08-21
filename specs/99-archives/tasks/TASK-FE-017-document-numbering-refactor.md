@@ -203,6 +203,6 @@ interface AuditQueryParams {
 
 ## References
 
-- [Requirements v1.6.2](../01-requirements/01-03.11-document-numbering.md)
-- [Frontend Guidelines](../03-implementation/03-03-frontend-guidelines.md)
+- [Requirements v1.6.2](../../99-archives/01-03.11-document-numbering.md)
+- [Frontend Guidelines](../../05-Engineering-Guidelines/05-03-frontend-guidelines.md)
 - [REQ-009 Original Task](REQ-009-DocumentNumbering.md)

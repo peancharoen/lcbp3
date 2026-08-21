@@ -6,8 +6,8 @@
 **Date:** 2026-03-13
 **Related Documents:**
 
-- [ADR-017: Ollama Data Migration](../06-Decision-Records/archive/ADR-017-ollama-data-migration.md) (archived — superseded by ADR-023 → ADR-043)
-- [ADR-018: AI Boundary Hardening](../06-Decision-Records/archive/ADR-018-ai-boundary.md) (archived — superseded by ADR-023 → ADR-043)
+- [ADR-017: Ollama Data Migration](../../06-Decision-Records/archive/ADR-017-ollama-data-migration.md) (archived — superseded by ADR-023 → ADR-043)
+- [ADR-018: AI Boundary Hardening](../../06-Decision-Records/archive/ADR-018-ai-boundary.md) (archived — superseded by ADR-023 → ADR-043)
 - [n8n Migration Setup Guide](./03-05-n8n-migration-setup-guide.md)
 - [Legacy Data Migration](./03-04-legacy-data-migration.md)
 - [OpenRAG (openr.ag)](https://www.openr.ag/) — IBM open-source RAG: Docling + OpenSearch + Langflow

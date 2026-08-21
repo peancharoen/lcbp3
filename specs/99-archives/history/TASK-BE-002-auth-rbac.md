@@ -375,9 +375,9 @@ describe('PermissionGuard', () => {
 
 ## 📚 Related Documents
 
-- [Backend Guidelines - Security](../03-implementation/backend-guidelines.md#security)
-- [ADR-004: RBAC Implementation](../05-decisions/ADR-004-rbac-implementation.md)
-- [ADR-006: Redis Caching Strategy](../05-decisions/ADR-006-redis-caching-strategy.md)
+- [Backend Guidelines - Security](../../05-Engineering-Guidelines/05-02-backend-guidelines.md#security)
+- [ADR-004: RBAC Implementation](../../99-archives/ADR-004-rbac-implementation.md)
+- [ADR-006: Redis Caching Strategy](../../06-Decision-Records/ADR-006-redis-caching-strategy.md)
 
 ---
 

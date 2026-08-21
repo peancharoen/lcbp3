@@ -5,8 +5,8 @@
 **Decision Makers:** Development Team, Security Team
 **Related Documents:**
 
-- [System Architecture](../02-architecture/02-01-system-architecture.md)
-- [Access Control Requirements](../01-requirements/01-04-access-control.md)
+- [System Architecture](../02-architecture/02-02-software-architecture.md)
+- [Access Control Requirements](../99-archives/01-04-access-control.md)
 
 ---
 
@@ -402,15 +402,15 @@ Global (ทั้งระบบ)
 
 เป็นไปตาม:
 
-- [Requirements Section 4](../01-requirements/01-04-access-control.md) - Access Control
+- [Requirements Section 4](../99-archives/01-04-access-control.md) - Access Control
 - [Backend Plan Section 2 RBAC](../../docs/2_Backend_Plan_V1_4_5.md#rbac)
 
 ---
 
 ## Related ADRs
 
-- [ADR-005: Redis Usage Strategy](./ADR-005-redis-usage-strategy.md) - Permission caching
-- [ADR-001: Unified Workflow Engine](./ADR-001-unified-workflow-engine.md) - Workflow permission guards
+- [ADR-005: Redis Usage Strategy](../06-Decision-Records/ADR-006-redis-caching-strategy.md) - Permission caching
+- [ADR-001: Unified Workflow Engine](../06-Decision-Records/ADR-001-unified-workflow-engine.md) - Workflow permission guards
 
 ---
 

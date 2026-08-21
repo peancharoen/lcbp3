@@ -5,7 +5,7 @@
 **Decision Makers:** Development Team, System Architect
 **Related Documents:**
 
-- [API Design & Error Handling](../02-Architecture/02-04-api-design.md)
+- [API Design & Error Handling](../02-architecture/02-04-api-design.md)
 - [Backend Guidelines](../05-Engineering-Guidelines/05-02-backend-guidelines.md)
 - [ADR-005: Technology Stack](./ADR-005-technology-stack.md)
 
@@ -401,7 +401,7 @@ export class ApproveCorrespondenceDto {
 
 เป็นไปตาม:
 
-- [API Design & Error Handling](../02-Architecture/02-04-api-design.md)
+- [API Design & Error Handling](../02-architecture/02-04-api-design.md)
 - [Backend Guidelines](../05-Engineering-Guidelines/05-02-backend-guidelines.md)
 - [ADR-019: Hybrid Identifier Strategy](./ADR-019-hybrid-identifier-strategy.md)
 

@@ -47,7 +47,7 @@ This workflow orchestrates the **OCR & AI Extraction prompt management** feature
 - Handle 409 Conflict error - show refresh dialog
 
 ### Sidecar Integration
-- Update `/ocr-upload` endpoint in `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py`:
+- Update `/ocr-upload` endpoint in `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/app.py`:
   - Add parameter: `systemPrompt: Optional[str] = Form(default=None)`
   - Thread `systemPrompt` through `_process_pdf_doc()` → `process_ocr()`
   - Append system prompt to `messages[0]["content"]` (typhoon OCR single-message format)

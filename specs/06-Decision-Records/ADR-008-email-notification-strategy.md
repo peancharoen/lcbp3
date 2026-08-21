@@ -3,7 +3,7 @@
 **Status:** ✅ Accepted (Pending Review)
 **Date:** 2026-02-24
 **Decision Makers:** Backend Team, System Architect
-**Related Documents:** [Backend Guidelines](../03-implementation/03-02-backend-guidelines.md), [TASK-BE-011](../06-tasks/README.md)
+**Related Documents:** [Backend Guidelines](../05-Engineering-Guidelines/05-02-backend-guidelines.md), [TASK-BE-011](../08-Tasks/)
 **Version Applicability:** v1.8.0+
 **Next Review:** 2026-08-01 (6-month cycle)
 
@@ -16,10 +16,10 @@
 | Gap/Requirement | แหล่งที่มา | วิธีการแก้ไขใน ADR นี้ |
 |----------------|-------------|-------------------|
 | **Multi-Channel Notifications** | [Product Vision](../00-overview/00-03-product-vision.md) - Communication Requirements | BullMQ + Redis for Email, LINE, In-app |
-| **Performance Optimization** | [Acceptance Criteria](../01-Requirements/01-05-acceptance-criteria.md) - AC-PERF-001 | Async queue prevents API blocking |
-| **Reliability & Retry** | [Business Rules](../01-Requirements/01-02-business-rules/01-02-03-ui-ux-rules.md) - User Experience | BullMQ retry mechanism with exponential backoff |
+| **Performance Optimization** | [Acceptance Criteria](../01-requirements/01-05-acceptance-criteria.md) - AC-PERF-001 | Async queue prevents API blocking |
+| **Reliability & Retry** | [Business Rules](../01-requirements/01-02-business-rules/01-02-03-ui-ux-rules.md) - User Experience | BullMQ retry mechanism with exponential backoff |
 | **Template Management** | [Engineering Guidelines](../05-Engineering-Guidelines/05-02-backend-guidelines.md) - Maintainability | Handlebars templates with Git versioning |
-| **User Preferences** | [Edge Cases](../01-Requirements/01-06-edge-cases-and-rules.md) - User settings | Configurable notification channels |
+| **User Preferences** | [Edge Cases](../01-requirements/01-06-edge-cases-and-rules.md) - User settings | Configurable notification channels |
 
 ### แก้ไขความขัดแย้ง:
 
@@ -476,7 +476,7 @@ async notifyWorkflowTransition(
 ## Related ADRs
 
 - [ADR-006: Redis Caching Strategy](./ADR-006-redis-caching-strategy.md) - ใช้ Redis สำหรับ Queue
-- [TASK-BE-011: Notification & Audit](../06-tasks/README.md)
+- [TASK-BE-011: Notification & Audit](../08-Tasks/)
 
 ---
 

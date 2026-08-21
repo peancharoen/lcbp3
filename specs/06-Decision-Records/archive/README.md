@@ -2,7 +2,7 @@
 
 โฟลเดอร์นี้เก็บ Architecture Decision Records (ADRs) ที่ถูก **Superseded** แล้ว คงไว้เพื่อ **ประวัติศาสตร์การตัดสินใจ** ตามกระบวนการ ADR-REVIEW-PROCESS (immutable history)
 
-> ⚠️ **ห้ามอ้างอิงเป็นที่ปัจจุบัน** — สถาปัตยกรรม AI ปัจจุบันรวมอยู่ใน [ADR-043: AI Architecture Current State](../ADR-043-ai-architecture-current-state.md) (Single Source of Truth)
+> ⚠️ **ห้ามอ้างอิงเป็นที่ปัจจุบัน** — สถาปัตยกรรม AI ปัจจุบันรวมอยู่ใน [ADR-043: AI Architecture Current State](.../ADR-043-ai-architecture-current-state.md) (Single Source of Truth)
 
 ---
 
@@ -61,8 +61,8 @@ graph LR
 
 ## การอ้างอิง
 
-- [ADR-023: Unified AI Architecture](../ADR-023-unified-ai-architecture.md) — ต้นฉบับที่ทำการ supersede ครั้งแรก
-- [ADR-043: AI Architecture Current State](../ADR-043-ai-architecture-current-state.md) — Single Source of Truth ปัจจุบัน
+- [ADR-023: Unified AI Architecture](.../ADR-023-unified-ai-architecture.md) — ต้นฉบับที่ทำการ supersede ครั้งแรก
+- [ADR-043: AI Architecture Current State](.../ADR-043-ai-architecture-current-state.md) — Single Source of Truth ปัจจุบัน
 - [ADR-REVIEW-PROCESS](../ADR-REVIEW-PROCESS.md) — กระบวนการจัดการ ADR และ Version Dependencies
 - [README.md](../README.md) — ADR Index หลัก
 

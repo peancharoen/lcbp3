@@ -88,7 +88,7 @@
 - [x] `specs/04-Infrastructure-OPS/04-04-deployment-guide.md` — deploy flow ตรงกับ 4 layers
 - [x] `specs/04-Infrastructure-OPS/04-00-docker-compose/SECURITY-MIGRATION-v1.8.6.md`
 - [x] `specs/04-Infrastructure-OPS/04-00-docker-compose/README.md`
-- [x] `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/` — Modelfiles สำหรับ Ollama (`np-dms-ai`, `np-dms-ocr`) *(archived 2026-08-03 → `specs/99-archives/04-00-docker-compose-Desk-5439/` per ADR-041)*
+- [x] `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/` — Modelfiles สำหรับ Ollama (`np-dms-ai`, `np-dms-ocr`) *(archived 2026-08-03 → `specs/99-archives/04-00-docker-compose-Desk-5439/` per ADR-041)*
 - [x] `specs/04-Infrastructure-OPS/04-00-docker-compose/QNAP/` — legacy compose stack *(archived 2026-08-03 → `specs/99-archives/04-00-docker-compose-QNAP/` — QNAP no longer runs Docker; edge proxy moved to Cloudflare Tunnel on np-dms-lcbp3)*
 - [x] `specs/04-Infrastructure-OPS/04-00-docker-compose/ASUSTOR/` — monitoring/registry/gitea-runner ที่ยังคงใช้
 

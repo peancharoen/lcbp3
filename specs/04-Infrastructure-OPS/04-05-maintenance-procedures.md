@@ -571,9 +571,9 @@ echo "PMA recreate completed: $(date)"
 
 ## �📚 Related Documents
 
-- [Deployment Guide](04-01-deployment-guide.md)
-- [Backup & Recovery](04-04-backup-recovery.md)
-- [Monitoring & Alerting](04-03-monitoring-alerting.md)
+- [Deployment Guide](./04-04-deployment-guide.md)
+- [Backup & Recovery](./04-02-backup-recovery.md)
+- [Monitoring & Alerting](./04-03-monitoring.md)
 
 ---
 

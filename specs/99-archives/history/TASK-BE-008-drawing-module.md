@@ -512,8 +512,8 @@ describe('DrawingService', () => {
 
 ## 📚 Related Documents
 
-- [Data Model - Drawings](../02-architecture/data-model.md#drawings)
-- [Functional Requirements - Drawings](../01-requirements/03.4-contract-drawing.md)
+- [Data Model - Drawings](../../99-archives/02-03-data-model.md#drawings)
+- [Functional Requirements - Drawings](../../01-requirements/01-03-modules/01-03-04-contract-drawing.md)
 
 ---
 

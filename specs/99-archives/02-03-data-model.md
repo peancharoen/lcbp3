@@ -630,11 +630,11 @@ SELECT * FROM correspondences WHERE deleted_at IS NULL;
 
 ## 🔗 Related Documentation
 
-- [System Architecture](../01-requirements/01-02-architecture.md) - สถาปัตยกรรมระบบโดยรวม
+- [System Architecture](../02-architecture/02-02-software-architecture.md) - สถาปัตยกรรมระบบโดยรวม
 - [API Design](02-02-api-design.md) - การออกแบบ API
 - [Data Dictionary v1.4.5](../../docs/4_Data_Dictionary_V1_4_5.md) - รายละเอียดตารางทั้งหมด
 - [SQL Schema v1.4.5](../../docs/8_lcbp3_v1_4_5.sql) - SQL Script สำหรับสร้างฐานข้อมูล
-- [Functional Requirements](../01-requirements/01-03-functional-requirements.md) - ความต้องการด้านฟังก์ชัน
+- [Functional Requirements](../01-requirements/01-03-modules/01-03-00-index.md) - ความต้องการด้านฟังก์ชัน
 
 ---
 

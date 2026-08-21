@@ -22,10 +22,10 @@
 
 | ไฟล์                                                                                        | การเปลี่ยนแปลย                                                               |
 | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/requirements.txt`   | ลบ paddlepaddle/paddleocr, เพิ่ม pytesseract, Pillow                         |
-| `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py`             | เปลี่ยนใช้ pytesseract, OCR_LANG เป็น `tha+eng`, ลบ PaddleOCR initialization |
-| `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/Dockerfile`         | ติดตั้ง tesseract-ocr, tesseract-ocr-tha, tesseract-ocr-eng                  |
-| `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/docker-compose.yml` | OCR_LANG เป็น `tha+eng`, ลบ paddleocr_models volume                          |
+| `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/requirements.txt`   | ลบ paddlepaddle/paddleocr, เพิ่ม pytesseract, Pillow                         |
+| `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/app.py`             | เปลี่ยนใช้ pytesseract, OCR_LANG เป็น `tha+eng`, ลบ PaddleOCR initialization |
+| `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/Dockerfile`         | ติดตั้ง tesseract-ocr, tesseract-ocr-tha, tesseract-ocr-eng                  |
+| `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/docker-compose.yml` | OCR_LANG เป็น `tha+eng`, ลบ paddleocr_models volume                          |
 | `backend/src/modules/ai/services/ocr.service.ts`                                            | เปลี่ยน comment/error message จาก PaddleOCR เป็น Tesseract                   |
 | `frontend/components/admin/ai/OcrSandboxPromptManager.tsx`                                  | เปลี่ยน Badge text จาก PaddleOCR เป็น Tesseract                              |
 

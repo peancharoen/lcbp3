@@ -52,9 +52,9 @@
 - [x] T006 [P] Implement VRAMMonitorService in backend/src/modules/ai/services/vram-monitor.service.ts to track GPU VRAM usage via Ollama API
 - [x] T007 [P] Implement OcrCacheService in backend/src/modules/ai/services/ocr-cache.service.ts for 24-hour Redis caching of OCR results
 - [x] T008 [P] Extend AiAuditLog entity in backend/src/modules/ai/entities/ai-audit-log.entity.ts with modelType, vramUsageMB, cacheHit fields
-- [x] T009 [P] Add Typhoon OCR integration function to OCR sidecar in specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py
-- [x] T009a [P] Update OCR sidecar Dockerfile for Typhoon OCR dependencies in specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/Dockerfile
-- [x] T009b [P] Update OCR sidecar docker-compose.yml for Typhoon OCR environment variables in specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/docker-compose.yml
+- [x] T009 [P] Add Typhoon OCR integration function to OCR sidecar in specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/app.py
+- [x] T009a [P] Update OCR sidecar Dockerfile for Typhoon OCR dependencies in specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/Dockerfile
+- [x] T009b [P] Update OCR sidecar docker-compose.yml for Typhoon OCR environment variables in specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/docker-compose.yml
 - [x] T009c [P] Add BullMQ Typhoon OCR processor in backend/src/modules/ai/processors/typhoon-ocr.processor.ts
 - [x] T009d [P] Add BullMQ Typhoon LLM processor in backend/src/modules/ai/processors/typhoon-llm.processor.ts
 

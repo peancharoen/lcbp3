@@ -1,6 +1,6 @@
 # ADR-017: Ollama Data Migration Architecture
 
-**Status:** Superseded by [ADR-023: Unified AI Architecture](./ADR-023-unified-ai-architecture.md)
+**Status:** Superseded by [ADR-023: Unified AI Architecture](../ADR-023-unified-ai-architecture.md)
 **Date:** 2026-02-26
 **Version:** 1.8.3 (Aligned with ADR-020)
 **Review Cycle:** Core ADR (Review every 6 months or Major Version upgrade)
@@ -15,11 +15,11 @@
 **Related Documents:**
 
 - [ADR-020: AI Intelligence Integration Architecture](./ADR-020-ai-intelligence-integration.md) — Overall AI Architecture & RFA-First Strategy
-- [Legacy Data Migration Plan](../03-Data-and-Storage/03-04-legacy-data-migration.md)
-- [n8n Migration Setup Guide](../03-Data-and-Storage/03-05-n8n-migration-setup-guide.md)
-- [ADR-019: Hybrid Identifier Strategy](./ADR-019-hybrid-identifier-strategy.md) — UUID Strategy สำหรับ DB Lookup
-- [Software Architecture](../02-Architecture/02-02-software-architecture.md)
-- [Data Dictionary](../03-Data-and-Storage/03-01-data-dictionary.md)
+- [Legacy Data Migration Plan](../../03-Data-and-Storage/03-04-legacy-data-migration.md)
+- [n8n Migration Setup Guide](../../03-Data-and-Storage/03-05-n8n-migration-setup-guide.md)
+- [ADR-019: Hybrid Identifier Strategy](../ADR-019-hybrid-identifier-strategy.md) — UUID Strategy สำหรับ DB Lookup
+- [Software Architecture](../../02-architecture/02-02-software-architecture.md)
+- [Data Dictionary](../../03-Data-and-Storage/03-01-data-dictionary.md)
   > **Note:** ADR-017 is clarified and hardened by ADR-018 regarding AI physical isolation. Now part of unified ADR-020 architecture with RFA-First approach, Gemma 4 model, and comprehensive Human-in-the-Loop validation.
 
 ---
@@ -553,4 +553,4 @@ _สำหรับขั้นตอนปฏิบัติงานแบบ�
 | 1.8.0   | 2026-02-26 | DevOps Team | Initial ADR — Ollama + n8n Migration Architecture                    |
 | 1.8.2   | 2026-04-03 | Tech Lead   | **Updated** — Aligned with ADR-019 (UUID Strategy), changed AI Model to `gemma4:9b` (9.6 GB) |
 | 1.8.4   | 2026-04-04 | System Architect | **Enhanced** — Added Impact Analysis template, ADR Review Cycle process, Gap Linking to requirements, and Version Dependency tracking |
-| 1.8.5   | 2026-05-14 | System Architect | **Superseded** — Consolidated into master AI architecture [ADR-023](./ADR-023-unified-ai-architecture.md) |
+| 1.8.5   | 2026-05-14 | System Architect | **Superseded** — Consolidated into master AI architecture [ADR-023](../ADR-023-unified-ai-architecture.md) |

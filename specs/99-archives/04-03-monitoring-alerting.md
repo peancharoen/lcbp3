@@ -424,7 +424,7 @@ ab -n 1000 -c 10 \
 
 - [Backup & Recovery](04-04-backup-recovery.md)
 - [Incident Response](04-07-incident-response.md)
-- [ADR-010: Logging Strategy](../05-decisions/ADR-010-logging-monitoring-strategy.md)
+- [ADR-010: Logging Strategy](../06-Decision-Records/ADR-010-logging-monitoring-strategy.md)
 
 ---
 

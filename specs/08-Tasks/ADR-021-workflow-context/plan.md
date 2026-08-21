@@ -1,6 +1,6 @@
 # Implementation Plan: ADR-021 Integrated Workflow Context & Step-specific Attachments
 
-**Branch**: `feat/adr-021-integrated-workflow-context` | **Date**: 2026-04-12 | **ADR**: [ADR-021](../../06-Decision-Records/ADR-021-integrated-workflow-context.md%20.md)
+**Branch**: `feat/adr-021-integrated-workflow-context` | **Date**: 2026-04-12 | **ADR**: [ADR-021](../../06-Decision-Records/ADR-021-integrated-workflow-context.md)
 **Input**: Feature specification from `specs/06-Decision-Records/ADR-021-integrated-workflow-context.md .md`
 
 ---
@@ -289,7 +289,7 @@ cd frontend && pnpm test --run  # Vitest
 - [ ] Transition when Redis unavailable (mock Redis down) → retry 3x then `503 Service Unavailable` (Clarify Q2)
 
 ### Definition of Done Reference
-ดู DoD Observable Outcomes ต่อ REQ ใน [ADR-021 §9.1](../../06-Decision-Records/ADR-021-integrated-workflow-context.md%20.md#definition-of-done-observable-outcomes)
+ดู DoD Observable Outcomes ต่อ REQ ใน [ADR-021 §9.1](../../06-Decision-Records/ADR-021-integrated-workflow-context.md#definition-of-done-observable-outcomes)
 
 ---
 

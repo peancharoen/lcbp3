@@ -33,11 +33,11 @@
   [vram-monitor.service.ts](./backend/src/modules/ai/services/vram-monitor.service.ts),
   [ocr-residency.spec.ts](./backend/src/modules/ai/tests/ocr-residency.spec.ts),
   [vram-monitor.service.spec.ts](./backend/src/modules/ai/tests/vram-monitor.service.spec.ts),
-  [residency_policy.py](./specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/services/residency_policy.py)
+  [residency_policy.py](./specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/services/residency_policy.py)
 - Workstream C evidence found in:
-  [app.py](./specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py),
+  [app.py](./specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/app.py),
   [ai-batch.processor.ts](./backend/src/modules/ai/processors/ai-batch.processor.ts),
-  [test_retrieval_fallback.py](./specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/tests/test_retrieval_fallback.py)
+  [test_retrieval_fallback.py](./specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/tests/test_retrieval_fallback.py)
 - Workstream D evidence found in:
   [bullmq.config.ts](./backend/src/config/bullmq.config.ts),
   [ai-realtime.processor.ts](./backend/src/modules/ai/processors/ai-realtime.processor.ts),

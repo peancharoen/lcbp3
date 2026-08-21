@@ -473,9 +473,9 @@ Backend codebase has **zero** `any` types remaining. Key techniques used:
 ## 📚 เอกสารอ้างอิง
 
 - [FullStack Guidelines](05-01-fullstack-js-guidelines.md)
-- [Backend Plan v1.8.0](../02-Architecture/02-02-software-architecture.md)
+- [Backend Plan v1.8.0](../02-architecture/02-02-software-architecture.md)
 - [Data Dictionary](../03-Data-and-Storage/03-01-data-dictionary.md)
-- [Workflow Engine Plan](../01-Requirements/01-03-modules/README.md)
+- [Workflow Engine Plan](../01-requirements/01-03-modules/01-03-00-index.md)
 
 ---
 

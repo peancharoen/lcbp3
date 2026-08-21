@@ -5,8 +5,8 @@
 **Decision Makers:** Development Team, System Architect
 **Related Documents:**
 
-- [Software Architecture](../02-Architecture/02-02-software-architecture.md)
-- [Non-Functional Rules](../01-Requirements/01-02-business-rules/01-02-04-non-functional-rules.md)
+- [Software Architecture](../02-architecture/02-02-software-architecture.md)
+- [Non-Functional Rules](../01-requirements/01-02-business-rules/01-02-04-non-functional-rules.md)
 
 ---
 
@@ -516,15 +516,15 @@ export class RedisMonitoringService {
 
 เป็นไปตาม:
 
-- [Software Architecture](../02-Architecture/02-02-software-architecture.md#redis)
-- [Non-Functional Rules](../01-Requirements/01-02-business-rules/01-02-04-non-functional-rules.md)
+- [Software Architecture](../02-architecture/02-02-software-architecture.md#redis)
+- [Non-Functional Rules](../01-requirements/01-02-business-rules/01-02-04-non-functional-rules.md)
 
 ---
 
 ## Related ADRs
 
 - [ADR-002: Document Numbering Strategy](./ADR-002-document-numbering-strategy.md) - Redis locks
-- [RBAC Matrix](../01-Requirements/01-02-business-rules/01-02-01-rbac-matrix.md) - Permission caching
+- [RBAC Matrix](../01-requirements/01-02-business-rules/01-02-01-rbac-matrix.md) - Permission caching
 
 ---
 

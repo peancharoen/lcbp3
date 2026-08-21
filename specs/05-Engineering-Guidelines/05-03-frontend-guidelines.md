@@ -756,7 +756,7 @@ const columns: ColumnDef<Discipline>[] = [
 ## 📚 เอกสารอ้างอิง
 
 - [FullStack Guidelines](05-01-fullstack-js-guidelines.md)
-- [Frontend Plan v1.8.0](../02-Architecture/02-02-software-architecture.md)
+- [Frontend Plan v1.8.0](../02-architecture/02-02-software-architecture.md)
 - [Next.js Documentation](https://nextjs.org/docs)
 - [TanStack Query](https://tanstack.com/query)
 - [shadcn/ui](https://ui.shadcn.com)

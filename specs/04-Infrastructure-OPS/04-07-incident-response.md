@@ -468,8 +468,8 @@ Database connection pool was exhausted due to slow queries not releasing connect
 
 ## 🔗 Related Documents
 
-- [Monitoring & Alerting](04-03-monitoring-alerting.md)
-- [Backup & Recovery](04-04-backup-recovery.md)
+- [Monitoring & Alerting](./04-03-monitoring.md)
+- [Backup & Recovery](./04-02-backup-recovery.md)
 - [Security Operations](04-06-security-operations.md)
 
 ---

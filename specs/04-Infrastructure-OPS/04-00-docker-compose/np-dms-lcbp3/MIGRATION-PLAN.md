@@ -916,7 +916,7 @@
 
 - [X] **0.42** สร้าง custom Ollama models จาก Modelfiles (ADR-034)
   > **สำคัญ:** `np-dms-ai` และ `np-dms-ocr` เป็น custom models ที่สร้างจาก Modelfiles — ไม่ใช่ pull จาก registry
-  > Modelfiles อยู่ใน repo: `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/`
+  > Modelfiles อยู่ใน repo: `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/`
   > Base models (`scb10x/typhoon2.5-qwen3-4b:latest`, `scb10x/typhoon-ocr1.5-3b:latest`) มีอยู่แล้วบนเครื่อง
   ```bash
   # ตรวจสอบ base models มีครบ
@@ -924,11 +924,11 @@
   # ควรเห็น: scb10x/typhoon2.5-qwen3-4b:latest, scb10x/typhoon-ocr1.5-3b:latest
 
   # สร้าง custom models จาก Modelfiles (ADR-034)
-  # Modelfiles อยู่ที่: specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/
+  # Modelfiles อยู่ที่: specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/
   sudo -u ollama ollama create np-dms-ai -f \
-    /opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/typhoon2.5-np-dms.model.md
+    /opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/typhoon2.5-np-dms.model.md
   sudo -u ollama ollama create np-dms-ocr -f \
-    /opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/typhoon-np-dms-ocr.model.md
+    /opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/typhoon-np-dms-ocr.model.md
 
   # ตรวจสอบ
   sudo -u ollama ollama list
@@ -1573,9 +1573,9 @@
   # ถ้า models ว่าง (จาก 2.8 ไม่ได้ copy ไฟล์) → สร้างใหม่จาก Modelfiles (ADR-034):
   # หมายเหตุ: nomic-embed-text ถูกแทนที่ด้วย BGE-M3 ใน OCR Sidecar (ADR-035) — ไม่ต้อง pull ใน Ollama อีกต่อไป
   sudo -u ollama ollama create np-dms-ai -f \
-    /opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/typhoon2.5-np-dms.model.md
+    /opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/typhoon2.5-np-dms.model.md
   sudo -u ollama ollama create np-dms-ocr -f \
-    /opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/typhoon-np-dms-ocr.model.md
+    /opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/typhoon-np-dms-ocr.model.md
 
   # ยืนยัน models ครบ
   sudo -u ollama ollama list

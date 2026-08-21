@@ -446,7 +446,7 @@ export const useToastStore = create<ToastState>((set) => ({
 
 ## 🔗 Related Documents
 
-- [ADR-012: UI Component Library](../../05-decisions/ADR-012-ui-component-library.md)
+- [ADR-012: UI Component Library](../../06-Decision-Records/ADR-012-ui-component-library.md)
 
 ---
 

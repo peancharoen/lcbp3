@@ -434,7 +434,7 @@ echo "Account compromise response completed for User ID: $USER_ID"
 
 - [Incident Response](04-07-incident-response.md)
 - [Monitoring & Alerting](04-03-monitoring-alerting.md)
-- [ADR-004: RBAC Implementation](../05-decisions/ADR-004-rbac-implementation.md)
+- [ADR-004: RBAC Implementation](../99-archives/ADR-004-rbac-implementation.md)
 
 ---
 

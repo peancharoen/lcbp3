@@ -44,4 +44,4 @@ Refactor and debug the "Test Number Generation" (Template Tester) form to suppor
 
 ---
 
-**Reference Task**: [TASK-FE-017-document-numbering-refactor.md](../06-tasks/TASK-FE-017-document-numbering-refactor.md)
+**Reference Task**: [TASK-FE-017-document-numbering-refactor.md](../../99-archives/tasks/TASK-FE-017-document-numbering-refactor.md)

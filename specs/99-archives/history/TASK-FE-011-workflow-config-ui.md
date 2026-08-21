@@ -495,7 +495,7 @@ export default function WorkflowEditPage() {
 ## 🔗 Related Documents
 
 - [TASK-BE-006: Workflow Engine](./TASK-BE-006-workflow-engine.md)
-- [ADR-001: Unified Workflow Engine](../../05-decisions/ADR-001-unified-workflow-engine.md)
+- [ADR-001: Unified Workflow Engine](../../06-Decision-Records/ADR-001-unified-workflow-engine.md)
 
 ---
 

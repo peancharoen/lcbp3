@@ -18,14 +18,14 @@
 | ไฟล์ | การเปลี่ยนแปลง |
 | --- | --- |
 | `backend/.env.example` | P2-1: `OCR_API_KEY` → `OCR_SIDECAR_API_KEY` (align กับ code); P2-2: OCR URL `192.168.10.8` → `192.168.10.100` (Desk-5439); ลบ `THAI_PREPROCESS_URL` (endpoint deleted in ADR-040 Phase 8); comment "PaddleOCR" → "np-dms-ocr" |
-| `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/Dockerfile` | P2-5: `python:3.10-slim` → `python:3.11-slim` |
+| `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/Dockerfile` | P2-5: `python:3.10-slim` → `python:3.11-slim` |
 
 ### P3: Medium Priority
 
 | ไฟล์ | การเปลี่ยนแปลง |
 | --- | --- |
-| `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py` | P3-1/P3-2: Wrap sync VRAM calls ใน `asyncio.to_thread()` — `calculate_ocr_residency()` ใน `process_ocr`, `get_vram_headroom()` ใน `/embed` และ `/rerank` |
-| `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/services/residency_policy.py` | อัปเดต comment "Typhoon OCR" → "np-dms-ocr" |
+| `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/app.py` | P3-1/P3-2: Wrap sync VRAM calls ใน `asyncio.to_thread()` — `calculate_ocr_residency()` ใน `process_ocr`, `get_vram_headroom()` ใน `/embed` และ `/rerank` |
+| `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/services/residency_policy.py` | อัปเดต comment "Typhoon OCR" → "np-dms-ocr" |
 
 ### typhoon-llm → np-dms-ai Rename
 

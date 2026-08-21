@@ -6,8 +6,8 @@
 **Decision Makers:** Development Team, System Architect
 **Related Documents:**
 
-- [Software Architecture](../02-Architecture/02-02-software-architecture.md)
-- [Unified Workflow Requirements](../01-Requirements/01-03-modules/01-03-06-unified-workflow.md)
+- [Software Architecture](../02-architecture/02-02-software-architecture.md)
+- [Unified Workflow Requirements](../01-requirements/01-03-modules/01-03-06-unified-workflow.md)
 
 ---
 
@@ -552,7 +552,7 @@ export class WorkflowEngineService {
 เป็นไปตาม:
 
 - [Backend Guidelines](../05-Engineering-Guidelines/05-02-backend-guidelines.md#workflow-engine-integration) - Unified Workflow Engine
-- [Unified Workflow Requirements](../01-Requirements/01-03-modules/01-03-06-unified-workflow.md) - Unified Workflow Specification
+- [Unified Workflow Requirements](../01-requirements/01-03-modules/01-03-06-unified-workflow.md) - Unified Workflow Specification
 - [ADR-007 Error Handling](./ADR-007-error-handling-strategy.md) - `BusinessException` + 409 conflict response pattern
 - [ADR-008 Notifications](./ADR-008-email-notification-strategy.md) - BullMQ `workflow-events` queue pattern
 - [ADR-016 Security](./ADR-016-security-authentication.md) - `system.manage_all` required for DSL authoring
@@ -598,7 +598,7 @@ export class WorkflowEngineService {
 - [ADR-007: Error Handling Strategy](./ADR-007-error-handling-strategy.md) - `ConflictException` → `BusinessException` → 409 pattern
 - [ADR-008: Email/Notification Strategy](./ADR-008-email-notification-strategy.md) - BullMQ `workflow-events` dedicated queue
 - [ADR-016: Security & Authentication](./ADR-016-security-authentication.md) - `system.manage_all` RBAC guard สำหรับ DSL authoring
-- [RBAC Matrix](../01-Requirements/01-02-business-rules/01-02-01-rbac-matrix.md) - Permission Guards ใน Workflow Transitions
+- [RBAC Matrix](../01-requirements/01-02-business-rules/01-02-01-rbac-matrix.md) - Permission Guards ใน Workflow Transitions
 
 ---
 

@@ -244,7 +244,7 @@ pnpm test:e2e -- --grep "rfa"
 ## 📚 Related Documents
 
 - [TASK-BE-015](./TASK-BE-015-schema-v160-migration.md) - Backend Migration
-- [Schema v1.6.0](../07-database/lcbp3-v1.6.0-schema.sql)
+- [Schema v1.6.0](../../03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql)
 - [CHANGELOG v1.6.0](../../CHANGELOG.md)
 
 ---

@@ -15,7 +15,7 @@
 **Related Documents:**
 
 - [Data Dictionary](../03-Data-and-Storage/03-01-data-dictionary.md)
-- [Database Schema](../03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql)
+- [Database Schema](../03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql)
 - [ADR-005: Technology Stack](ADR-005-technology-stack.md)
 - [ADR-009: Database Migration Strategy](ADR-009-database-migration-strategy.md)
 - [ADR-016: Security & Authentication](ADR-016-security-authentication.md)

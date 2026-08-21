@@ -5,7 +5,7 @@
 **Decision Makers:** Development Team, System Architect
 **Related Documents:**
 
-- [API Design & Error Handling](../02-Architecture/02-04-api-design.md)
+- [API Design & Error Handling](../02-architecture/02-04-api-design.md)
 - [ADR-010: Logging & Monitoring Strategy](./ADR-010-logging-monitoring-strategy.md)
 - [Backend Guidelines](../05-Engineering-Guidelines/05-02-backend-guidelines.md)
 
@@ -629,7 +629,7 @@ export class ApiService {
 
 เป็นไปตาม:
 
-- [API Design & Error Handling](../02-Architecture/02-04-api-design.md)
+- [API Design & Error Handling](../02-architecture/02-04-api-design.md)
 - [ADR-010: Logging & Monitoring Strategy](./ADR-010-logging-monitoring-strategy.md)
 - [Backend Guidelines](../05-Engineering-Guidelines/05-02-backend-guidelines.md)
 

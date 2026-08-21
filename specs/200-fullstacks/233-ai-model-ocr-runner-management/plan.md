@@ -63,7 +63,7 @@
   - `POST /ai/ocr-engines/:engineId/select` (แอดมินสลับ OCR engine หลักของระบบ)
 * ตรวจสอบและ normalize `engineType` ใน `submitSandboxOcr` ให้ครอบคลุมทุกโมเดล
 
-#### [MODIFY] [app.py](specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py)
+#### [MODIFY] [app.py](specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/app.py)
 * ปรับปรุง `_process_pdf_doc` และ `process_with_typhoon_ocr` ให้แยกความแตกต่างของ `typhoon-ocr-3b` (v1.0) และ `typhoon-ocr1.5-3b` (v1.5) เพื่อส่ง model name ไปเรียกใน Ollama ได้ตรงตัวจริง
 * ติดตั้ง APIKeyHeader validation เพื่อปกป้อง endpoint `/ocr`, `/ocr-upload` และ `/normalize`
 
@@ -73,7 +73,7 @@
 
 การปรับปรุง UI ของ AI Admin Console ให้ยืดหยุ่น เรียงลำดับเมนูและแสดงสถานะได้ตอบโจทย์การทำงานจริงของแอดมิน
 
-#### [MODIFY] [page.tsx](frontend/app/(admin)/admin/ai/page.tsx)
+#### [MODIFY] [page.tsx](frontend/app/%28admin%29/admin/ai/page.tsx)
 * เพิ่มแถบแสดงชื่อโมเดลที่ Active และสถานะการโหลดขึ้นหน่วยความจำ GPU ปัจจุบัน (ดึงข้อมูลจาก `health?.ollama?.models`) วางคู่กับสวิตช์ System Toggle (AI feature enabled)
 * ปรับปรุงให้ dropdown โมเดลแสดงโมเดลตัวเลือก Typhoon อื่น ๆ ที่แอดมินเพิ่มเข้ามาได้สมบูรณ์
 

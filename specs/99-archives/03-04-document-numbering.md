@@ -815,8 +815,8 @@ GRAFANA_PORT=3000
 
 ## References
 
-- [Requirements](../01-requirements/01-03.11-document-numbering.md)
-- [Operations Guide](../04-operations/04-08-document-numbering-operations.md)
+- [Requirements](../99-archives/01-03.11-document-numbering.md)
+- [Operations Guide](../99-archives/04-08-document-numbering-operations.md)
 - [ADR-018 Document Numbering](file:///d:/nap-dms.lcbp3/specs/05-decisions/adr-018-document-numbering.md)
 - [Backend Guidelines](03-02-backend-guidelines.md)
 

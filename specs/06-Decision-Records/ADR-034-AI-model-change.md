@@ -7,7 +7,7 @@
 **Related Documents:**
 - [ADR-023A: Unified AI Architecture — Model Revision](./ADR-023A-unified-ai-architecture.md)
 - [ADR-033: Active Model & OCR Management](./ADR-033-active-model-and-ocr-management.md)
-- [CONTEXT.md](../../../CONTEXT.md)
+- [CONTEXT.md](../../CONTEXT.md)
 
 ---
 
@@ -90,7 +90,7 @@ Guidelines:
 ```
 
 ---
-file: specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/typhoon-np-dms-ocr.model.md
+file: specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/typhoon-np-dms-ocr.model.md
 ```t
 # ollama create np-dms-ocr -f ./np-dms-ocr.model.md
 

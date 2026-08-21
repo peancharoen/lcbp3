@@ -211,33 +211,33 @@ lcbp3/
 | **Overview**       | [🎓 Training Plan](./00-06-training-plan.md)                                                | Training curriculum & change management         |
 | **Overview**       | [📋 Stakeholder Sign-off & Risk](./00-04-stakeholder-signoff-and-risk.md)                   | Sign-off process, Risk Register, Change Control |
 | **Overview**       | [🚀 Release Management Policy](../04-Infrastructure-OPS/04-08-release-management-policy.md) | SemVer, Release Gates, Hotfix, Rollback Policy  |
-| **Requirements**   | [📖 User Stories](../01-Requirements/01-04-user-stories.md)                                 | 27 User Stories (8 Epics, MoSCoW)               |
-| **Requirements**   | [🛡️ Edge Cases & Business Rules](../01-Requirements/01-06-edge-cases-and-rules.md)          | 37 Edge Cases ป้องกัน Bug                       |
-| **Requirements**   | [🖼️ UI/UX Wireframes](../01-Requirements/01-07-ui-wireframes.md)                            | 26 Screens, Navigation Map, Design System       |
+| **Requirements**   | [📖 User Stories](../01-requirements/01-04-user-stories.md)                                 | 27 User Stories (8 Epics, MoSCoW)               |
+| **Requirements**   | [🛡️ Edge Cases & Business Rules](../01-requirements/01-06-edge-cases-and-rules.md)          | 37 Edge Cases ป้องกัน Bug                       |
+| **Requirements**   | [🖼️ UI/UX Wireframes](../01-requirements/01-07-ui-wireframes.md)                            | 26 Screens, Navigation Map, Design System       |
 | **Data**           | [📦 Migration Business Scope](../03-Data-and-Storage/03-06-migration-business-scope.md)     | 20,000 Docs, 3 Tiers, Go/No-Go Gates            |
-| **Requirements**   | [✅ Acceptance Criteria (UAT)](../01-Requirements/01-05-acceptance-criteria.md)             | MVP Go-Live criteria & UAT Sign-off             |
-| **Requirements**   | [Functional Requirements](../01-requirements/01-03-functional-requirements.md)              | Feature specifications                          |
-| **Requirements**   | [Document Numbering](../01-requirements/01-03.11-document-numbering.md)                     | Document numbering requirements                 |
-| **Architecture**   | [System Architecture](../02-architecture/02-01-system-architecture.md)                      | Overall system design                           |
-| **Architecture**   | [Data Model](../02-architecture/02-03-data-model.md)                                        | Database schema                                 |
-| **Architecture**   | [API Design](../02-architecture/02-02-api-design.md)                                        | REST API specifications                         |
-| **Implementation** | [Backend Guidelines](../03-implementation/03-02-backend-guidelines.md)                      | Backend coding standards                        |
-| **Implementation** | [Frontend Guidelines](../03-implementation/03-03-frontend-guidelines.md)                    | Frontend coding standards                       |
-| **Implementation** | [Document Numbering Implementation](../03-implementation/03-04-document-numbering.md)       | Document numbering implementation               |
-| **Implementation** | [Testing Strategy](../03-implementation/03-05-testing-strategy.md)                          | Testing approach                                |
-| **Operations**     | [Deployment Guide](../04-operations/04-01-deployment-guide.md)                              | How to deploy                                   |
-| **Operations**     | [Monitoring](../04-operations/04-03-monitoring-alerting.md)                                 | Monitoring & alerts                             |
-| **Operations**     | [Document Numbering Operations](../04-operations/04-08-document-numbering-operations.md)    | Doc numbering ops guide                         |
-| **Decisions**      | [ADR Index](../05-decisions/README.md)                                                      | Architecture decisions                          |
-| **Tasks**          | [Backend Tasks](../06-tasks/README.md)                                                      | Development tasks                               |
+| **Requirements**   | [✅ Acceptance Criteria (UAT)](../01-requirements/01-05-acceptance-criteria.md)             | MVP Go-Live criteria & UAT Sign-off             |
+| **Requirements**   | [Functional Requirements](../01-requirements/01-03-modules/01-03-00-index.md)              | Feature specifications                          |
+| **Requirements**   | [Document Numbering](../99-archives/01-03.11-document-numbering.md)                     | Document numbering requirements                 |
+| **Architecture**   | [System Architecture](../02-architecture/02-02-software-architecture.md)                      | Overall system design                           |
+| **Architecture**   | [Data Model](../99-archives/02-03-data-model.md)                                        | Database schema                                 |
+| **Architecture**   | [API Design](../02-architecture/02-04-api-design.md)                                        | REST API specifications                         |
+| **Implementation** | [Backend Guidelines](../05-Engineering-Guidelines/05-02-backend-guidelines.md)                      | Backend coding standards                        |
+| **Implementation** | [Frontend Guidelines](../05-Engineering-Guidelines/05-03-frontend-guidelines.md)                    | Frontend coding standards                       |
+| **Implementation** | [Document Numbering Implementation](../99-archives/03-04-document-numbering.md)       | Document numbering implementation               |
+| **Implementation** | [Testing Strategy](../05-Engineering-Guidelines/05-04-testing-strategy.md)                          | Testing approach                                |
+| **Operations**     | [Deployment Guide](../04-Infrastructure-OPS/04-04-deployment-guide.md)                              | How to deploy                                   |
+| **Operations**     | [Monitoring](../04-Infrastructure-OPS/04-03-monitoring.md)                                 | Monitoring & alerts                             |
+| **Operations**     | [Document Numbering Operations](../99-archives/04-08-document-numbering-operations.md)    | Doc numbering ops guide                         |
+| **Decisions**      | [ADR Index](../06-Decision-Records/README.md)                                                      | Architecture decisions                          |
+| **Tasks**          | [Backend Tasks](../08-Tasks/)                                                      | Development tasks                               |
 
 ### Key ADRs
 
-1. [ADR-001: Unified Workflow Engine](../05-decisions/ADR-001-unified-workflow-engine.md)
-2. [ADR-002: Document Numbering Strategy](../05-decisions/ADR-002-document-numbering-strategy.md)
-3. [ADR-003: Two-Phase File Storage](../05-decisions/ADR-003-file-storage-approach.md)
-4. [ADR-004: RBAC Implementation](../05-decisions/ADR-004-rbac-implementation.md)
-5. [ADR-005: Technology Stack](../05-decisions/ADR-005-technology-stack.md)
+1. [ADR-001: Unified Workflow Engine](../06-Decision-Records/ADR-001-unified-workflow-engine.md)
+2. [ADR-002: Document Numbering Strategy](../06-Decision-Records/ADR-002-document-numbering-strategy.md)
+3. [ADR-003: Two-Phase File Storage](../99-archives/ADR-003-file-storage-approach.md)
+4. [ADR-004: RBAC Implementation](../99-archives/ADR-004-rbac-implementation.md)
+5. [ADR-005: Technology Stack](../06-Decision-Records/ADR-005-technology-stack.md)
 
 ---
 
@@ -247,8 +247,8 @@ lcbp3/
 
 1. **Read Documentation**
    - Start with [Quick Start Guide](./00-01-quick-start.md)
-   - Review [System Architecture](../02-architecture/02-01-system-architecture.md)
-   - Study [Backend](../03-implementation/03-02-backend-guidelines.md) / [Frontend](../03-implementation/03-03-frontend-guidelines.md) guidelines
+   - Review [System Architecture](../02-architecture/02-02-software-architecture.md)
+   - Study [Backend](../05-Engineering-Guidelines/05-02-backend-guidelines.md) / [Frontend](../05-Engineering-Guidelines/05-03-frontend-guidelines.md) guidelines
 
 2. **Setup Development Environment**
    - Clone repository
@@ -258,7 +258,7 @@ lcbp3/
    - Access frontend: `http://localhost:3001`
 
 3. **Start Coding**
-   - Pick a task from [Backend Tasks](../06-tasks/README.md)
+   - Pick a task from [Backend Tasks](../08-Tasks/)
    - Follow coding guidelines
    - Write tests
    - Submit PR for review
@@ -266,19 +266,19 @@ lcbp3/
 ### For Operations Team
 
 1. **Infrastructure Setup**
-   - Review [Environment Setup](../04-operations/04-02-environment-setup.md)
+   - Review [Environment Setup](../99-archives/04-02-environment-setup.md)
    - Configure QNAP Container Station
    - Setup Docker Compose
 
 2. **Deployment**
-   - Follow [Deployment Guide](../04-operations/04-01-deployment-guide.md)
-   - Configure [Backup & Recovery](../04-operations/04-04-backup-recovery.md)
-   - Setup [Monitoring](../04-operations/04-03-monitoring-alerting.md)
+   - Follow [Deployment Guide](../04-Infrastructure-OPS/04-04-deployment-guide.md)
+   - Configure [Backup & Recovery](../04-Infrastructure-OPS/04-02-backup-recovery.md)
+   - Setup [Monitoring](../04-Infrastructure-OPS/04-03-monitoring.md)
 
 3. **Maintenance**
-   - Review [Maintenance Procedures](../04-operations/04-05-maintenance-procedures.md)
-   - Setup [Incident Response](../04-operations/04-07-incident-response.md)
-   - Configure [Security Operations](../04-operations/04-06-security-operations.md)
+   - Review [Maintenance Procedures](../04-Infrastructure-OPS/04-05-maintenance-procedures.md)
+   - Setup [Incident Response](../04-Infrastructure-OPS/04-07-incident-response.md)
+   - Configure [Security Operations](../04-Infrastructure-OPS/04-06-security-operations.md)
 
 ---
 

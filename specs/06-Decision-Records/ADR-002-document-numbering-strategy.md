@@ -5,8 +5,8 @@
 **Decision Makers:** Development Team, System Architect
 **Related Documents:**
 
-- [Software Architecture](../02-Architecture/02-02-software-architecture.md)
-- [Document Numbering Requirements](../01-Requirements/01-02-business-rules/01-02-02-doc-numbering-rules.md)
+- [Software Architecture](../02-architecture/02-02-software-architecture.md)
+- [Document Numbering Requirements](../01-requirements/01-02-business-rules/01-02-02-doc-numbering-rules.md)
 
 ---
 
@@ -274,7 +274,7 @@ CREATE TABLE document_number_audit (
 > [!IMPORTANT]
 > **Updated to align with Requirements Specification**
 >
-> This ADR now uses token names from [Document Numbering Rules](../01-Requirements/01-02-business-rules/01-02-02-doc-numbering-rules.md) for consistency.
+> This ADR now uses token names from [Document Numbering Rules](../01-requirements/01-02-business-rules/01-02-02-doc-numbering-rules.md) for consistency.
 
 รองรับ Token ทั้งหมด:
 
@@ -301,7 +301,7 @@ CREATE TABLE document_number_audit (
 > - ~~`{TYPE}`~~ → Use `{CORR_TYPE}`, `{SUB_TYPE}`, or `{RFA_TYPE}` (context-specific)
 > - ~~`{CATEGORY}`~~ → Not used in current system
 >
-> **Always refer to**: [Document Numbering Rules](../01-Requirements/01-02-business-rules/01-02-02-doc-numbering-rules.md) as source of truth
+> **Always refer to**: [Document Numbering Rules](../01-requirements/01-02-business-rules/01-02-02-doc-numbering-rules.md) as source of truth
 
 ### Format Resolution Strategy (Fallback Logic)
 
@@ -1033,7 +1033,7 @@ ensure:
 
 เป็นไปตาม:
 
-- ✅ [Document Numbering Rules](../01-Requirements/01-02-business-rules/01-02-02-doc-numbering-rules.md) - Document Numbering Management (v1.6.2)
+- ✅ [Document Numbering Rules](../01-requirements/01-02-business-rules/01-02-02-doc-numbering-rules.md) - Document Numbering Management (v1.6.2)
 - ✅ [Backend Guidelines](../05-Engineering-Guidelines/05-02-backend-guidelines.md) - DocumentNumberingModule Section
 - ✅ [Operations Guide](../04-Infrastructure-OPS/04-03-monitoring.md) - Monitoring & Troubleshooting
 - ✅ [Security Best Practices](../05-Engineering-Guidelines/05-02-backend-guidelines.md#security-guidelines) - Rate Limiting, Audit Logging

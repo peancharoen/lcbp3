@@ -5,7 +5,7 @@
 **Decision Makers:** Development Team, System Architect, Security Team, AI Integration Lead
 **Supersedes Revision:** ADR-023 v1.1 (2026-05-14)
 **Related Documents:**
-- [Glossary](../00-Overview/00-02-glossary.md)
+- [Glossary](../00-overview/00-02-glossary.md)
 - [Data Dictionary](../03-Data-and-Storage/03-01-data-dictionary.md)
 - [Legacy Data Migration Plan](../03-Data-and-Storage/03-04-legacy-data-migration.md)
 - [n8n Migration Setup Guide](../03-Data-and-Storage/03-05-n8n-migration-setup-guide.md)
@@ -501,8 +501,8 @@ export class QdrantService {
 
 ## Related ADRs (อดีตเอกสารที่ถูกแทนที่)
 
-- [ADR-017: Ollama Data Migration Architecture](./ADR-017-ollama-data-migration.md) — **Superseded**
-- [ADR-017B: AI Document Classification](./ADR-017B-ai-document-classification.md) — **Superseded**
-- [ADR-018: AI Boundary Policy](./ADR-018-ai-boundary.md) — **Superseded**
-- [ADR-020: AI Intelligence Integration Architecture](./ADR-020-ai-intelligence-integration.md) — **Superseded**
-- [ADR-022: Retrieval-Augmented Generation (RAG) System](./ADR-022-retrieval-augmented-generation.md) — **Superseded**
+- [ADR-017: Ollama Data Migration Architecture](./archive/ADR-017-ollama-data-migration.md) — **Superseded**
+- [ADR-017B: AI Document Classification](./archive/ADR-017B-ai-document-classification.md) — **Superseded**
+- [ADR-018: AI Boundary Policy](./archive/ADR-018-ai-boundary.md) — **Superseded**
+- [ADR-020: AI Intelligence Integration Architecture](./archive/ADR-020-ai-intelligence-integration.md) — **Superseded**
+- [ADR-022: Retrieval-Augmented Generation (RAG) System](./archive/ADR-022-retrieval-augmented-generation.md) — **Superseded**

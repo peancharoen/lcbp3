@@ -457,8 +457,8 @@ curl -X POST http://localhost:3000/correspondences \
 
 ## 📚 Related Documents
 
-- [Data Model - Correspondences](../02-architecture/data-model.md#correspondences)
-- [Functional Requirements - Correspondence](../01-requirements/03.2-correspondence.md)
+- [Data Model - Correspondences](../../99-archives/02-03-data-model.md#correspondences)
+- [Functional Requirements - Correspondence](../../01-requirements/01-03-modules/01-03-02-correspondence.md)
 
 ---
 

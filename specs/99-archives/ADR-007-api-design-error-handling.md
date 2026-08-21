@@ -3,7 +3,7 @@
 **Status:** ✅ Accepted
 **Date:** 2025-12-01
 **Decision Makers:** Backend Team, System Architect
-**Related Documents:** [Backend Guidelines](../03-implementation/03-02-backend-guidelines.md), [ADR-005: Technology Stack](./ADR-005-technology-stack.md)
+**Related Documents:** [Backend Guidelines](../05-Engineering-Guidelines/05-02-backend-guidelines.md), [ADR-005: Technology Stack](../06-Decision-Records/ADR-005-technology-stack.md)
 
 ---
 
@@ -326,7 +326,7 @@ app.useGlobalPipes(
 
 ## Related ADRs
 
-- [ADR-005: Technology Stack](./ADR-005-technology-stack.md) - เลือกใช้ NestJS
+- [ADR-005: Technology Stack](../06-Decision-Records/ADR-005-technology-stack.md) - เลือกใช้ NestJS
 - [ADR-004: RBAC Implementation](./ADR-004-rbac-implementation.md) - Error 403 Forbidden
 
 ---

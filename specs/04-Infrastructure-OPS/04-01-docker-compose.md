@@ -618,9 +618,9 @@ docker exec lcbp3-backend env | grep NODE_ENV
 
 ## 📚 Related Documents
 
-- [Deployment Guide](04-01-deployment-guide.md)
+- [Deployment Guide](./04-04-deployment-guide.md)
 - [Security Operations](04-06-security-operations.md)
-- [ADR-005: Technology Stack](../05-decisions/ADR-005-technology-stack.md)
+- [ADR-005: Technology Stack](../06-Decision-Records/ADR-005-technology-stack.md)
 
 ---
 

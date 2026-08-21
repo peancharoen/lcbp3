@@ -5,7 +5,7 @@
 **Decision Makers:** Development Team, System Architect, Database Administrator
 **Related Documents:**
 
-- [Database Schema Tables](../03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql)
+- [Database Schema Tables](../03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql)
 - [Data Dictionary](../03-Data-and-Storage/03-01-data-dictionary.md)
 - [ADR-009: Database Migration Strategy](./ADR-009-database-migration-strategy.md)
 - [ADR-019: Hybrid Identifier Strategy](./ADR-019-hybrid-identifier-strategy.md)
@@ -461,7 +461,7 @@ CREATE INDEX idx_correspondences_date_range ON correspondences (created_at, dele
 
 เป็นไปตาม:
 
-- [Database Schema Tables](../03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql)
+- [Database Schema Tables](../03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql)
 - [Data Dictionary](../03-Data-and-Storage/03-01-data-dictionary.md)
 - [ADR-009: Database Migration Strategy](./ADR-009-database-migration-strategy.md)
 - [ADR-019: Hybrid Identifier Strategy](./ADR-019-hybrid-identifier-strategy.md)

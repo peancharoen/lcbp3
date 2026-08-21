@@ -42,8 +42,8 @@
 - [X] T005 [P] Update model name references in backend/src/modules/ai/processors/ai-batch.processor.spec.ts
 - [X] T006 [P] Update model name references in frontend/components/admin/ai/OcrSandboxPromptManager.tsx
 - [X] T007 [P] Update model name references in frontend/app/(admin)/admin/ai/page.tsx
-- [X] T008 [P] Update model name references in specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py (if needed)
-- [X] T009 [P] Update model name references in specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/docker-compose.yml (if needed)
+- [X] T008 [P] Update model name references in specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/app.py (if needed)
+- [X] T009 [P] Update model name references in specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/docker-compose.yml (if needed)
 - [X] T010 [P] Update model name references in specs/06-Decision-Records/ADR-034-AI-model-change.md
 - [X] T011 [P] Update model name references in AGENTS.md
 

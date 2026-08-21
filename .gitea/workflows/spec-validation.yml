@@ -1,0 +1,96 @@
+name: Spec Validation
+
+on:
+  pull_request:
+    paths:
+      - "specs/**"
+      - "scripts/check-spec-*.py"
+      - "scripts/fix-spec-links.py"
+      - ".gitea/workflows/spec-validation.yml"
+  push:
+    branches: [main, develop]
+    paths:
+      - "specs/**"
+      - "scripts/check-spec-*.py"
+      - "scripts/fix-spec-links.py"
+      - ".gitea/workflows/spec-validation.yml"
+  workflow_dispatch:
+
+# โหมดปัจจุบัน: Warning (soft) — continue-on-error ทุก step
+# เมื่อ spec ทั้งหมดผ่านแล้ว ให้เปลี่ยน env STRICT=true เพื่อบล็อก PR
+env:
+  STRICT: "false"
+
+jobs:
+  validate-specs:
+    runs-on: self-hosted
+    timeout-minutes: 10
+    if: "!contains(github.event.head_commit.message, '[skip CI]')"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── [1] Internal link check ──────────────────────────────
+      # ตรวจ relative links ระหว่าง .md ใน specs/ ว่า target มีอยู่จริง
+      # ไม่ตรวจ external links (http/https/mailto)
+      - name: 🔗 Check internal links
+        continue-on-error: ${{ env.STRICT != 'true' }}
+        run: |
+          if [ "$STRICT" = 'true' ]; then
+            python3 scripts/check-spec-links.py --root specs --strict
+          else
+            python3 scripts/check-spec-links.py --root specs
+          fi
+
+      # ── [2] Required metadata ────────────────────────────────
+      # ตรวจ ADR: H1 title ขึ้นต้นด้วย "ADR-XXX:" + มี **Status:**
+      # ตรวจ specs/00-overview/*.md: ต้องมี H1 title
+      # ตรวจ specs/03-Data-and-Storage/*.sql: ต้องมี version marker ในส่วนหัว
+      - name: 📋 Check required metadata
+        continue-on-error: ${{ env.STRICT != 'true' }}
+        run: |
+          if [ "$STRICT" = 'true' ]; then
+            python3 scripts/check-spec-metadata.py --root specs --strict
+          else
+            python3 scripts/check-spec-metadata.py --root specs
+          fi
+
+      # ── [3] TODO/FIXME scan ──────────────────────────────────
+      # รายงานจำนวน TODO/FIXME ใน specs/ — เป็น warning เสมอ
+      # ไม่บล็อก PR แม้ STRICT=true เพราะ TODO เป็นงานที่ track แยก
+      # ข้าม 99-archives/ (ไฟล์ประวัติ ไม่ใช่งานที่ต้อง track)
+      - name: 📝 Scan TODO/FIXME
+        continue-on-error: true
+        run: |
+          set +e
+          echo "🔍 สแกน TODO/FIXME ใน specs/ (ข้าม 99-archives/)"
+          count=$(grep -rE "TODO|FIXME" specs/ --include="*.md" --exclude-dir=99-archives -l 2>/dev/null | wc -l)
+          total=$(grep -rE "TODO|FIXME" specs/ --include="*.md" --exclude-dir=99-archives 2>/dev/null | wc -l)
+          echo "📊 พบ TODO/FIXME ใน ${count} ไฟล์ (รวม ${total} รายการ)"
+          if [ "$total" -gt 0 ]; then
+            echo ""
+            echo "📋 ไฟล์ที่มี TODO/FIXME มากสุด 10 อันดับ:"
+            grep -rcE "TODO|FIXME" specs/ --include="*.md" --exclude-dir=99-archives 2>/dev/null \
+              | sort -t: -k2 -rn | head -10 \
+              | while IFS=: read -r f n; do
+                  echo "  - ${f}: ${n} รายการ"
+                done
+            echo ""
+            echo "⚠️  มี TODO/FIXME ค้างอยู่ — ดูรายละเอียดใน log"
+          fi
+          # ไม่ exit 1 — TODO เป็นข้อมูล track งาน ไม่ใช่ error
+          exit 0
+
+      # ── [4] Summary ──────────────────────────────────────────
+      - name: 📊 Summary
+        if: always()
+        run: |
+          echo "════════════════════════════════════════════"
+          echo "  Spec Validation Summary"
+          if [ "$STRICT" = 'true' ]; then
+            echo "  Mode: Strict (บล็อก PR)"
+          else
+            echo "  Mode: Warning (soft)"
+          fi
+          echo "════════════════════════════════════════════"
+          echo "ดูรายละเอียดใน log ของแต่ละ step ด้านบน"

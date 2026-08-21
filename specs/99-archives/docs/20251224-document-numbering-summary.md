@@ -375,10 +375,10 @@ sequenceDiagram
 
 ## 📚 Related Documentation
 
-- [specs/01-requirements/03.11-document-numbering.md](../specs/01-requirements/03.11-document-numbering.md)
-- [specs/03-implementation/document-numbering.md](../specs/03-implementation/document-numbering.md)
-- [specs/07-database/data-dictionary-v1.7.0.md](../specs/07-database/data-dictionary-v1.7.0.md)
-- [specs/07-database/lcbp3-v1.7.0-schema.sql](../specs/07-database/lcbp3-v1.7.0-schema.sql)
+- [specs/01-requirements/03.11-document-numbering.md](../../99-archives/01-03.11-document-numbering.md)
+- [specs/03-implementation/document-numbering.md](../../99-archives/03-04-document-numbering.md)
+- [specs/07-database/data-dictionary-v1.7.0.md](../../03-Data-and-Storage/03-01-data-dictionary.md)
+- [specs/07-database/lcbp3-v1.7.0-schema.sql](../../03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql)
 
 ---
 

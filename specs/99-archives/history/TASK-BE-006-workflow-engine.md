@@ -480,8 +480,8 @@ describe('WorkflowEngineService', () => {
 
 ## 📚 Related Documents
 
-- [ADR-001: Unified Workflow Engine](../05-decisions/ADR-001-unified-workflow-engine.md)
-- [Unified Workflow Requirements](../01-requirements/03.6-unified-workflow.md)
+- [ADR-001: Unified Workflow Engine](../../06-Decision-Records/ADR-001-unified-workflow-engine.md)
+- [Unified Workflow Requirements](../../01-requirements/01-03-modules/01-03-06-unified-workflow.md)
 
 ---
 

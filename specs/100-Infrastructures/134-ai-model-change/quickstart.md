@@ -11,7 +11,7 @@
 - Desk-5439 รัน Ollama service (port 11434)
 - Internet access บน Desk-5439 (สำหรับ pull base models จาก registry)
 - QNAP backend container running (port 3001)
-- Model files อยู่ที่ `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/`
+- Model files อยู่ที่ `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/`
 
 ---
 
@@ -19,7 +19,7 @@
 
 ```powershell
 # บน Desk-5439 Windows — เปิด PowerShell ใน directory ที่มี Modelfiles
-# Path: specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/
+# Path: specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/
 
 ollama create typhoon2.5-np-dms -f .\typhoon2.5-np-dms.model.md
 # คาดว่าใช้เวลา: 5-15 นาที (download base model ~2.5GB)

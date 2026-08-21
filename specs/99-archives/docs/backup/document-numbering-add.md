@@ -3,7 +3,7 @@
 **Version**: 1.0.0
 **Last Updated**: 2025-01-16
 **Status**: APPROVED
-**Related**: [Requirements](../01-requirements/21-document-numbering-requirements.md), [ADR-018](../05-decisions/adr-018-document-numbering.md)
+**Related**: [Requirements](../../99-archives/01-03.11-document-numbering.md), [ADR-018](../../06-Decision-Records/ADR-018-ai-boundary.md)
 
 ---
 

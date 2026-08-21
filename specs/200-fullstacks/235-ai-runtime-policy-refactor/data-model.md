@@ -57,7 +57,7 @@ export interface RuntimePolicy {
 
 ```typescript
 // File: backend/src/modules/ai/interfaces/ocr-residency.interface.ts
-// Parameters จาก specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/np-dms-ocr.model.md
+// Parameters จาก specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/np-dms-ocr.model.md
 // ไม่ calibrate ผ่าน Admin Console — ค่า fixed ตาม Modelfile
 export interface OcrRuntimePolicy {
   canonicalModel: 'np-dms-ocr';    // FROM scb10x/typhoon-ocr1.5-3b:latest
@@ -196,7 +196,7 @@ ALTER TABLE ai_audit_logs
 ### VramHeadroom (dataclass)
 
 ```python
-# File: specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/services/vram_monitor.py
+# File: specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/services/vram_monitor.py
 @dataclass
 class VramHeadroom:
     total_mb: float
@@ -208,7 +208,7 @@ class VramHeadroom:
 ### OcrResidencyPolicy (dataclass)
 
 ```python
-# File: specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/services/residency_policy.py
+# File: specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/services/residency_policy.py
 @dataclass
 class OcrResidencyDecision:
     keep_alive_seconds: int   # 0 = unload

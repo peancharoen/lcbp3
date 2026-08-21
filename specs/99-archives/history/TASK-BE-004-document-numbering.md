@@ -1148,9 +1148,9 @@ ensure:
 
 ## 📚 Related Documents
 
-- [ADR-002: Document Numbering Strategy](../05-decisions/ADR-002-document-numbering-strategy.md)
-- [Requirements 3.11: Document Numbering](../01-requirements/03.11-document-numbering.md)
-- [Backend Guidelines - Document Numbering](../03-implementation/backend-guidelines.md#document-numbering)
+- [ADR-002: Document Numbering Strategy](../../06-Decision-Records/ADR-002-document-numbering-strategy.md)
+- [Requirements 3.11: Document Numbering](../../99-archives/01-03.11-document-numbering.md)
+- [Backend Guidelines - Document Numbering](../../05-Engineering-Guidelines/05-02-backend-guidelines.md#document-numbering)
 - [Data Dictionary](../../docs/4_Data_Dictionary_V1_4_4.md)
 
 ---

@@ -30,7 +30,7 @@
 | **FR-004** | ดึงรายการโมเดลที่โหลดจริงผ่าน `/api/ps` แสดงใน Ollama AI Engine | **[ollama.service.ts](backend/src/modules/ai/services/ollama.service.ts)**: ปรับปรุง `checkHealth` เพื่อดึงและ map ข้อมูลจริงเรียลไทม์ | ✅ **PASS** |
 | **FR-005** | ปรับเมนู OCR Sandbox ให้แท็บ "OCR Sandbox" แสดงเป็นแท็บแรกสุดเป็น default | **[OcrSandboxPromptManager.tsx](frontend/components/admin/ai/OcrSandboxPromptManager.tsx)**: ปรับสวิตช์ activeTab และสลับ UI เรียบร้อย | ✅ **PASS** |
 | **FR-006** | ป้าย Dropdown ตัวเลือก OCR Engine แสดงความจุ: `Auto`, `Tesseract`, `typhoon-ocr1.5-3b 3.2GB`, `typhoon-ocr-3b 7.5GB` | **[OcrSandboxPromptManager.tsx](frontend/components/admin/ai/OcrSandboxPromptManager.tsx)**: Dropdown ปรับแก้เป็นเวอร์ชันและขนาดที่แม่นยำตรงความจริง | ✅ **PASS** |
-| **FR-007** | แมปโมเดลไดนามิกใน `app.py` ไปยัง Ollama tag จริง: `scb10x/typhoon-ocr1.5-3b` และ `scb10x/typhoon-ocr-3b` | **[app.py](specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py)**: ปรับ `process_with_typhoon_ocr` และส่งคืน `engineUsed` | ✅ **PASS** |
+| **FR-007** | แมปโมเดลไดนามิกใน `app.py` ไปยัง Ollama tag จริง: `scb10x/typhoon-ocr1.5-3b` และ `scb10x/typhoon-ocr-3b` | **[app.py](specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/app.py)**: ปรับ `process_with_typhoon_ocr` และส่งคืน `engineUsed` | ✅ **PASS** |
 
 ---
 
