@@ -16,6 +16,7 @@ import {
   Res,
   ParseUUIDPipe,
   Patch,
+  Delete,
   HttpCode,
   UnauthorizedException,
   UseInterceptors,
@@ -235,6 +236,77 @@ export class MigrationController {
     @Query('limit') limit?: number
   ) {
     return this.migrationService.getErrors(page, limit);
+  }
+
+  // ADR-047: ลบรายการ Review Queue ตาม batch หรือทั้งหมด (เฉพาะ PENDING)
+  @Delete('queue')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @RequirePermission('migration.delete')
+  @ApiOperation({
+    summary: 'Delete pending review queue items by batchId or all (ADR-047)',
+  })
+  @ApiQuery({ name: 'batchId', required: false, type: String })
+  @ApiQuery({ name: 'all', required: false, type: Boolean })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    description: 'Unique key per delete operation',
+    required: true,
+  })
+  async deleteReviewQueue(
+    @Query('batchId') batchId?: string,
+    @Query('all') all?: string,
+    @Headers('idempotency-key') idempotencyKey?: string
+  ) {
+    requireIdempotencyKey(idempotencyKey);
+    const allFlag = all === 'true' || all === '1';
+    return this.migrationService.deleteReviewQueueByBatch(batchId, allFlag);
+  }
+
+  // ADR-047: ลบรายการ Migration Errors ตาม batch หรือทั้งหมด
+  @Delete('errors')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @RequirePermission('migration.delete')
+  @ApiOperation({
+    summary: 'Delete migration errors by batchId or all (ADR-047)',
+  })
+  @ApiQuery({ name: 'batchId', required: false, type: String })
+  @ApiQuery({ name: 'all', required: false, type: Boolean })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    description: 'Unique key per delete operation',
+    required: true,
+  })
+  async deleteErrors(
+    @Query('batchId') batchId?: string,
+    @Query('all') all?: string,
+    @Headers('idempotency-key') idempotencyKey?: string
+  ) {
+    requireIdempotencyKey(idempotencyKey);
+    const allFlag = all === 'true' || all === '1';
+    return this.migrationService.deleteErrorsByBatch(batchId, allFlag);
+  }
+
+  // ADR-047: รายการ batchId ที่ไม่ซ้ำสำหรับ filter dropdown
+  @Get('queue/batches')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @RequirePermission('migration.view')
+  @ApiOperation({
+    summary: 'List distinct batchIds from review queue for filter dropdown',
+  })
+  async getQueueBatches() {
+    const batches = await this.migrationService.getQueueBatches();
+    return { batches };
+  }
+
+  @Get('errors/batches')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @RequirePermission('migration.view')
+  @ApiOperation({
+    summary: 'List distinct batchIds from migration errors for filter dropdown',
+  })
+  async getErrorBatches() {
+    const batches = await this.migrationService.getErrorBatches();
+    return { batches };
   }
 
   @Post('queue/:publicId/approve')

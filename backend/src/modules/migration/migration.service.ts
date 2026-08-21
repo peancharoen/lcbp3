@@ -705,6 +705,85 @@ export class MigrationService {
     };
   }
 
+  /**
+   * ลบรายการใน Review Queue ตาม batchId หรือทั้งหมด (เฉพาะ PENDING เท่านั้น)
+   * ADR-047: bulk delete สำหรับ Legacy Management
+   */
+  async deleteReviewQueueByBatch(
+    batchId?: string,
+    all: boolean = false
+  ): Promise<{ deleted: number }> {
+    const qb = this.reviewQueueRepo
+      .createQueryBuilder('queue')
+      .delete()
+      .where('queue.status = :status', { status: 'PENDING' });
+
+    if (!all) {
+      if (!batchId) {
+        throw new ValidationException('ต้องระบุ batchId หรือ all=true');
+      }
+      qb.andWhere('queue.batchId = :batchId', { batchId });
+    }
+
+    const result = await qb.execute();
+    const deleted = result.affected ?? 0;
+    this.logger.log(
+      `Deleted ${deleted} review queue items (batchId=${batchId ?? 'ALL'})`
+    );
+    return { deleted };
+  }
+
+  /**
+   * ลบรายการใน Migration Errors ตาม batchId หรือทั้งหมด
+   * ADR-047: bulk delete สำหรับ Legacy Management
+   */
+  async deleteErrorsByBatch(
+    batchId?: string,
+    all: boolean = false
+  ): Promise<{ deleted: number }> {
+    const qb = this.errorRepo.createQueryBuilder('error').delete();
+
+    if (!all) {
+      if (!batchId) {
+        throw new ValidationException('ต้องระบุ batchId หรือ all=true');
+      }
+      qb.where('error.batchId = :batchId', { batchId });
+    }
+
+    const result = await qb.execute();
+    const deleted = result.affected ?? 0;
+    this.logger.log(
+      `Deleted ${deleted} migration errors (batchId=${batchId ?? 'ALL'})`
+    );
+    return { deleted };
+  }
+
+  /**
+   * ดึงรายการ batchId ที่ไม่ซ้ำจาก Review Queue (สำหรับ filter dropdown)
+   */
+  async getQueueBatches(): Promise<string[]> {
+    const result = await this.reviewQueueRepo
+      .createQueryBuilder('queue')
+      .select('DISTINCT queue.batchId', 'batchId')
+      .where('queue.batchId IS NOT NULL')
+      .orderBy('queue.batchId', 'DESC')
+      .getRawMany<{ batchId: string }>();
+    return result.map((r) => r.batchId).filter(Boolean);
+  }
+
+  /**
+   * ดึงรายการ batchId ที่ไม่ซ้ำจาก Migration Errors (สำหรับ filter dropdown)
+   */
+  async getErrorBatches(): Promise<string[]> {
+    const result = await this.errorRepo
+      .createQueryBuilder('error')
+      .select('DISTINCT error.batchId', 'batchId')
+      .where('error.batchId IS NOT NULL')
+      .orderBy('error.batchId', 'DESC')
+      .getRawMany<{ batchId: string }>();
+    return result.map((r) => r.batchId).filter(Boolean);
+  }
+
   async approveQueueItem(
     id: number,
     dto: ImportCorrespondenceDto,
