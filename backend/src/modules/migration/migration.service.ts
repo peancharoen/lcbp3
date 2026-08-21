@@ -722,7 +722,7 @@ export class MigrationService {
       if (!batchId) {
         throw new ValidationException('ต้องระบุ batchId หรือ all=true');
       }
-      qb.andWhere('queue.batchId = :batchId', { batchId });
+      qb.andWhere('queue.batch_id = :batchId', { batchId });
     }
 
     const result = await qb.execute();
@@ -747,7 +747,7 @@ export class MigrationService {
       if (!batchId) {
         throw new ValidationException('ต้องระบุ batchId หรือ all=true');
       }
-      qb.where('error.batchId = :batchId', { batchId });
+      qb.where('error.batch_id = :batchId', { batchId });
     }
 
     const result = await qb.execute();
@@ -764,11 +764,11 @@ export class MigrationService {
   async getQueueBatches(): Promise<string[]> {
     const result = await this.reviewQueueRepo
       .createQueryBuilder('queue')
-      .select('DISTINCT queue.batchId', 'batchId')
-      .where('queue.batchId IS NOT NULL')
-      .orderBy('queue.batchId', 'DESC')
-      .getRawMany<{ batchId: string }>();
-    return result.map((r) => r.batchId).filter(Boolean);
+      .select('DISTINCT queue.batch_id', 'batchId')
+      .where('queue.batch_id IS NOT NULL')
+      .orderBy('queue.batch_id', 'DESC')
+      .getRawMany<{ batch_id: string }>();
+    return result.map((r) => r.batch_id).filter(Boolean);
   }
 
   /**
@@ -777,11 +777,11 @@ export class MigrationService {
   async getErrorBatches(): Promise<string[]> {
     const result = await this.errorRepo
       .createQueryBuilder('error')
-      .select('DISTINCT error.batchId', 'batchId')
-      .where('error.batchId IS NOT NULL')
-      .orderBy('error.batchId', 'DESC')
-      .getRawMany<{ batchId: string }>();
-    return result.map((r) => r.batchId).filter(Boolean);
+      .select('DISTINCT error.batch_id', 'batchId')
+      .where('error.batch_id IS NOT NULL')
+      .orderBy('error.batch_id', 'DESC')
+      .getRawMany<{ batch_id: string }>();
+    return result.map((r) => r.batch_id).filter(Boolean);
   }
 
   async approveQueueItem(

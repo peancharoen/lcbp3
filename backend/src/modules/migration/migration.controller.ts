@@ -197,6 +197,19 @@ export class MigrationController {
     return this.migrationService.getReviewQueue(query);
   }
 
+  // ADR-047: รายการ batchId ที่ไม่ซ้ำสำหรับ filter dropdown
+  // ต้องอยู่ก่อน queue/:publicId เพื่อไม่ให้ถูก match เป็น UUID param
+  @Get('queue/batches')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @RequirePermission('migration.view')
+  @ApiOperation({
+    summary: 'List distinct batchIds from review queue for filter dropdown',
+  })
+  async getQueueBatches() {
+    const batches = await this.migrationService.getQueueBatches();
+    return { batches };
+  }
+
   @Get('queue/:publicId')
   @UseGuards(JwtAuthGuard, RbacGuard)
   @RequirePermission('migration.view')
@@ -223,6 +236,19 @@ export class MigrationController {
   ) {
     requireIdempotencyKey(idempotencyKey);
     return this.migrationService.createError(dto);
+  }
+
+  // ADR-047: รายการ batchId จาก errors สำหรับ filter dropdown
+  // ต้องอยู่ก่อน errors/:id (ถ้ามี) เพื่อไม่ให้ถูก match เป็น dynamic param
+  @Get('errors/batches')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @RequirePermission('migration.view')
+  @ApiOperation({
+    summary: 'List distinct batchIds from migration errors for filter dropdown',
+  })
+  async getErrorBatches() {
+    const batches = await this.migrationService.getErrorBatches();
+    return { batches };
   }
 
   @Get('errors')
@@ -284,29 +310,6 @@ export class MigrationController {
     requireIdempotencyKey(idempotencyKey);
     const allFlag = all === 'true' || all === '1';
     return this.migrationService.deleteErrorsByBatch(batchId, allFlag);
-  }
-
-  // ADR-047: รายการ batchId ที่ไม่ซ้ำสำหรับ filter dropdown
-  @Get('queue/batches')
-  @UseGuards(JwtAuthGuard, RbacGuard)
-  @RequirePermission('migration.view')
-  @ApiOperation({
-    summary: 'List distinct batchIds from review queue for filter dropdown',
-  })
-  async getQueueBatches() {
-    const batches = await this.migrationService.getQueueBatches();
-    return { batches };
-  }
-
-  @Get('errors/batches')
-  @UseGuards(JwtAuthGuard, RbacGuard)
-  @RequirePermission('migration.view')
-  @ApiOperation({
-    summary: 'List distinct batchIds from migration errors for filter dropdown',
-  })
-  async getErrorBatches() {
-    const batches = await this.migrationService.getErrorBatches();
-    return { batches };
   }
 
   @Post('queue/:publicId/approve')
