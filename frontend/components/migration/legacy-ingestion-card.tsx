@@ -1,71 +1,203 @@
 // File: frontend/components/migration/legacy-ingestion-card.tsx
 // Change Log:
 // - 2026-08-20: สร้าง Ingestion Management Card สำหรับอัปโหลด Excel และสั่งเริ่มกระบวนการ Ingest (ADR-047)
+// - 2026-08-21: เปลี่ยน Excel input เป็น dropdown จาก NAS + คงไว้ซึ่ง upload option
+//              เปลี่ยน Staging PDF เป็น dropdown จาก subdirectories ของ NAS
+//              เปลี่ยน Project UUID เป็น Project Name dropdown (ADR-019: ไม่ expose UUID)
+//              เปลี่ยน Contract Code เป็น dropdown ที่กรองตาม Project ที่เลือก
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { toast } from 'sonner';
 import { UploadCloudIcon, PlayIcon, RefreshCwIcon, CheckCircle2Icon } from 'lucide-react';
 import { migrationService } from '@/lib/services/migration.service';
+import { projectService } from '@/lib/services/project.service';
+import { contractService } from '@/lib/services/contract.service';
 import { v4 as uuidv4 } from 'uuid';
-
-/** Default LCBP3 project publicId — ใช้เป็นค่าเริ่มต้นในหน้า Ingestion (สามารถเปลี่ยนได้ใน UI) */
-const DEFAULT_LCBP3_PROJECT_PUBLIC_ID = '01a01992-8420-7312-b8da-2a4d64133fea';
+import type { Contract } from '@/types/contract';
 
 interface LegacyIngestionCardProps {
   onIngestionStarted?: () => void;
 }
 
+interface LegacyExcelFile {
+  filename: string;
+  fullPath: string;
+  size: number;
+}
+
+interface LegacyFolder {
+  folderName: string;
+  fullPath: string;
+}
+
+interface ProjectOption {
+  publicId: string;
+  projectCode: string;
+  projectName: string;
+}
+
+/** โหมดการเลือกไฟล์ Excel: เลือกจาก NAS หรือ upload ใหม่ */
+type ExcelSelectionMode = 'nas' | 'upload';
+
 export function LegacyIngestionCard({ onIngestionStarted }: LegacyIngestionCardProps) {
-  const [file, setFile] = useState<File | null>(null);
-  const [projectPublicId, setProjectPublicId] = useState(DEFAULT_LCBP3_PROJECT_PUBLIC_ID);
-  const [contractCode, setContractCode] = useState('LCBP3-C2');
+  // Excel source selection
+  const [excelMode, setExcelMode] = useState<ExcelSelectionMode>('nas');
+  const [nasExcelFiles, setNasExcelFiles] = useState<LegacyExcelFile[]>([]);
+  const [selectedNasFilePath, setSelectedNasFilePath] = useState<string>('');
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+
+  // Staging PDF folder selection
+  const [nasFolders, setNasFolders] = useState<LegacyFolder[]>([]);
+  const [selectedPdfFolderPath, setSelectedPdfFolderPath] = useState<string>('');
+
+  // Project selection (ADR-019: ใช้ publicId ภายใน ไม่ expose ใน UI)
+  const [projects, setProjects] = useState<ProjectOption[]>([]);
+  const [selectedProjectPublicId, setSelectedProjectPublicId] = useState<string>('');
+
+  // Contract selection (กรองตาม Project ที่เลือก)
+  const [contracts, setContracts] = useState<Contract[]>([]);
+  const [selectedContractCode, setSelectedContractCode] = useState<string>('');
+
+  // Other fields
   const [sheetName, setSheetName] = useState('');
-  const [pdfFolderPath, setPdfFolderPath] = useState('/share/np-dms/staging_ai/');
   const [resume, setResume] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
+  // โหลดรายการ Excel files และ folders จาก NAS
+  useEffect(() => {
+    const loadNasResources = async () => {
+      try {
+        const [filesRes, foldersRes] = await Promise.all([
+          migrationService.listLegacyExcelFiles(),
+          migrationService.listLegacyFolders(),
+        ]);
+        setNasExcelFiles(filesRes);
+        setNasFolders(foldersRes);
+      } catch (err: unknown) {
+        const errMsg = err instanceof Error ? err.message : 'ไม่สามารถโหลดรายการจาก NAS ได้';
+        toast.error(errMsg);
+      }
+    };
+    loadNasResources();
+  }, []);
+
+  // โหลดรายการ Projects สำหรับ dropdown
+  useEffect(() => {
+    const loadProjects = async () => {
+      try {
+        const result = await projectService.getAll({ isActive: true, limit: 100 });
+        // projectService.getAll อาจ return array หรือ { data: array, meta }
+        const projectList: ProjectOption[] = Array.isArray(result)
+          ? result.map((p: ProjectOption) => ({
+              publicId: p.publicId,
+              projectCode: p.projectCode,
+              projectName: p.projectName,
+            }))
+          : (result as { data?: ProjectOption[] })?.data?.map((p) => ({
+              publicId: p.publicId,
+              projectCode: p.projectCode,
+              projectName: p.projectName,
+            })) ?? [];
+        setProjects(projectList);
+      } catch (err: unknown) {
+        const errMsg = err instanceof Error ? err.message : 'ไม่สามารถโหลดรายการโครงการได้';
+        toast.error(errMsg);
+      }
+    };
+    loadProjects();
+  }, []);
+
+  // โหลดรายการ Contracts เมื่อเลือก Project ใหม่
+  const loadContracts = useCallback(async (projectPublicId: string) => {
+    if (!projectPublicId) {
+      setContracts([]);
+      setSelectedContractCode('');
+      return;
+    }
+    try {
+      const result = await contractService.getAll({ projectId: projectPublicId });
+      setContracts(result);
+      setSelectedContractCode('');
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'ไม่สามารถโหลดรายการสัญญาได้';
+      toast.error(errMsg);
+      setContracts([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedProjectPublicId) {
+      loadContracts(selectedProjectPublicId);
+    } else {
+      setContracts([]);
+      setSelectedContractCode('');
+    }
+  }, [selectedProjectPublicId, loadContracts]);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      setUploadedFile(e.target.files[0]);
     }
   };
 
   const handleStartIngest = async () => {
-    if (!file) {
-      toast.error('กรุณาเลือกไฟล์ Excel (.xlsx)');
+    // ตรวจสอบข้อมูลที่จำเป็น
+    if (excelMode === 'nas' && !selectedNasFilePath) {
+      toast.error('กรุณาเลือกไฟล์ Excel จาก NAS');
       return;
     }
-    if (!projectPublicId) {
-      toast.error('กรุณาระบุ UUID โครงการ');
+    if (excelMode === 'upload' && !uploadedFile) {
+      toast.error('กรุณาเลือกไฟล์ Excel (.xlsx) ที่จะอัปโหลด');
+      return;
+    }
+    if (!selectedProjectPublicId) {
+      toast.error('กรุณาเลือกโครงการ');
       return;
     }
 
     try {
       setUploading(true);
-      setStatusMessage('กำลังอัปโหลดไฟล์ Excel ขึ้นสู่ Server...');
+      setStatusMessage('กำลังเตรียมไฟล์ Excel...');
 
-      // 1. Upload Excel file
-      const uploadRes = await migrationService.uploadExcelFile(file);
-      toast.success(`อัปโหลดไฟล์สำเร็จ: ${uploadRes.originalFilename}`);
+      let filePath: string;
 
-      // 2. Start Background Streaming Ingestion
+      if (excelMode === 'nas') {
+        // ใช้ path จาก NAS โดยตรง
+        filePath = selectedNasFilePath;
+        setStatusMessage(`ใช้ไฟล์จาก NAS: ${selectedNasFilePath}`);
+      } else {
+        // Upload ไฟล์ใหม่ขึ้น Server
+        setStatusMessage('กำลังอัปโหลดไฟล์ Excel ขึ้นสู่ Server...');
+        const uploadRes = await migrationService.uploadExcelFile(uploadedFile!);
+        filePath = uploadRes.filePath;
+        toast.success(`อัปโหลดไฟล์สำเร็จ: ${uploadRes.originalFilename}`);
+      }
+
+      // ส่งคำสั่งเริ่ม Streaming Ingestion
       setStatusMessage('กำลังเริ่มต้นกระบวนการ Streaming Ingestion เบื้องหลัง...');
       const idempotencyKey = `ingest-${uuidv4()}`;
       const ingestRes = await migrationService.startIngestion(
         {
-          filePath: uploadRes.filePath,
-          projectPublicId,
-          contractCode: contractCode || undefined,
+          filePath,
+          projectPublicId: selectedProjectPublicId,
+          contractCode: selectedContractCode || undefined,
           sheetName: sheetName || undefined,
-          pdfFolderPath: pdfFolderPath || undefined,
+          pdfFolderPath: selectedPdfFolderPath || undefined,
           resume,
         },
         idempotencyKey
@@ -97,47 +229,164 @@ export function LegacyIngestionCard({ onIngestionStarted }: LegacyIngestionCardP
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {/* --- แถวที่ 1: เลือกไฟล์ Excel (NAS หรือ Upload) + Project + Contract --- */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          {/* Excel source selection */}
           <div className="space-y-1.5">
-            <Label htmlFor="excel-file" className="text-xs font-semibold">
+            <Label htmlFor="excel-source" className="text-xs font-semibold">
               ไฟล์ Excel (.xlsx) *
             </Label>
-            <Input
-              id="excel-file"
-              type="file"
-              accept=".xlsx,.xls,.csv"
-              onChange={handleFileChange}
+            <Select
+              value={excelMode}
+              onValueChange={(value: ExcelSelectionMode) => setExcelMode(value)}
               disabled={uploading}
-              className="text-xs cursor-pointer file:cursor-pointer"
-            />
+            >
+              <SelectTrigger id="excel-source" className="text-xs">
+                <SelectValue placeholder="เลือกแหล่งไฟล์" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="nas">เลือกจาก NAS</SelectItem>
+                <SelectItem value="upload">อัปโหลดไฟล์ใหม่</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
+          {/* Excel file dropdown from NAS หรือ file upload */}
           <div className="space-y-1.5">
-            <Label htmlFor="project-uuid" className="text-xs font-semibold">
-              UUID โครงการ (ADR-019) *
+            <Label htmlFor="excel-file" className="text-xs font-semibold">
+              {excelMode === 'nas' ? 'เลือกไฟล์จาก NAS' : 'เลือกไฟล์ที่จะอัปโหลด'}
             </Label>
-            <Input
-              id="project-uuid"
-              value={projectPublicId}
-              onChange={(e) => setProjectPublicId(e.target.value)}
-              placeholder="UUIDv7 ของโครงการ"
-              disabled={uploading}
-              className="text-xs font-mono"
-            />
+            {excelMode === 'nas' ? (
+              <Select
+                value={selectedNasFilePath}
+                onValueChange={setSelectedNasFilePath}
+                disabled={uploading || nasExcelFiles.length === 0}
+              >
+                <SelectTrigger id="excel-file" className="text-xs">
+                  <SelectValue
+                    placeholder={
+                      nasExcelFiles.length === 0
+                        ? 'ไม่พบไฟล์ใน NAS'
+                        : 'เลือกไฟล์ Excel...'
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {nasExcelFiles.map((file) => (
+                    <SelectItem key={file.fullPath} value={file.fullPath}>
+                      {file.filename} ({(file.size / 1024).toFixed(0)} KB)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                id="excel-file"
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                onChange={handleFileChange}
+                disabled={uploading}
+                className="text-xs cursor-pointer file:cursor-pointer"
+              />
+            )}
           </div>
 
+          {/* Project Name dropdown (ADR-019: ไม่ expose UUID ใน UI) */}
+          <div className="space-y-1.5">
+            <Label htmlFor="project-name" className="text-xs font-semibold">
+              ชื่อโครงการ *
+            </Label>
+            <Select
+              value={selectedProjectPublicId}
+              onValueChange={setSelectedProjectPublicId}
+              disabled={uploading || projects.length === 0}
+            >
+              <SelectTrigger id="project-name" className="text-xs">
+                <SelectValue
+                  placeholder={
+                    projects.length === 0
+                      ? 'ไม่พบโครงการ'
+                      : 'เลือกโครงการ...'
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {projects.map((project) => (
+                  <SelectItem key={project.publicId} value={project.publicId}>
+                    {project.projectName} ({project.projectCode})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Contract Code dropdown (กรองตาม Project ที่เลือก) */}
           <div className="space-y-1.5">
             <Label htmlFor="contract-code" className="text-xs font-semibold">
               รหัสคู่สัญญา (Contract Code)
             </Label>
-            <Input
-              id="contract-code"
-              value={contractCode}
-              onChange={(e) => setContractCode(e.target.value)}
-              placeholder="เช่น LCBP3-C2"
-              disabled={uploading}
-              className="text-xs"
-            />
+            <Select
+              value={selectedContractCode}
+              onValueChange={setSelectedContractCode}
+              disabled={
+                uploading ||
+                !selectedProjectPublicId ||
+                contracts.length === 0
+              }
+            >
+              <SelectTrigger id="contract-code" className="text-xs">
+                <SelectValue
+                  placeholder={
+                    !selectedProjectPublicId
+                      ? 'เลือกโครงการก่อน'
+                      : contracts.length === 0
+                        ? 'ไม่พบสัญญาในโครงการ'
+                        : 'เลือกสัญญา...'
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {contracts.map((contract) => (
+                  <SelectItem
+                    key={contract.publicId ?? contract.contractCode}
+                    value={contract.contractCode}
+                  >
+                    {contract.contractCode} — {contract.contractName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* --- แถวที่ 2: Staging PDF folder + Sheet name --- */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="staging-path" className="text-xs font-semibold">
+              โฟลเดอร์ Staging PDF บน NAS
+            </Label>
+            <Select
+              value={selectedPdfFolderPath}
+              onValueChange={setSelectedPdfFolderPath}
+              disabled={uploading || nasFolders.length === 0}
+            >
+              <SelectTrigger id="staging-path" className="text-xs">
+                <SelectValue
+                  placeholder={
+                    nasFolders.length === 0
+                      ? 'ไม่พบโฟลเดอร์ใน NAS'
+                      : 'เลือกโฟลเดอร์ Staging PDF...'
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {nasFolders.map((folder) => (
+                  <SelectItem key={folder.fullPath} value={folder.fullPath}>
+                    {folder.folderName}/
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-1.5">
@@ -151,22 +400,6 @@ export function LegacyIngestionCard({ onIngestionStarted }: LegacyIngestionCardP
               placeholder="default = worksheet แรก"
               disabled={uploading}
               className="text-xs"
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="staging-path" className="text-xs font-semibold">
-              โฟลเดอร์ Staging PDF บน NAS
-            </Label>
-            <Input
-              id="staging-path"
-              value={pdfFolderPath}
-              onChange={(e) => setPdfFolderPath(e.target.value)}
-              placeholder="/share/np-dms/staging_ai/"
-              disabled={uploading}
-              className="text-xs font-mono"
             />
           </div>
         </div>
@@ -196,7 +429,11 @@ export function LegacyIngestionCard({ onIngestionStarted }: LegacyIngestionCardP
             )}
             <Button
               onClick={handleStartIngest}
-              disabled={uploading || !file}
+              disabled={
+                uploading ||
+                (excelMode === 'nas' ? !selectedNasFilePath : !uploadedFile) ||
+                !selectedProjectPublicId
+              }
               size="sm"
               className="bg-primary hover:bg-primary/90 text-primary-foreground"
             >

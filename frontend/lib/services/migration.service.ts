@@ -183,4 +183,22 @@ export const migrationService = {
     });
     return data?.data || data;
   },
+
+  // ADR-047: List Excel files จาก Legacy NAS folder
+  listLegacyExcelFiles: async (): Promise<
+    Array<{ filename: string; fullPath: string; size: number }>
+  > => {
+    const { data } = await api.get('/migration/legacy-files');
+    const result = data?.data ?? data;
+    return Array.isArray(result?.files) ? result.files : [];
+  },
+
+  // ADR-047: List โฟลเดอร์ย่อยจาก Legacy NAS folder สำหรับ Staging PDF
+  listLegacyFolders: async (): Promise<
+    Array<{ folderName: string; fullPath: string }>
+  > => {
+    const { data } = await api.get('/migration/legacy-folders');
+    const result = data?.data ?? data;
+    return Array.isArray(result?.folders) ? result.folders : [];
+  },
 };

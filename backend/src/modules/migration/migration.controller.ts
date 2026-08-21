@@ -72,6 +72,12 @@ import { ReviewThresholdService } from './services/review-threshold.service';
 import { RagBatchService } from './services/rag-batch.service';
 import { ValidationException } from '../../common/exceptions';
 import type { Response } from 'express';
+import * as fs from 'fs';
+import * as path from 'path';
+import {
+  ENV_LEGACY_NAS_PATH,
+  LEGACY_NAS_PATH_DEFAULT,
+} from './constants/migration.constants';
 
 /**
  * Helper: บังคับให้ user ต้องมี user_id จริง (ADR-016)
@@ -479,5 +485,80 @@ export class MigrationController {
     requireIdempotencyKey(idempotencyKey);
     const userId = requireUserId(user);
     return this.migrationReviewService.updateQueueOcr(publicId, dto, userId);
+  }
+
+  // ADR-047: List ไฟล์ Excel (.xlsx) จาก Legacy NAS สำหรับหน้า Legacy Management
+  @Get('legacy-files')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @RequirePermission('migration.view')
+  @ApiOperation({
+    summary: 'List Excel (.xlsx) files from Legacy NAS folder (ADR-047)',
+  })
+  listLegacyExcelFiles() {
+    const basePath =
+      process.env[ENV_LEGACY_NAS_PATH] || LEGACY_NAS_PATH_DEFAULT;
+
+    if (!fs.existsSync(basePath)) {
+      this.logger.warn(`Legacy NAS path not found: ${basePath}`);
+      return { files: [] };
+    }
+
+    try {
+      const entries = fs.readdirSync(basePath, { withFileTypes: true });
+      const xlsxFiles = entries
+        .filter(
+          (entry) =>
+            entry.isFile() &&
+            (entry.name.toLowerCase().endsWith('.xlsx') ||
+              entry.name.toLowerCase().endsWith('.xls'))
+        )
+        .map((entry) => ({
+          filename: entry.name,
+          fullPath: path.join(basePath, entry.name),
+          size: fs.statSync(path.join(basePath, entry.name)).size,
+        }))
+        .sort((a, b) => a.filename.localeCompare(b.filename));
+
+      return { files: xlsxFiles };
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`Failed to list legacy Excel files: ${errMsg}`);
+      return { files: [] };
+    }
+  }
+
+  // ADR-047: List โฟลเดอร์ย่อยจาก Legacy NAS สำหรับเลือก Staging PDF folder
+  @Get('legacy-folders')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @RequirePermission('migration.view')
+  @ApiOperation({
+    summary:
+      'List subdirectories from Legacy NAS folder for Staging PDF selection (ADR-047)',
+  })
+  listLegacyFolders() {
+    const basePath =
+      process.env[ENV_LEGACY_NAS_PATH] || LEGACY_NAS_PATH_DEFAULT;
+
+    if (!fs.existsSync(basePath)) {
+      this.logger.warn(`Legacy NAS path not found: ${basePath}`);
+      return { folders: [] };
+    }
+
+    try {
+      const entries = fs.readdirSync(basePath, { withFileTypes: true });
+      const folders = entries
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => ({
+          folderName: entry.name,
+          fullPath: path.join(basePath, entry.name),
+        }))
+        .sort((a, b) => a.folderName.localeCompare(b.folderName));
+
+      return { folders };
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`Failed to list legacy folders: ${errMsg}`);
+      return { folders: [] };
+    }
   }
 }

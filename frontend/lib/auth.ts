@@ -4,6 +4,7 @@ import Credentials from 'next-auth/providers/credentials';
 import { z } from 'zod';
 import type { User } from 'next-auth';
 import type { JWT } from 'next-auth/jwt';
+import { headers } from 'next/headers';
 
 // Schema for input validation
 const _loginSchema = z.object({
@@ -80,12 +81,55 @@ function isLoginPayload(value: unknown): value is LoginPayload {
   return !!user && typeof user === 'object' && typeof (user as Record<string, unknown>).username === 'string';
 }
 
+/**
+ * ดึง headers ที่จำเป็นสำหรับ session tracking (User-Agent, IP) จาก incoming request
+ * ใช้ใน NextAuth authorize/refresh เพื่อส่งต่อไปยัง backend ให้บันทึก device info ได้ถูกต้อง
+ * ปัญหาเดิม: NextAuth รันฝั่ง server ทำให้ User-Agent เป็น "node" แทน browser จริง
+ *
+ * หมายเหตุ: headers() จาก next/headers เป็น async ใน Next.js 16 และทำงานได้เฉพาะใน request scope
+ */
+async function getForwardedHeaders(): Promise<Record<string, string>> {
+  const forwarded: Record<string, string> = {};
+
+  try {
+    const headerList = await headers();
+
+    // ส่งต่อ User-Agent จาก browser จริง
+    const userAgent = headerList.get('user-agent');
+    if (userAgent) {
+      forwarded['user-agent'] = userAgent;
+    }
+
+    // ส่งต่อ IP-related headers สำหรับ backend ใช้ตรวจจับ IP จริง
+    const cfConnectingIp = headerList.get('cf-connecting-ip');
+    if (cfConnectingIp) {
+      forwarded['cf-connecting-ip'] = cfConnectingIp;
+    }
+
+    const xForwardedFor = headerList.get('x-forwarded-for');
+    if (xForwardedFor) {
+      forwarded['x-forwarded-for'] = xForwardedFor;
+    }
+
+    const xRealIp = headerList.get('x-real-ip');
+    if (xRealIp) {
+      forwarded['x-real-ip'] = xRealIp;
+    }
+  } catch (_error) {
+    // headers() อาจ throw หากเรียกนอก request scope — คืน empty object แล้ว backend จะใช้ค่าเริ่มต้น
+  }
+
+  return forwarded;
+}
+
 async function refreshAccessToken(token: JWT) {
   try {
+    const forwardedHeaders = await getForwardedHeaders();
     const response = await fetch(`${baseUrl}/auth/refresh`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token.refreshToken}`,
+        ...forwardedHeaders,
       },
     });
 
@@ -140,11 +184,16 @@ export const {
             password: credentials.password as string,
           };
 
+          // ส่งต่อ User-Agent และ IP headers จาก browser จริงไปยัง backend
+          // เพื่อให้ session tracking บันทึก device info ได้ถูกต้อง (ไม่ใช่ "node")
+          const forwardedHeaders = await getForwardedHeaders();
+
           const res = await fetch(`${baseUrl}/auth/login`, {
             method: 'POST',
             body: JSON.stringify(payload),
             headers: {
               'Content-Type': 'application/json',
+              ...forwardedHeaders,
             },
             cache: 'no-store', // Disable caching for auth requests
           });

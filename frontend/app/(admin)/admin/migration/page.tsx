@@ -351,9 +351,9 @@ function AiMigrationTab() {
   );
 }
 
-// --- Legacy Queue Tab (ระบบ Migration เดิม) ---
+// --- Legacy Management Tab (ระบบ Migration เดิม) ---
 
-function LegacyQueueTab() {
+function LegacyManagementTab() {
   const [items, setItems] = useState<MigrationReviewQueueItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -589,13 +589,13 @@ export default function MigrationManagementPage() {
       <Tabs defaultValue="ai">
         <TabsList>
           <TabsTrigger value="ai">AI Migration Logs</TabsTrigger>
-          <TabsTrigger value="legacy">Legacy Queue</TabsTrigger>
+          <TabsTrigger value="legacy">Legacy Management</TabsTrigger>
         </TabsList>
         <TabsContent value="ai">
           <AiMigrationTab />
         </TabsContent>
         <TabsContent value="legacy">
-          <LegacyQueueTab />
+          <LegacyManagementTab />
         </TabsContent>
       </Tabs>
     </div>

@@ -37,6 +37,13 @@ export const ENV_STAGING_DIR = 'MIGRATION_STAGING_DIR' as const;
 export const STAGING_DIR_DEFAULT = 'uploads/staging' as const;
 
 /**
+ * Legacy NAS path env var name — โฟลเดอร์บน NAS ที่เก็บไฟล์ Excel และ PDF ของเอกสาร Legacy
+ * ใช้สำหรับ listing ไฟล์ในหน้า Legacy Management
+ */
+export const ENV_LEGACY_NAS_PATH = 'LEGACY_NAS_PATH' as const;
+export const LEGACY_NAS_PATH_DEFAULT = '/mnt/asustor-legacy' as const;
+
+/**
  * Default batch timeout (ms) สำหรับ MetadataResolutionService
  */
 export const DEFAULT_BATCH_TIMEOUT_MS = 30000 as const;
