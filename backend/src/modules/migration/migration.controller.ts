@@ -102,6 +102,13 @@ function requireIdempotencyKey(key: string | undefined): string {
   return key;
 }
 
+// ADR-047: Recursive tree node สำหรับ Legacy NAS folder tree view
+interface LegacyFolderTreeNode {
+  name: string;
+  path: string;
+  children: LegacyFolderTreeNode[];
+}
+
 @ApiTags('Migration')
 @ApiBearerAuth()
 @Controller('migration')
@@ -528,37 +535,62 @@ export class MigrationController {
   }
 
   // ADR-047: List โฟลเดอร์ย่อยจาก Legacy NAS สำหรับเลือก Staging PDF folder
+  // แสดงเป็น tree structure (recursive) สำหรับ frontend tree view
   @Get('legacy-folders')
   @UseGuards(JwtAuthGuard, RbacGuard)
   @RequirePermission('migration.view')
   @ApiOperation({
     summary:
-      'List subdirectories from Legacy NAS folder for Staging PDF selection (ADR-047)',
+      'List subdirectories (recursive tree) from Legacy NAS folder for Staging PDF selection (ADR-047)',
   })
   listLegacyFolders() {
-    const basePath =
-      process.env[ENV_LEGACY_NAS_PATH] || LEGACY_NAS_PATH_DEFAULT;
+    const basePath = path.resolve(
+      process.env[ENV_LEGACY_NAS_PATH] || LEGACY_NAS_PATH_DEFAULT
+    );
 
     if (!fs.existsSync(basePath)) {
       this.logger.warn(`Legacy NAS path not found: ${basePath}`);
-      return { folders: [] };
+      return { tree: [] };
     }
 
-    try {
-      const entries = fs.readdirSync(basePath, { withFileTypes: true });
-      const folders = entries
-        .filter((entry) => entry.isDirectory())
-        .map((entry) => ({
-          folderName: entry.name,
-          fullPath: path.join(basePath, entry.name),
-        }))
-        .sort((a, b) => a.folderName.localeCompare(b.folderName));
+    // ADR-047: Recursive tree node สำหรับ frontend tree view
+    const MAX_DEPTH = 5;
+    const buildTree = (
+      currentPath: string,
+      depth: number
+    ): LegacyFolderTreeNode[] => {
+      if (depth >= MAX_DEPTH) return [];
 
-      return { folders };
+      try {
+        const entries = fs.readdirSync(currentPath, { withFileTypes: true });
+        const nodes: LegacyFolderTreeNode[] = [];
+        for (const entry of entries) {
+          if (!entry.isDirectory()) continue;
+          const childPath = path.resolve(currentPath, entry.name);
+          // ADR-016: path traversal guard — child ต้องอยู่ใต้ basePath เสมอ
+          const relative = path.relative(basePath, childPath);
+          if (relative.startsWith('..') || path.isAbsolute(relative)) {
+            continue;
+          }
+          nodes.push({
+            name: entry.name,
+            path: childPath,
+            children: buildTree(childPath, depth + 1),
+          });
+        }
+        return nodes.sort((a, b) => a.name.localeCompare(b.name));
+      } catch {
+        return [];
+      }
+    };
+
+    try {
+      const tree = buildTree(basePath, 0);
+      return { tree };
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
       this.logger.error(`Failed to list legacy folders: ${errMsg}`);
-      return { folders: [] };
+      return { tree: [] };
     }
   }
 }

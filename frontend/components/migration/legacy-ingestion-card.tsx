@@ -21,8 +21,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { toast } from 'sonner';
-import { UploadCloudIcon, PlayIcon, RefreshCwIcon, CheckCircle2Icon } from 'lucide-react';
+import {
+  UploadCloudIcon,
+  PlayIcon,
+  RefreshCwIcon,
+  CheckCircle2Icon,
+  ChevronDown,
+  ChevronRight,
+  FolderIcon,
+  FolderOpenIcon,
+} from 'lucide-react';
 import { migrationService } from '@/lib/services/migration.service';
 import { projectService } from '@/lib/services/project.service';
 import { contractService } from '@/lib/services/contract.service';
@@ -39,9 +49,10 @@ interface LegacyExcelFile {
   size: number;
 }
 
-interface LegacyFolder {
-  folderName: string;
-  fullPath: string;
+interface LegacyFolderNode {
+  name: string;
+  path: string;
+  children: LegacyFolderNode[];
 }
 
 interface ProjectOption {
@@ -60,9 +71,11 @@ export function LegacyIngestionCard({ onIngestionStarted }: LegacyIngestionCardP
   const [selectedNasFilePath, setSelectedNasFilePath] = useState<string>('');
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
-  // Staging PDF folder selection
-  const [nasFolders, setNasFolders] = useState<LegacyFolder[]>([]);
+  // Staging PDF folder selection (tree view)
+  const [nasFolderTree, setNasFolderTree] = useState<LegacyFolderNode[]>([]);
   const [selectedPdfFolderPath, setSelectedPdfFolderPath] = useState<string>('');
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const [folderPickerOpen, setFolderPickerOpen] = useState(false);
 
   // Project selection (ADR-019: ใช้ publicId ภายใน ไม่ expose ใน UI)
   const [projects, setProjects] = useState<ProjectOption[]>([]);
@@ -87,7 +100,7 @@ export function LegacyIngestionCard({ onIngestionStarted }: LegacyIngestionCardP
           migrationService.listLegacyFolders(),
         ]);
         setNasExcelFiles(filesRes);
-        setNasFolders(foldersRes);
+        setNasFolderTree(foldersRes);
       } catch (err: unknown) {
         const errMsg = err instanceof Error ? err.message : 'ไม่สามารถโหลดรายการจาก NAS ได้';
         toast.error(errMsg);
@@ -359,34 +372,60 @@ export function LegacyIngestionCard({ onIngestionStarted }: LegacyIngestionCardP
           </div>
         </div>
 
-        {/* --- แถวที่ 2: Staging PDF folder + Sheet name --- */}
+        {/* --- แถวที่ 2: Staging PDF folder (tree view) + Sheet name --- */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div className="space-y-1.5">
             <Label htmlFor="staging-path" className="text-xs font-semibold">
               โฟลเดอร์ Staging PDF บน NAS
             </Label>
-            <Select
-              value={selectedPdfFolderPath}
-              onValueChange={setSelectedPdfFolderPath}
-              disabled={uploading || nasFolders.length === 0}
-            >
-              <SelectTrigger id="staging-path" className="text-xs">
-                <SelectValue
-                  placeholder={
-                    nasFolders.length === 0
-                      ? 'ไม่พบโฟลเดอร์ใน NAS'
-                      : 'เลือกโฟลเดอร์ Staging PDF...'
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {nasFolders.map((folder) => (
-                  <SelectItem key={folder.fullPath} value={folder.fullPath}>
-                    {folder.folderName}/
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={folderPickerOpen} onOpenChange={setFolderPickerOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  id="staging-path"
+                  variant="outline"
+                  role="combobox"
+                  disabled={uploading || nasFolderTree.length === 0}
+                  className="w-full justify-between text-xs font-normal"
+                >
+                  <span className="truncate">
+                    {selectedPdfFolderPath
+                      ? selectedPdfFolderPath.replace(/^.*\/([^/]+)$/, '$1/')
+                      : nasFolderTree.length === 0
+                        ? 'ไม่พบโฟลเดอร์ใน NAS'
+                        : 'เลือกโฟลเดอร์ Staging PDF...'}
+                  </span>
+                  <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[480px] p-0" align="start">
+                <div className="max-h-[320px] overflow-y-auto p-1">
+                  {nasFolderTree.length === 0 ? (
+                    <div className="px-3 py-6 text-center text-xs text-muted-foreground">
+                      ไม่พบโฟลเดอร์ใน NAS
+                    </div>
+                  ) : (
+                    <FolderTree
+                      nodes={nasFolderTree}
+                      expanded={expandedFolders}
+                      onToggle={(path) => {
+                        const next = new Set(expandedFolders);
+                        if (next.has(path)) {
+                          next.delete(path);
+                        } else {
+                          next.add(path);
+                        }
+                        setExpandedFolders(next);
+                      }}
+                      selectedPath={selectedPdfFolderPath}
+                      onSelect={(path) => {
+                        setSelectedPdfFolderPath(path);
+                        setFolderPickerOpen(false);
+                      }}
+                    />
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="space-y-1.5">
@@ -453,5 +492,89 @@ export function LegacyIngestionCard({ onIngestionStarted }: LegacyIngestionCardP
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+// --- FolderTree: recursive tree view สำหรับเลือก Staging PDF folder ---
+interface FolderTreeProps {
+  nodes: LegacyFolderNode[];
+  expanded: Set<string>;
+  onToggle: (path: string) => void;
+  selectedPath: string;
+  onSelect: (path: string) => void;
+  depth?: number;
+}
+
+function FolderTree({
+  nodes,
+  expanded,
+  onToggle,
+  selectedPath,
+  onSelect,
+  depth = 0,
+}: FolderTreeProps) {
+  return (
+    <ul className={depth === 0 ? '' : 'ml-3 border-l border-border/40 pl-1'}>
+      {nodes.map((node) => {
+        const hasChildren = node.children.length > 0;
+        const isExpanded = expanded.has(node.path);
+        const isSelected = selectedPath === node.path;
+        return (
+          <li key={node.path}>
+            <div
+              className={`flex items-center gap-1 rounded px-1.5 py-1 text-xs cursor-pointer hover:bg-accent ${
+                isSelected ? 'bg-primary/15 text-primary font-medium' : ''
+              }`}
+              style={{ paddingLeft: `${depth * 12 + 6}px` }}
+              onClick={() => onSelect(node.path)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onSelect(node.path);
+                }
+              }}
+            >
+              {hasChildren ? (
+                <button
+                  type="button"
+                  className="shrink-0 rounded p-0.5 hover:bg-accent-foreground/10"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggle(node.path);
+                  }}
+                  aria-label={isExpanded ? 'ย่อ' : 'ขยาย'}
+                >
+                  {isExpanded ? (
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  ) : (
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  )}
+                </button>
+              ) : (
+                <span className="inline-block w-[22px] shrink-0" />
+              )}
+              {isExpanded && hasChildren ? (
+                <FolderOpenIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              ) : (
+                <FolderIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              )}
+              <span className="truncate">{node.name}</span>
+            </div>
+            {hasChildren && isExpanded && (
+              <FolderTree
+                nodes={node.children}
+                expanded={expanded}
+                onToggle={onToggle}
+                selectedPath={selectedPath}
+                onSelect={onSelect}
+                depth={depth + 1}
+              />
+            )}
+          </li>
+        );
+      })}
+    </ul>
   );
 }

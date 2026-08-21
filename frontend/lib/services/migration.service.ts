@@ -17,6 +17,13 @@ interface WrappedData {
   data?: unknown;
 }
 
+// ADR-047: Tree node สำหรับ Legacy NAS folder (recursive)
+export interface LegacyFolderNode {
+  name: string;
+  path: string;
+  children: LegacyFolderNode[];
+}
+
 const extractNestedData = <T>(value: unknown): T => {
   let current: unknown = value;
 
@@ -193,12 +200,10 @@ export const migrationService = {
     return Array.isArray(result?.files) ? result.files : [];
   },
 
-  // ADR-047: List โฟลเดอร์ย่อยจาก Legacy NAS folder สำหรับ Staging PDF
-  listLegacyFolders: async (): Promise<
-    Array<{ folderName: string; fullPath: string }>
-  > => {
+  // ADR-047: List โฟลเดอร์ย่อย (recursive tree) จาก Legacy NAS folder สำหรับ Staging PDF
+  listLegacyFolders: async (): Promise<LegacyFolderNode[]> => {
     const { data } = await api.get('/migration/legacy-folders');
     const result = data?.data ?? data;
-    return Array.isArray(result?.folders) ? result.folders : [];
+    return Array.isArray(result?.tree) ? result.tree : [];
   },
 };
