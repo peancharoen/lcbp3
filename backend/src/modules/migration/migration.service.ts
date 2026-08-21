@@ -8,7 +8,7 @@ import {
   ValidationException,
 } from '../../common/exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, In } from 'typeorm';
+import { Repository, DataSource, In, FindOptionsWhere } from 'typeorm';
 import { ImportCorrespondenceDto } from './dto/import-correspondence.dto';
 import { EnqueueMigrationDto } from './dto/enqueue-migration.dto';
 import { CommitBatchDto } from './dto/commit-batch.dto';
@@ -713,19 +713,18 @@ export class MigrationService {
     batchId?: string,
     all: boolean = false
   ): Promise<{ deleted: number }> {
-    const qb = this.reviewQueueRepo
-      .createQueryBuilder('queue')
-      .delete()
-      .where('queue.status = :status', { status: 'PENDING' });
-
+    // TypeORM delete() รับ FindOptionsWhere ที่ใช้ entity property names
+    const conditions: FindOptionsWhere<MigrationReviewQueue> = {
+      status: MigrationReviewStatus.PENDING,
+    };
     if (!all) {
       if (!batchId) {
         throw new ValidationException('ต้องระบุ batchId หรือ all=true');
       }
-      qb.andWhere('queue.batch_id = :batchId', { batchId });
+      conditions.batchId = batchId;
     }
 
-    const result = await qb.execute();
+    const result = await this.reviewQueueRepo.delete(conditions);
     const deleted = result.affected ?? 0;
     this.logger.log(
       `Deleted ${deleted} review queue items (batchId=${batchId ?? 'ALL'})`
@@ -741,20 +740,22 @@ export class MigrationService {
     batchId?: string,
     all: boolean = false
   ): Promise<{ deleted: number }> {
-    const qb = this.errorRepo.createQueryBuilder('error').delete();
-
+    // TypeORM delete() รับ FindOptionsWhere ที่ใช้ entity property names
     if (!all) {
       if (!batchId) {
         throw new ValidationException('ต้องระบุ batchId หรือ all=true');
       }
-      qb.where('error.batch_id = :batchId', { batchId });
+      const result = await this.errorRepo.delete({ batchId });
+      const deleted = result.affected ?? 0;
+      this.logger.log(
+        `Deleted ${deleted} migration errors (batchId=${batchId})`
+      );
+      return { deleted };
     }
 
-    const result = await qb.execute();
+    const result = await this.errorRepo.delete({});
     const deleted = result.affected ?? 0;
-    this.logger.log(
-      `Deleted ${deleted} migration errors (batchId=${batchId ?? 'ALL'})`
-    );
+    this.logger.log(`Deleted ${deleted} migration errors (ALL)`);
     return { deleted };
   }
 
