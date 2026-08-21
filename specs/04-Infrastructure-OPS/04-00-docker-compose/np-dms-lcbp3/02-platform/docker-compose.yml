@@ -244,7 +244,7 @@ services:
       - '/opt/np-dms/n8n/scripts:/scripts'
       - '/opt/np-dms/n8n/data:/data'
       # ASUSTOR CIFS — Legacy migration files (read-only)
-      - '/mnt/asustor-legacy:/home/node/.n8n-files/staging_ai:ro'
+      - '/mnt/asustor-legacy:/mnt/legacy-staging:ro'
       - '/opt/np-dms/n8n/migration_logs:/home/node/.n8n-files/migration_logs:rw'
     healthcheck:
       test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:5678/healthz || exit 1']

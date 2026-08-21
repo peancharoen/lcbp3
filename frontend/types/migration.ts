@@ -60,6 +60,7 @@ export interface CapturedThresholds {
 export interface MigrationReviewQueueItem {
   publicId: string; // ADR-019: public identifier
   id?: number; // Internal INT (excluded from API)
+  batchId?: string; // ADR-047: batch identifier for bulk operations
   documentNumber: string;
   title?: string;
   originalTitle?: string;

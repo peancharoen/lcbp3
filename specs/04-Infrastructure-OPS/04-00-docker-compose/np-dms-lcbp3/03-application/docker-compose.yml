@@ -154,7 +154,7 @@ services:
       - '/mnt/asustor-uploads/permanent:/app/uploads/permanent'
       - '/opt/np-dms/logs/backend:/app/logs'
       # ASUSTOR CIFS — Legacy staging (read-only)
-      - '/mnt/asustor-legacy:/home/node/.n8n-files/staging_ai:ro'
+      - '/mnt/asustor-legacy:/mnt/legacy-staging:ro'
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:3000/ping']
       interval: 30s

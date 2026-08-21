@@ -357,7 +357,10 @@ function LegacyManagementTab() {
   const [items, setItems] = useState<MigrationReviewQueueItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('PENDING');
+  const [batchFilter, setBatchFilter] = useState<string>('ALL');
+  const [batchOptions, setBatchOptions] = useState<string[]>([]);
   // ADR-019: ใช้ publicId (string) สำหรับ selection ห้ามใช้ INT id
   const [selectedPublicIds, setSelectedPublicIds] = useState<string[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -370,7 +373,12 @@ function LegacyManagementTab() {
         status: statusFilter === 'ALL' ? undefined : (statusFilter as MigrationReviewStatus),
         limit: 50,
       });
-      setItems(Array.isArray(res.items) ? res.items : []);
+      let fetchedItems = Array.isArray(res.items) ? res.items : [];
+      // ADR-047: filter by batchId ฝั่ง client (backend ยังไม่รองรับ batchId query)
+      if (batchFilter !== 'ALL') {
+        fetchedItems = fetchedItems.filter((i) => i.batchId === batchFilter);
+      }
+      setItems(fetchedItems);
       setSelectedPublicIds([]);
     } catch (error: unknown) {
       setItems([]);
@@ -378,11 +386,25 @@ function LegacyManagementTab() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter]);
+  }, [statusFilter, batchFilter]);
+
+  // ADR-047: โหลด batch options สำหรับ filter dropdown
+  const fetchBatches = useCallback(async () => {
+    try {
+      const batches = await migrationService.getQueueBatches();
+      setBatchOptions(batches);
+    } catch {
+      setBatchOptions([]);
+    }
+  }, []);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  useEffect(() => {
+    fetchBatches();
+  }, [fetchBatches]);
 
   // ADR-019: toggle โดยใช้ publicId (string)
   // FR-014: "Select All" เลือกเฉพาะรายการที่ ai_confidence >= 0.85 (High Confidence)
@@ -442,6 +464,29 @@ function LegacyManagementTab() {
     }
   };
 
+  // ADR-047: ลบรายการ PENDING ตาม batch หรือทั้งหมด
+  const handleDeleteByBatch = async () => {
+    const isAll = batchFilter === 'ALL';
+    const confirmMsg = isAll
+      ? 'ยืนยันลบรายการ PENDING ทั้งหมด?'
+      : `ยืนยันลบรายการ PENDING ใน batch ${batchFilter}?`;
+    if (!window.confirm(confirmMsg)) return;
+    try {
+      setDeleting(true);
+      const result = await migrationService.deleteReviewQueue(
+        isAll ? undefined : batchFilter,
+        isAll
+      );
+      toast.success(`ลบ ${result.deleted} รายการเรียบร้อย`);
+      await fetchData();
+      await fetchBatches();
+    } catch (error: unknown) {
+      toast.error(getApiErrorMessage(error, 'ลบไม่สำเร็จ'));
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <LegacyIngestionCard onIngestionStarted={fetchData} />
@@ -450,7 +495,7 @@ function LegacyManagementTab() {
         <CardHeader>
           <div className="flex flex-wrap justify-between items-center gap-4">
             <CardTitle>Legacy Review Queue - {statusFilter}</CardTitle>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             {selectedPublicIds.length > 0 && (
               <Button variant="default" onClick={handleBatchApprove} disabled={submitting}>
                 <CheckCircleIcon className="mr-2 h-4 w-4" />
@@ -463,7 +508,7 @@ function LegacyManagementTab() {
               </Button>
             </Link>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[150px]">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -473,6 +518,25 @@ function LegacyManagementTab() {
                 <SelectItem value="REJECTED">Rejected</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={batchFilter} onValueChange={setBatchFilter}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Batch" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Batches</SelectItem>
+                {batchOptions.map((b) => (
+                  <SelectItem key={b} value={b}>{b}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteByBatch}
+              disabled={deleting || items.length === 0}
+              size="sm"
+            >
+              {deleting ? 'กำลังลบ...' : `ลบ ${batchFilter === 'ALL' ? 'ทั้งหมด' : 'Batch นี้'}`}
+            </Button>
           </div>
         </div>
       </CardHeader>

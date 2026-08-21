@@ -1,37 +1,83 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { migrationService } from '@/lib/services/migration.service';
 import { MigrationErrorItem } from '@/types/migration';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format } from 'date-fns';
 import { ArrowLeftIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getApiErrorMessage } from '@/types/api-error';
+import { toast } from 'sonner';
 
 export default function MigrationErrorsPage() {
   const [items, setItems] = useState<MigrationErrorItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [batchFilter, setBatchFilter] = useState<string>('ALL');
+  const [batchOptions, setBatchOptions] = useState<string[]>([]);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setErrorMessage(null);
       const res = await migrationService.getErrors({ limit: 100 });
-      setItems(Array.isArray(res.items) ? res.items : []);
+      let fetchedItems = Array.isArray(res.items) ? res.items : [];
+      // ADR-047: filter by batchId ฝั่ง client
+      if (batchFilter !== 'ALL') {
+        fetchedItems = fetchedItems.filter((i) => i.batchId === batchFilter);
+      }
+      setItems(fetchedItems);
     } catch (error: unknown) {
       setItems([]);
       setErrorMessage(getApiErrorMessage(error, 'Failed to load errors'));
     } finally {
       setLoading(false);
+    }
+  }, [batchFilter]);
+
+  const fetchBatches = useCallback(async () => {
+    try {
+      const batches = await migrationService.getErrorBatches();
+      setBatchOptions(batches);
+    } catch {
+      setBatchOptions([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  useEffect(() => {
+    fetchBatches();
+  }, [fetchBatches]);
+
+  // ADR-047: ลบ errors ตาม batch หรือทั้งหมด
+  const handleDeleteByBatch = async () => {
+    const isAll = batchFilter === 'ALL';
+    const confirmMsg = isAll
+      ? 'ยืนยันลบ error records ทั้งหมด?'
+      : `ยืนยันลบ error records ใน batch ${batchFilter}?`;
+    if (!window.confirm(confirmMsg)) return;
+    try {
+      setDeleting(true);
+      const result = await migrationService.deleteErrors(
+        isAll ? undefined : batchFilter,
+        isAll
+      );
+      toast.success(`ลบ ${result.deleted} รายการเรียบร้อย`);
+      await fetchData();
+      await fetchBatches();
+    } catch (error: unknown) {
+      toast.error(getApiErrorMessage(error, 'ลบไม่สำเร็จ'));
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -53,7 +99,30 @@ export default function MigrationErrorsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Error Audit Log</CardTitle>
+          <div className="flex flex-wrap justify-between items-center gap-4">
+            <CardTitle>Error Audit Log</CardTitle>
+            <div className="flex items-center gap-3 flex-wrap">
+              <Select value={batchFilter} onValueChange={setBatchFilter}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Batch" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All Batches</SelectItem>
+                  {batchOptions.map((b) => (
+                    <SelectItem key={b} value={b}>{b}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteByBatch}
+                disabled={deleting || items.length === 0}
+                size="sm"
+              >
+                {deleting ? 'กำลังลบ...' : `ลบ ${batchFilter === 'ALL' ? 'ทั้งหมด' : 'Batch นี้'}`}
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {errorMessage && (

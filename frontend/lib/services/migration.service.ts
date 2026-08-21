@@ -206,4 +206,58 @@ export const migrationService = {
     const result = data?.data ?? data;
     return Array.isArray(result?.tree) ? result.tree : [];
   },
+
+  // ADR-047: รายการ batchId จาก Review Queue สำหรับ filter dropdown
+  getQueueBatches: async (): Promise<string[]> => {
+    const { data } = await api.get('/migration/queue/batches');
+    const result = data?.data ?? data;
+    return Array.isArray(result?.batches) ? result.batches : [];
+  },
+
+  // ADR-047: รายการ batchId จาก Migration Errors สำหรับ filter dropdown
+  getErrorBatches: async (): Promise<string[]> => {
+    const { data } = await api.get('/migration/errors/batches');
+    const result = data?.data ?? data;
+    return Array.isArray(result?.batches) ? result.batches : [];
+  },
+
+  // ADR-047: ลบรายการ Review Queue ตาม batch หรือทั้งหมด (เฉพาะ PENDING)
+  deleteReviewQueue: async (
+    batchId?: string,
+    all: boolean = false
+  ): Promise<{ deleted: number }> => {
+    const params: Record<string, string> = {};
+    if (all) params.all = 'true';
+    else if (batchId) params.batchId = batchId;
+    const idempotencyKey =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `del-queue-${Date.now()}`;
+    const { data } = await api.delete('/migration/queue', {
+      params,
+      headers: { 'Idempotency-Key': idempotencyKey },
+    });
+    const result = data?.data ?? data;
+    return result ?? { deleted: 0 };
+  },
+
+  // ADR-047: ลบรายการ Migration Errors ตาม batch หรือทั้งหมด
+  deleteErrors: async (
+    batchId?: string,
+    all: boolean = false
+  ): Promise<{ deleted: number }> => {
+    const params: Record<string, string> = {};
+    if (all) params.all = 'true';
+    else if (batchId) params.batchId = batchId;
+    const idempotencyKey =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `del-errors-${Date.now()}`;
+    const { data } = await api.delete('/migration/errors', {
+      params,
+      headers: { 'Idempotency-Key': idempotencyKey },
+    });
+    const result = data?.data ?? data;
+    return result ?? { deleted: 0 };
+  },
 };
