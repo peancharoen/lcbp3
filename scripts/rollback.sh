@@ -137,10 +137,10 @@ docker compose --env-file "$ENV_FILE" -f "$COMPOSE_RUNTIME_DIR/docker-compose.ym
 echo "✓ Stack restarted (image: $TARGET_SHA)"
 
 # [4/4] Health check
+# SEV-013: /ping = public endpoint (ไม่ต้อง JWT) — ใช้สำหรับ health check
 echo "[4/4] Waiting for backend to be healthy..."
 for i in $(seq 1 30); do
-    if docker exec backend curl -sf http://localhost:3000/health > /dev/null 2>&1 || \
-       docker exec backend curl -sf http://localhost:3000/ping > /dev/null 2>&1; then
+    if docker exec backend curl -sf http://localhost:3000/ping > /dev/null 2>&1; then
         echo "✓ Backend is healthy"
         break
     fi

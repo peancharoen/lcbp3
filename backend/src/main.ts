@@ -52,9 +52,11 @@ async function bootstrap() {
   app.use(json({ limit: '50mb' }));
   app.use(urlencoded({ extended: true, limit: '50mb' }));
 
-  // 🌐 4. Global Prefix (ยกเว้น /health, /metrics สำหรับ monitoring)
+  // 🌐 4. Global Prefix (ยกเว้น /health, /metrics, /ping สำหรับ monitoring)
+  // SEV-013: /ping = public health endpoint (load balancer, Docker HEALTHCHECK, deploy.sh)
+  //          /health = auth-required infra detail (ต้องมี JWT)
   app.setGlobalPrefix('api', {
-    exclude: ['health', 'metrics'],
+    exclude: ['health', 'metrics', 'ping'],
   });
 
   // ⚙️ 5. Global Pipes & Interceptors & Filters

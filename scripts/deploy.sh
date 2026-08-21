@@ -117,10 +117,11 @@ echo "✓ Stack restarted (image: $GIT_SHA)"
 # [4/5] Health check with auto-rollback
 # ADR-015: ถ้า health check fail ให้ rollback อัตโนมัติ
 echo "[4/5] Waiting for backend to be healthy..."
+# SEV-013: /ping = public endpoint (ไม่ต้อง JWT) — ใช้สำหรับ health check
+#          /health = ต้องมี JWT auth (แสดง infra detail) — ไม่เหมาะกับ unauthenticated probe
 HEALTH_OK=false
 for i in $(seq 1 30); do
-    if docker exec backend curl -sf http://localhost:3000/health > /dev/null 2>&1 || \
-       docker exec backend curl -sf http://localhost:3000/ping > /dev/null 2>&1; then
+    if docker exec backend curl -sf http://localhost:3000/ping > /dev/null 2>&1; then
         echo "✓ Backend is healthy"
         HEALTH_OK=true
         break
