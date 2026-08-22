@@ -53,6 +53,7 @@ import { ResolveBatchDto } from './dto/resolve-batch.dto';
 import { TriggerRagBatchDto } from './dto/trigger-rag-batch.dto';
 import { StartIngestDto } from './dto/start-ingest.dto';
 import { UpdateQueueOcrDto } from './dto/update-queue-ocr.dto';
+import { StartExtractBatchDto } from './dto/start-extract.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../common/guards/rbac.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -358,6 +359,59 @@ export class MigrationController {
     requireIdempotencyKey(idempotencyKey);
     const userId = requireUserId(user);
     return this.migrationService.rejectQueueItemByPublicId(publicId, userId);
+  }
+
+  // ADR-047: เริ่มประมวลผล OCR/AI ของ queue item หนึ่งรายการ
+  @Post('queue/:publicId/extract')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @RequirePermission('migration.import')
+  @ApiOperation({
+    summary: 'Start OCR/AI extraction for a single queued migration item',
+  })
+  @ApiParam({ name: 'publicId', type: String, format: 'uuid' })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    required: true,
+    description: 'Unique key per extraction request (ADR-016)',
+  })
+  async extractQueueItem(
+    @Param('publicId', ParseUUIDPipe) publicId: string,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @CurrentUser() user: User
+  ) {
+    requireIdempotencyKey(idempotencyKey);
+    const userId = requireUserId(user);
+    return this.migrationService.startExtractQueueItem(
+      publicId,
+      idempotencyKey!,
+      userId
+    );
+  }
+
+  // ADR-047: เริ่มประมวลผล OCR/AI แบบ batch
+  @Post('extract')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @RequirePermission('migration.import')
+  @ApiOperation({
+    summary: 'Start OCR/AI extraction for a batch of queued migration items',
+  })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    required: true,
+    description: 'Unique key for the batch extraction request (ADR-016)',
+  })
+  async extractBatch(
+    @Body() dto: StartExtractBatchDto,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @CurrentUser() user: User
+  ) {
+    requireIdempotencyKey(idempotencyKey);
+    const userId = requireUserId(user);
+    return this.migrationService.startExtractBatch(
+      dto.queuePublicIds,
+      idempotencyKey!,
+      userId
+    );
   }
 
   @Get('staging-file')
