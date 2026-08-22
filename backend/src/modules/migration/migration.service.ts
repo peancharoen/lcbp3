@@ -1,3 +1,7 @@
+// File: backend/src/modules/migration/migration.service.ts
+// Change Log:
+// - 2026-08-22: Persist IMPORTED after approve-and-import to match the database enum
+
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -979,7 +983,7 @@ export class MigrationService {
     if (!result.hasAttachment && !queueItem.ocrText) {
       queueItem.ocrText = 'ไม่มี ไฟล์ PDF (ยกเลิก/ถอน)';
     }
-    queueItem.status = MigrationReviewStatus.APPROVED;
+    queueItem.status = MigrationReviewStatus.IMPORTED;
     queueItem.reviewedBy = userId.toString();
     queueItem.reviewedAt = new Date();
     await this.reviewQueueRepo.save(queueItem);
@@ -1017,7 +1021,7 @@ export class MigrationService {
     if (!result.hasAttachment && !queueItem.ocrText) {
       queueItem.ocrText = 'ไม่มี ไฟล์ PDF (ยกเลิก/ถอน)';
     }
-    queueItem.status = MigrationReviewStatus.APPROVED;
+    queueItem.status = MigrationReviewStatus.IMPORTED;
     queueItem.reviewedBy = userId.toString();
     queueItem.reviewedAt = new Date();
     await this.reviewQueueRepo.save(queueItem);
