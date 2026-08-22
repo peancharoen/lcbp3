@@ -5,6 +5,7 @@ import {
   IsNumber,
   IsObject,
   IsArray,
+  IsUUID,
 } from 'class-validator';
 
 export class ImportCorrespondenceDto {
@@ -79,13 +80,28 @@ export class ImportCorrespondenceDto {
   @IsOptional()
   disciplineId?: number;
 
+  /** Discipline ID (INT — disciplines table ไม่มี UUID publicId) */
+  @IsString()
+  @IsOptional()
+  disciplinePublicId?: string;
+
   @IsNumber()
   @IsOptional()
   senderId?: number;
 
+  /** ADR-019: UUID publicId สำหรับ sender organization */
+  @IsUUID()
+  @IsOptional()
+  senderPublicId?: string;
+
   @IsNumber()
   @IsOptional()
   receiverId?: number;
+
+  /** ADR-019: UUID publicId สำหรับ receiver organization */
+  @IsUUID()
+  @IsOptional()
+  receiverPublicId?: string;
 
   @IsString()
   @IsOptional()

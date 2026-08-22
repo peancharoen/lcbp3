@@ -151,4 +151,16 @@ export class MigrationReviewQueue extends UuidBaseEntity {
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
+
+  // ── Transient fields (ไม่ใช่ column — ถูก populate โดย enrichWithReferenceData) ──
+  /** รหัสองค์กรผู้ส่ง (แสดงผลใน Legacy Management) */
+  senderOrganizationCode?: string | null;
+  /** รหัสองค์กรผู้รับ (แสดงผลใน Legacy Management) */
+  receiverOrganizationCode?: string | null;
+  /** ชื่อประเภทเอกสาร (แสดงผลใน Legacy Management) */
+  aiSuggestedCategoryName?: string | null;
+  /** ADR-019: publicId (UUID) ขององค์กรผู้ส่ง (สำหรับ dropdown selection) */
+  senderOrganizationPublicId?: string | null;
+  /** ADR-019: publicId (UUID) ขององค์กรผู้รับ (สำหรับ dropdown selection) */
+  receiverOrganizationPublicId?: string | null;
 }

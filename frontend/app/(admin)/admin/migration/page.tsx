@@ -446,18 +446,20 @@ function LegacyManagementTab() {
         .map((item) => ({
           queuePublicId: item.publicId,
           dto: {
-            document_number: item.documentNumber,
+            documentNumber: item.documentNumber,
             subject: item.title || item.originalTitle || 'Untitled',
             category: item.aiSuggestedCategory || 'Correspondence',
-            project_id: item.projectId || 1,
-            migrated_by: 'SYSTEM_IMPORT',
-            temp_attachment_id: item.tempAttachmentId,
-            ai_confidence: item.aiConfidence,
-            ai_issues: item.aiIssues,
-            issued_date: item.issuedDate,
-            received_date: item.receivedDate,
-            sender_id: item.senderOrganizationId,
-            receiver_id: item.receiverOrganizationId,
+            projectId: item.projectId || 1,
+            migratedBy: 'SYSTEM_IMPORT',
+            tempAttachmentId: item.tempAttachmentId,
+            aiConfidence: item.aiConfidence,
+            aiIssues: item.aiIssues,
+            // Mapping: issuedDate จาก excel → documentDate (วันที่ออกเอกสาร)
+            documentDate: item.issuedDate,
+            receivedDate: item.receivedDate,
+            // ADR-019: ส่ง publicId (UUID) สำหรับ sender/receiver
+            senderPublicId: item.senderOrganizationPublicId || undefined,
+            receiverPublicId: item.receiverOrganizationPublicId || undefined,
             details: { tags: item.extractedTags },
           },
         }));
@@ -577,7 +579,7 @@ function LegacyManagementTab() {
                   <TableHead>Document No.</TableHead>
                   <TableHead>Correspondence Type</TableHead>
                   <TableHead>Doc Date</TableHead>
-                  <TableHead>Issued Date</TableHead>
+                  <TableHead>Received Date</TableHead>
                   <TableHead>Sender</TableHead>
                   <TableHead>Receiver</TableHead>
                   <TableHead>Confidence</TableHead>
@@ -599,8 +601,8 @@ function LegacyManagementTab() {
                     </TableCell>
                     <TableCell className="font-medium">{item.documentNumber}</TableCell>
                     <TableCell>{item.aiSuggestedCategoryName || item.aiSuggestedCategory || 'Unknown'}</TableCell>
-                    <TableCell>{item.receivedDate ? format(new Date(item.receivedDate), 'dd MMM yyyy') : '—'}</TableCell>
                     <TableCell>{item.issuedDate ? format(new Date(item.issuedDate), 'dd MMM yyyy') : '—'}</TableCell>
+                    <TableCell>{item.receivedDate ? format(new Date(item.receivedDate), 'dd MMM yyyy') : '—'}</TableCell>
                     <TableCell>{item.senderOrganizationCode ?? '—'}</TableCell>
                     <TableCell>{item.receiverOrganizationCode ?? '—'}</TableCell>
                     <TableCell>

@@ -24,8 +24,10 @@ import { Correspondence } from '../correspondence/entities/correspondence.entity
 import { CorrespondenceRevision } from '../correspondence/entities/correspondence-revision.entity';
 import { CorrespondenceType } from '../correspondence/entities/correspondence-type.entity';
 import { CorrespondenceStatus } from '../correspondence/entities/correspondence-status.entity';
+import { CorrespondenceRecipient } from '../correspondence/entities/correspondence-recipient.entity';
 import { Project } from '../project/entities/project.entity';
 import { Organization } from '../organization/entities/organization.entity';
+import { Discipline } from '../master/entities/discipline.entity';
 import { FileStorageService } from '../../common/file-storage/file-storage.service';
 import {
   MigrationReviewQueue,
@@ -176,6 +178,50 @@ export class MigrationService {
 
     const isRFA = type?.typeCode === 'RFA' || dto.category === 'RFA';
 
+    // ADR-019: resolve UUID publicId → internal INT id สำหรับ sender/receiver/discipline
+    let resolvedSenderId = dto.senderId;
+    if (!resolvedSenderId && dto.senderPublicId) {
+      const senderOrg = await this.dataSource.manager.findOne(Organization, {
+        where: { publicId: dto.senderPublicId },
+        select: ['id'],
+      });
+      if (!senderOrg) {
+        throw new NotFoundException('Sender organization', dto.senderPublicId);
+      }
+      resolvedSenderId = senderOrg.id;
+    }
+
+    let resolvedReceiverId = dto.receiverId;
+    if (!resolvedReceiverId && dto.receiverPublicId) {
+      const receiverOrg = await this.dataSource.manager.findOne(Organization, {
+        where: { publicId: dto.receiverPublicId },
+        select: ['id'],
+      });
+      if (!receiverOrg) {
+        throw new NotFoundException(
+          'Receiver organization',
+          dto.receiverPublicId
+        );
+      }
+      resolvedReceiverId = receiverOrg.id;
+    }
+
+    let resolvedDisciplineId = dto.disciplineId;
+    // Discipline ไม่มี publicId (UUID) — ใช้ INT id โดยตรงตามโครงสร้างตาราง disciplines
+    if (!resolvedDisciplineId && dto.disciplinePublicId) {
+      const disciplineIdNum = Number(dto.disciplinePublicId);
+      if (!isNaN(disciplineIdNum) && disciplineIdNum > 0) {
+        const discipline = await this.dataSource.manager.findOne(Discipline, {
+          where: { id: disciplineIdNum },
+          select: ['id'],
+        });
+        if (!discipline) {
+          throw new NotFoundException('Discipline', dto.disciplinePublicId);
+        }
+        resolvedDisciplineId = discipline.id;
+      }
+    }
+
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -194,12 +240,25 @@ export class MigrationService {
           correspondenceNumber: dto.documentNumber,
           correspondenceTypeId: typeId,
           projectId: project.id,
-          disciplineId: dto.disciplineId || undefined,
-          originatorId: dto.senderId || undefined, // Set explicitly from DTO
+          disciplineId: resolvedDisciplineId || undefined,
+          originatorId: resolvedSenderId || undefined,
           isInternal: false,
           createdBy: userId,
         });
         await queryRunner.manager.save(correspondence);
+
+        // สร้าง CorrespondenceRecipient (TO) สำหรับ receiver organization
+        if (resolvedReceiverId) {
+          const recipient = queryRunner.manager.create(
+            CorrespondenceRecipient,
+            {
+              correspondenceId: correspondence.id,
+              recipientOrganizationId: resolvedReceiverId,
+              recipientType: 'TO' as const,
+            }
+          );
+          await queryRunner.manager.save(CorrespondenceRecipient, recipient);
+        }
 
         // --- CTI: insert RFA class ---
         if (isRFA) {
@@ -230,16 +289,40 @@ export class MigrationService {
       } else {
         // Update values if missing
         let hasChanges = false;
-        if (dto.disciplineId && !correspondence.disciplineId) {
-          correspondence.disciplineId = dto.disciplineId;
+        if (resolvedDisciplineId && !correspondence.disciplineId) {
+          correspondence.disciplineId = resolvedDisciplineId;
           hasChanges = true;
         }
-        if (dto.senderId && !correspondence.originatorId) {
-          correspondence.originatorId = dto.senderId;
+        if (resolvedSenderId && !correspondence.originatorId) {
+          correspondence.originatorId = resolvedSenderId;
           hasChanges = true;
         }
         if (hasChanges) {
           await queryRunner.manager.save(correspondence);
+        }
+
+        // เพิ่ม recipient ถ้ายังไม่มี
+        if (resolvedReceiverId) {
+          const existingRecipient = await queryRunner.manager.findOne(
+            CorrespondenceRecipient,
+            {
+              where: {
+                correspondenceId: correspondence.id,
+                recipientOrganizationId: resolvedReceiverId,
+              },
+            }
+          );
+          if (!existingRecipient) {
+            const recipient = queryRunner.manager.create(
+              CorrespondenceRecipient,
+              {
+                correspondenceId: correspondence.id,
+                recipientOrganizationId: resolvedReceiverId,
+                recipientType: 'TO' as const,
+              }
+            );
+            await queryRunner.manager.save(CorrespondenceRecipient, recipient);
+          }
         }
       }
 
@@ -316,8 +399,9 @@ export class MigrationService {
         subject: dto.subject,
         description: 'Migrated from legacy system via Auto Ingest',
         body: dto.body || undefined,
+        // Mapping: excel issued_date → document_date (วันที่ออกเอกสาร)
+        //          excel received_date → received_date (วันที่รับเอกสาร)
         documentDate: parseDateStr(dto.documentDate || dto.issuedDate),
-        issuedDate: parseDateStr(dto.issuedDate),
         receivedDate: parseDateStr(dto.receivedDate),
         details: {
           ...dto.details,
@@ -672,16 +756,19 @@ export class MigrationService {
       if (item.aiSuggestedCategory) typeCodes.add(item.aiSuggestedCategory);
     }
 
-    const orgMap = new Map<number, string>();
+    const orgMap = new Map<number, { code: string; publicId: string }>();
     const typeMap = new Map<string, { typeName: string; typeCode: string }>();
 
     if (orgIds.size > 0) {
       const orgs = await this.dataSource.manager.find(Organization, {
         where: { id: In(Array.from(orgIds)) },
-        select: ['id', 'organizationCode'],
+        select: ['id', 'organizationCode', 'publicId'],
       });
       for (const org of orgs) {
-        orgMap.set(org.id, org.organizationCode);
+        orgMap.set(org.id, {
+          code: org.organizationCode,
+          publicId: org.publicId,
+        });
       }
     }
 
@@ -698,16 +785,13 @@ export class MigrationService {
     }
 
     for (const item of items) {
-      if (!item.details) {
-        (
-          item as MigrationReviewQueue & { details: Record<string, unknown> }
-        ).details = {};
-      }
-      (item.details as Record<string, unknown>)['senderOrganizationCode'] =
-        orgMap.get(item.senderOrganizationId ?? -1) ?? null;
-      (item.details as Record<string, unknown>)['receiverOrganizationCode'] =
-        orgMap.get(item.receiverOrganizationId ?? -1) ?? null;
-      (item.details as Record<string, unknown>)['aiSuggestedCategoryName'] =
+      const senderOrg = orgMap.get(item.senderOrganizationId ?? -1);
+      const receiverOrg = orgMap.get(item.receiverOrganizationId ?? -1);
+      item.senderOrganizationCode = senderOrg?.code ?? null;
+      item.receiverOrganizationCode = receiverOrg?.code ?? null;
+      item.senderOrganizationPublicId = senderOrg?.publicId ?? null;
+      item.receiverOrganizationPublicId = receiverOrg?.publicId ?? null;
+      item.aiSuggestedCategoryName =
         typeMap.get(item.aiSuggestedCategory ?? '')?.typeName ??
         item.aiSuggestedCategory ??
         null;

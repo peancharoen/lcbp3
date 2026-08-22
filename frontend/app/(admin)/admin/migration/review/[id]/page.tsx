@@ -2,6 +2,9 @@
 // Change Log:
 // - 2026-05-22: Initial creation of Migration Review detail page (T024)
 // - 2026-08-06: เพิ่ม CompareResultTable และ fieldResolutions state สำหรับ Feature 242 (FR-011, FR-012c)
+// - 2026-08-22: เปลี่ยน Sender/Receiver/Discipline เป็น dropdown, แก้ date mapping
+//   (Doc Date = issued_date จาก excel → document_date, Received Date = received_date),
+//   เปลี่ยน label "Issued Date" → "Received Date"
 
 'use client';
 
@@ -11,7 +14,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { migrationService } from '@/lib/services/migration.service';
+import { organizationService } from '@/lib/services/organization.service';
+import { masterDataService } from '@/lib/services/master-data.service';
 import { MigrationReviewQueueItem, FieldResolution } from '@/types/migration';
+import { Organization } from '@/types/organization';
+import { Discipline, CorrespondenceType } from '@/types/master-data';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription as _FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -41,9 +48,9 @@ const reviewFormSchema = z.object({
   subject: z.string().min(1, 'Subject is required'),
   category: z.string().min(1, 'Category is required'),
   documentDate: z.string().optional(),
-  issuedDate: z.string().optional(),
   receivedDate: z.string().optional(),
-  senderId: z.string().optional(),
+  senderPublicId: z.string().optional(),
+  receiverPublicId: z.string().optional(),
   disciplineId: z.string().optional(),
 });
 
@@ -59,6 +66,10 @@ export default function MigrationReviewPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [fieldResolutions, setFieldResolutions] = useState<FieldResolution[]>([]);
+  // Reference data สำหรับ dropdown
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [disciplines, setDisciplines] = useState<Discipline[]>([]);
+  const [correspondenceTypes, setCorrespondenceTypes] = useState<CorrespondenceType[]>([]);
 
   const form = useForm<ReviewFormValues>({
     resolver: zodResolver(reviewFormSchema),
@@ -67,12 +78,31 @@ export default function MigrationReviewPage() {
       subject: '',
       category: '',
       documentDate: '',
-      issuedDate: '',
       receivedDate: '',
-      senderId: '',
+      senderPublicId: '',
+      receiverPublicId: '',
       disciplineId: '',
     },
   });
+
+  // โหลด reference data สำหรับ dropdown (Organizations, Disciplines, CorrespondenceTypes)
+  useEffect(() => {
+    const loadRefData = async () => {
+      try {
+        const [orgs, discs, corrTypes] = await Promise.all([
+          organizationService.getAll(),
+          masterDataService.getDisciplines(),
+          masterDataService.getCorrespondenceTypes(),
+        ]);
+        setOrganizations(orgs ?? []);
+        setDisciplines(discs ?? []);
+        setCorrespondenceTypes(corrTypes ?? []);
+      } catch {
+        // ไม่ block หน้า ถ้า reference data โหลดไม่ได้
+      }
+    };
+    loadRefData();
+  }, []);
 
   const fetchItem = useCallback(
     async (itemPublicId: string) => {
@@ -82,20 +112,21 @@ export default function MigrationReviewPage() {
         setItem(res);
 
         if (res) {
-          // Pre-fill form from database item (Excel-extracted fields) + aiIssues payload
+          // Pre-fill form: Doc Date = issuedDate (excel issued_date → document_date)
+          //                Received Date = receivedDate (excel received_date → received_date)
           const issues = (res.aiIssues || {}) as MigrationAiIssues;
           form.reset({
             documentNumber: res.documentNumber || '',
             subject: res.title || res.originalTitle || res.subject || res.originalSubject || '',
             category: res.aiSuggestedCategory || '',
-            documentDate: issues.documentDate || '',
-            issuedDate: res.issuedDate || issues.issuedDate || '',
-            receivedDate: res.receivedDate || issues.receivedDate || '',
-            senderId: res.senderOrganizationId
-              ? String(res.senderOrganizationId)
-              : issues.senderId
-                ? String(issues.senderId)
-                : '',
+            documentDate: res.issuedDate
+              ? String(res.issuedDate).split('T')[0]
+              : issues.documentDate || '',
+            receivedDate: res.receivedDate
+              ? String(res.receivedDate).split('T')[0]
+              : issues.receivedDate || '',
+            senderPublicId: res.senderOrganizationPublicId || '',
+            receiverPublicId: res.receiverOrganizationPublicId || '',
             disciplineId: issues.disciplineId ? String(issues.disciplineId) : '',
           });
         }
@@ -126,11 +157,14 @@ export default function MigrationReviewPage() {
         migratedBy: 'SYSTEM_IMPORT',
         batchId: 'MANUAL_REVIEW_BATCH',
         projectId: 1,
+        // Mapping: documentDate = issued_date จาก excel (วันที่ออกเอกสาร)
         documentDate: values.documentDate,
-        issuedDate: values.issuedDate,
         receivedDate: values.receivedDate,
-        senderId: values.senderId ? Number(values.senderId) : undefined,
-        disciplineId: values.disciplineId ? Number(values.disciplineId) : undefined,
+        // ADR-019: ส่ง publicId (UUID) สำหรับ sender/receiver
+        senderPublicId: values.senderPublicId || undefined,
+        receiverPublicId: values.receiverPublicId || undefined,
+        // Discipline ไม่มี publicId — ส่ง disciplinePublicId เป็น string ของ INT id
+        disciplinePublicId: values.disciplineId || undefined,
         details: {
           tags: issues.tags || [],
           aiConfidence: item.aiConfidence,
@@ -297,17 +331,18 @@ export default function MigrationReviewPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Category</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select type" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="CORR">CORR</SelectItem>
-                            <SelectItem value="RFA">RFA</SelectItem>
-                            <SelectItem value="LETTER">LETTER</SelectItem>
-                            <SelectItem value="MEMO">MEMO</SelectItem>
+                            {correspondenceTypes.map((ct) => (
+                              <SelectItem key={ct.typeCode} value={ct.typeCode}>
+                                {ct.typeCode} — {ct.typeName}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -319,10 +354,21 @@ export default function MigrationReviewPage() {
                     name="disciplineId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Discipline ID</FormLabel>
-                        <FormControl>
-                          <Input {...field} type="number" placeholder="Optional" />
-                        </FormControl>
+                        <FormLabel>Discipline</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select discipline" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {disciplines.map((d) => (
+                              <SelectItem key={d.id} value={String(d.id)}>
+                                {d.disciplineCode} — {d.codeNameEn || d.codeNameTh}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -344,10 +390,10 @@ export default function MigrationReviewPage() {
                   />
                   <FormField
                     control={form.control}
-                    name="issuedDate"
+                    name="receivedDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Issued Date</FormLabel>
+                        <FormLabel>Received Date</FormLabel>
                         <FormControl>
                           <Input {...field} type="date" />
                         </FormControl>
@@ -358,13 +404,49 @@ export default function MigrationReviewPage() {
 
                 <FormField
                   control={form.control}
-                  name="senderId"
+                  name="senderPublicId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Sender Org ID</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="number" placeholder="Optional" />
-                      </FormControl>
+                      <FormLabel>Sender Organization</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select sender" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {organizations.map((org) => (
+                            <SelectItem key={org.publicId} value={org.publicId}>
+                              {org.organizationCode} — {org.organizationName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="receiverPublicId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Receiver Organization</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select receiver" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {organizations.map((org) => (
+                            <SelectItem key={org.publicId} value={org.publicId}>
+                              {org.organizationCode} — {org.organizationName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}

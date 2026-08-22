@@ -71,6 +71,10 @@ export interface MigrationReviewQueueItem {
   aiSuggestedCategoryName?: string | null;
   senderOrganizationCode?: string | null;
   receiverOrganizationCode?: string | null;
+  /** ADR-019: publicId (UUID) ขององค์กรผู้ส่ง (สำหรับ dropdown selection) */
+  senderOrganizationPublicId?: string | null;
+  /** ADR-019: publicId (UUID) ขององค์กรผู้รับ (สำหรับ dropdown selection) */
+  receiverOrganizationPublicId?: string | null;
   aiConfidence?: number;
   aiIssues?: Record<string, unknown>[];
   reviewReason?: string;
