@@ -376,9 +376,12 @@ export class MigrationService {
         return parsed;
       };
 
-      // 5. Create Revision
+      // 5. Create or Update Revision
       // ADR-002: ป้องกัน revision race condition — ใช้ pessimistic lock ค้นหา
       // revision ปัจจุบันแทน count() ที่อ่าน snapshot แล้ว race กับ concurrent tx
+      // Note: uq_master_current (correspondence_id, is_current) constraint บังคับ
+      // ให้มีได้แค่ 1 row ต่อ (correspondence_id, is_current) pair ดังนั้น
+      // ถ้า import ซ้ำให้ update revision ปัจจุบันแทนสร้างใหม่
       const currentRevisions = await queryRunner.manager.find(
         CorrespondenceRevision,
         {
@@ -388,41 +391,55 @@ export class MigrationService {
         }
       );
       const revisionCount = currentRevisions.length;
+      const existingCurrent = currentRevisions.find((r) => r.isCurrent);
 
-      const revNum = revisionCount;
-      const revision = queryRunner.manager.create(CorrespondenceRevision, {
-        correspondenceId: correspondence.id,
-        revisionNumber: revNum,
-        revisionLabel: revNum === 0 ? '0' : revNum.toString(),
-        isCurrent: true,
-        statusId: status.id,
-        subject: dto.subject,
-        description: 'Migrated from legacy system via Auto Ingest',
-        body: dto.body || undefined,
-        // Mapping: excel issued_date → document_date (วันที่ออกเอกสาร)
-        //          excel received_date → received_date (วันที่รับเอกสาร)
-        documentDate: parseDateStr(dto.documentDate || dto.issuedDate),
-        receivedDate: parseDateStr(dto.receivedDate),
-        details: {
+      let revision: CorrespondenceRevision;
+      if (existingCurrent) {
+        // Update revision ปัจจุบันแทนการสร้างใหม่ (ป้องกัน uq_master_current conflict)
+        existingCurrent.subject = dto.subject;
+        existingCurrent.body = dto.body || undefined;
+        existingCurrent.documentDate = parseDateStr(
+          dto.documentDate || dto.issuedDate
+        );
+        existingCurrent.receivedDate = parseDateStr(dto.receivedDate);
+        existingCurrent.details = {
           ...dto.details,
           ai_confidence: dto.aiConfidence,
           ai_issues: dto.aiIssues as unknown,
           source_file_path: dto.sourceFilePath,
           attachment_id: attachmentId,
-        },
-        schemaVersion: 1,
-        createdBy: userId,
-      });
-
-      if (revisionCount > 0) {
-        await queryRunner.manager.update(
-          CorrespondenceRevision,
-          { correspondenceId: correspondence.id, isCurrent: true },
-          { isCurrent: false }
-        );
+        };
+        revision = existingCurrent;
+        await queryRunner.manager.save(revision);
+      } else {
+        // ไม่มี current revision — สร้างใหม่
+        const revNum =
+          revisionCount > 0 ? (currentRevisions[0].revisionNumber ?? 0) + 1 : 0;
+        revision = queryRunner.manager.create(CorrespondenceRevision, {
+          correspondenceId: correspondence.id,
+          revisionNumber: revNum,
+          revisionLabel: revNum === 0 ? '0' : revNum.toString(),
+          isCurrent: true,
+          statusId: status.id,
+          subject: dto.subject,
+          description: 'Migrated from legacy system via Auto Ingest',
+          body: dto.body || undefined,
+          // Mapping: excel issued_date → document_date (วันที่ออกเอกสาร)
+          //          excel received_date → received_date (วันที่รับเอกสาร)
+          documentDate: parseDateStr(dto.documentDate || dto.issuedDate),
+          receivedDate: parseDateStr(dto.receivedDate),
+          details: {
+            ...dto.details,
+            ai_confidence: dto.aiConfidence,
+            ai_issues: dto.aiIssues as unknown,
+            source_file_path: dto.sourceFilePath,
+            attachment_id: attachmentId,
+          },
+          schemaVersion: 1,
+          createdBy: userId,
+        });
+        await queryRunner.manager.save(revision);
       }
-
-      await queryRunner.manager.save(revision);
 
       // --- CTI: insert RfaRevision ---
       if (isRFA) {
