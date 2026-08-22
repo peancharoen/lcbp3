@@ -51,7 +51,7 @@ describe('ReviewQueueTable', () => {
       subject: 'Test Migration Doc',
       aiSuggestedCategory: 'RFA',
       aiConfidence: 0.95,
-      status: MigrationReviewStatus.PENDING,
+      status: MigrationReviewStatus.PENDING_REVIEW,
       projectId: 'proj-1',
       senderOrganizationId: 'org-1',
       receiverOrganizationId: 'org-2',
@@ -95,7 +95,7 @@ describe('ReviewQueueTable', () => {
     expect(screen.getByText('DOC-001')).toBeInTheDocument();
     expect(screen.getByText('Test Migration Doc')).toBeInTheDocument();
     expect(screen.getByText('95.0%')).toBeInTheDocument();
-    expect(screen.getByText('รอตรวจสอบ')).toBeInTheDocument();
+    expect(screen.getByText('รอ Review OCR')).toBeInTheDocument();
 
     expect(screen.getByText('DOC-002')).toBeInTheDocument();
     expect(screen.getByText('Test Migration Doc 2')).toBeInTheDocument();
