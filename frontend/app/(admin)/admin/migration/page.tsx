@@ -578,7 +578,7 @@ function LegacyManagementTab() {
                   </TableHead>
                   <TableHead>Document No.</TableHead>
                   <TableHead>Correspondence Type</TableHead>
-                  <TableHead>Doc Date</TableHead>
+                  <TableHead>Issued Date</TableHead>
                   <TableHead>Received Date</TableHead>
                   <TableHead>Sender</TableHead>
                   <TableHead>Receiver</TableHead>
@@ -601,8 +601,8 @@ function LegacyManagementTab() {
                     </TableCell>
                     <TableCell className="font-medium">{item.documentNumber}</TableCell>
                     <TableCell>{item.aiSuggestedCategoryName || item.aiSuggestedCategory || 'Unknown'}</TableCell>
-                    <TableCell>{item.issuedDate ? format(new Date(item.issuedDate), 'dd MMM yyyy') : '—'}</TableCell>
-                    <TableCell>{item.receivedDate ? format(new Date(item.receivedDate), 'dd MMM yyyy') : '—'}</TableCell>
+                    <TableCell>{item.issuedDate ? format(new Date(item.issuedDate), 'dd/MM/yyyy') : '—'}</TableCell>
+                    <TableCell>{item.receivedDate ? format(new Date(item.receivedDate), 'dd/MM/yyyy') : '—'}</TableCell>
                     <TableCell>{item.senderOrganizationCode ?? '—'}</TableCell>
                     <TableCell>{item.receiverOrganizationCode ?? '—'}</TableCell>
                     <TableCell>

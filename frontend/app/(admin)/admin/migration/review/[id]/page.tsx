@@ -381,7 +381,7 @@ export default function MigrationReviewPage() {
                     name="documentDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Doc Date</FormLabel>
+                        <FormLabel>Issued Date</FormLabel>
                         <FormControl>
                           <Input {...field} type="date" />
                         </FormControl>
