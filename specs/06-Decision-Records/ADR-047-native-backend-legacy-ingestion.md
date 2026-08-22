@@ -1,15 +1,15 @@
 # ADR-047: Native Backend Legacy Ingestion & OCR Persistence
 
-**Status:** Proposed  
-**Date:** 2026-08-20  
-**Decision Makers:** Senior Full Stack Developer, Lead Architect  
-**Supersedes:** `specs/03-Data-and-Storage/03-04-legacy-data-migration.md` §3 (n8n Workflow orchestration for migration)  
-**Amends:** `ADR-028: Migration Architecture Refactor`, `ADR-023A: Unified AI Architecture (Model Revision)`, `ADR-042: Sandbox Project & OCR Text Persistence`  
-**Related Documents:**  
-- [ADR-028: Migration Architecture Refactor](./ADR-028-migration-architecture-refactor.md)  
-- [ADR-042: Sandbox Project & OCR Text Persistence](./ADR-042-sandbox-project-and-ocr-text-persistence.md)  
-- [ADR-043: AI Architecture Current State](./ADR-043-ai-architecture-current-state.md)  
-- [03-04: Legacy Data Migration Plan](../03-Data-and-Storage/03-04-legacy-data-migration.md)  
+**Status:** Proposed
+**Date:** 2026-08-20
+**Decision Makers:** Senior Full Stack Developer, Lead Architect
+**Supersedes:** `specs/03-Data-and-Storage/03-04-legacy-data-migration.md` §3 (n8n Workflow orchestration for migration)
+**Amends:** `ADR-028: Migration Architecture Refactor`, `ADR-023A: Unified AI Architecture (Model Revision)`, `ADR-042: Sandbox Project & OCR Text Persistence`
+**Related Documents:**
+- [ADR-028: Migration Architecture Refactor](./ADR-028-migration-architecture-refactor.md)
+- [ADR-042: Sandbox Project & OCR Text Persistence](./ADR-042-sandbox-project-and-ocr-text-persistence.md)
+- [ADR-043: AI Architecture Current State](./ADR-043-ai-architecture-current-state.md)
+- [03-04: Legacy Data Migration Plan](../03-Data-and-Storage/03-04-legacy-data-migration.md)
 
 ---
 
@@ -51,7 +51,7 @@
 - **Cons:** ❌ ต้องคอยแก้ Bug ของ Node, Form Mapping หลุดง่าย, ขาด Type Safety, ไม่สามารถทำ Streaming ได้ดีสำหรับ 20,000 แถว, ควบคุม Transaction และ Checkpoint ได้ยาก
 
 ### Option 2: พัฒนา Native NestJS Ingestion Module + Hybrid Triggers (เลือกแนวทางนี้)
-- **Pros:** 
+- **Pros:**
   - ✅ Type-safe 100% เชื่อมต่อกับ TypeORM Entities และ DTO Validation ได้โดยตรง
   - ✅ ใช้ `ExcelJS` Streaming Reader กินหน่วยความจำต่ำมาก (< 100MB)
   - ✅ ทำงานร่วมกับ Staging Queue (`migration_review_queue`), `import_transactions` และ `migration_errors` ที่มีอยู่แล้วได้ทันที
@@ -76,10 +76,20 @@
 - **ตอน Ingest เข้า Staging Queue:** ตรวจสอบเฉพาะการมีอยู่จริงของไฟล์บนดิสก์ (`fs.existsSync`) และบันทึก `source_file_path` ลงตาราง `migration_review_queue`
 - **ตอน Approve / Commit:** จึงค่อยย้าย/คัดลอกไฟล์เข้า Permanent Storage ผ่าน `FileStorageService.importStagingFile`
 
-#### D3: สถาปัตยกรรม 2-Stage AI Processing (BullMQ `ai-batch`)
-- **Stage 1 (Ingest):** อ่าน Excel และบันทึกลง Staging Queue พร้อมส่ง Job เข้าสู่ BullMQ `ai-batch` (Job type: `legacy-ai-enrichment`)
-- **Stage 2 (AI Enrichment):** Worker ดึง Job ทำ OCR 3 หน้าแรก (`np-dms-ocr` ผ่าน Sidecar) + Metadata/Tag Extraction (`np-dms-ai`) แบบ Concurrency=1 และบันทึก `ocr_text` กลับสู่ Staging Queue
-- ผู้ใช้งานสามารถเริ่ม Review รายการที่เสร็จแล้วได้ทันทีแบบคู่ขนาน
+#### D3: สถาปัตยกรรม 3-Stage AI Processing (BullMQ `ai-batch`)
+
+ระบบ Migration Review Queue ใช้สถานะ lifecycle 4 ขั้นตอน:
+
+1. **`PENDING`** — ข้อมูล Excel ถูกบันทึกลง `migration_review_queue` แล้ว คนตรวจสอบข้อมูลเบื่องต้น (Document Number, Subject, Category, Dates, Sender/Receiver, Discipline) ได้ก่อน
+2. **`PROCESSING`** — ผู้ใช้กด "Start Extract" หรือ "Start Extract Batch" ระบบส่ง Job `migrate-document` เข้าคิว BullMQ `ai-batch` (Concurrency=1) เพื่อประมวลผล OCR/AI
+3. **`PENDING_REVIEW`** — BullMQ Worker เสร็จแล้ว บันทึก `ocr_text`, `ai_confidence`, `ai_suggested_category`, `ai_summary`, `extracted_tags`, `ai_issues` กลับมา คนตรวจทานข้อมูล + OCR ในหน้า `/admin/migration/review`
+4. **`IMPORTED`** — คนกด "Execute Import" ระบบสร้าง `Correspondence`, `CorrespondenceRevision`, `Attachment` (permanent), `Tags` และ `CorrespondenceRecipients` จริง
+
+**ข้อกำหนดเพิ่มเติม:**
+- ต้องมี Backend API สำหรับ Start Extract ทั้ง single (`POST /api/migration/queue/:publicId/extract`) และ batch (`POST /api/migration/extract`)
+- `approveQueueItem` / `commitBatch` เปลี่ยนชื่อการทำงานภายในเป็น "Execute Import" โดยไม่ trigger OCR อีก แต่ใช้ข้อมูลที AI ประมวลผลไว้แล้ว
+- ถ้าเอกสารไม่มี PDF Worker ต้องไม่ fail ให้ `ocr_text = 'ไม่มี ไฟล์ PDF (ยกเลิก/ถอน)'` และคนยังสามารถ Execute Import ได้
+- `MigrateDocument` Worker ต้องอ้างอิง `queue_public_id` และอัปเดตข้อมูลกลับ `migration_review_queue` โดยตรง ไม่ใช่ `attachment_public_id`
 
 #### D4: การบันทึกข้อความ OCR และการ Sync กับ RAG (ADR-042 Parity)
 - ข้อความ OCR 3 หน้าแรกจะถูกบันทึกลงในคอลัมน์ `ocr_text` ของ `migration_review_queue`
@@ -110,9 +120,10 @@
 | Component | Level | Impact Description | Required Action |
 | :--- | :--- | :--- | :--- |
 | **Backend Service** | 🔴 High | สร้าง Ingestion Engine และรองรับ Streaming Excel | สร้าง `LegacyIngestionService` และลงทะเบียนใน `MigrationModule` |
-| **Backend AI Worker** | 🟡 Medium | เพิ่ม Job Handler `legacy-ai-enrichment` ใน `AiBatchProcessor` | อัปเดต `AiBatchProcessor` ให้บันทึก OCR Text และ Tag Extraction |
+| **Backend AI Worker** | 🔴 High | แก้ Job Handler `migrate-document` ใน `AiBatchProcessor` ให้ระบุ `queue_public_id` และอัปเดต `migration_review_queue` | อัปเดต `processMigrateDocument` ให้บันทึก OCR/AI ผลลัพธ์กลับ Queue Item |
+| **Backend Controller** | 🔴 High | เพิ่ม endpoint `POST queue/:publicId/extract` และ `POST /extract` (batch) สำหรับเริ่มประมวลผล OCR/AI | อัปเดต `MigrationController` และ `MigrationService` |
 | **Backend CLI** | 🟡 Medium | สร้าง CLI Script สำหรับรัน Batch ขนาดใหญ่ | สร้าง `backend/src/scripts/legacy-ingest.ts` |
-| **Frontend UI** | 🟡 Medium | เพิ่ม Ingestion Action Panel และ OCR Text Editor | อัปเดต `frontend/app/(dashboard)/admin/migration/page.tsx` |
+| **Frontend UI** | 🔴 High | เพิ่มปุ่ม "Start Extract", "Execute Import" และ OCR Result Panel | อัปเดต `frontend/app/(admin)/admin/migration/page.tsx` และ `review/[id]/page.tsx` |
 | **Database** | 🟢 Low | ยืนยันคอลัมน์ `ocr_text` ใน `migration_review_queue` และ `attachments` | ตรวจสอบ Schema ตาม ADR-042/044 |
 
 ---
