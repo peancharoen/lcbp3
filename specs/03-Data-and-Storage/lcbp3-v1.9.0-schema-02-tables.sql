@@ -348,6 +348,10 @@ CREATE TABLE correspondence_revisions (
   revision_number INT NOT NULL COMMENT 'หมายเลข Revision (0, 1, 2...)',
   revision_label VARCHAR(10) COMMENT 'Revision ที่แสดง (เช่น A, B, 1.1)',
   is_current BOOLEAN DEFAULT FALSE COMMENT '(1 = Revision ปัจจุบัน)',
+  -- ADR-044 (2026-08-22): Generated column สำหรับบังคับ unique เฉพาะ is_current=1
+  -- ค่า = correspondence_id เมื่อ is_current=1, NULL เมื่อ is_current=0
+  -- NULL ไม่ถูกนับใน UNIQUE constraint จึงอนุญาตให้มีได้หลาย revision ที่ is_current=0
+  current_corr_key INT AS (IF(is_current = 1, correspondence_id, NULL)) STORED COMMENT 'Generated: เพื่อบังคับ unique current revision (ADR-044)',
   -- ข้อมูลเนื้อหาที่เปลี่ยนได้
   correspondence_status_id INT NOT NULL COMMENT 'สถานะของ Revision นี้',
   subject VARCHAR(500) NOT NULL COMMENT 'หัวข้อเรื่อง',
@@ -381,7 +385,12 @@ CREATE TABLE correspondence_revisions (
     FOREIGN KEY (updated_by) REFERENCES users (user_id) ON DELETE
   SET NULL,
     UNIQUE KEY uq_master_revision_number (correspondence_id, revision_number),
-    UNIQUE KEY uq_master_current (correspondence_id, is_current),
+    -- ADR-044 (2026-08-22): เดิมเป็น UNIQUE KEY uq_master_current (correspondence_id, is_current)
+    -- ซึ่งบังคับให้มีได้แค่ 1 row ต่ม is_current=0 และ 1 row ต่อ is_current=1 — ผิด
+    -- ปกติควรมีได้หลาย revision ที่ is_current=0 (revision ประวัติ) และ 1 revision ที่ is_current=1
+    -- แก้โดย: เปลี่ยนเป็น INDEX ธรรมดา + unique index บน generated column current_corr_key
+    INDEX idx_corr_rev_current (correspondence_id, is_current),
+    UNIQUE KEY uq_master_current_active (current_corr_key),
     INDEX idx_corr_rev_v_project (v_ref_project_id),
     INDEX idx_corr_rev_v_subtype (v_doc_subtype),
     UNIQUE INDEX idx_correspondence_revisions_uuid (uuid)

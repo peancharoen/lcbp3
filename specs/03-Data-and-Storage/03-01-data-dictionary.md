@@ -394,6 +394,7 @@ erDiagram
 | revision_number          | INT          | NOT NULL                          | Revision sequence (0, 1, 2...)                               |
 | revision_label           | VARCHAR(10)  | NULL                              | Display revision (A, B, 1.1...)                              |
 | is_current               | BOOLEAN      | DEFAULT FALSE                     | Current revision flag                                        |
+| current_corr_key         | INT          | GENERATED, STORED, NULL           | ADR-044: Generated column = correspondence_id when is_current=1, NULL otherwise. Used for unique constraint to ensure only 1 current revision per correspondence. |
 | correspondence_status_id | INT          | NOT NULL, FK                      | Current status of this revision                              |
 | title                    | VARCHAR(255) | NOT NULL                          | Document title                                               |
 | document_date            | DATE         | NULL                              | Document date                                                |
@@ -418,7 +419,8 @@ erDiagram
 - FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL
 - FOREIGN KEY (updated_by) REFERENCES users(user_id) ON DELETE SET NULL
 - UNIQUE KEY (correspondence_id, revision_number)
-- UNIQUE KEY (correspondence_id, is_current)
+- INDEX (correspondence_id, is_current) — ADR-044: เดิมเป็น UNIQUE KEY เปลี่ยนเป็น INDEX ธรรมดา
+- UNIQUE KEY (current_corr_key) — ADR-044: บังคับ unique เฉพาะ is_current=1 (NULL ไม่นับ)
 - INDEX (correspondence_status_id)
 - INDEX (is_current)
 - INDEX (document_date)
