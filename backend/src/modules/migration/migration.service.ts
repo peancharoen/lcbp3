@@ -326,7 +326,7 @@ export class MigrationService {
         }
       }
 
-      // 4. File Handling
+      // 4. File Handling — ถ้าไม่มีไฟล์ PDF ให้นำเข้าได้โดยไม่มี attachment
       let attachmentId: number | null = null;
       if (dto.tempAttachmentId) {
         attachmentId = dto.tempAttachmentId;
@@ -344,7 +344,7 @@ export class MigrationService {
             `Failed to update temp_file [id:${attachmentId}]: ${errMsg}`
           );
         }
-      } else if (dto.sourceFilePath) {
+      } else if (dto.sourceFilePath && dto.sourceFilePath.trim()) {
         try {
           const attachment = await this.fileStorageService.importStagingFile(
             dto.sourceFilePath,
@@ -522,6 +522,7 @@ export class MigrationService {
         correspondenceId: correspondence.id,
         revisionId: revision.id,
         transactionId: transaction.id,
+        hasAttachment: attachmentId !== null,
       };
     } catch (error: unknown) {
       await queryRunner.rollbackTransaction();
@@ -961,6 +962,10 @@ export class MigrationService {
     const result = await this.importCorrespondence(dto, idempotencyKey, userId);
 
     // If successful, update the queue item status
+    // ถ้าไม่มีไฟล์ PDF ให้บันทึกข้อความใน OCR text (ADR-042/047)
+    if (!result.hasAttachment && !queueItem.ocrText) {
+      queueItem.ocrText = 'ไม่มี ไฟล์ PDF (ยกเลิก/ถอน)';
+    }
     queueItem.status = MigrationReviewStatus.APPROVED;
     queueItem.reviewedBy = userId.toString();
     queueItem.reviewedAt = new Date();
@@ -995,6 +1000,10 @@ export class MigrationService {
 
     const result = await this.importCorrespondence(dto, idempotencyKey, userId);
 
+    // ถ้าไม่มีไฟล์ PDF ให้บันทึกข้อความใน OCR text (ADR-042/047)
+    if (!result.hasAttachment && !queueItem.ocrText) {
+      queueItem.ocrText = 'ไม่มี ไฟล์ PDF (ยกเลิก/ถอน)';
+    }
     queueItem.status = MigrationReviewStatus.APPROVED;
     queueItem.reviewedBy = userId.toString();
     queueItem.reviewedAt = new Date();
