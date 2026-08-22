@@ -163,6 +163,11 @@
 | D133 | **Legacy Doc Number Priority** — คอลัมน์ `เลขที่รับ` / `DC. No.` บ่อยครั้งเป็นเลขทะเบียนรับ ไม่ใช่เลขเอกสาร; ต้องให้ความสำคัญกับ `เอกสารเลขที่` / `Corr. No.` / `correspondence_number` ก่อน                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Session 2026-08-21  |
 | D134 | **Legacy PDF Extension Fallback** — ชื่อไฟล์ใน Excel อาจไม่มี `.pdf`; ระบบ resolve ต้องลอง exact match → case-insensitive match → append `.pdf` ก่อน log error                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Session 2026-08-21  |
 | D135 | **Legacy Ingestion Synchronous Result** — `POST /migration/ingest/start` ต้องรอผล ingestion จริงก่อนตอบกลับ (ไม่ใช่ 202 Accepted) เพื่อ UI แสดงตัวเลขถูกต้อง                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Session 2026-08-21  |
+| D136 | **AGENTS.md / Dev Flow Compliance** — ต้องอ่าน `AGENTS.md` + `.devin/rules/` ก่อนเริ่มงาน; ใช้ `pnpm` ตาม project convention; ตรวจ `git diff` ก่อน push; ไม่ push ตรง `main` โดยไม่มี explicit approval | Session 2026-08-22 |
+| D137 | **Migration Review Queue Status Enum** — `migration_review_queue.status` = `PENDING`, `PENDING_REVIEW`, `IMPORTED`, `REJECTED` (ไม่มี `PROCESSING`) | ADR-047 |
+| D138 | **Migration AI Status** — `migration_review_queue.ai_status` = `PENDING`, `RUNNING`, `DONE`, `FAILED` ใช้บ่งบอกสถานะ BullMQ AI job | ADR-047 |
+| D139 | **Execute Import Gate** — `approveQueueItem`/`commitBatch` อนุญาตเฉพาะเมื่อ `status = PENDING_REVIEW` | ADR-047 |
+| D140 | **Migration Source File Path** — `details.source_file_path` ใน queue คือ absolute path (resolve แล้ว) ห้าม `path.join(stagingDir, sourceFilePath)` ซ้ำ | ADR-047 |
 
 ## Environment & Services
 
@@ -202,6 +207,20 @@ QDRANT_URL
 ```
 
 ## Next Session Focus
+
+### OCR-before-Import Workflow (ADR-047) (Session 2026-08-22) 🟡 IN PROGRESS
+
+- [x] Add `ai_status`/`ai_job_id` columns to `migration_review_queue`
+- [x] Implement `MigrationService.startExtractQueueItem` / `startExtractBatch`
+- [x] Implement `POST /migration/queue/:publicId/extract` + `POST /migration/extract` endpoints
+- [x] Update `AiBatchProcessor.processLegacyAiEnrichment` to set `ai_status` and `status=PENDING_REVIEW`
+- [x] Update frontend `/admin/migration` + `review/[id]` with `Start Extract` / `Execute Import` actions
+- [x] Backend tsc + tests pass; frontend build pass
+- [x] Push to main: `1afbf683` + `a52e8068`
+- [ ] **Gitea Actions deploy** — wait for CI/CD to build and deploy
+- [ ] **Browser verify** — ingest Excel → Start Extract → wait for `ai_status=DONE` → Execute Import
+- [ ] **Run pnpm workflow** (not npm/npx) for next verification
+- [ ] **Future: use PR/branch instead of direct main push** per AGENTS.md rule
 
 ### phpMyAdmin Hardening + BooDark Theme (Session 2026-08-21) ✅ COMPLETE
 
