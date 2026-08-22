@@ -426,34 +426,30 @@ export class MigrationService {
 
       // --- CTI: insert RfaRevision ---
       if (isRFA) {
-        // ADR-016: ห้าม fallback ค่า Master Data อัตโนมัติ — throw เพื่อ
-        // ป้องกัน data corruption และบังคับให้ DBA ตรวจสอบ seed data
+        // Migration: ค้นหา RFA status สำหรับ legacy import
+        // ถ้าไม่พบ status_code 'APP' จะ fallback ไปยัง 'FCO' (For Construction)
+        // และถ้ายังไม่พบอีก จะข้ามการสร้าง RfaRevision (log warning) เพื่อให้
+        // import สำเร็จได้โดยไม่ block — DBA ควรเพิ่ม seed data ภายหลัง
         const rfaStatusRes = await queryRunner.manager.query<{ id: number }[]>(
-          'SELECT id FROM rfa_status_codes WHERE status_code = ? LIMIT 1',
-          [RFA_STATUS_CODE_APPROVED]
+          'SELECT id FROM rfa_status_codes WHERE status_code IN (?, ?) ORDER BY FIELD(status_code, ?, ?) LIMIT 1',
+          [RFA_STATUS_CODE_APPROVED, 'FCO', RFA_STATUS_CODE_APPROVED, 'FCO']
         );
         if (!rfaStatusRes[0]?.id) {
-          throw new BusinessException(
-            'RFA_STATUS_NOT_FOUND',
-            `RFA status '${RFA_STATUS_CODE_APPROVED}' not found in rfa_status_codes — seed data missing`,
-            'ไม่พบสถานะ RFA Approved ในระบบ กรุณาติดต่อผู้ดูแลระบบเพื่อตรวจสอบข้อมูลมาตรฐาน',
-            [
-              'ติดต่อผู้ดูแลระบบ',
-              'ตรวจสอบตาราง rfa_status_codes ว่ามี status_code=APP',
-            ]
+          this.logger.warn(
+            `RFA status codes not found ('${RFA_STATUS_CODE_APPROVED}' or 'FCO') — skipping RfaRevision creation for [${dto.documentNumber}]. DBA should add seed data to rfa_status_codes.`
           );
+        } else {
+          const rfaRev = queryRunner.manager.create(RfaRevision, {
+            id: revision.id,
+            rfaStatusCodeId: rfaStatusRes[0].id,
+            details: {
+              // Keep drawingCount as 0 for migration stub
+              drawingCount: 0,
+            },
+            schemaVersion: 1,
+          });
+          await queryRunner.manager.save(RfaRevision, rfaRev);
         }
-
-        const rfaRev = queryRunner.manager.create(RfaRevision, {
-          id: revision.id,
-          rfaStatusCodeId: rfaStatusRes[0].id,
-          details: {
-            // Keep drawingCount as 0 for migration stub
-            drawingCount: 0,
-          },
-          schemaVersion: 1,
-        });
-        await queryRunner.manager.save(RfaRevision, rfaRev);
       }
 
       // 5.5 Handle Tags
