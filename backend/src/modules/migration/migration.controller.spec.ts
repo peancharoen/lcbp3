@@ -407,13 +407,14 @@ describe('MigrationController', () => {
       ).toThrow(TypeError);
     });
 
-    it('startIngestion triggers legacyIngestionService in background', () => {
+    it('startIngestion awaits and returns ingestion summary', async () => {
       const dto = {
         filePath: '/tmp/test.xlsx',
         projectPublicId: '019505a1-7c3e-7000-8000-proj001',
       };
-      const res = controller.startIngestion(dto, 'idem-key-ingest-001');
-      expect(res.message).toContain('started successfully');
+      const res = await controller.startIngestion(dto, 'idem-key-ingest-001');
+      expect(res.message).toContain('completed');
+      expect(res.status).toBe('COMPLETED');
       expect(legacyIngestionService.startIngestion).toHaveBeenCalledWith(dto);
     });
 
