@@ -8,7 +8,13 @@ import {
   ValidationException,
 } from '../../common/exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, In, FindOptionsWhere } from 'typeorm';
+import {
+  DataSource,
+  FindOptionsWhere,
+  In,
+  MoreThanOrEqual,
+  Repository,
+} from 'typeorm';
 import { ImportCorrespondenceDto } from './dto/import-correspondence.dto';
 import { EnqueueMigrationDto } from './dto/enqueue-migration.dto';
 import { CommitBatchDto } from './dto/commit-batch.dto';
@@ -804,21 +810,21 @@ export class MigrationService {
     all: boolean = false
   ): Promise<{ deleted: number }> {
     // TypeORM delete() รับ FindOptionsWhere ที่ใช้ entity property names
+    // บังคับใช้ primary key (id >= 0) เพื่อคู่กับ SQL_SAFE_UPDATES
+    const conditions: FindOptionsWhere<MigrationError> = {
+      id: MoreThanOrEqual(0),
+    };
     if (!all) {
       if (!batchId) {
         throw new ValidationException('ต้องระบุ batchId หรือ all=true');
       }
-      const result = await this.errorRepo.delete({ batchId });
-      const deleted = result.affected ?? 0;
-      this.logger.log(
-        `Deleted ${deleted} migration errors (batchId=${batchId})`
-      );
-      return { deleted };
+      conditions.batchId = batchId;
     }
-
-    const result = await this.errorRepo.delete({});
+    const result = await this.errorRepo.delete(conditions);
     const deleted = result.affected ?? 0;
-    this.logger.log(`Deleted ${deleted} migration errors (ALL)`);
+    this.logger.log(
+      `Deleted ${deleted} migration errors (batchId=${batchId ?? 'ALL'})`
+    );
     return { deleted };
   }
 
@@ -831,8 +837,8 @@ export class MigrationService {
       .select('DISTINCT queue.batch_id', 'batchId')
       .where('queue.batch_id IS NOT NULL')
       .orderBy('queue.batch_id', 'DESC')
-      .getRawMany<{ batch_id: string }>();
-    return result.map((r) => r.batch_id).filter(Boolean);
+      .getRawMany<{ batchId: string }>();
+    return result.map((r) => r.batchId).filter(Boolean);
   }
 
   /**
@@ -844,8 +850,8 @@ export class MigrationService {
       .select('DISTINCT error.batch_id', 'batchId')
       .where('error.batch_id IS NOT NULL')
       .orderBy('error.batch_id', 'DESC')
-      .getRawMany<{ batch_id: string }>();
-    return result.map((r) => r.batch_id).filter(Boolean);
+      .getRawMany<{ batchId: string }>();
+    return result.map((r) => r.batchId).filter(Boolean);
   }
 
   async approveQueueItem(
