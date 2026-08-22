@@ -14,6 +14,7 @@ import * as crypto from 'crypto';
 import {
   MigrationReviewQueue,
   MigrationReviewStatus,
+  MigrationAiStatus,
   CompareStatus,
 } from '../entities/migration-review-queue.entity';
 import {
@@ -335,6 +336,7 @@ export class LegacyIngestionService {
             queueItem.receivedDate = receivedDate;
             queueItem.remarks = remarks || undefined;
             queueItem.status = MigrationReviewStatus.PENDING;
+            queueItem.aiStatus = MigrationAiStatus.PENDING;
             queueItem.compareStatus = CompareStatus.COMPARED;
             queueItem.details = {
               source_file_path: resolvedPdfPath || rawFileName || undefined,
@@ -353,7 +355,7 @@ export class LegacyIngestionService {
 
             // ส่ง Job เข้าสู่ BullMQ ai-batch คิว
             if (resolvedPdfPath) {
-              await this.aiBatchQueue.add(
+              const job = await this.aiBatchQueue.add(
                 'legacy-ai-enrichment',
                 {
                   queueId: queueItem.id,
@@ -371,6 +373,9 @@ export class LegacyIngestionService {
                   removeOnFail: 5000,
                 }
               );
+              queueItem.aiJobId = String(job.id);
+              queueItem.aiStatus = MigrationAiStatus.PENDING;
+              await this.reviewQueueRepo.save(queueItem);
             }
 
             // บันทึก Checkpoint ทุก 50 แถว

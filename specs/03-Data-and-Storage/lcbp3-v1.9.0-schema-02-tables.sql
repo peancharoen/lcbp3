@@ -1510,6 +1510,7 @@ CREATE TABLE migration_review_queue (
   original_filename VARCHAR(500) NULL COMMENT 'ชื่อไฟล์ต้นฉบับจาก legacy source (nullable — entity เก่าไม่ได้ใช้)',
   storage_temp_path VARCHAR(1000) NULL COMMENT 'temp storage path ก่อน import (nullable — entity เก่าไม่ได้ใช้)',
   ai_job_id VARCHAR(36) NULL COMMENT 'BullMQ Job ID สำหรับงานประมวลผล AI',
+  ai_status ENUM('PENDING', 'RUNNING', 'DONE', 'FAILED') NULL DEFAULT 'PENDING' COMMENT 'สถานะ BullMQ AI job (ADR-047)',
   ai_metadata_json LONGTEXT NOT NULL COMMENT 'AI suggestion payload เต็มสำหรับ human review' CHECK (json_valid(`ai_metadata_json`)),
   confidence_score DECIMAL(5, 4) NULL COMMENT 'AI confidence score 0.0000-1.0000 (nullable — entity เก่าไม่ได้ใช้)',
   ocr_used TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'ระบุว่าใช้ OCR path หรือไม่',

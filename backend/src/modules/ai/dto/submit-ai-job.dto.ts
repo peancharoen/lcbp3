@@ -56,6 +56,7 @@ export class MigrationContextOverrideDto {
 export class MigrateDocumentPayloadDto {
   @ApiProperty({ description: 'UUID ของ temp attachment ในระบบ' })
   @IsUUID()
+  @IsNotEmpty()
   tempAttachmentId!: string;
 
   @ApiProperty({ description: 'เลขที่เอกสารเก่า' })
@@ -67,6 +68,14 @@ export class MigrateDocumentPayloadDto {
   @IsString()
   @IsNotEmpty()
   title!: string;
+
+  @ApiPropertyOptional({
+    description:
+      'UUID ของ queue item สำหรับอัปเดตผลลัพธ์ OCR/AI กลับ (ADR-047)',
+  })
+  @IsUUID()
+  @IsOptional()
+  queuePublicId?: string;
 
   @ApiProperty({
     type: [TagOptionDto],

@@ -1,9 +1,12 @@
 // File: backend/src/modules/migration/migration.service.ts
 // Change Log:
 // - 2026-08-22: Persist IMPORTED after approve-and-import to match the database enum
+// - 2026-08-22: เพิ่ม startExtractQueueItem / startExtractBatch และปรับ execute import flow ตาม ADR-047
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import {
   BusinessException,
   ConflictException,
@@ -36,6 +39,7 @@ import { FileStorageService } from '../../common/file-storage/file-storage.servi
 import {
   MigrationReviewQueue,
   MigrationReviewStatus,
+  MigrationAiStatus,
 } from './entities/migration-review-queue.entity';
 import { MigrationError } from './entities/migration-error.entity';
 import { MigrationQueueQueryDto } from './dto/migration-queue-query.dto';
@@ -80,6 +84,8 @@ export class MigrationService {
     private readonly reviewQueueRepo: Repository<MigrationReviewQueue>,
     @InjectRepository(MigrationError)
     private readonly errorRepo: Repository<MigrationError>,
+    @InjectQueue('ai-batch')
+    private readonly aiBatchQueue: Queue,
     private readonly fileStorageService: FileStorageService
   ) {
     this.stagingDir =
@@ -655,6 +661,8 @@ export class MigrationService {
       aiConfidence?: number;
       aiIssues?: Record<string, unknown>[];
       aiFailed?: boolean;
+      aiStatus?: MigrationAiStatus;
+      status?: MigrationReviewStatus;
     }
   ) {
     const queueItem = await this.reviewQueueRepo.findOne({
@@ -671,8 +679,108 @@ export class MigrationService {
         queueItem.aiConfidence = data.aiConfidence;
       if (data.aiIssues !== undefined) queueItem.aiIssues = data.aiIssues;
       if (data.aiFailed !== undefined) queueItem.aiFailed = data.aiFailed;
+      if (data.aiStatus !== undefined) queueItem.aiStatus = data.aiStatus;
+      if (data.status !== undefined) queueItem.status = data.status;
       await this.reviewQueueRepo.save(queueItem);
     }
+  }
+
+  /**
+   * ADR-047: เริ่มประมวลผล OCR/AI ของ queue item เดียว โดย enqueue legacy-ai-enrichment job
+   */
+  async startExtractQueueItem(
+    publicId: string,
+    idempotencyKey: string,
+    userId: number
+  ) {
+    const queueItem = await this.getQueueItemByPublicId(publicId);
+    if (queueItem.status !== MigrationReviewStatus.PENDING) {
+      throw new ConflictException(
+        'MIGRATION_INVALID_STATE',
+        `Queue item ${publicId} is ${queueItem.status}`,
+        'รายการนี้ไม่อยู่ในสถานะทีสามารถเริ่มประมวลผลได้'
+      );
+    }
+    if (
+      queueItem.aiStatus === MigrationAiStatus.RUNNING ||
+      (queueItem.aiStatus === MigrationAiStatus.PENDING &&
+        queueItem.aiJobId != null)
+    ) {
+      return {
+        message: 'AI extraction already running or queued',
+        jobId: queueItem.aiJobId,
+      };
+    }
+    if (queueItem.aiStatus === MigrationAiStatus.DONE) {
+      return {
+        message: 'AI extraction already done',
+        jobId: queueItem.aiJobId,
+      };
+    }
+
+    // หา source PDF path จาก details (resolvedPdfPath จาก LegacyIngestionService เป็น absolute path)
+    const details = queueItem.details ?? {};
+    const pdfPath =
+      typeof details.source_file_path === 'string'
+        ? details.source_file_path
+        : undefined;
+
+    const job = await this.aiBatchQueue.add(
+      'legacy-ai-enrichment',
+      {
+        queueId: queueItem.id,
+        queuePublicId: queueItem.publicId,
+        documentNumber: queueItem.documentNumber,
+        pdfPath: pdfPath,
+        projectPublicId: '00000000-0000-0000-0000-000000000000',
+        projectId: queueItem.projectId,
+      },
+      {
+        jobId: `legacy-enrich-${queueItem.publicId}-${idempotencyKey}`,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 5000 },
+        removeOnComplete: 1000,
+        removeOnFail: 5000,
+      }
+    );
+
+    queueItem.aiStatus = MigrationAiStatus.PENDING;
+    queueItem.aiJobId = String(job.id);
+    await this.reviewQueueRepo.save(queueItem);
+
+    this.logger.log(
+      `User ${userId} started AI extraction for queue ${publicId}, jobId ${String(job.id)}`
+    );
+    return {
+      message: 'AI extraction started',
+      jobId: String(job.id),
+    };
+  }
+
+  /**
+   * ADR-047: เริ่มประมวลผล OCR/AI แบบ batch
+   */
+  async startExtractBatch(
+    publicIds: string[],
+    idempotencyKey: string,
+    userId: number
+  ) {
+    const results = [];
+    for (let i = 0; i < publicIds.length; i++) {
+      try {
+        const subKey = `${idempotencyKey}-${i}`;
+        const result = await this.startExtractQueueItem(
+          publicIds[i],
+          subKey,
+          userId
+        );
+        results.push({ publicId: publicIds[i], ...result });
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        results.push({ publicId: publicIds[i], error: msg });
+      }
+    }
+    return { results };
   }
 
   async getReviewQueue(query: MigrationQueueQueryDto) {
@@ -967,11 +1075,11 @@ export class MigrationService {
       throw new NotFoundException('Queue item', String(id));
     }
 
-    if (queueItem.status !== MigrationReviewStatus.PENDING) {
+    if (queueItem.status !== MigrationReviewStatus.PENDING_REVIEW) {
       throw new BusinessException(
-        'MIGRATION_ITEM_NOT_PENDING',
-        `Queue item ${id} is already ${queueItem.status}`,
-        'รายการนี้ไม่อยู่ในสถานะ PENDING'
+        'MIGRATION_ITEM_NOT_REVIEWABLE',
+        `Queue item ${id} is ${queueItem.status}`,
+        'รายการนี้ต้องอยู่ในสถานะ PENDING_REVIEW ก่อน Execute Import'
       );
     }
 
@@ -1007,11 +1115,11 @@ export class MigrationService {
       throw new NotFoundException('Queue item', publicId);
     }
 
-    if (queueItem.status !== MigrationReviewStatus.PENDING) {
+    if (queueItem.status !== MigrationReviewStatus.PENDING_REVIEW) {
       throw new BusinessException(
-        'MIGRATION_ITEM_NOT_PENDING',
-        `Queue item ${publicId} is already ${queueItem.status}`,
-        'รายการนี้ไม่อยู่ในสถานะ PENDING'
+        'MIGRATION_ITEM_NOT_REVIEWABLE',
+        `Queue item ${publicId} is ${queueItem.status}`,
+        'รายการนี้ต้องอยู่ในสถานะ PENDING_REVIEW ก่อน Execute Import'
       );
     }
 

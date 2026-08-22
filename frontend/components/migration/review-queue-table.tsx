@@ -163,8 +163,8 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
         label: 'รอตรวจสอบ',
         className: 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30',
       },
-      [MigrationReviewStatus.APPROVED]: {
-        label: 'อนุมัติแล้ว',
+      [MigrationReviewStatus.PENDING_REVIEW]: {
+        label: 'รอ Review OCR',
         className: 'bg-blue-500/20 text-blue-500 border-blue-500/30',
       },
       [MigrationReviewStatus.REJECTED]: {
@@ -501,7 +501,7 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
                 </div>
               </div>
 
-              {selectedItem.status === MigrationReviewStatus.PENDING && (
+              {selectedItem.status === MigrationReviewStatus.PENDING_REVIEW && (
                 <SheetFooter className="border-t pt-4 mt-6 flex justify-between sm:justify-between">
                   <Button
                     type="button"

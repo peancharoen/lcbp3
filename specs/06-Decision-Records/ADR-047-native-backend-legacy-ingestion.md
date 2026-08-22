@@ -81,15 +81,16 @@
 ระบบ Migration Review Queue ใช้สถานะ lifecycle 4 ขั้นตอน:
 
 1. **`PENDING`** — ข้อมูล Excel ถูกบันทึกลง `migration_review_queue` แล้ว คนตรวจสอบข้อมูลเบื่องต้น (Document Number, Subject, Category, Dates, Sender/Receiver, Discipline) ได้ก่อน
-2. **`PROCESSING`** — ผู้ใช้กด "Start Extract" หรือ "Start Extract Batch" ระบบส่ง Job `migrate-document` เข้าคิว BullMQ `ai-batch` (Concurrency=1) เพื่อประมวลผล OCR/AI
+2. **`PENDING` + `ai_status = RUNNING`** — ผู้ใช้กด "Start Extract" หรือ "Start Extract Batch" ระบบส่ง Job `legacy-ai-enrichment` เข้าคิว BullMQ `ai-batch` (Concurrency=1) เพื่อประมวลผล OCR/AI; `status` ยังคง `PENDING` ในฐานข้อมูล แต่ `ai_status` เปลี่ยนเป็น `RUNNING` เพื่อบ่งบอกว่ากำลังประมวลผล
 3. **`PENDING_REVIEW`** — BullMQ Worker เสร็จแล้ว บันทึก `ocr_text`, `ai_confidence`, `ai_suggested_category`, `ai_summary`, `extracted_tags`, `ai_issues` กลับมา คนตรวจทานข้อมูล + OCR ในหน้า `/admin/migration/review`
 4. **`IMPORTED`** — คนกด "Execute Import" ระบบสร้าง `Correspondence`, `CorrespondenceRevision`, `Attachment` (permanent), `Tags` และ `CorrespondenceRecipients` จริง
 
 **ข้อกำหนดเพิ่มเติม:**
 - ต้องมี Backend API สำหรับ Start Extract ทั้ง single (`POST /api/migration/queue/:publicId/extract`) และ batch (`POST /api/migration/extract`)
 - `approveQueueItem` / `commitBatch` เปลี่ยนชื่อการทำงานภายในเป็น "Execute Import" โดยไม่ trigger OCR อีก แต่ใช้ข้อมูลที AI ประมวลผลไว้แล้ว
+- Execute Import อนุญาตเฉพาะเมื่อ `status = PENDING_REVIEW` (ไม่อนุญาตตอน `PENDING` หรือกำลังประมวลผล)
 - ถ้าเอกสารไม่มี PDF Worker ต้องไม่ fail ให้ `ocr_text = 'ไม่มี ไฟล์ PDF (ยกเลิก/ถอน)'` และคนยังสามารถ Execute Import ได้
-- `MigrateDocument` Worker ต้องอ้างอิง `queue_public_id` และอัปเดตข้อมูลกลับ `migration_review_queue` โดยตรง ไม่ใช่ `attachment_public_id`
+- `legacy-ai-enrichment` Worker ต้องอ้างอิง `queue_id` (INT ภายใน) และอัปเดต `ai_status`, `status`, `ocr_text` กลับ `migration_review_queue` โดยตรง
 
 #### D4: การบันทึกข้อความ OCR และการ Sync กับ RAG (ADR-042 Parity)
 - ข้อความ OCR 3 หน้าแรกจะถูกบันทึกลงในคอลัมน์ `ocr_text` ของ `migration_review_queue`

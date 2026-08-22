@@ -216,8 +216,8 @@ describe('LegacyIngestionService (ADR-047)', () => {
     expect(result.totalRowsProcessed).toBe(2);
     expect(result.enqueuedCount).toBe(2);
 
-    // ตรวจสอบว่า save ลง review queue ถูกเรียก 2 ครั้ง
-    expect(mockReviewQueueRepo.save).toHaveBeenCalledTimes(2);
+    // ตรวจสอบว่า save ลง review queue ถูกเรียก 3 ครั้ง (2 แถว + อัปเดต aiJobId สำหรับไฟล์ที่มี PDF)
+    expect(mockReviewQueueRepo.save).toHaveBeenCalledTimes(3);
 
     // ตรวจสอบว่า job ส่งเข้า BullMQ ai-batch 1 ครั้ง (เฉพาะไฟล์ DOC-001.pdf ที่มีจริง)
     expect(mockAiBatchQueue.add).toHaveBeenCalledWith(

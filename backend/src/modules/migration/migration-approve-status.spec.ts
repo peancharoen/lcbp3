@@ -6,6 +6,8 @@ import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
+import { getQueueToken } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { FileStorageService } from '../../common/file-storage/file-storage.service';
 import { CorrespondenceStatus } from '../correspondence/entities/correspondence-status.entity';
 import { CorrespondenceType } from '../correspondence/entities/correspondence-type.entity';
@@ -16,6 +18,7 @@ import { MigrationError } from './entities/migration-error.entity';
 import {
   MigrationReviewQueue,
   MigrationReviewStatus,
+  MigrationAiStatus,
 } from './entities/migration-review-queue.entity';
 import { MigrationService } from './migration.service';
 
@@ -76,6 +79,10 @@ describe('MigrationService approve-and-import status', () => {
           provide: FileStorageService,
           useValue: {},
         },
+        {
+          provide: getQueueToken('ai-batch'),
+          useValue: {} as Queue,
+        },
       ],
     }).compile();
 
@@ -92,16 +99,17 @@ describe('MigrationService approve-and-import status', () => {
     });
   };
 
-  const createPendingQueueItem = (): MigrationReviewQueue =>
+  const createReviewableQueueItem = (): MigrationReviewQueue =>
     ({
       id: 1,
       publicId: '01a027e4-b212-74fa-a47d-51fe6aeb0f0c',
-      status: MigrationReviewStatus.PENDING,
+      status: MigrationReviewStatus.PENDING_REVIEW,
+      aiStatus: MigrationAiStatus.DONE,
       ocrText: 'existing OCR text',
     }) as MigrationReviewQueue;
 
   it('marks the publicId queue item as IMPORTED after a successful import', async () => {
-    const queueItem = createPendingQueueItem();
+    const queueItem = createReviewableQueueItem();
     reviewQueueRepo.findOne.mockResolvedValue(queueItem);
     mockSuccessfulImport();
 
@@ -117,7 +125,7 @@ describe('MigrationService approve-and-import status', () => {
   });
 
   it('marks the internal-id queue item as IMPORTED after a successful import', async () => {
-    const queueItem = createPendingQueueItem();
+    const queueItem = createReviewableQueueItem();
     reviewQueueRepo.findOne.mockResolvedValue(queueItem);
     mockSuccessfulImport();
 

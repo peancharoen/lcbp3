@@ -128,6 +128,26 @@ export const migrationService = {
     return data?.data || data;
   },
 
+  // ADR-047: เริ่มประมวลผล OCR/AI ของ queue item เดียว
+  startExtractQueueItem: async (publicId: string, idempotencyKey: string) => {
+    const { data } = await api.post(`/migration/queue/${publicId}/extract`, {}, {
+      headers: {
+        'idempotency-key': idempotencyKey,
+      },
+    });
+    return data?.data || data;
+  },
+
+  // ADR-047: เริ่มประมวลผล OCR/AI แบบ batch
+  startExtractBatch: async (publicIds: string[], idempotencyKey: string) => {
+    const { data } = await api.post('/migration/extract', { queuePublicIds: publicIds }, {
+      headers: {
+        'idempotency-key': idempotencyKey,
+      },
+    });
+    return data?.data || data;
+  },
+
   // ADR-019: ใช้ publicId (UUIDv7) เท่านั้น
   // ADR-016: ต้องส่ง Idempotency-Key สำหรับ state mutation
   rejectQueueItem: async (publicId: string, idempotencyKey: string) => {

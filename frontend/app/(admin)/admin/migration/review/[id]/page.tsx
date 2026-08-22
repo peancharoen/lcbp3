@@ -16,7 +16,7 @@ import * as z from 'zod';
 import { migrationService } from '@/lib/services/migration.service';
 import { organizationService } from '@/lib/services/organization.service';
 import { masterDataService } from '@/lib/services/master-data.service';
-import { MigrationReviewQueueItem, FieldResolution } from '@/types/migration';
+import { MigrationReviewQueueItem, FieldResolution, MigrationReviewStatus, MigrationAiStatus } from '@/types/migration';
 import { Organization } from '@/types/organization';
 import { Discipline, CorrespondenceType } from '@/types/master-data';
 import { Button } from '@/components/ui/button';
@@ -24,7 +24,7 @@ import { Form, FormControl, FormDescription as _FormDescription, FormField, Form
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeftIcon, CheckCircleIcon, XCircleIcon } from 'lucide-react';
+import { ArrowLeftIcon, CheckCircleIcon, XCircleIcon, RefreshCwIcon } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
@@ -144,6 +144,22 @@ export default function MigrationReviewPage() {
     fetchItem(publicId);
   }, [publicId, fetchItem]);
 
+  const handleStartExtract = async () => {
+    if (!item?.publicId) return;
+    try {
+      setSubmitting(true);
+      const idempotencyKey = `extract-${item.publicId}-${Date.now()}`;
+      await migrationService.startExtractQueueItem(item.publicId, idempotencyKey);
+      toast.success('เริ่มประมวลผล OCR/AI แล้ว กรุณารอสักครู่แล้วรีเฟรช');
+      await fetchItem(item.publicId);
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err?.response?.data?.message || 'เริ่มประมวลผลไม่สำเร็จ');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const onSubmit = async (values: ReviewFormValues) => {
     if (!item) return;
     try {
@@ -181,11 +197,11 @@ export default function MigrationReviewPage() {
         fieldResolutions: fieldResolutions.length > 0 ? fieldResolutions : undefined,
       };
       await migrationService.approveQueueItem(item.publicId, commitPayload, idempotencyKey);
-      toast.success('Document approved and imported successfully');
+      toast.success('Execute Import สำเร็จ');
       router.push('/admin/migration');
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err?.response?.data?.message || 'Failed to approve and import');
+      toast.error(err?.response?.data?.message || 'Execute Import ล้มเหลว');
     } finally {
       setSubmitting(false);
     }
@@ -468,19 +484,36 @@ export default function MigrationReviewPage() {
                     type="button"
                     variant="destructive"
                     className="flex-1"
-                    disabled={submitting || item.status !== 'PENDING'}
+                    disabled={submitting || item.status === 'IMPORTED'}
                     onClick={onReject}
                   >
                     <XCircleIcon className="w-4 h-4 mr-2" />
                     Reject
                   </Button>
+                  {item.status === MigrationReviewStatus.PENDING &&
+                    item.aiStatus !== MigrationAiStatus.RUNNING &&
+                    item.aiStatus !== MigrationAiStatus.DONE && (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="flex-1"
+                        onClick={handleStartExtract}
+                        disabled={submitting}
+                      >
+                        <RefreshCwIcon className="w-4 h-4 mr-2" />
+                        Start Extract
+                      </Button>
+                    )}
                   <Button
                     type="submit"
                     className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                    disabled={submitting || item.status !== 'PENDING'}
+                    disabled={
+                      submitting ||
+                      item.status !== MigrationReviewStatus.PENDING_REVIEW
+                    }
                   >
                     <CheckCircleIcon className="w-4 h-4 mr-2" />
-                    {submitting ? 'Processing...' : 'Approve & Import'}
+                    {submitting ? 'Processing...' : 'Execute Import'}
                   </Button>
                 </div>
               </form>

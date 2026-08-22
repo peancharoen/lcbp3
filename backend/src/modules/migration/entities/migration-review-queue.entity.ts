@@ -2,6 +2,7 @@
 // Change Log:
 // - 2026-05-22: เพิ่มฟิลด์ aiJobId สำหรับเก็บ jobId ของ BullMQ (ADR-028)
 // - 2026-08-06: เพิ่ม tempAttachmentIds (JSON), compareStatus (enum), compareUnavailableReason สำหรับ Feature 242 (FR-001, FR-002, FR-012a, FR-012b)
+// - 2026-08-22: ปรับ status enum ให้ตรง DB (PENDING, PENDING_REVIEW, IMPORTED, REJECTED) และเพิ่ม aiStatus (ADR-047)
 
 import {
   Entity,
@@ -13,11 +14,20 @@ import { Exclude } from 'class-transformer';
 
 import { UuidBaseEntity } from '../../../common/entities/uuid-base.entity';
 
+/** สถานะ lifecycle ของ migration review queue (ต้องตรงกับ DB enum) */
 export enum MigrationReviewStatus {
   PENDING = 'PENDING',
-  APPROVED = 'APPROVED',
+  PENDING_REVIEW = 'PENDING_REVIEW',
   IMPORTED = 'IMPORTED',
   REJECTED = 'REJECTED',
+}
+
+/** สถานะ BullMQ AI job ของแต่ละ queue item */
+export enum MigrationAiStatus {
+  PENDING = 'PENDING',
+  RUNNING = 'RUNNING',
+  DONE = 'DONE',
+  FAILED = 'FAILED',
 }
 
 /** สถานะการเปรียบเทียบทะเบียนกับเอกสารจริง (FR-012a) */
@@ -144,6 +154,16 @@ export class MigrationReviewQueue extends UuidBaseEntity {
 
   @Column({ name: 'ai_job_id', type: 'varchar', length: 36, nullable: true })
   aiJobId?: string | null;
+
+  /** ADR-047: สถานะ BullMQ AI job (PENDING/RUNNING/DONE/FAILED) */
+  @Column({
+    name: 'ai_status',
+    type: 'enum',
+    enum: MigrationAiStatus,
+    default: MigrationAiStatus.PENDING,
+    nullable: true,
+  })
+  aiStatus?: MigrationAiStatus | null;
 
   /** Edge Case 4: flag แสดงว่า AI enrichment ล้มเหลวหลัง retry ครบ — ให้มนุษย์ตรวจเอง */
   @Column({ name: 'ai_failed', type: 'boolean', default: false })

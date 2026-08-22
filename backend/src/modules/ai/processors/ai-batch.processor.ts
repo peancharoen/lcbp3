@@ -56,7 +56,11 @@ import {
 } from '../types/migration-compare-result.type';
 import { isDwgFile } from '../../migration/constants/dwg-exclusion.constant';
 import { deriveTagName } from '../../migration/types/tag-mapping-rule';
-import { CompareStatus } from '../../migration/entities/migration-review-queue.entity';
+import {
+  CompareStatus,
+  MigrationReviewStatus,
+  MigrationAiStatus,
+} from '../../migration/entities/migration-review-queue.entity';
 import { ReviewThresholdService } from '../../migration/services/review-threshold.service';
 import type { ExcelMetadataDto } from '../dto/excel-metadata.dto';
 
@@ -1978,23 +1982,32 @@ export class AiBatchProcessor extends WorkerHost {
           ? ''
           : JSON.stringify(documentNumberRaw);
 
-    if (!queueId || !pdfPath) {
-      this.logger.warn(`processLegacyAiEnrichment: missing queueId or pdfPath`);
+    if (!queueId) {
+      this.logger.warn(`processLegacyAiEnrichment: missing queueId`);
       return;
     }
+
+    // สถานะเริ่มประมวลผล (ADR-047): aiStatus แสดงกำลังประมวลผล status ยังคง PENDING
+    await this.migrationService.updateQueueEnrichment(queueId, {
+      aiStatus: MigrationAiStatus.RUNNING,
+      status: MigrationReviewStatus.PENDING,
+    });
 
     try {
       // 1. OCR 3 หน้าแรก
       let ocrText = '';
-      try {
-        const ocrResult = await this.ocrService.detectAndExtract({
-          pdfPath,
-        });
-        ocrText = ocrResult.text || '';
-      } catch (ocrErr: unknown) {
-        this.logger.warn(
-          `OCR extraction failed for legacy doc [${documentNumber}]: ${String(ocrErr)}`
-        );
+      const hasPdf = pdfPath && pdfPath.trim().length > 0;
+      if (hasPdf) {
+        try {
+          const ocrResult = await this.ocrService.detectAndExtract({
+            pdfPath,
+          });
+          ocrText = ocrResult.text || '';
+        } catch (ocrErr: unknown) {
+          this.logger.warn(
+            `OCR extraction failed for legacy doc [${documentNumber}]: ${String(ocrErr)}`
+          );
+        }
       }
 
       // 2. LLM Tag & Metadata Extraction
@@ -2045,13 +2058,24 @@ ${truncatedOcr}`;
         }
       }
 
+      // Fallback: ไม่มี PDF ให้บันทึกข้อความใน ocr_text
+      if (!hasPdf) {
+        ocrText = 'ไม่มี ไฟล์ PDF (ยกเลิก/ถอน)';
+        aiConfidence = 0;
+      }
+
       // 3. บันทึกผลลัพธ์กลับสู่ migration_review_queue
       await this.migrationService.updateQueueEnrichment(queueId, {
         ocrText: ocrText || undefined,
         aiSummary,
-        aiSuggestedCategory,
+        aiSuggestedCategory: hasPdf ? aiSuggestedCategory : undefined,
         extractedTags: extractedTags.length > 0 ? extractedTags : undefined,
         aiConfidence,
+        aiIssues: hasPdf
+          ? undefined
+          : [{ type: 'NO_PDF', message: 'ไม่พบไฟล์ PDF สำหรับทำ OCR' }],
+        aiStatus: MigrationAiStatus.DONE,
+        status: MigrationReviewStatus.PENDING_REVIEW,
       });
 
       this.logger.log(
@@ -2066,8 +2090,11 @@ ${truncatedOcr}`;
       // แต่หาก throw ออกไปแล้ว retry ครบ 3 ครั้งยังไม่สำเร็จ จะทำให้ queue item ตกเป็น AI_FAILED)
       try {
         await this.migrationService.updateQueueEnrichment(queueId, {
+          ocrText: 'ไม่มี ไฟล์ PDF (ยกเลิก/ถอน)',
           aiFailed: true,
           aiIssues: [{ type: 'AI_ENRICHMENT_FAILED', message: errMsg }],
+          aiStatus: MigrationAiStatus.FAILED,
+          status: MigrationReviewStatus.PENDING_REVIEW,
         });
       } catch (markErr: unknown) {
         this.logger.error(

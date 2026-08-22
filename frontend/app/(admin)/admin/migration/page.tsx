@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { aiService } from '@/lib/services/ai.service';
 import { migrationService } from '@/lib/services/migration.service';
 import { AiMigrationLog, AiMigrationLogStatus } from '@/types/ai';
-import { MigrationReviewQueueItem, MigrationReviewStatus } from '@/types/migration';
+import { MigrationReviewQueueItem, MigrationReviewStatus, MigrationAiStatus } from '@/types/migration';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -415,17 +415,17 @@ function LegacyManagementTab() {
   }, [fetchBatches]);
 
   // ADR-019: toggle โดยใช้ publicId (string)
-  // FR-014: "Select All" เลือกเฉพาะรายการที่ ai_confidence >= 0.85 (High Confidence)
-  const HIGH_CONFIDENCE_THRESHOLD = 0.85;
-  const isHighConfidence = (item: typeof items[number]) =>
-    item.aiConfidence !== undefined && item.aiConfidence >= HIGH_CONFIDENCE_THRESHOLD;
+  // ADR-047: "Select All" เลือกเฉพาะรายการที่พร้อม Execute Import (PENDING_REVIEW + aiStatus DONE)
+  const isExecutable = (item: typeof items[number]) =>
+    item.status === MigrationReviewStatus.PENDING_REVIEW &&
+    item.aiStatus === MigrationAiStatus.DONE;
 
   const handleToggleSelectAll = () => {
-    const highConfidenceItems = items.filter(isHighConfidence);
-    if (selectedPublicIds.length === highConfidenceItems.length && highConfidenceItems.length > 0) {
+    const executableItems = items.filter(isExecutable);
+    if (selectedPublicIds.length === executableItems.length && executableItems.length > 0) {
       setSelectedPublicIds([]);
     } else {
-      setSelectedPublicIds(highConfidenceItems.map((i) => i.publicId));
+      setSelectedPublicIds(executableItems.map((i) => i.publicId));
     }
   };
 
@@ -435,14 +435,47 @@ function LegacyManagementTab() {
     );
   };
 
-  // Batch approve — ส่งผ่าน background queue (ADR-008)
+  // ADR-047: Batch start OCR/AI extract — ใช้ publicId สำหรับรายการ PENDING
+  const handleBatchExtract = async () => {
+    if (selectedPublicIds.length === 0) return;
+    const extractable = items.filter(
+      (i) =>
+        selectedPublicIds.includes(i.publicId) &&
+        i.status === MigrationReviewStatus.PENDING &&
+        i.aiStatus !== MigrationAiStatus.RUNNING &&
+        i.aiStatus !== MigrationAiStatus.DONE
+    );
+    if (extractable.length === 0) {
+      toast.warning('ไม่มีรายการทีสามารถเริ่ม Extract ได้');
+      return;
+    }
+    try {
+      setSubmitting(true);
+      const idempotencyKey = `batch-extract-${Date.now()}`;
+      const result = await migrationService.startExtractBatch(
+        extractable.map((i) => i.publicId),
+        idempotencyKey
+      );
+      const okCount = Array.isArray(result.results)
+        ? result.results.filter((r: unknown) => !(r as { error?: string })?.error).length
+        : extractable.length;
+      toast.success(`เริ่ม Extract ${okCount} รายการใน BullMQ`);
+      await fetchData();
+    } catch (_error) {
+      toast.error('Batch extract failed.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Batch execute import — ส่งผ่าน background queue (ADR-008)
   // ADR-019: ใช้ queuePublicId (UUIDv7) ไม่ใช่ INT id
-  const handleBatchApprove = async () => {
+  const handleBatchExecuteImport = async () => {
     if (selectedPublicIds.length === 0) return;
     try {
       setSubmitting(true);
       const batchItems = items
-        .filter((i) => selectedPublicIds.includes(i.publicId))
+        .filter((i) => selectedPublicIds.includes(i.publicId) && isExecutable(i))
         .map((item) => ({
           queuePublicId: item.publicId,
           dto: {
@@ -463,12 +496,16 @@ function LegacyManagementTab() {
             details: { tags: item.extractedTags },
           },
         }));
+      if (batchItems.length === 0) {
+        toast.warning('เลือกเฉพาะรายการที่ OCR/AI เสร็จแล้วเท่านั้น');
+        return;
+      }
       const batchId = `BATCH_UI_${Date.now()}`;
       await migrationService.commitBatch({ items: batchItems, batchId }, batchId);
-      toast.success(`Batch approve ${batchItems.length} รายการเรียบร้อย`);
+      toast.success(`Execute Import ${batchItems.length} รายการเรียบร้อย`);
       await fetchData();
     } catch (_error) {
-      toast.error('Batch commit failed.');
+      toast.error('Batch import failed.');
     } finally {
       setSubmitting(false);
     }
@@ -507,10 +544,16 @@ function LegacyManagementTab() {
             <CardTitle>Legacy Review Queue - {statusFilter}</CardTitle>
           <div className="flex items-center gap-3 flex-wrap">
             {selectedPublicIds.length > 0 && (
-              <Button variant="default" onClick={handleBatchApprove} disabled={submitting}>
-                <CheckCircleIcon className="mr-2 h-4 w-4" />
-                {submitting ? 'Processing...' : `Batch Approve High Conf (${selectedPublicIds.length})`}
-              </Button>
+              <>
+                <Button variant="outline" onClick={handleBatchExtract} disabled={submitting}>
+                  <RefreshCwIcon className="mr-2 h-4 w-4" />
+                  {submitting ? 'Processing...' : `Start Extract (${selectedPublicIds.length})`}
+                </Button>
+                <Button variant="default" onClick={handleBatchExecuteImport} disabled={submitting}>
+                  <CheckCircleIcon className="mr-2 h-4 w-4" />
+                  {submitting ? 'Processing...' : `Execute Import (${selectedPublicIds.length})`}
+                </Button>
+              </>
             )}
             <Link href="/admin/migration/errors">
               <Button variant="outline">
@@ -524,8 +567,9 @@ function LegacyManagementTab() {
               <SelectContent>
                 <SelectItem value="ALL">All Status</SelectItem>
                 <SelectItem value="PENDING">Pending</SelectItem>
-                <SelectItem value="APPROVED">Approved</SelectItem>
+                <SelectItem value="PENDING_REVIEW">Pending Review</SelectItem>
                 <SelectItem value="REJECTED">Rejected</SelectItem>
+                <SelectItem value="IMPORTED">Imported</SelectItem>
               </SelectContent>
             </Select>
             <Select value={batchFilter} onValueChange={setBatchFilter}>
@@ -569,11 +613,11 @@ function LegacyManagementTab() {
                     <Checkbox
                       checked={
                         items.length > 0 &&
-                        selectedPublicIds.length === items.filter(isHighConfidence).length &&
-                        items.filter(isHighConfidence).length > 0
+                        selectedPublicIds.length === items.filter(isExecutable).length &&
+                        items.filter(isExecutable).length > 0
                       }
                       onCheckedChange={handleToggleSelectAll}
-                      aria-label="เลือกรายการคะแนนสูง (>= 0.85)"
+                      aria-label="เลือกรายการที่พร้อม Execute Import"
                     />
                   </TableHead>
                   <TableHead>Document No.</TableHead>
@@ -583,6 +627,7 @@ function LegacyManagementTab() {
                   <TableHead>Sender</TableHead>
                   <TableHead>Receiver</TableHead>
                   <TableHead>Confidence</TableHead>
+                  <TableHead>AI Status</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Created At</TableHead>
                   <TableHead className="text-right">Action</TableHead>
@@ -623,11 +668,28 @@ function LegacyManagementTab() {
                     <TableCell>
                       <Badge
                         variant={
+                          item.aiStatus === 'DONE'
+                            ? 'default'
+                            : item.aiStatus === 'RUNNING'
+                              ? 'secondary'
+                              : item.aiStatus === 'FAILED'
+                                ? 'destructive'
+                                : 'outline'
+                        }
+                      >
+                        {item.aiStatus || 'PENDING'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
                           item.status === 'PENDING'
                             ? 'outline'
-                            : item.status === 'APPROVED'
+                            : item.status === 'PENDING_REVIEW'
                               ? 'default'
-                              : 'destructive'
+                              : item.status === 'IMPORTED'
+                                ? 'default'
+                                : 'destructive'
                         }
                       >
                         {item.status}

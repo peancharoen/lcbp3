@@ -8,6 +8,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { MigrationService } from './migration.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { getQueueToken } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { ImportTransaction } from './entities/import-transaction.entity';
 import { CorrespondenceType } from '../correspondence/entities/correspondence-type.entity';
 import { CorrespondenceStatus } from '../correspondence/entities/correspondence-status.entity';
@@ -117,6 +119,10 @@ describe('MigrationService', () => {
           useValue: {
             get: jest.fn().mockReturnValue(undefined),
           },
+        },
+        {
+          provide: getQueueToken('ai-batch'),
+          useValue: {} as Queue,
         },
       ],
     }).compile();

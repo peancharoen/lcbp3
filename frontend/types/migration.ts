@@ -2,12 +2,21 @@
 // Change Log:
 // - 2026-05-22: Initial creation and update for ADR-019 compatibility and added subject fields
 // - 2026-08-06: เพิ่ม CompareStatus, CompareResult, CompareFieldResult, FieldResolution สำหรับ Feature 242
+// - 2026-08-22: ปรับ MigrationReviewStatus, เพิ่ม MigrationAiStatus, aiStatus, aiJobId (ADR-047)
 
 export enum MigrationReviewStatus {
   PENDING = 'PENDING',
-  APPROVED = 'APPROVED',
+  PENDING_REVIEW = 'PENDING_REVIEW',
   REJECTED = 'REJECTED',
   IMPORTED = 'IMPORTED',
+}
+
+/** ADR-047: สถานะ BullMQ AI job ของ migration queue item */
+export enum MigrationAiStatus {
+  PENDING = 'PENDING',
+  RUNNING = 'RUNNING',
+  DONE = 'DONE',
+  FAILED = 'FAILED',
 }
 
 /** สถานะการเปรียบเทียบทะเบียนกับเอกสารจริง (FR-012a) */
@@ -79,6 +88,8 @@ export interface MigrationReviewQueueItem {
   aiIssues?: Record<string, unknown>[];
   reviewReason?: string;
   status: MigrationReviewStatus;
+  aiStatus?: MigrationAiStatus;
+  aiJobId?: string | null;
   reviewedBy?: string;
   reviewedAt?: string;
   createdAt: string;
