@@ -56,7 +56,7 @@
   - ✅ ใช้ `ExcelJS` Streaming Reader กินหน่วยความจำต่ำมาก (< 100MB)
   - ✅ ทำงานร่วมกับ Staging Queue (`migration_review_queue`), `import_transactions` และ `migration_errors` ที่มีอยู่แล้วได้ทันที
   - ✅ มีทั้ง CLI Command (สำหรับรัน 20k rows บน Server ปลอดภัยจาก Network timeout) และ Web UI สำหรับ Document Controller
-  - ✅ รองรับ OCR Editing และ Re-embedding ตาม ADR-042 อย่างสมบูรณ์
+  - ✅ รองรับ OCR Editing และ RAG ผ่าน `rag-prepare` pipeline ร่วมกับเอกสารปกติตาม ADR-042
 - **Cons:** ต้องเขียนโค้ด Service ใหม่และเพิ่มหน้าต่าง Ingestion ใน Admin Console
 
 ---
@@ -87,15 +87,20 @@
 
 **ข้อกำหนดเพิ่มเติม:**
 - ต้องมี Backend API สำหรับ Start Extract ทั้ง single (`POST /api/migration/queue/:publicId/extract`) และ batch (`POST /api/migration/extract`)
-- `approveQueueItem` / `commitBatch` เปลี่ยนชื่อการทำงานภายในเป็น "Execute Import" โดยไม่ trigger OCR อีก แต่ใช้ข้อมูลที AI ประมวลผลไว้แล้ว
+- `approveQueueItem` / `commitBatch` เปลี่ยนชื่อการทำงานภายในเป็น "Execute Import" โดยไม่ trigger OCR อีก แต่ใช้ข้อมูลที AI ประมวลผลไว้แล้ว และส่ง `rag-prepare` หลังบันทึก `Attachment` + `Revision` เสร็จ
 - Execute Import อนุญาตเฉพาะเมื่อ `status = PENDING_REVIEW` (ไม่อนุญาตตอน `PENDING` หรือกำลังประมวลผล)
 - ถ้าเอกสารไม่มี PDF Worker ต้องไม่ fail ให้ `ocr_text = 'ไม่มี ไฟล์ PDF (ยกเลิก/ถอน)'` และคนยังสามารถ Execute Import ได้
 - `legacy-ai-enrichment` Worker ต้องอ้างอิง `queue_id` (INT ภายใน) และอัปเดต `ai_status`, `status`, `ocr_text` กลับ `migration_review_queue` โดยตรง
 
 #### D4: การบันทึกข้อความ OCR และการ Sync กับ RAG (ADR-042 Parity)
-- ข้อความ OCR 3 หน้าแรกจะถูกบันทึกลงในคอลัมน์ `ocr_text` ของ `migration_review_queue`
-- ในหน้าจอ Review Queue เพิ่ม Drawer/Panel แสดงข้อความ OCR พร้อม Textarea ให้ Superadmin, Org Admin, Document Controller แก้ไขคำผิดได้
-- เมื่อกดบันทึก OCR Text ระบบจะเรียก `RagBatchService` เพื่อ Re-embed ข้อมูลชุดใหม่ลง Qdrant อัตโนมัติ
+- ข้อความ OCR 3 หน้าแรกจะถูกบันทึกลงในคอลัมน์ `ocr_text` ของ `migration_review_queue` เพื่อแก้ไขก่อน Import
+- เมื่อกด "Execute Import" ระบบจะบันทึก OCR text ลง `attachments.ocr_text` และใช้เป็น fallback ของ `correspondence_revisions.body` หากไม่มี `body` จากผู้ใช้
+- หลัง commit สำเร็จ ระบบจะส่ง `rag-prepare` เข้าคิว `ai-batch` ผ่าน `RagBatchService.enqueueRagPrepare` โดย:
+  - `documentPublicId` = `correspondence.public_id`
+  - `attachmentPublicId` = `attachments.public_id` ของไฟล์หลัก
+  - `cachedOcrText` = OCR text ทีบันทึกไว้ ทำให้ `processRagPrepare` ใช้ persisted `ocr_text` โดยไม่ต้อง re-OCR
+- `processRagPrepare` จะอ่าน persisted `ocr_text` จาก `attachments` ด้วย `attachmentPublicId` ก่อนเสมอ แล้ว enqueue `embed-document` ตาม pipeline ปกติ
+- ในหน้าจอ Review Queue แก้ไข OCR text ได้ แต่จะไม่ trigger RAG ทันที — RAG จะทำงานหลัง Execute Import เท่านั้น
 
 #### D5: ระบบ Checkpoint, Resumability และ Error Logging
 - บันทึกตำแหน่งล่าสุดลงตาราง `migration_progress` ทุก 50 แถว
@@ -136,7 +141,7 @@
 | **ADR-019** | 1.0 | Required (UUIDv7 & PublicId) | ✅ Implemented |
 | **ADR-023A** | 2.0 | Required (AI Model Stack & BullMQ Concurrency=1) | ✅ Implemented |
 | **ADR-028** | 1.0 | Core (Staging Queue & Review Lifecycle) | ✅ Implemented |
-| **ADR-042** | 1.0 | Required (OCR Text Persistence & RAG Sync) | 📋 Proposed / Aligned |
+| **ADR-042** | 1.0 | Required (OCR Text Persistence & RAG Sync) | ✅ Implemented |
 | **ADR-047** | 1.0 | Target (Native Backend Legacy Ingestion) | ✅ Implemented |
 
 ---
