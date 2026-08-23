@@ -3,6 +3,7 @@
 // - 2026-08-23: ใช้ disciplineId (INT) โดยตรง, แก้ recipient lookup ให้แยก recipientType: TO
 // - 2026-08-22: Persist IMPORTED after approve-and-import to match the database enum
 // - 2026-08-22: เพิ่ม startExtractQueueItem / startExtractBatch และปรับ execute import flow ตาม ADR-047
+// - 2026-08-23: Execute Import บันทึก ocrText ลง Attachment/Revision และใช้ rag-prepare pipeline เดียวกับเอกสารปกติ
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -47,6 +48,7 @@ import { MigrationQueueQueryDto } from './dto/migration-queue-query.dto';
 import { Attachment } from '../../common/file-storage/entities/attachment.entity';
 import { createReadStream, existsSync } from 'fs';
 import * as path from 'path';
+import { RagBatchService } from './services/rag-batch.service';
 import { Rfa } from '../rfa/entities/rfa.entity';
 import { RfaRevision } from '../rfa/entities/rfa-revision.entity';
 import {
@@ -87,7 +89,8 @@ export class MigrationService {
     private readonly errorRepo: Repository<MigrationError>,
     @InjectQueue('ai-batch')
     private readonly aiBatchQueue: Queue,
-    private readonly fileStorageService: FileStorageService
+    private readonly fileStorageService: FileStorageService,
+    private readonly ragBatchService: RagBatchService
   ) {
     this.stagingDir =
       this.configService.get<string>(ENV_STAGING_DIR) || STAGING_DIR_FALLBACK;
@@ -370,6 +373,15 @@ export class MigrationService {
         }
       }
 
+      // ADR-042/047: บันทึก OCR text ลง Attachment ก่อน commit เพื่อ RAG pipeline
+      if (attachmentId && dto.ocrText?.trim()) {
+        await queryRunner.manager.update(
+          Attachment,
+          { id: attachmentId },
+          { ocrText: dto.ocrText.trim() }
+        );
+      }
+
       // Helper function to parse Date safety
       const parseDateStr = (d?: string | number) => {
         if (!d) return undefined;
@@ -405,7 +417,7 @@ export class MigrationService {
       if (existingCurrent) {
         // Update revision ปัจจุบันแทนการสร้างใหม่ (ป้องกัน uq_master_current conflict)
         existingCurrent.subject = dto.subject;
-        existingCurrent.body = dto.body || undefined;
+        existingCurrent.body = dto.body || dto.ocrText || undefined;
         existingCurrent.documentDate = parseDateStr(
           dto.documentDate || dto.issuedDate
         );
@@ -431,7 +443,7 @@ export class MigrationService {
           statusId: status.id,
           subject: dto.subject,
           description: 'Migrated from legacy system via Auto Ingest',
-          body: dto.body || undefined,
+          body: dto.body || dto.ocrText || undefined,
           // Mapping: excel issued_date → document_date (วันที่ออกเอกสาร)
           //          excel received_date → received_date (วันที่รับเอกสาร)
           documentDate: parseDateStr(dto.documentDate || dto.issuedDate),
@@ -533,6 +545,39 @@ export class MigrationService {
       await queryRunner.manager.save(transaction);
 
       await queryRunner.commitTransaction();
+
+      // ADR-042/047: trigger rag-prepare เส้นเดียวกับเอกสารปกติ หลัง commit
+      if (attachmentId && dto.ocrText?.trim()) {
+        const mainAttachment = await queryRunner.manager.findOne(Attachment, {
+          where: { id: attachmentId },
+          select: ['publicId', 'filePath'],
+        });
+        if (mainAttachment) {
+          try {
+            await this.ragBatchService.enqueueRagPrepare({
+              documentPublicId: correspondence.publicId,
+              projectPublicId: project.publicId,
+              correspondenceNumber: correspondence.correspondenceNumber,
+              docType: type?.typeCode || 'LETTER',
+              statusCode: status.statusCode,
+              revisionNumber: revision.revisionNumber,
+              subject: revision.subject,
+              documentDate: revision.documentDate
+                ? revision.documentDate.toISOString().split('T')[0]
+                : undefined,
+              cachedOcrText: dto.ocrText.trim(),
+              attachmentPath: mainAttachment.filePath || undefined,
+              attachmentPublicId: mainAttachment.publicId,
+            });
+          } catch (ragErr: unknown) {
+            const ragMsg =
+              ragErr instanceof Error ? ragErr.message : String(ragErr);
+            this.logger.warn(
+              `Post-import RAG re-embed failed for [${correspondence.publicId}]: ${ragMsg}`
+            );
+          }
+        }
+      }
 
       this.logger.log(
         `Ingested document [${dto.documentNumber}] successfully (Batch: ${dto.batchId})`
@@ -1126,13 +1171,17 @@ export class MigrationService {
     }
 
     // Attempt the import
-    const result = await this.importCorrespondence(dto, idempotencyKey, userId);
+    const importDto = {
+      ...dto,
+      ocrText: dto.ocrText ?? queueItem.ocrText ?? undefined,
+    };
+    const result = await this.importCorrespondence(
+      importDto,
+      idempotencyKey,
+      userId
+    );
 
     // If successful, update the queue item status
-    // ถ้าไม่มีไฟล์ PDF ให้บันทึกข้อความใน OCR text (ADR-042/047)
-    if (!result.hasAttachment && !queueItem.ocrText) {
-      queueItem.ocrText = 'ไม่มี ไฟล์ PDF (ยกเลิก/ถอน)';
-    }
     queueItem.status = MigrationReviewStatus.IMPORTED;
     queueItem.reviewedBy = userId.toString();
     queueItem.reviewedAt = new Date();
@@ -1165,12 +1214,16 @@ export class MigrationService {
       );
     }
 
-    const result = await this.importCorrespondence(dto, idempotencyKey, userId);
+    const importDto = {
+      ...dto,
+      ocrText: dto.ocrText ?? queueItem.ocrText ?? undefined,
+    };
+    const result = await this.importCorrespondence(
+      importDto,
+      idempotencyKey,
+      userId
+    );
 
-    // ถ้าไม่มีไฟล์ PDF ให้บันทึกข้อความใน OCR text (ADR-042/047)
-    if (!result.hasAttachment && !queueItem.ocrText) {
-      queueItem.ocrText = 'ไม่มี ไฟล์ PDF (ยกเลิก/ถอน)';
-    }
     queueItem.status = MigrationReviewStatus.IMPORTED;
     queueItem.reviewedBy = userId.toString();
     queueItem.reviewedAt = new Date();

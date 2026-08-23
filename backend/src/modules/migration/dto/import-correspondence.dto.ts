@@ -106,4 +106,9 @@ export class ImportCorrespondenceDto {
   @IsString()
   @IsOptional()
   body?: string;
+
+  /** ข้อความ OCR 3 หน้าแรกสำหรับบันทึกลง Attachment และ trigger RAG (ADR-042/047) */
+  @IsString()
+  @IsOptional()
+  ocrText?: string;
 }

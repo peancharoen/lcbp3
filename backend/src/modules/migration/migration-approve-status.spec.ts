@@ -9,6 +9,7 @@ import { DataSource } from 'typeorm';
 import { getQueueToken } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { FileStorageService } from '../../common/file-storage/file-storage.service';
+import { RagBatchService } from './services/rag-batch.service';
 import { CorrespondenceStatus } from '../correspondence/entities/correspondence-status.entity';
 import { CorrespondenceType } from '../correspondence/entities/correspondence-type.entity';
 import { Project } from '../project/entities/project.entity';
@@ -82,6 +83,12 @@ describe('MigrationService approve-and-import status', () => {
         {
           provide: getQueueToken('ai-batch'),
           useValue: {} as Queue,
+        },
+        {
+          provide: RagBatchService,
+          useValue: {
+            enqueueRagPrepare: jest.fn().mockResolvedValue(undefined),
+          },
         },
       ],
     }).compile();

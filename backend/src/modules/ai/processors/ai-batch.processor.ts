@@ -1012,15 +1012,17 @@ export class AiBatchProcessor extends WorkerHost {
       `processRagPrepare: starting for doc=${documentPublicId}, project=${projectPublicId}`
     );
     // FR-014, SC-006: อ่าน persisted ocr_text จาก attachment ก่อนเสมอ — ไม่เรียก OCR ซ้ำ
-    if (!cachedOcrText && documentPublicId) {
+    // ใช้ attachmentPublicId ก่อนเสมอ (ถ้ามี) เพราะ documentPublicId คือ Correspondence ไม่ใช่ Attachment
+    const attachmentLookupPublicId = attachmentPublicId || documentPublicId;
+    if (!cachedOcrText && attachmentLookupPublicId) {
       const attachment = await this.attachmentRepo.findOne({
-        where: { publicId: documentPublicId },
+        where: { publicId: attachmentLookupPublicId },
         select: ['id', 'ocrText', 'originalFilename', 'mimeType'],
       });
       if (attachment?.ocrText && attachment.ocrText.trim().length > 0) {
         cachedOcrText = attachment.ocrText;
         this.logger.log(
-          `processRagPrepare: reused persisted ocr_text (${cachedOcrText.length} chars) for ${documentPublicId} — no re-OCR (FR-014, SC-006)`
+          `processRagPrepare: reused persisted ocr_text (${cachedOcrText.length} chars) for ${attachmentLookupPublicId} — no re-OCR (FR-014, SC-006)`
         );
       }
     }

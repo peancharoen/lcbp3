@@ -19,6 +19,7 @@ import { DataSource } from 'typeorm';
 import { MigrationReviewQueue } from './entities/migration-review-queue.entity';
 import { MigrationError } from './entities/migration-error.entity';
 import { FileStorageService } from '../../common/file-storage/file-storage.service';
+import { RagBatchService } from './services/rag-batch.service';
 import { Discipline } from '../master/entities/discipline.entity';
 import { Correspondence } from '../correspondence/entities/correspondence.entity';
 import { CorrespondenceRecipient } from '../correspondence/entities/correspondence-recipient.entity';
@@ -129,6 +130,12 @@ describe('MigrationService', () => {
         {
           provide: getQueueToken('ai-batch'),
           useValue: {} as Queue,
+        },
+        {
+          provide: RagBatchService,
+          useValue: {
+            enqueueRagPrepare: jest.fn().mockResolvedValue(undefined),
+          },
         },
       ],
     }).compile();

@@ -56,7 +56,7 @@ describe('MigrationReviewService (Feature 242 & ADR-047)', () => {
     } as unknown as jest.Mocked<UuidResolverService>;
 
     mockRagBatchService = {
-      triggerEmbeddingForQueueItem: jest.fn().mockResolvedValue(undefined),
+      enqueueRagPrepare: jest.fn().mockResolvedValue(undefined),
     } as unknown as jest.Mocked<RagBatchService>;
 
     const module = await Test.createTestingModule({
@@ -80,7 +80,7 @@ describe('MigrationReviewService (Feature 242 & ADR-047)', () => {
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('updates OCR text and dispatches re-embedding to Qdrant', async () => {
+    it('updates OCR text without pre-import re-embed (ADR-042/047)', async () => {
       const mockItem = {
         id: 1,
         publicId: '019505a1-7c3e-7000-8000-queue001',
@@ -89,10 +89,6 @@ describe('MigrationReviewService (Feature 242 & ADR-047)', () => {
         details: { source_file_path: '/share/np-dms/staging_ai/doc.pdf' },
       };
       mockQueueRepo.findOne.mockResolvedValue(mockItem);
-      mockProjectRepo.findOne.mockResolvedValue({
-        id: 5,
-        publicId: '019505a1-7c3e-7000-8000-proj123',
-      });
 
       const res = await service.updateQueueOcr(
         '019505a1-7c3e-7000-8000-queue001',
@@ -103,14 +99,7 @@ describe('MigrationReviewService (Feature 242 & ADR-047)', () => {
       expect(res.success).toBe(true);
       expect(mockItem.ocrText).toBe('new corrected OCR text');
       expect(mockQueueRepo.save).toHaveBeenCalledWith(mockItem);
-      expect(
-        mockRagBatchService.triggerEmbeddingForQueueItem
-      ).toHaveBeenCalledWith(
-        '019505a1-7c3e-7000-8000-queue001',
-        '019505a1-7c3e-7000-8000-proj123',
-        'new corrected OCR text',
-        '/share/np-dms/staging_ai/doc.pdf'
-      );
+      expect(mockRagBatchService.enqueueRagPrepare).not.toHaveBeenCalled();
     });
   });
 

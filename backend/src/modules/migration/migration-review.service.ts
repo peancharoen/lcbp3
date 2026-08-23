@@ -57,7 +57,8 @@ export class MigrationReviewService {
   ) {}
 
   /**
-   * อัปเดตข้อความ OCR 3 หน้าแรก และส่ง Re-embed ลง Qdrant อัตโนมัติ (ADR-042/047)
+   * อัปเดตข้อความ OCR 3 หน้าแรกไว้ใน queue (ADR-042/047)
+   * RAG จะถูก trigger หลัง Execute Import โดยใช้ pipeline ปกติ (rag-prepare)
    */
   async updateQueueOcr(
     publicId: string,
@@ -78,30 +79,9 @@ export class MigrationReviewService {
     queueItem.reviewedAt = new Date();
     await queueRepo.save(queueItem);
 
-    // If reEmbed is requested (default true), trigger RAG embedding
-    if (dto.reEmbed !== false && queueItem.projectId) {
-      const project = await this.dataSource.getRepository(Project).findOne({
-        where: { id: queueItem.projectId },
-      });
-      if (project) {
-        // ดึง pdfPath จาก details.source_file_path ที่ ingestion เก็บไว้ (ADR-047)
-        const details = queueItem.details as Record<string, unknown> | null;
-        const pdfPath =
-          details && typeof details.source_file_path === 'string'
-            ? details.source_file_path
-            : undefined;
-        await this.ragBatchService.triggerEmbeddingForQueueItem(
-          queueItem.publicId,
-          project.publicId,
-          dto.ocrText,
-          pdfPath
-        );
-      }
-    }
-
     return {
       success: true,
-      message: 'OCR text updated and queued for RAG re-embedding',
+      message: 'OCR text updated for import',
       publicId: queueItem.publicId,
       ocrTextLength: dto.ocrText.length,
     };
@@ -489,27 +469,37 @@ export class MigrationReviewService {
       await queryRunner.commitTransaction();
 
       // FR-011: Trigger RAG re-embed หลัง commit เสร็จ (ADR-042/047)
-      // ใช้ OCR text จาก queue item เป็น source สำหรับ embedding
+      // ใช้ rag-prepare pipeline เดียวกับเอกสารปกติ โดยส่ง ocrText ผ่าน cachedOcrText
       if (queueItem.ocrText && queueItem.ocrText.trim().length > 0) {
-        const details = queueItem.details as Record<string, unknown> | null;
-        const pdfPath =
-          details && typeof details.source_file_path === 'string'
-            ? details.source_file_path
-            : undefined;
-        try {
-          await this.ragBatchService.triggerEmbeddingForQueueItem(
-            queueItem.publicId,
-            project.publicId,
-            queueItem.ocrText,
-            pdfPath
-          );
-        } catch (embedErr: unknown) {
-          // ไม่ throw — commit สำเร็จแล้ว การ embed ล้มเหลวไม่ควร rollback
-          const embedMsg =
-            embedErr instanceof Error ? embedErr.message : String(embedErr);
-          this.logger.warn(
-            `Post-commit RAG re-embed failed for [${queueItem.publicId}]: ${embedMsg}`
-          );
+        const mainAttachment = await queryRunner.manager.findOne(Attachment, {
+          where: { id: attachmentId },
+          select: ['publicId', 'filePath'],
+        });
+        if (mainAttachment) {
+          try {
+            await this.ragBatchService.enqueueRagPrepare({
+              documentPublicId: correspondence.publicId,
+              projectPublicId: project.publicId,
+              correspondenceNumber: correspondence.correspondenceNumber,
+              docType: type?.typeCode || 'LETTER',
+              statusCode: status.statusCode,
+              revisionNumber: revision.revisionNumber,
+              subject: revision.subject,
+              documentDate: revision.documentDate
+                ? revision.documentDate.toISOString().split('T')[0]
+                : undefined,
+              cachedOcrText: queueItem.ocrText,
+              attachmentPath: mainAttachment.filePath || undefined,
+              attachmentPublicId: mainAttachment.publicId,
+            });
+          } catch (embedErr: unknown) {
+            // ไม่ throw — commit สำเร็จแล้ว การ embed ล้มเหลวไม่ควร rollback
+            const embedMsg =
+              embedErr instanceof Error ? embedErr.message : String(embedErr);
+            this.logger.warn(
+              `Post-commit RAG re-embed failed for [${queueItem.publicId}]: ${embedMsg}`
+            );
+          }
         }
       }
 

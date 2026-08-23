@@ -2,6 +2,7 @@
 // Change Log:
 // - 2026-08-06: Initial creation — stub for Phase 6 implementation (Feature 242, FR-021, FR-022, FR-023, FR-024, FR-025, FR-026)
 // - 2026-08-06: Full implementation — RAG candidate query + BullMQ enqueue + idempotency (T053, T055)
+// - 2026-08-23: เปลี่ยน migration Execute Import ให้ใช้ rag-prepare เส้นเดียวกับเอกสารปกติ
 
 import { Injectable, Logger, Optional } from '@nestjs/common';
 import { DataSource } from 'typeorm';
@@ -12,6 +13,7 @@ import {
   IMPORT_TX_STATUS_PENDING,
   IMPORT_TX_STATUS_PROCESSING,
 } from '../constants/migration.constants';
+import { RagPrepareJobPayload } from '../../ai/ai-queue.service';
 
 /** ผลลัพธ์การ trigger RAG batch (FR-026b) */
 export interface RagBatchResult {
@@ -157,48 +159,37 @@ export class RagBatchService {
   }
 
   /**
-   * Enqueue embedding สำหรับข้อความ OCR ของเอกสารใน Staging Queue (ADR-042/047)
-   * ต้องส่ง pdfPath เพื่อให้ processEmbedDocument ทำงานได้ (ต้องการ pdfPath ตาม contract)
+   * Enqueue rag-prepare สำหรับเอกสารทีนำเข้า/แก้ไขแล้ว (ADR-042/047)
+   * ใช้ pipeline เดียวกับเอกสารปกติที submit workflow
    */
-  async triggerEmbeddingForQueueItem(
-    queuePublicId: string,
-    projectPublicId: string,
-    ocrText: string,
-    pdfPath?: string
-  ): Promise<void> {
+  async enqueueRagPrepare(payload: RagPrepareJobPayload): Promise<void> {
     if (!this.aiBatchQueue) {
       this.logger.warn(
-        `triggerEmbeddingForQueueItem: ai-batch queue not available for ${queuePublicId}`
+        `enqueueRagPrepare: ai-batch queue not available for ${payload.documentPublicId}`
       );
       return;
     }
-    const jobId = `embed-queue-${queuePublicId}`;
+    const jobId = `rag-prepare:${payload.documentPublicId}:${payload.revisionNumber}`;
     try {
       await this.aiBatchQueue.add(
-        'embed-document',
+        'rag-prepare',
         {
-          jobType: 'embed-document',
-          documentPublicId: queuePublicId,
-          projectPublicId,
-          payload: {
-            extractedText: ocrText,
-            pdfPath: pdfPath || '',
-          },
-          idempotencyKey: `embed-queue-${queuePublicId}-${Date.now()}`,
+          jobType: 'rag-prepare',
+          ...payload,
         },
         {
           jobId,
-          removeOnComplete: 1000,
-          removeOnFail: 5000,
+          removeOnComplete: 100,
+          removeOnFail: 50,
         }
       );
       this.logger.log(
-        `triggerEmbeddingForQueueItem: enqueued embed-document for ${queuePublicId}`
+        `enqueueRagPrepare: enqueued rag-prepare for ${payload.documentPublicId}`
       );
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
       this.logger.error(
-        `triggerEmbeddingForQueueItem: failed to enqueue embedding for ${queuePublicId}: ${errMsg}`
+        `enqueueRagPrepare: failed to enqueue rag-prepare for ${payload.documentPublicId}: ${errMsg}`
       );
     }
   }
