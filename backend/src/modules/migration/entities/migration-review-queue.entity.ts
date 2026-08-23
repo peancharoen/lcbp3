@@ -3,6 +3,7 @@
 // - 2026-05-22: เพิ่มฟิลด์ aiJobId สำหรับเก็บ jobId ของ BullMQ (ADR-028)
 // - 2026-08-06: เพิ่ม tempAttachmentIds (JSON), compareStatus (enum), compareUnavailableReason สำหรับ Feature 242 (FR-001, FR-002, FR-012a, FR-012b)
 // - 2026-08-22: ปรับ status enum ให้ตรง DB (PENDING, PENDING_REVIEW, IMPORTED, REJECTED) และเพิ่ม aiStatus (ADR-047)
+// - 2026-08-23: ขยาย ai_job_id เป็น VARCHAR(150) — custom BullMQ jobId ยาวกว่า UUID เปล่า (Bugfix ADR-047)
 
 import {
   Entity,
@@ -13,6 +14,7 @@ import {
 import { Exclude } from 'class-transformer';
 
 import { UuidBaseEntity } from '../../../common/entities/uuid-base.entity';
+import { MIGRATION_AI_JOB_ID_MAX_LENGTH } from '../constants/migration.constants';
 
 /** สถานะ lifecycle ของ migration review queue (ต้องตรงกับ DB enum) */
 export enum MigrationReviewStatus {
@@ -152,7 +154,12 @@ export class MigrationReviewQueue extends UuidBaseEntity {
   })
   compareUnavailableReason?: string | null;
 
-  @Column({ name: 'ai_job_id', type: 'varchar', length: 36, nullable: true })
+  @Column({
+    name: 'ai_job_id',
+    type: 'varchar',
+    length: MIGRATION_AI_JOB_ID_MAX_LENGTH,
+    nullable: true,
+  })
   aiJobId?: string | null;
 
   /** ADR-047: สถานะ BullMQ AI job (PENDING/RUNNING/DONE/FAILED) */

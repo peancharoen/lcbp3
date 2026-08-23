@@ -45,6 +45,15 @@ export const ENV_LEGACY_NAS_PATH = 'LEGACY_NAS_PATH' as const;
 export const LEGACY_NAS_PATH_DEFAULT = '/mnt/legacy-staging' as const;
 
 /**
+ * ความยาวสูงสุดของคอลัมน์ ai_job_id ใน migration_review_queue
+ * ต้องรองรับ custom BullMQ jobId ที่ยาวกว่า UUID เปล่า เช่น
+ * `legacy-enrich-<publicId>` (~50 ตัวอักษร) หรือ
+ * `legacy-enrich-<publicId>-<idempotencyKey>` (~110 ตัวอักษร)
+ * (Bugfix 2026-08-23 — เดิมกำหนดไว้ที่ 36 ตัวอักษรทำให้ save ล้มเหลวทุกแถว)
+ */
+export const MIGRATION_AI_JOB_ID_MAX_LENGTH = 150 as const;
+
+/**
  * Default batch timeout (ms) สำหรับ MetadataResolutionService
  */
 export const DEFAULT_BATCH_TIMEOUT_MS = 30000 as const;

@@ -1509,7 +1509,7 @@ CREATE TABLE migration_review_queue (
   idempotency_key VARCHAR(200) NULL COMMENT 'Idempotency-Key สำหรับป้องกัน queue ซ้ำ (nullable — entity เก่าไม่ได้ใช้)',
   original_filename VARCHAR(500) NULL COMMENT 'ชื่อไฟล์ต้นฉบับจาก legacy source (nullable — entity เก่าไม่ได้ใช้)',
   storage_temp_path VARCHAR(1000) NULL COMMENT 'temp storage path ก่อน import (nullable — entity เก่าไม่ได้ใช้)',
-  ai_job_id VARCHAR(36) NULL COMMENT 'BullMQ Job ID สำหรับงานประมวลผล AI',
+  ai_job_id VARCHAR(150) NULL COMMENT 'BullMQ Job ID สำหรับงานประมวลผล AI (custom jobId เช่น legacy-enrich-<publicId>-<idempotencyKey> ยาวเกิน UUID เปล่า — ADR-047 bugfix 2026-08-23)',
   ai_status ENUM('PENDING', 'RUNNING', 'DONE', 'FAILED') NULL DEFAULT 'PENDING' COMMENT 'สถานะ BullMQ AI job (ADR-047)',
   ai_metadata_json LONGTEXT NOT NULL COMMENT 'AI suggestion payload เต็มสำหรับ human review' CHECK (json_valid(`ai_metadata_json`)),
   confidence_score DECIMAL(5, 4) NULL COMMENT 'AI confidence score 0.0000-1.0000 (nullable — entity เก่าไม่ได้ใช้)',
