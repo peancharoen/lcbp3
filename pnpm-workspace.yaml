@@ -20,10 +20,14 @@ overrides:
   reflect-metadata: "^0.2.2"
   "jws@<3.2.3": ">=3.2.3"
   "lodash@>=4.0.0 <=4.17.23": ">=4.18.0"
-  "undici@<6.24.0": ">=6.24.0"
-  "undici@>=6.0.0 <6.24.0": ">=6.24.0"
-  # jsdom 29 ต้องการ undici 7.x internals (wrap-handler.js) — ห้ามข้ามไป 8.x
-  "undici@>=7.0.0 <7.29.0": "7.29.0"
+  # undici: pin 7.29.0 (bounded) — ห้าม resolve ไป 8.x
+  # target แบบ ">=6.24.0" (ปลายเปิด) เดิมทำให้ resolve ไป 8.10.0 แล้ว Qdrant ใช้งานไม่ได้ทั้งหมด:
+  # @qdrant/js-client-rest สร้าง undici.Agent ส่งเป็น dispatcher เข้า global fetch ของ Node 24
+  # (ใช้ undici 7 ภายใน) — Agent ของ undici 8 ตัด handler interface เดิมออก จึง throw
+  # "invalid onRequestStart method" → AiQdrantService collection init + RAG search fail
+  # jsdom 29 ก็ต้องการ undici 7.x internals (wrap-handler.js) เช่นกัน
+  # ตรวจแล้ว @elastic/transport ทำงานได้ทั้ง 7.29.0 และ 8.x → pin 7.29.0 ปลอดภัยทั้งทรี
+  undici: "7.29.0"
   "diff@>=4.0.0 <4.0.4": ">=4.0.4"
   "@isaacs/brace-expansion@<=5.0.0": ">=5.0.1"
   "webpack@>=5.49.0 <=5.104.0": ">=5.104.1"

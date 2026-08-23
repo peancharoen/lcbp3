@@ -74,7 +74,7 @@
     "multer": "^2.0.2",
     "mysql2": "^3.15.3",
     "nest-winston": "^1.10.2",
-    "nodemailer": "^8.0.3",
+    "nodemailer": "^9.0.1",
     "opossum": "^9.0.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
