@@ -358,6 +358,10 @@ export class LegacyIngestionService {
               const job = await this.aiBatchQueue.add(
                 'legacy-ai-enrichment',
                 {
+                  // Job metadata สำหรับ AiBatchProcessor แยกประเภทงาน (ADR-047 bugfix)
+                  jobType: 'legacy-ai-enrichment',
+                  documentPublicId: queueItem.publicId,
+                  // Payload สำหรับ processLegacyAiEnrichment
                   queueId: queueItem.id,
                   queuePublicId: queueItem.publicId,
                   documentNumber: docNumber,

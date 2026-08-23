@@ -318,7 +318,10 @@ export class AiBatchProcessor extends WorkerHost {
       job.data.jobType === 'sandbox-ocr-only' ||
       job.data.jobType === 'sandbox-ai-extract' ||
       job.data.jobType === 'sandbox-rag-prep';
-    if (!isSandbox) {
+    // ADR-047: legacy-ai-enrichment ทำงานกับ migration_review_queue ไม่ใช่ attachment
+    // จึงไม่ต้องอัปเดตสถานะการประมวลผลของ attachment
+    const isLegacy = job.data.jobType === 'legacy-ai-enrichment';
+    if (!isSandbox && !isLegacy) {
       await this.setAiProcessingStatus(job.data.documentPublicId, 'PROCESSING');
     }
     try {
@@ -426,7 +429,7 @@ export class AiBatchProcessor extends WorkerHost {
         `Batch job failed — jobType=${job.data.jobType}, documentPublicId=${job.data.documentPublicId}`,
         err instanceof Error ? err.stack : String(err)
       );
-      if (!isSandbox) {
+      if (!isSandbox && !isLegacy) {
         await this.setAiProcessingStatus(job.data.documentPublicId, 'FAILED');
       }
       throw err;

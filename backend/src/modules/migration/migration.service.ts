@@ -726,11 +726,21 @@ export class MigrationService {
     const job = await this.aiBatchQueue.add(
       'legacy-ai-enrichment',
       {
+        // Job metadata สำหรับ AiBatchProcessor แยกประเภทงาน (ADR-047 bugfix)
+        jobType: 'legacy-ai-enrichment',
+        documentPublicId: queueItem.publicId,
+        // Payload สำหรับ processLegacyAiEnrichment
         queueId: queueItem.id,
         queuePublicId: queueItem.publicId,
         documentNumber: queueItem.documentNumber,
         pdfPath: pdfPath,
-        projectPublicId: '00000000-0000-0000-0000-000000000000',
+        projectPublicId: queueItem.projectId
+          ? ((
+              await this.projectRepo.findOne({
+                where: { id: queueItem.projectId },
+              })
+            )?.publicId ?? '00000000-0000-0000-0000-000000000000')
+          : '00000000-0000-0000-0000-000000000000',
         projectId: queueItem.projectId,
       },
       {
