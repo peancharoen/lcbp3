@@ -103,8 +103,13 @@ describe('ContextConfigEditor', () => {
     expect(screen.getByText('prompt_management.pageSize_invalid')).toBeInTheDocument();
   });
 
-  it('displays saving state', () => {
+  it('displays saving state', async () => {
     render(<ContextConfigEditor initialConfig={null} onSave={mockOnSave} isSaving={true} />);
+
+    await waitFor(() => {
+      expect(projectService.getAll).toHaveBeenCalled();
+    });
+
     expect(screen.getByRole('button', { name: /กำลังบันทึก/i })).toBeDisabled();
   });
 });

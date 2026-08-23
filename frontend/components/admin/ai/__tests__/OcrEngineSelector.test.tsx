@@ -3,7 +3,7 @@
 // - 2026-06-15: Created test file for OcrEngineSelector
 
 import React from 'react';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import OcrEngineSelector from '../OcrEngineSelector';
@@ -87,15 +87,18 @@ describe('OcrEngineSelector', () => {
     // The active engine will have "เลือกอยู่แล้ว", the inactive will have "สลับใช้งาน"
     const switchButton = screen.getByRole('button', { name: /สลับใช้งาน/i });
 
-    await act(async () => {
-      await user.click(switchButton);
+    await user.click(switchButton);
+
+    await waitFor(() => {
+      expect(toast.success).toHaveBeenCalledWith('เปลี่ยนเอนจิน OCR หลักเป็น np-dms-ocr สำเร็จ');
     });
 
     expect(adminAiService.selectOcrEngine).toHaveBeenCalledWith('engine-2');
-    expect(toast.success).toHaveBeenCalledWith('เปลี่ยนเอนจิน OCR หลักเป็น np-dms-ocr สำเร็จ');
 
     // It should fetch engines again
-    expect(adminAiService.getOcrEngines).toHaveBeenCalledTimes(2);
+    await waitFor(() => {
+      expect(adminAiService.getOcrEngines).toHaveBeenCalledTimes(2);
+    });
   });
 
   it('shows error toast if fetching fails', async () => {
@@ -121,11 +124,12 @@ describe('OcrEngineSelector', () => {
 
     const switchButton = screen.getByRole('button', { name: /สลับใช้งาน/i });
 
-    await act(async () => {
-      await user.click(switchButton);
+    await user.click(switchButton);
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('ไม่สามารถเปลี่ยนเอนจิน OCR ได้');
     });
 
     expect(adminAiService.selectOcrEngine).toHaveBeenCalledWith('engine-2');
-    expect(toast.error).toHaveBeenCalledWith('ไม่สามารถเปลี่ยนเอนจิน OCR ได้');
   });
 });

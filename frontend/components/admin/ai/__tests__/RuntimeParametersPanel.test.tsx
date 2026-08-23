@@ -59,7 +59,7 @@ describe('RuntimeParametersPanel', () => {
     window.PointerEvent = MouseEvent as unknown as typeof PointerEvent;
   });
 
-  it('renders loading state initially', () => {
+  it('renders loading state initially', async () => {
     // We mock promise without resolving immediately to see loading state
     let resolvePromise: ((value: unknown) => void) | undefined;
     mockGetSandboxProfile.mockReturnValue(new Promise((resolve) => {
@@ -69,8 +69,11 @@ describe('RuntimeParametersPanel', () => {
     render(<RuntimeParametersPanel />);
     expect(screen.getByText(/กำลังโหลดพารามิเตอร์/)).toBeInTheDocument();
 
-    // Resolve to avoid act warnings
+    // Resolve and wait for the resulting state update to settle before the test ends
     resolvePromise(mockParams);
+    await waitFor(() => {
+      expect(screen.queryByText(/กำลังโหลดพารามิเตอร์/)).not.toBeInTheDocument();
+    });
   });
 
   it('renders parameters after loading', async () => {

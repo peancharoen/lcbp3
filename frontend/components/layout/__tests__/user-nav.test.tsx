@@ -4,7 +4,7 @@
 // - 2026-06-13: Fix Radix UI DropdownMenu testing — ใช้ userEvent แทน fireEvent และ waitFor
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { UserNav } from '../user-nav';
 import { useSession, signOut } from 'next-auth/react';
@@ -46,9 +46,7 @@ describe('UserNav Component', () => {
     // แต่ Radix ซ่อนด้วย data-state — ต้อง click trigger ก่อน
     const user = userEvent.setup();
     const trigger = screen.getByRole('button');
-    await act(async () => {
-      await user.click(trigger);
-    });
+    await user.click(trigger);
     await waitFor(() => {
       expect(screen.getByText('John Doe')).toBeInTheDocument();
     });
@@ -59,47 +57,41 @@ describe('UserNav Component', () => {
   it('ควรเปลี่ยนเส้นทางไปหน้า Profile เมื่อคลิกเมนู Profile', async () => {
     render(<UserNav />);
     const user = userEvent.setup();
-    await act(async () => {
-      await user.click(screen.getByRole('button'));
-    });
+    await user.click(screen.getByRole('button'));
     await waitFor(() => {
       expect(screen.getByText('Profile')).toBeInTheDocument();
     });
-    await act(async () => {
-      await user.click(screen.getByText('Profile'));
+    await user.click(screen.getByText('Profile'));
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith('/profile');
     });
-    expect(mockPush).toHaveBeenCalledWith('/profile');
   });
 
   it('ควรเปลี่ยนเส้นทางไปหน้า Settings เมื่อคลิกเมนู Settings', async () => {
     render(<UserNav />);
     const user = userEvent.setup();
-    await act(async () => {
-      await user.click(screen.getByRole('button'));
-    });
+    await user.click(screen.getByRole('button'));
     await waitFor(() => {
       expect(screen.getByText('Settings')).toBeInTheDocument();
     });
-    await act(async () => {
-      await user.click(screen.getByText('Settings'));
+    await user.click(screen.getByText('Settings'));
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith('/settings');
     });
-    expect(mockPush).toHaveBeenCalledWith('/settings');
   });
 
   it('ควรออกจากระบบและเปลี่ยนเส้นทางไปหน้า Login เมื่อคลิกเมนู Log out', async () => {
     vi.mocked(signOut).mockResolvedValue({} as any);
     render(<UserNav />);
     const user = userEvent.setup();
-    await act(async () => {
-      await user.click(screen.getByRole('button'));
-    });
+    await user.click(screen.getByRole('button'));
     await waitFor(() => {
       expect(screen.getByText('Log out')).toBeInTheDocument();
     });
-    await act(async () => {
-      await user.click(screen.getByText('Log out'));
+    await user.click(screen.getByText('Log out'));
+    await waitFor(() => {
+      expect(signOut).toHaveBeenCalledWith({ redirect: false });
     });
-    expect(signOut).toHaveBeenCalledWith({ redirect: false });
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith('/login');
     });
