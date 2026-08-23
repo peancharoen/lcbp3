@@ -210,7 +210,7 @@ UNIQUE INDEX idx_{table}_uuid (uuid)
 
 ตารางต่อไปนี้ **ไม่ต้อง** เพิ่ม UUID Column เพราะเป็น Internal-use only:
 
-- **Master/Lookup:** `organization_roles`, `disciplines`, `correspondence_types`, `correspondence_sub_types`, `correspondence_status`, `rfa_types`, `rfa_status_codes`, `rfa_approve_codes`, `circulation_status_codes`, `tags`
+- **Master/Lookup:** `organization_roles`, `disciplines`, `correspondence_types`, `correspondence_sub_types`, `correspondence_status`, `rfa_types`, `rfa_status_codes`, `rfa_approve_codes`, `circulation_status_codes`, `tags` — ตารางเหล่านี้ใช้ internal INT id โดยตรงใน Admin/Master API (เช่น `disciplines.id`) เนื่องจากไม่ใช่ public-facing entity
 - **RBAC:** `roles`, `permissions`, `user_assignments`
 - **Junction/Mapping:** `project_organizations`, `contract_organizations`, `correspondence_recipients`, `correspondence_tags`, `correspondence_references`, `contract_drawing_subcat_cat_maps`, `shop_drawing_revision_contract_refs`, `asbuilt_revision_shop_revisions_refs`, all `*_attachments` junction tables
 - **Drawing Categories:** `contract_drawing_volumes`, `contract_drawing_cats`, `contract_drawing_sub_cats`, `shop_drawing_main_categories`, `shop_drawing_sub_categories`

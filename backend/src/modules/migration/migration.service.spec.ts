@@ -1,5 +1,6 @@
 // File: backend/src/modules/migration/migration.service.spec.ts
 // Change Log:
+// - 2026-08-23: เพิ่ม regression tests สำหรับ disciplineId และ recipientType filter
 // - 2026-08-06: Initial creation
 // - 2026-08-07: Added enrichWithAttachments tests via getQueueItemById (Feature 242, FR-005)
 // - 2026-08-17: Added ConfigService mock for path traversal guard (Issue #3, ADR-016)
@@ -18,6 +19,10 @@ import { DataSource } from 'typeorm';
 import { MigrationReviewQueue } from './entities/migration-review-queue.entity';
 import { MigrationError } from './entities/migration-error.entity';
 import { FileStorageService } from '../../common/file-storage/file-storage.service';
+import { Discipline } from '../master/entities/discipline.entity';
+import { Correspondence } from '../correspondence/entities/correspondence.entity';
+import { CorrespondenceRecipient } from '../correspondence/entities/correspondence-recipient.entity';
+import { ImportCorrespondenceDto } from './dto/import-correspondence.dto';
 
 describe('MigrationService', () => {
   let service: MigrationService;
@@ -74,6 +79,7 @@ describe('MigrationService', () => {
     createQueryRunner: jest.fn().mockReturnValue(mockQueryRunner),
     manager: {
       find: mockAttachmentFind,
+      findOne: jest.fn(),
     },
   };
 
@@ -273,6 +279,112 @@ describe('MigrationService', () => {
       mockReviewQueueRepo.findOne.mockResolvedValue(null);
 
       await expect(service.getQueueItemById(999)).rejects.toThrow();
+    });
+  });
+
+  describe('importCorrespondence (regression coverage)', () => {
+    beforeEach(() => {
+      mockTransactionRepo.findOne.mockResolvedValue(null);
+      mockTypeRepo.findOne.mockResolvedValue({ id: 1, typeCode: 'LETTER' });
+      mockStatusRepo.findOne.mockResolvedValue({ id: 10 });
+      mockProjectRepo.findOne.mockResolvedValue({ id: 100 });
+    });
+
+    it('uses disciplineId directly and verifies discipline exists', async () => {
+      const dto: ImportCorrespondenceDto = {
+        documentNumber: 'DOC-001',
+        subject: 'Test',
+        category: 'Letter',
+        migratedBy: 'SYSTEM_IMPORT',
+        batchId: 'BATCH-001',
+        projectId: 100,
+        disciplineId: 5,
+      };
+
+      // discipline lookup ใช้ dataSource.manager ไม่ใช่ queryRunner.manager
+      mockDataSource.manager.findOne.mockResolvedValue({
+        id: 5,
+      });
+      mockQueryRunner.manager.findOne.mockResolvedValue(null);
+      mockQueryRunner.manager.create.mockImplementation(
+        (_entity: unknown, value: unknown) => value
+      );
+      mockQueryRunner.manager.save.mockResolvedValue({ id: 1 });
+      mockQueryRunner.manager.find.mockResolvedValue([]);
+      mockQueryRunner.manager.query.mockResolvedValue([]);
+
+      await service.importCorrespondence(dto, 'idem-key-1', 1);
+
+      expect(mockDataSource.manager.findOne).toHaveBeenCalledWith(
+        Discipline,
+        expect.objectContaining({
+          where: expect.objectContaining({ id: 5 }),
+          select: ['id'],
+        })
+      );
+    });
+
+    it('creates TO recipient even when a CC recipient for the same organization exists', async () => {
+      const dto: ImportCorrespondenceDto = {
+        documentNumber: 'DOC-002',
+        subject: 'Test',
+        category: 'Letter',
+        migratedBy: 'SYSTEM_IMPORT',
+        batchId: 'BATCH-002',
+        projectId: 100,
+        receiverPublicId: '019505a1-7c3e-7000-8000-abc123def456',
+      };
+
+      const existingCorrespondence = {
+        id: 1,
+        disciplineId: null,
+        originatorId: null,
+      };
+
+      // Mock dataSource.manager.findOne for resolving receiverPublicId
+      mockDataSource.manager.findOne.mockResolvedValue({
+        id: 7,
+      });
+
+      mockQueryRunner.manager.findOne.mockImplementation(
+        (entity: typeof Correspondence | typeof CorrespondenceRecipient) => {
+          if (entity.name === 'Correspondence') {
+            return existingCorrespondence;
+          }
+          // จำลองว่า TO recipient ยังไม่มี (แม้ CC จะมีอยู่) เพื่อให้บังคับสร้าง TO
+          return null;
+        }
+      );
+      mockQueryRunner.manager.create.mockImplementation(
+        (_entity: unknown, value: unknown) => value
+      );
+      mockQueryRunner.manager.save.mockResolvedValue({ id: 1 });
+      mockQueryRunner.manager.find.mockResolvedValue([]);
+      mockQueryRunner.manager.query.mockResolvedValue([]);
+
+      await service.importCorrespondence(dto, 'idem-key-2', 1);
+
+      // ถ้า lookup ไม่ระบุ recipientType ระบบจะพบ CC และไม่สร้าง TO — นี่คือ bug ที่แก้ไข
+      expect(mockQueryRunner.manager.findOne).toHaveBeenCalledWith(
+        CorrespondenceRecipient,
+        expect.objectContaining({
+          where: expect.objectContaining({
+            correspondenceId: 1,
+            recipientOrganizationId: 7,
+            recipientType: 'TO',
+          }),
+        })
+      );
+
+      // ต้องสร้าง TO recipient ใหม่เมื่อ lookup แยก recipientType
+      expect(mockQueryRunner.manager.create).toHaveBeenCalledWith(
+        CorrespondenceRecipient,
+        expect.objectContaining({
+          correspondenceId: 1,
+          recipientOrganizationId: 7,
+          recipientType: 'TO',
+        })
+      );
     });
   });
 });

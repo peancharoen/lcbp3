@@ -1,4 +1,8 @@
-import { IsOptional, IsEnum, IsInt, Min } from 'class-validator';
+// File: backend/src/modules/migration/dto/migration-queue-query.dto.ts
+// Change Log:
+// - 2026-08-23: เพิ่ม batchId filter สำหรับ getReviewQueue
+
+import { IsOptional, IsEnum, IsInt, Min, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 import { MigrationReviewStatus } from '../entities/migration-review-queue.entity';
 import { ApiPropertyOptional } from '@nestjs/swagger';
@@ -24,4 +28,9 @@ export class MigrationQueueQueryDto extends PaginationDto {
   @IsOptional()
   @IsEnum(MigrationReviewStatus)
   status?: MigrationReviewStatus;
+
+  @ApiPropertyOptional({ description: 'Filter by batchId (ADR-047)' })
+  @IsOptional()
+  @IsString()
+  batchId?: string;
 }

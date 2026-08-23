@@ -1,5 +1,6 @@
 // File: app/(admin)/admin/migration/review/[id]/page.tsx
 // Change Log:
+// - 2026-08-23: อ่าน sourceFilePath/disciplineId จาก details, ส่ง disciplineId (INT), ใช้ item.projectId
 // - 2026-05-22: Initial creation of Migration Review detail page (T024)
 // - 2026-08-06: เพิ่ม CompareResultTable และ fieldResolutions state สำหรับ Feature 242 (FR-011, FR-012c)
 // - 2026-08-22: เปลี่ยน Sender/Receiver/Discipline เป็น dropdown, แก้ date mapping
@@ -36,8 +37,6 @@ interface MigrationAiIssues {
   issuedDate?: string;
   receivedDate?: string;
   senderId?: string | number;
-  disciplineId?: string | number;
-  sourceFilePath?: string;
   keyPoints?: string[];
   validationResults?: Array<{ message: string; severity: string }>;
   tags?: string[];
@@ -115,6 +114,7 @@ export default function MigrationReviewPage() {
           // Pre-fill form: Doc Date = issuedDate (excel issued_date → document_date)
           //                Received Date = receivedDate (excel received_date → received_date)
           const issues = (res.aiIssues || {}) as MigrationAiIssues;
+          const details = res.details || {};
           form.reset({
             documentNumber: res.documentNumber || '',
             subject: res.title || res.originalTitle || res.subject || res.originalSubject || '',
@@ -127,7 +127,8 @@ export default function MigrationReviewPage() {
               : issues.receivedDate || '',
             senderPublicId: res.senderOrganizationPublicId || '',
             receiverPublicId: res.receiverOrganizationPublicId || '',
-            disciplineId: issues.disciplineId ? String(issues.disciplineId) : '',
+            // อ่าน disciplineId จาก details ที่ AI enrichment เก็บไว้
+            disciplineId: details.disciplineId ? String(details.disciplineId) : '',
           });
         }
       } catch (_error) {
@@ -165,22 +166,24 @@ export default function MigrationReviewPage() {
     try {
       setSubmitting(true);
       const issues = (item.aiIssues || {}) as unknown as MigrationAiIssues;
+      const details = item.details || {};
       const payload = {
         documentNumber: values.documentNumber,
         subject: values.subject,
         category: values.category,
-        sourceFilePath: issues.sourceFilePath || '',
+        // อ่าน canonical path จาก details ที่ ingestion / AI enrichment เก็บไว้
+        sourceFilePath: typeof details.source_file_path === 'string' ? details.source_file_path : '',
         migratedBy: 'SYSTEM_IMPORT',
         batchId: 'MANUAL_REVIEW_BATCH',
-        projectId: 1,
+        projectId: item.projectId || 1,
         // Mapping: documentDate = issued_date จาก excel (วันที่ออกเอกสาร)
         documentDate: values.documentDate,
         receivedDate: values.receivedDate,
         // ADR-019: ส่ง publicId (UUID) สำหรับ sender/receiver
         senderPublicId: values.senderPublicId || undefined,
         receiverPublicId: values.receiverPublicId || undefined,
-        // Discipline ไม่มี publicId — ส่ง disciplinePublicId เป็น string ของ INT id
-        disciplinePublicId: values.disciplineId || undefined,
+        // Discipline ใช้ internal INT id (ADR-019 Excluded Tables: Master/Lookup)
+        disciplineId: values.disciplineId ? Number(values.disciplineId) : undefined,
         details: {
           tags: issues.tags || [],
           aiConfidence: item.aiConfidence,
@@ -232,8 +235,12 @@ export default function MigrationReviewPage() {
     return <div className="py-10 text-center text-red-500">Document not found</div>;
   }
 
-  const pdfUrl = (item.aiIssues as MigrationAiIssues)?.sourceFilePath
-    ? migrationService.getStagingFileUrl((item.aiIssues as MigrationAiIssues).sourceFilePath!)
+  const sourceFilePath =
+    typeof item.details?.source_file_path === 'string'
+      ? item.details.source_file_path
+      : null;
+  const pdfUrl = sourceFilePath
+    ? migrationService.getStagingFileUrl(sourceFilePath)
     : null;
 
   return (

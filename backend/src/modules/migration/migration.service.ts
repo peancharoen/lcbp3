@@ -1,5 +1,6 @@
 // File: backend/src/modules/migration/migration.service.ts
 // Change Log:
+// - 2026-08-23: ใช้ disciplineId (INT) โดยตรง, แก้ recipient lookup ให้แยก recipientType: TO
 // - 2026-08-22: Persist IMPORTED after approve-and-import to match the database enum
 // - 2026-08-22: เพิ่ม startExtractQueueItem / startExtractBatch และปรับ execute import flow ตาม ADR-047
 
@@ -216,19 +217,15 @@ export class MigrationService {
       resolvedReceiverId = receiverOrg.id;
     }
 
-    let resolvedDisciplineId = dto.disciplineId;
-    // Discipline ไม่มี publicId (UUID) — ใช้ INT id โดยตรงตามโครงสร้างตาราง disciplines
-    if (!resolvedDisciplineId && dto.disciplinePublicId) {
-      const disciplineIdNum = Number(dto.disciplinePublicId);
-      if (!isNaN(disciplineIdNum) && disciplineIdNum > 0) {
-        const discipline = await this.dataSource.manager.findOne(Discipline, {
-          where: { id: disciplineIdNum },
-          select: ['id'],
-        });
-        if (!discipline) {
-          throw new NotFoundException('Discipline', dto.disciplinePublicId);
-        }
-        resolvedDisciplineId = discipline.id;
+    // Discipline ใช้ internal INT id โดยตรง (ADR-019 Excluded Tables: Master/Lookup)
+    const resolvedDisciplineId = dto.disciplineId;
+    if (resolvedDisciplineId) {
+      const discipline = await this.dataSource.manager.findOne(Discipline, {
+        where: { id: resolvedDisciplineId },
+        select: ['id'],
+      });
+      if (!discipline) {
+        throw new NotFoundException('Discipline', String(resolvedDisciplineId));
       }
     }
 
@@ -311,7 +308,7 @@ export class MigrationService {
           await queryRunner.manager.save(correspondence);
         }
 
-        // เพิ่ม recipient ถ้ายังไม่มี
+        // เพิ่ม recipient ถ้ายังไม่มี (แยกตาม recipientType ด้วย TO)
         if (resolvedReceiverId) {
           const existingRecipient = await queryRunner.manager.findOne(
             CorrespondenceRecipient,
@@ -319,6 +316,7 @@ export class MigrationService {
               where: {
                 correspondenceId: correspondence.id,
                 recipientOrganizationId: resolvedReceiverId,
+                recipientType: 'TO' as const,
               },
             }
           );
@@ -784,12 +782,15 @@ export class MigrationService {
   }
 
   async getReviewQueue(query: MigrationQueueQueryDto) {
-    const { page = 1, limit = 10, status } = query;
+    const { page = 1, limit = 10, status, batchId } = query;
     const skip = (page - 1) * limit;
 
     const queryBuilder = this.reviewQueueRepo.createQueryBuilder('queue');
     if (status) {
       queryBuilder.where('queue.status = :status', { status });
+    }
+    if (batchId) {
+      queryBuilder.andWhere('queue.batch_id = :batchId', { batchId });
     }
 
     queryBuilder.orderBy('queue.createdAt', 'DESC');

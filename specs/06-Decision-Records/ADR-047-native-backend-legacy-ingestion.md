@@ -1,6 +1,6 @@
 # ADR-047: Native Backend Legacy Ingestion & OCR Persistence
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-08-20
 **Decision Makers:** Senior Full Stack Developer, Lead Architect
 **Supersedes:** `specs/03-Data-and-Storage/03-04-legacy-data-migration.md` §3 (n8n Workflow orchestration for migration)
@@ -82,7 +82,7 @@
 
 1. **`PENDING`** — ข้อมูล Excel ถูกบันทึกลง `migration_review_queue` แล้ว คนตรวจสอบข้อมูลเบื่องต้น (Document Number, Subject, Category, Dates, Sender/Receiver, Discipline) ได้ก่อน
 2. **`PENDING` + `ai_status = RUNNING`** — ผู้ใช้กด "Start Extract" หรือ "Start Extract Batch" ระบบส่ง Job `legacy-ai-enrichment` เข้าคิว BullMQ `ai-batch` (Concurrency=1) เพื่อประมวลผล OCR/AI; `status` ยังคง `PENDING` ในฐานข้อมูล แต่ `ai_status` เปลี่ยนเป็น `RUNNING` เพื่อบ่งบอกว่ากำลังประมวลผล
-3. **`PENDING_REVIEW`** — BullMQ Worker เสร็จแล้ว บันทึก `ocr_text`, `ai_confidence`, `ai_suggested_category`, `ai_summary`, `extracted_tags`, `ai_issues` กลับมา คนตรวจทานข้อมูล + OCR ในหน้า `/admin/migration/review`
+3. **`PENDING_REVIEW`** — BullMQ Worker เสร็จแล้ว บันทึก `ocr_text`, `ai_confidence`, `ai_suggested_category`, `ai_summary`, `extracted_tags`, `ai_issues` กลับมา คนตรวจทานข้อมูล + OCR ในหน้า `/admin/migration/review/:publicId`
 4. **`IMPORTED`** — คนกด "Execute Import" ระบบสร้าง `Correspondence`, `CorrespondenceRevision`, `Attachment` (permanent), `Tags` และ `CorrespondenceRecipients` จริง
 
 **ข้อกำหนดเพิ่มเติม:**
@@ -121,7 +121,7 @@
 | Component | Level | Impact Description | Required Action |
 | :--- | :--- | :--- | :--- |
 | **Backend Service** | 🔴 High | สร้าง Ingestion Engine และรองรับ Streaming Excel | สร้าง `LegacyIngestionService` และลงทะเบียนใน `MigrationModule` |
-| **Backend AI Worker** | 🔴 High | แก้ Job Handler `migrate-document` ใน `AiBatchProcessor` ให้ระบุ `queue_public_id` และอัปเดต `migration_review_queue` | อัปเดต `processMigrateDocument` ให้บันทึก OCR/AI ผลลัพธ์กลับ Queue Item |
+| **Backend AI Worker** | 🔴 High | แก้ Job Handler ใน `AiBatchProcessor` ให้รองรับ `legacy-ai-enrichment` โดยอ้างอิง `queueId` (INT) พร้อมส่ง `queuePublicId` ใน payload และอัปเดต `migration_review_queue` | อัปเดต `processLegacyAiEnrichment` ให้บันทึก OCR/AI ผลลัพธ์กลับ Queue Item |
 | **Backend Controller** | 🔴 High | เพิ่ม endpoint `POST queue/:publicId/extract` และ `POST /extract` (batch) สำหรับเริ่มประมวลผล OCR/AI | อัปเดต `MigrationController` และ `MigrationService` |
 | **Backend CLI** | 🟡 Medium | สร้าง CLI Script สำหรับรัน Batch ขนาดใหญ่ | สร้าง `backend/src/scripts/legacy-ingest.ts` |
 | **Frontend UI** | 🔴 High | เพิ่มปุ่ม "Start Extract", "Execute Import" และ OCR Result Panel | อัปเดต `frontend/app/(admin)/admin/migration/page.tsx` และ `review/[id]/page.tsx` |
@@ -137,7 +137,7 @@
 | **ADR-023A** | 2.0 | Required (AI Model Stack & BullMQ Concurrency=1) | ✅ Implemented |
 | **ADR-028** | 1.0 | Core (Staging Queue & Review Lifecycle) | ✅ Implemented |
 | **ADR-042** | 1.0 | Required (OCR Text Persistence & RAG Sync) | 📋 Proposed / Aligned |
-| **ADR-047** | 1.0 | Target (Native Backend Legacy Ingestion) | 📋 Proposed (This ADR) |
+| **ADR-047** | 1.0 | Target (Native Backend Legacy Ingestion) | ✅ Implemented |
 
 ---
 

@@ -98,6 +98,7 @@ export const migrationService = {
     page?: number;
     limit?: number;
     status?: MigrationReviewStatus;
+    batchId?: string;
   }): Promise<PaginatedResponse<MigrationReviewQueueItem>> => {
     const { data } = await api.get('/migration/queue', { params });
     return normalizePaginatedResponse<MigrationReviewQueueItem>(data);

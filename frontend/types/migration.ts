@@ -1,5 +1,6 @@
 // File: types/migration.ts
 // Change Log:
+// - 2026-08-23: เพิ่ม details field ใน MigrationReviewQueueItem สำหรับ source_file_path/disciplineId
 // - 2026-05-22: Initial creation and update for ADR-019 compatibility and added subject fields
 // - 2026-08-06: เพิ่ม CompareStatus, CompareResult, CompareFieldResult, FieldResolution สำหรับ Feature 242
 // - 2026-08-22: ปรับ MigrationReviewStatus, เพิ่ม MigrationAiStatus, aiStatus, aiJobId (ADR-047)
@@ -111,6 +112,8 @@ export interface MigrationReviewQueueItem {
   capturedThresholds?: CapturedThresholds;
   /** Edge Case 4: flag แสดงว่า AI enrichment ล้มเหลวหลัง retry ครบ */
   aiFailed?: boolean;
+  /** Metadata จาก ingestion / AI enrichment เช่น source_file_path, disciplineId (ADR-047) */
+  details?: Record<string, unknown> | null;
 }
 
 export interface CommitBatchItemDto {

@@ -1,3 +1,7 @@
+// File: backend/src/modules/migration/dto/import-correspondence.dto.ts
+// Change Log:
+// - 2026-08-23: ใช้ disciplineId (INT) โดยตรง ลบ disciplinePublicId ที่ขัดกับโครงสร้างตาราง
+
 import {
   IsString,
   IsNotEmpty,
@@ -76,14 +80,10 @@ export class ImportCorrespondenceDto {
   @IsOptional()
   documentDate?: string;
 
+  /** Discipline internal ID (INT) — disciplines อยู่ใน ADR-019 Excluded Tables (Master/Lookup) */
   @IsNumber()
   @IsOptional()
   disciplineId?: number;
-
-  /** Discipline ID (INT — disciplines table ไม่มี UUID publicId) */
-  @IsString()
-  @IsOptional()
-  disciplinePublicId?: string;
 
   @IsNumber()
   @IsOptional()

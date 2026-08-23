@@ -1,3 +1,7 @@
+// File: app/(admin)/admin/migration/page.tsx
+// Change Log:
+// - 2026-08-23: Batch commit ส่ง sourceFilePath และ disciplineId จาก queue item details
+
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
@@ -376,14 +380,11 @@ function LegacyManagementTab() {
       setErrorMessage(null);
       const res = await migrationService.getReviewQueue({
         status: statusFilter === 'ALL' ? undefined : (statusFilter as MigrationReviewStatus),
+        batchId: batchFilter === 'ALL' ? undefined : batchFilter,
         page,
         limit: pageSize,
       });
-      let fetchedItems = Array.isArray(res.items) ? res.items : [];
-      // ADR-047: filter by batchId ฝั่ง client (backend ยังไม่รองรับ batchId query)
-      if (batchFilter !== 'ALL') {
-        fetchedItems = fetchedItems.filter((i) => i.batchId === batchFilter);
-      }
+      const fetchedItems = Array.isArray(res.items) ? res.items : [];
       setItems(fetchedItems);
       setTotalRows(res.total ?? fetchedItems.length);
       setTotalPages(res.totalPages ?? 1);
@@ -415,17 +416,21 @@ function LegacyManagementTab() {
   }, [fetchBatches]);
 
   // ADR-019: toggle โดยใช้ publicId (string)
-  // ADR-047: "Select All" เลือกเฉพาะรายการที่พร้อม Execute Import (PENDING_REVIEW + aiStatus DONE)
+  // ADR-047: "Select All" เลือกรายการทั้งหมดในหน้าปัจจุบัน แต่ละ action จะ filter ตามสถานะเอง
   const isExecutable = (item: typeof items[number]) =>
     item.status === MigrationReviewStatus.PENDING_REVIEW &&
     item.aiStatus === MigrationAiStatus.DONE;
 
+  const isExtractable = (item: typeof items[number]) =>
+    item.status === MigrationReviewStatus.PENDING &&
+    item.aiStatus !== MigrationAiStatus.RUNNING &&
+    item.aiStatus !== MigrationAiStatus.DONE;
+
   const handleToggleSelectAll = () => {
-    const executableItems = items.filter(isExecutable);
-    if (selectedPublicIds.length === executableItems.length && executableItems.length > 0) {
+    if (selectedPublicIds.length === items.length && items.length > 0) {
       setSelectedPublicIds([]);
     } else {
-      setSelectedPublicIds(executableItems.map((i) => i.publicId));
+      setSelectedPublicIds(items.map((i) => i.publicId));
     }
   };
 
@@ -493,6 +498,15 @@ function LegacyManagementTab() {
             // ADR-019: ส่ง publicId (UUID) สำหรับ sender/receiver
             senderPublicId: item.senderOrganizationPublicId || undefined,
             receiverPublicId: item.receiverOrganizationPublicId || undefined,
+            // อ่าน canonical path และ disciplineId จาก details ที่ ingestion / AI เก็บไว้
+            sourceFilePath:
+              typeof item.details?.source_file_path === 'string'
+                ? item.details.source_file_path
+                : undefined,
+            disciplineId:
+              typeof item.details?.disciplineId === 'number'
+                ? item.details.disciplineId
+                : undefined,
             details: { tags: item.extractedTags },
           },
         }));
@@ -547,11 +561,15 @@ function LegacyManagementTab() {
               <>
                 <Button variant="outline" onClick={handleBatchExtract} disabled={submitting}>
                   <RefreshCwIcon className="mr-2 h-4 w-4" />
-                  {submitting ? 'Processing...' : `Start Extract (${selectedPublicIds.length})`}
+                  {submitting
+                    ? 'Processing...'
+                    : `Start Extract (${items.filter(isExtractable).filter((i) => selectedPublicIds.includes(i.publicId)).length})`}
                 </Button>
                 <Button variant="default" onClick={handleBatchExecuteImport} disabled={submitting}>
                   <CheckCircleIcon className="mr-2 h-4 w-4" />
-                  {submitting ? 'Processing...' : `Execute Import (${selectedPublicIds.length})`}
+                  {submitting
+                    ? 'Processing...'
+                    : `Execute Import (${items.filter(isExecutable).filter((i) => selectedPublicIds.includes(i.publicId)).length})`}
                 </Button>
               </>
             )}
@@ -611,13 +629,9 @@ function LegacyManagementTab() {
                 <TableRow>
                   <TableHead className="w-[50px]">
                     <Checkbox
-                      checked={
-                        items.length > 0 &&
-                        selectedPublicIds.length === items.filter(isExecutable).length &&
-                        items.filter(isExecutable).length > 0
-                      }
+                      checked={items.length > 0 && selectedPublicIds.length === items.length}
                       onCheckedChange={handleToggleSelectAll}
-                      aria-label="เลือกรายการที่พร้อม Execute Import"
+                      aria-label="เลือกรายการทั้งหมดในหน้านี้"
                     />
                   </TableHead>
                   <TableHead>Document No.</TableHead>
