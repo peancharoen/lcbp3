@@ -3,6 +3,7 @@
 // - 2026-05-22: Initial creation for US2 - Migration Review Queue Commit (T020a)
 // - 2026-05-22: Integrated UuidResolverService to resolve hybrid identifiers (T020a)
 // - 2026-08-17: ADR-016/002/007 compliance — รับ idempotencyKey จริง, ลบ hardcoded
+// - 2026-08-23: Execute Import บันทึก ocrText ลง Attachment.ocr_text และ Revision.body
 //   fallback `|| 1` / `|| 3`, ใช้ BusinessException สำหรับ missing master data,
 //   ใช้ SELECT FOR UPDATE ป้องกัน revision race condition (Issue #3)
 
@@ -323,11 +324,16 @@ export class MigrationReviewService {
         }
       }
       // ทำเครื่องหมาย attachments ทั้งหมดเป็นถาวร (isTemporary = false)
-      for (const attId of attachmentIds) {
+      // พร้อมบันทึก OCR text 3 หน้าแรกลง attachment หลัก (ADR-042/047)
+      for (let attIndex = 0; attIndex < attachmentIds.length; attIndex += 1) {
+        const attUpdate: Record<string, unknown> = { isTemporary: false };
+        if (attIndex === 0 && queueItem.ocrText) {
+          attUpdate.ocrText = queueItem.ocrText;
+        }
         await queryRunner.manager.update(
           Attachment,
-          { id: attId },
-          { isTemporary: false }
+          { id: attachmentIds[attIndex] },
+          attUpdate
         );
       }
       const attachmentId = attachmentIds[0]; // เอกสารหลัก (FR-003)
@@ -342,7 +348,8 @@ export class MigrationReviewService {
         queueItem.subject ??
         queueItem.originalSubject ??
         'No Subject';
-      const finalBody = dto.body ?? queueItem.body ?? '';
+      // ADR-042/047: ใช้ ocrText เป็น body ของเอกสารถ้ายังไม่มี body จากผู้ตรวจทาน
+      const finalBody = dto.body || queueItem.body || queueItem.ocrText || '';
       const issuedDateStr =
         dto.issuedDate ??
         (queueItem.issuedDate ? queueItem.issuedDate.toISOString() : undefined);
