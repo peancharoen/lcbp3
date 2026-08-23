@@ -8,6 +8,7 @@ import {
   MigrationErrorItem,
   PaginatedResponse,
   MigrationReviewStatus,
+  MigrationAiStatus,
   CommitBatchDto,
   StartIngestPayload,
   StartIngestResponse,
@@ -98,6 +99,7 @@ export const migrationService = {
     page?: number;
     limit?: number;
     status?: MigrationReviewStatus;
+    aiStatus?: MigrationAiStatus;
     batchId?: string;
   }): Promise<PaginatedResponse<MigrationReviewQueueItem>> => {
     const { data } = await api.get('/migration/queue', { params });
@@ -243,14 +245,18 @@ export const migrationService = {
     return Array.isArray(result?.batches) ? result.batches : [];
   },
 
-  // ADR-047: ลบรายการ Review Queue ตาม batch หรือทั้งหมด (เฉพาะ PENDING)
+  // ADR-047: ลบรายการ Review Queue ตาม batch / ทั้งหมด / ที่เลือก พร้อมลบ BullMQ job
   deleteReviewQueue: async (
     batchId?: string,
-    all: boolean = false
+    all: boolean = false,
+    publicIds?: string[]
   ): Promise<{ deleted: number }> => {
     const params: Record<string, string> = {};
     if (all) params.all = 'true';
     else if (batchId) params.batchId = batchId;
+    else if (publicIds && publicIds.length > 0) {
+      params.publicIds = publicIds.join(',');
+    }
     const idempotencyKey =
       typeof crypto !== 'undefined' && crypto.randomUUID
         ? crypto.randomUUID()

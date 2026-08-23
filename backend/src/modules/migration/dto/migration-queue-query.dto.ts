@@ -4,7 +4,10 @@
 
 import { IsOptional, IsEnum, IsInt, Min, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
-import { MigrationReviewStatus } from '../entities/migration-review-queue.entity';
+import {
+  MigrationReviewStatus,
+  MigrationAiStatus,
+} from '../entities/migration-review-queue.entity';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class PaginationDto {
@@ -28,6 +31,11 @@ export class MigrationQueueQueryDto extends PaginationDto {
   @IsOptional()
   @IsEnum(MigrationReviewStatus)
   status?: MigrationReviewStatus;
+
+  @ApiPropertyOptional({ enum: MigrationAiStatus })
+  @IsOptional()
+  @IsEnum(MigrationAiStatus)
+  aiStatus?: MigrationAiStatus;
 
   @ApiPropertyOptional({ description: 'Filter by batchId (ADR-047)' })
   @IsOptional()

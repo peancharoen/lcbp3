@@ -265,15 +265,22 @@ export class MigrationController {
     return this.migrationService.getErrors(page, limit);
   }
 
-  // ADR-047: ลบรายการ Review Queue ตาม batch หรือทั้งหมด (เฉพาะ PENDING)
+  // ADR-047: ลบรายการ Review Queue ตาม batch / ทั้งหมด / ที่เลือก พร้อมลบ BullMQ job
   @Delete('queue')
   @UseGuards(JwtAuthGuard, RbacGuard)
   @RequirePermission('migration.delete')
   @ApiOperation({
-    summary: 'Delete pending review queue items by batchId or all (ADR-047)',
+    summary:
+      'Delete review queue items by batchId, all, or selected publicIds (ADR-047)',
   })
   @ApiQuery({ name: 'batchId', required: false, type: String })
   @ApiQuery({ name: 'all', required: false, type: Boolean })
+  @ApiQuery({
+    name: 'publicIds',
+    required: false,
+    type: String,
+    description: 'Comma-separated queue publicIds to delete',
+  })
   @ApiHeader({
     name: 'Idempotency-Key',
     description: 'Unique key per delete operation',
@@ -282,11 +289,22 @@ export class MigrationController {
   async deleteReviewQueue(
     @Query('batchId') batchId?: string,
     @Query('all') all?: string,
+    @Query('publicIds') publicIdsRaw?: string,
     @Headers('idempotency-key') idempotencyKey?: string
   ) {
     requireIdempotencyKey(idempotencyKey);
     const allFlag = all === 'true' || all === '1';
-    return this.migrationService.deleteReviewQueueByBatch(batchId, allFlag);
+    const publicIds = publicIdsRaw
+      ? publicIdsRaw
+          .split(',')
+          .map((id) => id.trim())
+          .filter(Boolean)
+      : undefined;
+    return this.migrationService.deleteReviewQueueByBatch(
+      batchId,
+      allFlag,
+      publicIds
+    );
   }
 
   // ADR-047: ลบรายการ Migration Errors ตาม batch หรือทั้งหมด

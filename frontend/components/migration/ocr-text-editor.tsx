@@ -1,6 +1,7 @@
 // File: frontend/components/migration/ocr-text-editor.tsx
 // Change Log:
 // - 2026-08-20: สร้าง OCR Text Editor และปุ่ม Re-embed ลง Qdrant RAG (ADR-042/047)
+// - 2026-08-23: RAG embedding เกิดขึ้นหลัง Execute Import เท่านั้น — ลบปุ่ม Pre-import re-embed
 
 'use client';
 
@@ -9,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { FileTextIcon, SaveIcon, SparklesIcon, RefreshCwIcon } from 'lucide-react';
+import { FileTextIcon, SaveIcon } from 'lucide-react';
 import { migrationService } from '@/lib/services/migration.service';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -28,7 +29,9 @@ export function OcrTextEditor({ publicId, initialOcrText, onSaved }: OcrTextEdit
     setOcrText(initialOcrText || '');
   }, [initialOcrText]);
 
-  const handleSaveOcr = async (reEmbed: boolean) => {
+  // ADR-042/047: RAG embedding เกิดขึ้นหลัง Execute Import สำเร็จแล้ว
+  // หน้า Review ใช้ปุ่มนี้แก้ไข OCR text สำหรับ import ไม่ใช่ re-embed staging
+  const handleSaveOcr = async () => {
     if (!publicId) {
       toast.error('ไม่พบ publicId ของเอกสาร');
       return;
@@ -38,16 +41,12 @@ export function OcrTextEditor({ publicId, initialOcrText, onSaved }: OcrTextEdit
       setSaving(true);
       // ADR-016: ส่ง Idempotency-Key สำหรับ OCR update mutation
       const idempotencyKey = `ocr-${publicId}-${uuidv4()}`;
-      await migrationService.updateQueueOcr(publicId, {
-        ocrText,
-        reEmbed,
-      }, idempotencyKey);
-
-      if (reEmbed) {
-        toast.success('บันทึกข้อความ OCR และส่งคำสั่ง Re-embed เข้าสู่ Qdrant เรียบร้อยแล้ว');
-      } else {
-        toast.success('บันทึกข้อความ OCR เรียบร้อยแล้ว');
-      }
+      await migrationService.updateQueueOcr(
+        publicId,
+        { ocrText, reEmbed: false },
+        idempotencyKey
+      );
+      toast.success('บันทึกข้อความ OCR เรียบร้อยแล้ว (RAG จะเกิดขึ้นหลัง Execute Import)');
 
       if (onSaved) {
         onSaved(ocrText);
@@ -71,7 +70,7 @@ export function OcrTextEditor({ publicId, initialOcrText, onSaved }: OcrTextEdit
           <span className="text-xs text-muted-foreground">{ocrText.length} ตัวอักษร</span>
         </div>
         <CardDescription className="text-xs">
-          ท่านสามารถตรวจทานและแก้ไขคำผิดของข้อความ OCR ได้โดยตรง เมื่อบันทึกระบบจะอัปเดต Vector ใน Qdrant อัตโนมัติ
+          ท่านสามารถตรวจทานและแก้ไขคำผิดของข้อความ OCR ได้ ระบบจะเก็บข้อความไว้สำหรับ Execute Import และ RAG จะเกิดขึ้นหลังจากนำเข้าสู่ระบบแล้ว
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -87,34 +86,13 @@ export function OcrTextEditor({ publicId, initialOcrText, onSaved }: OcrTextEdit
         <div className="flex items-center justify-end gap-2">
           <Button
             type="button"
-            variant="outline"
             size="sm"
-            onClick={() => handleSaveOcr(false)}
+            onClick={handleSaveOcr}
             disabled={saving}
             className="text-xs"
           >
             <SaveIcon className="h-3.5 w-3.5 mr-1" />
-            บันทึกข้อความอย่างเดียว
-          </Button>
-
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => handleSaveOcr(true)}
-            disabled={saving}
-            className="text-xs bg-primary hover:bg-primary/90 text-primary-foreground"
-          >
-            {saving ? (
-              <>
-                <RefreshCwIcon className="h-3.5 w-3.5 mr-1 animate-spin" />
-                กำลังบันทึก...
-              </>
-            ) : (
-              <>
-                <SparklesIcon className="h-3.5 w-3.5 mr-1" />
-                บันทึกและ Re-embed RAG
-              </>
-            )}
+            {saving ? 'กำลังบันทึก...' : 'บันทึกข้อความ OCR'}
           </Button>
         </div>
       </CardContent>

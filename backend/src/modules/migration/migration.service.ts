@@ -792,12 +792,15 @@ export class MigrationService {
   }
 
   async getReviewQueue(query: MigrationQueueQueryDto) {
-    const { page = 1, limit = 10, status, batchId } = query;
+    const { page = 1, limit = 10, status, aiStatus, batchId } = query;
     const skip = (page - 1) * limit;
 
     const queryBuilder = this.reviewQueueRepo.createQueryBuilder('queue');
     if (status) {
       queryBuilder.where('queue.status = :status', { status });
+    }
+    if (aiStatus) {
+      queryBuilder.andWhere('queue.aiStatus = :aiStatus', { aiStatus });
     }
     if (batchId) {
       queryBuilder.andWhere('queue.batch_id = :batchId', { batchId });
@@ -996,28 +999,56 @@ export class MigrationService {
   }
 
   /**
-   * ลบรายการใน Review Queue ตาม batchId หรือทั้งหมด (เฉพาะ PENDING เท่านั้น)
-   * ADR-047: bulk delete สำหรับ Legacy Management
+   * ลบรายการใน Review Queue ตาม batchId / ทั้งหมด / รายการที่เลือก
+   * ADR-047: bulk delete สำหรับ Legacy Management พร้อมลบ BullMQ job
    */
   async deleteReviewQueueByBatch(
     batchId?: string,
-    all: boolean = false
+    all: boolean = false,
+    publicIds?: string[]
   ): Promise<{ deleted: number }> {
-    // TypeORM delete() รับ FindOptionsWhere ที่ใช้ entity property names
-    const conditions: FindOptionsWhere<MigrationReviewQueue> = {
-      status: MigrationReviewStatus.PENDING,
-    };
-    if (!all) {
+    let conditions: FindOptionsWhere<MigrationReviewQueue> = {};
+
+    if (publicIds && publicIds.length > 0) {
+      conditions = { publicId: In(publicIds) };
+    } else if (!all) {
       if (!batchId) {
-        throw new ValidationException('ต้องระบุ batchId หรือ all=true');
+        throw new ValidationException(
+          'ต้องระบุ batchId หรือ all=true หรือ publicIds'
+        );
       }
-      conditions.batchId = batchId;
+      conditions = { batchId };
+    }
+
+    // ดึง ai_job_id ก่อนลบ เพื่อ remove จาก BullMQ ai-batch ด้วย
+    const itemsToDelete = await this.reviewQueueRepo.find({
+      where: conditions,
+      select: ['aiJobId'],
+    });
+    const jobIds = itemsToDelete
+      .map((item) => item.aiJobId)
+      .filter((id): id is string => !!id);
+
+    if (jobIds.length > 0) {
+      try {
+        await Promise.all(
+          jobIds.map((jobId) => this.aiBatchQueue.remove(jobId))
+        );
+        this.logger.log(
+          `Removed ${jobIds.length} legacy-ai-enrichment jobs from ai-batch queue`
+        );
+      } catch (err: unknown) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        this.logger.warn(
+          `Failed to remove some BullMQ jobs during queue delete: ${errMsg}`
+        );
+      }
     }
 
     const result = await this.reviewQueueRepo.delete(conditions);
     const deleted = result.affected ?? 0;
     this.logger.log(
-      `Deleted ${deleted} review queue items (batchId=${batchId ?? 'ALL'})`
+      `Deleted ${deleted} review queue items (batchId=${batchId ?? 'ALL'}, selected=${publicIds?.length ?? 0})`
     );
     return { deleted };
   }

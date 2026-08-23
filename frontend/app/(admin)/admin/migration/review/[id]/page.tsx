@@ -4,6 +4,7 @@
 // - 2026-05-22: Initial creation of Migration Review detail page (T024)
 // - 2026-08-06: เพิ่ม CompareResultTable และ fieldResolutions state สำหรับ Feature 242 (FR-011, FR-012c)
 // - 2026-08-22: เปลี่ยน Sender/Receiver/Discipline เป็น dropdown, แก้ date mapping
+// - 2026-08-23: Pretty print error response สำหรับ debug
 //   (Doc Date = issued_date จาก excel → document_date, Received Date = received_date),
 //   เปลี่ยน label "Issued Date" → "Received Date"
 
@@ -64,6 +65,7 @@ export default function MigrationReviewPage() {
   const [item, setItem] = useState<MigrationReviewQueueItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [loadError, setLoadError] = useState<Record<string, unknown> | null>(null);
   const [fieldResolutions, setFieldResolutions] = useState<FieldResolution[]>([]);
   // Reference data สำหรับ dropdown
   const [organizations, setOrganizations] = useState<Organization[]>([]);
@@ -107,6 +109,7 @@ export default function MigrationReviewPage() {
     async (itemPublicId: string) => {
       try {
         setLoading(true);
+        setLoadError(null);
         const res = await migrationService.getQueueItem(itemPublicId);
         setItem(res);
 
@@ -131,7 +134,10 @@ export default function MigrationReviewPage() {
             disciplineId: details.disciplineId ? String(details.disciplineId) : '',
           });
         }
-      } catch (_error) {
+      } catch (error: unknown) {
+        // เก็บ error object สำหรับ pretty print บนหน้า
+        const err = error as { response?: { data?: Record<string, unknown> } };
+        setLoadError(err?.response?.data ?? { message: String(error) });
         toast.error('Failed to load queue item');
       } finally {
         setLoading(false);
@@ -232,7 +238,16 @@ export default function MigrationReviewPage() {
   }
 
   if (!item) {
-    return <div className="py-10 text-center text-red-500">Document not found</div>;
+    return (
+      <div className="py-10 text-center space-y-4">
+        <div className="text-red-500 font-medium">Document not found</div>
+        {loadError && (
+          <pre className="text-left text-xs text-muted-foreground bg-muted p-4 rounded-md overflow-auto max-w-2xl mx-auto">
+            {JSON.stringify(loadError, null, 2)}
+          </pre>
+        )}
+      </div>
+    );
   }
 
   const sourceFilePath =

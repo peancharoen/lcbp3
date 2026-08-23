@@ -1,6 +1,7 @@
 // File: app/(admin)/admin/migration/page.tsx
 // Change Log:
 // - 2026-08-23: Batch commit ส่ง sourceFilePath และ disciplineId จาก queue item details
+// - 2026-08-23: Legacy Review Queue - column-header filters, delete all/selected with BullMQ cleanup
 
 'use client';
 
@@ -362,7 +363,9 @@ function LegacyManagementTab() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<string>('PENDING');
+  // Filter สถานะทั้ง Status และ AI Status — ค่า 'ALL' คือไม่กรอง
+  const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [aiStatusFilter, setAiStatusFilter] = useState<string>('ALL');
   const [batchFilter, setBatchFilter] = useState<string>('ALL');
   const [batchOptions, setBatchOptions] = useState<string[]>([]);
   // ADR-019: ใช้ publicId (string) สำหรับ selection ห้ามใช้ INT id
@@ -380,6 +383,7 @@ function LegacyManagementTab() {
       setErrorMessage(null);
       const res = await migrationService.getReviewQueue({
         status: statusFilter === 'ALL' ? undefined : (statusFilter as MigrationReviewStatus),
+        aiStatus: aiStatusFilter === 'ALL' ? undefined : (aiStatusFilter as MigrationAiStatus),
         batchId: batchFilter === 'ALL' ? undefined : batchFilter,
         page,
         limit: pageSize,
@@ -395,7 +399,7 @@ function LegacyManagementTab() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, batchFilter, page]);
+  }, [statusFilter, aiStatusFilter, batchFilter, page]);
 
   // ADR-047: โหลด batch options สำหรับ filter dropdown
   const fetchBatches = useCallback(async () => {
@@ -444,11 +448,7 @@ function LegacyManagementTab() {
   const handleBatchExtract = async () => {
     if (selectedPublicIds.length === 0) return;
     const extractable = items.filter(
-      (i) =>
-        selectedPublicIds.includes(i.publicId) &&
-        i.status === MigrationReviewStatus.PENDING &&
-        i.aiStatus !== MigrationAiStatus.RUNNING &&
-        i.aiStatus !== MigrationAiStatus.DONE
+      (i) => selectedPublicIds.includes(i.publicId) && isExtractable(i)
     );
     if (extractable.length === 0) {
       toast.warning('ไม่มีรายการทีสามารถเริ่ม Extract ได้');
@@ -525,20 +525,22 @@ function LegacyManagementTab() {
     }
   };
 
-  // ADR-047: ลบรายการ PENDING ตาม batch หรือทั้งหมด
-  const handleDeleteByBatch = async () => {
-    const isAll = batchFilter === 'ALL';
-    const confirmMsg = isAll
-      ? 'ยืนยันลบรายการ PENDING ทั้งหมด?'
-      : `ยืนยันลบรายการ PENDING ใน batch ${batchFilter}?`;
+  // ADR-047: ลบรายการทั้งหมด หรือเฉพาะที่เลือก พร้อมลบ BullMQ job จาก backend
+  const handleDelete = async () => {
+    const hasSelection = selectedPublicIds.length > 0;
+    const confirmMsg = hasSelection
+      ? `ยืนยันลบ ${selectedPublicIds.length} รายการที่เลือก?`
+      : 'ยืนยันลบรายการทั้งหมดในคิว?';
     if (!window.confirm(confirmMsg)) return;
     try {
       setDeleting(true);
       const result = await migrationService.deleteReviewQueue(
-        isAll ? undefined : batchFilter,
-        isAll
+        undefined,
+        !hasSelection,
+        hasSelection ? selectedPublicIds : undefined
       );
       toast.success(`ลบ ${result.deleted} รายการเรียบร้อย`);
+      setSelectedPublicIds([]);
       await fetchData();
       await fetchBatches();
     } catch (error: unknown) {
@@ -555,17 +557,25 @@ function LegacyManagementTab() {
       <Card>
         <CardHeader>
           <div className="flex flex-wrap justify-between items-center gap-4">
-            <CardTitle>Legacy Review Queue - {statusFilter}</CardTitle>
+            <CardTitle>Legacy Review Queue</CardTitle>
           <div className="flex items-center gap-3 flex-wrap">
             {selectedPublicIds.length > 0 && (
               <>
-                <Button variant="outline" onClick={handleBatchExtract} disabled={submitting}>
+                <Button
+                  variant="outline"
+                  onClick={handleBatchExtract}
+                  disabled={submitting}
+                >
                   <RefreshCwIcon className="mr-2 h-4 w-4" />
                   {submitting
                     ? 'Processing...'
-                    : `Start Extract (${items.filter(isExtractable).filter((i) => selectedPublicIds.includes(i.publicId)).length})`}
+                    : `Start Extract (${selectedPublicIds.length})`}
                 </Button>
-                <Button variant="default" onClick={handleBatchExecuteImport} disabled={submitting}>
+                <Button
+                  variant="default"
+                  onClick={handleBatchExecuteImport}
+                  disabled={submitting}
+                >
                   <CheckCircleIcon className="mr-2 h-4 w-4" />
                   {submitting
                     ? 'Processing...'
@@ -578,18 +588,6 @@ function LegacyManagementTab() {
                 <FileXIcon className="mr-2 h-4 w-4" /> View Errors
               </Button>
             </Link>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">All Status</SelectItem>
-                <SelectItem value="PENDING">Pending</SelectItem>
-                <SelectItem value="PENDING_REVIEW">Pending Review</SelectItem>
-                <SelectItem value="REJECTED">Rejected</SelectItem>
-                <SelectItem value="IMPORTED">Imported</SelectItem>
-              </SelectContent>
-            </Select>
             <Select value={batchFilter} onValueChange={setBatchFilter}>
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Batch" />
@@ -603,11 +601,15 @@ function LegacyManagementTab() {
             </Select>
             <Button
               variant="destructive"
-              onClick={handleDeleteByBatch}
-              disabled={deleting || items.length === 0}
+              onClick={handleDelete}
+              disabled={deleting || (selectedPublicIds.length === 0 && items.length === 0)}
               size="sm"
             >
-              {deleting ? 'กำลังลบ...' : `ลบ ${batchFilter === 'ALL' ? 'ทั้งหมด' : 'Batch นี้'}`}
+              {deleting
+                ? 'กำลังลบ...'
+                : selectedPublicIds.length > 0
+                  ? `ลบที่เลือก (${selectedPublicIds.length})`
+                  : 'ลบทั้งหมด'}
             </Button>
           </div>
         </div>
@@ -627,22 +629,49 @@ function LegacyManagementTab() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[50px]">
-                    <Checkbox
-                      checked={items.length > 0 && selectedPublicIds.length === items.length}
-                      onCheckedChange={handleToggleSelectAll}
-                      aria-label="เลือกรายการทั้งหมดในหน้านี้"
-                    />
+                  <TableHead className="w-[50px]" />
+                  <TableHead>
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        checked={items.length > 0 && selectedPublicIds.length === items.length}
+                        onCheckedChange={handleToggleSelectAll}
+                        aria-label="เลือกรายการทั้งหมดในหน้านี้"
+                      />
+                      <span>Document No.</span>
+                    </div>
                   </TableHead>
-                  <TableHead>Document No.</TableHead>
                   <TableHead>Correspondence Type</TableHead>
                   <TableHead>Issued Date</TableHead>
                   <TableHead>Received Date</TableHead>
                   <TableHead>Sender</TableHead>
                   <TableHead>Receiver</TableHead>
                   <TableHead>Confidence</TableHead>
-                  <TableHead>AI Status</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>
+                    <Select value={aiStatusFilter} onValueChange={setAiStatusFilter}>
+                      <SelectTrigger className="h-8 w-[130px] text-xs">
+                        <SelectValue placeholder="AI Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ALL">ทุก AI Status</SelectItem>
+                        {Object.values(MigrationAiStatus).map((s) => (
+                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableHead>
+                  <TableHead>
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger className="h-8 w-[130px] text-xs">
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ALL">ทุก Status</SelectItem>
+                        {Object.values(MigrationReviewStatus).map((s) => (
+                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableHead>
                   <TableHead>Created At</TableHead>
                   <TableHead className="text-right">Action</TableHead>
                 </TableRow>
