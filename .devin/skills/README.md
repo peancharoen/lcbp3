@@ -13,6 +13,7 @@ Agent skills for AI-assisted development in **Devin IDE** (and compatible agents
 ├── VERSION                      # Single source of truth for skill-pack version
 ├── skills.md                    # Overview + dependency matrix + health monitoring
 ├── _LCBP3-CONTEXT.md            # Shared LCBP3 context injected into every speckit-* skill
+├── _LCBP3-CONTRACTS.md          # Shared bounded-worker packet, reviewer evidence bar, and TDD evidence format
 ├── README.md                    # (this file)
 ├── save-memory/                 # Session log & project memory update
 ├── nestjs-best-practices/       # Backend rules (40 rules across 10 categories)
@@ -105,6 +106,8 @@ To add a new skill:
 ## 📚 References
 
 - **Canonical rules:** `AGENTS.md` (repo root)
+- **Shared context:** [`_LCBP3-CONTEXT.md`](./_LCBP3-CONTEXT.md)
+- **Shared contracts:** [`_LCBP3-CONTRACTS.md`](./_LCBP3-CONTRACTS.md) — worker task packet, reviewer evidence bar, TDD evidence format
 - **Product vision:** `specs/00-Overview/00-03-product-vision.md`
 - **ADRs:** `specs/06-Decision-Records/`
 - **Engineering guidelines:** `specs/05-Engineering-Guidelines/`

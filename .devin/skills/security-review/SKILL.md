@@ -14,13 +14,15 @@ Comprehensive security review for LCBP3-DMS ensuring all code follows security b
 
 ## LCBP3 Context
 
-See [`_LCBP3-CONTEXT.md`](../_LCBP3-CONTEXT.md) for project-specific security requirements:
+Load these references before reviewing:
 
-- **ADR-016**: Security & Authentication (JWT, CASL, RBAC, file upload)
-- **ADR-023/023A + ADR-043**: AI Boundary (Ollama on `np-dms-lcbp3` only per ADR-041 — formerly Admin Desktop/Desk-5439, decommissioned; no direct DB/storage access) — supersedes archived ADR-018/020
-- **ADR-019**: UUID Strategy (no parseInt/Number/+ on UUID)
-- **ADR-023**: Unified AI Architecture (AI via DMS API only)
-- **ADR-007**: Error Handling (layered error classification)
+1. [`_LCBP3-CONTEXT.md`](../_LCBP3-CONTEXT.md) for project-specific security requirements:
+   - **ADR-016**: Security & Authentication (JWT, CASL, RBAC, file upload)
+   - **ADR-023/023A + ADR-043**: AI Boundary (Ollama on `np-dms-lcbp3` only per ADR-041; no direct DB/storage access) — supersedes archived ADR-018/020
+   - **ADR-019**: UUID Strategy (no parseInt/Number/+ on UUID)
+   - **ADR-023**: Unified AI Architecture (AI via DMS API only)
+   - **ADR-007**: Error Handling (layered error classification)
+2. [`_LCBP3-CONTRACTS.md`](../_LCBP3-CONTRACTS.md) for the reviewer evidence bar and TDD evidence format.
 
 ## When to Activate
 
@@ -33,6 +35,30 @@ Invoke this skill:
 - Integrating AI features (Ollama/Qdrant)
 - Storing or transmitting sensitive data
 - Integrating third-party APIs
+
+## Security Evidence Bar
+
+A security finding is blocking only when it meets the reviewer evidence bar in `_LCBP3-CONTRACTS.md`. For security specifically, you must establish:
+
+1. **Violated contract**: the exact ADR or security requirement broken (e.g., ADR-016 missing CASL guard, ADR-019 UUID misuse, ADR-023 direct Ollama call).
+2. **Reachable path**: concrete input, request sequence, or state that triggers the issue.
+3. **Impact**: data exposure, unauthorized mutation, privilege escalation, availability loss, or compliance violation.
+4. **File references**: precise paths and line numbers for the vulnerable code, plus affected endpoints/roles.
+5. **Evidence gap**: why existing tests, guards, logs, or validation do not already prevent it.
+
+A missing control is only blocking when it is project-mandated (Tier 1 ADR) or a reachable exploitation path exists. Defense-in-depth gaps without a reachable attack are suggestions, not blockers.
+
+When reporting a blocker, use this format:
+
+```markdown
+**File**: `path/to/file.ts:42`
+**Violated contract**: [e.g., ADR-016 — mutation endpoint lacks CaslAbilityGuard]
+**Reachable path**: [e.g., authenticated user with role User sends POST /api/correspondences without permission check]
+**Impact**: [e.g., user can create correspondence for any project]
+**File references**: controller, service, DTO lines
+**Evidence gap**: [e.g., no @CheckPolicies and existing tests use admin token only]
+**Fix**: [concrete change]
+```
 
 ## Security Checklist
 
