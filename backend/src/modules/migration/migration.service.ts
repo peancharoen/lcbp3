@@ -338,22 +338,51 @@ export class MigrationService {
       }
 
       // 4. File Handling — ถ้าไม่มีไฟล์ PDF ให้นำเข้าได้โดยไม่มี attachment
+      // ADR-019: รองรับทั้ง tempAttachmentId (เดี่ยว, deprecated) และ tempAttachmentIds (หลายไฟล์)
       let attachmentId: number | null = null;
-      if (dto.tempAttachmentId) {
-        attachmentId = dto.tempAttachmentId;
+      const allAttachmentIds: number[] = [];
+      if (dto.tempAttachmentIds && dto.tempAttachmentIds.length > 0) {
+        allAttachmentIds.push(...dto.tempAttachmentIds);
+      } else if (dto.tempAttachmentId) {
+        allAttachmentIds.push(dto.tempAttachmentId);
+      }
+
+      if (allAttachmentIds.length > 0) {
+        attachmentId = allAttachmentIds[0];
         try {
-          // Mark attachment as permanent
+          // Mark attachments as permanent (ทุกไฟล์ใน array)
           await queryRunner.manager.update(
             Attachment,
-            { id: attachmentId },
+            { id: In(allAttachmentIds) },
             { isTemporary: false }
           );
         } catch (fileError: unknown) {
           const errMsg =
             fileError instanceof Error ? fileError.message : String(fileError);
           this.logger.warn(
-            `Failed to update temp_file [id:${attachmentId}]: ${errMsg}`
+            `Failed to update temp_files [ids:${allAttachmentIds.join(',')}]: ${errMsg}`
           );
+        }
+      } else if (dto.sourceFilePaths && dto.sourceFilePaths.length > 0) {
+        // ADR-047: import หลายไฟล์จาก sourceFilePaths
+        for (const sfPath of dto.sourceFilePaths) {
+          if (!sfPath || !sfPath.trim()) continue;
+          try {
+            const attachment = await this.fileStorageService.importStagingFile(
+              sfPath,
+              userId,
+              { documentType: dto.category }
+            );
+            if (!attachmentId) attachmentId = attachment.id;
+          } catch (fileError: unknown) {
+            const errMsg =
+              fileError instanceof Error
+                ? fileError.message
+                : String(fileError);
+            this.logger.warn(
+              `Failed to import file for [${dto.documentNumber}], continuing without attachment: ${errMsg}`
+            );
+          }
         }
       } else if (dto.sourceFilePath && dto.sourceFilePath.trim()) {
         try {
@@ -744,19 +773,16 @@ export class MigrationService {
         'รายการนี้ไม่อยู่ในสถานะทีสามารถเริ่มประมวลผลได้'
       );
     }
+    // ป้องกัน duplicate BullMQ job: ถ้ามี aiJobId อยู่แล้วและไม่ใช่ FAILED
+    // ให้ skip (รวมกรณี aiStatus เป็น NULL ซึ่งเกิดจาก ingestion ที่ไม่ได้ set aiStatus)
+    // FAILED เป็นกรณีพิเศษที่อนุญาตให้ retry ได้
     if (
       queueItem.aiStatus === MigrationAiStatus.RUNNING ||
-      (queueItem.aiStatus === MigrationAiStatus.PENDING &&
-        queueItem.aiJobId != null)
+      (queueItem.aiJobId != null &&
+        queueItem.aiStatus !== MigrationAiStatus.FAILED)
     ) {
       return {
         message: 'AI extraction already running or queued',
-        jobId: queueItem.aiJobId,
-      };
-    }
-    if (queueItem.aiStatus === MigrationAiStatus.DONE) {
-      return {
-        message: 'AI extraction already done',
         jobId: queueItem.aiJobId,
       };
     }
@@ -1174,6 +1200,12 @@ export class MigrationService {
     const importDto = {
       ...dto,
       ocrText: dto.ocrText ?? queueItem.ocrText ?? undefined,
+      // ADR-019: tempAttachmentId/tempAttachmentIds เป็น @Exclude ใน entity
+      // ทำให้ frontend ไม่สามารถส่งค่านี้ได้ — ต้องดึงจาก queueItem โดยตรง
+      tempAttachmentId:
+        dto.tempAttachmentId ?? queueItem.tempAttachmentId ?? undefined,
+      tempAttachmentIds:
+        dto.tempAttachmentIds ?? queueItem.tempAttachmentIds ?? undefined,
     };
     const result = await this.importCorrespondence(
       importDto,
@@ -1217,6 +1249,12 @@ export class MigrationService {
     const importDto = {
       ...dto,
       ocrText: dto.ocrText ?? queueItem.ocrText ?? undefined,
+      // ADR-019: tempAttachmentId/tempAttachmentIds เป็น @Exclude ใน entity
+      // ทำให้ frontend ไม่สามารถส่งค่านี้ได้ — ต้องดึงจาก queueItem โดยตรง
+      tempAttachmentId:
+        dto.tempAttachmentId ?? queueItem.tempAttachmentId ?? undefined,
+      tempAttachmentIds:
+        dto.tempAttachmentIds ?? queueItem.tempAttachmentIds ?? undefined,
     };
     const result = await this.importCorrespondence(
       importDto,

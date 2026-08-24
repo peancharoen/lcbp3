@@ -13,8 +13,11 @@ let tokenPromise: Promise<string | null> | null = null;
 
 // Async function to get token
 export async function getAuthToken(): Promise<string | null> {
+  // ถ้ามี cached token ที่ไม่ใช่ null ให้ใช้เลย
   if (cachedToken) return cachedToken;
 
+  // ถ้ามี tokenPromise ที่ยังไม่ resolve ให้รอผลลัพธ์
+  // แต่ถ้า promise ถูก clear แล้ว (โดย clearAuthTokenCache) ให้สร้างใหม่
   if (tokenPromise) return tokenPromise;
 
   tokenPromise = (async () => {
@@ -22,8 +25,16 @@ export async function getAuthToken(): Promise<string | null> {
       if (typeof window !== 'undefined') {
         const { getSession } = await import('next-auth/react');
         const session = await getSession();
-        cachedToken = session?.accessToken || null;
-        return cachedToken;
+        const token = session?.accessToken || null;
+        // เก็บ token ใน cache เฉพาะเมื่อได้ค่าจริง — ถ้าได้ null ไม่เก็บ
+        // เพื่อให้ครั้งถัดไปสามารถ re-fetch ได้ (ป้องกัน stale null cache)
+        if (token) {
+          cachedToken = token;
+        } else {
+          // ไม่ cache null — clear tokenPromise เพื่อให้ครั้งถัดไปลองใหม่
+          tokenPromise = null;
+        }
+        return token;
       }
     } catch (_error) {
       // Fallback to localStorage
@@ -31,13 +42,20 @@ export async function getAuthToken(): Promise<string | null> {
         const authStorage = localStorage.getItem('auth-storage');
         if (authStorage) {
           const parsed = JSON.parse(authStorage);
-          cachedToken = parsed?.state?.token || null;
-          return cachedToken;
+          const token = parsed?.state?.token || null;
+          if (token) {
+            cachedToken = token;
+          } else {
+            tokenPromise = null;
+          }
+          return token;
         }
       } catch (__error) {
         // All methods failed
       }
     }
+    // ไม่ cache null — clear tokenPromise เพื่อให้ครั้งถัดไปลองใหม่
+    tokenPromise = null;
     return null;
   })();
 

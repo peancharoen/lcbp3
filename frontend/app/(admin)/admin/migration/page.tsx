@@ -425,10 +425,13 @@ function LegacyManagementTab() {
     item.status === MigrationReviewStatus.PENDING_REVIEW &&
     item.aiStatus === MigrationAiStatus.DONE;
 
+  // ADR-047: ห้าม re-extract รายการที่มี BullMQ job อยู่แล้ว (aiJobId != null)
+  // ยกเว้น FAILED ที่อนุญาตให้ retry ได้ — ป้องกัน duplicate jobs ใน BullMQ
   const isExtractable = (item: typeof items[number]) =>
     item.status === MigrationReviewStatus.PENDING &&
     item.aiStatus !== MigrationAiStatus.RUNNING &&
-    item.aiStatus !== MigrationAiStatus.DONE;
+    item.aiStatus !== MigrationAiStatus.DONE &&
+    (!item.aiJobId || item.aiStatus === MigrationAiStatus.FAILED);
 
   const handleToggleSelectAll = () => {
     if (selectedPublicIds.length === items.length && items.length > 0) {
@@ -485,11 +488,12 @@ function LegacyManagementTab() {
           queuePublicId: item.publicId,
           dto: {
             documentNumber: item.documentNumber,
-            subject: item.title || item.originalTitle || 'Untitled',
+            subject: item.subject || item.originalSubject || 'Untitled',
             category: item.aiSuggestedCategory || 'Correspondence',
             projectId: item.projectId || 1,
             migratedBy: 'SYSTEM_IMPORT',
-            tempAttachmentId: item.tempAttachmentId,
+            // ADR-019: tempAttachmentId/tempAttachmentIds เป็น @Exclude ใน entity
+            // backend จะดึงจาก queueItem โดยตรงใน approveQueueItemByPublicId
             aiConfidence: item.aiConfidence,
             aiIssues: item.aiIssues,
             // Mapping: issuedDate จาก excel → documentDate (วันที่ออกเอกสาร)

@@ -120,7 +120,7 @@ export default function MigrationReviewPage() {
           const details = res.details || {};
           form.reset({
             documentNumber: res.documentNumber || '',
-            subject: res.title || res.originalTitle || res.subject || res.originalSubject || '',
+            subject: res.subject || res.originalSubject || '',
             category: res.aiSuggestedCategory || '',
             documentDate: res.issuedDate
               ? String(res.issuedDate).split('T')[0]
@@ -136,8 +136,13 @@ export default function MigrationReviewPage() {
         }
       } catch (error: unknown) {
         // เก็บ error object สำหรับ pretty print บนหน้า
-        const err = error as { response?: { data?: Record<string, unknown> } };
-        setLoadError(err?.response?.data ?? { message: String(error) });
+        // รองรับทั้ง structured error จาก interceptor ({ error: {...} })
+        // และ raw Axios error ({ response: { data: {...} } })
+        const err = error as {
+          error?: Record<string, unknown>;
+          response?: { data?: Record<string, unknown> };
+        };
+        setLoadError(err?.error ?? err?.response?.data ?? { message: String(error) });
         toast.error('Failed to load queue item');
       } finally {
         setLoading(false);
