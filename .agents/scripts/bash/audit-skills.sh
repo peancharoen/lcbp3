@@ -193,11 +193,11 @@ if [[ -d "$SPECS_DIR" ]]; then
     for cat in "${CATEGORIES[@]}"; do
         if [[ -d "$SPECS_DIR/$cat" ]]; then
             echo -e "${GREEN}  FOUND${NC}: category $cat"
-            
+
             # Check features within category
             features=$(find "$SPECS_DIR/$cat" -maxdepth 1 -type d -not -path "$SPECS_DIR/$cat" | wc -l)
             echo "    -> Contains $features feature(s)"
-            
+
             # Check each feature for spec.md
             while IFS= read -r f_dir; do
                 if [[ -n "$f_dir" ]]; then
@@ -227,20 +227,81 @@ fi
 
 echo
 
+# Contract Reference Audit
+# Verifies shared LCBP3 contracts are present and referenced by skills.
+echo "=== Contract Reference Audit ==="
+echo "------------------------------"
+
+CONTRACT_ISSUES=0
+REQUIRED_CONTRACT_SKILLS=(
+    "104-speckit-plan"
+    "105-speckit-tasks"
+    "107-speckit-implement"
+    "110-speckit-reviewer"
+    "111-speckit-validate"
+    "112-speckit-security-audit"
+    "security-review"
+    "verification-loop"
+    "resume-pending-work"
+)
+
+AGENTS_CONTRACT="$AGENTS_DIR/skills/_LCBP3-CONTRACTS.md"
+DEVIN_CONTRACT="$BASE_DIR/.devin/skills/_LCBP3-CONTRACTS.md"
+
+if [[ -f "$AGENTS_CONTRACT" ]]; then
+    echo -e "${GREEN}  FOUND${NC}: .agents/skills/_LCBP3-CONTRACTS.md"
+else
+    echo -e "${RED}  MISSING${NC}: .agents/skills/_LCBP3-CONTRACTS.md"
+    ((CONTRACT_ISSUES++))
+fi
+
+if [[ -f "$DEVIN_CONTRACT" ]]; then
+    echo -e "${GREEN}  FOUND${NC}: .devin/skills/_LCBP3-CONTRACTS.md"
+else
+    echo -e "${RED}  MISSING${NC}: .devin/skills/_LCBP3-CONTRACTS.md"
+    ((CONTRACT_ISSUES++))
+fi
+
+if [[ -f "$AGENTS_CONTRACT" && -f "$DEVIN_CONTRACT" ]]; then
+    if diff -q "$AGENTS_CONTRACT" "$DEVIN_CONTRACT" >/dev/null 2>&1; then
+        echo -e "${GREEN}  SYNCED${NC}: .agents and .devin contract copies match"
+    else
+        echo -e "${RED}  MISMATCH${NC}: .agents and .devin _LCBP3-CONTRACTS.md differ"
+        ((CONTRACT_ISSUES++))
+    fi
+fi
+
+for skill_name in "${REQUIRED_CONTRACT_SKILLS[@]}"; do
+    skill_file="$SKILLS_DIR/$skill_name/SKILL.md"
+    if [[ -f "$skill_file" ]]; then
+        if grep -q '_LCBP3-CONTRACTS\.md' "$skill_file"; then
+            echo -e "${GREEN}  REFERENCED${NC}: $skill_name -> _LCBP3-CONTRACTS.md"
+        else
+            echo -e "${RED}  MISSING REF${NC}: $skill_name does not reference _LCBP3-CONTRACTS.md"
+            ((CONTRACT_ISSUES++))
+        fi
+    else
+        echo -e "${YELLOW}  SKIP${NC}: $skill_name/SKILL.md not found"
+    fi
+done
+
+echo
+
 # Overall health
-TOTAL_HEALTH_ISSUES=$((TOTAL_ISSUES + SPEC_ISSUES))
+TOTAL_HEALTH_ISSUES=$((TOTAL_ISSUES + SPEC_ISSUES + CONTRACT_ISSUES))
 
 if [[ $TOTAL_HEALTH_ISSUES -eq 0 ]]; then
     echo -e "${GREEN}=== SUCCESS: All skills healthy ===${NC}"
     echo "Total skills: ${#SKILL_DIRS[@]}"
     exit 0
 else
-    echo -e "${RED}=== ISSUES FOUND: $TOTAL_ISSUES total issues ===${NC}"
+    echo -e "${RED}=== ISSUES FOUND: $TOTAL_HEALTH_ISSUES total issues ===${NC}"
     echo
     echo "Recommendations:"
     echo "1. Fix missing SKILL.md files"
     echo "2. Add required front matter fields"
     echo "3. Ensure Role and Task sections exist"
     echo "4. Align skill versions with global version"
+    echo "5. Ensure _LCBP3-CONTRACTS.md exists in .agents/skills and .devin/skills and is referenced by required skills"
     exit 1
 fi

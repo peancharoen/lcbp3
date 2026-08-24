@@ -1,88 +1,120 @@
 ---
 name: check-real-app
-description: Manual real-app verification — ตรวจแอปจริงหลัง build pass เพื่อยืนยันว่าทำงานถูกต้องใน environment จริง (ไม่ใช่แค่ unit test)
+description: Verify the deployed LCBP3 application through a real browser, including UI flows, API traffic, console errors, responsive rendering, and production-safe evidence collection after build or deployment.
 version: 1.9.0
 depends-on: []
 handoffs: []
 ---
 
-# check-real-app — Real App Verification
+# check-real-app - Real App Verification
 
-> 📌 See [`_LCBP3-CONTEXT.md`](../_LCBP3-CONTEXT.md) for LCBP3-specific conventions.
+> See [`_LCBP3-CONTEXT.md`](../_LCBP3-CONTEXT.md) for LCBP3-specific conventions.
 
-ใช้เมื่อ build/lint/test ผ่านแล้ว แต่ต้องการยืนยันว่าแอปจริงทำงานถูกต้อง
-เน้นการตรวจที่ unit test ตรวจไม่ได้: UI flow, API response จริง, console errors, network requests
+Use this skill after build, test, or deployment when the user wants evidence that the real application works. Unit tests and a successful HTTP response are not substitutes for browser verification.
 
-## ขั้นตอน
+## Target and scope
 
-### 1. เริ่ม Dev Server (ถ้ายังไม่รัน)
+- Use the URL supplied by the user. Otherwise default to `https://lcbp3.np-dms.work/`.
+- Use localhost only when the user explicitly asks for local verification or the change has not been deployed.
+- Establish the pages, roles, and flows in scope before interacting with the app. Do not expand a smoke test into broad production mutation.
+- Read-only inspection is authorized by a request to verify the app. Creating, editing, uploading, approving, deleting, or otherwise mutating production data requires explicit authorization for that flow.
+- Never bypass TLS verification, authentication, RBAC, or other security controls.
 
-ตรวจก่อนว่ามี dev server รันอยู่แล้วหรือไม่ เพื่อป้องกันรันซ้ำ:
+## Tool routing
 
-```bash
-# Backend
-pnpm --filter backend run start:dev
+Prefer the available MCP Playwright browser tools or their environment-equivalent names:
 
-# Frontend
-pnpm --filter frontend run dev
-```
+1. Navigate to the target with `browser_navigate`.
+2. Inspect the accessibility tree with `browser_snapshot`; use returned element refs instead of guessed selectors.
+3. Interact with `browser_click`, `browser_fill_form`, `browser_select_option`, and `browser_wait_for` as needed.
+4. Collect `browser_console_messages`, `browser_network_requests`, and `browser_take_screenshot` evidence.
+5. Use `browser_resize` to check at least one desktop and one mobile viewport when UI is in scope.
+6. Close the browser with `browser_close` after verification.
 
-### 2. ตรวจ Endpoint / หน้าที่เปลี่ยน
+Avoid `browser_run_code_unsafe`. Use `browser_evaluate` only for read-only inspection that cannot be obtained from snapshots, console, or network tools.
 
-- เปิด URL ที่เกี่ยวข้องกับงานที่เพิ่ง implement
-- ตรวจ API endpoint ด้วย curl หรือ browser dev tools
-- ดู network tab ว่า request/response ถูกต้อง
+If MCP Playwright is unavailable, use `curl` only for bounded HTTP/API checks. A fetch tool or `curl` cannot prove client-side rendering, interaction, console health, or responsive behavior, so report the result as **HTTP-only verification**, not full real-app verification. Do not claim browser evidence that was not collected.
 
-```bash
-# ตัวอย่างตรวจ API จริง
-curl -X GET http://localhost:3001/api/[endpoint] \
-  -H "Authorization: Bearer <token>" | jq .
-```
+## Production-safe workflow
 
-### 3. ตรวจ Console / Log
+### 1. Baseline smoke check
 
-- **Frontend**: เปิด browser DevTools → Console tab — ต้องไม่มี error หรือ warning ที่ไม่คาดเดา
-- **Backend**: ดู terminal log — ตรวจว่าไม่มี unhandled exception หรือ SQL error
+- Navigate to the target URL and record the final URL, redirect chain when available, and HTTP status.
+- Capture an accessibility snapshot and screenshot.
+- Check browser console errors and failed network requests from the start of the session.
+- Confirm the page does not expose `NaN`, `undefined`, raw stack traces, or integer internal IDs.
 
-### 4. ตรวจ Happy Path + Edge Case หลัก
+### 2. Authentication
 
-ตรวจ flow ที่เกี่ยวข้องอย่างน้อย:
-- [ ] Happy path ทำงานถูกต้อง
-- [ ] Input ผิดรูปแบบ → แสดง error message ที่เหมาะสม
-- [ ] Unauthorized access → redirect/403 ถูกต้อง
-- [ ] หน้าที่ไม่ได้แก้ยังทำงานปกติ (regression check)
+- For public scope, verify the expected login page or unauthorized redirect without attempting to bypass it.
+- For authenticated scope, use an existing authorized browser session or credentials supplied through an approved secure mechanism.
+- Never print credentials, tokens, cookies, authorization headers, or session storage values. Redact them from evidence.
+- If credentials or the required role are unavailable, continue with public checks and report authenticated flows as unverified.
 
-### 5. ตรวจ NAP-DMS Specific
+### 3. Scoped UI flow
 
-- [ ] UUID ใน URL และ response เป็น string format ถูกต้อง (ไม่ใช่ integer)
-- [ ] ไม่มี `NaN` หรือ `undefined` ใน form values หรือ API payload
-- [ ] Thai/English text แสดงผลถูกต้อง (i18n)
-- [ ] RBAC: role ที่ไม่มีสิทธิ์ไม่เห็น/เข้าถึงไม่ได้
+Verify the requested change with the smallest sufficient flow:
 
-## 🚫 No Fake Evidence Rule
+- Happy path and visible result.
+- One relevant validation or error path when it can be tested without unsafe production mutation.
+- Expected unauthorized behavior when the required role account is available.
+- One nearby regression path affected by the change.
+- Thai and English rendering when i18n is in scope.
+- UUID values in URLs and responses remain strings; never treat an integer internal ID as public evidence.
 
-> **ห้ามรายงานว่าตรวจแอปจริงแล้ว ถ้าไม่ได้เปิดแอปและตรวจจริง**
-> ถ้าตรวจไม่ได้ (เช่น ไม่มี DB, ไม่มี token) ให้ระบุเหตุผลชัดเจน
+For a production mutation, first state the exact records/actions that will be affected, obtain explicit authorization, use designated test data, and stop after the agreed action count. Cleanup is another mutation and also requires authorization unless it was included in the approved flow.
 
-## ✅ Mandatory Output
+### 4. Console and network inspection
 
-รายงานท้ายงานต้องมีครบ:
+- Report unexpected console errors and warnings with the page and action that triggered them.
+- Report failed requests, status codes, and sanitized request paths. Treat canceled requests separately from failures.
+- Inspect relevant API response shapes without exposing sensitive or personal data.
+- Browser tools do not prove backend log health. If backend logs are unavailable, state that limitation instead of inferring there were no backend errors.
 
-### Commands run
-```
-✅ curl GET /api/correspondences   → 200 OK, returned 3 records
-✅ curl POST /api/correspondences  → 201 Created, uuid: "019..."
-❌ ไม่ได้ตรวจ: file upload flow   → เหตุผล: ต้องการ ClamAV service ที่ไม่มีใน local
+### 5. Responsive check
+
+For UI changes, verify representative desktop and mobile viewports. Capture evidence of the final state and check for clipped controls, horizontal overflow, unreadable text, and unusable dialogs or menus.
+
+## No Fake Evidence Rule
+
+Never report that the real app was verified unless it was opened and inspected. Distinguish these result levels:
+
+- **Full browser verification:** real browser interaction plus screenshot, console, and network evidence.
+- **Partial browser verification:** browser opened, but authentication, role, flow, or evidence capability was unavailable.
+- **HTTP-only verification:** endpoint response checked without a real browser.
+- **Not verified:** target or required capability was inaccessible.
+
+## Mandatory output
+
+Report all of the following:
+
+### Scope and result
+
+- Target environment and exact sanitized URLs checked.
+- Verification level and overall pass/fail/blocked result.
+- Account role used, without account identifiers or secrets.
+
+### Checks performed
+
+```text
+PASS  GET /                         -> 200, login page rendered
+PASS  unauthenticated /admin       -> redirected to login
+FAIL  dashboard after navigation   -> API /api/example returned 500
+SKIP  create Correspondence        -> production mutation not authorized
 ```
 
 ### Evidence
-- URL ที่ตรวจ + HTTP status code
-- Screenshot หรือ response body (ถ้า sensitive ให้ mask)
-- Console log ที่พบ (ถ้ามี error ต้องระบุ)
 
-### Limitations / Risks
-- flow หรือ endpoint ที่ยังไม่ได้ตรวจ + เหตุผล
-- ความเสี่ยงที่ควรตรวจใน staging ก่อน deploy
+- Screenshots or tool-provided image artifacts.
+- Relevant console findings, including an explicit statement when none were found.
+- Relevant network statuses and sanitized response details.
+
+### Limitations and risks
+
+- Unverified flows and the precise reason each could not be checked.
+- Missing roles, credentials, backend logs, or browser/MCP capabilities.
+- Any production data mutation performed and its resulting record reference, sanitized when necessary.
 
 ### Next steps
-- งานที่ต้องทำต่อ หรือ flag สำหรับ QA
+
+- Only actions needed to resolve failures or complete skipped coverage.

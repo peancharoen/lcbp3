@@ -121,6 +121,7 @@ Architecture Decision Records (ADRs) เป็นเอกสารที่บ�
 | [ADR-045](./ADR-045-edge-proxy-topology-amendment.md) | Edge Proxy Topology Amendment — Cloudflare Tunnel as Sole Edge | ✅ Accepted | 2026-08-03 | Amends ADR-041 D2/D6 — formalize Cloudflare Tunnel on np-dms-lcbp3 as sole edge proxy; QNAP no Docker (NAS/backup only); NPM demoted to internal router |
 | [ADR-046](./ADR-046-tag-color-palette-key.md) | Tag Color Palette Key — `tags.color_code` เป็น Palette Key Enum | ✅ Accepted | 2026-08-18 | เปลี่ยน `tags.color_code` จาก free-form string เป็น 14 palette key enum; frontend = source of truth (`TAG_PALETTE`), backend mirror สำหรับ `@IsIn` validation; SQL delta normalize legacy values → `'default'`; related ADR-019/030/044 |
 | [ADR-047](./ADR-047-native-backend-legacy-ingestion.md) | Native Backend Legacy Ingestion & OCR Persistence | 📋 Proposed | 2026-08-20 | ย้าย Legacy Ingestion จาก n8n สู่ NestJS Module (Streaming Excel + BullMQ ai-batch + OCR Persistence + Review Queue UI + CLI); amends ADR-028/042, supersedes 03-04 §3 |
+| [ADR-048](./ADR-048-ai-engine-control-center.md) | AI Engine Control Center — จาก Read-Only Monitoring สู่ Active Control | 📋 Proposed | 2026-08-24 | ขยาย `/admin/ai/system`: เพิ่ม `node-exporter` (host CPU/temp), รวม VRAM card เข้า Ollama card พร้อม Load/Unload จริง (guard ด้วย active-job check), เพิ่ม batch job detail viewer + Clear Failed Jobs ต่อ queue; related ADR-033/041/007/016 |
 
 ---
 

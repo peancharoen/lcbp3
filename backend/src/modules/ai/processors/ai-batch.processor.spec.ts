@@ -197,6 +197,8 @@ describe('AiBatchProcessor', () => {
   const mockAiQueueService = {
     enqueueEmbedDocument: jest.fn().mockResolvedValue('job-embed-123'),
     enqueueRagPrepare: jest.fn().mockResolvedValue('job-rag-prepare-123'),
+    getFailedJobsForCleanup: jest.fn().mockResolvedValue([]),
+    countFailedJobs: jest.fn().mockResolvedValue(0),
   };
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -1031,6 +1033,148 @@ describe('AiBatchProcessor', () => {
         !!attachment.ocrText &&
         (attachment.ocrText as string).trim().length > 0;
       expect(hasPersistedOcr).toBe(false);
+    });
+  });
+
+  // ADR-048 T017 — clear-failed-jobs processor tests
+  describe('ADR-048 T017: processClearFailedJobs', () => {
+    /** Helper: สร้าง mock BullMQ Job สำหรับ failed jobs cleanup */
+    const makeMockFailedJob = (
+      id: string
+    ): { id: string; remove: jest.Mock } => ({
+      id,
+      remove: jest.fn().mockResolvedValue(undefined),
+    });
+
+    /** Helper: สร้าง clear-failed-jobs BullMQ Job — match real enqueueClearFailed output */
+    const makeClearFailedJob = (
+      trackingId: string,
+      queueName: string
+    ): Job<AiBatchJobData> =>
+      ({
+        id: trackingId,
+        data: {
+          jobType: 'clear-failed-jobs' as never,
+          targetQueueName: queueName,
+          trackingId,
+          requestedBy: 'user-uuid-001',
+          documentPublicId: trackingId,
+          projectPublicId: 'system',
+          payload: {
+            targetQueueName: queueName,
+            requestedBy: 'user-uuid-001',
+          },
+          idempotencyKey: trackingId,
+        },
+      }) as unknown as Job<AiBatchJobData>;
+
+    it('ควรล้าง failed jobs ทั้งหมดใน chunk เดียวและอัปเดต status เป็น completed', async () => {
+      const failedJobs = [
+        makeMockFailedJob('f1'),
+        makeMockFailedJob('f2'),
+        makeMockFailedJob('f3'),
+      ];
+      mockAiQueueService.getFailedJobsForCleanup.mockResolvedValueOnce(
+        failedJobs
+      );
+      mockAiQueueService.countFailedJobs.mockResolvedValueOnce(0);
+
+      const job = makeClearFailedJob('cf-ai-batch-test001', 'ai-batch');
+      await processor.process(job);
+
+      expect(mockAiQueueService.getFailedJobsForCleanup).toHaveBeenCalledWith(
+        'ai-batch',
+        1000
+      );
+      expect(failedJobs[0].remove).toHaveBeenCalledTimes(1);
+      expect(failedJobs[1].remove).toHaveBeenCalledTimes(1);
+      expect(failedJobs[2].remove).toHaveBeenCalledTimes(1);
+      // Final status should be completed with clearedCount=3
+      const lastSetexCall = mockRedis.setex.mock.calls[
+        mockRedis.setex.mock.calls.length - 1
+      ] as [string, number, string];
+      const statusPayload = JSON.parse(lastSetexCall[2]) as {
+        status: string;
+        clearedCount: number;
+        remainingFailed: number;
+      };
+      expect(statusPayload.status).toBe('completed');
+      expect(statusPayload.clearedCount).toBe(3);
+      expect(statusPayload.remainingFailed).toBe(0);
+    });
+
+    it('ควรหยุดเมื่อไม่มี failed jobs เหลือ (empty queue)', async () => {
+      mockAiQueueService.getFailedJobsForCleanup.mockResolvedValueOnce([]);
+
+      const job = makeClearFailedJob('cf-ai-batch-empty', 'ai-batch');
+      await processor.process(job);
+
+      expect(mockAiQueueService.getFailedJobsForCleanup).toHaveBeenCalledTimes(
+        1
+      );
+      const lastSetexCall = mockRedis.setex.mock.calls[
+        mockRedis.setex.mock.calls.length - 1
+      ] as [string, number, string];
+      const statusPayload = JSON.parse(lastSetexCall[2]) as {
+        status: string;
+        clearedCount: number;
+      };
+      expect(statusPayload.status).toBe('completed');
+      expect(statusPayload.clearedCount).toBe(0);
+    });
+
+    it('BUG: ควรรักษา clearedCount จริงเมื่อเกิด error กลางทาง (ไม่ reset เป็น 0)', async () => {
+      // รอบแรก: ล้าง 1000 jobs สำเร็จ (เต็ม chunk เพื่อ trigger รอบที่ 2)
+      // รอบที่ 2: throw error
+      const failedJobsRound1: Array<{ id: string; remove: jest.Mock }> = [];
+      for (let i = 0; i < 1000; i += 1) {
+        failedJobsRound1.push(makeMockFailedJob(`f${i}`));
+      }
+      mockAiQueueService.getFailedJobsForCleanup
+        .mockResolvedValueOnce(failedJobsRound1)
+        .mockRejectedValueOnce(new Error('Redis connection lost'));
+
+      const job = makeClearFailedJob('cf-ai-batch-partial', 'ai-batch');
+      // process จะ throw เพราะ getFailedJobsForCleanup รอบที่ 2 throw
+      await expect(processor.process(job)).rejects.toThrow(
+        'Redis connection lost'
+      );
+
+      // ตรวจสอบว่า error status มี clearedCount=1000 (ไม่ใช่ 0)
+      const errorStatusCalls = mockRedis.setex.mock.calls.filter((call) => {
+        const [_key, _ttl, value] = call as [string, number, string];
+        const payload = JSON.parse(value) as { status: string };
+        return payload.status === 'failed';
+      });
+      expect(errorStatusCalls.length).toBeGreaterThan(0);
+      const errorPayload = JSON.parse(
+        (
+          errorStatusCalls[errorStatusCalls.length - 1] as [
+            string,
+            number,
+            string,
+          ]
+        )[2]
+      ) as { clearedCount: number };
+      // BUG: ปัจจุบัน clearedCount=0 แต่ควรเป็น 1000
+      expect(errorPayload.clearedCount).toBe(1000);
+    });
+
+    it('ควรอ่าน trackingId จาก top-level field ไม่ใช่จาก payload', async () => {
+      // Reset mock to clean state (clearAllMocks doesn't clear mockResolvedValueOnce queues)
+      mockAiQueueService.getFailedJobsForCleanup.mockReset();
+      mockAiQueueService.getFailedJobsForCleanup.mockResolvedValue([]);
+
+      const trackingId = 'cf-ai-realtime-track123';
+      const job = makeClearFailedJob(trackingId, 'ai-realtime');
+      await processor.process(job);
+
+      // Redis key ควรใช้ trackingId ที่ส่งมา
+      const setexCalls = mockRedis.setex.mock.calls.filter((call) => {
+        const [key] = call as [string, number, string];
+        return key === `ai:clear_failed:job:${trackingId}`;
+      });
+      expect(setexCalls.length).toBeGreaterThan(0);
     });
   });
 });

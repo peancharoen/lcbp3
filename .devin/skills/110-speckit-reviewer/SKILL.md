@@ -186,6 +186,35 @@ The following are **CI-blocking issues** that must be caught in code review. The
 - **Backend Overall:** 70% minimum
 - **Business Logic:** 80% minimum
 
+## Reviewer Evidence Bar
+
+Before classifying any finding as CRITICAL or HIGH (merge-blocking), you MUST establish the evidence bar defined in **[../\_LCBP3-CONTRACTS.md](../_LCBP3-CONTRACTS.md)**. A blocker is valid only when it clearly states:
+
+1. **Violated contract**: the exact ADR, spec, security rule, or acceptance criterion broken.
+2. **Reachable path**: concrete input, state, race, rollback, or failing observation.
+3. **Impact**: effect on correctness, security, data integrity, tenant isolation, compatibility, or users.
+4. **File references**: precise paths and line numbers inside the reviewed scope.
+5. **Evidence gap**: why existing tests, types, or logs do not already close the issue.
+
+Apply the LCBP3-specific blocker examples from `_LCBP3-CONTRACTS.md` for ADR-019 UUID misuse, ADR-016 security gaps, ADR-023 AI boundary violations, and ADR-044 schema correctness.
+
+When returning the review report, present each CRITICAL/HIGH finding using this structure:
+
+```markdown
+### [CRITICAL|HIGH]: [Short title]
+
+**File**: `path/to/file.ts:42`
+**Violated contract**: [e.g., ADR-019 — parseInt on UUID]
+**Reachable path**: [e.g., when `projectPublicId` is a UUIDv7 string, `Number(projectPublicId)` returns NaN or truncated value]
+**Impact**: [e.g., lookup fails or matches wrong record]
+**Evidence gap**: [e.g., no test exercises UUID-shaped input for this endpoint]
+**Fix**: [concrete suggestion]
+```
+
+Style preferences, speculative future concerns, and optional hardening belong in the SUGGESTIONS section, not as blockers.
+
+---
+
 ## Operating Principles
 
 - **Be Constructive**: Every criticism should have a fix suggestion
@@ -198,7 +227,12 @@ The following are **CI-blocking issues** that must be caught in code review. The
 
 ## LCBP3-DMS Context (MUST LOAD)
 
-Before executing, load **[../\_LCBP3-CONTEXT.md](../_LCBP3-CONTEXT.md)** to get:
+Before executing, load these references in order:
+
+1. **[../\_LCBP3-CONTEXT.md](../_LCBP3-CONTEXT.md)** for canonical rules, Tier 1 non-negotiables, domain glossary, helper scripts, and commit checklist.
+2. **[../\_LCBP3-CONTRACTS.md](../_LCBP3-CONTRACTS.md)** for the reviewer evidence bar, worker task packet, and TDD evidence format.
+
+Key constraints:
 
 - Canonical rule sources (AGENTS.md, specs/06-Decision-Records/, specs/05-Engineering-Guidelines/)
 - Tier 1 non-negotiables (ADR-019 UUID, ADR-044 schema (amends ADR-009), ADR-016 security, ADR-002 numbering, ADR-008 BullMQ, ADR-023/043 AI boundary (supersedes ADR-018/020), ADR-007 errors)

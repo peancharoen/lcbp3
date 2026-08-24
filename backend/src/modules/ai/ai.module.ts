@@ -10,6 +10,7 @@
 // - 2026-05-25: ลงทะเบียน AiAvailableModel สำหรับ AI Model Management (ADR-027).
 // - 2026-05-30: ลงทะเบียน VramMonitorService, OcrCacheService, NpDmsOcrProcessor, NpDmsAiProcessor (ADR-032).
 // - 2026-06-13: ลงทะเบียน AiSandboxProfile สำหรับ ADR-036 sandbox-production parity
+// - 2026-08-24: ADR-048 T004 — ลงทะเบียน NodeMetricsService สำหรับ AI Engine Control Center telemetry
 // Module สำหรับ AI Gateway — ลงทะเบียน Services และ Controllers (ADR-023)
 
 import { Logger, Module, OnModuleInit } from '@nestjs/common';
@@ -82,6 +83,7 @@ import {
   NpDmsAiProcessor,
   QUEUE_NP_DMS_AI,
 } from './processors/np-dms-ai.processor';
+import { NodeMetricsService } from './services/node-metrics.service';
 
 @Module({
   imports: [
@@ -207,6 +209,8 @@ import {
     RbacGuard,
     AiEnabledGuard,
     CleanupTempFilesWorker,
+    // ADR-048: AI Engine Control Center — Host-level telemetry poller
+    NodeMetricsService,
   ],
   exports: [
     AiService,
@@ -226,6 +230,8 @@ import {
     AiRagService,
     // ADR-032: Export BullModule สำหรับ MonitoringModule inject queue metrics
     BullModule,
+    // ADR-048: Export NodeMetricsService สำหรับ AI Control Center endpoint
+    NodeMetricsService,
   ],
 })
 export class AiModule implements OnModuleInit {

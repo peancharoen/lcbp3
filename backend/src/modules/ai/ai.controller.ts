@@ -17,6 +17,10 @@
 // - 2026-06-13: T024-T026 — เพิ่ม sandbox parameter endpoints (GET/PUT/POST reset) ตาม ADR-036
 // - 2026-06-13: T036, T037, T039, T040, T041 — เพิ่ม endpoints apply sandbox profile และ get production parameters พร้อม idempotency, CASL, validation และ audit
 // - 2026-06-14: เพิ่ม POST /ai/admin/sandbox/rag-prep endpoint (T033)
+// - 2026-08-24: ADR-048 T006 — GET /ai/admin/host/metrics (NodeMetricsService)
+// - 2026-08-24: ADR-048 T011 — POST /ai/admin/models/:modelName/vram/load+unload (VramMonitorService)
+// - 2026-08-24: ADR-048 T015 — GET /ai/admin/queues/:queueName/jobs, POST .../jobs/:jobId/retry, DELETE .../jobs/:jobId
+// - 2026-08-24: ADR-048 T018 — POST /ai/admin/queues/:queueName/clear-failed, GET .../clear-failed/:jobId
 // Controller สำหรับ AI Gateway Endpoints (ADR-023)
 
 import {
@@ -114,6 +118,14 @@ import {
 import { AiExecutionProfilesService } from './services/ai-execution-profiles.service';
 import { CreateExecutionProfileDto } from './dto/create-execution-profile.dto';
 import { UpdateExecutionProfileDto } from './dto/update-execution-profile.dto';
+import { NodeMetricsService } from './services/node-metrics.service';
+import { VramMonitorService } from './services/vram-monitor.service';
+import { GetHostMetricsResponseDto } from './dto/host-metrics.dto';
+import {
+  GetQueueJobsResponseDto,
+  ClearFailedJobsResponseDto,
+  ClearFailedJobsStatusDto,
+} from './dto/queue-jobs.dto';
 
 @ApiTags('AI Gateway')
 @Controller('ai')
@@ -129,6 +141,8 @@ export class AiController {
     private readonly migrationCheckpointService: AiMigrationCheckpointService,
     private readonly aiPolicyService: AiPolicyService,
     private readonly aiExecutionProfilesService: AiExecutionProfilesService,
+    private readonly nodeMetricsService: NodeMetricsService,
+    private readonly vramMonitorService: VramMonitorService,
     @InjectRedis() private readonly redis: Redis,
     @Optional() private readonly ocrService?: OcrService
   ) {}
@@ -429,6 +443,235 @@ export class AiController {
   })
   async getAiSystemHealth() {
     return this.aiService.getSystemHealth();
+  }
+
+  // ─── AI Engine Control Center: Host Metrics (ADR-048 T006) ─────────────────
+
+  @Get('admin/host/metrics')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @ApiOperation({
+    summary:
+      'AI Control Center — Host Metrics: CPU%, RAM%, Temperature + 15-point Sparkline history',
+    description:
+      'ดึงข้อมูลจาก Redis cache (< 5ms) ที่ NodeMetricsService บันทึกทุก 10 วินาทีจาก node-exporter :9100 (ADR-048)',
+  })
+  async getHostMetrics(): Promise<
+    GetHostMetricsResponseDto | { available: false; reason: string }
+  > {
+    const metrics = await this.nodeMetricsService.getHostMetrics();
+    if (!metrics) {
+      // ยังไม่มีข้อมูล (cold-start: poller poll ครั้งแรกยังไม่ถึง)
+      return {
+        available: false,
+        reason:
+          'NodeMetrics ยังไม่มีข้อมูล รอประมาณ 10-20 วินาทีหลังจาก backend เริ่มทำงาน',
+      };
+    }
+    return metrics;
+  }
+
+  // ─── AI Engine Control Center: VRAM Control (ADR-048 T011) ─────────────────
+
+  @Post('admin/models/:modelName/vram/load')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @HttpCode(HttpStatus.OK)
+  @Audit('ai_vram_load')
+  @ApiOperation({
+    summary: 'AI Control Center — Load model into VRAM (cold-start: 5-10s)',
+    description:
+      'โหลดโมเดลเข้า VRAM ผ่าน Ollama keep_alive=-1 เซ็ต Redis lock ai:model:transitioning 15s (ADR-048)',
+  })
+  @ApiParam({
+    name: 'modelName',
+    description: 'ชื่อโมเดล เช่น np-dms-ai:latest',
+  })
+  async loadModelVram(
+    @Param('modelName') modelName: string
+  ): Promise<{ success: true; modelName: string }> {
+    await this.vramMonitorService.loadModelVram(modelName);
+    return { success: true, modelName };
+  }
+
+  @Post('admin/models/:modelName/vram/unload')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @HttpCode(HttpStatus.OK)
+  @Audit('ai_vram_unload')
+  @ApiOperation({
+    summary:
+      'AI Control Center — Unload model from VRAM (requires empty queue)',
+    description:
+      'Unload โมเดลออกจาก VRAM ผ่าน Ollama keep_alive=0 ตรวจสอบ empty-queue guard ก่อน (ADR-048)',
+  })
+  @ApiParam({
+    name: 'modelName',
+    description: 'ชื่อโมเดล เช่น np-dms-ai:latest',
+  })
+  async unloadModelVram(
+    @Param('modelName') modelName: string
+  ): Promise<{ success: true; modelName: string; warning: string }> {
+    await this.vramMonitorService.unloadModelVram(modelName);
+    return {
+      success: true,
+      modelName,
+      warning:
+        'Model unloaded. Next AI request will incur 5-10s cold-start latency.',
+    };
+  }
+
+  // ─── AI Engine Control Center: Queue Job Inspection (ADR-048 T015) ─────────
+
+  @Get('admin/queues/:queueName/jobs')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @ApiOperation({
+    summary:
+      'AI Control Center — Queue Job Drill-down: list jobs with pagination',
+  })
+  @ApiParam({
+    name: 'queueName',
+    description: 'ชื่อ queue (ai-batch | ai-realtime)',
+  })
+  @ApiQuery({
+    name: 'status',
+    enum: ['all', 'active', 'waiting', 'failed', 'completed', 'delayed'],
+    required: false,
+  })
+  @ApiQuery({ name: 'page', type: Number, required: false })
+  @ApiQuery({ name: 'limit', type: Number, required: false })
+  async getQueueJobs(
+    @Param('queueName') queueName: string,
+    @Query('status')
+    status:
+      | 'all'
+      | 'active'
+      | 'waiting'
+      | 'failed'
+      | 'completed'
+      | 'delayed' = 'all',
+    @Query('page') page = '1',
+    @Query('limit') limit = '20'
+  ): Promise<GetQueueJobsResponseDto> {
+    const pageNum = Math.max(1, Number(page) || 1);
+    const limitNum = Math.min(100, Math.max(1, Number(limit) || 20));
+    const result = await this.aiQueueService.getQueueJobs(
+      queueName,
+      status,
+      pageNum,
+      limitNum
+    );
+    const dto = new GetQueueJobsResponseDto();
+    dto.jobs = result.jobs;
+    dto.total = result.total;
+    dto.page = pageNum;
+    dto.limit = limitNum;
+    return dto;
+  }
+
+  @Post('admin/queues/:queueName/jobs/:jobId/retry')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @HttpCode(HttpStatus.OK)
+  @Audit('ai_queue_job_retry')
+  @ApiOperation({ summary: 'AI Control Center — Retry a failed job' })
+  @ApiParam({
+    name: 'queueName',
+    description: 'ชื่อ queue (ai-batch | ai-realtime)',
+  })
+  @ApiParam({ name: 'jobId', description: 'BullMQ job ID' })
+  async retryQueueJob(
+    @Param('queueName') queueName: string,
+    @Param('jobId') jobId: string
+  ): Promise<{ success: true }> {
+    await this.aiQueueService.retryJob(queueName, jobId);
+    return { success: true };
+  }
+
+  @Delete('admin/queues/:queueName/jobs/:jobId')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Audit('ai_queue_job_delete')
+  @ApiOperation({ summary: 'AI Control Center — Delete a job from queue' })
+  @ApiParam({
+    name: 'queueName',
+    description: 'ชื่อ queue (ai-batch | ai-realtime)',
+  })
+  @ApiParam({ name: 'jobId', description: 'BullMQ job ID' })
+  async deleteQueueJob(
+    @Param('queueName') queueName: string,
+    @Param('jobId') jobId: string
+  ): Promise<void> {
+    await this.aiQueueService.deleteJob(queueName, jobId);
+  }
+
+  // ─── AI Engine Control Center: Bulk Clear Failed Jobs (ADR-048 T018) ────────
+
+  @Post('admin/queues/:queueName/clear-failed')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @Audit('ai_queue_clear_failed')
+  @ApiOperation({
+    summary:
+      'AI Control Center — Async bulk clear all failed jobs in queue (up to 10,000)',
+    description:
+      'Enqueue งาน async clear-failed ผ่าน ai-batch processor คืน trackingId สำหรับ polling (ADR-048)',
+  })
+  @ApiParam({
+    name: 'queueName',
+    description: 'ชื่อ queue (ai-batch | ai-realtime)',
+  })
+  async clearFailedJobs(
+    @Param('queueName') queueName: string,
+    @CurrentUser() user: User
+  ): Promise<ClearFailedJobsResponseDto> {
+    const trackingId = await this.aiQueueService.enqueueClearFailed(
+      queueName,
+      user.publicId
+    );
+    const dto = new ClearFailedJobsResponseDto();
+    dto.jobId = trackingId;
+    dto.status = 'queued';
+    return dto;
+  }
+
+  @Get('admin/queues/:queueName/clear-failed/:trackingId')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
+  @ApiOperation({
+    summary: 'AI Control Center — Poll clear-failed job status',
+  })
+  @ApiParam({
+    name: 'queueName',
+    description: 'ชื่อ queue (ai-batch | ai-realtime)',
+  })
+  @ApiParam({
+    name: 'trackingId',
+    description: 'tracking ID จาก clear-failed POST',
+  })
+  async getClearFailedStatus(
+    @Param('queueName') queueName: string,
+    @Param('trackingId') trackingId: string
+  ): Promise<ClearFailedJobsStatusDto | { found: false }> {
+    // ใช้แค่ trackingId ในการ poll — queueName ใช้สำหรับ URL ที่อ่านได้เท่านั้น
+    void queueName;
+    const result = await this.aiQueueService.getClearFailedStatus(trackingId);
+    if (!result) {
+      return { found: false };
+    }
+    return result;
   }
 
   @Post('admin/sandbox/rag')

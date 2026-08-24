@@ -66,7 +66,15 @@ You are **FORBIDDEN** from fixing a bug or implementing a feature without eviden
 3.  Run it and show the failure output.
 4.  **ONLY THEN**, implement the fix/feature.
 5.  Run the script again to prove it passes.
-6.  Delete the temporary script OR convert it to a permanent test.
+6.  Record the TDD evidence using the format in `_LCBP3-CONTRACTS.md`:
+    - TDD_REQUIRED: yes
+    - Test seam
+    - RED command and observed failure
+    - GREEN command and observed passing result
+    - REFACTOR command and observed still-passing result
+7.  Delete the temporary script OR convert it to a permanent test.
+
+A test written after the implementation or a final full-suite pass does not retroactively satisfy TDD. If no permanent test is kept, the TDD evidence record must still be included in the task summary.
 
 ### Protocol 4: Context Anchoring
 
@@ -74,6 +82,43 @@ At the start of execution and after every 3 modifications:
 
 1.  Run `tree -L 2` (or equivalent) to visualize the file structure.
 2.  Update `ARCHITECTURE.md` if it exists, or create it to reflect the current reality.
+
+### Protocol 5: Bounded Worker Task Packet
+
+If you delegate a task to another skill or subagent (for example, `create-backend-module`, `create-frontend-page`, `109-speckit-tester`, or a bounded helper), you MUST provide the worker task packet from `_LCBP3-CONTRACTS.md` before any file changes begin.
+
+The packet must include at minimum:
+
+- **Role and execution mode**: inline or subagent.
+- **Assurance mode**: standard or final-strict.
+- **Objective**: observable outcome and why it matters.
+- **Ownership**: exact files/modules the worker owns and must not touch.
+- **Constraints**: applicable ADRs and the prohibition against deploy/merge/push/destructive operations.
+- **Acceptance**: concrete behavior or artifact plus regression/compatibility conditions.
+- **TDD**: TDD_REQUIRED flag, test seam, RED/GREEN/REFACTOR commands.
+- **Verification**: exact focused command and expected success output.
+- **Return format**: STATUS, CHANGES, VERIFIED, TDD EVIDENCE, JUDGMENT CALLS, GAPS.
+
+Keep the orchestration yourself. Do not let a worker delegate further or take over the plan.
+
+### Protocol 6: Cross-Session Assurance Ledger
+
+If the task is high-risk, Tier 3 (ADR-021, ADR-028, ADR-042, AI runtime layer), or explicitly expected to span multiple sessions, create an assurance ledger following the format in `_LCBP3-CONTRACTS.md`.
+
+Do this **before** the first implementation checkpoint:
+
+1. Derive a stable `ASSURANCE_UNIT_ID` from repository/track/phase (e.g., `lcbp3/migration/adr-028-phase-2`, `lcbp3/ai/adr-042-sandbox`).
+2. Choose a durable `LEDGER_LOCATION` inside the repo:
+   - Feature work: `specs/200-fullstacks/feat-XXX/ledger.md`
+   - Migration: `specs/06-Decision-Records/ADR-028-ledger.md`
+   - AI pipeline: `specs/200-fullstacks/feat-YYY/ai-ledger.md`
+   - Ad-hoc: `specs/88-logs/session-ledger-<unit-id>.md`
+3. Record the base state: branch, ref, dirty files, and acceptance criteria.
+4. After every checkpoint, append a row with changed scope, verification commands/results, TDD evidence links, and status.
+5. Before ending a session, write a "Next Session Entry" with the next required action and files the next agent must not touch.
+6. When resuming, read the ledger first and report current status before making changes.
+
+A ledger in `open` or `checkpoint-ready` status must not cross a protected boundary (deploy, merge, migration execution, production auth, real money). Complete the final candidate checks and any required review first.
 
 ---
 
@@ -251,7 +296,12 @@ Note: This command assumes a complete task breakdown exists in tasks.md. If task
 
 ## LCBP3-DMS Context (MUST LOAD)
 
-Before executing, load **[../_LCBP3-CONTEXT.md](../_LCBP3-CONTEXT.md)** to get:
+Before executing, load these references in order:
+
+1. **[../\_LCBP3-CONTEXT.md](../_LCBP3-CONTEXT.md)** for canonical rules, Tier 1 non-negotiables, domain glossary, helper scripts, and commit checklist.
+2. **[../\_LCBP3-CONTRACTS.md](../_LCBP3-CONTRACTS.md)** for the worker task packet, reviewer evidence bar, and TDD evidence format.
+
+Key constraints:
 
 - Canonical rule sources (AGENTS.md, specs/06-Decision-Records/, specs/05-Engineering-Guidelines/)
 - Tier 1 non-negotiables (ADR-019 UUID, ADR-044 schema (amends ADR-009), ADR-016 security, ADR-002 numbering, ADR-008 BullMQ, ADR-023/043 AI boundary (supersedes ADR-018/020), ADR-007 errors)

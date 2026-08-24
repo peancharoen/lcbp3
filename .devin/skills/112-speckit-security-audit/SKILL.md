@@ -138,6 +138,34 @@ Check LCBP3-DMS-specific file handling per ADR-016:
 | 🟡 **Medium**   | Best practice violation, defense-in-depth gap         | Plan fix in sprint      |
 | 🟢 **Low**      | Informational, minor hardening opportunity            | Track in backlog        |
 
+## Security Evidence Bar
+
+Every 🔴 Critical and 🟠 High finding must meet the reviewer evidence bar defined in **[../\_LCBP3-CONTRACTS.md](../_LCBP3-CONTRACTS.md)**. In addition, a security finding must establish:
+
+1. **Attack scenario**: a concrete sequence of requests, inputs, or states an attacker can reach.
+2. **Security boundary crossed**: which protection (authentication, authorization, input validation, isolation, audit) failed.
+3. **Business impact**: data exposure, unauthorized mutation, privilege escalation, availability loss, or compliance violation.
+4. **Affected scope**: precise files, endpoints, entities, and user roles.
+5. **Reproduction or proof**: code snippet, curl/command, log excerpt, or test that demonstrates the issue.
+
+A missing security control is only Critical/High when you can show a reachable exploitation path or a project-mandated control (ADR-016, ADR-019, ADR-023) is absent without accepted exception. Defense-in-depth gaps that require additional attacker assumptions are Medium at most.
+
+Present each Critical/High finding with this structure:
+
+```markdown
+### [SEV-###] <Title> — [Critical|High]
+
+**Category**: [OWASP A## / CASL / ClamAV / AI Boundary / UUID / ...]
+**File**: `path/to/file.ts:42`
+**Contract violated**: [exact ADR or security requirement]
+**Attack scenario**: [concrete steps]
+**Security boundary crossed**: [auth/authz/input validation/isolation/audit]
+**Business impact**: [data exposure / unauthorized mutation / ...]
+**Affected scope**: [endpoints, roles, data]
+**Proof**: [code, command, log, or test]
+**Recommendation**: [concrete fix]
+```
+
 ## Report Format
 
 Generate a structured report:
@@ -202,7 +230,12 @@ Generate a structured report:
 
 ## LCBP3-DMS Context (MUST LOAD)
 
-Before executing, load **[../_LCBP3-CONTEXT.md](../_LCBP3-CONTEXT.md)** to get:
+Before executing, load these references in order:
+
+1. **[../\_LCBP3-CONTEXT.md](../_LCBP3-CONTEXT.md)** for canonical rules, Tier 1 non-negotiables, domain glossary, helper scripts, and commit checklist.
+2. **[../\_LCBP3-CONTRACTS.md](../_LCBP3-CONTRACTS.md)** for the reviewer evidence bar, worker task packet, and TDD evidence format.
+
+Key constraints:
 
 - Canonical rule sources (AGENTS.md, specs/06-Decision-Records/, specs/05-Engineering-Guidelines/)
 - Tier 1 non-negotiables (ADR-019 UUID, ADR-044 schema (amends ADR-009), ADR-016 security, ADR-002 numbering, ADR-008 BullMQ, ADR-023/043 AI boundary (supersedes ADR-018/020), ADR-007 errors)

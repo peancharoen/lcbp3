@@ -41,9 +41,10 @@ You are the **Antigravity System Architect**. Your role is to bridge the gap bet
    - Phase 0: Generate research.md (resolve all NEEDS CLARIFICATION)
    - Phase 1: Generate data-model.md, contracts/, quickstart.md
    - Phase 1: Update agent context by running the agent script
+   - Phase 1: Decide whether a cross-session assurance ledger is required (see Ledger Decision below)
    - Re-evaluate Constitution Check post-design
 
-4. **Stop and report**: Command ends after Phase 2 planning. Report branch, IMPL_PLAN path, and generated artifacts.
+4. **Stop and report**: Command ends after Phase 2 planning. Report branch, IMPL_PLAN path, generated artifacts, and ledger path (if created).
 
 ## Phases
 
@@ -93,6 +94,29 @@ You are the **Antigravity System Architect**. Your role is to bridge the gap bet
 
 **Output**: data-model.md, /contracts/\*, quickstart.md, agent-specific file
 
+### Ledger Decision (cross-session or high-risk work)
+
+Before completing planning, decide whether this unit needs an assurance ledger per `_LCBP3-CONTRACTS.md`. Create a ledger if **any** of the following is true:
+
+- Tier 3 specialized work (ADR-021, ADR-023/ADR-042 AI runtime, ADR-028 migration, multi-step workflow engine)
+- Expected to span multiple chat sessions, worktrees, or branches
+- Multiple agents/skills will touch the same scope
+- Work affects protected boundaries (auth, migration, data integrity, public API, AI boundary, real money)
+- User explicitly asks to continue later or resume pending work
+
+If a ledger is needed:
+
+1. Choose the appropriate template from `templates/`:
+   - Generic cross-session: `templates/ledger-template.md`
+   - ADR-028 migration: `templates/migration-ledger-template.md`
+   - ADR-023/ADR-042 AI pipeline: `templates/ai-pipeline-ledger-template.md`
+2. Derive a stable `ASSURANCE_UNIT_ID` from `repository/track/feature-or-phase` (e.g., `lcbp3/migration/legacy-doc-phase-2`, `lcbp3/ai/rag-sandbox-phase-1`).
+3. Place the ledger in the repo at the location specified in the template (for example, `specs/200-fullstacks/feat-XXX/ledger.md`, `specs/06-Decision-Records/ADR-028-ledger-<source>-<target>.md`, or `specs/88-logs/session-ledger-<unit-id>.md`).
+4. Fill base state: branch, ref, dirty files, objective, acceptance criteria, final boundary, protected boundaries.
+5. Record the ledger path in the plan summary.
+
+If a ledger is **not** needed, document the reason in the planning output (e.g., "Single-session, low-risk UI change — no ledger required") and continue with standard assurance.
+
 ## Key rules
 
 - Use absolute paths
@@ -102,7 +126,12 @@ You are the **Antigravity System Architect**. Your role is to bridge the gap bet
 
 ## LCBP3-DMS Context (MUST LOAD)
 
-Before executing, load **[../\_LCBP3-CONTEXT.md](../_LCBP3-CONTEXT.md)** to get:
+Before executing, load these references in order:
+
+1. **[../\_LCBP3-CONTEXT.md](../_LCBP3-CONTEXT.md)** for canonical rules, Tier 1 non-negotiables, domain glossary, helper scripts, and commit checklist.
+2. **[../\_LCBP3-CONTRACTS.md](../_LCBP3-CONTRACTS.md)** for the worker task packet, reviewer evidence bar, TDD evidence format, and cross-session assurance ledger.
+
+Key constraints:
 
 - Canonical rule sources (AGENTS.md, specs/06-Decision-Records/, specs/05-Engineering-Guidelines/)
 - Tier 1 non-negotiables (ADR-019 UUID, ADR-044 schema (amends ADR-009), ADR-016 security, ADR-002 numbering, ADR-008 BullMQ, ADR-023/043 AI boundary (supersedes ADR-018/020), ADR-007 errors)

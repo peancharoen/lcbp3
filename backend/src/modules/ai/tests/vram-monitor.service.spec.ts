@@ -6,6 +6,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { VramMonitorService } from '../services/vram-monitor.service';
+import { OllamaService } from '../services/ollama.service';
+import { AiQueueService } from '../ai-queue.service';
 import axios from 'axios';
 
 jest.mock('axios');
@@ -23,12 +25,37 @@ describe('VramMonitorService', () => {
     }),
   };
 
+  const mockOllamaService = {
+    loadModel: jest.fn().mockResolvedValue(undefined),
+    unloadModel: jest.fn().mockResolvedValue(undefined),
+  };
+
+  const mockAiQueueService = {
+    getBatchQueueSize: jest.fn().mockResolvedValue(0),
+    getRealtimeQueueSize: jest.fn().mockResolvedValue(0),
+    assertQueuesEmpty: jest.fn().mockResolvedValue(undefined),
+  };
+
+  const mockRedis = {
+    get: jest.fn().mockResolvedValue(null),
+    set: jest.fn().mockResolvedValue('OK'),
+    setex: jest.fn().mockResolvedValue('OK'),
+    del: jest.fn().mockResolvedValue(1),
+    eval: jest.fn().mockResolvedValue(1),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         VramMonitorService,
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: OllamaService, useValue: mockOllamaService },
+        { provide: AiQueueService, useValue: mockAiQueueService },
+        {
+          provide: 'default_IORedisModuleConnectionToken',
+          useValue: mockRedis,
+        },
       ],
     }).compile();
     service = module.get<VramMonitorService>(VramMonitorService);
@@ -180,6 +207,155 @@ describe('VramMonitorService', () => {
   describe('invalidateCache', () => {
     it('ควร resolve โดยไม่ throw (no-op)', async () => {
       await expect(service.invalidateCache()).resolves.toBeUndefined();
+    });
+  });
+
+  // ─── ADR-048 FR-007: Global Empty-Queue Concurrency Guard ──────────────────
+
+  describe('FR-007: loadModelVram empty-queue guard', () => {
+    it('ควร reject load (409) เมื่อ ai-batch มี active/waiting jobs', async () => {
+      mockAiQueueService.assertQueuesEmpty.mockRejectedValueOnce(
+        new Error('Conflict')
+      );
+      await expect(service.loadModelVram('np-dms-ai:latest')).rejects.toThrow(
+        'Conflict'
+      );
+      expect(mockOllamaService.loadModel).not.toHaveBeenCalled();
+    });
+
+    it('ควร reject load (409) เมื่อ ai-realtime มี active/waiting jobs', async () => {
+      mockAiQueueService.assertQueuesEmpty.mockRejectedValueOnce(
+        new Error('Conflict')
+      );
+      await expect(service.loadModelVram('np-dms-ai:latest')).rejects.toThrow(
+        'Conflict'
+      );
+      expect(mockOllamaService.loadModel).not.toHaveBeenCalled();
+    });
+
+    it('ควรอนุญาต load เมื่อทั้งสอง queue ว่าง', async () => {
+      mockAiQueueService.assertQueuesEmpty.mockResolvedValueOnce(undefined);
+      // VRAM empty — no eviction needed
+      mockedAxios.get.mockResolvedValue({ data: { models: [] } });
+      await service.loadModelVram('np-dms-ai:latest');
+      expect(mockOllamaService.loadModel).toHaveBeenCalledWith(
+        'np-dms-ai:latest',
+        -1
+      );
+    });
+  });
+
+  describe('FR-007: unloadModelVram empty-queue guard (both queues)', () => {
+    it('ควร reject unload (409) เมื่อ ai-realtime มี active/waiting jobs', async () => {
+      mockAiQueueService.assertQueuesEmpty.mockRejectedValueOnce(
+        new Error('Conflict')
+      );
+      await expect(service.unloadModelVram('np-dms-ai:latest')).rejects.toThrow(
+        'Conflict'
+      );
+      expect(mockOllamaService.unloadModel).not.toHaveBeenCalled();
+    });
+
+    it('ควร reject unload (409) เมื่อ ai-batch มี active/waiting jobs', async () => {
+      mockAiQueueService.assertQueuesEmpty.mockRejectedValueOnce(
+        new Error('Conflict')
+      );
+      await expect(service.unloadModelVram('np-dms-ai:latest')).rejects.toThrow(
+        'Conflict'
+      );
+      expect(mockOllamaService.unloadModel).not.toHaveBeenCalled();
+    });
+
+    it('ควรอนุญาต unload เมื่อทั้งสอง queue ว่าง', async () => {
+      mockAiQueueService.assertQueuesEmpty.mockResolvedValueOnce(undefined);
+      await service.unloadModelVram('np-dms-ai:latest');
+      expect(mockOllamaService.unloadModel).toHaveBeenCalledWith(
+        'np-dms-ai:latest'
+      );
+    });
+  });
+
+  // ─── ADR-048 FR-008: Auto-Eviction Before Load ─────────────────────────────
+
+  describe('FR-008: loadModelVram auto-eviction', () => {
+    it('ควร auto-evict inactive model เมื่อ VRAM ไม่พอ ก่อนโหลดโมเดลใหม่', async () => {
+      // VRAM: 8192MB total, 6GB used by np-dms-ocr, need 4GB for np-dms-ai
+      // ต้อง evict np-dms-ocr ก่อนโหลด np-dms-ai
+      mockAiQueueService.assertQueuesEmpty.mockResolvedValueOnce(undefined);
+      // getVramHeadroom calls axios.get — 6GB used, 2GB free (< 4GB required)
+      // autoEvictIfNeeded calls axios.get again for model list
+      mockedAxios.get
+        .mockResolvedValueOnce({
+          // getVramHeadroom: 6GB used by ocr
+          data: {
+            models: [
+              {
+                name: 'np-dms-ocr:latest',
+                size_vram: 6 * 1024 * 1024 * 1024,
+              },
+            ],
+          },
+        })
+        .mockResolvedValueOnce({
+          // autoEvictIfNeeded: query models for eviction
+          data: {
+            models: [
+              {
+                name: 'np-dms-ocr:latest',
+                size_vram: 6 * 1024 * 1024 * 1024,
+              },
+            ],
+          },
+        });
+
+      await service.loadModelVram('np-dms-ai:latest');
+
+      // ต้อง unload inactive model (np-dms-ocr) ก่อน load
+      expect(mockOllamaService.unloadModel).toHaveBeenCalledWith(
+        'np-dms-ocr:latest'
+      );
+      expect(mockOllamaService.loadModel).toHaveBeenCalledWith(
+        'np-dms-ai:latest',
+        -1
+      );
+    });
+
+    it('ควร load ตรงเมื่อ VRAM พอ (ไม่ต้อง evict)', async () => {
+      mockAiQueueService.assertQueuesEmpty.mockResolvedValueOnce(undefined);
+      // 2GB used, 6GB free — enough for 4GB required
+      mockedAxios.get.mockResolvedValue({
+        data: {
+          models: [
+            {
+              name: 'np-dms-ai:latest',
+              size_vram: 2 * 1024 * 1024 * 1024,
+            },
+          ],
+        },
+      });
+
+      await service.loadModelVram('np-dms-ocr:latest');
+
+      expect(mockOllamaService.unloadModel).not.toHaveBeenCalled();
+      expect(mockOllamaService.loadModel).toHaveBeenCalledWith(
+        'np-dms-ocr:latest',
+        -1
+      );
+    });
+
+    it('ควร load ตรงเมื่อไม่มีโมเดลโหลดอยู่เลย', async () => {
+      mockAiQueueService.assertQueuesEmpty.mockResolvedValueOnce(undefined);
+      mockedAxios.get.mockResolvedValue({
+        data: { models: [] },
+      });
+
+      await service.loadModelVram('np-dms-ai:latest');
+
+      expect(mockOllamaService.unloadModel).not.toHaveBeenCalled();
+      expect(mockOllamaService.loadModel).toHaveBeenCalledWith(
+        'np-dms-ai:latest',
+        -1
+      );
     });
   });
 });

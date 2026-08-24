@@ -181,7 +181,72 @@ if (Test-Path $skillsVersionFile) {
 
 Write-Host ""
 
+# Contract Reference Audit
+# Verifies shared LCBP3 contracts are present and referenced by skills.
+Write-Host "=== Contract Reference Audit ===" -ForegroundColor Cyan
+Write-Host "------------------------------"
+
+$contractIssues = 0
+$requiredContractSkills = @(
+    "104-speckit-plan",
+    "105-speckit-tasks",
+    "107-speckit-implement",
+    "110-speckit-reviewer",
+    "111-speckit-validate",
+    "112-speckit-security-audit",
+    "security-review",
+    "verification-loop",
+    "resume-pending-work"
+)
+
+$agentsContract = Join-Path $AgentsDir "skills" "_LCBP3-CONTRACTS.md"
+$devinContract = Join-Path $BaseDir ".devin" "skills" "_LCBP3-CONTRACTS.md"
+
+if (Test-Path $agentsContract) {
+    Write-Host "  FOUND: .agents/skills/_LCBP3-CONTRACTS.md" -ForegroundColor $Colors.Green
+} else {
+    Write-Host "  MISSING: .agents/skills/_LCBP3-CONTRACTS.md" -ForegroundColor $Colors.Red
+    $contractIssues++
+}
+
+if (Test-Path $devinContract) {
+    Write-Host "  FOUND: .devin/skills/_LCBP3-CONTRACTS.md" -ForegroundColor $Colors.Green
+} else {
+    Write-Host "  MISSING: .devin/skills/_LCBP3-CONTRACTS.md" -ForegroundColor $Colors.Red
+    $contractIssues++
+}
+
+if ((Test-Path $agentsContract) -and (Test-Path $devinContract)) {
+    $agentsHash = (Get-FileHash -Path $agentsContract -Algorithm SHA256).Hash
+    $devinHash = (Get-FileHash -Path $devinContract -Algorithm SHA256).Hash
+    if ($agentsHash -eq $devinHash) {
+        Write-Host "  SYNCED: .agents and .devin contract copies match" -ForegroundColor $Colors.Green
+    } else {
+        Write-Host "  MISMATCH: .agents and .devin _LCBP3-CONTRACTS.md differ" -ForegroundColor $Colors.Red
+        $contractIssues++
+    }
+}
+
+foreach ($skillName in $requiredContractSkills) {
+    $skillFile = Join-Path $SkillsDir "$skillName/SKILL.md"
+    if (Test-Path $skillFile) {
+        $content = Get-Content $skillFile -Raw
+        if ($content -match '_LCBP3-CONTRACTS\.md') {
+            Write-Host "  REFERENCED: $skillName -> _LCBP3-CONTRACTS.md" -ForegroundColor $Colors.Green
+        } else {
+            Write-Host "  MISSING REF: $skillName does not reference _LCBP3-CONTRACTS.md" -ForegroundColor $Colors.Red
+            $contractIssues++
+        }
+    } else {
+        Write-Host "  SKIP: $skillName/SKILL.md not found" -ForegroundColor $Colors.Yellow
+    }
+}
+
+Write-Host ""
+
 # Overall health
+$totalIssues += $contractIssues
+
 if ($totalIssues -eq 0) {
     Write-Host "=== SUCCESS: All skills healthy ===" -ForegroundColor $Colors.Green
     Write-Host "Total skills: $($skillDirs.Count)"
@@ -194,5 +259,6 @@ if ($totalIssues -eq 0) {
     Write-Host "2. Add required front matter fields"
     Write-Host "3. Ensure Role and Task sections exist"
     Write-Host "4. Align skill versions with global version"
+    Write-Host "5. Ensure _LCBP3-CONTRACTS.md exists in .agents/skills and .devin/skills and is referenced by required skills"
     exit 1
 }

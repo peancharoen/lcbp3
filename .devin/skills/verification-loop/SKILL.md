@@ -14,13 +14,15 @@ A comprehensive verification system for LCBP3-DMS development sessions.
 
 ## LCBP3 Context
 
-See [`_LCBP3-CONTEXT.md`](../_LCBP3-CONTEXT.md) for project-specific verification requirements:
+Load these references before running verification:
 
-- Backend: NestJS with TypeScript strict mode
-- Frontend: Next.js with TypeScript strict mode
-- Package manager: pnpm
-- Coverage goals: Backend 70%+, Business Logic 80%+
-- Security: ADR-016, ADR-019, ADR-023/043 (AI boundary — supersedes archived ADR-018/020) compliance
+1. [`_LCBP3-CONTEXT.md`](../_LCBP3-CONTEXT.md) for project-specific verification requirements:
+   - Backend: NestJS with TypeScript strict mode
+   - Frontend: Next.js with TypeScript strict mode
+   - Package manager: pnpm
+   - Coverage goals: Backend 70%+, Business Logic 80%+
+   - Security: ADR-016, ADR-019, ADR-023/043 (AI boundary — supersedes archived ADR-018/020) compliance
+2. [`_LCBP3-CONTRACTS.md`](../_LCBP3-CONTRACTS.md) for the cross-session assurance ledger, TDD evidence format, and reviewer evidence bar.
 
 ## When to Use
 
@@ -148,6 +150,26 @@ Review each changed file for:
 - Security vulnerabilities (ADR-016)
 - AI boundary violations (ADR-018/023)
 
+### Phase 8: Contract Compliance / Ledger Check
+
+Before declaring READY for PR, verify contract artifacts per `_LCBP3-CONTRACTS.md`:
+
+1. **Assurance ledger** (if the feature has one):
+   - Read `LEDGER_LOCATION` from `specs/200-fullstacks/<feature>/ledger.md` or equivalent
+   - Confirm `STATUS` is `complete` or `checkpoint-ready` (not `open` or `blocked`)
+   - Confirm final checkpoint has verification results and TDD evidence links
+   - Confirm no protected boundary was crossed without authorization
+
+2. **TDD evidence**:
+   - For every behavior-changing diff, locate the associated TDD evidence record
+   - Verify it contains RED command/output, GREEN command/output, and REFACTOR command/output (or a justified not-applicable reason)
+   - Tests written after implementation do not satisfy this requirement
+
+3. **Reviewer evidence bar**:
+   - If `110-speckit-reviewer` or `112-speckit-security-audit` reported CRITICAL/HIGH findings, confirm each has: violated contract, reachable path, impact, file references, evidence gap, and fix
+
+If ledger status is `open`/`blocked` or TDD evidence is missing for behavior changes, set overall status to **NOT READY**.
+
 ## Output Format
 
 After running all phases, produce a verification report:
@@ -163,6 +185,9 @@ Tests:     [PASS/FAIL] (X/Y passed, Z% coverage)
 Security:  [PASS/FAIL] (X issues)
 ADR:       [PASS/FAIL] (X violations)
 Diff:      [X files changed]
+Ledger:    [N/A/OK/BLOCKED] (status)
+TDD:       [PASS/FAIL] (X/Y behavior changes with evidence)
+Contract:  [PASS/FAIL] (ledger + evidence bar)
 
 Overall:   [READY/NOT READY] for PR
 
