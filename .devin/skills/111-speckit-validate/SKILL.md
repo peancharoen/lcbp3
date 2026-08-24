@@ -38,22 +38,30 @@ Post-implementation validation that compares code against spec requirements.
    - All success criteria
    - Edge cases listed
 
-3. **Scan Implementation**:
+3. **Load Contract Evidence**:
+   If the feature has an assurance ledger (from `104-speckit-plan` or `_LCBP3-CONTRACTS.md`), read it first and verify:
+   - Ledger STATUS is not `open` or `blocked` for final validation
+   - All required checkpoints exist with verification results
+   - TDD evidence links are present for behavior-changing tasks
+   - Protected boundaries have not been crossed without authorization
+
+4. **Scan Implementation**:
    From tasks.md, identify all files created/modified:
    - Read each file
    - Extract functions, classes, endpoints
    - Map to requirements (by name matching, comments, or explicit references)
 
-4. **Validation Checks**:
+5. **Validation Checks**:
 
-   | Check                | Method                                           |
-   | -------------------- | ------------------------------------------------ |
-   | Requirement Coverage | Each requirement has ≥1 implementation reference |
-   | Acceptance Criteria  | Each criterion is testable in code               |
-   | Edge Case Handling   | Each edge case has explicit handling code        |
-   | Test Coverage        | Each requirement has ≥1 test                     |
+   | Check                | Method                                                                                                                 |
+   | -------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+   | Requirement Coverage | Each requirement has ≥1 implementation reference                                                                       |
+   | Acceptance Criteria  | Each criterion is testable in code                                                                                     |
+   | Edge Case Handling   | Each edge case has explicit handling code                                                                              |
+   | Test Coverage        | Each requirement has ≥1 test                                                                                           |
+   | TDD Evidence         | For behavior changes, RED/GREEN/REFACTOR evidence is recorded or justified as not-applicable per `_LCBP3-CONTRACTS.md` |
 
-5. **Generate Validation Report**:
+6. **Generate Validation Report**:
 
    ```markdown
    # Validation Report: [Feature Name]
@@ -69,6 +77,17 @@ Post-implementation validation that compares code against spec requirements.
    | Acceptance Criteria Met | X/Y   | Z%         |
    | Edge Cases Handled      | X/Y   | Z%         |
    | Tests Present           | X/Y   | Z%         |
+   | TDD Evidence Recorded   | X/Y   | Z%         |
+
+   ## Contract Compliance
+
+   | Item                                               | Status                                 | Notes                  |
+   | -------------------------------------------------- | -------------------------------------- | ---------------------- |
+   | Ledger exists                                      | Yes/No                                 | path or not-applicable |
+   | Ledger STATUS                                      | open/checkpoint-ready/complete/blocked |                        |
+   | Checkpoints complete                               | Yes/No                                 |                        |
+   | TDD evidence links                                 | Yes/No                                 |                        |
+   | Protected boundaries crossed without authorization | Yes/No                                 |                        |
 
    ## Uncovered Requirements
 
@@ -81,9 +100,10 @@ Post-implementation validation that compares code against spec requirements.
    1. [Action item for gaps]
    ```
 
-6. **Output**:
+7. **Output**:
    - Display report
    - Write to `FEATURE_DIR/validation-report.md`
+   - If an assurance ledger exists, append a final checkpoint row with validation result, coverage, and residual risks
    - Set exit status based on coverage threshold (default: 80%)
 
 ## Operating Principles
@@ -97,7 +117,12 @@ Post-implementation validation that compares code against spec requirements.
 
 ## LCBP3-DMS Context (MUST LOAD)
 
-Before executing, load **[../_LCBP3-CONTEXT.md](../_LCBP3-CONTEXT.md)** to get:
+Before executing, load these references in order:
+
+1. **[../\_LCBP3-CONTEXT.md](../_LCBP3-CONTEXT.md)** for canonical rules, Tier 1 non-negotiables, domain glossary, helper scripts, and commit checklist.
+2. **[../\_LCBP3-CONTRACTS.md](../_LCBP3-CONTRACTS.md)** for the worker task packet, reviewer evidence bar, TDD evidence format, and cross-session assurance ledger.
+
+Key constraints:
 
 - Canonical rule sources (AGENTS.md, specs/06-Decision-Records/, specs/05-Engineering-Guidelines/)
 - Tier 1 non-negotiables (ADR-019 UUID, ADR-044 schema (amends ADR-009), ADR-016 security, ADR-002 numbering, ADR-008 BullMQ, ADR-023/043 AI boundary (supersedes ADR-018/020), ADR-007 errors)

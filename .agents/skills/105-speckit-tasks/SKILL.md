@@ -78,7 +78,14 @@ The tasks.md should be immediately executable - each task must be specific enoug
 
 **CRITICAL**: Tasks MUST be organized by user story to enable independent implementation and testing.
 
-**Tests are OPTIONAL**: Only generate test tasks if explicitly requested in the feature specification or if user requests TDD approach.
+**Tests are OPTIONAL**: Only generate test tasks if explicitly requested in the feature specification or if user requests TDD approach. When TDD is required, each implementation task must link to a TDD evidence record using the format in `_LCBP3-CONTRACTS.md`.
+
+**Ledger-aware**: If an assurance ledger exists for this feature (created by `104-speckit-plan`), include explicit ledger-maintenance tasks:
+
+```text
+- [ ] TXXX Update assurance ledger checkpoint after <phase/story>
+- [ ] TXXX Finalize ledger terminal status before handoff/PR
+```
 
 ### Checklist Format (REQUIRED)
 
@@ -150,7 +157,12 @@ Every task MUST strictly follow this format:
 
 ## LCBP3-DMS Context (MUST LOAD)
 
-Before executing, load **[../_LCBP3-CONTEXT.md](../_LCBP3-CONTEXT.md)** to get:
+Before executing, load these references in order:
+
+1. **[../\_LCBP3-CONTEXT.md](../_LCBP3-CONTEXT.md)** for canonical rules, Tier 1 non-negotiables, domain glossary, helper scripts, and commit checklist.
+2. **[../\_LCBP3-CONTRACTS.md](../_LCBP3-CONTRACTS.md)** for the worker task packet, reviewer evidence bar, TDD evidence format, and cross-session assurance ledger.
+
+Key constraints:
 
 - Canonical rule sources (AGENTS.md, specs/06-Decision-Records/, specs/05-Engineering-Guidelines/)
 - Tier 1 non-negotiables (ADR-019 UUID, ADR-044 schema (amends ADR-009), ADR-016 security, ADR-002 numbering, ADR-008 BullMQ, ADR-023/043 AI boundary (supersedes ADR-018/020), ADR-007 errors)

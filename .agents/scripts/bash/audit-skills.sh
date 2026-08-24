@@ -234,10 +234,15 @@ echo "------------------------------"
 
 CONTRACT_ISSUES=0
 REQUIRED_CONTRACT_SKILLS=(
-    "110-speckit-reviewer"
+    "104-speckit-plan"
+    "105-speckit-tasks"
     "107-speckit-implement"
+    "110-speckit-reviewer"
+    "111-speckit-validate"
     "112-speckit-security-audit"
     "security-review"
+    "verification-loop"
+    "resume-pending-work"
 )
 
 AGENTS_CONTRACT="$AGENTS_DIR/skills/_LCBP3-CONTRACTS.md"

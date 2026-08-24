@@ -8,7 +8,7 @@ handoffs: []
 
 # resume-pending-work — Resume Multi-Session Work
 
-> 📌 See [`_LCBP3-CONTEXT.md`](../_LCBP3-CONTEXT.md) for LCBP3-specific conventions.
+> 📌 See [`_LCBP3-CONTEXT.md`](../_LCBP3-CONTEXT.md) for LCBP3-specific conventions and [`_LCBP3-CONTRACTS.md`](../_LCBP3-CONTRACTS.md) for the cross-session assurance ledger format.
 
 ใช้เมื่อกลับมาทำงานที่ค้างไว้ข้าม session — เช่น งานใหญ่ที่แบ่งเป็น phase, งาน migration, หรืองานที่หยุดกลางคัน
 
@@ -21,13 +21,16 @@ handoffs: []
 ```
 1. Memory system — ดู system-retrieved memories ที่เกี่ยวข้อง
 2. specs/200-fullstacks/<feature>/tasks.md — ดู task status ล่าสุด
-3. git log --oneline -20 — ดู commits ล่าสุด
-4. progress.txt หรือ PROGRESS.md (ถ้ามี) — ดู notes ที่ทิ้งไว้
+3. Assurance ledger (ถ้ามี) — ดู `_LCBP3-CONTRACTS.md` และ ledger location จาก plan/notes
+   - ตรวจ STATUS, checkpoints, known gaps, next required action
+4. git log --oneline -20 — ดู commits ล่าสุด
+5. progress.txt หรือ PROGRESS.md (ถ้ามี) — ดู notes ที่ทิ้งไว้
 ```
 
 ### 2. หา Last Checkpoint
 
 ระบุให้ชัดว่า:
+
 - **ทำไปถึงไหนแล้ว** — phase/task/file ที่ complete แล้ว
 - **ค้างอยู่ที่ไหน** — step ที่กำลังทำอยู่ตอนหยุด
 - **ยังไม่ได้ทำอะไร** — tasks ที่เหลือ
@@ -67,6 +70,7 @@ git diff --stat HEAD
 ```
 
 จากนั้นถามผู้ใช้ว่าต้องการ:
+
 - ทำงานต่อจาก checkpoint เดิม
 - Skip ขั้นตอนที่ค้าง (พร้อมระบุ risk)
 - Re-verify งานที่ทำไปแล้วก่อน
@@ -74,6 +78,7 @@ git diff --stat HEAD
 ### 5. ตรวจ NAP-DMS Specific
 
 ก่อน resume ให้ตรวจ:
+
 - [ ] ADR ที่เกี่ยวข้องยังไม่เปลี่ยนแปลง (ดู git log ที่ `specs/06-Decision-Records/`)
 - [ ] Schema ที่ใช้อยู่ตรงกับ `lcbp3-v1.9.0-schema-02-tables.sql`
 - [ ] ไม่มี merge conflict หรือ stash ค้าง
@@ -86,20 +91,28 @@ git diff --stat HEAD
 ## ✅ Mandatory Output
 
 ### Last checkpoint summary
+
 ```
 - เสร็จแล้ว: [phase/commit/task]
 - ค้างอยู่: [file:line หรือ task ที่หยุด]
 - ยังไม่ได้ทำ: [tasks ที่เหลือ]
+- Assurance ledger: [path หรือ none]
+- Ledger STATUS: [open/checkpoint-ready/complete/blocked]
+- Last checkpoint: [id/date/scope]
+- Next required action: [จาก ledger หรือ task ถัดไป]
 ```
 
 ### Build status
+
 ```
 ✅ backend build  → clean
 ❌ frontend build → 2 errors (ระบุ errors)
 ```
 
 ### Plan ต่อ
+
 แผน 3-5 ข้อที่จะทำในส่วนที่เหลือ พร้อม verification method
 
 ### Risks / Blockers
+
 สิ่งที่อาจ block งาน หรือต้องระวังก่อนทำต่อ

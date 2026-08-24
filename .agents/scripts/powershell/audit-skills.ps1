@@ -188,10 +188,15 @@ Write-Host "------------------------------"
 
 $contractIssues = 0
 $requiredContractSkills = @(
-    "110-speckit-reviewer",
+    "104-speckit-plan",
+    "105-speckit-tasks",
     "107-speckit-implement",
+    "110-speckit-reviewer",
+    "111-speckit-validate",
     "112-speckit-security-audit",
-    "security-review"
+    "security-review",
+    "verification-loop",
+    "resume-pending-work"
 )
 
 $agentsContract = Join-Path $AgentsDir "skills" "_LCBP3-CONTRACTS.md"
