@@ -17,6 +17,7 @@ import {
   QUEUE_AI_RAG,
   QUEUE_AI_VECTOR_DELETION,
   QUEUE_AI_BATCH,
+  QUEUE_AI_REALTIME,
 } from '../common/constants/queue.constants';
 
 // ────────────────────────────────────────────────────────────────────────────────
@@ -118,6 +119,17 @@ describe('RAG Pipeline — Integration (SC-002 / Gap fixes)', () => {
             useValue: { add: jest.fn() },
           },
           { provide: getQueueToken(QUEUE_AI_BATCH), useValue: mockBatchQueue },
+          {
+            provide: getQueueToken(QUEUE_AI_REALTIME),
+            useValue: createMockQueue(),
+          },
+          {
+            provide: 'default_IORedisModuleConnectionToken',
+            useValue: {
+              get: jest.fn().mockResolvedValue(null),
+              setex: jest.fn().mockResolvedValue('OK'),
+            },
+          },
         ],
       }).compile();
       queueService = module.get<AiQueueService>(AiQueueService);

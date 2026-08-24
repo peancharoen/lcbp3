@@ -19,6 +19,7 @@
 // - 2026-06-06: [T036] เพิ่ม ollamaOptions: { num_ctx: 8192 } ใน generateStructuredJson เพื่อรองรับ prompt ยาว 18k+ chars และแก้ไข bug response ว่างจาก context window ไม่พอ
 // - 2026-06-11: แก้ไข ESLint errors โดยการเพิ่ม properties (effectiveProfile, canonicalModel, snapshotParams) ใน AiBatchJobData และยกเลิกการใช้ as any
 // - 2026-08-07: แก้ sandbox-rag-prep timeout 30s → ใช้ OllamaService.getBatchTimeoutMs() (env AI_BATCH_TIMEOUT_MS, default 120000) ทั้ง 6 จุด แทน hardcoded 120000/missing
+// - 2026-08-24: ADR-048 T017 — เพิ่ม clear-failed-jobs job type + processClearFailedJobs handler (chunked 1,000 รอบ, สูงสุด 10,000)
 
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
@@ -91,7 +92,8 @@ export type AiBatchJobType =
   | 'rag-prepare'
   | 'ai-suggest'
   | 'legacy-ai-enrichment'
-  | 'rag-query';
+  | 'rag-query'
+  | 'clear-failed-jobs';
 
 /** รายการ job types ที่ต้องใช้ np-dms-ocr model — จะ trigger model switching (ADR-034) */
 export const OCR_JOB_TYPES: ReadonlyArray<AiBatchJobType> = [
@@ -416,6 +418,12 @@ export class AiBatchProcessor extends WorkerHost {
           await this.processLegacyAiEnrichment(
             job.data as unknown as Record<string, unknown>
           );
+          return;
+        case 'clear-failed-jobs':
+          this.logger.log(
+            `Clear failed jobs task processing — jobId=${String(job.id)}`
+          );
+          await this.processClearFailedJobs(job.data);
           return;
         default: {
           const unreachable: never = job.data.jobType;
@@ -2107,6 +2115,152 @@ ${truncatedOcr}`;
         );
       }
       throw err;
+    }
+  }
+
+  /**
+   * ADR-048 T017 — ประมวลผล clear-failed-jobs async task
+   * ล้าง failed jobs จาก queue ที่กำหนดเป็น chunk 1,000 งานต่อรอบ สูงสุด 10,000 งาน
+   * อัปเดต status ลง Redis key ai:clear_failed:job:<trackingId> ระหว่างประมวลผล
+   */
+  private async processClearFailedJobs(data: AiBatchJobData): Promise<void> {
+    // enqueueClearFailed วาง trackingId และ targetQueueName ที่ top-level ของ job data
+    // (ดู ai-queue.service.ts enqueueClearFailed) — ไม่ได้วางใน payload
+    const jobData = data as AiBatchJobData & {
+      targetQueueName?: string;
+      trackingId?: string;
+      requestedBy?: string;
+    };
+    const targetQueueName = jobData.targetQueueName ?? '';
+    const trackingId = jobData.trackingId ?? data.idempotencyKey ?? '';
+
+    if (!targetQueueName) {
+      this.logger.warn('processClearFailedJobs: missing targetQueueName');
+      await this.updateClearFailedStatus(trackingId, {
+        jobId: trackingId,
+        targetQueueName,
+        status: 'failed',
+        clearedCount: 0,
+        remainingFailed: 0,
+        error: 'missing targetQueueName',
+        completedAt: new Date().toISOString(),
+      });
+      return;
+    }
+
+    // อัปเดต status เป็น processing
+    await this.updateClearFailedStatus(trackingId, {
+      jobId: trackingId,
+      targetQueueName,
+      status: 'processing',
+      clearedCount: 0,
+      remainingFailed: null,
+    });
+
+    // ใช้ AiQueueService เพื่อเข้าถึง queue และล้าง failed jobs
+    // chunk 1,000 งานต่อรอบ สูงสุด 10,000 งาน
+    const MAX_TOTAL = 10_000;
+    const CHUNK_SIZE = 1_000;
+    // ประกาศนอก try เพื่อให้ catch block เข้าถึง clearedCount จริงได้
+    let clearedCount = 0;
+    let remainingFailed = 0;
+
+    try {
+      for (
+        let round = 0;
+        round < Math.ceil(MAX_TOTAL / CHUNK_SIZE);
+        round += 1
+      ) {
+        const failedJobs = await this.aiQueueService.getFailedJobsForCleanup(
+          targetQueueName,
+          CHUNK_SIZE
+        );
+        if (failedJobs.length === 0) {
+          break;
+        }
+        for (const job of failedJobs) {
+          try {
+            await job.remove();
+            clearedCount += 1;
+          } catch (removeErr: unknown) {
+            this.logger.warn(
+              `Failed to remove job ${String(job.id)} from ${targetQueueName}: ${String(removeErr)}`
+            );
+          }
+        }
+        // อัปเดต progress ระหว่างทำงาน
+        await this.updateClearFailedStatus(trackingId, {
+          jobId: trackingId,
+          targetQueueName,
+          status: 'processing',
+          clearedCount,
+          remainingFailed: null,
+        });
+        if (failedJobs.length < CHUNK_SIZE) {
+          break;
+        }
+        if (clearedCount >= MAX_TOTAL) {
+          break;
+        }
+      }
+
+      // นับ remaining failed jobs
+      remainingFailed =
+        await this.aiQueueService.countFailedJobs(targetQueueName);
+
+      await this.updateClearFailedStatus(trackingId, {
+        jobId: trackingId,
+        targetQueueName,
+        status: 'completed',
+        clearedCount,
+        remainingFailed,
+        completedAt: new Date().toISOString(),
+      });
+
+      this.logger.log(
+        `Clear failed jobs completed — queue=${targetQueueName}, cleared=${clearedCount}, remaining=${remainingFailed}`
+      );
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      this.logger.error(
+        `Clear failed jobs failed — queue=${targetQueueName}: ${errorMsg}`
+      );
+      await this.updateClearFailedStatus(trackingId, {
+        jobId: trackingId,
+        targetQueueName,
+        status: 'failed',
+        clearedCount,
+        remainingFailed: 0,
+        error: errorMsg,
+        completedAt: new Date().toISOString(),
+      });
+      throw err;
+    }
+  }
+
+  /** Helper: อัปเดต status ของ clear-failed task ลง Redis (TTL 300s) */
+  private async updateClearFailedStatus(
+    trackingId: string,
+    status: {
+      jobId: string;
+      targetQueueName: string;
+      status: 'queued' | 'processing' | 'completed' | 'failed';
+      clearedCount: number;
+      remainingFailed: number | null;
+      error?: string;
+      completedAt?: string;
+    }
+  ): Promise<void> {
+    if (!trackingId) {
+      return;
+    }
+    const key = `ai:clear_failed:job:${trackingId}`;
+    try {
+      await this.redis.setex(key, 300, JSON.stringify(status));
+    } catch (redisErr: unknown) {
+      this.logger.warn(
+        `Failed to update clear-failed status in Redis: ${String(redisErr)}`
+      );
     }
   }
 }

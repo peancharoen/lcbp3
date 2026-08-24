@@ -28,6 +28,8 @@ import { AiMigrationCheckpointService } from '../ai-migration-checkpoint.service
 import { OcrService } from '../services/ocr.service';
 import { AiPolicyService } from '../services/ai-policy.service';
 import { AiExecutionProfilesService } from '../services/ai-execution-profiles.service';
+import { VramMonitorService } from '../services/vram-monitor.service';
+import { NodeMetricsService } from '../services/node-metrics.service';
 import { RuntimePolicy } from '../interfaces/execution-policy.interface';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../../common/guards/rbac.guard';
@@ -68,6 +70,8 @@ describe('AiController (Integration)', () => {
     getModelDefaults: jest.fn(),
   };
   const mockAiExecutionProfilesService = {};
+  const mockVramMonitorService = {};
+  const mockNodeMetricsService = {};
   beforeEach(async () => {
     jest.clearAllMocks();
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -90,6 +94,8 @@ describe('AiController (Integration)', () => {
           provide: AiExecutionProfilesService,
           useValue: mockAiExecutionProfilesService,
         },
+        { provide: VramMonitorService, useValue: mockVramMonitorService },
+        { provide: NodeMetricsService, useValue: mockNodeMetricsService },
         {
           provide: 'default_IORedisModuleConnectionToken',
           useValue: {

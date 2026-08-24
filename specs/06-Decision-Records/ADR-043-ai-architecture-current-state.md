@@ -1039,6 +1039,30 @@ Step 3: RAG Prep → POST /api/ai/admin/sandbox/rag-prep → BullMQ (ai-batch) "
 - Access จำกัดเฉพาะ `DOCUMENT_CONTROLLER` หรือ `ADMIN` roles
 - Optimistic Locking (`version`) ป้องกัน double commit
 
+#### 12.4 Config Sourcing — Migration Execute Import vs AI Console vs Sandbox (Clarification, 2026-08-24)
+
+> เพิ่มเพื่อปิด Gap เอกสาร — ไม่ใช่การเปลี่ยนสถาปัตยกรรม พฤติกรรมนี้มีอยู่แล้วในโค้ด (`AiPolicyService`, `AiPromptsService`) เพียงแต่ไม่เคยถูกระบุชัดในเอกสารสถาปัตยกรรมรวม
+
+**คำถาม:** "Migration Execute Import" (ADR-047) ใช้ค่า config จากที่ไหน — แยกต่างหากจาก AI Console หรือใช้ร่วมกัน? และ RAG Sandbox Playground / OCR System Prompt Editor / AI Extraction Prompt Editor / 3-Step Sandbox Testing ใช้ Pipeline เดียวกันหรือมีของตัวเอง?
+
+**คำตอบ: ใช้ Pipeline เดียวกันทั้งหมด (Single Source, ไม่มี Fork)** — แยกกันเฉพาะ "ชั้น draft/testing ก่อน apply" ไม่ใช่แยก implementation:
+
+- **Runtime Parameters (temperature/topP/numCtx/ฯลฯ):** ทุก job type map เข้า `AiPolicyService.getProfileForJobType()` เดียวกัน แล้วอ่านจาก `ai_execution_profiles` (production, ดู §11.7/§11.8) ตารางเดียว:
+
+  | Job Type | Execution Profile | หมายเหตุ |
+  |---|---|---|
+  | `migrate-document` (Migration Execute Import / `legacy-ai-enrichment`) | `quality` | เดียวกับ `auto-fill-document`, `ai-suggest` ที่ AI Console เรียกใช้ |
+  | `rag-query` | `standard` | ใช้ทั้ง Production Chat และ RAG Sandbox Playground (สนามทดสอบเรียก job type เดียวกัน) |
+  | `sandbox-analysis` | `deep-analysis` | เฉพาะ Sandbox เท่านั้น |
+  | `ocr-extract` | model defaults (`np-dms-ocr`) | ใช้ร่วมกันทั้ง OCR ปกติ, Migration, และ Step 1 ของ 3-Step Sandbox Testing |
+
+  Sandbox มี **draft store แยก** (`ai_sandbox_profiles`) สำหรับปรับค่าทดลองเท่านั้น — ค่านี้จะไม่มีผลกับ Migration/AI Console จนกว่า Superadmin จะกด **Apply to Production** (`AiPolicyService.applyProfile()`, ต้องมี Idempotency-Key + CASL + audit log ตาม §11.8) ซึ่งจะ copy draft ไปทับ `ai_execution_profiles` แถวเดียวกันที่ Migration ใช้อยู่
+
+- **Prompts (System Prompt / OCR Extraction / RAG Chunking):** ทุกจุดเรียก `AiPromptsService.resolveActive(promptType, ...)` จากตาราง `ai_prompts` ตารางเดียว (§11.1) — ไม่มีตาราง prompt แยกสำหรับ sandbox หรือ migration. **OCR System Prompt Editor** และ **AI Extraction Prompt Editor** คือ UI สำหรับสร้าง version ใหม่ของ `ai_prompts` (ยังไม่ active) แล้วทดสอบผ่าน **3-Step Sandbox Testing** ก่อนกด Activate — เมื่อ Activate แล้ว Migration Execute Import จะเห็นผลทันทีในรอบถัดไป (ไม่ต้อง deploy) เพราะอ่านจากตารางเดียวกัน (Redis cache TTL 60s ตาม §11.5)
+  - ข้อยกเว้นเดียว: 3-Step Sandbox Testing **Step 3 (RAG Prep)** บังคับใช้ ACTIVE version ของ `rag_prep_prompt` เสมอ ไม่ใช่ version ที่กำลังแก้ไข/ทดสอบอยู่ (§11.6) — เพื่อป้องกันไม่ให้ semantic chunking ที่ยังไม่ผ่านการ activate หลุดเข้าไปปนกับผลลัพธ์ RAG จริง
+
+**สรุป:** ไม่มี "Migration Pipeline" กับ "AI Console Pipeline" แยกกันสองชุด — มีชุดเดียว (`AiPolicyService` + `AiPromptsService` + `ai_execution_profiles` + `ai_prompts`) ที่ทุก entry point (Migration, AI Console, RAG Sandbox Playground, OCR/AI Prompt Editors, 3-Step Sandbox Testing) เรียกใช้ร่วมกัน โดย Sandbox เป็นเพียง "ชั้น staging ก่อน promote" ของ Runtime Parameters และ "ชั้น draft version ก่อน activate" ของ Prompts เท่านั้น
+
 ---
 
 ### §13. Server Topology (Single-Host Consolidation)
@@ -1164,6 +1188,7 @@ Step 3: RAG Prep → POST /api/ai/admin/sandbox/rag-prep → BullMQ (ai-batch) "
 | Version | Date | Changes | Status |
 |---------|------|---------|--------|
 | 1.0 | 2026-08-03 | Initial consolidation — restatement of ADR-023, 023A, 024, 025, 026, 027, 028, 029, 030, 032, 033, 034, 035, 036, 037, 040, 041, 042; ปิด drift ADR-035 ↔ ADR-040; archive กลุ่ม A (017, 017B, 018, 020, 022) | ✅ Active |
+| 1.1 | 2026-08-24 | เพิ่ม §12.4 — ปิด documentation gap เรื่อง config sourcing ระหว่าง Migration Execute Import (ADR-047), AI Console, และ RAG Sandbox Playground/Prompt Editors/3-Step Sandbox Testing ยืนยันว่าใช้ `AiPolicyService`/`AiPromptsService` ร่วมกันตัวเดียว ไม่มี fork (grill-with-docs session) | ✅ Active |
 
 ---
 

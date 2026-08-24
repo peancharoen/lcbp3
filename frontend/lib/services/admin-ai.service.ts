@@ -18,6 +18,7 @@
 // - 2026-06-13: T042-T043 — เพิ่ม applyProfile และ getProductionDefaults สำหรับปรับใช้และดึงค่า production parameters
 // - 2026-06-13: US4 — อัปเดต submitSandboxExtract และ submitSandboxAiExtract ให้รองรับ project/contract publicId
 // - 2026-06-19: แก้ response envelope ซ้อนกันเพื่อป้องกัน VRAM แสดง 0/0 และ OOM Guard ผิดพลาด
+// - 2026-08-24: ADR-048 T007/T011 — เพิ่ม getHostMetrics, loadModelVram, unloadModelVram methods
 
 import api from '../api/client';
 import { AiJobResponse, AiJobStatusResponse, AiJobResult } from '../../types/ai';
@@ -97,6 +98,45 @@ export interface LoadedModelInfo {
   modelId: string;
   modelName: string;
   vramUsageMB: number;
+}
+
+/** ข้อมูล CPU usage ของ host (ADR-048 T007) */
+export interface HostMetricsCpu {
+  overallPercentage: number;
+  coreCount: number;
+  perCorePercentage: number[];
+}
+
+/** ข้อมูล RAM usage ของ host */
+export interface HostMetricsMemory {
+  totalBytes: number;
+  usedBytes: number;
+  availableBytes: number;
+  usedPercentage: number;
+}
+
+/** ข้อมูล CPU temperature */
+export interface HostMetricsTemperature {
+  cpuCelsius: number | null;
+  sensorName: string | null;
+}
+
+/** จุดข้อมูล history สำหรับ Sparkline */
+export interface HostMetricsHistoryPoint {
+  timestamp: string;
+  cpuPercentage: number;
+  memoryPercentage: number;
+  temperatureCelsius: number | null;
+}
+
+/** Response จาก GET /ai/admin/host/metrics */
+export interface HostMetricsResponse {
+  timestamp: string;
+  cpu: HostMetricsCpu;
+  memory: HostMetricsMemory;
+  temperature: HostMetricsTemperature;
+  isEstimated: boolean;
+  history: HostMetricsHistoryPoint[];
 }
 
 export interface VramStatusResponse {
@@ -467,7 +507,7 @@ export const adminAiService = {
     timeoutMs = 120_000
   ): Promise<AiJobStatusResponse> => {
     const startTime = Date.now();
-     
+
     while (true) {
       const elapsed = Date.now() - startTime;
       if (elapsed > timeoutMs) {
@@ -581,6 +621,33 @@ export const adminAiService = {
       deletedCorrespondenceCount: number;
       vectorDeletionJobsEnqueued: number;
     }>(data);
+  },
+
+  // --- Host Metrics (ADR-048 T007) ---
+
+  getHostMetrics: async (): Promise<HostMetricsResponse> => {
+    const { data } = await api.get('/ai/admin/host/metrics');
+    return extractData<HostMetricsResponse>(data);
+  },
+
+  // --- VRAM Load/Unload (ADR-048 T011 frontend client) ---
+
+  loadModelVram: async (modelName: string): Promise<{ success: boolean; message: string }> => {
+    const { data } = await api.post(
+      `/ai/admin/models/${encodeURIComponent(modelName)}/vram/load`,
+      {},
+      { headers: { 'Idempotency-Key': createIdempotencyKey() } }
+    );
+    return extractData<{ success: boolean; message: string }>(data);
+  },
+
+  unloadModelVram: async (modelName: string): Promise<{ success: boolean; message: string }> => {
+    const { data } = await api.post(
+      `/ai/admin/models/${encodeURIComponent(modelName)}/vram/unload`,
+      {},
+      { headers: { 'Idempotency-Key': createIdempotencyKey() } }
+    );
+    return extractData<{ success: boolean; message: string }>(data);
   },
 };
 
