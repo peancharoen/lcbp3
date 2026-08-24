@@ -19,6 +19,7 @@ trigger: always_on
 - [ ] i18n keys used instead of hardcode text
 - [ ] Cache invalidation when data modified
 - [ ] Security checklist passed (OWASP Top 10)
+- [ ] Dependency overrides bounded (D144 — ห้าม `>=` ลอย ๆ / `*` / `latest`; ทุก override มีขอบบน)
 
 ## Commit Message Format
 
