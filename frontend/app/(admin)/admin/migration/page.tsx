@@ -2,6 +2,7 @@
 // Change Log:
 // - 2026-08-23: Batch commit ส่ง sourceFilePath และ disciplineId จาก queue item details
 // - 2026-08-23: Legacy Review Queue - column-header filters, delete all/selected with BullMQ cleanup
+// - 2026-08-25: ซ่อน AI Migration Logs tab (dead UI — migration_logs ไม่ถูกเขียนตั้งแต่ ADR-023/023A เปลี่ยนไป BullMQ)
 
 'use client';
 
@@ -17,7 +18,6 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { format } from 'date-fns';
 import { EyeIcon, FileXIcon, CheckCircleIcon, XCircleIcon, RefreshCwIcon } from 'lucide-react';
@@ -27,8 +27,10 @@ import { getApiErrorMessage } from '@/types/api-error';
 import { LegacyIngestionCard } from '@/components/migration/legacy-ingestion-card';
 import { v4 as uuidv4 } from 'uuid';
 
-// --- AI Migration Tab ---
+// --- AI Migration Tab (hidden — D160: dead UI, migration_logs ไม่ถูกเขียนตั้งแต่ ADR-023/023A) ---
+// เก็บ component ไว้เผื่อมีการ revive migration_logs pipeline ในอนาคต
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function AiMigrationTab() {
   const [items, setItems] = useState<AiMigrationLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -799,20 +801,12 @@ export default function MigrationManagementPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Migration Management</h1>
-        <p className="text-muted-foreground mt-1">จัดการการนำเข้าเอกสาร — AI Migration Logs และ Legacy Review Queue</p>
+        <p className="text-muted-foreground mt-1">จัดการการนำเข้าเอกสารจากระบบเดิม</p>
       </div>
-      <Tabs defaultValue="ai">
-        <TabsList>
-          <TabsTrigger value="ai">AI Migration Logs</TabsTrigger>
-          <TabsTrigger value="legacy">Legacy Management</TabsTrigger>
-        </TabsList>
-        <TabsContent value="ai">
-          <AiMigrationTab />
-        </TabsContent>
-        <TabsContent value="legacy">
-          <LegacyManagementTab />
-        </TabsContent>
-      </Tabs>
+      {/* D160: ซ่อน AI Migration Logs tab — migration_logs เป็น dead table ตั้งแต่ ADR-023/023A
+          เปลี่ยน migration pipeline ไปใช้ BullMQ + migration_review_queue แทน n8n orchestrator
+          AiMigrationTab component ยังเก็บไว้เผื่อมีการ revive ในอนาคต แต่ไม่แสดงใน UI */}
+      <LegacyManagementTab />
     </div>
   );
 }
