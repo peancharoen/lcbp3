@@ -1470,34 +1470,11 @@ CREATE TABLE workflow_histories (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'ตารางประวัติการเปลี่ยนสถานะ Workflow';
 
 -- =====================================================
--- 11. 🤖 AI Gateway (ตาราง AI Integration - ADR-018, ADR-020)
+-- 11. 🤖 AI Gateway (ตาราง AI Integration - ADR-023/023A)
 -- =====================================================
--- ตารางเก็บบันทึก Migration เอกสารที่ผ่าน AI Processing
-CREATE TABLE migration_logs (
-  id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Internal PK (ห้าม expose ใน API)',
-  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019)',
-  source_file VARCHAR(255) NOT NULL COMMENT 'Path ของไฟล์ต้นทาง',
-  source_metadata JSON NULL COMMENT 'Metadata จาก Excel/แหล่งข้อมูลต้นทาง',
-  ai_extracted_metadata JSON NULL COMMENT 'Metadata ที่ AI สกัดได้',
-  confidence_score DECIMAL(3, 2) NULL COMMENT 'คะแนนความมั่นใจ AI (0.00-1.00)',
-  STATUS ENUM(
-    'PENDING_REVIEW',
-    'VERIFIED',
-    'IMPORTED',
-    'FAILED'
-  ) NOT NULL DEFAULT 'PENDING_REVIEW' COMMENT 'สถานะ: PENDING_REVIEW=รอตรวจ, VERIFIED=ตรวจแล้ว, IMPORTED=นำเข้าแล้ว, FAILED=ล้มเหลว',
-  admin_feedback TEXT NULL COMMENT 'ความเห็นจาก Admin ผู้ตรวจสอบ',
-  reviewed_by INT NULL COMMENT 'User ID ของ Admin ที่ตรวจสอบ (FK users.id)',
-  reviewed_at TIMESTAMP NULL COMMENT 'เวลาที่ตรวจสอบ',
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
-  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
-  UNIQUE INDEX idx_migration_logs_uuid (uuid),
-  INDEX idx_migration_logs_status (STATUS),
-  INDEX idx_migration_logs_confidence (confidence_score),
-  FOREIGN KEY (reviewed_by) REFERENCES users (user_id) ON DELETE
-  SET NULL
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'ตารางเก็บบันทึก Migration เอกสารที่ผ่าน AI Processing (Task BE-AI-02)';
-
+-- หมายเหตุ: migration_logs (ADR-020 era) ถูก drop แล้วใน D161 (2026-08-25)
+-- ดู delta: 2026-08-25-drop-migration-logs-table.sql
+-- ระบบปัจจุบันใช้ migration_review_queue + ai_audit_logs แทน
 -- =====================================================
 -- 12. 🤖 AI Migration Review Queue (ADR-023, ADR-023A)
 -- =====================================================

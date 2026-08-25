@@ -15,7 +15,6 @@
 
 import { Logger, Module, OnModuleInit } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { HttpModule } from '@nestjs/axios';
 import { ConfigModule } from '@nestjs/config';
 import { BullModule, InjectQueue } from '@nestjs/bullmq';
 import { RedisModule } from '@nestjs-modules/ioredis';
@@ -39,7 +38,6 @@ import { EmbeddingService } from './services/embedding.service';
 import { VramMonitorService } from './services/vram-monitor.service';
 import { OcrCacheService } from './services/ocr-cache.service';
 import { AiPolicyService } from './services/ai-policy.service';
-import { MigrationLog } from './entities/migration-log.entity';
 import { AiAuditLog } from './entities/ai-audit-log.entity';
 import { MigrationReviewRecord } from './entities/migration-review.entity';
 import { MigrationProgress } from './entities/migration-progress.entity';
@@ -89,7 +87,6 @@ import { NodeMetricsService } from './services/node-metrics.service';
   imports: [
     // Entities สำหรับ AI Module
     TypeOrmModule.forFeature([
-      MigrationLog,
       AiAuditLog,
       AuditLog,
       MigrationReviewRecord,
@@ -149,12 +146,6 @@ import { NodeMetricsService } from './services/node-metrics.service';
         },
       }
     ),
-
-    // HTTP Client สำหรับเรียก n8n Webhook (ADR-018: AI สื่อสารผ่าน API)
-    HttpModule.register({
-      timeout: 35000, // เผื่อ timeout เกิน AI_TIMEOUT_MS เล็กน้อย
-      maxRedirects: 3,
-    }),
 
     // Config สำหรับ AI Env Vars
     ConfigModule,

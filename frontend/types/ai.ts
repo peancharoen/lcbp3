@@ -1,49 +1,17 @@
 // File: types/ai.ts
-// ประเภทข้อมูลสำหรับ AI Integration (ADR-018, ADR-020)
+// ประเภทข้อมูลสำหรับ AI Integration (ADR-023/023A)
+// Change Log:
+// - 2026-08-25: D161 — ลบ dead types (AiMigrationLogStatus, AiMigrationLog, ExtractDocumentDto, AiMigrationUpdateDto, AiPaginatedResult) ที่เกี่ยวข้องกับ migration_logs (ADR-020 era)
+//   สงวน ExtractionResult ไว้ชั่วคราวเพราะ DocumentComparisonView ยังอ้างอิงอยู่ (dead component — จะ clean up ใน D162)
 
-// สถานะของ AI Migration Log (ตรงกับ backend MigrationLogStatus)
-export enum AiMigrationLogStatus {
-  PENDING_REVIEW = 'PENDING_REVIEW',
-  VERIFIED = 'VERIFIED',
-  IMPORTED = 'IMPORTED',
-  FAILED = 'FAILED',
-}
-
-// ผลลัพธ์จาก Real-time AI Extraction
+// ผลลัพธ์จาก AI Extraction (ใช้โดย DocumentComparisonView — dead component ที่ยังไม่ได้ clean up)
 export interface ExtractionResult {
-  migrationLogPublicId: string; // ADR-019: UUID เท่านั้น
+  migrationLogPublicId: string;
   status: 'processing' | 'completed' | 'failed';
   extractedMetadata?: Record<string, unknown>;
   confidenceScore?: number;
   action?: string;
   processingTimeMs?: number;
-}
-
-// ข้อมูล AI Migration Log (ตาราง migration_logs)
-export interface AiMigrationLog {
-  publicId: string; // ADR-019: UUID เท่านั้น
-  sourceFile: string;
-  sourceMetadata?: Record<string, unknown>;
-  aiExtractedMetadata?: Record<string, unknown>;
-  confidenceScore?: number;
-  status: AiMigrationLogStatus;
-  adminFeedback?: string;
-  reviewedAt?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// DTO สำหรับส่ง Extract Document ไปยัง AI
-export interface ExtractDocumentDto {
-  publicId: string; // ADR-019: UUID ของไฟล์ใน temp storage
-  context: 'ingestion' | 'migration' | 'review';
-  fileType?: string;
-}
-
-// DTO สำหรับอัปเดตสถานะ Migration Log (Admin)
-export interface AiMigrationUpdateDto {
-  status?: AiMigrationLogStatus;
-  adminFeedback?: string;
 }
 
 // Feedback สำหรับปรับปรุงความแม่นยำ AI
@@ -64,15 +32,6 @@ export interface PerformanceMetrics {
   avgProcessingTime: number;
   fieldAccuracy: Record<string, number>;
   modelPerformance: Record<string, number>;
-}
-
-// Paginated Result สำหรับ AI endpoints
-export interface AiPaginatedResult<T> {
-  items: T[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
 }
 
 export type ExecutionProfile = 'interactive' | 'standard' | 'quality' | 'deep-analysis';

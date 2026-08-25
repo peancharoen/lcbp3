@@ -38,18 +38,12 @@ export const envValidationSchema = Joi.object({
   AI_QDRANT_URL: Joi.string().uri().optional(),
   // Token สำหรับ n8n Service Account ตาม ADR-023
   AI_N8N_SERVICE_TOKEN: Joi.string().optional(),
-  // URL ของ n8n Webhook สำหรับส่งเอกสารไปประมวลผล
-  AI_N8N_WEBHOOK_URL: Joi.string().uri().optional(),
-  // Legacy alias: ใช้ AI_N8N_SERVICE_TOKEN สำหรับงานใหม่
-  AI_N8N_AUTH_TOKEN: Joi.string().optional(),
   // URL ของ Ollama บน Admin Desktop (Desk-5439)
   AI_OLLAMA_URL: Joi.string().uri().optional(),
   // Timeout สำหรับการรอผลลัพธ์จาก AI (milliseconds)
   AI_TIMEOUT_MS: Joi.number().default(30000),
   // จำนวนครั้งสูงสุดในการ Retry เมื่อ AI ล้มเหลว
   AI_MAX_RETRIES: Joi.number().default(3),
-  // Base URL ของ Backend เพื่อสร้าง Callback URL
-  APP_BASE_URL: Joi.string().uri().optional(),
 
   // 6. ClamAV Configuration (ADR-016 — SEV-002)
   CLAMAV_ENABLED: Joi.string().default('false'),
