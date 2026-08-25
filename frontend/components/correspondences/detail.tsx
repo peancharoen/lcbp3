@@ -268,18 +268,22 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
                   <p className="text-gray-700 whitespace-pre-wrap">{description}</p>
                 </div>
               )}
-              {currentRevision?.body && (
+              {(currentRevision?.body || currentRevision?.remarks) && (
                 <div>
                   <h3 className="font-semibold mb-2">Content</h3>
-                  <div className="text-gray-700 whitespace-pre-wrap p-3 bg-muted/10 rounded-md border">
-                    {currentRevision.body}
+                  <div className="text-gray-700 whitespace-pre-wrap p-3 bg-muted/10 rounded-md border max-h-[60vh] overflow-y-auto custom-scrollbar">
+                    {currentRevision?.body && (
+                      <div className="whitespace-pre-wrap">
+                        {currentRevision.body}
+                      </div>
+                    )}
+                    {currentRevision?.remarks && (
+                      <div className={`${currentRevision?.body ? 'mt-4 pt-3 border-t border-muted' : ''}`}>
+                        <h4 className="font-semibold text-sm text-muted-foreground mb-1">Remarks</h4>
+                        <p className="text-gray-600 italic whitespace-pre-wrap">{currentRevision.remarks}</p>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
-              {currentRevision?.remarks && (
-                <div>
-                  <h3 className="font-semibold mb-2">Remarks</h3>
-                  <p className="text-gray-600 italic">{currentRevision.remarks}</p>
                 </div>
               )}
 

@@ -7,6 +7,8 @@
 // - 2026-08-23: Pretty print error response สำหรับ debug
 //   (Doc Date = issued_date จาก excel → document_date, Received Date = received_date),
 //   เปลี่ยน label "Issued Date" → "Received Date"
+// - 2026-08-25: เพิ่ม remarks field (Excel "หมายเหตุ" → correspondence_revisions.remarks)
+// - 2026-08-25: แก้ iframe 401 โดยใช้ StagingFileViewer (auth-via-blob pattern)
 
 'use client';
 
@@ -32,6 +34,7 @@ import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { CompareResultTable } from '@/components/migration/compare-result-table';
 import { OcrTextEditor } from '@/components/migration/ocr-text-editor';
+import { StagingFileViewer } from '@/components/migration/staging-file-viewer';
 
 interface MigrationAiIssues {
   documentDate?: string;
@@ -52,6 +55,7 @@ const reviewFormSchema = z.object({
   senderPublicId: z.string().optional(),
   receiverPublicId: z.string().optional(),
   disciplineId: z.string().optional(),
+  remarks: z.string().optional(),
 });
 
 type ReviewFormValues = z.infer<typeof reviewFormSchema>;
@@ -83,6 +87,7 @@ export default function MigrationReviewPage() {
       senderPublicId: '',
       receiverPublicId: '',
       disciplineId: '',
+      remarks: '',
     },
   });
 
@@ -132,6 +137,8 @@ export default function MigrationReviewPage() {
             receiverPublicId: res.receiverOrganizationPublicId || '',
             // อ่าน disciplineId จาก details ที่ AI enrichment เก็บไว้
             disciplineId: details.disciplineId ? String(details.disciplineId) : '',
+            // remarks จาก Excel (column "หมายเหตุ") — stored บน queueItem
+            remarks: res.remarks || '',
           });
         }
       } catch (error: unknown) {
@@ -195,6 +202,8 @@ export default function MigrationReviewPage() {
         receiverPublicId: values.receiverPublicId || undefined,
         // Discipline ใช้ internal INT id (ADR-019 Excluded Tables: Master/Lookup)
         disciplineId: values.disciplineId ? Number(values.disciplineId) : undefined,
+        // remarks จาก Excel → correspondence_revisions.remarks
+        remarks: values.remarks || undefined,
         details: {
           tags: issues.tags || [],
           aiConfidence: item.aiConfidence,
@@ -259,9 +268,6 @@ export default function MigrationReviewPage() {
     typeof item.details?.source_file_path === 'string'
       ? item.details.source_file_path
       : null;
-  const pdfUrl = sourceFilePath
-    ? migrationService.getStagingFileUrl(sourceFilePath)
-    : null;
 
   return (
     <div className="flex flex-col h-[calc(100vh-6rem)] space-y-4">
@@ -290,17 +296,7 @@ export default function MigrationReviewPage() {
         <div className="flex-1 hidden md:flex flex-col gap-4 overflow-hidden">
           <Card className="flex-1 flex flex-col overflow-hidden border-2 border-primary/10 shadow-md">
             <CardContent className="p-0 flex-1 relative bg-slate-100">
-              {pdfUrl ? (
-                <iframe
-                  src={`${pdfUrl}#toolbar=0&navpanes=0`}
-                  className="absolute inset-0 w-full h-full"
-                  title="Document Viewer"
-                />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                  <p>No Source File Path found for this document</p>
-                </div>
-              )}
+              <StagingFileViewer sourceFilePath={sourceFilePath} />
             </CardContent>
           </Card>
           {/* Feature 242: Compare Result Table (FR-007, FR-011, FR-012c) */}
@@ -490,6 +486,20 @@ export default function MigrationReviewPage() {
                           ))}
                         </SelectContent>
                       </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="remarks"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Remarks</FormLabel>
+                      <FormControl>
+                        <Textarea {...field} rows={2} placeholder="หมายเหตุจาก Excel" />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}

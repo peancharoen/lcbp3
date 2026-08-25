@@ -157,13 +157,4 @@ describe('migrationService', () => {
       });
     });
   });
-
-  describe('getStagingFileUrl', () => {
-    it('ควรสร้าง URL สำหรับ staging file อย่างถูกต้อง', () => {
-      const filePath = '/uploads/staging/drawing.dwg';
-      const result = migrationService.getStagingFileUrl(filePath);
-
-      expect(result).toBe('/api/migration/staging-file?path=%2Fuploads%2Fstaging%2Fdrawing.dwg');
-    });
-  });
 });

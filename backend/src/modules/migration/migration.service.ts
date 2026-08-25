@@ -4,6 +4,7 @@
 // - 2026-08-22: Persist IMPORTED after approve-and-import to match the database enum
 // - 2026-08-22: เพิ่ม startExtractQueueItem / startExtractBatch และปรับ execute import flow ตาม ADR-047
 // - 2026-08-23: Execute Import บันทึก ocrText ลง Attachment/Revision และใช้ rag-prepare pipeline เดียวกับเอกสารปกติ
+// - 2026-08-25: นำ remarks จาก Excel → correspondence_revisions.remarks (approve fallback จาก queueItem)
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -451,6 +452,7 @@ export class MigrationService {
           dto.documentDate || dto.issuedDate
         );
         existingCurrent.receivedDate = parseDateStr(dto.receivedDate);
+        existingCurrent.remarks = dto.remarks || undefined;
         existingCurrent.details = {
           ...dto.details,
           ai_confidence: dto.aiConfidence,
@@ -477,6 +479,7 @@ export class MigrationService {
           //          excel received_date → received_date (วันที่รับเอกสาร)
           documentDate: parseDateStr(dto.documentDate || dto.issuedDate),
           receivedDate: parseDateStr(dto.receivedDate),
+          remarks: dto.remarks || undefined,
           details: {
             ...dto.details,
             ai_confidence: dto.aiConfidence,
@@ -1200,6 +1203,8 @@ export class MigrationService {
     const importDto = {
       ...dto,
       ocrText: dto.ocrText ?? queueItem.ocrText ?? undefined,
+      // remarks: ใช้จาก dto ก่อน ถ้าไม่มีให้ fallback จาก queueItem (Excel import)
+      remarks: dto.remarks ?? queueItem.remarks ?? undefined,
       // ADR-019: tempAttachmentId/tempAttachmentIds เป็น @Exclude ใน entity
       // ทำให้ frontend ไม่สามารถส่งค่านี้ได้ — ต้องดึงจาก queueItem โดยตรง
       tempAttachmentId:
@@ -1249,6 +1254,8 @@ export class MigrationService {
     const importDto = {
       ...dto,
       ocrText: dto.ocrText ?? queueItem.ocrText ?? undefined,
+      // remarks: ใช้จาก dto ก่อน ถ้าไม่มีให้ fallback จาก queueItem (Excel import)
+      remarks: dto.remarks ?? queueItem.remarks ?? undefined,
       // ADR-019: tempAttachmentId/tempAttachmentIds เป็น @Exclude ใน entity
       // ทำให้ frontend ไม่สามารถส่งค่านี้ได้ — ต้องดึงจาก queueItem โดยตรง
       tempAttachmentId:

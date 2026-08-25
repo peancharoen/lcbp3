@@ -6,6 +6,7 @@ import { Eye, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AiSuggestionField } from './ai-suggestion-field';
+import { StagingFileViewer } from '@/components/migration/staging-file-viewer';
 import type { ExtractionResult } from '@/types/ai';
 
 // Labels ภาษาไทยสำหรับ field ต่างๆ
@@ -25,7 +26,8 @@ const FIELD_LABELS: Record<string, string> = {
 const DISPLAY_FIELDS = ['subject', 'documentDate', 'category', 'disciplineId', 'senderId'];
 
 export interface DocumentComparisonViewProps {
-  fileUrl: string | null;
+  /** Canonical staging path — ส่งต่อให้ StagingFileViewer เพื่อดึงไฟล์ผ่าน apiClient (JWT) */
+  sourceFilePath: string | null;
   extractedData: ExtractionResult | null;
   formData: Record<string, string>;
   onFieldUpdate: (field: string, value: string) => void;
@@ -34,7 +36,7 @@ export interface DocumentComparisonViewProps {
 }
 
 export function DocumentComparisonView({
-  fileUrl,
+  sourceFilePath,
   extractedData,
   formData,
   onFieldUpdate,
@@ -57,20 +59,10 @@ export function DocumentComparisonView({
 
   return (
     <div className="flex flex-1 gap-6 overflow-hidden">
-      {/* Left: PDF Viewer */}
+      {/* Left: PDF Viewer — ดึงไฟล์ผ่าน apiClient เพื่อแนบ JWT อัตโนมัติ (ป้องกัน iframe 401) */}
       <Card className="flex-1 hidden md:flex flex-col overflow-hidden border-2 border-primary/10 shadow-md">
         <CardContent className="p-0 flex-1 relative bg-slate-100">
-          {fileUrl ? (
-            <iframe
-              src={`${fileUrl}#toolbar=0&navpanes=0`}
-              className="absolute inset-0 w-full h-full"
-              title="Document Viewer"
-            />
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-              <p>ไม่พบไฟล์เอกสาร</p>
-            </div>
-          )}
+          <StagingFileViewer sourceFilePath={sourceFilePath} />
         </CardContent>
       </Card>
 

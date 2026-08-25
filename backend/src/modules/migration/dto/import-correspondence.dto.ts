@@ -1,6 +1,7 @@
 // File: backend/src/modules/migration/dto/import-correspondence.dto.ts
 // Change Log:
 // - 2026-08-23: ใช้ disciplineId (INT) โดยตรง ลบ disciplinePublicId ที่ขัดกับโครงสร้างตาราง
+// - 2026-08-25: เพิ่ม remarks field สำหรับนำเข้า Excel column "หมายเหตุ" → correspondence_revisions.remarks
 
 import {
   IsString,
@@ -106,6 +107,11 @@ export class ImportCorrespondenceDto {
   @IsString()
   @IsOptional()
   body?: string;
+
+  /** หมายเหตุจาก Excel (column "remarks") — นำเข้าสู่ correspondence_revisions.remarks */
+  @IsString()
+  @IsOptional()
+  remarks?: string;
 
   /** ข้อความ OCR 3 หน้าแรกสำหรับบันทึกลง Attachment และ trigger RAG (ADR-042/047) */
   @IsString()

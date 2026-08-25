@@ -171,15 +171,6 @@ export const migrationService = {
     return data?.data || data;
   },
 
-  getStagingFileUrl: (filePath: string) => {
-    // Generate the URL directly since it returns a file stream.
-    // Ensure we encode the file path correctly.
-    // It assumes your axios baseURL is set to your nestjs API.
-    // If working with raw <img> or <iframe>, you might need to append the token,
-    // or handle it via a fetch wrapper that downloads creating an object URL.
-    return `/api/migration/staging-file?path=${encodeURIComponent(filePath)}`;
-  },
-
   // ADR-047: Streaming Legacy Ingestion API Methods
   uploadExcelFile: async (file: File): Promise<{ filePath: string; originalFilename: string; size: number }> => {
     const formData = new FormData();
