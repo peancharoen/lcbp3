@@ -1,4 +1,9 @@
 // File: proxy.ts
+// Change Log:
+// - 2026-08-25: เพิ่ม frame-src 'self' blob: เพื่ออนุญาต blob: URL ใน iframe (D160)
+//   สาเหตุ: StagingFileViewer และ FilePreviewModal ใช้ blob: URL เป็น iframe src
+//   แต่ CSP ขาด frame-src → default-src 'self' บล็อก blob: → Chrome แสดง "This content is blocked"
+
 import { NextResponse } from 'next/server';
 
 import { auth } from '@/lib/auth';
@@ -94,6 +99,9 @@ export default auth((req) => {
     `connect-src 'self' ws: wss:`,
     // Monaco Editor Web Workers ต้องการ blob: URL สำหรับ inline workers
     "worker-src 'self' blob:",
+    // D160: อนุญาต blob: URL ใน iframe สำหรับ StagingFileViewer และ FilePreviewModal
+    // ที่ดึงไฟล์ผ่าน apiClient (JWT) แล้วแปลงเป็น BlobURL ก่อนเซ็ตเป็น iframe src
+    "frame-src 'self' blob:",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
