@@ -3,10 +3,12 @@
 // - 2026-08-25: เพิ่ม frame-src 'self' blob: เพื่ออนุญาต blob: URL ใน iframe (D160)
 //   สาเหตุ: StagingFileViewer และ FilePreviewModal ใช้ blob: URL เป็น iframe src
 //   แต่ CSP ขาด frame-src → default-src 'self' บล็อก blob: → Chrome แสดง "This content is blocked"
+// - 2026-08-25: แยก CSP generation ออกเป็น generateCspHeader() ใน lib/security/csp.ts เพื่อ test ได้
 
 import { NextResponse } from 'next/server';
 
 import { auth } from '@/lib/auth';
+import { generateCspHeader } from '@/lib/security/csp';
 
 // รายการ Route ที่ไม่ต้อง Login ก็เข้าได้ (Public Routes)
 const publicRoutes = ['/login', '/register', '/'];
@@ -84,29 +86,9 @@ export default auth((req) => {
   }
 
   // 5. Generate CSP with Nonce (Security Rule Tier 1)
-  // ใช้ Nonce Strategy เพื่ออนุญาต Inline Script เฉพาะที่ระบุตัวตนได้ ป้องกัน XSS
+  // ใช้ Nonce Strategy เพื่ออนุญาต Inline Script เฉพาะที่ระบบตัวตนได้ ป้องกัน XSS
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
-
-  // API ผ่าน NPM proxy (same-origin) — connect-src 'self' ครอบอยู่แล้ว
-  // ไม่ต้องเพิ่ม origin แยกอีก และไม่ใช้ upgrade-insecure-requests
-  // เพราะ backend หลัง proxy เป็น HTTP แต่ browser เห็นเป็น HTTPS ผ่าน NPM
-  const cspHeader = [
-    "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'unsafe-eval' 'unsafe-inline' http: https:`,
-    "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' blob: data: https:",
-    "font-src 'self' data:",
-    `connect-src 'self' ws: wss:`,
-    // Monaco Editor Web Workers ต้องการ blob: URL สำหรับ inline workers
-    "worker-src 'self' blob:",
-    // D160: อนุญาต blob: URL ใน iframe สำหรับ StagingFileViewer และ FilePreviewModal
-    // ที่ดึงไฟล์ผ่าน apiClient (JWT) แล้วแปลงเป็น BlobURL ก่อนเซ็ตเป็น iframe src
-    "frame-src 'self' blob:",
-    "object-src 'none'",
-    "base-uri 'self'",
-    "form-action 'self'",
-    "frame-ancestors 'none'",
-  ].join('; ');
+  const cspHeader = generateCspHeader(nonce);
 
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set('x-nonce', nonce);
