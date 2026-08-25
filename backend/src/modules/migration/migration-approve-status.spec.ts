@@ -1,6 +1,7 @@
 // File: backend/src/modules/migration/migration-approve-status.spec.ts
 // Change Log:
 // - 2026-08-22: Added regression coverage for approve-and-import queue status
+// - 2026-08-25: Added regression coverage for aiSummary fallback (D159) — body ใช้ AI summary ไม่ใช่ OCR ดิบ
 
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -113,6 +114,8 @@ describe('MigrationService approve-and-import status', () => {
       status: MigrationReviewStatus.PENDING_REVIEW,
       aiStatus: MigrationAiStatus.DONE,
       ocrText: 'existing OCR text',
+      aiSummary: 'AI-generated summary of the document',
+      remarks: 'Excel remarks from legacy',
     }) as MigrationReviewQueue;
 
   it('marks the publicId queue item as IMPORTED after a successful import', async () => {
@@ -145,5 +148,92 @@ describe('MigrationService approve-and-import status', () => {
 
     expect(queueItem.status).toBe(MigrationReviewStatus.IMPORTED);
     expect(reviewQueueRepo.save).toHaveBeenCalledWith(queueItem);
+  });
+
+  // D159: regression tests สำหรับ aiSummary fallback chain
+  describe('D159: aiSummary fallback (body = AI summary, not OCR)', () => {
+    it('passes queueItem.aiSummary to importCorrespondence when DTO omits aiSummary', async () => {
+      const queueItem = createReviewableQueueItem();
+      reviewQueueRepo.findOne.mockResolvedValue(queueItem);
+      const importSpy = jest
+        .spyOn(service, 'importCorrespondence')
+        .mockResolvedValue({
+          message: 'Import successful',
+          correspondenceId: 10,
+          revisionId: 20,
+          transactionId: 30,
+          hasAttachment: true,
+        });
+
+      await service.approveQueueItemByPublicId(
+        queueItem.publicId,
+        importDto,
+        'review-import-key',
+        1
+      );
+
+      expect(importSpy).toHaveBeenCalledTimes(1);
+      const passedDto = importSpy.mock.calls[0][0];
+      // D159: aiSummary ต้อง fallback จาก queueItem
+      expect(passedDto.aiSummary).toBe('AI-generated summary of the document');
+      // ocrText ยังคงถูกส่งผ่านสำหรับ RAG (attachments.ocr_text)
+      expect(passedDto.ocrText).toBe('existing OCR text');
+      // remarks ยังคง fallback จาก queueItem
+      expect(passedDto.remarks).toBe('Excel remarks from legacy');
+    });
+
+    it('prefers DTO aiSummary over queueItem aiSummary (reviewer override)', async () => {
+      const queueItem = createReviewableQueueItem();
+      reviewQueueRepo.findOne.mockResolvedValue(queueItem);
+      const importSpy = jest
+        .spyOn(service, 'importCorrespondence')
+        .mockResolvedValue({
+          message: 'Import successful',
+          correspondenceId: 10,
+          revisionId: 20,
+          transactionId: 30,
+          hasAttachment: true,
+        });
+
+      const dtoWithOverride = {
+        ...importDto,
+        aiSummary: 'Reviewer-edited summary override',
+      } as ImportCorrespondenceDto;
+
+      await service.approveQueueItemByPublicId(
+        queueItem.publicId,
+        dtoWithOverride,
+        'review-import-key',
+        1
+      );
+
+      const passedDto = importSpy.mock.calls[0][0];
+      expect(passedDto.aiSummary).toBe('Reviewer-edited summary override');
+    });
+
+    it('passes undefined aiSummary when neither DTO nor queueItem has it', async () => {
+      const queueItem = createReviewableQueueItem();
+      queueItem.aiSummary = undefined;
+      reviewQueueRepo.findOne.mockResolvedValue(queueItem);
+      const importSpy = jest
+        .spyOn(service, 'importCorrespondence')
+        .mockResolvedValue({
+          message: 'Import successful',
+          correspondenceId: 10,
+          revisionId: 20,
+          transactionId: 30,
+          hasAttachment: true,
+        });
+
+      await service.approveQueueItemByPublicId(
+        queueItem.publicId,
+        importDto,
+        'review-import-key',
+        1
+      );
+
+      const passedDto = importSpy.mock.calls[0][0];
+      expect(passedDto.aiSummary).toBeUndefined();
+    });
   });
 });

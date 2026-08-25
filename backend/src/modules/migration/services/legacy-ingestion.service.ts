@@ -1,6 +1,7 @@
 // File: backend/src/modules/migration/services/legacy-ingestion.service.ts
 // Change Log:
 // - 2026-08-20: สร้าง Native Ingestion Engine สำหรับอ่าน Excel ขนาดใหญ่ (Streaming) และนำเข้าสู่ Staging Queue (ADR-047)
+// - 2026-08-25: ลบ auto-enqueue BullMQ ออกจาก Ingestion — ผู้ใช้ต้องกด Start Extract เอง (D156)
 
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -353,34 +354,10 @@ export class LegacyIngestionService {
             await this.reviewQueueRepo.save(queueItem);
             enqueuedCount++;
 
-            // ส่ง Job เข้าสู่ BullMQ ai-batch คิว
-            if (resolvedPdfPath) {
-              const job = await this.aiBatchQueue.add(
-                'legacy-ai-enrichment',
-                {
-                  // Job metadata สำหรับ AiBatchProcessor แยกประเภทงาน (ADR-047 bugfix)
-                  jobType: 'legacy-ai-enrichment',
-                  documentPublicId: queueItem.publicId,
-                  // Payload สำหรับ processLegacyAiEnrichment
-                  queueId: queueItem.id,
-                  queuePublicId: queueItem.publicId,
-                  documentNumber: docNumber,
-                  pdfPath: resolvedPdfPath,
-                  projectPublicId: project.publicId,
-                  projectId: project.id,
-                },
-                {
-                  jobId: `legacy-enrich-${queueItem.publicId}`,
-                  attempts: 3,
-                  backoff: { type: 'exponential', delay: 5000 },
-                  removeOnComplete: 1000,
-                  removeOnFail: 5000,
-                }
-              );
-              queueItem.aiJobId = String(job.id);
-              queueItem.aiStatus = MigrationAiStatus.PENDING;
-              await this.reviewQueueRepo.save(queueItem);
-            }
+            // ADR-047: ห้าม auto-enqueue BullMQ ในขั้นตอน Ingestion
+            // ผู้ใช้ต้องกด "Start Extract" เองเพื่อส่งงานเข้า BullMQ (D156)
+            // Ingestion เก็บเฉพาะ source_file_path ใน details เพื่อให้ Start Extract ใช้ภายหลัง
+            // aiStatus คงเป็น PENDING (ค่าเริ่มต้น) จนกว่าผู้ใช้จะกด Start Extract
 
             // บันทึก Checkpoint ทุก 50 แถว
             if (currentRowIndex % 50 === 0) {

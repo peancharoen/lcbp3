@@ -4,6 +4,7 @@
 // - 2026-08-06: Initial creation
 // - 2026-08-07: Added enrichWithAttachments tests via getQueueItemById (Feature 242, FR-005)
 // - 2026-08-17: Added ConfigService mock for path traversal guard (Issue #3, ADR-016)
+// - 2026-08-25: Added D159 regression tests — revision.body ใช้ aiSummary ไม่ใช่ ocrText
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
@@ -23,6 +24,7 @@ import { RagBatchService } from './services/rag-batch.service';
 import { Discipline } from '../master/entities/discipline.entity';
 import { Correspondence } from '../correspondence/entities/correspondence.entity';
 import { CorrespondenceRecipient } from '../correspondence/entities/correspondence-recipient.entity';
+import { CorrespondenceRevision } from '../correspondence/entities/correspondence-revision.entity';
 import { ImportCorrespondenceDto } from './dto/import-correspondence.dto';
 
 describe('MigrationService', () => {
@@ -392,6 +394,94 @@ describe('MigrationService', () => {
           recipientType: 'TO',
         })
       );
+    });
+
+    // D159: revision.body ใช้ aiSummary (AI สรุป) ไม่ใช่ ocrText (OCR ดิบ)
+    describe('D159: revision.body assignment from aiSummary', () => {
+      const setupImportMocks = (): void => {
+        mockDataSource.manager.findOne.mockResolvedValue({ id: 5 });
+        mockQueryRunner.manager.findOne.mockResolvedValue(null);
+        mockQueryRunner.manager.create.mockImplementation(
+          (_entity: unknown, value: unknown) => value
+        );
+        mockQueryRunner.manager.save.mockResolvedValue({ id: 1 });
+        mockQueryRunner.manager.find.mockResolvedValue([]);
+        mockQueryRunner.manager.query.mockResolvedValue([]);
+      };
+
+      const createBaseDto = (
+        overrides: Partial<ImportCorrespondenceDto> = {}
+      ): ImportCorrespondenceDto => ({
+        documentNumber: 'DOC-D159',
+        subject: 'D159 Test',
+        category: 'Letter',
+        migratedBy: 'SYSTEM_IMPORT',
+        batchId: 'BATCH-D159',
+        projectId: 100,
+        ...overrides,
+      });
+
+      it('sets revision.body from aiSummary when no explicit body (new revision)', async () => {
+        setupImportMocks();
+        const dto = createBaseDto({
+          aiSummary: 'AI-generated summary of the document',
+          ocrText: 'raw OCR text that should NOT be used as body',
+        });
+
+        await service.importCorrespondence(dto, 'idem-d159-1', 1);
+
+        // ต้องสร้าง CorrespondenceRevision ด้วย body = aiSummary
+        expect(mockQueryRunner.manager.create).toHaveBeenCalledWith(
+          CorrespondenceRevision,
+          expect.objectContaining({
+            body: 'AI-generated summary of the document',
+          })
+        );
+      });
+
+      it('prefers explicit body over aiSummary (reviewer override)', async () => {
+        setupImportMocks();
+        const dto = createBaseDto({
+          body: 'Reviewer manually entered body content',
+          aiSummary: 'AI-generated summary of the document',
+          ocrText: 'raw OCR text',
+        });
+
+        await service.importCorrespondence(dto, 'idem-d159-2', 1);
+
+        expect(mockQueryRunner.manager.create).toHaveBeenCalledWith(
+          CorrespondenceRevision,
+          expect.objectContaining({
+            body: 'Reviewer manually entered body content',
+          })
+        );
+      });
+
+      it('does NOT use ocrText as revision.body when neither body nor aiSummary exists', async () => {
+        setupImportMocks();
+        const dto = createBaseDto({
+          ocrText: 'raw OCR text that should NOT be used as body',
+        });
+
+        await service.importCorrespondence(dto, 'idem-d159-3', 1);
+
+        // body ต้องเป็น undefined ไม่ใช่ ocrText
+        expect(mockQueryRunner.manager.create).toHaveBeenCalledWith(
+          CorrespondenceRevision,
+          expect.objectContaining({
+            body: undefined,
+          })
+        );
+        // ต้องไม่มีการส่ง ocrText เป็น body
+        const createCalls = mockQueryRunner.manager.create.mock.calls.filter(
+          (call: unknown[]) => call[0] === CorrespondenceRevision
+        ) as unknown[][];
+        const revisionArg: Record<string, unknown> =
+          createCalls[0][1] as Record<string, unknown>;
+        expect(revisionArg['body']).not.toBe(
+          'raw OCR text that should NOT be used as body'
+        );
+      });
     });
   });
 });

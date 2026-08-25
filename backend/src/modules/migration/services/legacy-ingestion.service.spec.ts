@@ -12,7 +12,6 @@ import { Project } from '../../project/entities/project.entity';
 import { Organization } from '../../organization/entities/organization.entity';
 import { CorrespondenceType } from '../../correspondence/entities/correspondence-type.entity';
 import { NotFoundException } from '../../../common/exceptions';
-import { MIGRATION_AI_JOB_ID_MAX_LENGTH } from '../constants/migration.constants';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as ExcelJS from 'exceljs';
@@ -229,18 +228,11 @@ describe('LegacyIngestionService (ADR-047)', () => {
     expect(result.totalRowsProcessed).toBe(2);
     expect(result.enqueuedCount).toBe(2);
 
-    // ตรวจสอบว่า save ลง review queue ถูกเรียก 3 ครั้ง (2 แถว + อัปเดต aiJobId สำหรับไฟล์ที่มี PDF)
-    expect(mockReviewQueueRepo.save).toHaveBeenCalledTimes(3);
+    // ตรวจสอบว่า save ลง review queue ถูกเรียก 2 ครั้ง (2 แถว — ไม่มี auto-enqueue แล้ว)
+    expect(mockReviewQueueRepo.save).toHaveBeenCalledTimes(2);
 
-    // ตรวจสอบว่า job ส่งเข้า BullMQ ai-batch 1 ครั้ง (เฉพาะไฟล์ DOC-001.pdf ที่มีจริง)
-    expect(mockAiBatchQueue.add).toHaveBeenCalledWith(
-      'legacy-ai-enrichment',
-      expect.objectContaining({
-        documentNumber: 'LCBP3-C2-2024-001',
-        projectPublicId: '019505a1-7c3e-7000-8000-proj12345678',
-      }),
-      expect.any(Object)
-    );
+    // D156: Ingestion ห้าม auto-enqueue BullMQ — ผู้ใช้ต้องกด Start Extract เอง
+    expect(mockAiBatchQueue.add).not.toHaveBeenCalled();
 
     // ตรวจสอบว่าไฟล์ที่หาไม่พบ (MISSING_FILE.pdf) ถูกบันทึกลง migration_errors
     expect(mockErrorRepo.save).toHaveBeenCalledWith(
@@ -250,13 +242,9 @@ describe('LegacyIngestionService (ADR-047)', () => {
     );
   });
 
-  // Regression test (Bugfix 2026-08-23): ai_job_id column เดิมเป็น VARCHAR(36)
-  // (ขนาดพอดี UUID เปล่า) แต่ BullMQ custom jobId คือ `legacy-enrich-<publicId>`
-  // ซึ่งยาว ~50 ตัวอักษร ทำให้ save() ล้มเหลวทุกแถวที่มี PDF ด้วย
-  // "Data too long for column 'ai_job_id'" (ถูก mislabel เป็น AI_PARSE_ERROR)
-  // Mock ของ mockAiBatchQueue.add ถูกแก้ให้ echo back custom jobId ที่ส่งเข้าไปจริง
-  // (เหมือนพฤติกรรมจริงของ BullMQ) เพื่อให้ test นี้จับบั๊กประเภทนี้ได้ในอนาคต
-  it('aiJobId ที่บันทึกต้องไม่ยาวเกินความยาวคอลัมน์ที่ประกาศไว้ใน entity (ADR-047 bugfix)', async () => {
+  // D156: Ingestion ไม่ auto-enqueue BullMQ อีกต่อไป — aiJobId จะถูกตั้งโดย Start Extract เท่านั้น
+  // Test นี้ยืนยันว่า ingestion ไม่ได้ตั้ง aiJobId หรือส่ง job เข้า BullMQ
+  it('D156: Ingestion ห้าม auto-enqueue BullMQ — aiJobId ต้องไม่ถูกตั้งหลัง ingestion', async () => {
     mockProjectRepo.findOne.mockResolvedValue({
       id: 5,
       publicId: '019505a1-7c3e-7000-8000-proj12345678',
@@ -269,18 +257,14 @@ describe('LegacyIngestionService (ADR-047)', () => {
       pdfFolderPath: tempTestDir,
     });
 
+    // ไม่มีการเรียก BullMQ add เลย
+    expect(mockAiBatchQueue.add).not.toHaveBeenCalled();
+
+    // ไม่มี queue item ที่มี aiJobId ถูกบันทึก
     const savedWithAiJobId = mockReviewQueueRepo.save.mock.calls
       .map(([entity]: [MockEntity]) => entity)
       .filter((entity: MockEntity) => entity.aiJobId);
 
-    expect(savedWithAiJobId.length).toBeGreaterThan(0);
-    for (const entity of savedWithAiJobId) {
-      const aiJobId = entity.aiJobId as string;
-      // ต้องตรงกับ custom jobId จริงที่ enqueue ไปยัง BullMQ ไม่ใช่ auto-id สั้นๆ
-      expect(aiJobId).toMatch(/^legacy-enrich-/);
-      expect(aiJobId.length).toBeLessThanOrEqual(
-        MIGRATION_AI_JOB_ID_MAX_LENGTH
-      );
-    }
+    expect(savedWithAiJobId.length).toBe(0);
   });
 });

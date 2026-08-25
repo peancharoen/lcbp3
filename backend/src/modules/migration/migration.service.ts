@@ -5,6 +5,9 @@
 // - 2026-08-22: เพิ่ม startExtractQueueItem / startExtractBatch และปรับ execute import flow ตาม ADR-047
 // - 2026-08-23: Execute Import บันทึก ocrText ลง Attachment/Revision และใช้ rag-prepare pipeline เดียวกับเอกสารปกติ
 // - 2026-08-25: นำ remarks จาก Excel → correspondence_revisions.remarks (approve fallback จาก queueItem)
+// - 2026-08-25: เพิ่ม LEGACY_NAS_PATH ใน getStagingFileStream allowed roots (D157)
+// - 2026-08-25: RAG trigger ไม่ต้องมี ocrText — processRagPrepare ทำ OCR เองได้ (D158)
+// - 2026-08-25: revision.body ใช้ aiSummary (AI สรุป) แทน ocrText (OCR ดิบ) — D159
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -60,6 +63,8 @@ import {
   IMPORT_TX_STATUS_SUCCESS,
   ENV_STAGING_DIR,
   STAGING_DIR_DEFAULT,
+  ENV_LEGACY_NAS_PATH,
+  LEGACY_NAS_PATH_DEFAULT,
 } from './constants/migration.constants';
 
 /**
@@ -72,6 +77,7 @@ const STAGING_DIR_FALLBACK = path.join(process.cwd(), STAGING_DIR_DEFAULT);
 export class MigrationService {
   private readonly logger = new Logger(MigrationService.name);
   private readonly stagingDir: string;
+  private readonly legacyNasPath: string;
 
   constructor(
     private readonly dataSource: DataSource,
@@ -95,6 +101,9 @@ export class MigrationService {
   ) {
     this.stagingDir =
       this.configService.get<string>(ENV_STAGING_DIR) || STAGING_DIR_FALLBACK;
+    this.legacyNasPath =
+      this.configService.get<string>(ENV_LEGACY_NAS_PATH) ||
+      LEGACY_NAS_PATH_DEFAULT;
   }
 
   async importCorrespondence(
@@ -404,6 +413,7 @@ export class MigrationService {
       }
 
       // ADR-042/047: บันทึก OCR text ลง Attachment ก่อน commit เพื่อ RAG pipeline
+      // บันทึกเฉพาะเมื่อมี ocrText — ถ้าไม่มี RAG จะทำ OCR เองจาก attachmentPath (D158)
       if (attachmentId && dto.ocrText?.trim()) {
         await queryRunner.manager.update(
           Attachment,
@@ -447,7 +457,9 @@ export class MigrationService {
       if (existingCurrent) {
         // Update revision ปัจจุบันแทนการสร้างใหม่ (ป้องกัน uq_master_current conflict)
         existingCurrent.subject = dto.subject;
-        existingCurrent.body = dto.body || dto.ocrText || undefined;
+        // D159: body ใช้ AI summary (aiSummary) แทน OCR ดิบ (ocrText)
+        // ลำดับความสำคัญ: reviewer body > AI summary > undefined
+        existingCurrent.body = dto.body || dto.aiSummary || undefined;
         existingCurrent.documentDate = parseDateStr(
           dto.documentDate || dto.issuedDate
         );
@@ -474,7 +486,9 @@ export class MigrationService {
           statusId: status.id,
           subject: dto.subject,
           description: 'Migrated from legacy system via Auto Ingest',
-          body: dto.body || dto.ocrText || undefined,
+          // D159: body ใช้ AI summary (aiSummary) แทน OCR ดิบ (ocrText)
+          // ลำดับความสำคัญ: reviewer body > AI summary > undefined
+          body: dto.body || dto.aiSummary || undefined,
           // Mapping: excel issued_date → document_date (วันที่ออกเอกสาร)
           //          excel received_date → received_date (วันที่รับเอกสาร)
           documentDate: parseDateStr(dto.documentDate || dto.issuedDate),
@@ -579,7 +593,9 @@ export class MigrationService {
       await queryRunner.commitTransaction();
 
       // ADR-042/047: trigger rag-prepare เส้นเดียวกับเอกสารปกติ หลัง commit
-      if (attachmentId && dto.ocrText?.trim()) {
+      // D158: trigger RAG เมื่อมี attachment เท่านั้น — ไม่ต้องมี ocrText
+      // ถ้าไม่มี cachedOcrText, processRagPrepare จะอ่านจาก attachment หรือทำ OCR เอง
+      if (attachmentId) {
         const mainAttachment = await queryRunner.manager.findOne(Attachment, {
           where: { id: attachmentId },
           select: ['publicId', 'filePath'],
@@ -597,7 +613,7 @@ export class MigrationService {
               documentDate: revision.documentDate
                 ? revision.documentDate.toISOString().split('T')[0]
                 : undefined,
-              cachedOcrText: dto.ocrText.trim(),
+              cachedOcrText: dto.ocrText?.trim() || undefined,
               attachmentPath: mainAttachment.filePath || undefined,
               attachmentPublicId: mainAttachment.publicId,
             });
@@ -1203,6 +1219,8 @@ export class MigrationService {
     const importDto = {
       ...dto,
       ocrText: dto.ocrText ?? queueItem.ocrText ?? undefined,
+      // D159: aiSummary fallback จาก queueItem (AI สรุปหลัง OCR extract) → revision.body
+      aiSummary: dto.aiSummary ?? queueItem.aiSummary ?? undefined,
       // remarks: ใช้จาก dto ก่อน ถ้าไม่มีให้ fallback จาก queueItem (Excel import)
       remarks: dto.remarks ?? queueItem.remarks ?? undefined,
       // ADR-019: tempAttachmentId/tempAttachmentIds เป็น @Exclude ใน entity
@@ -1254,6 +1272,8 @@ export class MigrationService {
     const importDto = {
       ...dto,
       ocrText: dto.ocrText ?? queueItem.ocrText ?? undefined,
+      // D159: aiSummary fallback จาก queueItem (AI สรุปหลัง OCR extract) → revision.body
+      aiSummary: dto.aiSummary ?? queueItem.aiSummary ?? undefined,
       // remarks: ใช้จาก dto ก่อน ถ้าไม่มีให้ fallback จาก queueItem (Excel import)
       remarks: dto.remarks ?? queueItem.remarks ?? undefined,
       // ADR-019: tempAttachmentId/tempAttachmentIds เป็น @Exclude ใน entity
@@ -1377,15 +1397,21 @@ export class MigrationService {
     }
 
     const resolvedPath = path.resolve(filePath);
-    const normalizedStaging = path.resolve(this.stagingDir);
+    // ADR-016: Path Traversal Guard — อนุญาตเฉพาะ path ที่ resolve แล้วอยู่ภายใต้
+    // stagingDir หรือ LEGACY_NAS_PATH (เพิ่มเพื่อรองรับไฟล์ PDF บน NAS mount — D157)
+    const allowedRoots = [
+      path.resolve(this.stagingDir),
+      path.resolve(this.legacyNasPath),
+    ];
 
-    // Path Traversal Guard: resolvedPath ต้องอยู่ภายใต้ stagingDir
-    if (
-      resolvedPath !== normalizedStaging &&
-      !resolvedPath.startsWith(normalizedStaging + path.sep)
-    ) {
+    const isWithinAllowed = allowedRoots.some(
+      (root) =>
+        resolvedPath === root || resolvedPath.startsWith(root + path.sep)
+    );
+
+    if (!isWithinAllowed) {
       this.logger.warn(
-        `Path traversal blocked: "${filePath}" resolves outside staging dir "${normalizedStaging}"`
+        `Path traversal blocked: "${filePath}" resolves outside allowed dirs [${allowedRoots.join(', ')}]`
       );
       throw new ValidationException(
         'Invalid staging file path — access denied (path traversal guard)'

@@ -3,6 +3,7 @@
 // - 2026-08-06: เพิ่ม ALLOWED_UPLOAD_MIME_TYPES constant สำหรับ FR-004 (PDF, DOCX, DWG, XLSX, ZIP)
 // - 2026-08-17: Phase 2.3 — เพิ่ม magic bytes validation ใน upload และ importStagingFile
 //   เพื่อป้องกัน MIME spoofing (Issue #3, ADR-016)
+// - 2026-08-25: ใช้ fs.copy แทน fs.move เมื่อ source อยู่ใน LEGACY_NAS_PATH (read-only NAS — D157)
 import {
   Injectable,
   NotFoundException,
@@ -536,11 +537,28 @@ export class FileStorageService {
 
     const newPath = path.join(permanentDir, storedFilename);
 
-    // 3. Move File
+    // 3. Copy/Move File — ใช้ copy แทน move เมื่อ source อยู่ใน LEGACY_NAS_PATH (read-only NAS mount)
+    // เพื่อป้องกัน EROFS error ตอน fs.move พยายาม unlink source file (D157)
+    const legacyNasPath = path.resolve(
+      this.configService.get<string>('LEGACY_NAS_PATH') || '/mnt/legacy-staging'
+    );
+    const isFromLegacyNas =
+      resolvedSource === legacyNasPath ||
+      resolvedSource.startsWith(legacyNasPath + path.sep);
+
     try {
-      await fs.move(resolvedSource, newPath, { overwrite: true });
+      if (isFromLegacyNas) {
+        // Read-only mount: copy แทน move (ไม่ต้องลบ source)
+        await fs.copy(resolvedSource, newPath, { overwrite: true });
+      } else {
+        // Writable staging: move (ลบ source หลัง copy)
+        await fs.move(resolvedSource, newPath, { overwrite: true });
+      }
     } catch (error) {
-      this.logger.error(`Failed to move staging file to ${newPath}`, error);
+      this.logger.error(
+        `Failed to copy/move staging file to ${newPath}`,
+        error
+      );
       throw new BadRequestException('Failed to process staging file');
     }
 

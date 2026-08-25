@@ -2,6 +2,7 @@
 // Change Log:
 // - 2026-08-23: ใช้ disciplineId (INT) โดยตรง ลบ disciplinePublicId ที่ขัดกับโครงสร้างตาราง
 // - 2026-08-25: เพิ่ม remarks field สำหรับนำเข้า Excel column "หมายเหตุ" → correspondence_revisions.remarks
+// - 2026-08-25: เพิ่ม aiSummary field — AI สรุปหลัง OCR extract → correspondence_revisions.body (D159)
 
 import {
   IsString,
@@ -108,12 +109,25 @@ export class ImportCorrespondenceDto {
   @IsOptional()
   body?: string;
 
+  /**
+   * AI สรุปหลังจาก OCR extract (processLegacyAiEnrichment) —
+   * ใช้เป็น fallback สำหรับ correspondence_revisions.body เมื่อ reviewer ไม่ได้ส่ง body มาเอง (D159)
+   * ความสำคัญ: body (reviewer override) > aiSummary (AI สรุป) > undefined
+   * ไม่ใช้ ocrText เป็น body เพราะ OCR ดิบเป็นข้อมูลดิบ ไม่ใช่เนื้อหาสรุป
+   */
+  @IsString()
+  @IsOptional()
+  aiSummary?: string;
+
   /** หมายเหตุจาก Excel (column "remarks") — นำเข้าสู่ correspondence_revisions.remarks */
   @IsString()
   @IsOptional()
   remarks?: string;
 
-  /** ข้อความ OCR 3 หน้าแรกสำหรับบันทึกลง Attachment และ trigger RAG (ADR-042/047) */
+  /**
+   * ข้อความ OCR ดิบ 3 หน้าแรก — เก็บใน attachments.ocr_text และใช้เป็น cachedOcrText สำหรับ RAG (ADR-042/047)
+   * ไม่ใช้สำหรับ correspondence_revisions.body (D159)
+   */
   @IsString()
   @IsOptional()
   ocrText?: string;
