@@ -1346,9 +1346,9 @@ export class CorrespondenceService {
 
     // 3. เก็บ attachment file paths ก่อน cascade delete
     const attachmentRows = await this.dataSource.query<
-      Array<{ id: number; file_path: string; public_id: string }>
+      Array<{ id: number; file_path: string; uuid: string }>
     >(
-      `SELECT a.id, a.file_path, a.public_id
+      `SELECT a.id, a.file_path, a.uuid
        FROM attachments a
        INNER JOIN correspondence_revision_attachments cra ON cra.attachment_id = a.id
        INNER JOIN correspondence_revisions cr ON cr.id = cra.correspondence_revision_id

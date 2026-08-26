@@ -147,7 +147,7 @@ export class AiQueueService {
       payload,
       {
         ...this.defaultOptions,
-        jobId: `${payload.projectPublicId}:${payload.documentPublicId}`,
+        jobId: `${payload.projectPublicId}-${payload.documentPublicId}`,
       }
     );
     return String(job.id);
