@@ -259,7 +259,10 @@ export class AiRagService {
         return;
       }
 
-      // 5. Generate คำตอบผ่าน Ollama
+      // 5. Unload BGE ก่อน LLM generate — คืน GPU memory ให้ Ollama (coordination logic)
+      await this.ocrService.unloadBgeModels();
+
+      // 6. Generate คำตอบผ่าน Ollama
       const { answer, usedFallback } = await this.generateAnswer(
         this.sanitizeInput(question),
         context,

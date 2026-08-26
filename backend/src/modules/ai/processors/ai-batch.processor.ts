@@ -2016,6 +2016,9 @@ export class AiBatchProcessor extends WorkerHost {
     });
 
     try {
+      // 0. Unload BGE models ก่อน OCR — คืน GPU memory ให้ Ollama (coordination logic)
+      await this.ocrService.unloadBgeModels();
+
       // 1. OCR 3 หน้าแรก
       let ocrText = '';
       const hasPdf = pdfPath && pdfPath.trim().length > 0;

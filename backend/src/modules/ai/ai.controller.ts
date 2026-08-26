@@ -116,6 +116,8 @@ import { UpdateExecutionProfileDto } from './dto/update-execution-profile.dto';
 import { NodeMetricsService } from './services/node-metrics.service';
 import { VramMonitorService } from './services/vram-monitor.service';
 import { GetHostMetricsResponseDto } from './dto/host-metrics.dto';
+import axios from 'axios';
+import { ConfigService } from '@nestjs/config';
 import {
   GetQueueJobsResponseDto,
   ClearFailedJobsResponseDto,
@@ -139,6 +141,7 @@ export class AiController {
     private readonly nodeMetricsService: NodeMetricsService,
     private readonly vramMonitorService: VramMonitorService,
     @InjectRedis() private readonly redis: Redis,
+    private readonly configService: ConfigService,
     @Optional() private readonly ocrService?: OcrService
   ) {}
 
@@ -499,6 +502,81 @@ export class AiController {
       warning:
         'Model unloaded. Next AI request will incur 5-10s cold-start latency.',
     };
+  }
+
+  // ─── AI Engine Control Center: BGE Model Control (Sidecar lazy-load) ────────
+
+  @Post('admin/bge/load')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @HttpCode(HttpStatus.OK)
+  @Audit('ai_bge_load')
+  @ApiOperation({
+    summary:
+      'AI Control Center — Load BGE-M3 + Reranker models (Sidecar lazy-load)',
+    description:
+      'โหลด BGE-M3 และ BGE-Reranker-Large เข้า GPU ผ่าน Sidecar /bge/load (cold-start ~15s)',
+  })
+  async loadBgeModels(): Promise<{
+    status: string;
+    bgeLoaded: boolean;
+    rerankerLoaded: boolean;
+  }> {
+    const ocrApiUrl = this.configService.get<string>(
+      'OCR_SIDECAR_URL',
+
+      'http://ocr-sidecar:8765'
+    );
+    const response = await axios.post(
+      `${ocrApiUrl}/bge/load`,
+      {},
+      { timeout: 30000 }
+    );
+    return response.data as {
+      status: string;
+      bgeLoaded: boolean;
+      rerankerLoaded: boolean;
+    };
+  }
+
+  @Post('admin/bge/unload')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @HttpCode(HttpStatus.OK)
+  @Audit('ai_bge_unload')
+  @ApiOperation({
+    summary: 'AI Control Center — Unload BGE models (free GPU for Ollama)',
+    description:
+      'Unload BGE-M3 และ Reranker ออกจาก GPU ผ่าน Sidecar /bge/unload — คืน ~4.8GB VRAM',
+  })
+  async unloadBgeModels(): Promise<{
+    status: string;
+    bgeLoaded: boolean;
+    rerankerLoaded: boolean;
+  }> {
+    if (!this.ocrService) throw new Error('OCR service not available');
+    await this.ocrService.unloadBgeModels();
+    return { status: 'unloaded', bgeLoaded: false, rerankerLoaded: false };
+  }
+
+  @Get('admin/bge/status')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @ApiOperation({
+    summary: 'AI Control Center — BGE model status (loaded, keep_alive, idle)',
+  })
+  async getBgeStatus(): Promise<{
+    bgeLoaded: boolean;
+    rerankerLoaded: boolean;
+    keepAliveSeconds: number;
+    idleSeconds: number | null;
+    autoUnloadIn: number | null;
+  }> {
+    if (!this.ocrService) throw new Error('OCR service not available');
+    return this.ocrService.getBgeStatus();
   }
 
   // ─── AI Engine Control Center: Queue Job Inspection (ADR-048 T015) ─────────

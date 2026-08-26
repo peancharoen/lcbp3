@@ -149,6 +149,14 @@ export interface VramStatusResponse {
   lastUpdated: string;
 }
 
+export interface BgeStatusResponse {
+  bgeLoaded: boolean;
+  rerankerLoaded: boolean;
+  keepAliveSeconds: number;
+  idleSeconds: number | null;
+  autoUnloadIn: number | null;
+}
+
 interface RawVramStatusResponse {
   totalVRAMMB?: number;
   usedVRAMMB?: number;
@@ -648,6 +656,31 @@ export const adminAiService = {
       { headers: { 'Idempotency-Key': createIdempotencyKey() } }
     );
     return extractData<{ success: boolean; message: string }>(data);
+  },
+
+  // --- BGE Load/Unload (Sidecar lazy-load coordination) ---
+
+  loadBgeModels: async (): Promise<{ status: string; bgeLoaded: boolean; rerankerLoaded: boolean }> => {
+    const { data } = await api.post(
+      '/ai/admin/bge/load',
+      {},
+      { headers: { 'Idempotency-Key': createIdempotencyKey() } }
+    );
+    return extractData<{ status: string; bgeLoaded: boolean; rerankerLoaded: boolean }>(data);
+  },
+
+  unloadBgeModels: async (): Promise<{ status: string; bgeLoaded: boolean; rerankerLoaded: boolean }> => {
+    const { data } = await api.post(
+      '/ai/admin/bge/unload',
+      {},
+      { headers: { 'Idempotency-Key': createIdempotencyKey() } }
+    );
+    return extractData<{ status: string; bgeLoaded: boolean; rerankerLoaded: boolean }>(data);
+  },
+
+  getBgeStatus: async (): Promise<BgeStatusResponse> => {
+    const { data } = await api.get('/ai/admin/bge/status');
+    return extractData<BgeStatusResponse>(data);
   },
 };
 

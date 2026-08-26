@@ -7,7 +7,7 @@
 
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Cpu, Loader2, Power, PowerOff, AlertTriangle, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -24,8 +24,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { adminAiService, type AiSystemHealth, type VramStatusResponse } from '@/lib/services/admin-ai.service';
-import { MAIN_MODEL_NAME, OCR_MODEL_NAME, ensureArray, toCanonicalModel } from './ai-constants';
+import { adminAiService, type AiSystemHealth, type VramStatusResponse, type BgeStatusResponse } from '@/lib/services/admin-ai.service';
+import { MAIN_MODEL_NAME, OCR_MODEL_NAME, BGE_MODEL_NAME, ensureArray, toCanonicalModel } from './ai-constants';
 
 interface CombinedOllamaEngineCardProps {
   health: AiSystemHealth | undefined;
@@ -185,7 +185,39 @@ export function CombinedOllamaEngineCard({
     }
   };
 
-  const isBusy = loadMutation.isPending || unloadMutation.isPending;
+  // BGE status query (Sidecar lazy-load, ไม่ได้โหลดใน Ollama)
+  const { data: bgeStatus } = useQuery<BgeStatusResponse>({
+    queryKey: ['ai-bge-status'],
+    queryFn: () => adminAiService.getBgeStatus(),
+    refetchInterval: 15000,
+    staleTime: 10000,
+  });
+
+  const bgeLoadMutation = useMutation({
+    mutationFn: () => adminAiService.loadBgeModels(),
+    onSuccess: () => {
+      toast.success('BGE models loaded (lazy-load)');
+      void queryClient.invalidateQueries({ queryKey: ['ai-bge-status'] });
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error('Failed to load BGE models', { description: message });
+    },
+  });
+
+  const bgeUnloadMutation = useMutation({
+    mutationFn: () => adminAiService.unloadBgeModels(),
+    onSuccess: () => {
+      toast.success('BGE models unloaded — GPU memory freed for Ollama');
+      void queryClient.invalidateQueries({ queryKey: ['ai-bge-status'] });
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error('Failed to unload BGE models', { description: message });
+    },
+  });
+
+  const isBusy = loadMutation.isPending || unloadMutation.isPending || bgeLoadMutation.isPending || bgeUnloadMutation.isPending;
 
   return (
     <Card className="relative overflow-hidden border border-border/50 bg-background/50 backdrop-blur-md md:col-span-3">
@@ -345,6 +377,55 @@ export function CombinedOllamaEngineCard({
                         </td>
                       </tr>
                     ))}
+
+                    {/* BGE row — Sidecar lazy-load (ไม่ได้โหลดใน Ollama) */}
+                    <tr className="border-t border-border/30 bg-purple-500/5">
+                      <td className="py-1.5 px-2 font-mono">
+                        {BGE_MODEL_NAME}
+                        <span className="ml-1 text-[9px] text-muted-foreground">(sidecar)</span>
+                      </td>
+                      <td className="py-1.5 px-2">
+                        {bgeStatus?.bgeLoaded ? (
+                          <Badge className="border-purple-500/20 bg-purple-500/10 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20 text-[10px]">
+                            {t('ai.vram.residency.loaded')}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px]">
+                            {t('ai.vram.residency.notLoaded')}
+                          </Badge>
+                        )}
+                      </td>
+                      <td className="py-1.5 px-2 text-right text-muted-foreground">
+                        {bgeStatus?.bgeLoaded ? '~4800' : '—'}
+                      </td>
+                      <td className="py-1.5 px-2 text-right">
+                        {bgeStatus?.bgeLoaded ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            disabled={isBusy}
+                            onClick={() => void bgeUnloadMutation.mutate()}
+                          >
+                            <PowerOff className="h-3.5 w-3.5" />
+                            <span className="ml-1 text-[10px]">{t('ai.vram.action.unload')}</span>
+                          </Button>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10"
+                            disabled={isBusy}
+                            onClick={() => void bgeLoadMutation.mutate()}
+                          >
+                            <Power className="h-3.5 w-3.5" />
+                            <span className="ml-1 text-[10px]">{t('ai.vram.action.load')}</span>
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
                   </tbody>
                 </table>
               </div>

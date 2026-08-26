@@ -580,4 +580,49 @@ export class OcrService {
       throw new Error(`AI_SIDECAR_RERANK_FAILED: ${msg}`);
     }
   }
+
+  /** เรียก Sidecar /bge/unload เพื่อคืน GPU memory ก่อน OCR/AI job (coordination logic) */
+  async unloadBgeModels(): Promise<void> {
+    try {
+      await axios.post(`${this.ocrApiUrl}/bge/unload`, {}, { timeout: 10000 });
+      this.logger.log(
+        'BGE models unloaded via Sidecar — GPU memory freed for Ollama'
+      );
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(
+        `Failed to unload BGE models: ${msg} (continuing — BGE may not be loaded)`
+      );
+    }
+  }
+
+  /** เรียก Sidecar /bge/status เพื่อตรวจสถานะ BGE models */
+  async getBgeStatus(): Promise<{
+    bgeLoaded: boolean;
+    rerankerLoaded: boolean;
+    keepAliveSeconds: number;
+    idleSeconds: number | null;
+    autoUnloadIn: number | null;
+  }> {
+    try {
+      const response = await axios.get(`${this.ocrApiUrl}/bge/status`, {
+        timeout: 5000,
+      });
+      return response.data as {
+        bgeLoaded: boolean;
+        rerankerLoaded: boolean;
+        keepAliveSeconds: number;
+        idleSeconds: number | null;
+        autoUnloadIn: number | null;
+      };
+    } catch {
+      return {
+        bgeLoaded: false,
+        rerankerLoaded: false,
+        keepAliveSeconds: 0,
+        idleSeconds: null,
+        autoUnloadIn: null,
+      };
+    }
+  }
 }
