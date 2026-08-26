@@ -324,6 +324,14 @@ vendor/bundle
 @Recently-Snapshot/
 .@__thumb
 # ============================================
+# Understand-Anything (codebase map plugin)
+# ============================================
+# เลิกใช้ understand-anything — โปรเจกต์มี specs/ADRs/playbooks ครบถ้วน
+# กันไม่ให้ auto-generated knowledge graph กลับเข้า repo อีก
+.understand-anything/
+.ua/
+
+# ============================================
 # Project Specific (Uncomment as needed)
 # ============================================
 # Design files

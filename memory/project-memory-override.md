@@ -188,6 +188,9 @@
 | D161a | **สงวน `AiCallbackDto`** — ห้ามลบ `ai-callback.dto.ts` เพราะ `AiValidationService` ยังอ้างอิง `AiCallbackDto`; รอ refactor `AiValidationService` ออกก่อนจึงจะลบได้                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Session 2026-08-25                                                                                                                                                                                                                                                                                                                   |
 | D161b | **สงวน `AI_N8N_SERVICE_TOKEN`** — env var นี้ยังใช้โดย `ServiceAccountGuard` สำหรับ `legacy-migration/ingest` endpoint; ห้ามลบออกจาก env validation หรือ `.env.example`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Session 2026-08-25                                                                                                                                                                                                                                                                                                                   |
 | D161c | **สงวน `ExtractionResult` type ชั่วคราว** — `frontend/types/ai.ts` `ExtractionResult` ยังถูก import โดย `DocumentComparisonView` (ไม่มี caller แล้วแต่ยัง compile); รอ D162 cleanup ลบ component + type พร้อมกัน                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Session 2026-08-25                                                                                                                                                                                                                                                                                                                   |
+| D162  | **Transaction-Scoped Attachment Save** — เมธอด service ใดที่ persist entity และอาจถูกเรียกจากภายใน transaction ต้องรับ optional `EntityManager` parameter และใช้ `manager.save()` แทน `this.repository.save()` — ห้ามใช้ default connection (auto-commit) เพราะจะทำให้เกิด MariaDB error 1020 "Record has changed since last read" เมื่อ transaction พยายามอ่าน/เขียนแถวเดียวกัน; `importStagingFile` รับ `options.manager` แล้ว                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Session 2026-08-26                                                                                                                                                                                                                                                                                                                   |
+| D163  | **Shared Junction Table Utility** — การ INSERT ลง `correspondence_revision_attachments` junction table ต้องใช้ `linkAttachmentsToRevision()` shared utility เท่านั้น (`backend/src/modules/migration/utils/attachment-linking.util.ts`) — ห้ามเขียน inline SQL เพราะเคยเกิด bug จากการพิมพ์ชื่อคอลัมน์ผิด (`revision_id` แทน `correspondence_revision_id`) ใน `commitRecord`; utility เก็บชื่อคอลัมน์เป็น constant ป้องกัน drift ระหว่าง `importCorrespondence` และ `commitRecord`                                                                                                                                                                                                                                                                                                                                                                                                            | Session 2026-08-26                                                                                                                                                                                                                                                                                                                   |
+| D164  | **AGENTS.md Documentation Drift Fix** — แก้ drift 5 จุด: (1) เพิ่ม Commands & Verification section พร้อม trap ของ frontend `pnpm test` = vitest watch mode (hangs) — ต้องใช้ `pnpm test run`; (2) ESLint `no-restricted-syntax` แบน ALL `parseInt()` + unary `+` (กว้างกว่า CI grep gate `parseInt(.*uuid`) — ใช้ `Number()` สำหรับ pagination; (3) "Admin Desktop" → `np-dms-lcbp3` (ADR-041 decommissioned Desk-5439); (4) skill count 21 → 35 (D81); (5) ADR-047 (Native Backend Legacy Ingestion) เพิ่มใน Tier 3 + trigger tables; sync `.agents/rules/` ↔ `.devin/rules/`; AGENTS.md v1.9.13 → v1.9.14                                                                                                                                                                                                                                                                                  | Session 2026-08-26                                                                                                                                                                                                                                                                                                                   |
 
 ## Environment & Services
 
@@ -222,11 +225,39 @@
 DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
 REDIS_HOST, REDIS_PORT
 JWT_SECRET, JWT_EXPIRES_IN
-OLLAMA_BASE_URL (ชี้ไป Admin Desktop)
+OLLAMA_BASE_URL (ชี้ไป np-dms-lcbp3 — Docker DNS `http://ollama:11434`, post-ADR-041)
 QDRANT_URL
 ```
 
 ## Next Session Focus
+
+### AGENTS.md Diagnose & Fix 5 Issues (Session 2026-08-26) ✅ Complete
+
+- [x] Fix #1: เพิ่ม Commands & Verification section (build/test/lint + frontend `pnpm test` watch mode trap)
+- [x] Fix #2: ESLint blanket ban note (`no-restricted-syntax` แบน ALL `parseInt()` + unary `+`)
+- [x] Fix #3: "Admin Desktop" → `np-dms-lcbp3` (ADR-041)
+- [x] Fix #4: skill count 21 → 35 (D81)
+- [x] Fix #5: ADR-047 (Native Backend Legacy Ingestion) เพิ่มใน Tier 3 + trigger tables
+- [x] Sync `.agents/rules/` ↔ `.devin/rules/` (01-adr-019-uuid, 08-development-flow, 14-context-aware-triggers)
+- [x] แก้ stale "Admin Desktop" ใน project-memory-override.md Key Environment Variables
+- [x] Session log: `specs/88-logs/session-2026-08-26-agents-md-diagnose.md`
+- [x] Lock decision D164
+- [ ] **Commit + push** — pending user authorization
+
+### Migration Import Attachment Bugfix (Session 2026-08-26) ⏳ Code ready + deployed via docker cp; pending commit + browser verify
+
+- [x] Bug 1: MariaDB error 1020 — `importStagingFile` รับ optional `manager?: EntityManager` + `importCorrespondence` ส่ง `queryRunner.manager`
+- [x] Bug 2: "No attachments found" — เพิ่ม INSERT ลง `correspondence_revision_attachments` junction table
+- [x] Bug 3 (พบระหว่าง refactor): `commitRecord` ใช้ชื่อคอลัมน์ junction table ผิด (`revision_id` → `correspondence_revision_id`)
+- [x] Architectural Prevention: สกัด shared utility `linkAttachmentsToRevision()` ใน `utils/attachment-linking.util.ts`
+- [x] Verification: backend build ผ่าน, 180 tests ผ่าน (167 migration + 13 file-storage), E2E 3 ครั้งผ่าน
+- [x] Deploy: `docker cp dist` + restart backend
+- [x] Lock decisions D162 (Transaction-Scoped Attachment Save) + D163 (Shared Junction Table Utility)
+- [x] Session log: `specs/88-logs/session-2026-08-26-migration-import-attachment-bugfix.md`
+- [ ] **Commit + push via 2git.sh** — pending user authorization
+- [ ] **Gitea Actions deploy** — pending after push
+- [ ] **Browser verify** — ทดสอบ Execute Import จากหน้า `/admin/migration` (batch) และ `/admin/migration/review/[id]` (individual)
+- [ ] **Browser verify** — ตรวจสอบว่า attachment แสดงใน correspondence detail หลัง import
 
 ### D161 — ลบ dead code migration_logs (Session 2026-08-25) ⏳ Pushed, pending deploy + browser verify
 

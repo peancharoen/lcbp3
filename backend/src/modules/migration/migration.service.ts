@@ -8,6 +8,10 @@
 // - 2026-08-25: เพิ่ม LEGACY_NAS_PATH ใน getStagingFileStream allowed roots (D157)
 // - 2026-08-25: RAG trigger ไม่ต้องมี ocrText — processRagPrepare ทำ OCR เองได้ (D158)
 // - 2026-08-25: revision.body ใช้ aiSummary (AI สรุป) แทน ocrText (OCR ดิบ) — D159
+// - 2026-08-26: Bugfix — ส่ง queryRunner.manager เข้า importStagingFile เพื่อให้ attachment
+//   ถูกสร้างใน transaction เดียวกัน (ป้องกัน MariaDB error 1020 "Record has changed
+//   since last read in table 'attachments'") และเพิ่ม INSERT ลง
+//   correspondence_revision_attachments junction table (แก้ "No attachments found")
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -55,6 +59,7 @@ import * as path from 'path';
 import { RagBatchService } from './services/rag-batch.service';
 import { Rfa } from '../rfa/entities/rfa.entity';
 import { RfaRevision } from '../rfa/entities/rfa-revision.entity';
+import { linkAttachmentsToRevision } from './utils/attachment-linking.util';
 import {
   RFA_TYPE_CODE_GENERIC,
   RFA_STATUS_CODE_APPROVED,
@@ -375,14 +380,18 @@ export class MigrationService {
         }
       } else if (dto.sourceFilePaths && dto.sourceFilePaths.length > 0) {
         // ADR-047: import หลายไฟล์จาก sourceFilePaths
+        // Bugfix: ส่ง queryRunner.manager เข้า importStagingFile เพื่อให้ attachment
+        // ถูกสร้างใน transaction เดียวกัน — ป้องกัน MariaDB error 1020
+        const importedAttachmentIds: number[] = [];
         for (const sfPath of dto.sourceFilePaths) {
           if (!sfPath || !sfPath.trim()) continue;
           try {
             const attachment = await this.fileStorageService.importStagingFile(
               sfPath,
               userId,
-              { documentType: dto.category }
+              { documentType: dto.category, manager: queryRunner.manager }
             );
+            importedAttachmentIds.push(attachment.id);
             if (!attachmentId) attachmentId = attachment.id;
           } catch (fileError: unknown) {
             const errMsg =
@@ -394,14 +403,18 @@ export class MigrationService {
             );
           }
         }
+        allAttachmentIds.push(...importedAttachmentIds);
       } else if (dto.sourceFilePath && dto.sourceFilePath.trim()) {
         try {
+          // Bugfix: ส่ง queryRunner.manager เข้า importStagingFile เพื่อให้ attachment
+          // ถูกสร้างใน transaction เดียวกัน — ป้องกัน MariaDB error 1020
           const attachment = await this.fileStorageService.importStagingFile(
             dto.sourceFilePath,
             userId,
-            { documentType: dto.category }
+            { documentType: dto.category, manager: queryRunner.manager }
           );
           attachmentId = attachment.id;
+          allAttachmentIds.push(attachment.id);
         } catch (fileError: unknown) {
           const errMsg =
             fileError instanceof Error ? fileError.message : String(fileError);
@@ -471,6 +484,8 @@ export class MigrationService {
           ai_issues: dto.aiIssues as unknown,
           source_file_path: dto.sourceFilePath,
           attachment_id: attachmentId,
+          attachment_ids:
+            allAttachmentIds.length > 0 ? allAttachmentIds : undefined,
         };
         revision = existingCurrent;
         await queryRunner.manager.save(revision);
@@ -500,12 +515,25 @@ export class MigrationService {
             ai_issues: dto.aiIssues as unknown,
             source_file_path: dto.sourceFilePath,
             attachment_id: attachmentId,
+            attachment_ids:
+              allAttachmentIds.length > 0 ? allAttachmentIds : undefined,
           },
           schemaVersion: 1,
           createdBy: userId,
         });
         await queryRunner.manager.save(revision);
       }
+
+      // Bugfix: เชื่อม attachments ทั้งหมดเข้ากับ revision ผ่าน junction table
+      // (correspondence_revision_attachments) — เดิม importCorrespondence เก็บแค่
+      // attachment_id ใน revision.details JSON ทำให้ frontend ซึ่ง query ผ่าน
+      // junction table แสดง "No attachments found" แม้ว่า attachment มีอยู่จริง
+      // ใช้ shared utility ร่วมกับ commitRecord เพื่อป้องกัน column name drift
+      await linkAttachmentsToRevision(
+        queryRunner.manager,
+        revision.id,
+        allAttachmentIds
+      );
 
       // --- CTI: insert RfaRevision ---
       if (isRFA) {

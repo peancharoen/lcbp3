@@ -4,6 +4,10 @@
 // - 2026-08-17: Phase 2.3 — เพิ่ม magic bytes validation ใน upload และ importStagingFile
 //   เพื่อป้องกัน MIME spoofing (Issue #3, ADR-016)
 // - 2026-08-25: ใช้ fs.copy แทน fs.move เมื่อ source อยู่ใน LEGACY_NAS_PATH (read-only NAS — D157)
+// - 2026-08-26: Bugfix — importStagingFile รับ optional manager (EntityManager) เพื่อให้
+//   caller สามารถส่ง queryRunner.manager เข้าไปได้ ป้องกัน MariaDB error 1020
+//   "Record has changed since last read in table 'attachments'" ที่เกิดจาก
+//   cross-transaction update เมื่อ save() ใช้ default connection (auto-commit)
 import {
   Injectable,
   NotFoundException,
@@ -12,7 +16,7 @@ import {
   Optional,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, EntityManager } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -445,7 +449,11 @@ export class FileStorageService {
   async importStagingFile(
     sourceFilePath: string,
     userId: number,
-    options?: { issueDate?: Date; documentType?: string }
+    options?: {
+      issueDate?: Date;
+      documentType?: string;
+      manager?: EntityManager;
+    }
   ): Promise<Attachment> {
     // ADR-016: Path Traversal Guard — ตรวจสอบว่า sourceFilePath อยู่ภายใต้
     // staging directory (tempDir, MIGRATION_STAGING_DIR, หรือ LEGACY_NAS_PATH) เท่านั้น
@@ -563,6 +571,11 @@ export class FileStorageService {
     }
 
     // 4. Create Database Record
+    // Bugfix: ใช้ EntityManager จาก queryRunner เมื่อถูกส่งเข้ามา เพื่อให้ attachment
+    // ถูกสร้างภายใน transaction เดียวกับ caller — ป้องกัน MariaDB error 1020
+    // "Record has changed since last read in table 'attachments'" ที่เกิดจาก
+    // cross-transaction update เมื่อ importStagingFile ใช้ default connection (auto-commit)
+    // แล้ว queryRunner พยายาม UPDATE แถวเดียวกันในภายหลัง
     const attachment = this.attachmentRepository.create({
       originalFilename,
       storedFilename,
@@ -575,6 +588,9 @@ export class FileStorageService {
       uploadedByUserId: userId,
     });
 
+    if (options?.manager) {
+      return options.manager.save(attachment);
+    }
     return this.attachmentRepository.save(attachment);
   }
 

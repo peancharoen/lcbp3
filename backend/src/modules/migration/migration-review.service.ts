@@ -6,6 +6,9 @@
 // - 2026-08-23: Execute Import บันทึก ocrText ลง Attachment.ocr_text และ Revision.body
 //   fallback `|| 1` / `|| 3`, ใช้ BusinessException สำหรับ missing master data,
 //   ใช้ SELECT FOR UPDATE ป้องกัน revision race condition (Issue #3)
+// - 2026-08-26: Bugfix — แก้ชื่อคอลัมน์ junction table ผิด ("revision_id" →
+//   "correspondence_revision_id") และเปลี่ยนไปใช้ shared utility
+//   linkAttachmentsToRevision เพื่อป้องกัน column name drift กับ importCorrespondence
 
 import { Injectable, Logger } from '@nestjs/common';
 import { DataSource } from 'typeorm';
@@ -41,6 +44,7 @@ import {
   BATCH_ID_HUMAN_REVIEW,
   IMPORT_TX_STATUS_SUCCESS,
 } from './constants/migration.constants';
+import { linkAttachmentsToRevision } from './utils/attachment-linking.util';
 
 const readTagName = (value: Record<string, string>): string => {
   return value.name || value.tagName || '';
@@ -383,13 +387,13 @@ export class MigrationReviewService {
       }
       await queryRunner.manager.save(revision);
       // Feature 242: เชื่อม attachments ทั้งหมดเข้ากับ revision ผ่าน junction table (FR-001, FR-002, FR-003)
-      // element [0] คือเอกสารหลัก (is_main_document=1), ที่เหลือเป็นเอกสารรอง (is_main_document=0)
-      for (let i = 0; i < attachmentIds.length; i += 1) {
-        await queryRunner.manager.query(
-          'INSERT IGNORE INTO correspondence_revision_attachments (revision_id, attachment_id, is_main_document) VALUES (?, ?, ?)',
-          [revision.id, attachmentIds[i], i === 0 ? 1 : 0]
-        );
-      }
+      // Bugfix: เดิมใช้ column name "revision_id" ซึ่งผิด (คอลัมน์จริงคือ "correspondence_revision_id")
+      // ทำให้ INSERT ล้มเหลวเสมอ — เปลี่ยนไปใช้ shared utility เพื่อป้องกัน column name drift
+      await linkAttachmentsToRevision(
+        queryRunner.manager,
+        revision.id,
+        attachmentIds
+      );
       const isRFA = type?.typeCode === 'RFA' || category === 'RFA';
       if (isRFA) {
         const rfaStatusRes = await queryRunner.manager.query<{ id: number }[]>(

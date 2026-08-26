@@ -1,4 +1,3 @@
-
 # ADR-019 UUID Strategy
 
 ## CRITICAL RULES
@@ -8,6 +7,8 @@
 - **NEVER** use `+` operator on UUID values
 - **ALWAYS** use `publicId` (string UUID) for API responses
 - **NEVER** expose internal INT `id` in API responses (use `@Exclude()`)
+
+> ⚠️ **ESLint blanket ban (broader than CI grep gate):** `backend/eslint.config.mjs` uses `no-restricted-syntax` to ban **ALL** `parseInt()` calls and **ALL** unary `+` — not just on UUIDs. The CI grep gate (`ci-deploy.yml`) only checks `parseInt(.*uuid`, which is narrower. **For pagination/numeric parsing of non-UUID values**, use `Number(value)` or a Zod/DTO `transform()` — never `parseInt()` or `+value`.
 
 ## Identifier Types
 
@@ -25,11 +26,11 @@
 @Entity()
 class Project extends UuidBaseEntity {
   @Column({ type: 'uuid' })
-  publicId: string;  // UUID string, no transformation needed
+  publicId: string; // UUID string, no transformation needed
 
   @PrimaryKey()
   @Exclude()
-  id: number;  // Internal INT, never exposed
+  id: number; // Internal INT, never exposed
 }
 
 // API Response → { id: "019505a1-7c3e-7000-8000-abc123def456" }

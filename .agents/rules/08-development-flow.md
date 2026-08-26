@@ -62,11 +62,12 @@
 - ADR-026: useAiChat() hook + side-panel UI; streaming response via SSE; TanStack Query cache
 - ADR-027: Admin Console — dynamic model/prompt/intent control; CASL-guarded admin-only endpoints
 
-**For Migration Pipeline (ADR-028):**
+**For Migration Pipeline (ADR-028 + ADR-047):**
 
 - Use Staging Queue pattern — never write directly to production tables
 - Post-migration cleanup process required after each batch
 - Migration Validation Gates must pass before promoting to production
+- **ADR-047:** Native NestJS `LegacyIngestionService` supersedes n8n migration orchestration — `migration_review_queue` 4-stage lifecycle (`PENDING` → `PENDING`+`ai_status=RUNNING` → `PENDING_REVIEW` → `IMPORTED`); OCR text persisted + editable; auto Re-embed via `rag-prepare` after Execute Import
 
 **Expected output:**
 
@@ -106,7 +107,7 @@
 | "AI Tool Layer"             | `ADR-025`, `specs/200-fullstacks/225-ai-tool-layer-architecture/`                     | Tool Registry; CASL-guarded dispatch; ToolResult publicId only                                              |
 | "Document Chat UI"          | `ADR-026`, `specs/200-fullstacks/226-document-chat-ui-pattern/`                       | Side-panel; useAiChat() hook; streaming SSE; TanStack Query cache                                           |
 | "AI Admin Console"          | `ADR-027`, `specs/200-fullstacks/227-ai-admin-console/`                               | Dynamic model/prompt/intent control; admin-only CASL endpoints                                              |
-| "Migration refactor"        | `ADR-028`, `specs/200-fullstacks/228-migration-arch-refactor/`                        | Staging Queue; post-migration cleanup; validation gates                                                     |
+| "Migration refactor"        | `ADR-028`, `ADR-047`, `specs/200-fullstacks/228-migration-arch-refactor/`             | Staging Queue; post-migration cleanup; validation gates; Native Ingestion (`LegacyIngestionService`)        |
 | "จัดการ document numbering" | `ADR-002`, `specs/03-Data-and-Storage/03-04-document-numbering.md`                    | Redis Redlock + template system + preview/override workflows                                                |
 | "Audit ความปลอดภัย"         | `ADR-016`, `ADR-019`, `ADR-023`, `ADR-023A`                                           | ตรวจสอบ UUID pattern, CASL Guard, AI Boundary และ Qdrant multi-tenancy                                      |
 | "แก้ bug / bugfix"          | `/bugfix` skill, `error-catalog.md`                                                   | ใช้ bugfix skill สำหรับเคสที่สาเหตุชัดเจน                                                                   |

@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Understand-Anything (เลิกใช้ — กัน auto-generated knowledge graph)
+.understand-anything/
+.ua/
