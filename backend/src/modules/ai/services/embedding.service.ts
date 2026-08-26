@@ -6,6 +6,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { v4 as uuidv4 } from 'uuid';
 import { OllamaService } from './ollama.service';
 import { AiQdrantService } from '../qdrant.service';
 import { OcrService } from './ocr.service';
@@ -90,7 +91,7 @@ export class EmbeddingService {
             usedDevice = 'cpu';
           }
           points.push({
-            id: `${documentPublicId}-${idx}`,
+            id: uuidv4(),
             vector: {
               bge_dense: embedResult.dense,
               bge_sparse: embedResult.sparse,
