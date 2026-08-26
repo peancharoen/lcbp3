@@ -44,6 +44,7 @@ describe('AiRagService (US1 — Chat Q&A)', () => {
   const mockOcrService = {
     embedViaSidecar: jest.fn(),
     rerankViaSidecar: jest.fn(),
+    unloadBgeModels: jest.fn().mockResolvedValue(undefined),
   };
 
   beforeEach(async () => {
