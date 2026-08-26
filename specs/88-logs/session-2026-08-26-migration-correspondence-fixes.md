@@ -64,3 +64,36 @@
 - [ ] **Browser verify** — ทดสอบ hard-delete จาก correspondence detail
 - [ ] **Browser verify** — ทดสอบ QueueJobDrawer Job ID column width
 - [ ] **Browser verify** — ทดสอบ "ลบทั้งหมด" และ "Execute Import" ใน migration queue
+
+## Fix #9 — Attachment Folder Date (Session 2026-08-26, continued)
+
+### ปัญหาเพิ่มเติม
+
+ไฟล์ attachment ใน permanent storage ใช้วันที่นำเข้า (import date) แทนวันที่เอกสาร (document date) สำหรับ folder structure `permanent/{docType}/{YYYY}/{MM}/`
+
+### Root Cause (2 ปัญหา)
+
+1. **Batch Import** (`migration.service.ts`): `importStagingFile()` ถูกเรียกแค่ `{ documentType, manager }` ไม่ได้ส่ง `issueDate` ทั้งที่ DTO มี `documentDate` อยู่แล้ว
+2. **Review Queue Commit** (`migration-review.service.ts`): `commitRecord` ไม่ได้ย้ายไฟล์จาก `tempDir` ไป `permanent` เลย — ไฟล์ติดอยู่ใน temp dir ตลอด แค่ `UPDATE isTemporary = false` ใน DB
+
+### การแก้ไข
+
+| ไฟล์ | การเปลี่ยนแปลง |
+|------|---------------|
+| `backend/src/modules/migration/migration.service.ts` | ส่ง `issueDate: dto.documentDate ? new Date(dto.documentDate) : undefined` ไปยัง `importStagingFile` (2 call sites) |
+| `backend/src/modules/migration/migration-review.service.ts` | เพิ่ม `FileStorageService` injection + `fs.move` จาก `tempDir` ไป `permanent/{docType}/{YYYY}/{MM}/` โดยใช้ `issuedDate` ก่อน mark `isTemporary = false` |
+| `backend/src/common/file-storage/file-storage.service.ts` | `tempDir`/`permanentDir` เปลี่ยนจาก `private` เป็น `readonly` เพื่อให้ service อื่นเข้าถึง path ได้ |
+| `backend/src/modules/migration/migration-review.service.spec.ts` | เพิ่ม mock `FileStorageService` |
+| `backend/src/modules/correspondence/correspondence.service.spec.ts` | เพิ่ม mock `AiQueueService` |
+
+### กฎที่ Lock
+
+- **D170**: Attachment folder date = document date (`issueDate`/`documentDate`) ไม่ใช่ import date
+
+### Verification
+
+- [x] Backend build: ผ่าน
+- [x] Backend lint:ci: ผ่าน
+- [x] Backend tests: 1080 passed (109 suites)
+- [x] Frontend lint: ผ่าน
+- [ ] **Browser verify** — ตรวจสอบ folder structure หลัง import ใช้วันที่เอกสาร

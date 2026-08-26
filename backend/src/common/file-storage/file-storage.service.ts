@@ -69,8 +69,10 @@ export const ALLOWED_UPLOAD_FILE_TYPE_REGEX =
 @Injectable()
 export class FileStorageService {
   private readonly logger = new Logger(FileStorageService.name);
-  private readonly tempDir: string;
-  private readonly permanentDir: string;
+  /** Temp directory สำหรับไฟล์ที่ยังไม่ได้ commit (read-only access สำหรับ service อื่น) */
+  readonly tempDir: string;
+  /** Permanent directory สำหรับไฟล์ที่ commit แล้ว (read-only access สำหรับ service อื่น) */
+  readonly permanentDir: string;
 
   constructor(
     @InjectRepository(Attachment)

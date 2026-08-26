@@ -13,6 +13,8 @@
 //   since last read in table 'attachments'") และเพิ่ม INSERT ลง
 //   correspondence_revision_attachments junction table (แก้ "No attachments found")
 // - 2026-08-26: Bugfix — deleteReviewQueueByBatch เพิ่ม id: MoreThanOrEqual(0) เมื่อ all=true
+// - 2026-08-26: Bugfix — ส่ง issueDate (จาก dto.documentDate) เข้า importStagingFile
+//   เพื่อให้ folder permanent/{docType}/{YYYY}/{MM}/ ใช้วันที่เอกสาร ไม่ใช่วันที่นำเข้า
 //   (TypeORM ปฏิเสธ delete({}) ด้วย empty conditions) + aiStatus เริ่มต้นเป็น WAITING แทน PENDING
 
 import { Injectable, Logger } from '@nestjs/common';
@@ -391,7 +393,13 @@ export class MigrationService {
             const attachment = await this.fileStorageService.importStagingFile(
               sfPath,
               userId,
-              { documentType: dto.category, manager: queryRunner.manager }
+              {
+                documentType: dto.category,
+                issueDate: dto.documentDate
+                  ? new Date(dto.documentDate)
+                  : undefined,
+                manager: queryRunner.manager,
+              }
             );
             importedAttachmentIds.push(attachment.id);
             if (!attachmentId) attachmentId = attachment.id;
@@ -413,7 +421,13 @@ export class MigrationService {
           const attachment = await this.fileStorageService.importStagingFile(
             dto.sourceFilePath,
             userId,
-            { documentType: dto.category, manager: queryRunner.manager }
+            {
+              documentType: dto.category,
+              issueDate: dto.documentDate
+                ? new Date(dto.documentDate)
+                : undefined,
+              manager: queryRunner.manager,
+            }
           );
           attachmentId = attachment.id;
           allAttachmentIds.push(attachment.id);

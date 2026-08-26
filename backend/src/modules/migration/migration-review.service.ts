@@ -9,6 +9,9 @@
 // - 2026-08-26: Bugfix — แก้ชื่อคอลัมน์ junction table ผิด ("revision_id" →
 //   "correspondence_revision_id") และเปลี่ยนไปใช้ shared utility
 //   linkAttachmentsToRevision เพื่อป้องกัน column name drift กับ importCorrespondence
+// - 2026-08-26: Bugfix — ย้ายไฟล์จาก tempDir ไป permanent/{docType}/{YYYY}/{MM}/
+//   โดยใช้วันที่เอกสาร (issuedDate) ก่อนนี้ไฟล์ติดอยู่ใน tempDir ตลอดเพราะ commitRecord
+//   ไม่ได้เรียก commit() ทำให้ folder structure ไม่ถูกต้อง
 
 import { Injectable, Logger } from '@nestjs/common';
 import { DataSource } from 'typeorm';
@@ -45,6 +48,9 @@ import {
   IMPORT_TX_STATUS_SUCCESS,
 } from './constants/migration.constants';
 import { linkAttachmentsToRevision } from './utils/attachment-linking.util';
+import { FileStorageService } from '../../common/file-storage/file-storage.service';
+import * as path from 'path';
+import * as fs from 'fs-extra';
 
 const readTagName = (value: Record<string, string>): string => {
   return value.name || value.tagName || '';
@@ -57,7 +63,8 @@ export class MigrationReviewService {
   constructor(
     private readonly dataSource: DataSource,
     private readonly uuidResolverService: UuidResolverService,
-    private readonly ragBatchService: RagBatchService
+    private readonly ragBatchService: RagBatchService,
+    private readonly fileStorageService: FileStorageService
   ) {}
 
   /**
@@ -307,18 +314,69 @@ export class MigrationReviewService {
           );
         }
       }
+      // ย้ายไฟล์จาก tempDir ไป permanent/{docType}/{YYYY}/{MM}/ โดยใช้วันที่เอกสาร
+      // ก่อนนี้ไฟล์ติดอยู่ใน tempDir ตลอดเพราะ commitRecord ไม่ได้เรียก commit()
+      const parseDateForFolder = (d?: string | Date) => {
+        if (!d) return new Date();
+        if (d instanceof Date) return isNaN(d.getTime()) ? new Date() : d;
+        const parsed = new Date(d);
+        return isNaN(parsed.getTime()) ? new Date() : parsed;
+      };
+      const issuedDateForFolder = parseDateForFolder(
+        dto.issuedDate ?? queueItem.issuedDate
+      );
+      const docTypeForFolder =
+        dto.category ?? queueItem.aiSuggestedCategory ?? 'General';
+      const yearFolder = issuedDateForFolder.getFullYear().toString();
+      const monthFolder = (issuedDateForFolder.getMonth() + 1)
+        .toString()
+        .padStart(2, '0');
+      const permanentDir = path.join(
+        this.fileStorageService.permanentDir,
+        docTypeForFolder,
+        yearFolder,
+        monthFolder
+      );
+      await fs.ensureDir(permanentDir);
+
       // ทำเครื่องหมาย attachments ทั้งหมดเป็นถาวร (isTemporary = false)
-      // พร้อมบันทึก OCR text 3 หน้าแรกลง attachment หลัก (ADR-042/047)
+      // พร้อมย้ายไฟล์จาก tempDir ไป permanentDir และบันทึก OCR text (ADR-042/047)
       for (let attIndex = 0; attIndex < attachmentIds.length; attIndex += 1) {
+        const attId = attachmentIds[attIndex];
+        const attRecord = await queryRunner.manager.findOne(Attachment, {
+          where: { id: attId },
+          select: ['id', 'filePath', 'storedFilename'],
+        });
+        if (attRecord && attRecord.filePath) {
+          const oldPath = attRecord.filePath;
+          // ตรวจสอบว่าไฟล์ยู่ใน tempDir ก่อนย้าย (ถ้าอยู่ใน permanent แล้วไม่ต้องย้าย)
+          const isInTemp = oldPath.startsWith(this.fileStorageService.tempDir);
+          if (isInTemp && (await fs.pathExists(oldPath))) {
+            const newPath = path.join(
+              permanentDir,
+              attRecord.storedFilename || path.basename(oldPath)
+            );
+            try {
+              await fs.move(oldPath, newPath, { overwrite: true });
+              await queryRunner.manager.update(
+                Attachment,
+                { id: attId },
+                { filePath: newPath, referenceDate: issuedDateForFolder }
+              );
+            } catch (moveErr: unknown) {
+              const msg =
+                moveErr instanceof Error ? moveErr.message : String(moveErr);
+              this.logger.warn(
+                `Failed to move attachment id=${attId} from temp to permanent: ${msg}`
+              );
+            }
+          }
+        }
         const attUpdate: Record<string, unknown> = { isTemporary: false };
         if (attIndex === 0 && queueItem.ocrText) {
           attUpdate.ocrText = queueItem.ocrText;
         }
-        await queryRunner.manager.update(
-          Attachment,
-          { id: attachmentIds[attIndex] },
-          attUpdate
-        );
+        await queryRunner.manager.update(Attachment, { id: attId }, attUpdate);
       }
       const attachmentId = attachmentIds[0]; // เอกสารหลัก (FR-003)
       const parseDateStr = (d?: string | Date) => {

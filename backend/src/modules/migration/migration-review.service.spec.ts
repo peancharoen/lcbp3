@@ -7,6 +7,7 @@ import { DataSource } from 'typeorm';
 import { MigrationReviewService } from './migration-review.service';
 import { UuidResolverService } from '../../common/services/uuid-resolver.service';
 import { RagBatchService } from './services/rag-batch.service';
+import { FileStorageService } from '../../common/file-storage/file-storage.service';
 import {
   MigrationReviewQueue,
   CompareStatus,
@@ -59,12 +60,18 @@ describe('MigrationReviewService (Feature 242 & ADR-047)', () => {
       enqueueRagPrepare: jest.fn().mockResolvedValue(undefined),
     } as unknown as jest.Mocked<RagBatchService>;
 
+    const mockFileStorageService = {
+      tempDir: '/tmp/uploads/temp',
+      permanentDir: '/tmp/uploads/permanent',
+    } as unknown as jest.Mocked<FileStorageService>;
+
     const module = await Test.createTestingModule({
       providers: [
         MigrationReviewService,
         { provide: DataSource, useValue: dataSource },
         { provide: UuidResolverService, useValue: uuidResolver },
         { provide: RagBatchService, useValue: mockRagBatchService },
+        { provide: FileStorageService, useValue: mockFileStorageService },
       ],
     }).compile();
 
