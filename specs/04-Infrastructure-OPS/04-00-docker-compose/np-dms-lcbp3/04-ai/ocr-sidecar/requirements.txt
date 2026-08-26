@@ -6,13 +6,15 @@
 # - 2026-06-11: เพิ่ม typhoon-ocr สำหรับ prepare_ocr_messages (official prompt builder สำหรับ typhoon-ocr1.5-3b)
 # - 2026-06-11: ตัด pytesseract, opencv-python, numpy ออก — ไม่ใช้ Tesseract อีกต่อไป
 # - 2026-06-20: ADR-040 Phase 8 — ตัด pythainlp และ Pillow ออก (ไม่มี /normalize endpoint แล้ว, process_ocr ใช้ prepare_ocr_messages)
+# - 2026-08-26: D144 — pin FlagEmbedding==1.4.2 (fix transformers 5.x reranker compat: prepare_for_model) + transformers<6 + typhoon-ocr bounded
 
 PyMuPDF==1.24.0
 fastapi==0.111.0
 uvicorn[standard]==0.30.1
 python-multipart==0.0.9
 httpx==0.27.0
-FlagEmbedding>=1.2.0
-typhoon-ocr>=0.4.1
-redis>=5.0.0
+FlagEmbedding==1.4.2
+transformers>=4.38,<6.0
+typhoon-ocr>=0.4.1,<1.0
+redis>=5.0.0,<7.0
 
