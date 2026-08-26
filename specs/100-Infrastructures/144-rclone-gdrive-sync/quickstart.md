@@ -137,8 +137,8 @@ https://uptime.np-dms.work/api/push/<token>?status=up&msg=OK&ping=
 > ⚠️ ใช้แค่ `<base URL>?status=up&msg=...` เท่านั้น — อย่า copy ทั้ง URL ที่ Uptime Kuma แสดงมาเต็ม ๆ มาต่อ query string เพิ่ม จะกลายเป็น URL ซ้อนกันสองชุดและได้ error 404
 
 Token ปัจจุบัน:
-- `rclone - Backup repo` = `RD64Hz4JdgbWKAJLoLVGHjDmjowMwfHi`
-- `rclone - Specs sync` = `va1hlAh8fawmq1nfjZAkoMCncx907wZX`
+- `rclone - Backup repo` = `<BACKUP_REPO_PUSH_TOKEN>`
+- `rclone - Specs sync` = `<SPECS_SYNC_PUSH_TOKEN>`
 
 ## Phase 6: ตั้ง Cron + Uptime Kuma push
 
@@ -151,9 +151,9 @@ sudo crontab -u np-dms -e
 เลือก editor (nano = ตัวเลือก 1) แล้วเพิ่ม:
 
 ```cron
-0 0,12 * * * /bin/sh -c '/usr/bin/rclone sync /opt/np-dms-lcbp3 gdrive:backups/lcbp3-repo --exclude ".git/**" --exclude "node_modules/**" --exclude "dist/**" --exclude ".env" --log-file=/var/log/rclone/backup.log --log-level INFO && curl -fsS "https://uptime.np-dms.work/api/push/RD64Hz4JdgbWKAJLoLVGHjDmjowMwfHi?status=up&msg=OK" || curl -fsS "https://uptime.np-dms.work/api/push/RD64Hz4JdgbWKAJLoLVGHjDmjowMwfHi?status=down&msg=rclone_failed"'
+0 0,12 * * * /bin/sh -c '/usr/bin/rclone sync /opt/np-dms-lcbp3 gdrive:backups/lcbp3-repo --exclude ".git/**" --exclude "node_modules/**" --exclude "dist/**" --exclude ".env" --log-file=/var/log/rclone/backup.log --log-level INFO && curl -fsS "https://uptime.np-dms.work/api/push/<BACKUP_REPO_PUSH_TOKEN>?status=up&msg=OK" || curl -fsS "https://uptime.np-dms.work/api/push/<BACKUP_REPO_PUSH_TOKEN>?status=down&msg=rclone_failed"'
 
-0 3,7,11,15,19,23 * * * /bin/sh -c '/usr/bin/rclone sync /opt/np-dms-lcbp3/specs gdrive:shared/lcbp3-specs --log-file=/var/log/rclone/specs.log --log-level INFO && curl -fsS "https://uptime.np-dms.work/api/push/va1hlAh8fawmq1nfjZAkoMCncx907wZX?status=up&msg=OK" || curl -fsS "https://uptime.np-dms.work/api/push/va1hlAh8fawmq1nfjZAkoMCncx907wZX?status=down&msg=rclone_failed"'
+0 3,7,11,15,19,23 * * * /bin/sh -c '/usr/bin/rclone sync /opt/np-dms-lcbp3/specs gdrive:shared/lcbp3-specs --log-file=/var/log/rclone/specs.log --log-level INFO && curl -fsS "https://uptime.np-dms.work/api/push/<SPECS_SYNC_PUSH_TOKEN>?status=up&msg=OK" || curl -fsS "https://uptime.np-dms.work/api/push/<SPECS_SYNC_PUSH_TOKEN>?status=down&msg=rclone_failed"'
 ```
 
 | Job | เวลา | รายละเอียด |
@@ -174,10 +174,10 @@ sudo crontab -u np-dms -l
 
 ```bash
 # Specs sync
-sudo -u np-dms /bin/sh -c '/usr/bin/rclone sync /opt/np-dms-lcbp3/specs gdrive:shared/lcbp3-specs -v && curl -fsS "https://uptime.np-dms.work/api/push/va1hlAh8fawmq1nfjZAkoMCncx907wZX?status=up&msg=OK"'
+sudo -u np-dms /bin/sh -c '/usr/bin/rclone sync /opt/np-dms-lcbp3/specs gdrive:shared/lcbp3-specs -v && curl -fsS "https://uptime.np-dms.work/api/push/<SPECS_SYNC_PUSH_TOKEN>?status=up&msg=OK"'
 
 # Backup repo
-sudo -u np-dms /bin/sh -c '/usr/bin/rclone sync /opt/np-dms-lcbp3 gdrive:backups/lcbp3-repo --exclude ".git/**" --exclude "node_modules/**" --exclude "dist/**" --exclude ".env" -v && curl -fsS "https://uptime.np-dms.work/api/push/RD64Hz4JdgbWKAJLoLVGHjDmjowMwfHi?status=up&msg=OK"'
+sudo -u np-dms /bin/sh -c '/usr/bin/rclone sync /opt/np-dms-lcbp3 gdrive:backups/lcbp3-repo --exclude ".git/**" --exclude "node_modules/**" --exclude "dist/**" --exclude ".env" -v && curl -fsS "https://uptime.np-dms.work/api/push/<BACKUP_REPO_PUSH_TOKEN>?status=up&msg=OK"'
 ```
 
 > ⚠️ **ข้อควรระวัง:** รันคำสั่งตรง ๆ ในนาม user นั้น (ไม่ต้องผ่าน `sudo -u np-dms` ซ้อนถ้า login เป็น np-dms อยู่แล้ว) เพราะ `sudo -u` อาจไม่ set `$HOME` ให้ถูกต้อง ทำให้ rclone หา config file ที่ `~/.config/rclone/rclone.conf` ไม่เจอ และ fail แบบเงียบ ๆ (exit code 1 โดยไม่มี error message และ log ว่างเปล่า)

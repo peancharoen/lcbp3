@@ -108,8 +108,8 @@ specs/100-Infrastructures/144-rclone-gdrive-sync/
 
 # Uptime Kuma (existing instance at uptime.np-dms.work)
 └── Push Monitors:
-    ├── "rclone - Backup repo"         # token: RD64Hz4JdgbWKAJLoLVGHjDmjowMwfHi
-    └── "rclone - Specs sync"          # token: va1hlAh8fawmq1nfjZAkoMCncx907wZX
+    ├── "rclone - Backup repo"         # token: <BACKUP_REPO_PUSH_TOKEN>
+    └── "rclone - Specs sync"          # token: <SPECS_SYNC_PUSH_TOKEN>
 
 # Google Cloud (project lcbp3-dms)
 └── OAuth Client ID (Desktop app)      # client_id + client_secret ของตัวเอง

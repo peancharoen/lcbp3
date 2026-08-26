@@ -200,9 +200,9 @@ fi
 **Push monitors ที่สร้างใน Uptime Kuma (สร้างแล้ว 2026-07-31):**
 | Friendly Name | Mount | Token (ใน TOKEN_MAP) | หมายเหตุ |
 |---|---|---|---|
-| `CIFS Mount — uploads/temp` | `/mnt/asustor-uploads/temp` | `AzFTvydTq64aoykYu9714FDjkYGXomTA` | backend เขียนไฟล์ upload |
-| `CIFS Mount — uploads/permanent` | `/mnt/asustor-uploads/permanent` | `4a3ZQakOxTpoLEJvfE5AQg82hKhiNB3F` | backend ย้ายไฟล์ commit |
-| `CIFS Mount — legacy (read-only)` | `/mnt/asustor-legacy` | `VwOnDWeBjFLuYRh3ejJLwxofn7UU7Mtk` | read-only (n8n staging) |
+| `CIFS Mount — uploads/temp` | `/mnt/asustor-uploads/temp` | `<PUSH_TOKEN>` | backend เขียนไฟล์ upload |
+| `CIFS Mount — uploads/permanent` | `/mnt/asustor-uploads/permanent` | `<PUSH_TOKEN>` | backend ย้ายไฟล์ commit |
+| `CIFS Mount — legacy (read-only)` | `/mnt/asustor-legacy` | `<PUSH_TOKEN>` | read-only (n8n staging) |
 
 > ⚠️ **Token = secret** — อยู่ใน `.cifs-monitor.env` (permission 600) ไม่ commit ใน repo
 > หากสร้าง monitor ใหม่/ลบ ต้องอัปเดต `TOKEN_MAP` ใน `.cifs-monitor.env` ให้ตรง

@@ -60,8 +60,8 @@
 
 **Purpose**: สร้าง Push Monitor 2 ตัวใน Uptime Kuma UI เพื่อรับ heartbeat จาก cron
 
-- [X] T016 [US3] สร้าง Push Monitor `rclone - Backup repo` ใน Uptime Kuma UI — Monitor Type: Push, Heartbeat Interval: ~43800 วินาที (มากกว่ารอบ cron 12 ชม. เล็กน้อย) — บันทึก Push URL และ token `RD64Hz4JdgbWKAJLoLVGHjDmjowMwfHi`
-- [X] T017 [US3] สร้าง Push Monitor `rclone - Specs sync` ใน Uptime Kuma UI — Heartbeat Interval: ~15000 วินาที (มากกว่ารอบ cron 4 ชม. เล็กน้อย) — บันทึก Push URL และ token `va1hlAh8fawmq1nfjZAkoMCncx907wZX`
+- [X] T016 [US3] สร้าง Push Monitor `rclone - Backup repo` ใน Uptime Kuma UI — Monitor Type: Push, Heartbeat Interval: ~43800 วินาที (มากกว่ารอบ cron 12 ชม. เล็กน้อย) — บันทึก Push URL และ token `<BACKUP_REPO_PUSH_TOKEN>`
+- [X] T017 [US3] สร้าง Push Monitor `rclone - Specs sync` ใน Uptime Kuma UI — Heartbeat Interval: ~15000 วินาที (มากกว่ารอบ cron 4 ชม. เล็กน้อย) — บันทึก Push URL และ token `<SPECS_SYNC_PUSH_TOKEN>`
 - [X] T018 [US3] ผูก Notification channel (Telegram Bot / Email admin@np-dms.work) เข้ากับ monitor ทั้งสองตัว
 
 ---
@@ -73,11 +73,11 @@
 - [X] T019 [US1] เปิด crontab: `sudo crontab -u np-dms -e` (เลือก editor nano = ตัวเลือก 1)
 - [X] T020 [US1] เพิ่ม Job A (Backup repo เวลา 00:00 และ 12:00 ทุกวัน พร้อม Uptime Kuma push):
   ```cron
-  0 0,12 * * * /bin/sh -c '/usr/bin/rclone sync /opt/np-dms-lcbp3 gdrive:backups/lcbp3-repo --exclude ".git/**" --exclude "node_modules/**" --exclude "dist/**" --exclude ".env" --log-file=/var/log/rclone/backup.log --log-level INFO && curl -fsS "https://uptime.np-dms.work/api/push/RD64Hz4JdgbWKAJLoLVGHjDmjowMwfHi?status=up&msg=OK" || curl -fsS "https://uptime.np-dms.work/api/push/RD64Hz4JdgbWKAJLoLVGHjDmjowMwfHi?status=down&msg=rclone_failed"'
+  0 0,12 * * * /bin/sh -c '/usr/bin/rclone sync /opt/np-dms-lcbp3 gdrive:backups/lcbp3-repo --exclude ".git/**" --exclude "node_modules/**" --exclude "dist/**" --exclude ".env" --log-file=/var/log/rclone/backup.log --log-level INFO && curl -fsS "https://uptime.np-dms.work/api/push/<BACKUP_REPO_PUSH_TOKEN>?status=up&msg=OK" || curl -fsS "https://uptime.np-dms.work/api/push/<BACKUP_REPO_PUSH_TOKEN>?status=down&msg=rclone_failed"'
   ```
 - [X] T021 [US2] เพิ่ม Job B (Sync specs เวลา 03:00, 07:00, 11:00, 15:00, 19:00, 23:00 ทุกวัน พร้อม Uptime Kuma push):
   ```cron
-  0 3,7,11,15,19,23 * * * /bin/sh -c '/usr/bin/rclone sync /opt/np-dms-lcbp3/specs gdrive:shared/lcbp3-specs --log-file=/var/log/rclone/specs.log --log-level INFO && curl -fsS "https://uptime.np-dms.work/api/push/va1hlAh8fawmq1nfjZAkoMCncx907wZX?status=up&msg=OK" || curl -fsS "https://uptime.np-dms.work/api/push/va1hlAh8fawmq1nfjZAkoMCncx907wZX?status=down&msg=rclone_failed"'
+  0 3,7,11,15,19,23 * * * /bin/sh -c '/usr/bin/rclone sync /opt/np-dms-lcbp3/specs gdrive:shared/lcbp3-specs --log-file=/var/log/rclone/specs.log --log-level INFO && curl -fsS "https://uptime.np-dms.work/api/push/<SPECS_SYNC_PUSH_TOKEN>?status=up&msg=OK" || curl -fsS "https://uptime.np-dms.work/api/push/<SPECS_SYNC_PUSH_TOKEN>?status=down&msg=rclone_failed"'
   ```
 - [X] T022 บันทึก crontab (`Ctrl+O` → Enter → `Ctrl+X`) แล้วตรวจ `sudo crontab -u np-dms -l` ว่ามี 2 jobs ครบ
 - [X] T023 [US1] ทดสอบ Job A ทันที (ไม่ต้องรอ cron): รันคำสั่ง sync ตรง ๆ ในนาม user `np-dms` แล้วตรวจ `echo $?` = 0 และ `rclone size gdrive:backups/lcbp3-repo` รายงานขนาด > 0
