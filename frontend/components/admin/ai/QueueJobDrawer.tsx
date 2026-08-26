@@ -282,7 +282,7 @@ export default function QueueJobDrawer({ queueName, open, onOpenChange }: QueueJ
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[120px]">{t('ai.queue.column.id')}</TableHead>
+                    <TableHead className="w-[260px]">{t('ai.queue.column.id')}</TableHead>
                     <TableHead>{t('ai.queue.column.type')}</TableHead>
                     <TableHead>{t('ai.queue.column.status')}</TableHead>
                     <TableHead className="hidden sm:table-cell">{t('ai.queue.column.created')}</TableHead>
@@ -293,7 +293,7 @@ export default function QueueJobDrawer({ queueName, open, onOpenChange }: QueueJ
                 <TableBody>
                   {jobs.map((job) => (
                     <TableRow key={job.id}>
-                      <TableCell className="py-2 px-3 text-xs font-mono truncate max-w-[120px]">
+                      <TableCell className="py-2 px-3 text-xs font-mono break-all max-w-[260px]" title={job.id}>
                         {job.id}
                       </TableCell>
                       <TableCell className="py-2 px-3 text-xs">{job.jobType}</TableCell>

@@ -15,6 +15,7 @@ export enum MigrationReviewStatus {
 /** ADR-047: สถานะ BullMQ AI job ของ migration queue item */
 export enum MigrationAiStatus {
   PENDING = 'PENDING',
+  WAITING = 'WAITING',
   RUNNING = 'RUNNING',
   DONE = 'DONE',
   FAILED = 'FAILED',

@@ -20,6 +20,8 @@
 // - 2026-06-11: แก้ไข ESLint errors โดยการเพิ่ม properties (effectiveProfile, canonicalModel, snapshotParams) ใน AiBatchJobData และยกเลิกการใช้ as any
 // - 2026-08-07: แก้ sandbox-rag-prep timeout 30s → ใช้ OllamaService.getBatchTimeoutMs() (env AI_BATCH_TIMEOUT_MS, default 120000) ทั้ง 6 จุด แทน hardcoded 120000/missing
 // - 2026-08-24: ADR-048 T017 — เพิ่ม clear-failed-jobs job type + processClearFailedJobs handler (chunked 1,000 รอบ, สูงสุด 10,000)
+// - 2026-08-26: Bugfix — processRagPrepare อ่าน cachedOcrText/attachmentPath/attachmentPublicId จาก top level
+//   ของ job data ด้วย (ไม่ใช่แค่ data.payload) — enqueueRagPrepare ส่ง fields ที่ top level ไม่ได้ห่อใน payload
 
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
@@ -1002,20 +1004,27 @@ export class AiBatchProcessor extends WorkerHost {
   private async processRagPrepare(data: AiBatchJobData): Promise<void> {
     const startTime = Date.now();
     const payload = data.payload || {};
+    // Bugfix: enqueueRagPrepare ส่ง fields ที่ top level ของ job data (ไม่ได้ห่อใน payload)
+    // ต้องอ่านจากทั้ง payload และ data (top level) — เรียงลำดับ payload ก่อน แล้ว fallback ไป data
+    const top = data as unknown as Record<string, unknown>;
+    const readStr = (key: string): string | undefined => {
+      const val = (payload[key] as string) || (top[key] as string);
+      return typeof val === 'string' && val.length > 0 ? val : undefined;
+    };
     const documentPublicId =
-      (payload.documentPublicId as string) || data.documentPublicId;
-    const projectPublicId =
-      (payload.projectPublicId as string) || data.projectPublicId;
-    const correspondenceNumber = (payload.correspondenceNumber as string) || '';
-    const docType = (payload.docType as string) || 'LETTER';
-    const statusCode = (payload.statusCode as string) || 'IN_REVIEW';
-    const revisionNumber = Number(payload.revisionNumber ?? 1);
-    const subject = (payload.subject as string) || '';
-    const documentDate = (payload.documentDate as string) || undefined;
-    let cachedOcrText = (payload.cachedOcrText as string) || undefined;
-    const attachmentPath = (payload.attachmentPath as string) || undefined;
-    const attachmentPublicId =
-      (payload.attachmentPublicId as string) || undefined;
+      readStr('documentPublicId') || data.documentPublicId;
+    const projectPublicId = readStr('projectPublicId') || data.projectPublicId;
+    const correspondenceNumber = readStr('correspondenceNumber') || '';
+    const docType = readStr('docType') || 'LETTER';
+    const statusCode = readStr('statusCode') || 'IN_REVIEW';
+    const revisionNumber = Number(
+      payload.revisionNumber ?? top.revisionNumber ?? 1
+    );
+    const subject = readStr('subject') || '';
+    const documentDate = readStr('documentDate');
+    let cachedOcrText = readStr('cachedOcrText');
+    const attachmentPath = readStr('attachmentPath');
+    const attachmentPublicId = readStr('attachmentPublicId');
     this.logger.log(
       `processRagPrepare: starting for doc=${documentPublicId}, project=${projectPublicId}`
     );

@@ -4,6 +4,8 @@
 //             fix fire-and-forget with .catch(); fix cancel notification status (REJECTED→PENDING);
 //             add Partial<T> types; add workflow fields to findOne(); cache permission check;
 //             extract type code constants; fix exportCsv type safety
+// 2026-08-26 | Add hardDelete() method — Superadmin-only full cascade delete
+//             (physical files + Qdrant vectors + DB rows) แก้ปัญหา orphaned attachments
 
 import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import {
@@ -48,6 +50,9 @@ import { NotificationService } from '../notification/notification.service';
 import { CirculationService } from '../circulation/circulation.service';
 import { Circulation } from '../circulation/entities/circulation.entity';
 import { CirculationRouting } from '../circulation/entities/circulation-routing.entity';
+import { AiQueueService } from '../ai/ai-queue.service';
+import { Attachment } from '../../common/file-storage/entities/attachment.entity';
+import * as fs from 'fs-extra';
 
 /**
  * CorrespondenceService - Document management (CRUD)
@@ -145,7 +150,8 @@ export class CorrespondenceService {
     @InjectRepository(CorrespondenceRevisionAttachment)
     private revAttachRepo: Repository<CorrespondenceRevisionAttachment>,
     @Inject(forwardRef(() => CirculationService))
-    private circulationService: CirculationService
+    private circulationService: CirculationService,
+    private readonly aiQueueService: AiQueueService
   ) {}
 
   /**
@@ -1305,5 +1311,133 @@ export class CorrespondenceService {
       return `"${v.replace(/"/g, '""')}"`;
     }
     return v;
+  }
+
+  /**
+   * Hard-delete correspondence แบบถาวร — Superadmin เท่านั้น (system.manage_all)
+   * ลบลำดับ: physical files → Qdrant vectors → DB rows (cascade)
+   * - เก็บ attachment file paths ก่อนลบ DB
+   * - ลบ physical files จาก disk (log warning ไม่ throw ถ้า fail)
+   * - Enqueue vector deletion ผ่าน BullMQ ai-vector-deletion queue
+   * - ลบ attachments records (cascade ไป junction table)
+   * - ลบ correspondence record (cascade ไป revisions, recipients, tags, references, circulations)
+   * @param publicId UUID ของ correspondence (ADR-019)
+   * @param user ผู้ใช้ที่สั่งลบ (ต้องมี system.manage_all)
+   * @returns สรุปจำนวนที่ลบ
+   */
+  async hardDelete(
+    publicId: string,
+    user: User
+  ): Promise<{
+    deletedCorrespondence: boolean;
+    deletedAttachmentCount: number;
+    vectorDeletionJobsEnqueued: number;
+  }> {
+    // 1. Permission check — Superadmin เท่านั้น
+    const canManageAll = await this.hasSystemManageAllPermission(user.user_id);
+    if (!canManageAll) {
+      throw new PermissionException('correspondence', 'hard-delete');
+    }
+
+    // 2. โหลด correspondence พร้อม relations
+    const correspondence = await this.findOneByUuid(publicId);
+    const correspondenceId = correspondence.id;
+    const projectPublicId = correspondence.project?.publicId ?? '';
+
+    // 3. เก็บ attachment file paths ก่อน cascade delete
+    const attachmentRows = await this.dataSource.query<
+      Array<{ id: number; file_path: string; public_id: string }>
+    >(
+      `SELECT a.id, a.file_path, a.public_id
+       FROM attachments a
+       INNER JOIN correspondence_revision_attachments cra ON cra.attachment_id = a.id
+       INNER JOIN correspondence_revisions cr ON cr.id = cra.correspondence_revision_id
+       WHERE cr.correspondence_id = ?`,
+      [correspondenceId]
+    );
+
+    this.logger.log(
+      `hardDelete: correspondence=${publicId}, attachments=${attachmentRows.length}, project=${projectPublicId}`
+    );
+
+    // 4. ลบ physical files จาก disk — log warning ไม่ throw ถ้า fail
+    let deletedAttachmentCount = 0;
+    for (const att of attachmentRows) {
+      try {
+        if (await fs.pathExists(att.file_path)) {
+          await fs.remove(att.file_path);
+        }
+        deletedAttachmentCount++;
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        this.logger.warn(
+          `hardDelete: Failed to delete file id=${att.id} path=${att.file_path}: ${msg}`
+        );
+      }
+    }
+
+    // 5. Enqueue vector deletion ผ่าน BullMQ (ลบ Qdrant vectors)
+    let vectorDeletionJobsEnqueued = 0;
+    try {
+      await this.aiQueueService.enqueueVectorDeletion({
+        documentPublicId: publicId,
+        projectPublicId,
+        requestedByUserPublicId: `user-${user.user_id}`,
+      });
+      vectorDeletionJobsEnqueued = 1;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(
+        `hardDelete: Failed to enqueue vector deletion for doc=${publicId}: ${msg}`
+      );
+    }
+
+    // 6. ลบ DB rows ใน transaction
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // ลบ attachments records (cascade ไป junction table)
+      if (attachmentRows.length > 0) {
+        const attachmentIds = attachmentRows.map((a) => a.id);
+        await queryRunner.manager.delete(Attachment, attachmentIds);
+      }
+
+      // ลบ workflow instances (entity_id = publicId)
+      await queryRunner.manager.query(
+        `DELETE FROM workflow_histories WHERE instance_id IN
+         (SELECT id FROM workflow_instances WHERE entity_id = ?)`,
+        [publicId]
+      );
+      await queryRunner.manager.query(
+        'DELETE FROM workflow_instances WHERE entity_id = ?',
+        [publicId]
+      );
+
+      // ลบ correspondence (cascade: revisions, recipients, tags, references, circulations)
+      await queryRunner.manager.delete(Correspondence, correspondenceId);
+
+      await queryRunner.commitTransaction();
+      this.logger.log(
+        `hardDelete: Successfully deleted correspondence=${publicId}, ` +
+          `attachments=${deletedAttachmentCount}, vectorJobs=${vectorDeletionJobsEnqueued}`
+      );
+    } catch (err: unknown) {
+      await queryRunner.rollbackTransaction();
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.error(
+        `hardDelete: Failed to delete correspondence=${publicId}: ${msg}`
+      );
+      throw new SystemException(`Failed to hard-delete correspondence: ${msg}`);
+    } finally {
+      await queryRunner.release();
+    }
+
+    return {
+      deletedCorrespondence: true,
+      deletedAttachmentCount,
+      vectorDeletionJobsEnqueued,
+    };
   }
 }

@@ -5,7 +5,7 @@ import { StatusBadge } from '@/components/common/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
-import { ArrowLeft, Download, FileText, Loader2, Send, CheckCircle, XCircle, Edit, Ban, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Download, FileText, Loader2, Send, CheckCircle, XCircle, Edit, Ban, AlertTriangle, Eye, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useSubmitCorrespondence, useProcessWorkflow, useCancelCorrespondence } from '@/hooks/use-correspondence';
 import { ReferenceSelector } from '@/components/correspondences/reference-selector';
@@ -19,6 +19,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { FilePreviewModal } from '@/components/common/file-preview-modal';
+import type { WorkflowAttachmentSummary } from '@/types/workflow';
+import { correspondenceService } from '@/lib/services/correspondence.service';
+import { useRouter } from 'next/navigation';
 
 interface CorrespondenceDetailProps {
   data: Correspondence;
@@ -42,6 +46,12 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
   const [actionState, setActionState] = useState<'approve' | 'reject' | 'cancel' | null>(null);
   const [comments, setComments] = useState('');
   const [cancelReason, setCancelReason] = useState('');
+  // ADR-021: state สำหรับ FilePreviewModal — แสดง PDF/Image preview ของ attachment
+  const [previewAttachment, setPreviewAttachment] = useState<WorkflowAttachmentSummary | null>(null);
+  // Hard-delete state (Superadmin only)
+  const [showHardDeleteConfirm, setShowHardDeleteConfirm] = useState(false);
+  const [hardDeleteLoading, setHardDeleteLoading] = useState(false);
+  const router = useRouter();
 
   if (!data) return <div>No data found</div>;
 
@@ -92,6 +102,19 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
       { uuid: data.publicId, reason: cancelReason },
       { onSuccess: () => { setActionState(null); setCancelReason(''); } }
     );
+  };
+
+  const handleHardDelete = async () => {
+    setHardDeleteLoading(true);
+    try {
+      await correspondenceService.hardDelete(data.publicId);
+      router.push('/correspondences');
+    } catch {
+      // error handled by axios interceptor
+    } finally {
+      setHardDeleteLoading(false);
+      setShowHardDeleteConfirm(false);
+    }
   };
 
   return (
@@ -171,6 +194,16 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
               </Button>
             </Can>
           )}
+          {/* Hard-delete — Superadmin only (system.manage_all) */}
+          <Can permission="system.manage_all">
+            <Button
+              variant="destructive"
+              onClick={() => setShowHardDeleteConfirm(true)}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Hard Delete
+            </Button>
+          </Can>
         </div>
       </div>
 
@@ -251,6 +284,44 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
         </Card>
       )}
 
+      {/* Hard Delete Confirmation (Superadmin only) */}
+      {showHardDeleteConfirm && (
+        <Card className="border-destructive">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              Hard Delete Correspondence
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+              <p className="font-semibold">Warning: This action cannot be undone.</p>
+              <p className="mt-1">
+                This will permanently delete: physical files, attachment records,
+                Qdrant vectors, revisions, circulation records, references, and tags.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => setShowHardDeleteConfirm(false)}
+                disabled={hardDeleteLoading}
+              >
+                Back
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleHardDelete}
+                disabled={hardDeleteLoading}
+              >
+                {hardDeleteLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Confirm Hard Delete
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
@@ -302,16 +373,33 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
                           <FileText className="h-5 w-5 text-primary" />
                           <span className="text-sm font-medium">{file.originalFilename}</span>
                         </div>
-                        <Button variant="ghost" size="sm" asChild>
-                          <a
-                            href={file.filePath}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            aria-label={`Download ${file.originalFilename}`}
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              setPreviewAttachment({
+                                publicId: file.publicId,
+                                originalFilename: file.originalFilename,
+                                mimeType: file.mimeType,
+                                fileSize: file.fileSize,
+                              })
+                            }
+                            aria-label={`Preview ${file.originalFilename}`}
                           >
-                            <Download className="h-4 w-4" />
-                          </a>
-                        </Button>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" asChild>
+                            <a
+                              href={file.filePath}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              aria-label={`Download ${file.originalFilename}`}
+                            >
+                              <Download className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -392,6 +480,18 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
                 <p className="font-semibold mt-1">{data.project?.projectName || '-'}</p>
                 <p className="text-xs text-muted-foreground">{data.project?.projectCode}</p>
               </div>
+
+              {currentRevision?.remarks && (
+                <>
+                  <hr />
+                  <div>
+                    <p className="font-medium text-muted-foreground">Remarks</p>
+                    <p className="mt-1 text-sm text-gray-600 italic whitespace-pre-wrap">
+                      {currentRevision.remarks}
+                    </p>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 
@@ -440,6 +540,12 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
           )}
         </div>
       </div>
+
+      {/* ADR-021: File Preview Modal — แสดง PDF/Image ของ attachment แบบ inline preview */}
+      <FilePreviewModal
+        attachment={previewAttachment}
+        onClose={() => setPreviewAttachment(null)}
+      />
     </div>
   );
 }

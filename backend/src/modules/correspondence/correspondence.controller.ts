@@ -293,4 +293,37 @@ export class CorrespondenceController {
   ) {
     return this.correspondenceService.cancel(uuid, cancelDto.reason, req.user);
   }
+
+  /**
+   * Hard-delete correspondence แบบถาวร — Superadmin เท่านั้น
+   * ลบ physical files + DB records + Qdrant vectors (full cascade)
+   * ใช้สำหรับ cleanup test/migrated data ที่ไม่สามารถ cancel ได้
+   */
+  @Delete(':uuid/hard')
+  @ApiOperation({
+    summary: 'Hard-delete correspondence (Superadmin only)',
+    description:
+      'ลบถาวร: physical files + attachments + Qdrant vectors + DB cascade. ไม่สามารถย้อนกลับได้',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Correspondence hard-deleted successfully.',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Requires system.manage_all permission.',
+  })
+  @RequirePermission('system.manage_all')
+  @Audit('correspondence.hard_delete', 'correspondence')
+  @UseInterceptors(IdempotencyInterceptor)
+  async hardDelete(
+    @Param('uuid', ParseUuidPipe) uuid: string,
+    @Request() req: RequestWithUser
+  ): Promise<{
+    deletedCorrespondence: boolean;
+    deletedAttachmentCount: number;
+    vectorDeletionJobsEnqueued: number;
+  }> {
+    return this.correspondenceService.hardDelete(uuid, req.user);
+  }
 }

@@ -12,6 +12,8 @@
 //   ถูกสร้างใน transaction เดียวกัน (ป้องกัน MariaDB error 1020 "Record has changed
 //   since last read in table 'attachments'") และเพิ่ม INSERT ลง
 //   correspondence_revision_attachments junction table (แก้ "No attachments found")
+// - 2026-08-26: Bugfix — deleteReviewQueueByBatch เพิ่ม id: MoreThanOrEqual(0) เมื่อ all=true
+//   (TypeORM ปฏิเสธ delete({}) ด้วย empty conditions) + aiStatus เริ่มต้นเป็น WAITING แทน PENDING
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -870,7 +872,7 @@ export class MigrationService {
       }
     );
 
-    queueItem.aiStatus = MigrationAiStatus.PENDING;
+    queueItem.aiStatus = MigrationAiStatus.WAITING;
     queueItem.aiJobId = String(job.id);
     await this.reviewQueueRepo.save(queueItem);
 
@@ -1125,7 +1127,11 @@ export class MigrationService {
     all: boolean = false,
     publicIds?: string[]
   ): Promise<{ deleted: number }> {
-    let conditions: FindOptionsWhere<MigrationReviewQueue> = {};
+    // TypeORM ปฏิเสธ delete({}) ด้วย empty conditions (safety feature)
+    // ใช้ id: MoreThanOrEqual(0) เป็น wildcard เหมือน deleteErrorsByBatch
+    let conditions: FindOptionsWhere<MigrationReviewQueue> = {
+      id: MoreThanOrEqual(0),
+    };
 
     if (publicIds && publicIds.length > 0) {
       conditions = { publicId: In(publicIds) };

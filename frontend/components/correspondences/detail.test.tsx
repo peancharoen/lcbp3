@@ -156,7 +156,8 @@ describe('CorrespondenceDetail Component', () => {
     expect(screen.getByText('Test Subject')).toBeInTheDocument();
     expect(screen.getByText('Test Description')).toBeInTheDocument();
     expect(screen.getByText('Test Body Content')).toBeInTheDocument();
-    expect(screen.getByText('Test Remarks')).toBeInTheDocument();
+    // Remarks แสดงทั้งใน Content section และ sidebar Information card
+    expect(screen.getAllByText('Test Remarks').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Originator Org')).toBeInTheDocument();
     expect(screen.getByText('Recipient Org')).toBeInTheDocument();
     expect(screen.getByText('ORG-CC')).toBeInTheDocument();

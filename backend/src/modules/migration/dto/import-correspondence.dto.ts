@@ -3,6 +3,7 @@
 // - 2026-08-23: ใช้ disciplineId (INT) โดยตรง ลบ disciplinePublicId ที่ขัดกับโครงสร้างตาราง
 // - 2026-08-25: เพิ่ม remarks field สำหรับนำเข้า Excel column "หมายเหตุ" → correspondence_revisions.remarks
 // - 2026-08-25: เพิ่ม aiSummary field — AI สรุปหลัง OCR extract → correspondence_revisions.body (D159)
+// - 2026-08-26: batchId เป็น @IsOptional() — commitBatch เซ็ต batchId หลัง DTO validation (Bugfix)
 
 import {
   IsString,
@@ -58,9 +59,14 @@ export class ImportCorrespondenceDto {
   @IsNotEmpty()
   migratedBy!: string; // "SYSTEM_IMPORT"
 
+  /**
+   * batchId — required สำหรับ direct import endpoint
+   * แต่ optional สำหรับ commitBatch (backend เซ็ต batchId หลัง DTO validation)
+   * และ approveQueueItem (frontend ส่ง batchId มาเอง)
+   */
   @IsString()
-  @IsNotEmpty()
-  batchId!: string;
+  @IsOptional()
+  batchId?: string;
 
   @IsObject()
   @IsOptional()

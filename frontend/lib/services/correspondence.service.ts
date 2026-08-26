@@ -42,6 +42,19 @@ export const correspondenceService = {
     return response.data;
   },
 
+  /**
+   * Hard-delete correspondence แบบถาวร — Superadmin เท่านั้น
+   * ลบ physical files + DB records + Qdrant vectors (full cascade)
+   */
+  hardDelete: async (uuid: string) => {
+    const response = await apiClient.delete(`/correspondences/${uuid}/hard`);
+    return response.data as {
+      deletedCorrespondence: boolean;
+      deletedAttachmentCount: number;
+      vectorDeletionJobsEnqueued: number;
+    };
+  },
+
   // --- 🔥 New Methods ---
 
   /**

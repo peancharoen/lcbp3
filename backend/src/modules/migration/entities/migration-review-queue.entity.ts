@@ -27,6 +27,7 @@ export enum MigrationReviewStatus {
 /** สถานะ BullMQ AI job ของแต่ละ queue item */
 export enum MigrationAiStatus {
   PENDING = 'PENDING',
+  WAITING = 'WAITING',
   RUNNING = 'RUNNING',
   DONE = 'DONE',
   FAILED = 'FAILED',
@@ -162,7 +163,7 @@ export class MigrationReviewQueue extends UuidBaseEntity {
   })
   aiJobId?: string | null;
 
-  /** ADR-047: สถานะ BullMQ AI job (PENDING/RUNNING/DONE/FAILED) */
+  /** ADR-047: สถานะ BullMQ AI job (PENDING/WAITING/RUNNING/DONE/FAILED) */
   @Column({
     name: 'ai_status',
     type: 'enum',

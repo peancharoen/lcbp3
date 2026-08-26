@@ -387,7 +387,9 @@ function LegacyManagementTab() {
                               ? 'secondary'
                               : item.aiStatus === 'FAILED'
                                 ? 'destructive'
-                                : 'outline'
+                                : item.aiStatus === 'WAITING'
+                                  ? 'secondary'
+                                  : 'outline'
                         }
                       >
                         {item.aiStatus || 'PENDING'}

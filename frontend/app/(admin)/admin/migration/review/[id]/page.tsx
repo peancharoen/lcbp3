@@ -529,7 +529,8 @@ export default function MigrationReviewPage() {
                   </Button>
                   {item.status === MigrationReviewStatus.PENDING &&
                     item.aiStatus !== MigrationAiStatus.RUNNING &&
-                    item.aiStatus !== MigrationAiStatus.DONE && (
+                    item.aiStatus !== MigrationAiStatus.DONE &&
+                    item.aiStatus !== MigrationAiStatus.WAITING && (
                       <Button
                         type="button"
                         variant="secondary"
