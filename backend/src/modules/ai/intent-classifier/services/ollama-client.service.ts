@@ -61,7 +61,7 @@ export class OllamaClientService {
     );
     this.model = this.configService.get<string>(
       'OLLAMA_INTENT_MODEL',
-      this.configService.get<string>('OLLAMA_MODEL_MAIN', 'gemma4:e4b')
+      this.configService.get<string>('OLLAMA_MODEL_MAIN', 'np-dms-ai:latest')
     );
     this.timeoutMs = this.configService.get<number>(
       'OLLAMA_INTENT_TIMEOUT_MS',

@@ -308,8 +308,12 @@ export class VramMonitorService {
       }>(`${this.ollamaUrl}/api/ps`, { timeout: 3000 });
       const loadedModels = response.data?.models ?? [];
       // Evict โมเดลที่ไม่ใช่ target (ยกเว้นถ้ามีแค่ target อยู่แล้ว)
+      // เปรียบเทียบแบบ exact match หลัง strip :latest เพื่อกัน substring collision
+      // เช่น "np-dms-ai" เป็น substring ของ "np-dms-ai-30b" — ต้องไม่ skip การ evict 30b
+      const targetBase = targetModelName.replace(':latest', '');
       for (const model of loadedModels) {
-        if (!model.name.includes(targetModelName.replace(':latest', ''))) {
+        const modelBase = model.name.replace(':latest', '');
+        if (modelBase !== targetBase) {
           this.logger.log(
             `[VRAM Auto-Evict] Evicting inactive model: ${model.name}`
           );

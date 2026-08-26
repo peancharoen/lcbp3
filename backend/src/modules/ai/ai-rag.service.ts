@@ -61,7 +61,7 @@ export class AiRagService {
     );
     this.ollamaModel = this.configService.get<string>(
       'OLLAMA_RAG_MODEL',
-      'gemma2'
+      'np-dms-ai:latest'
     );
     this.timeoutMs = this.configService.get<number>('RAG_TIMEOUT_MS', 30000);
     this.promptContextLimit = this.configService.get<number>(

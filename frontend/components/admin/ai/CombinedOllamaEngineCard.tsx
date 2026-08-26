@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { adminAiService, type AiSystemHealth, type VramStatusResponse, type BgeStatusResponse } from '@/lib/services/admin-ai.service';
-import { MAIN_MODEL_NAME, OCR_MODEL_NAME, BGE_MODEL_NAME, ensureArray, toCanonicalModel } from './ai-constants';
+import { MAIN_MODEL_NAME, MAIN_MODEL_30B_NAME, OCR_MODEL_NAME, BGE_MODEL_NAME, ensureArray, toCanonicalModel } from './ai-constants';
 
 interface CombinedOllamaEngineCardProps {
   health: AiSystemHealth | undefined;
@@ -52,6 +52,8 @@ function normalizeLoadedModels(value: unknown): VramLoadedModelView[] {
       let normName = item;
       if (name.includes(OCR_MODEL_NAME)) {
         normName = OCR_MODEL_NAME;
+      } else if (name.includes(MAIN_MODEL_30B_NAME)) {
+        normName = MAIN_MODEL_30B_NAME;
       } else if (name.includes(MAIN_MODEL_NAME)) {
         normName = MAIN_MODEL_NAME;
       }
@@ -72,6 +74,8 @@ function normalizeLoadedModels(value: unknown): VramLoadedModelView[] {
       let normName = rawName;
       if (name.includes(OCR_MODEL_NAME)) {
         normName = OCR_MODEL_NAME;
+      } else if (name.includes(MAIN_MODEL_30B_NAME)) {
+        normName = MAIN_MODEL_30B_NAME;
       } else if (name.includes(MAIN_MODEL_NAME)) {
         normName = MAIN_MODEL_NAME;
       }
@@ -127,6 +131,7 @@ export function CombinedOllamaEngineCard({
       rawHealthOllamaModels.map((m) => {
         const name = m.toLowerCase();
         if (name.includes(OCR_MODEL_NAME)) return OCR_MODEL_NAME;
+        if (name.includes(MAIN_MODEL_30B_NAME)) return MAIN_MODEL_30B_NAME;
         if (name.includes(MAIN_MODEL_NAME)) return MAIN_MODEL_NAME;
         return m;
       })
@@ -135,7 +140,7 @@ export function CombinedOllamaEngineCard({
   const vramLoadedModels = normalizeLoadedModels(vramStatus?.loadedModels);
 
   // FR-005: Canonical model catalog — แสดงทั้ง loaded และ unloaded models พร้อม residency status
-  const canonicalCatalog = [MAIN_MODEL_NAME, OCR_MODEL_NAME];
+  const canonicalCatalog = [MAIN_MODEL_NAME, MAIN_MODEL_30B_NAME, OCR_MODEL_NAME];
   const loadedModelMap = new Map<string, VramLoadedModelView>();
   for (const m of vramLoadedModels) {
     const canonical = toCanonicalModel(m.modelName);
