@@ -366,3 +366,30 @@ vendor/bundle
 # *.rar
 # *.tar
 # *.zip
+
+# ============================================
+# Generated lint / audit reports
+# ============================================
+eslint-report.json
+lint-results.json
+backend-lint*.json
+frontend-lint*.json
+npm-audit*.json
+
+# ============================================
+# Scratch files / one-off analysis scripts
+# ============================================
+temp.md
+temp2.md
+t2.md
+dms-analysis.txt
+fix-*.cjs
+analyze-*.cjs
+analyze-*.py
+* copy.code-workspace
+
+# ============================================
+# Env backups (may contain secrets)
+# ============================================
+*.env.bak*
+.*.env.bak*
