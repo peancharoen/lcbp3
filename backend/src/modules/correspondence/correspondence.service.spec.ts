@@ -1,3 +1,7 @@
+// File: backend/src/modules/correspondence/correspondence.service.spec.ts
+// Change Log:
+// - 2026-08-26: เพิ่ม regression tests สำหรับ hardDelete — attachments.uuid และ vector deletion payload
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
@@ -25,6 +29,11 @@ import { AiQueueService } from '../ai/ai-queue.service';
 import { UpdateCorrespondenceDto } from './dto/update-correspondence.dto';
 import { CreateCorrespondenceDto } from './dto/create-correspondence.dto';
 import { User } from '../user/entities/user.entity';
+
+jest.mock('fs-extra', () => ({
+  pathExists: jest.fn().mockResolvedValue(true),
+  remove: jest.fn().mockResolvedValue(undefined),
+}));
 
 describe('CorrespondenceService', () => {
   let service: CorrespondenceService;
@@ -65,6 +74,7 @@ describe('CorrespondenceService', () => {
   };
 
   const mockDataSource = {
+    query: jest.fn().mockResolvedValue([]),
     createQueryRunner: jest.fn(() => ({
       connect: jest.fn(),
       startTransaction: jest.fn(),
@@ -878,6 +888,95 @@ describe('CorrespondenceService', () => {
         CorrespondenceRevision,
         expect.objectContaining({ revisionLabel: undefined })
       );
+    });
+  });
+
+  // Regression: hardDelete เดิม SELECT a.public_id ซึ่ง column ไม่มีจริงในตาราง attachments
+  // ทำให้ query พังทั้ง flow — ต้องใช้ a.uuid เท่านั้น
+  describe('hardDelete (regression: attachments.uuid)', () => {
+    const superadmin = { user_id: 99 } as unknown as User;
+
+    const setupHardDeleteMocks = (): {
+      queryRunner: {
+        manager: { delete: jest.Mock; query: jest.Mock };
+        commitTransaction: jest.Mock;
+      };
+    } => {
+      const userService = testingModule.get<UserService>(UserService);
+      (userService.getUserPermissions as jest.Mock).mockResolvedValue([
+        'system.manage_all',
+      ]);
+
+      jest.spyOn(service, 'findOneByUuid').mockResolvedValue({
+        id: 501,
+        publicId: 'corr-uuid-hard',
+        project: { publicId: 'proj-uuid-hard' },
+      } as unknown as Awaited<ReturnType<typeof service.findOneByUuid>>);
+
+      mockDataSource.query.mockResolvedValue([
+        { id: 1, file_path: '/data/a.pdf', uuid: 'att-uuid-1' },
+        { id: 2, file_path: '/data/b.pdf', uuid: 'att-uuid-2' },
+      ]);
+
+      const queryRunner = {
+        connect: jest.fn(),
+        startTransaction: jest.fn(),
+        commitTransaction: jest.fn(),
+        rollbackTransaction: jest.fn(),
+        release: jest.fn(),
+        manager: {
+          delete: jest.fn().mockResolvedValue({ affected: 1 }),
+          query: jest.fn().mockResolvedValue([]),
+        },
+      };
+      (mockDataSource.createQueryRunner as jest.Mock).mockReturnValue(
+        queryRunner
+      );
+
+      return { queryRunner };
+    };
+
+    it('ควร SELECT a.uuid (ไม่ใช่ a.public_id) ตอนดึง attachment rows', async () => {
+      setupHardDeleteMocks();
+
+      const result = await service.hardDelete('corr-uuid-hard', superadmin);
+
+      const [sql, params] = mockDataSource.query.mock.calls[0] as [
+        string,
+        unknown[],
+      ];
+      expect(sql).toContain('a.uuid');
+      expect(sql).not.toContain('a.public_id');
+      expect(params).toEqual([501]);
+      expect(result.deletedAttachmentCount).toBe(2);
+      expect(result.deletedCorrespondence).toBe(true);
+    });
+
+    it('ควร enqueue vector deletion ด้วย publicId ของเอกสารและ project', async () => {
+      setupHardDeleteMocks();
+      const aiQueueService = testingModule.get<AiQueueService>(AiQueueService);
+
+      const result = await service.hardDelete('corr-uuid-hard', superadmin);
+
+      expect(aiQueueService.enqueueVectorDeletion).toHaveBeenCalledWith({
+        documentPublicId: 'corr-uuid-hard',
+        projectPublicId: 'proj-uuid-hard',
+        requestedByUserPublicId: 'user-99',
+      });
+      expect(result.vectorDeletionJobsEnqueued).toBe(1);
+    });
+
+    it('ควรปฏิเสธเมื่อผู้ใช้ไม่มีสิทธิ์ system.manage_all', async () => {
+      const userService = testingModule.get<UserService>(UserService);
+      (userService.getUserPermissions as jest.Mock).mockResolvedValue([
+        'correspondence.delete',
+      ]);
+
+      await expect(
+        service.hardDelete('corr-uuid-hard', {
+          user_id: 100,
+        } as unknown as User)
+      ).rejects.toThrow(PermissionException);
     });
   });
 });

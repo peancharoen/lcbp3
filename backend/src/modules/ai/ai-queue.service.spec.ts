@@ -1,6 +1,7 @@
 // File: backend/src/modules/ai/ai-queue.service.spec.ts
 // Change Log:
 // - 2026-08-24: ADR-048 T020 — สร้าง unit tests สำหรับ AiQueueService
+// - 2026-08-26: เพิ่ม regression test — jobId ของ vector deletion ใช้ `-` ไม่ใช่ `:` (Fix 15ff5d08)
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { getQueueToken } from '@nestjs/bullmq';
@@ -339,6 +340,27 @@ describe('AiQueueService', () => {
         query: 'test',
       });
       expect(mockRedis.get).toHaveBeenCalledWith('ai:model:transitioning');
+    });
+  });
+
+  // Regression (15ff5d08): `:` ใน jobId ชนกับ key namespace ของ BullMQ ทำให้หา job ไม่เจอ
+  // (retry/remove/getJob ล้มเหลว) — jobId ของ vector deletion ต้องใช้ `-` เป็นตัวคั่น
+  describe('regression: jobId separator ของ enqueueVectorDeletion', () => {
+    it('ควรสร้าง jobId เป็น `{projectPublicId}-{documentPublicId}` ไม่มี `:`', async () => {
+      await service.enqueueVectorDeletion({
+        documentPublicId: 'doc-uuid-1',
+        projectPublicId: 'proj-uuid-1',
+        requestedByUserPublicId: 'user-1',
+      });
+
+      expect(queues[QUEUE_AI_VECTOR_DELETION].add).toHaveBeenCalledWith(
+        'delete-document-vectors',
+        expect.any(Object),
+        expect.objectContaining({ jobId: 'proj-uuid-1-doc-uuid-1' })
+      );
+      const [, , options] = queues[QUEUE_AI_VECTOR_DELETION].add.mock
+        .calls[0] as [string, unknown, { jobId: string }];
+      expect(options.jobId).not.toContain(':');
     });
   });
 });

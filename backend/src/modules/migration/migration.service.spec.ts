@@ -5,6 +5,7 @@
 // - 2026-08-07: Added enrichWithAttachments tests via getQueueItemById (Feature 242, FR-005)
 // - 2026-08-17: Added ConfigService mock for path traversal guard (Issue #3, ADR-016)
 // - 2026-08-25: Added D159 regression tests — revision.body ใช้ aiSummary ไม่ใช่ ocrText
+// - 2026-08-26: Added regression tests — importStagingFile ต้องได้ issueDate จาก dto.documentDate
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
@@ -60,6 +61,10 @@ describe('MigrationService', () => {
   };
 
   const mockAttachmentFind = jest.fn();
+
+  const mockFileStorageService = {
+    importStagingFile: jest.fn(),
+  };
 
   const mockQueryRunner = {
     connect: jest.fn(),
@@ -121,7 +126,7 @@ describe('MigrationService', () => {
         },
         {
           provide: FileStorageService,
-          useValue: { importStagingFile: jest.fn() },
+          useValue: mockFileStorageService,
         },
         {
           provide: ConfigService,
@@ -481,6 +486,98 @@ describe('MigrationService', () => {
         expect(revisionArg['body']).not.toBe(
           'raw OCR text that should NOT be used as body'
         );
+      });
+    });
+
+    // Regression: เดิมไม่ส่ง issueDate ทำให้ attachment ถูกเก็บใน folder ตามวันที่ import
+    // แทนวันที่ของเอกสาร — ไฟล์เอกสารเก่าจึงกระจุกอยู่ใน ปี/เดือน ปัจจุบัน
+    describe('attachment folder date จาก documentDate', () => {
+      const setupImportMocks = (): void => {
+        mockDataSource.manager.findOne.mockResolvedValue({ id: 5 });
+        mockQueryRunner.manager.findOne.mockResolvedValue(null);
+        mockQueryRunner.manager.create.mockImplementation(
+          (_entity: unknown, value: unknown) => value
+        );
+        mockQueryRunner.manager.save.mockResolvedValue({ id: 1 });
+        mockQueryRunner.manager.find.mockResolvedValue([]);
+        mockQueryRunner.manager.query.mockResolvedValue([]);
+      };
+
+      it('ส่ง issueDate = documentDate เมื่อ import จาก sourceFilePath', async () => {
+        setupImportMocks();
+        mockFileStorageService.importStagingFile.mockResolvedValue({ id: 55 });
+
+        const dto: ImportCorrespondenceDto = {
+          documentNumber: 'DOC-DATE-1',
+          subject: 'Attachment date',
+          category: 'Letter',
+          migratedBy: 'SYSTEM_IMPORT',
+          batchId: 'BATCH-DATE',
+          projectId: 100,
+          documentDate: '2024-03-15',
+          sourceFilePath: '/staging/doc-date-1.pdf',
+        };
+
+        await service.importCorrespondence(dto, 'idem-date-1', 1);
+
+        expect(mockFileStorageService.importStagingFile).toHaveBeenCalledWith(
+          '/staging/doc-date-1.pdf',
+          1,
+          expect.objectContaining({
+            documentType: 'Letter',
+            issueDate: new Date('2024-03-15'),
+          })
+        );
+      });
+
+      it('ส่ง issueDate ของทุกไฟล์เมื่อ import จาก sourceFilePaths (ADR-047)', async () => {
+        setupImportMocks();
+        mockFileStorageService.importStagingFile
+          .mockResolvedValueOnce({ id: 61 })
+          .mockResolvedValueOnce({ id: 62 });
+
+        const dto: ImportCorrespondenceDto = {
+          documentNumber: 'DOC-DATE-2',
+          subject: 'Attachment date multi',
+          category: 'Letter',
+          migratedBy: 'SYSTEM_IMPORT',
+          batchId: 'BATCH-DATE',
+          projectId: 100,
+          documentDate: '2023-11-02',
+          sourceFilePaths: ['/staging/a.pdf', '/staging/b.pdf'],
+        };
+
+        await service.importCorrespondence(dto, 'idem-date-2', 1);
+
+        expect(mockFileStorageService.importStagingFile).toHaveBeenCalledTimes(
+          2
+        );
+        const calls = mockFileStorageService.importStagingFile.mock
+          .calls as unknown as Array<[string, number, { issueDate?: Date }]>;
+        for (const call of calls) {
+          expect(call[2].issueDate).toEqual(new Date('2023-11-02'));
+        }
+      });
+
+      it('ส่ง issueDate = undefined เมื่อไม่มี documentDate (fallback เป็นวันที่ปัจจุบัน)', async () => {
+        setupImportMocks();
+        mockFileStorageService.importStagingFile.mockResolvedValue({ id: 70 });
+
+        const dto: ImportCorrespondenceDto = {
+          documentNumber: 'DOC-DATE-3',
+          subject: 'No document date',
+          category: 'Letter',
+          migratedBy: 'SYSTEM_IMPORT',
+          batchId: 'BATCH-DATE',
+          projectId: 100,
+          sourceFilePath: '/staging/no-date.pdf',
+        };
+
+        await service.importCorrespondence(dto, 'idem-date-3', 1);
+
+        const calls = mockFileStorageService.importStagingFile.mock
+          .calls as unknown as Array<[string, number, { issueDate?: Date }]>;
+        expect(calls[0][2].issueDate).toBeUndefined();
       });
     });
   });

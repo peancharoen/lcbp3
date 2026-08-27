@@ -357,5 +357,55 @@ describe('VramMonitorService', () => {
         -1
       );
     });
+
+    // Regression (8bb5683b): เดิมเทียบชื่อโมเดลแบบ substring (includes) ทำให้
+    // np-dms-ai-30b ถูกมองว่าเป็นตัวเดียวกับ np-dms-ai แล้วไม่ถูก evict → VRAM ไม่พอ
+    it('ควร evict np-dms-ai-30b เมื่อจะโหลด np-dms-ai (ชื่อซ้อนกันแต่คนละโมเดล)', async () => {
+      mockAiQueueService.assertQueuesEmpty.mockResolvedValueOnce(undefined);
+      const loaded = {
+        data: {
+          models: [
+            {
+              name: 'np-dms-ai-30b:latest',
+              size_vram: 6 * 1024 * 1024 * 1024,
+            },
+          ],
+        },
+      };
+      mockedAxios.get
+        .mockResolvedValueOnce(loaded)
+        .mockResolvedValueOnce(loaded);
+
+      await service.loadModelVram('np-dms-ai:latest');
+
+      expect(mockOllamaService.unloadModel).toHaveBeenCalledWith(
+        'np-dms-ai-30b:latest'
+      );
+      expect(mockOllamaService.loadModel).toHaveBeenCalledWith(
+        'np-dms-ai:latest',
+        -1
+      );
+    });
+
+    it('ไม่ควร evict โมเดลเป้าหมายเอง แม้ระบุ tag :latest ต่างกัน', async () => {
+      mockAiQueueService.assertQueuesEmpty.mockResolvedValueOnce(undefined);
+      const loaded = {
+        data: {
+          models: [
+            {
+              name: 'np-dms-ai:latest',
+              size_vram: 6 * 1024 * 1024 * 1024,
+            },
+          ],
+        },
+      };
+      mockedAxios.get
+        .mockResolvedValueOnce(loaded)
+        .mockResolvedValueOnce(loaded);
+
+      await service.loadModelVram('np-dms-ai');
+
+      expect(mockOllamaService.unloadModel).not.toHaveBeenCalled();
+    });
   });
 });

@@ -1,6 +1,7 @@
 // File: backend/src/modules/ai/services/embedding.service.spec.ts
 // Change Log:
 // - 2026-06-05: สร้าง unit test สำหรับ EmbeddingService เพื่อทดสอบกระบวนการ Semantic Chunking และ fixed-size fallback (T024)
+// - 2026-08-26: เพิ่ม regression test — Qdrant point ID ต้องเป็น UUIDv4 (Fix a35f0227)
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
@@ -132,6 +133,55 @@ describe('EmbeddingService (US3 — Semantic Chunking)', () => {
         'doc-uuid-123'
       );
       expect(qdrantService.upsert).toHaveBeenCalled();
+    });
+  });
+
+  // Regression (a35f0227): Qdrant รับ point ID เป็น unsigned integer หรือ UUID เท่านั้น
+  // รูปแบบเดิม `${documentPublicId}-${chunkIndex}` ถูกปฏิเสธ ทำให้ embed-document ล้มเหลวทุกครั้ง
+  describe('regression: Qdrant point ID ต้องเป็น UUID', () => {
+    const UUID_V4 =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+    it('ควรสร้าง point ID เป็น UUIDv4 ที่ไม่ซ้ำกัน และไม่ใช้รูปแบบ documentPublicId-chunkIndex', async () => {
+      mockAiPromptsService.resolveActive.mockResolvedValueOnce({
+        resolvedPrompt: 'mock resolved prompt',
+        versionNumber: 1,
+      });
+      mockOllamaService.generate.mockResolvedValueOnce(`
+        <chunk topic="หัวข้อแรก">เนื้อหาส่วนแรกของเอกสารที่ใช้ทดสอบการสร้าง point id</chunk>
+        <chunk topic="หัวข้อสอง">เนื้อหาส่วนที่สองของเอกสารที่ใช้ทดสอบการสร้าง point id</chunk>
+      `);
+      mockOcrService.embedViaSidecar.mockResolvedValue({
+        dense: Array(1024).fill(0.1),
+        sparse: { indices: [1], values: [0.5] },
+      });
+
+      await service.embedDocument(
+        'proj-uuid-456',
+        'doc-uuid-123',
+        'CORR-001',
+        'LETTER',
+        'IN_REVIEW',
+        1,
+        'Test Subject',
+        '2026-06-05',
+        'ข้อความทดสอบสำหรับการสร้าง point id ซึ่งมีความยาวเกิน 50 ตัวอักษรอย่างแน่นอน'
+      );
+
+      const [, points] = (qdrantService.upsert as jest.Mock).mock.calls[0] as [
+        string,
+        Array<{ id: string; payload: Record<string, unknown> }>,
+      ];
+      expect(points).toHaveLength(2);
+      for (const point of points) {
+        expect(point.id).toMatch(UUID_V4);
+        expect(point.id).not.toContain('doc-uuid-123');
+      }
+      expect(new Set(points.map((p) => p.id)).size).toBe(2);
+      // doc_public_id ต้องยังอยู่ใน payload เพื่อใช้ filter/ลบ vector ของเอกสาร
+      expect(points[0].payload['doc_public_id']).toBe('doc-uuid-123');
+      expect(points[0].payload['chunk_index']).toBe(0);
+      expect(points[1].payload['chunk_index']).toBe(1);
     });
   });
 });

@@ -1,6 +1,7 @@
 // File: backend/src/modules/ai/ai-rag.service.spec.ts
 // Change Log:
 // - 2026-06-05: สร้าง unit test สำหรับ AiRagService เพื่อทดสอบกระบวนการทำ RAG query ด้วย Hybrid Search และ Reranker (T011)
+// - 2026-08-26: เพิ่ม regression test — unload BGE ก่อน LLM generate (D171, Fix 90e147fe)
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
@@ -152,6 +153,69 @@ describe('AiRagService (US1 — Chat Q&A)', () => {
         expect.any(Number),
         expect.stringContaining('completed')
       );
+    });
+  });
+
+  // Regression (90e147fe / D171): BGE กิน GPU ~4.8GB ตลอดเวลา ทำให้ Ollama OOM
+  // ต้อง unload BGE ผ่าน sidecar ก่อนเรียก /api/generate ทุกครั้ง
+  describe('regression: BGE lazy-load / GPU coordination', () => {
+    const setupSuccessfulPipeline = (): void => {
+      mockOcrService.embedViaSidecar.mockResolvedValueOnce({
+        dense: Array(1024).fill(0.1),
+        sparse: { indices: [1], values: [0.5] },
+      });
+      mockQdrantService.searchByProject.mockResolvedValueOnce([
+        {
+          pointId: 'point-1',
+          score: 0.9,
+          payload: {
+            doc_type: 'LETTER',
+            doc_number: 'CORR-001',
+            chunk_text: 'เนื้อหาเอกสารสำหรับทดสอบ GPU coordination',
+          },
+        },
+      ]);
+      mockOcrService.rerankViaSidecar.mockResolvedValueOnce({
+        scores: [0.9],
+        ranked_indices: [0],
+      });
+      mockedAxios.post.mockResolvedValueOnce({
+        data: { response: 'คำตอบจาก LLM' },
+      });
+    };
+
+    it('ควร unload BGE ก่อนเรียก Ollama generate เสมอ (คืน GPU memory กัน OOM)', async () => {
+      setupSuccessfulPipeline();
+
+      await service.processQuery(
+        'req-bge-1',
+        'คำถามทดสอบ?',
+        'proj-456',
+        'user-789'
+      );
+
+      expect(ocrService.unloadBgeModels).toHaveBeenCalledTimes(1);
+      const unloadOrder = (ocrService.unloadBgeModels as jest.Mock).mock
+        .invocationCallOrder[0];
+      const generateOrder = mockedAxios.post.mock.invocationCallOrder[0];
+      expect(unloadOrder).toBeLessThan(generateOrder);
+    });
+
+    it('ควร unload BGE หลัง rerank เท่านั้น — rerank ยังต้องใช้ BGE อยู่', async () => {
+      setupSuccessfulPipeline();
+
+      await service.processQuery(
+        'req-bge-2',
+        'คำถามทดสอบ?',
+        'proj-456',
+        'user-789'
+      );
+
+      const rerankOrder = (ocrService.rerankViaSidecar as jest.Mock).mock
+        .invocationCallOrder[0];
+      const unloadOrder = (ocrService.unloadBgeModels as jest.Mock).mock
+        .invocationCallOrder[0];
+      expect(rerankOrder).toBeLessThan(unloadOrder);
     });
   });
 });
