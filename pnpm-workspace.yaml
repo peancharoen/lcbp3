@@ -103,3 +103,6 @@ overrides:
   "esbuild@<0.28.1": ">=0.28.1"
   "@babel/core@<=7.29.0": ">=7.29.6"
   "form-data@<4.0.6": ">=4.0.6"
+
+patchedDependencies:
+  "@nestjs/swagger": patches/@nestjs__swagger.patch

@@ -22,6 +22,7 @@ async function bootstrap() {
   app.use(
     helmet({
       contentSecurityPolicy: {
+        useDefaults: false,
         directives: {
           defaultSrc: ["'self'"],
           scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
@@ -74,9 +75,10 @@ async function bootstrap() {
   // ⚠️ TransformInterceptor & HttpExceptionFilter ลงทะเบียนผ่าน APP_INTERCEPTOR/APP_FILTER ใน CommonModule แล้ว
   // ห้ามลงทะเบียนซ้ำที่นี่ เพราะจะทำให้ Response ถูก wrap ซ้อน 2 ชั้น
 
-  // 📘 6. Swagger Configuration (SEV-011: เฉพาะ non-production environment)
+  // 📘 6. Swagger Configuration (SEV-011: non-production หรือเปิด SWAGGER_ENABLED)
   const nodeEnv = configService.get<string>('NODE_ENV', 'development');
-  if (nodeEnv !== 'production') {
+  const swaggerEnabled = configService.get<string>('SWAGGER_ENABLED', 'false');
+  if (nodeEnv !== 'production' || swaggerEnabled === 'true') {
     const swaggerConfig = new DocumentBuilder()
       .setTitle('LCBP3 DMS API')
       .setDescription('Document Management System API Documentation')
@@ -92,7 +94,6 @@ async function bootstrap() {
         persistAuthorization: true, // จำ Token ไว้ไม่ต้องใส่ใหม่เวลารีเฟรชหน้าจอ
       },
     });
-    logger.log(`Swagger UI is available at: ${await app.getUrl()}/docs`);
   } else {
     logger.log('Swagger UI disabled in production (NODE_ENV=production)');
   }

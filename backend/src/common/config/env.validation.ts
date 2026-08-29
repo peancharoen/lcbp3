@@ -8,6 +8,7 @@ export const envValidationSchema = Joi.object({
     .valid('development', 'production', 'test', 'provision')
     .default('development'),
   PORT: Joi.number().default(3000),
+  SWAGGER_ENABLED: Joi.string().valid('true', 'false').default('false'),
 
   // 2. Database Configuration (MariaDB)
   // ห้ามเป็นค่าว่าง (required)

@@ -1,0 +1,13 @@
+diff --git a/dist/swagger-module.js b/dist/swagger-module.js
+index 9dbd21ccc9be46de2eb98ae830e8acf92c34179a..486a09970d3a683b10208e5ffcfde5ca301947cc 100644
+--- a/dist/swagger-module.js
++++ b/dist/swagger-module.js
+@@ -77,7 +77,7 @@ class SwaggerModule {
+         }
+     }
+     static serveSwaggerUi(finalPath, urlLastSubdirectory, httpAdapter, getBuiltDocument, swaggerOptions) {
+-        const baseUrlForSwaggerUI = (0, normalize_rel_path_1.normalizeRelPath)(`./${urlLastSubdirectory}/`);
++        const baseUrlForSwaggerUI = (0, normalize_rel_path_1.normalizeRelPath)(`${finalPath}/`);
+         let swaggerUiHtml;
+         let swaggerUiInitJS;
+         httpAdapter.get((0, normalize_rel_path_1.normalizeRelPath)(`${finalPath}/swagger-ui-init.js`), (req, res) => {
