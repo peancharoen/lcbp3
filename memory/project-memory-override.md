@@ -248,7 +248,18 @@ QDRANT_URL
 
 ## Next Session Focus
 
-### Workflow Engine Test Coverage Cleanup (Session 2026-08-29) ⏳ Tests pass, pending commit + threshold closure
+### ADR-049 Validation Recommendations 1-5 (Session 2026-08-29) ✅ Complete
+
+- [x] Rec 1: แทนที่ string eval ด้วย JSON Logic (json-logic-js@2.0.5) + compile-time guard
+- [x] Rec 2: เพิ่ม 8 RFA create() tests — rfa.service.ts 59.26% → 80.35% stmts
+- [x] Rec 3: เพิ่ม 15 Workflow Engine public method tests — 75.43% → 87.83% stmts, 37.5% → 81.25% funcs
+- [x] Rec 4: EC1 (OWNER RESUBMIT non-terminal) + EC2 (DESIGNER OBJECTED) edge case tests
+- [x] Rec 5: E2E — 7 DSL-level tests (no DB) + 1 conditional skip (E2E_DATABASE_URL)
+- [x] Verification: TSC 0 errors, ESLint 0 errors, 154 suites / 2219 tests pass
+- [x] Squash 5 commits → `c85e1704` pushed to `origin/main` via `2git.sh`
+- [x] Session log: `specs/88-logs/session-2026-08-29-adr-049-validation-recommendations.md`
+
+### Workflow Engine Test Coverage Cleanup (Session 2026-08-29) ✅ Complete (squashed into `c85e1704`)
 
 - [x] เพิ่ม migration-review.service.spec.ts (50 tests, 98.97% stmts, 81.56% branches)
 - [x] เพิ่ม migration.service.spec.ts (86 tests, 97.49% stmts, 82.95% branches)
@@ -259,7 +270,7 @@ QDRANT_URL
 - [x] Global statements 77.89% ✅ + lines 77.89% ✅ (threshold 70%)
 - [x] Lock decisions D178-D181
 - [x] Session log: `specs/88-logs/session-2026-08-29-workflow-engine-test-coverage.md`
-- [ ] **Commit changes** — 57 files, +15701/-8238 (ยังไม่ได้ commit)
+- [x] **Commit changes** — squashed into `c85e1704` + pushed to origin/main
 - [ ] **Close global branch threshold** — 60.55% → 70% (gap 9.45%)
 - [ ] **Close global function threshold** — 56.55% → 70% (gap 13.45%)
 - [ ] **Fix 13 per-file threshold failures** — AI infra (5), document-numbering (2), legacy-ingestion, bullmq-metrics, escalation, notification-trigger, consensus, task-creation
