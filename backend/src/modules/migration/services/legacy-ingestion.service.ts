@@ -164,26 +164,22 @@ export class LegacyIngestionService {
     let columnMapping: ColumnMapping | null = null;
     let currentRowIndex = 0;
 
-    const workbookReader = new ExcelJS.stream.xlsx.WorkbookReader(filePath, {
-      entries: 'emit',
-      sharedStrings: 'cache',
-      hyperlinks: 'ignore',
-      styles: 'ignore',
-    });
-
     try {
-      for await (const worksheetReader of workbookReader) {
-        // กรอง Sheet หากมีการระบุ sheetName เจาะจง
-        const currentSheetName = (
-          worksheetReader as unknown as { name?: string }
-        ).name;
-        if (sheetName && currentSheetName && currentSheetName !== sheetName) {
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.readFile(filePath);
+
+      for (const worksheet of workbook.worksheets) {
+        const currentSheetName = worksheet.name;
+        if (sheetName && currentSheetName !== sheetName) {
           continue;
         }
 
+        const rows: ExcelJS.Row[] = [];
+        worksheet.eachRow({ includeEmpty: true }, (row) => rows.push(row));
+
         const headerRowBuffer: unknown[][] = [];
 
-        for await (const row of worksheetReader) {
+        for (const row of rows) {
           currentRowIndex++;
 
           // ตรวจจับ Header Mapping จากหลายแถวแรก (รองรับ Excel ที่มีหัวเรื่อง/คำอธิบายก่อนแถว Header)
