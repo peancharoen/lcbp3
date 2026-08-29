@@ -15,6 +15,7 @@ import { AsBuiltDrawingRevision } from '../drawing/entities/asbuilt-drawing-revi
 import { ShopDrawingRevision } from '../drawing/entities/shop-drawing-revision.entity';
 import { Discipline } from '../master/entities/discipline.entity';
 import { RfaApproveCode } from './entities/rfa-approve-code.entity';
+import { RfaConsentReason } from './entities/rfa-consent-reason.entity';
 import { RfaItem } from './entities/rfa-item.entity';
 import { RfaRevision } from './entities/rfa-revision.entity';
 import { RfaStatusCode } from './entities/rfa-status-code.entity';
@@ -44,6 +45,7 @@ import { WorkflowEngineModule } from '../workflow-engine/workflow-engine.module'
       RfaType,
       RfaStatusCode,
       RfaApproveCode,
+      RfaConsentReason,
       RfaWorkflow,
       Correspondence,
       CorrespondenceRevision,

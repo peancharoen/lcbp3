@@ -13,6 +13,21 @@ import {
   THRESHOLD_CACHE_KEY,
 } from '../types/review-threshold.type';
 
+/** Type สำหรับ mock QueryRunner */
+type MockQueryRunner = {
+  connect: jest.Mock;
+  startTransaction: jest.Mock;
+  commitTransaction: jest.Mock;
+  rollbackTransaction: jest.Mock;
+  release: jest.Mock;
+  manager: {
+    findOne: jest.Mock;
+    save: jest.Mock;
+    create: jest.Mock;
+    query: jest.Mock;
+  };
+};
+
 describe('ReviewThresholdService', () => {
   let service: ReviewThresholdService;
   let redis: jest.Mocked<Redis>;
@@ -146,5 +161,98 @@ describe('ReviewThresholdService', () => {
 
   it('rejects update with no fields provided', async () => {
     await expect(service.updateThresholds({}, 1)).rejects.toThrow();
+  });
+
+  describe('branch coverage', () => {
+    it('handles non-Error rejection in cache read', async () => {
+      redis.get.mockRejectedValueOnce('string-error');
+      settingRepo.findOne.mockResolvedValue(null);
+
+      const result = await service.getThresholds();
+
+      expect(result.maxMismatchFields).toBe(
+        DEFAULT_REVIEW_THRESHOLDS.maxMismatchFields
+      );
+    });
+
+    it('updates only minConfidence', async () => {
+      redis.get.mockResolvedValue(null);
+      settingRepo.findOne.mockResolvedValue(null);
+
+      await service.updateThresholds({ minConfidence: 0.85 }, 1);
+
+      expect(redis.del).toHaveBeenCalledWith(THRESHOLD_CACHE_KEY);
+    });
+
+    it('handles error in updateThresholds transaction', async () => {
+      redis.get.mockResolvedValue(null);
+      settingRepo.findOne.mockResolvedValue(null);
+      const qr = (dataSource.createQueryRunner as () => MockQueryRunner)();
+      qr.manager.query.mockRejectedValueOnce(new Error('DB error'));
+
+      await expect(
+        service.updateThresholds({ maxMismatchFields: 5 }, 1)
+      ).rejects.toThrow();
+    });
+
+    it('handles non-Error in updateThresholds catch', async () => {
+      redis.get.mockResolvedValue(null);
+      settingRepo.findOne.mockResolvedValue(null);
+      const qr = (dataSource.createQueryRunner as () => MockQueryRunner)();
+      qr.manager.query.mockRejectedValueOnce('non-error');
+
+      await expect(
+        service.updateThresholds({ maxMismatchFields: 5 }, 1)
+      ).rejects.toThrow();
+    });
+
+    it('handles redis.del error after successful update', async () => {
+      redis.get.mockResolvedValue(null);
+      settingRepo.findOne.mockResolvedValue(null);
+      redis.del.mockRejectedValueOnce(new Error('Redis del failed'));
+
+      await service.updateThresholds({ maxMismatchFields: 5 }, 1);
+
+      // Should not throw — redis.del error is caught
+    });
+
+    it('handles NaN setting value', async () => {
+      redis.get.mockResolvedValue(null);
+      settingRepo.findOne.mockResolvedValueOnce({
+        settingValue: 'not-a-number',
+      } as SystemSetting);
+      settingRepo.findOne.mockResolvedValueOnce(null);
+
+      const result = await service.getThresholds();
+
+      expect(result.maxMismatchFields).toBe(
+        DEFAULT_REVIEW_THRESHOLDS.maxMismatchFields
+      );
+    });
+
+    it('handles redis.set error in cacheThresholds', async () => {
+      redis.get.mockResolvedValue(null);
+      redis.set.mockRejectedValueOnce(new Error('Redis set failed'));
+      settingRepo.findOne.mockResolvedValue(null);
+
+      const result = await service.getThresholds();
+
+      // Should not throw — cache write failure is caught
+      expect(result.maxMismatchFields).toBe(
+        DEFAULT_REVIEW_THRESHOLDS.maxMismatchFields
+      );
+    });
+
+    it('upsertSetting creates new when setting does not exist', async () => {
+      redis.get.mockResolvedValue(null);
+      settingRepo.findOne.mockResolvedValue(null);
+      const qr = (dataSource.createQueryRunner as () => MockQueryRunner)();
+      qr.manager.findOne.mockResolvedValueOnce(null);
+
+      await service.updateThresholds({ maxMismatchFields: 5 }, 1);
+
+      expect(qr.manager.create).toHaveBeenCalled();
+      expect(qr.manager.save).toHaveBeenCalled();
+    });
   });
 });

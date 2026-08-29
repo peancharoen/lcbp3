@@ -279,6 +279,41 @@ describe('IdempotencyInterceptor', () => {
 
       expect(value).toEqual({ id: 'test' });
     });
+
+    it('should handle non-Error thrown by cache.get (string err)', async () => {
+      // ครอบคลุม branch `err instanceof Error ? err.stack : String(err)` ฝั่ง false
+      cacheManager.get.mockRejectedValue(
+        'redis-down-string' as unknown as Error
+      );
+
+      const context = createMockExecutionContext('POST', 'string-err-key');
+      const callHandler = {
+        handle: jest.fn().mockReturnValue(of({ id: 'test' })),
+      };
+
+      const result = await interceptor.intercept(context, callHandler);
+      const value = await lastValueFrom(result);
+
+      expect(value).toEqual({ id: 'test' });
+      expect(callHandler.handle).toHaveBeenCalled();
+    });
+
+    it('should handle non-Error thrown by cache.set (number err)', async () => {
+      // ครอบคลุม branch `err instanceof Error ? err.stack : String(err)` ฝั่ง false
+      cacheManager.get.mockResolvedValue(undefined);
+      cacheManager.set.mockRejectedValue(42 as unknown as Error);
+
+      const context = createMockExecutionContext('POST', 'num-err-key');
+      const callHandler = createMockCallHandler({ id: 'test' });
+
+      const result = await interceptor.intercept(context, callHandler);
+      await lastValueFrom(result);
+
+      // รอ async error handler
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      expect(cacheManager.set).toHaveBeenCalled();
+    });
   });
 
   // ==========================================================

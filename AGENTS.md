@@ -1,7 +1,7 @@
 # NAP-DMS Project Context & Rules
 
 - For: Windsurf Cascade (and compatible: Codex CLI, opencode, Amp, Antigravity, AGENTS.md tools)
-- Version: 1.9.14 | Last synced from repo: 2026-08-26
+- Version: 1.9.15 | Last synced from repo: 2026-08-28
 - Repo: [https://git.np-dms.work/np-dms/lcbp3](https://git.np-dms.work/np-dms/lcbp3)
 - Skill pack: `.agents/skills/` ↔ `.devin/skills/` (v1.9.0, 35 skills) — see [`skills/README.md`](./.agents/skills/README.md) + [`skills/_LCBP3-CONTEXT.md`](./.agents/skills/_LCBP3-CONTEXT.md)
 
@@ -310,6 +310,25 @@ Tier 4 (guidelines): Prettier, comments.
 
 ---
 
+## Collaboration & Sub-agents Commands
+
+> คำสั่งเหล่านี้ขึ้นกับ IDE/Agent platform ที่กำลังใช้งาน อย่าใช้ชื่อ Devin เป็นคำสั่งหลักให้กับ IDE อื่น โดยไม่ระบุ mapping
+
+| Platform                            | คำสั่งหลัก                                      | ฟังก์ชัน                                                    |
+| ----------------------------------- | ----------------------------------------------- | ----------------------------------------------------------- |
+| Devin / Windsurf                    | `run_subagent` / `read_subagent`                | เปิด/อ่านผล subagent (ใช้ได้เมื่อ `subagents_enabled=true`) |
+| Codex CLI                           | `codex --task` หรือคำสั่ง multi-agent ของ Codex | รัน task ย่อยใน session แยก                                 |
+| opencode                            | `opencode agents` / `opencode tasks`            | รัน agent/task ย่อย                                         |
+| Amp / Antigravity / AGENTS.md tools | ตามเอกสารของเครื่องมือนั้น ๆ                    | fallback เป็น inline ถ้าไม่มี multi-agent                   |
+
+หลักการ:
+
+- ห้ามอ้างอิง `run_subagent` หรือ `read_subagent` เป็น universal command ใน AGENTS.md
+- ถ้า IDE ปัจจุบันไม่มี subagent ให้ทำงาน inline ด้วยเครื่องมือปกติ โดยไม่แกล้งว่ามีการกระจายงาน
+- สกิลที่ใช้ subagent ต้องระบุใน description หรือ doc ของตัวเองว่าใช้งานได้บน platform ไหน
+
+---
+
 ## Agent skills
 
 ### Issue tracker
@@ -345,6 +364,7 @@ This file is a **quick reference**. For detailed information:
 
 | Version | Date       | Changes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Updated By     |
 | ------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| 1.9.15  | 2026-08-28 | Added Collaboration & Sub-agents Commands section with platform-specific command mapping; clarifies Devin `run_subagent`/`read_subagent` vs other IDE equivalents and forbids treating them as universal.                                                                                                                                                                                                                                                                                                                                                                                                                         | Devin          |
 | 1.9.14  | 2026-08-26 | **Diagnose & Fix 5 issues:** (1) Added Commands & Verification section with build/test/lint commands — flagged frontend `pnpm test` = vitest watch mode (hangs); (2) Added ESLint blanket ban note — `no-restricted-syntax` bans ALL `parseInt()` + unary `+` (broader than CI grep gate `parseInt(.*uuid`); use `Number()` for pagination; (3) Fixed stale "Admin Desktop" → `np-dms-lcbp3` (ADR-041 decommissioned Desk-5439); (4) Fixed skill count 21 → 35 (D81 confirmed); (5) Added ADR-047 (Native Backend Legacy Ingestion) to Tier 3 Migration Pipeline + context triggers; synced to `.agents/rules/` + `.devin/rules/` | Devin          |
 | 1.9.13  | 2026-08-03 | **MCP Rules Sync:** Added 6 new MCP rule files (17-22) covering Redis, Qdrant, Gitea, Fetch, StitchMCP, Playwright servers; fixed MariaDB rule (15) tool name prefixes `mcp1_*` → `mysql_*` and Memory rule (16) verified (no `mcp3_*` prefix); synced rules 17-22 from `.devin/rules/` → `.agents/rules/`; updated `.agents/README.md` architecture tree + MCP servers table; AGENTS.md MCP sections expanded from 2 → 8 servers                                                                                                                                                                                                 | Devin          |
 | 1.9.12  | 2026-07-23 | **Refactoring:** Extracted 12 sections to `.agents/rules/` reference files (5 new: 12-16); merged Out of Scope into 05-forbidden-actions.md; AGENTS.md reduced from 756→283 lines (63% reduction); all content preserved in rule files with stub links in AGENTS.md                                                                                                                                                                                                                                                                                                                                                               | Windsurf AI    |

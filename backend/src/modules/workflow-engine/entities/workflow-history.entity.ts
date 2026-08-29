@@ -10,16 +10,19 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { Exclude } from 'class-transformer';
 import { Attachment } from '../../../common/file-storage/entities/attachment.entity';
 import { WorkflowInstance } from './workflow-instance.entity';
 
 /**
  * เก็บประวัติการเปลี่ยนสถานะ (Audit Trail)
  * สำคัญมากสำหรับการตรวจสอบย้อนหลัง (Who did What, When)
+ * ADR-049: เพิ่ม impersonation audit fields (impersonated + onBehalfOfUserId + onBehalfOfUserUuid)
  */
 @Entity('workflow_histories')
 @Index(['instanceId']) // ค้นหาประวัติของ Instance นี้
 @Index(['actionByUserId']) // ค้นหาว่า User คนนี้ทำอะไรไปบ้าง
+@Index(['onBehalfOfUserId']) // ADR-049: ค้นหาประวัติ impersonation ตาม handler ดั้งเดิม
 export class WorkflowHistory {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -58,14 +61,45 @@ export class WorkflowHistory {
   })
   actionByUserUuid?: string;
 
+  // ADR-049: Impersonation audit — 1 = admin ทำ action แทน handler ดั้งเดิม
+  @Column({
+    name: 'impersonated',
+    default: false,
+    comment:
+      'ADR-049: 1 = admin ทำ action แทน handler ดั้งเดิม (Superadmin/Org Admin impersonation)',
+  })
+  impersonated!: boolean;
+
+  // ADR-049: FK → users.id ของ handler ดั้งเดิม (เจ้าของเดิม) — NULL ถ้าไม่ใช่ impersonation
+  // ไม่ใส่ FK constraint เพราะ user อาจ inactive แล้ว (edge case T031a)
+  @Exclude() // ADR-019: ไม่ expose INT id ใน API
+  @Column({
+    name: 'on_behalf_of_user_id',
+    nullable: true,
+    comment:
+      'ADR-049: FK → users.id ของ handler ดั้งเดิม — NULL ถ้าไม่ใช่ impersonation',
+  })
+  onBehalfOfUserId?: number;
+
+  // ADR-049: UUID ของ handler ดั้งเดิม สำหรับ API response (ADR-019)
+  @Column({
+    name: 'on_behalf_of_user_uuid',
+    length: 36,
+    nullable: true,
+    comment: 'ADR-049: UUID ของ handler ดั้งเดิม สำหรับ API response (ADR-019)',
+  })
+  onBehalfOfUserUuid?: string;
+
   @Column({ type: 'text', nullable: true, comment: 'ความเห็นประกอบการอนุมัติ' })
   comment?: string;
 
   // Snapshot ข้อมูล ณ เวลาที่เปลี่ยนสถานะ เพื่อเป็นหลักฐานหาก Context เปลี่ยนในอนาคต
+  // ADR-049: รวม on_behalf_of_user_active: boolean สำหรับ edge case T031a (user ต้นทาง inactive)
   @Column({
     type: 'json',
     nullable: true,
-    comment: 'Snapshot of Context or Metadata',
+    comment:
+      'Snapshot of Context or Metadata (รวม on_behalf_of_user_active per ADR-049 T031a)',
   })
   metadata?: Record<string, unknown>;
 

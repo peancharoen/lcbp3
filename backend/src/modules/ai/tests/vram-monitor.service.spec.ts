@@ -408,4 +408,126 @@ describe('VramMonitorService', () => {
       expect(mockOllamaService.unloadModel).not.toHaveBeenCalled();
     });
   });
+
+  // ─── ADR-048 FR-009: Transition Lock Conflict ──────────────────────────────
+
+  describe('FR-009: loadModelVram transition lock conflict', () => {
+    it('ควร throw 409 Conflict เมื่อ lock ถูก held โดย transition อื่น (redis.set คืน null)', async () => {
+      mockAiQueueService.assertQueuesEmpty.mockResolvedValueOnce(undefined);
+      mockedAxios.get.mockResolvedValue({ data: { models: [] } });
+      mockRedis.set.mockResolvedValueOnce(null); // lock not acquired
+
+      await expect(service.loadModelVram('np-dms-ai:latest')).rejects.toThrow(
+        'Conflict'
+      );
+      expect(mockOllamaService.loadModel).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('FR-009: unloadModelVram transition lock conflict', () => {
+    it('ควร throw 409 Conflict เมื่อ lock ถูก held โดย transition อื่น', async () => {
+      mockAiQueueService.assertQueuesEmpty.mockResolvedValueOnce(undefined);
+      mockRedis.set.mockResolvedValueOnce(null); // lock not acquired
+
+      await expect(service.unloadModelVram('np-dms-ai:latest')).rejects.toThrow(
+        'Conflict'
+      );
+      expect(mockOllamaService.unloadModel).not.toHaveBeenCalled();
+    });
+  });
+
+  // ─── Auto-Evict error handling ─────────────────────────────────────────────
+
+  describe('autoEvictIfNeeded error handling', () => {
+    it('ควรไม่ throw เมื่อ autoEvictIfNeeded query ล้มเหลว', async () => {
+      mockAiQueueService.assertQueuesEmpty.mockResolvedValueOnce(undefined);
+      // getVramHeadroom: 6GB used, 2GB free → ต้อง evict
+      // autoEvictIfNeeded: axios.get ล้มเหลว
+      mockedAxios.get
+        .mockResolvedValueOnce({
+          data: {
+            models: [
+              {
+                name: 'np-dms-ocr:latest',
+                size_vram: 6 * 1024 * 1024 * 1024,
+              },
+            ],
+          },
+        })
+        .mockRejectedValueOnce(new Error('query failed'));
+
+      await service.loadModelVram('np-dms-ai:latest');
+
+      // ยังโหลดได้แม้ eviction query ล้มเหลว
+      expect(mockOllamaService.loadModel).toHaveBeenCalledWith(
+        'np-dms-ai:latest',
+        -1
+      );
+    });
+  });
+
+  // ─── releaseTransitionLock ─────────────────────────────────────────────────
+
+  describe('releaseTransitionLock', () => {
+    it('ควรไม่ del lock เมื่อ token ไม่ตรงกัน', async () => {
+      mockAiQueueService.assertQueuesEmpty.mockResolvedValueOnce(undefined);
+      mockedAxios.get.mockResolvedValue({ data: { models: [] } });
+      // redis.set สำเร็จ แต่ redis.get คืน token อื่น (เกิดจาก transition ใหม่)
+      mockRedis.set.mockResolvedValueOnce('OK');
+      mockRedis.get.mockResolvedValueOnce('different-token');
+
+      await service.loadModelVram('np-dms-ai:latest');
+
+      // del ไม่ควรถูกเรียกเพราะ token ไม่ตรง
+      expect(mockRedis.del).not.toHaveBeenCalled();
+    });
+
+    it('ควรไม่ throw เมื่อ releaseTransitionLock redis.get ล้มเหลว', async () => {
+      mockAiQueueService.assertQueuesEmpty.mockResolvedValueOnce(undefined);
+      mockedAxios.get.mockResolvedValue({ data: { models: [] } });
+      mockRedis.set.mockResolvedValueOnce('OK');
+      mockRedis.get.mockRejectedValueOnce(new Error('Redis down'));
+
+      await service.loadModelVram('np-dms-ai:latest');
+
+      // ไม่ throw แม้ releaseTransitionLock ล้มเหลว
+      expect(mockOllamaService.loadModel).toHaveBeenCalled();
+    });
+
+    it('ควร del lock เมื่อ token ตรงกัน (releaseTransitionLock success)', async () => {
+      mockAiQueueService.assertQueuesEmpty.mockResolvedValueOnce(undefined);
+      mockedAxios.get.mockResolvedValue({ data: { models: [] } });
+      // Capture token จาก redis.set แล้วคืนค่าใน redis.get
+      let capturedToken: string | null = null;
+      mockRedis.set.mockImplementationOnce((key: string, value: string) => {
+        if (key === 'ai:model:transitioning') {
+          capturedToken = value;
+        }
+        return Promise.resolve('OK');
+      });
+      mockRedis.get.mockImplementationOnce(() =>
+        Promise.resolve(capturedToken)
+      );
+
+      await service.loadModelVram('np-dms-ai:latest');
+
+      expect(mockRedis.del).toHaveBeenCalledWith('ai:model:transitioning');
+    });
+  });
+
+  // ─── unloadModelVram with auto-evict skip ──────────────────────────────────
+
+  describe('unloadModelVram VRAM query failed', () => {
+    it('ควร skip auto-eviction เมื่อ query ล้มเหลว', async () => {
+      mockAiQueueService.assertQueuesEmpty.mockResolvedValueOnce(undefined);
+      mockRedis.set.mockResolvedValueOnce('OK');
+      mockRedis.get.mockResolvedValueOnce(null);
+
+      await service.unloadModelVram('np-dms-ai:latest');
+
+      expect(mockOllamaService.unloadModel).toHaveBeenCalledWith(
+        'np-dms-ai:latest'
+      );
+    });
+  });
 });

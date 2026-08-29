@@ -1172,14 +1172,27 @@ INSERT INTO rfa_approve_codes (
     sort_order,
     is_active
   )
-VALUES ('1A', 'Approved by Authority', 10, 1),
-  ('1C', 'Approved by CSC', 11, 1),
-  ('1N', 'Approved As Note', 12, 1),
-  ('1R', 'Approved with Remarks', 13, 1),
-  ('3C', 'Consultant Comments', 31, 1),
-  ('3R', 'Revise and Resubmit', 32, 1),
-  ('4X', 'Reject', 40, 1),
-  ('5N', 'No Further Action', 50, 1);
+VALUES ('1A', 'Approved by Authority', 10, 0),
+  ('1C', 'Approved by CSC', 11, 0),
+  ('1N', 'Approved As Note', 12, 0),
+  ('1R', 'Approved with Remarks', 13, 0),
+  ('3C', 'Consultant Comments', 31, 0),
+  ('3R', 'Revise and Resubmit', 32, 0),
+  ('4X', 'Reject', 40, 0),
+  ('5N', 'No Further Action', 50, 0),
+  -- ADR-049 scheme ใหม่ (1/2/3/4)
+  ('1', 'Approved', 10, 1),
+  ('2', 'Approved with Comments', 20, 1),
+  ('3', 'Revise and Resubmit', 30, 1),
+  ('4', 'Rejected', 40, 1);
+
+-- ADR-049: Seed rfa_consent_reasons (CONSULTANT consent metadata — ไม่มีผลต่อ state)
+INSERT INTO rfa_consent_reasons (public_id, code, description, sort_order, is_active)
+VALUES (UUID(), 'NO_OBJECTION', 'No objection to the design/submission', 10, 1),
+  (UUID(), 'COMMENTS_PROVIDED', 'Comments provided but no objection', 20, 1),
+  (UUID(), 'AGREED_WITH_CONDITIONS', 'Agreed with conditions to be addressed', 30, 1),
+  (UUID(), 'FORWARDED_TO_DESIGNER', 'Forwarded to designer for review', 40, 1),
+  (UUID(), 'REQUESTED_REVISION', 'Requested revision before consent', 50, 1);
 
 -- Seed circulation_status_codes
 INSERT INTO circulation_status_codes (code, description, sort_order)

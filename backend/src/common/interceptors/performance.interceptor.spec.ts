@@ -482,5 +482,30 @@ describe('PerformanceInterceptor', () => {
         })
       );
     });
+
+    it('should fallback to statusCode arg when response.statusCode is 0', async () => {
+      // ครอบคลุม branch `res.statusCode || statusCode` ฝั่ง false (statusCode falsy)
+      const context = {
+        switchToHttp: () => ({
+          getRequest: () => ({
+            url: '/api/test',
+            method: 'GET',
+            route: { path: '/api/test' },
+          }),
+          // statusCode = 0 → falsy → ใช้ statusCode arg (200)
+          getResponse: () => ({ statusCode: 0 }),
+        }),
+      } as ExecutionContext;
+      const callHandler = createMockCallHandler({ data: 'ok' });
+
+      const result = interceptor.intercept(context, callHandler);
+      await lastValueFrom(result);
+
+      expect(metricsService.httpRequestsTotal.inc).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status_code: '200',
+        })
+      );
+    });
   });
 });

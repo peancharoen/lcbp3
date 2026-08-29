@@ -473,16 +473,25 @@ CREATE TABLE rfa_status_codes (
 -- ตาราง Master สำหรับรหัสผลการอนุมัติ RFA
 CREATE TABLE rfa_approve_codes (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
-  approve_code VARCHAR(20) NOT NULL UNIQUE COMMENT 'รหัสผลการอนุมัติ (
-        เช่น 1A - Approved,
-        3R - Revise
-        and Resubmit
-    )',
+  approve_code VARCHAR(20) NOT NULL UNIQUE COMMENT 'รหัสผลการอนุมัติ (ADR-049 scheme ใหม่: 1=Approved, 2=Approved with Comments, 3=Revise and Resubmit, 4=Rejected — code เดิม 1A/1C/1N/1R/3C/3R/4X/5N ปิด is_active=0 แล้ว)',
   approve_name VARCHAR(100) NOT NULL COMMENT 'ชื่อผลการอนุมัติ',
   description TEXT COMMENT 'คำอธิบาย',
   sort_order INT DEFAULT 0 COMMENT 'ลำดับการแสดงผล',
   is_active TINYINT(1) DEFAULT 1 COMMENT 'สถานะการใช้งาน '
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master สำหรับรหัสผลการอนุมัติ RFA';
+
+-- ตาราง Master สำหรับ consent reason ของ CONSULTANT (ADR-049)
+CREATE TABLE rfa_consent_reasons (
+  id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
+  public_id CHAR(36) NOT NULL UNIQUE COMMENT 'ADR-019: UUIDv7 สำหรับ API response',
+  code VARCHAR(20) NOT NULL UNIQUE COMMENT 'รหัส consent reason (เช่น NO_OBJECTION, COMMENTS_PROVIDED)',
+  description VARCHAR(200) NOT NULL COMMENT 'คำอธิบาย consent reason',
+  sort_order INT DEFAULT 0 COMMENT 'ลำดับการแสดงผล',
+  is_active TINYINT(1) DEFAULT 1 COMMENT 'สถานะการใช้งาน',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่อัปเดต'
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci
+  COMMENT = 'ADR-049: ตาราง Master สำหรับ consent reason ของ CONSULTANT (metadata ไม่มีผลต่อ workflow state)';
 
 CREATE TABLE rfas (
   id INT PRIMARY KEY COMMENT 'ID ของตาราง (RFA Master ID)',
@@ -1463,10 +1472,14 @@ CREATE TABLE workflow_histories (
   ACTION VARCHAR(50) NOT NULL COMMENT 'Action ที่กระทำ',
   action_by_user_id INT NULL COMMENT 'User ID ผู้กระทำ',
   action_by_user_uuid VARCHAR(36) NULL COMMENT 'UUID ของ User ผู้ดำเนินการ (คัดลอกจาก users.uuid — อาจเป็น UUIDv7 หรือ UUIDv1 ตามที่มาของ user record) — ใช้ใน API Response แทน INT FK (ADR-019). NULL = System Action หรือ Pre-migration record',
+  impersonated TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'ADR-049: 1 = admin ทำ action แทน handler ดั้งเดิม (Superadmin/Org Admin impersonation)',
+  on_behalf_of_user_id INT NULL COMMENT 'ADR-049: FK → users.id ของ handler ดั้งเดิม (เจ้าของเดิม) — NULL ถ้าไม่ใช่ impersonation (ไม่ใส่ FK เพราะ user อาจ inactive แล้ว — edge case T031a)',
+  on_behalf_of_user_uuid VARCHAR(36) NULL COMMENT 'ADR-049: UUID ของ handler ดั้งเดิม สำหรับ API response (ADR-019) — NULL ถ้าไม่ใช่ impersonation',
   COMMENT TEXT NULL COMMENT 'ความเห็น',
-  metadata JSON NULL COMMENT 'Snapshot ข้อมูล ณ ขณะนั้น',
+  metadata JSON NULL COMMENT 'Snapshot ข้อมูล ณ ขณะนั้น (รวม on_behalf_of_user_active: boolean สำหรับ edge case T031a — ระบุว่า user ต้นทาง inactive แล้ว)',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT fk_wf_hist_inst FOREIGN KEY (instance_id) REFERENCES workflow_instances (id) ON DELETE CASCADE
+  CONSTRAINT fk_wf_hist_inst FOREIGN KEY (instance_id) REFERENCES workflow_instances (id) ON DELETE CASCADE,
+  INDEX idx_wf_hist_on_behalf_of_user_id (on_behalf_of_user_id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'ตารางประวัติการเปลี่ยนสถานะ Workflow';
 
 -- =====================================================

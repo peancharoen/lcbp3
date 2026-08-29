@@ -8,11 +8,22 @@ export enum StepStatus {
 }
 
 // การกระทำที่ผู้ใช้ทำได้
+// ADR-049: เพิ่ม RFA multi-party actions
 export enum WorkflowAction {
   APPROVE = 'APPROVE', // อนุมัติ / ยืนยัน / ส่งต่อ
   REJECT = 'REJECT', // ปฏิเสธ (จบ workflow ทันที)
   RETURN = 'RETURN', // ส่งกลับ (ไปแก้มาใหม่)
   ACKNOWLEDGE = 'ACKNOWLEDGE', // รับทราบ (สำหรับ For Info)
+  // RFA multi-party (ADR-049)
+  SUBMIT = 'SUBMIT',
+  CONSENT_FOR_APPROVE = 'CONSENT_FOR_APPROVE',
+  ASK_DESIGNER = 'ASK_DESIGNER',
+  RESUBMIT = 'RESUBMIT',
+  AGREED = 'AGREED',
+  AGREED_WITH_COMMENTS = 'AGREED_WITH_COMMENTS',
+  NO_OBJECTION = 'NO_OBJECTION',
+  OBJECTED = 'OBJECTED',
+  APPROVE_WITH_COMMENTS = 'APPROVE_WITH_COMMENTS',
 }
 
 // ข้อมูลพื้นฐานของขั้นตอน (Step) ที่ Engine ต้องรู้

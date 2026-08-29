@@ -5,6 +5,7 @@
 **Decision Makers:** Senior Full Stack Developer, System Architect
 **Amends:** none (additive — extends `/admin/ai/system` UI and `AiController` endpoints)
 **Related Documents:**
+
 - [ADR-033: Active Model & OCR Runner Management](./ADR-033-active-model-and-ocr-management.md)
 - [ADR-041: Single-Host Server Consolidation](./ADR-041-server-consolidation.md)
 - [ADR-043: AI Architecture — Current State](./ADR-043-ai-architecture-current-state.md) (§13 Server Topology, §10 AI Admin Console)
@@ -55,33 +56,40 @@
 ### CPU/Host Metrics Source
 
 **Option A — Backend อ่าน `/proc` ตรง (Node.js `os` module / `systeminformation`)**
+
 - ❌ ต้องแก้ container ให้ mount `/proc` ของ host หรือรันแบบ host network — กระทบ Docker isolation ที่ ADR-041 วางไว้
 - ❌ Parsing เกิดขึ้นซ้ำในทุก request ภายใน process หลักของ backend แทนที่จะเป็น purpose-built binary
 
 **Option B — เพิ่ม `node-exporter` + backend query ตรง (เลือกแนวทางนี้)**
+
 - ✅ Pattern เดียวกับ `nvidia-gpu-exporter`/`ollama-metrics` ที่มีอยู่แล้ว — footprint เล็ก (~20MB RAM, <0.1 CPU)
 - ✅ Backend query `/metrics` ตรง ไม่ต้องพึ่ง Prometheus บน ASUSTOR (ลด external dependency สำหรับหน้านี้)
 - ✅ ไม่กระทบ Docker network isolation — เป็น container เพิ่มเข้า Layer 4 ตามโครงสร้างเดิม
 
 **Option C — Query ผ่าน Prometheus HTTP API (ASUSTOR)**
+
 - ✅ สอดคล้องกับ dashboard ระยะยาว (Grafana) ที่มีแผนอยู่แล้ว
 - ❌ หน้า `/admin/ai/system` จะพังถ้า ASUSTOR/Prometheus ไม่ทำงาน แม้ np-dms-lcbp3 เองปกติดี — ผิดหลัก fail-independent ของ core admin page
 
 ### Model VRAM Load/Unload Control
 
 **Option A — Manual load/unload ไม่มี guard**
+
 - ❌ เสี่ยง race กับ automatic switching ใน `ai-batch.processor.ts` — อาจทำให้ job ที่กำลังรัน generate ล้มเหลวกลางคัน
 
 **Option B — Block เมื่อมี active job (เลือกแนวทางนี้)**
+
 - ✅ ปลอดภัยที่สุด สอดคล้อง ADR-007 (แจ้งเหตุผลชัดเจนแทนที่จะปล่อยให้ fail แบบ silent)
 - ⚠️ Admin ต้องรอ queue ว่างก่อนควบคุมโมเดลเอง — ยอมรับได้เพราะเป็น manual action ไม่ใช่ user-facing flow
 
 ### Clear Failed Jobs Scope
 
 **Option A — ล้างทุก queue พร้อมกัน**
+
 - ❌ เสี่ยง clear คิวที่ไม่ตั้งใจ (5 queues ใช้ pattern ชื่อคล้ายกัน)
 
 **Option B — เลือก queue ก่อน clear (per-queue action, เลือกแนวทางนี้)**
+
 - ✅ ชัดเจนว่า clear คิวไหน ปลอดภัยกว่า
 - ✅ Scope เฉพาะ `failed` state เท่านั้น (ไม่แตะ `active`/`waiting`) — ป้องกัน backlog หาย
 
@@ -129,16 +137,21 @@
   - `POST /ai/admin/models/:modelName/vram/unload` — เรียก Ollama `/api/generate` ด้วย `keep_alive: 0` เพื่อบังคับ unload ทันที
 - **Concurrency Guard & Backlog Check (บังคับ):**
   - ก่อนอนุญาต load/unload (รวมถึง Auto-Eviction ด้านล่าง) ต้องเช็คผ่าน `AiQueueService` ว่า **ทั้ง `ai-realtime` และ `ai-batch` ไม่มี job สถานะ `active` หรือ `waiting` เลยแม้แต่รายการเดียว** (global empty-queue check — ไม่ filter เฉพาะ job ที่เกี่ยวกับโมเดลนั้น เพราะ BullMQ job payload ไม่ได้ผูก field "model" ไว้สม่ำเสมอทุก jobType จึง filter แบบ per-model ไม่น่าเชื่อถือพอ)
-  - ถ้ามี job ค้างอยู่ ให้ตอบ `409 Conflict` พร้อม `userMessage` ตาม ADR-007 (เช่น *"ไม่สามารถโหลด/เอาโมเดลออกได้เนื่องจากมีงานกำลังประมวลผลหรือรอคิวอยู่ {count} รายการ กรุณารอให้งานเสร็จสิ้นก่อน"*) — Frontend disable ปุ่มพร้อม tooltip อธิบายเหตุผลเดียวกัน
+  - ถ้ามี job ค้างอยู่ ให้ตอบ `409 Conflict` พร้อม `userMessage` ตาม ADR-007 (เช่น _"ไม่สามารถโหลด/เอาโมเดลออกได้เนื่องจากมีงานกำลังประมวลผลหรือรอคิวอยู่ {count} รายการ กรุณารอให้งานเสร็จสิ้นก่อน"_) — Frontend disable ปุ่มพร้อม tooltip อธิบายเหตุผลเดียวกัน
   - Guard นี้เป็นข้อกำหนดเดียวที่ป้องกัน race กับ automatic model switching ใน `ai-batch.processor.ts` (unload main → load OCR → generate → reload main) — เพราะ switching จะเกิดขึ้นเฉพาะตอนมี job `active` เท่านั้น ซึ่งถูก guard block ไว้แล้ว
 - **Auto-Eviction / Exclusive Residency Policy (ป้องกัน VRAM OOM):**
   - เมื่อ Guard ด้านบนผ่านแล้ว (queue ว่างจริง) และการโหลดโมเดลเป้าหมายเข้า VRAM อาจทำให้ VRAM ล้น (Single GPU 12-16GB ไม่พอรับ 2 โมเดลพร้อมกัน) ระบบจะทำ **Auto-Eviction** สั่ง Unload โมเดลอื่นที่โหลดค้างอยู่ก่อนโดยอัตโนมัติ เพื่อป้องกัน GPU Memory Spilling ไปยัง CPU
   - Auto-Eviction **ไม่มี guard เพิ่มเติมของตัวเอง** — อาศัย global empty-queue check เดียวกับ Load/Unload ด้านบน (เกิดเป็นส่วนหนึ่งของ transaction เดียวกัน ไม่ใช่ background job แยก)
+- **Sidecar GPU Coordination (BGE lazy-load):**
+  - BGE-M3 และ BGE-Reranker อยู่นอก Ollama `/api/ps` จึงถูกจัดการโหลด/ยกเลิกโหลดโดย OCR sidecar (lazy-load ตาม demand + auto-unload หลัง idle 300s) ตาม ADR-040
+  - ก่อนโหลด Ollama model สำหรับ OCR หรือ LLM generation ระบบจะสั่ง `OcrService.unloadBgeModels()` ผ่าน `ai-batch.processor.ts` (ก่อน OCR job) และ `AiRagService` (หลัง rerank ก่อน generate) ตามลำดับ
+  - `VramMonitorService` ไม่บังคับ BGE โดยตรง แต่ admin UI แสดงสถานะ BGE ควบคู่ Ollama model ผ่าน `GET /ai/admin/bge/status`
+  - บังคับใช้นโยบาย **GPU Coordination** ใน `CONTEXT.md` — Ollama model กับ BGE ไม่ถือ VRAM ซ้อนกันในช่วง OCR/LLM
 - **ปิดช่องโหว่ TOCTOU ด้วย Single-Point Redis Lock ใน `AiQueueService` (ไม่แก้ Worker/Processor เดิม):**
   - ปัญหา: Guard เช็ค "queue ว่าง" ณ เวลา request แต่ Ollama ใช้เวลา 1-3 วินาทีจึง load/unload เสร็จจริง — ช่วงนี้อาจมี job ใหม่ enqueue เข้ามาและถูก worker หยิบไปประมวลผลชน model ที่กำลัง transition
   - แก้แบบ minimal-touch: เพิ่ม Redis lock `ai:model:transitioning` (TTL 15s) ที่ตั้งก่อนเรียก Ollama และลบทันทีที่เสร็จ — จุดเดียวที่ต้องเช็ค lock คือ **`AiQueueService.enqueue*()` methods** (จุด choke point เดียวที่ทุก endpoint enqueue เข้า `ai-realtime`/`ai-batch` เรียกผ่านอยู่แล้ว) โดยถ้า lock ติดอยู่ ให้ `enqueue*()` throw `SystemException` (503, ตาม ADR-007) ก่อน `queue.add()` จะถูกเรียก
   - **ไม่แตะ BullMQ Worker/Processor (`ai-batch.processor.ts`) เลย** — เพราะจุดป้องกันอยู่ที่ "ทางเข้า" (enqueue) ไม่ใช่ "ทางออก" (process) จึงเป็นการเปลี่ยนแปลง 1 จุดใน service layer เดียว ไม่ใช่การแก้ทุก endpoint หรือทุก processor
-- **Unload Confirmation UX:** การกด Unload ทุกครั้งต้องแสดง Confirmation Dialog เสมอ พร้อมแจ้งเตือนเรื่อง Cold-Start Latency (*"การเอาโมเดลออกจากหน่วยความจำจะทำให้คำขอถัดไปของผู้ใช้ต้องใช้เวลาโหลดโมเดลใหม่ 5-10 วินาที ยืนยันการดำเนินการหรือไม่?"*)
+- **Unload Confirmation UX:** การกด Unload ทุกครั้งต้องแสดง Confirmation Dialog เสมอ พร้อมแจ้งเตือนเรื่อง Cold-Start Latency (_"การเอาโมเดลออกจากหน่วยความจำจะทำให้คำขอถัดไปของผู้ใช้ต้องใช้เวลาโหลดโมเดลใหม่ 5-10 วินาที ยืนยันการดำเนินการหรือไม่?"_)
 - Permission: `system.manage_all` (เฉพาะ Superadmin)
 - Audit: `@Audit('LOAD_MODEL_VRAM' | 'UNLOAD_MODEL_VRAM', 'ollama')` ตาม pattern ของ `applyProfile`
 
@@ -147,7 +160,7 @@
 - เพิ่ม endpoints:
   - `GET /ai/admin/queues/:queueName/jobs?status=&page=&limit=` — คืนรายการ job (`jobId`, `jobType`, `status`, `createdAt`/`processedAt`/`finishedAt`, `failedReason` ถ้ามี) จาก BullMQ `Queue.getJobs()`
   - `POST /ai/admin/queues/:queueName/jobs/:jobId/retry` — สั่งให้ BullMQ ลองประมวลผล Failed Job นั้นใหม่อีกครั้ง (`Job.retry()`)
-  - `DELETE /ai/admin/queues/:queueName/jobs/:jobId` — ลบ Job เฉพาะตัวนั้นออกจากคิว (`Job.remove()`) **อนุญาตทุกสถานะ รวม `active`** — ⚠️ **คำเตือนสถาปัตยกรรม:** `Job.remove()` บน job ที่ `active` อยู่ลบเฉพาะ BullMQ record ใน Redis เท่านั้น **ไม่ได้หยุด worker process/Ollama call ที่กำลังรันจริง** — worker จะรันต่อจนจบแล้วพยายาม update job ที่ถูกลบไปแล้ว (จะ error แบบ silent ใน log แต่ไม่กระทบ job อื่น) Frontend **ต้องแสดง Confirmation Dialog เตือนเรื่องนี้ชัดเจน** ก่อน delete job ที่สถานะ `active` เสมอ (ข้อความเช่น *"งานนี้กำลังประมวลผลอยู่ การลบจะเอาออกจากรายการเท่านั้น กระบวนการเบื้องหลังจะยังทำงานต่อจนเสร็จ ยืนยันหรือไม่?"*)
+  - `DELETE /ai/admin/queues/:queueName/jobs/:jobId` — ลบ Job เฉพาะตัวนั้นออกจากคิว (`Job.remove()`) **อนุญาตทุกสถานะ รวม `active`** — ⚠️ **คำเตือนสถาปัตยกรรม:** `Job.remove()` บน job ที่ `active` อยู่ลบเฉพาะ BullMQ record ใน Redis เท่านั้น **ไม่ได้หยุด worker process/Ollama call ที่กำลังรันจริง** — worker จะรันต่อจนจบแล้วพยายาม update job ที่ถูกลบไปแล้ว (จะ error แบบ silent ใน log แต่ไม่กระทบ job อื่น) Frontend **ต้องแสดง Confirmation Dialog เตือนเรื่องนี้ชัดเจน** ก่อน delete job ที่สถานะ `active` เสมอ (ข้อความเช่น _"งานนี้กำลังประมวลผลอยู่ การลบจะเอาออกจากรายการเท่านั้น กระบวนการเบื้องหลังจะยังทำงานต่อจนเสร็จ ยืนยันหรือไม่?"_)
 - ครอบคลุมทั้ง 5 queues: `ai-realtime`, `ai-batch`, `ai-ingest`, `ai-rag`, `ai-vector-deletion` — `queueName` เป็น path param ที่ validate กับ allowlist ของ queue constants ที่มีอยู่แล้ว (`queue.constants.ts`)
 - **Frontend UX (Slide-over Sheet / Drawer):**
   - เมื่อ Admin คลิกที่การ์ด Queue ใด ๆ จะเปิด Drawer เลื่อนจากขอบขวาของจอ (Slide-over Sheet) แสดงรายการ Jobs รายตัว พร้อมแท็บกรองสถานะ (`All`, `Failed`, `Active`, `Waiting`), Pagination และปุ่ม "Clear Failed" ที่หัว Header ของ Drawer
@@ -159,7 +172,7 @@
   - `POST /ai/admin/queues/:queueName/clear-failed` — enqueue internal job type `clear-failed-jobs` เข้า `ai-batch` queue พร้อม payload `{ targetQueueName }` แล้วตอบกลับทันที `{ jobId, status: 'queued' }` (ไม่รอผลลัพธ์)
   - `GET /ai/admin/queues/:queueName/clear-failed/:jobId` — endpoint สำหรับ frontend polling สถานะ (เหมือน pattern `GET /ai/admin/sandbox/job/:id` ที่มีอยู่แล้ว)
   - Processor (`ai-batch.processor.ts` เพิ่ม case ใหม่) รัน **Chunked Clean Loop with Safety Cap**: วนลูป `Queue.clean(0, 1000, 'failed')` บน queue เป้าหมาย โดยจำกัด Safety Cap สูงสุด 10,000 jobs ต่อครั้ง เพื่อไม่ให้ Redis event loop ถูกบล็อกนานเกินไปแม้จะรันนอก HTTP request แล้วก็ตาม
-  - **Transparent Reporting:** เมื่อ job เสร็จ เก็บผลลัพธ์ `{ clearedCount: number, remainingFailed: number }` ไว้ให้ polling endpoint คืนค่า เพื่อให้ Frontend แสดง Toast Notification ชัดเจน (เช่น *"ล้างงานที่ล้มเหลวแล้ว 3,500 รายการ (คงเหลือ 0 รายการ)"*)
+  - **Transparent Reporting:** เมื่อ job เสร็จ เก็บผลลัพธ์ `{ clearedCount: number, remainingFailed: number }` ไว้ให้ polling endpoint คืนค่า เพื่อให้ Frontend แสดง Toast Notification ชัดเจน (เช่น _"ล้างงานที่ล้มเหลวแล้ว 3,500 รายการ (คงเหลือ 0 รายการ)"_)
   - **Storage & Temp Artifact Independence:** การกวาดลบเฉพาะ BullMQ record ใน Redis ไม่กระทบไฟล์ Temp ใน Storage เนื่องจากไฟล์ชั่วคราวทั้งหมดถูกบริหารจัดการด้วย Two-Phase Upload และ `TmpCleanupService` (Cron 24h retention) ตาม ADR-016 อยู่แล้ว
 - **ขอบเขตชัดเจน:** ลบเฉพาะ job สถานะ `failed` เท่านั้น ห้ามแตะ `active`/`waiting`/`delayed`/`completed`
 - Permission: `system.manage_all` (เฉพาะ Superadmin)
@@ -178,28 +191,28 @@
 
 ### Affected Components
 
-| Component | Level | Impact Description | Required Action |
-| :--- | :--- | :--- | :--- |
-| **Infrastructure (Layer 4)** | 🟡 Medium | เพิ่ม `node-exporter` container ใหม่ | แก้ `04-ai/docker-compose.yml`, เปิด port `192.168.10.11:9100` |
-| **Backend Service** | 🔴 High | เพิ่ม `NodeMetricsService` ใหม่, ขยาย `VramMonitorService` (load/unload + auto-eviction), ขยาย `AiQueueService` (job listing/retry/remove/clear-failed) | สร้าง service ใหม่ + เพิ่ม method ใน service เดิม |
-| **Backend Service (Non-Additive)** | 🔴 High | `AiQueueService.enqueue*()` methods ต้องเพิ่ม lock-check ก่อน `queue.add()` (D3 TOCTOU fix) — เป็นจุดเดียวที่แก้ของ "โค้ดเดิม" ไม่ใช่ endpoint ใหม่ล้วน | เพิ่ม guard clause ใน `enqueue*()` ทุกตัวที่มีอยู่แล้ว + unit test กัน regression |
-| **Backend Controller** | 🔴 High | เพิ่ม 8 endpoints ใหม่ (`host/metrics`, `models/:name/vram/load`, `models/:name/vram/unload`, `queues/:name/jobs`, `queues/:name/jobs/:id/retry`, `queues/:name/jobs/:id` DELETE, `queues/:name/clear-failed` POST, `queues/:name/clear-failed/:jobId` GET) | อัปเดต `AiController` + DTO validation |
-| **Backend Processor** | 🟡 Medium | เพิ่ม case `clear-failed-jobs` ใหม่ใน `ai-batch.processor.ts` (chunked clean loop) | เพิ่ม handler + unit test |
-| **Frontend UI** | 🔴 High | รวม VRAM card เข้า Ollama card, เพิ่ม host metrics card, เพิ่ม job drill-down (Drawer) + retry/delete/clear-failed actions | อัปเดต `AiInfrastructureMonitoring.tsx` |
-| **RBAC/Audit** | 🟢 Low | ใช้ `system.manage_all` เดียวทุก endpoint ไม่มี permission ใหม่ ไม่มี DB migration | ตรวจสอบ `@Audit()` ครบทุก mutation |
-| **Concurrency Safety** | 🔴 High | ป้องกัน race กับ `ai-batch.processor.ts` automatic model switching ทั้งระดับ "รับคำสั่งใหม่" (global empty-queue guard) และระดับ "TOCTOU ระหว่าง transition" (Redis lock ใน `AiQueueService`) | เพิ่ม guard + lock ตาม D3 |
+| Component                          | Level     | Impact Description                                                                                                                                                                                                                                          | Required Action                                                                   |
+| :--------------------------------- | :-------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------- |
+| **Infrastructure (Layer 4)**       | 🟡 Medium | เพิ่ม `node-exporter` container ใหม่                                                                                                                                                                                                                        | แก้ `04-ai/docker-compose.yml`, เปิด port `192.168.10.11:9100`                    |
+| **Backend Service**                | 🔴 High   | เพิ่ม `NodeMetricsService` ใหม่, ขยาย `VramMonitorService` (load/unload + auto-eviction), ขยาย `AiQueueService` (job listing/retry/remove/clear-failed)                                                                                                     | สร้าง service ใหม่ + เพิ่ม method ใน service เดิม                                 |
+| **Backend Service (Non-Additive)** | 🔴 High   | `AiQueueService.enqueue*()` methods ต้องเพิ่ม lock-check ก่อน `queue.add()` (D3 TOCTOU fix) — เป็นจุดเดียวที่แก้ของ "โค้ดเดิม" ไม่ใช่ endpoint ใหม่ล้วน                                                                                                     | เพิ่ม guard clause ใน `enqueue*()` ทุกตัวที่มีอยู่แล้ว + unit test กัน regression |
+| **Backend Controller**             | 🔴 High   | เพิ่ม 8 endpoints ใหม่ (`host/metrics`, `models/:name/vram/load`, `models/:name/vram/unload`, `queues/:name/jobs`, `queues/:name/jobs/:id/retry`, `queues/:name/jobs/:id` DELETE, `queues/:name/clear-failed` POST, `queues/:name/clear-failed/:jobId` GET) | อัปเดต `AiController` + DTO validation                                            |
+| **Backend Processor**              | 🟡 Medium | เพิ่ม case `clear-failed-jobs` ใหม่ใน `ai-batch.processor.ts` (chunked clean loop)                                                                                                                                                                          | เพิ่ม handler + unit test                                                         |
+| **Frontend UI**                    | 🔴 High   | รวม VRAM card เข้า Ollama card, เพิ่ม host metrics card, เพิ่ม job drill-down (Drawer) + retry/delete/clear-failed actions                                                                                                                                  | อัปเดต `AiInfrastructureMonitoring.tsx`                                           |
+| **RBAC/Audit**                     | 🟢 Low    | ใช้ `system.manage_all` เดียวทุก endpoint ไม่มี permission ใหม่ ไม่มี DB migration                                                                                                                                                                          | ตรวจสอบ `@Audit()` ครบทุก mutation                                                |
+| **Concurrency Safety**             | 🔴 High   | ป้องกัน race กับ `ai-batch.processor.ts` automatic model switching ทั้งระดับ "รับคำสั่งใหม่" (global empty-queue guard) และระดับ "TOCTOU ระหว่าง transition" (Redis lock ใน `AiQueueService`)                                                               | เพิ่ม guard + lock ตาม D3                                                         |
 
 ---
 
 ## 📋 Version Dependency Matrix
 
-| ADR | Version | Dependency Type | Status |
-| :--- | :--- | :--- | :--- |
-| **ADR-033** | 1.0 | Required (Active Model & OCR Runner baseline) | ✅ Implemented |
-| **ADR-041** | 1.0 | Required (Layer 4 exporter pattern, host `np-dms-lcbp3`) | ✅ Implemented |
-| **ADR-007** | 1.0 | Required (Error classification, destructive action safety) | ✅ Implemented |
-| **ADR-016** | 1.0 | Required (RBAC + AI Audit Trail) | ✅ Implemented |
-| **ADR-048** | 1.0 | Target (this ADR) | 🔄 Proposed |
+| ADR         | Version | Dependency Type                                            | Status         |
+| :---------- | :------ | :--------------------------------------------------------- | :------------- |
+| **ADR-033** | 1.0     | Required (Active Model & OCR Runner baseline)              | ✅ Implemented |
+| **ADR-041** | 1.0     | Required (Layer 4 exporter pattern, host `np-dms-lcbp3`)   | ✅ Implemented |
+| **ADR-007** | 1.0     | Required (Error classification, destructive action safety) | ✅ Implemented |
+| **ADR-016** | 1.0     | Required (RBAC + AI Audit Trail)                           | ✅ Implemented |
+| **ADR-048** | 1.0     | Target (this ADR)                                          | 🔄 Proposed    |
 
 ## 🚀 Implementation Roadmap
 
@@ -253,19 +266,20 @@
 ## 🔄 Review Cycle & Maintenance
 
 ### Review Schedule
+
 - **Next Review:** 2027-02-24 (6 months from creation)
 - **Review Type:** Triggered (เมื่อมี incident จาก manual load/unload หรือ clear-failed) หรือ Scheduled
 - **Reviewers:** System Architect, AI Integration Lead
 
 ### Version History
 
-| Version | Date | Changes | Status |
-|---------|------|---------|--------|
-| 1.4 | 2026-08-24 | Grill-with-Docs Review Round 3 (verified against real CASL/RBAC code): reverted Tiered RBAC to single `system.manage_all` (invented `system.read`/`ai.view_telemetry` don't exist and no "Operator" role exists — only Superadmin/Org Admin/Document Control/Viewer/Project Manager); tied Auto-Eviction to same global empty-queue guard as Load/Unload; replaced invasive Transition Mutex Lock (would've touched all job-dispatch paths) with single-choke-point lock in `AiQueueService.enqueue*()` only; confirmed Retry/Delete-per-job is genuinely wanted scope (not accidental scope creep); Sparkline history moved to Redis (survives reload); Clear Failed Jobs changed from synchronous to async BullMQ job + polling (10k-job scale risk); flagged `Job.remove()` on `active` jobs doesn't kill in-flight worker — added mandatory confirmation dialog; clarified Cold Start = backend process boot, not host boot | 🔄 Proposed |
-| 1.3 | 2026-08-24 | Deepened Grill-Me: Tiered RBAC Matrix (Operator vs Superadmin), Individual Job Retry/Delete Actions in Drawer, Auto-Eviction VRAM Policy, Sparkline Mini-Charts | 🔄 Proposed |
-| 1.2 | 2026-08-24 | Grill-Me Interview Alignment: Phased Roadmap (Phase 1 Telemetry/UI -> Phase 2 Controls), Slide-over Sheet UX for Queue Jobs, 10s auto-refresh interval with Pause/Play, Confirmation Dialog for VRAM Unload | 🔄 Proposed |
-| 1.1 | 2026-08-24 | Red Team QuizMe Refinement: D1 background poller + cold start + temp heuristics, D3 active/waiting guard + transition mutex lock, D5 batch clean loop + transparent response | 🔄 Proposed |
-| 1.0 | 2026-08-24 | Initial proposal — สร้างจาก grill-with-docs session เพื่อขยาย `/admin/ai/system` เป็น AI Engine Control Center | 🔄 Proposed |
+| Version | Date       | Changes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Status      |
+| ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| 1.4     | 2026-08-24 | Grill-with-Docs Review Round 3 (verified against real CASL/RBAC code): reverted Tiered RBAC to single `system.manage_all` (invented `system.read`/`ai.view_telemetry` don't exist and no "Operator" role exists — only Superadmin/Org Admin/Document Control/Viewer/Project Manager); tied Auto-Eviction to same global empty-queue guard as Load/Unload; replaced invasive Transition Mutex Lock (would've touched all job-dispatch paths) with single-choke-point lock in `AiQueueService.enqueue*()` only; confirmed Retry/Delete-per-job is genuinely wanted scope (not accidental scope creep); Sparkline history moved to Redis (survives reload); Clear Failed Jobs changed from synchronous to async BullMQ job + polling (10k-job scale risk); flagged `Job.remove()` on `active` jobs doesn't kill in-flight worker — added mandatory confirmation dialog; clarified Cold Start = backend process boot, not host boot | 🔄 Proposed |
+| 1.3     | 2026-08-24 | Deepened Grill-Me: Tiered RBAC Matrix (Operator vs Superadmin), Individual Job Retry/Delete Actions in Drawer, Auto-Eviction VRAM Policy, Sparkline Mini-Charts                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | 🔄 Proposed |
+| 1.2     | 2026-08-24 | Grill-Me Interview Alignment: Phased Roadmap (Phase 1 Telemetry/UI -> Phase 2 Controls), Slide-over Sheet UX for Queue Jobs, 10s auto-refresh interval with Pause/Play, Confirmation Dialog for VRAM Unload                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | 🔄 Proposed |
+| 1.1     | 2026-08-24 | Red Team QuizMe Refinement: D1 background poller + cold start + temp heuristics, D3 active/waiting guard + transition mutex lock, D5 batch clean loop + transparent response                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | 🔄 Proposed |
+| 1.0     | 2026-08-24 | Initial proposal — สร้างจาก grill-with-docs session เพื่อขยาย `/admin/ai/system` เป็น AI Engine Control Center                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | 🔄 Proposed |
 
 ---
 

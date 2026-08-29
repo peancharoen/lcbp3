@@ -184,4 +184,268 @@ describe('EmbeddingService (US3 — Semantic Chunking)', () => {
       expect(points[1].payload['chunk_index']).toBe(1);
     });
   });
+
+  describe('edge cases and error paths', () => {
+    it('ควรคืน failure เมื่อไม่มี OCR text', async () => {
+      const result = await service.embedDocument(
+        'proj-uuid',
+        'doc-uuid',
+        'CORR-001',
+        'LETTER',
+        'IN_REVIEW',
+        1,
+        'Subject',
+        '2026-06-05',
+        ''
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('No OCR text provided');
+    });
+
+    it('ควรคืน failure เมื่อ OCR text เป็น whitespace อย่างเดียว', async () => {
+      const result = await service.embedDocument(
+        'proj-uuid',
+        'doc-uuid',
+        'CORR-001',
+        'LETTER',
+        'IN_REVIEW',
+        1,
+        'Subject',
+        '2026-06-05',
+        '   '
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('No OCR text provided');
+    });
+
+    it('ควรตั้ง device เป็น cpu เมื่อ embed คืน cpu', async () => {
+      mockAiPromptsService.resolveActive.mockResolvedValueOnce({
+        resolvedPrompt: 'prompt',
+        versionNumber: 1,
+      });
+      mockOllamaService.generate.mockResolvedValueOnce(
+        '<chunk topic="test">ข้อความทดสอบสำหรับการ embed ผ่าน cpu device</chunk>'
+      );
+      mockOcrService.embedViaSidecar.mockResolvedValue({
+        dense: Array(1024).fill(0.1),
+        sparse: { indices: [1], values: [0.5] },
+        device: 'cpu',
+      });
+
+      const result = await service.embedDocument(
+        'proj-uuid',
+        'doc-uuid',
+        'CORR-001',
+        'LETTER',
+        'IN_REVIEW',
+        1,
+        'Subject',
+        '2026-06-05',
+        'ข้อความทดสอบสำหรับการ embed ผ่าน cpu device ที่มีความยาวเกินพอดี'
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.device).toBe('cpu');
+    });
+
+    it('ควรข้าม chunk ที่ embed ล้มเหลว แต่ยัง embed chunk อื่นได้', async () => {
+      mockAiPromptsService.resolveActive.mockResolvedValueOnce({
+        resolvedPrompt: 'prompt',
+        versionNumber: 1,
+      });
+      mockOllamaService.generate.mockResolvedValueOnce(`
+        <chunk topic="chunk1">ข้อความส่วนแรกที่มีความยาวเพียงพอ</chunk>
+        <chunk topic="chunk2">ข้อความส่วนที่สองที่มีความยาวเพียงพอ</chunk>
+      `);
+      mockOcrService.embedViaSidecar
+        .mockRejectedValueOnce(new Error('embed failed'))
+        .mockResolvedValueOnce({
+          dense: Array(1024).fill(0.1),
+          sparse: { indices: [1], values: [0.5] },
+        });
+
+      const result = await service.embedDocument(
+        'proj-uuid',
+        'doc-uuid',
+        'CORR-001',
+        'LETTER',
+        'IN_REVIEW',
+        1,
+        'Subject',
+        '2026-06-05',
+        'ข้อความทดสอบสำหรับการ embed ที่มี chunk ล้มเหลวบางส่วน'
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.chunksEmbedded).toBe(1);
+    });
+
+    it('ควรคืน failure เมื่อทุก chunk embed ล้มเหลว', async () => {
+      mockAiPromptsService.resolveActive.mockResolvedValueOnce({
+        resolvedPrompt: 'prompt',
+        versionNumber: 1,
+      });
+      mockOllamaService.generate.mockResolvedValueOnce(
+        '<chunk topic="chunk1">ข้อความส่วนเดียวที่ embed ล้มเหลว</chunk>'
+      );
+      mockOcrService.embedViaSidecar.mockRejectedValue(new Error('all failed'));
+
+      const result = await service.embedDocument(
+        'proj-uuid',
+        'doc-uuid',
+        'CORR-001',
+        'LETTER',
+        'IN_REVIEW',
+        1,
+        'Subject',
+        '2026-06-05',
+        'ข้อความทดสอบสำหรับการ embed ที่ทุก chunk ล้มเหลว'
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('All chunks failed to embed');
+    });
+
+    it('ควรคืน failure เมื่อ qdrant upsert ล้มเหลว', async () => {
+      mockAiPromptsService.resolveActive.mockResolvedValueOnce({
+        resolvedPrompt: 'prompt',
+        versionNumber: 1,
+      });
+      mockOllamaService.generate.mockResolvedValueOnce(
+        '<chunk topic="test">ข้อความทดสอบที่ qdrant ล้มเหลว</chunk>'
+      );
+      mockOcrService.embedViaSidecar.mockResolvedValue({
+        dense: Array(1024).fill(0.1),
+        sparse: { indices: [1], values: [0.5] },
+      });
+      mockQdrantService.deleteByDocumentPublicId.mockRejectedValueOnce(
+        new Error('Qdrant connection lost')
+      );
+
+      const result = await service.embedDocument(
+        'proj-uuid',
+        'doc-uuid',
+        'CORR-001',
+        'LETTER',
+        'IN_REVIEW',
+        1,
+        'Subject',
+        '2026-06-05',
+        'ข้อความทดสอบที่ qdrant ล้มเหลว มีความยาวเพียงพอ'
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Qdrant connection lost');
+    });
+
+    it('ควรคืน failure เมื่อ qdrant reject ด้วย non-Error', async () => {
+      mockAiPromptsService.resolveActive.mockResolvedValueOnce({
+        resolvedPrompt: 'prompt',
+        versionNumber: 1,
+      });
+      mockOllamaService.generate.mockResolvedValueOnce(
+        '<chunk topic="test">ข้อความทดสอบ non-error rejection</chunk>'
+      );
+      mockOcrService.embedViaSidecar.mockResolvedValue({
+        dense: Array(1024).fill(0.1),
+        sparse: { indices: [1], values: [0.5] },
+      });
+      mockQdrantService.deleteByDocumentPublicId.mockRejectedValueOnce(
+        'string-error'
+      );
+
+      const result = await service.embedDocument(
+        'proj-uuid',
+        'doc-uuid',
+        'CORR-001',
+        'LETTER',
+        'IN_REVIEW',
+        1,
+        'Subject',
+        '2026-06-05',
+        'ข้อความทดสอบ non-error rejection มีความยาวเพียงพอ'
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('string-error');
+    });
+
+    it('ควร fallback เป็น fixed-size เมื่อ semantic chunking throw Error', async () => {
+      mockAiPromptsService.resolveActive.mockRejectedValueOnce(
+        new Error('Prompt service unavailable')
+      );
+      mockOcrService.embedViaSidecar.mockResolvedValue({
+        dense: Array(1024).fill(0.1),
+        sparse: { indices: [1], values: [0.5] },
+      });
+
+      const result = await service.embedDocument(
+        'proj-uuid',
+        'doc-uuid',
+        'CORR-001',
+        'LETTER',
+        'IN_REVIEW',
+        1,
+        'Subject',
+        '2026-06-05',
+        'ข้อความทดสอบเมื่อ semantic chunking throw error แล้ว fallback ไป fixed-size'
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.chunksEmbedded).toBeGreaterThan(0);
+    });
+
+    it('ควร fallback เป็น fixed-size เมื่อ semantic chunking throw non-Error', async () => {
+      mockAiPromptsService.resolveActive.mockRejectedValueOnce('non-error');
+      mockOcrService.embedViaSidecar.mockResolvedValue({
+        dense: Array(1024).fill(0.1),
+        sparse: { indices: [1], values: [0.5] },
+      });
+
+      const result = await service.embedDocument(
+        'proj-uuid',
+        'doc-uuid',
+        'CORR-001',
+        'LETTER',
+        'IN_REVIEW',
+        1,
+        'Subject',
+        '2026-06-05',
+        'ข้อความทดสอบเมื่อ semantic chunking throw non-error แล้ว fallback ไป fixed-size'
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.chunksEmbedded).toBeGreaterThan(0);
+    });
+
+    it('ควร embed สำเร็จเมื่อไม่มี documentDate', async () => {
+      mockAiPromptsService.resolveActive.mockResolvedValueOnce({
+        resolvedPrompt: 'prompt',
+        versionNumber: 1,
+      });
+      mockOllamaService.generate.mockResolvedValueOnce(
+        '<chunk topic="test">ข้อความทดสอบไม่มี documentDate ความยาวเพียงพอ</chunk>'
+      );
+      mockOcrService.embedViaSidecar.mockResolvedValue({
+        dense: Array(1024).fill(0.1),
+        sparse: { indices: [1], values: [0.5] },
+      });
+
+      const result = await service.embedDocument(
+        'proj-uuid',
+        'doc-uuid',
+        'CORR-001',
+        'LETTER',
+        'IN_REVIEW',
+        1,
+        'Subject',
+        undefined,
+        'ข้อความทดสอบไม่มี documentDate ความยาวเพียงพอ'
+      );
+
+      expect(result.success).toBe(true);
+    });
+  });
 });

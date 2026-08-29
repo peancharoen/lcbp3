@@ -131,6 +131,7 @@ describe('CorrespondenceService', () => {
             generateNextNumber: jest.fn(),
             updateNumberForDraft: jest.fn(),
             previewNextNumber: jest.fn(),
+            previewNumber: jest.fn(),
           },
         },
         {
@@ -149,6 +150,7 @@ describe('CorrespondenceService', () => {
           useValue: {
             findOne: jest.fn(),
             getUserPermissions: jest.fn().mockResolvedValue([]),
+            findDocControlIdByOrg: jest.fn().mockResolvedValue(null),
           },
         },
         {
@@ -977,6 +979,625 @@ describe('CorrespondenceService', () => {
           user_id: 100,
         } as unknown as User)
       ).rejects.toThrow(PermissionException);
+    });
+  });
+
+  describe('findAll', () => {
+    it('should return paginated results from revision repo', async () => {
+      const revisionRepoLocal = testingModule.get<
+        Repository<CorrespondenceRevision>
+      >(getRepositoryToken(CorrespondenceRevision));
+      (revisionRepoLocal.createQueryBuilder as jest.Mock).mockReturnValueOnce({
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getManyAndCount: jest.fn().mockResolvedValue([[{ id: 1 }], 1]),
+      });
+
+      const result = await service.findAll({ page: 1, limit: 20 });
+
+      expect(result.data).toEqual([{ id: 1 }]);
+      expect(result.meta.total).toBe(1);
+    });
+
+    it('should use default pagination when no params provided', async () => {
+      const revisionRepoLocal = testingModule.get<
+        Repository<CorrespondenceRevision>
+      >(getRepositoryToken(CorrespondenceRevision));
+      (revisionRepoLocal.createQueryBuilder as jest.Mock).mockReturnValueOnce({
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getManyAndCount: jest.fn().mockResolvedValue([[], 0]),
+      });
+
+      const result = await service.findAll();
+
+      expect(result.meta.page).toBe(1);
+      expect(result.meta.limit).toBe(10);
+    });
+  });
+
+  describe('findOne', () => {
+    it('should return correspondence with workflow info when found', async () => {
+      const mockCorr = { id: 1, publicId: 'uuid-1', subject: 'Test' };
+      jest
+        .spyOn(correspondenceRepo, 'findOne')
+        .mockResolvedValue(mockCorr as never);
+
+      const result = await service.findOne(1);
+
+      expect(result).toEqual(
+        expect.objectContaining({ id: 1, publicId: 'uuid-1' })
+      );
+    });
+
+    it('should throw NotFoundException when not found', async () => {
+      jest.spyOn(correspondenceRepo, 'findOne').mockResolvedValue(null);
+
+      await expect(service.findOne(999)).rejects.toThrow();
+    });
+  });
+
+  describe('findOneByUuid', () => {
+    it('should return correspondence with workflow info when found', async () => {
+      const mockCorr = { id: 1, publicId: 'uuid-1', subject: 'Test' };
+      (correspondenceRepo.createQueryBuilder as jest.Mock).mockReturnValueOnce({
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        addOrderBy: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(mockCorr),
+      });
+
+      const result = await service.findOneByUuid('uuid-1');
+
+      expect(result).toEqual(
+        expect.objectContaining({ id: 1, publicId: 'uuid-1' })
+      );
+    });
+
+    it('should throw NotFoundException when not found', async () => {
+      (correspondenceRepo.createQueryBuilder as jest.Mock).mockReturnValueOnce({
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        addOrderBy: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(null),
+      });
+
+      await expect(service.findOneByUuid('uuid-999')).rejects.toThrow();
+    });
+  });
+
+  describe('getReferences', () => {
+    it('should return outgoing and incoming references', async () => {
+      const refRepo = testingModule.get<Repository<CorrespondenceReference>>(
+        getRepositoryToken(CorrespondenceReference)
+      );
+      const mockOutgoing = [{ id: 1, sourceId: 1, targetId: 10 }];
+      const mockIncoming = [{ id: 2, sourceId: 5, targetId: 1 }];
+      (refRepo.find as jest.Mock)
+        .mockResolvedValueOnce(mockOutgoing)
+        .mockResolvedValueOnce(mockIncoming);
+
+      const result = await service.getReferences(1);
+
+      expect(result.outgoing).toEqual(mockOutgoing);
+      expect(result.incoming).toEqual(mockIncoming);
+    });
+  });
+
+  describe('addReference', () => {
+    it('should create and save a new reference', async () => {
+      const refRepo = testingModule.get<Repository<CorrespondenceReference>>(
+        getRepositoryToken(CorrespondenceReference)
+      );
+      jest
+        .spyOn(correspondenceRepo, 'findOne')
+        .mockResolvedValueOnce({ id: 1 } as never)
+        .mockResolvedValueOnce({ id: 2, publicId: 'target-uuid' } as never);
+      (refRepo.findOne as jest.Mock).mockResolvedValue(null);
+      (refRepo.create as jest.Mock).mockReturnValue({
+        sourceId: 1,
+        targetId: 2,
+      });
+      (refRepo.save as jest.Mock).mockResolvedValue({
+        id: 1,
+        sourceId: 1,
+        targetId: 2,
+      });
+
+      const result = await service.addReference(1, {
+        targetUuid: 'target-uuid',
+      } as never);
+
+      expect(refRepo.save).toHaveBeenCalled();
+      expect(result).toEqual({ id: 1, sourceId: 1, targetId: 2 });
+    });
+
+    it('should return existing reference if already exists', async () => {
+      const refRepo = testingModule.get<Repository<CorrespondenceReference>>(
+        getRepositoryToken(CorrespondenceReference)
+      );
+      jest
+        .spyOn(correspondenceRepo, 'findOne')
+        .mockResolvedValueOnce({ id: 1 } as never)
+        .mockResolvedValueOnce({ id: 2, publicId: 'target-uuid' } as never);
+      const existingRef = { id: 99, sourceId: 1, targetId: 2 };
+      (refRepo.findOne as jest.Mock).mockResolvedValue(existingRef);
+
+      const result = await service.addReference(1, {
+        targetUuid: 'target-uuid',
+      } as never);
+
+      expect(result).toEqual(existingRef);
+      expect(refRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('should throw BusinessException for self-reference', async () => {
+      jest
+        .spyOn(correspondenceRepo, 'findOne')
+        .mockResolvedValueOnce({ id: 1 } as never)
+        .mockResolvedValueOnce({ id: 1, publicId: 'same-uuid' } as never);
+
+      await expect(
+        service.addReference(1, { targetUuid: 'same-uuid' } as never)
+      ).rejects.toThrow();
+    });
+
+    it('should throw NotFoundException when source or target not found', async () => {
+      jest.spyOn(correspondenceRepo, 'findOne').mockResolvedValue(null);
+
+      await expect(
+        service.addReference(1, { targetUuid: 'target-uuid' } as never)
+      ).rejects.toThrow();
+    });
+  });
+
+  describe('removeReference', () => {
+    it('should delete the reference', async () => {
+      const refRepo = testingModule.get<Repository<CorrespondenceReference>>(
+        getRepositoryToken(CorrespondenceReference)
+      );
+      (refRepo.delete as jest.Mock).mockResolvedValue({ affected: 1 });
+
+      await service.removeReference(1, 2);
+
+      expect(refRepo.delete).toHaveBeenCalledWith({ sourceId: 1, targetId: 2 });
+    });
+
+    it('should throw NotFoundException when no reference deleted', async () => {
+      const refRepo = testingModule.get<Repository<CorrespondenceReference>>(
+        getRepositoryToken(CorrespondenceReference)
+      );
+      (refRepo.delete as jest.Mock).mockResolvedValue({ affected: 0 });
+
+      await expect(service.removeReference(1, 2)).rejects.toThrow();
+    });
+  });
+
+  describe('getTags', () => {
+    it('should return tags for a correspondence', async () => {
+      const tagRepo = testingModule.get<Repository<CorrespondenceTag>>(
+        getRepositoryToken(CorrespondenceTag)
+      );
+      const mockTags = [
+        { id: 1, tagId: 10, tag: { id: 10, name: 'Important' } },
+      ];
+      (tagRepo.find as jest.Mock).mockResolvedValue(mockTags);
+
+      const result = await service.getTags(1);
+
+      expect(result).toEqual([{ id: 10, name: 'Important' }]);
+    });
+
+    it('should filter out falsy tags', async () => {
+      const tagRepo = testingModule.get<Repository<CorrespondenceTag>>(
+        getRepositoryToken(CorrespondenceTag)
+      );
+      (tagRepo.find as jest.Mock).mockResolvedValue([
+        { id: 1, tagId: 10, tag: null },
+      ]);
+
+      const result = await service.getTags(1);
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('addTag', () => {
+    it('should create and save a new tag association', async () => {
+      const tagRepo = testingModule.get<Repository<CorrespondenceTag>>(
+        getRepositoryToken(CorrespondenceTag)
+      );
+      jest
+        .spyOn(correspondenceRepo, 'findOne')
+        .mockResolvedValue({ id: 1 } as never);
+      mockDataSource.manager.findOne.mockResolvedValue({
+        id: 10,
+        name: 'Important',
+      });
+      (tagRepo.findOne as jest.Mock).mockResolvedValue(null);
+      (tagRepo.create as jest.Mock).mockReturnValue({
+        correspondenceId: 1,
+        tagId: 10,
+      });
+      (tagRepo.save as jest.Mock).mockResolvedValue({
+        correspondenceId: 1,
+        tagId: 10,
+      });
+
+      await service.addTag(1, 10);
+
+      expect(tagRepo.save).toHaveBeenCalled();
+    });
+
+    it('should return existing tag if already associated', async () => {
+      const tagRepo = testingModule.get<Repository<CorrespondenceTag>>(
+        getRepositoryToken(CorrespondenceTag)
+      );
+      jest
+        .spyOn(correspondenceRepo, 'findOne')
+        .mockResolvedValue({ id: 1 } as never);
+      mockDataSource.manager.findOne.mockResolvedValue({
+        id: 10,
+        name: 'Important',
+      });
+      const existing = { correspondenceId: 1, tagId: 10 };
+      (tagRepo.findOne as jest.Mock).mockResolvedValue(existing);
+
+      const result = await service.addTag(1, 10);
+
+      expect(result).toEqual(existing);
+      expect(tagRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException when correspondence not found', async () => {
+      jest.spyOn(correspondenceRepo, 'findOne').mockResolvedValue(null);
+
+      await expect(service.addTag(1, 10)).rejects.toThrow();
+    });
+
+    it('should throw NotFoundException when tag not found', async () => {
+      jest
+        .spyOn(correspondenceRepo, 'findOne')
+        .mockResolvedValue({ id: 1 } as never);
+      mockDataSource.manager.findOne.mockResolvedValue(null);
+
+      await expect(service.addTag(1, 10)).rejects.toThrow();
+    });
+  });
+
+  describe('removeTag', () => {
+    it('should delete the tag association', async () => {
+      const tagRepo = testingModule.get<Repository<CorrespondenceTag>>(
+        getRepositoryToken(CorrespondenceTag)
+      );
+      (tagRepo.delete as jest.Mock).mockResolvedValue({ affected: 1 });
+
+      await service.removeTag(1, 10);
+
+      expect(tagRepo.delete).toHaveBeenCalledWith({
+        correspondenceId: 1,
+        tagId: 10,
+      });
+    });
+
+    it('should throw NotFoundException when no tag deleted', async () => {
+      const tagRepo = testingModule.get<Repository<CorrespondenceTag>>(
+        getRepositoryToken(CorrespondenceTag)
+      );
+      (tagRepo.delete as jest.Mock).mockResolvedValue({ affected: 0 });
+
+      await expect(service.removeTag(1, 10)).rejects.toThrow();
+    });
+  });
+
+  describe('previewDocumentNumber', () => {
+    it('should return preview number from numbering service', async () => {
+      const typeRepo = testingModule.get<Repository<CorrespondenceType>>(
+        getRepositoryToken(CorrespondenceType)
+      );
+      const uuidResolver =
+        testingModule.get<UuidResolverService>(UuidResolverService);
+      const userService = testingModule.get<UserService>(UserService);
+
+      (uuidResolver.resolveProjectId as jest.Mock).mockResolvedValue(1);
+      (uuidResolver.resolveOrganizationId as jest.Mock).mockResolvedValue(20);
+      (typeRepo.findOne as jest.Mock).mockResolvedValue({
+        id: 1,
+        typeCode: 'LTR',
+      });
+      (userService.findOne as jest.Mock).mockResolvedValue({
+        primaryOrganizationId: 10,
+      });
+      mockDataSource.manager.findOne.mockResolvedValue({
+        id: 20,
+        organizationCode: 'REC',
+      });
+      (numberingService.previewNumber as jest.Mock).mockResolvedValue({
+        number: 'PREVIEW-001',
+      });
+
+      const mockUser = {
+        user_id: 1,
+        primaryOrganizationId: 10,
+      } as unknown as User;
+      const createDto = {
+        projectId: 'proj-uuid',
+        typeId: 1,
+        subject: 'Test',
+        recipients: [{ organizationId: 'org-uuid', type: 'TO' }],
+      } as CreateCorrespondenceDto;
+
+      const result = await service.previewDocumentNumber(createDto, mockUser);
+
+      expect(numberingService.previewNumber).toHaveBeenCalled();
+      expect(result).toEqual({ number: 'PREVIEW-001' });
+    });
+
+    it('should throw NotFoundException when type not found', async () => {
+      const typeRepo = testingModule.get<Repository<CorrespondenceType>>(
+        getRepositoryToken(CorrespondenceType)
+      );
+      const uuidResolver =
+        testingModule.get<UuidResolverService>(UuidResolverService);
+
+      (uuidResolver.resolveProjectId as jest.Mock).mockResolvedValue(1);
+      (typeRepo.findOne as jest.Mock).mockResolvedValue(null);
+
+      const mockUser = {
+        user_id: 1,
+        primaryOrganizationId: 10,
+      } as unknown as User;
+      const createDto = {
+        projectId: 'proj-uuid',
+        typeId: 999,
+        subject: 'Test',
+        recipients: [{ organizationId: 'org-uuid', type: 'TO' }],
+      } as CreateCorrespondenceDto;
+
+      await expect(
+        service.previewDocumentNumber(createDto, mockUser)
+      ).rejects.toThrow();
+    });
+  });
+
+  describe('cancel', () => {
+    it('should cancel correspondence when user has permission', async () => {
+      const userService = testingModule.get<UserService>(UserService);
+      (userService.getUserPermissions as jest.Mock).mockResolvedValue([
+        'correspondence.cancel',
+      ]);
+
+      jest.spyOn(service, 'findOneByUuid').mockResolvedValue({
+        id: 1,
+        publicId: 'corr-uuid-1',
+        projectId: 1,
+        correspondenceNumber: 'DOC-001',
+        originatorId: 10,
+      } as unknown as Awaited<ReturnType<typeof service.findOneByUuid>>);
+
+      const statusRepo = testingModule.get<Repository<CorrespondenceStatus>>(
+        getRepositoryToken(CorrespondenceStatus)
+      );
+      (statusRepo.findOne as jest.Mock).mockResolvedValue({
+        id: 5,
+        statusCode: 'CANCELLED',
+      });
+
+      const revisionRepoLocal = testingModule.get<
+        Repository<CorrespondenceRevision>
+      >(getRepositoryToken(CorrespondenceRevision));
+      (revisionRepoLocal.findOne as jest.Mock).mockResolvedValue({
+        id: 100,
+        isCurrent: true,
+        subject: 'Test',
+      });
+
+      const mockCircRepo = createMockRepository();
+      mockCircRepo.find.mockResolvedValue([]);
+      (mockDataSource.getRepository as jest.Mock).mockReturnValue(mockCircRepo);
+
+      const queryRunner = {
+        connect: jest.fn(),
+        startTransaction: jest.fn(),
+        commitTransaction: jest.fn(),
+        rollbackTransaction: jest.fn(),
+        release: jest.fn(),
+        manager: {
+          update: jest.fn().mockResolvedValue({ affected: 1 }),
+        },
+      };
+      (mockDataSource.createQueryRunner as jest.Mock).mockReturnValue(
+        queryRunner
+      );
+
+      const mockUser = {
+        user_id: 1,
+        primaryOrganizationId: 10,
+      } as unknown as User;
+      const result = await service.cancel(
+        'corr-uuid-1',
+        'Test reason',
+        mockUser
+      );
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject when user lacks permission', async () => {
+      const userService = testingModule.get<UserService>(UserService);
+      (userService.getUserPermissions as jest.Mock).mockResolvedValue([]);
+
+      jest.spyOn(service, 'findOneByUuid').mockResolvedValue({
+        id: 1,
+        publicId: 'corr-uuid-1',
+      } as unknown as Awaited<ReturnType<typeof service.findOneByUuid>>);
+
+      const mockUser = {
+        user_id: 1,
+        primaryOrganizationId: 10,
+      } as unknown as User;
+
+      await expect(
+        service.cancel('corr-uuid-1', 'Test reason', mockUser)
+      ).rejects.toThrow(PermissionException);
+    });
+  });
+
+  describe('bulkCancel', () => {
+    it('should cancel multiple correspondences and report results', async () => {
+      const userService = testingModule.get<UserService>(UserService);
+      (userService.getUserPermissions as jest.Mock).mockResolvedValue([
+        'system.manage_all',
+      ]);
+
+      jest.spyOn(service, 'findOneByUuid').mockResolvedValue({
+        id: 1,
+        publicId: 'corr-uuid-1',
+        projectId: 1,
+        correspondenceNumber: 'DOC-001',
+        originatorId: 10,
+      } as unknown as Awaited<ReturnType<typeof service.findOneByUuid>>);
+
+      const statusRepo = testingModule.get<Repository<CorrespondenceStatus>>(
+        getRepositoryToken(CorrespondenceStatus)
+      );
+      (statusRepo.findOne as jest.Mock).mockResolvedValue({
+        id: 5,
+        statusCode: 'CANCELLED',
+      });
+
+      const revisionRepoLocal = testingModule.get<
+        Repository<CorrespondenceRevision>
+      >(getRepositoryToken(CorrespondenceRevision));
+      (revisionRepoLocal.findOne as jest.Mock).mockResolvedValue({
+        id: 100,
+        isCurrent: true,
+        subject: 'Test',
+      });
+
+      const mockCircRepo = createMockRepository();
+      mockCircRepo.find.mockResolvedValue([]);
+      (mockDataSource.getRepository as jest.Mock).mockReturnValue(mockCircRepo);
+
+      const queryRunner = {
+        connect: jest.fn(),
+        startTransaction: jest.fn(),
+        commitTransaction: jest.fn(),
+        rollbackTransaction: jest.fn(),
+        release: jest.fn(),
+        manager: {
+          update: jest.fn().mockResolvedValue({ affected: 1 }),
+        },
+      };
+      (mockDataSource.createQueryRunner as jest.Mock).mockReturnValue(
+        queryRunner
+      );
+
+      const mockUser = {
+        user_id: 1,
+        primaryOrganizationId: 10,
+      } as unknown as User;
+      const result = await service.bulkCancel(
+        ['corr-uuid-1', 'corr-uuid-2'],
+        'Bulk cancel reason',
+        mockUser
+      );
+
+      expect(result.succeeded).toContain('corr-uuid-1');
+      expect(result.succeeded).toContain('corr-uuid-2');
+    });
+
+    it('should report failed cancellations', async () => {
+      const userService = testingModule.get<UserService>(UserService);
+      (userService.getUserPermissions as jest.Mock).mockResolvedValue([]);
+
+      jest.spyOn(service, 'findOneByUuid').mockResolvedValue({
+        id: 1,
+        publicId: 'corr-uuid-1',
+      } as unknown as Awaited<ReturnType<typeof service.findOneByUuid>>);
+
+      const mockUser = {
+        user_id: 1,
+        primaryOrganizationId: 10,
+      } as unknown as User;
+      const result = await service.bulkCancel(
+        ['corr-uuid-fail'],
+        'Bulk cancel reason',
+        mockUser
+      );
+
+      expect(result.failed).toContain('corr-uuid-fail');
+    });
+  });
+
+  describe('exportCsv', () => {
+    it('should return CSV string with headers', async () => {
+      const revisionRepoLocal = testingModule.get<
+        Repository<CorrespondenceRevision>
+      >(getRepositoryToken(CorrespondenceRevision));
+      (revisionRepoLocal.createQueryBuilder as jest.Mock).mockReturnValueOnce({
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getManyAndCount: jest.fn().mockResolvedValue([
+          [
+            {
+              id: 1,
+              revisionNumber: 0,
+              subject: 'Test',
+              createdAt: new Date('2026-01-01'),
+              correspondence: {
+                publicId: 'uuid-1',
+                correspondenceNumber: 'DOC-001',
+                type: { typeCode: 'LTR' },
+                project: { projectCode: 'PROJ' },
+                originator: { organizationCode: 'ORG' },
+              },
+              status: { statusCode: 'DRAFT' },
+            },
+          ],
+          1,
+        ]),
+      });
+
+      const result = await service.exportCsv({});
+
+      expect(typeof result).toBe('string');
+      expect(result).toContain('Document No.');
+      expect(result).toContain('DOC-001');
+    });
+
+    it('should return CSV with only headers when no data', async () => {
+      const revisionRepoLocal = testingModule.get<
+        Repository<CorrespondenceRevision>
+      >(getRepositoryToken(CorrespondenceRevision));
+      (revisionRepoLocal.createQueryBuilder as jest.Mock).mockReturnValueOnce({
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getManyAndCount: jest.fn().mockResolvedValue([[], 0]),
+      });
+
+      const result = await service.exportCsv({});
+
+      expect(typeof result).toBe('string');
+      expect(result).toContain('Document No.');
     });
   });
 });

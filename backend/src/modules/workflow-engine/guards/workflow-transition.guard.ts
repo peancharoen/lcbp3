@@ -1,5 +1,6 @@
 // File: src/modules/workflow-engine/guards/workflow-transition.guard.ts
 // Guard ตรวจสอบสิทธิ์ 4-Level RBAC สำหรับ Workflow Transition ตาม ADR-021 §6
+// ADR-049 T014: เพิ่ม impersonation validation (Superadmin/Org Admin only)
 
 import {
   CanActivate,
@@ -14,6 +15,7 @@ import { DataSource, Repository } from 'typeorm';
 import { WorkflowInstance } from '../entities/workflow-instance.entity';
 import { CompiledWorkflow } from '../workflow-dsl.service';
 import { UserService } from '../../../modules/user/user.service';
+import type { RequestWithUser } from '../../../common/interfaces/request-with-user.interface';
 
 // FR-002a: DSL require.role → CASL ability สตาติก mapping (research.md Decision 2)
 // 'ไม่รู้จัก' DSL role → fall through ไป Level 3 (assignedUserId) check
@@ -23,7 +25,6 @@ const DSL_ROLE_TO_CASL: Record<string, string> = {
   ContractMember: 'contract.view',
   AssignedHandler: '__assigned__', // ไม่ map ไป CASL — จัดการโดย Level 3 check
 };
-import type { RequestWithUser } from '../../../common/interfaces/request-with-user.interface';
 
 /**
  * WorkflowTransitionGuard — ตรวจสอบสิทธิ์ 4 ระดับก่อนอนุญาตให้เปลี่ยนสถานะ Workflow
@@ -34,6 +35,8 @@ import type { RequestWithUser } from '../../../common/interfaces/request-with-us
  *             และ User ไม่อยู่ใน contract นั้น → ForbiddenException (cross-contract block)
  * Level 3:   Assigned Handler (context.assignedUserId === req.user.user_id) → ผ่าน
  * Level 4:   ผู้ใช้ทั่วไป → ForbiddenException
+ *
+ * ADR-049 T014: Impersonation validation — onBehalfOfUserUuid เฉพาะ Superadmin/Org Admin
  */
 @Injectable()
 export class WorkflowTransitionGuard implements CanActivate {
@@ -49,17 +52,38 @@ export class WorkflowTransitionGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<RequestWithUser>();
     const instanceId = request.params['id'];
-    // FR-002a: action \u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a DSL role check (\u0e15\u0e23\u0e27\u0e08\u0e2a\u0e2d\u0e1a requirements.roles \u0e02\u0e2d\u0e07 transition \u0e17\u0e35\u0e48\u0e15\u0e49\u0e2d\u0e07\u0e01\u0e32\u0e23\u0e17\u0e33)
     const action = (request.body as { action?: string }).action ?? '';
     const user = request.user;
+
+    // ADR-049 T014: Impersonation validation — เฉพาะ Superadmin/Org Admin เท่านั้น
+    // ที่ส่ง onBehalfOfUserUuid ได้ ถ้า user ทั่วไปส่งมา → ForbiddenException
+    const onBehalfOfUserUuid = (request.body as { onBehalfOfUserUuid?: string })
+      .onBehalfOfUserUuid;
+    const isImpersonating =
+      onBehalfOfUserUuid !== undefined && onBehalfOfUserUuid !== null;
 
     // ดึงสิทธิ์ทั้งหมดของ User จาก DB (ตาม pattern เดียวกับ RbacGuard)
     const userPermissions = await this.userService.getUserPermissions(
       user.user_id
     );
 
+    const isSuperadmin = userPermissions.includes('system.manage_all');
+    const isOrgAdmin = userPermissions.includes('organization.manage_users');
+
+    // ADR-049 T014: ถ้ามี impersonation request แต่ไม่ใช่ admin → ปฏิเสธ
+    if (isImpersonating && !isSuperadmin && !isOrgAdmin) {
+      this.logger.warn(
+        `Non-admin impersonation attempt: User ${user.user_id} tried to act on behalf of ${onBehalfOfUserUuid}`
+      );
+      throw new ForbiddenException({
+        userMessage:
+          'คุณไม่มีสิทธิ์ดำเนินการแทนผู้อื่น — เฉพาะ Superadmin/Org Admin เท่านั้น',
+        recoveryAction: 'ติดต่อผู้ดูแลระบบหากคิดว่านี่เป็นข้อผิดพลาด',
+      });
+    }
+
     // Level 1: Superadmin — ผ่านทุกการตรวจสอบ
-    if (userPermissions.includes('system.manage_all')) {
+    if (isSuperadmin) {
       return true;
     }
 
@@ -99,7 +123,7 @@ export class WorkflowTransitionGuard implements CanActivate {
     // Level 2: Org Admin — organization.manage_users + สังกัดองค์กรเดียวกับเอกสาร
     const docOrgId = instance.context?.organizationId as number | undefined;
     if (
-      userPermissions.includes('organization.manage_users') &&
+      isOrgAdmin &&
       docOrgId !== undefined &&
       user.primaryOrganizationId === docOrgId
     ) {

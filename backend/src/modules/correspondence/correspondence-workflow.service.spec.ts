@@ -134,13 +134,12 @@ describe('CorrespondenceWorkflowService', () => {
         service as unknown as {
           syncStatus: (
             revision: CorrespondenceRevision,
-            workflowState: string
+            statusProjection: Record<string, unknown>
           ) => Promise<void>;
         }
-      ).syncStatus(
-        mockRevision as unknown as CorrespondenceRevision,
-        'IN_REVIEW'
-      );
+      ).syncStatus(mockRevision as unknown as CorrespondenceRevision, {
+        correspondence: 'SUBOWN',
+      });
       expect(mockRevisionRepo.manager.save).toHaveBeenCalledWith(mockRevision);
       expect(aiQueueService.enqueueRagPrepare).toHaveBeenCalledWith({
         documentPublicId: 'doc-uuid-999',
@@ -170,10 +169,12 @@ describe('CorrespondenceWorkflowService', () => {
         service as unknown as {
           syncStatus: (
             revision: CorrespondenceRevision,
-            workflowState: string
+            statusProjection: Record<string, unknown>
           ) => Promise<void>;
         }
-      ).syncStatus(mockRevision as unknown as CorrespondenceRevision, 'DRAFT');
+      ).syncStatus(mockRevision as unknown as CorrespondenceRevision, {
+        correspondence: 'DRAFT',
+      });
       expect(mockRevisionRepo.manager.save).toHaveBeenCalledWith(mockRevision);
       expect(aiQueueService.enqueueRagPrepare).not.toHaveBeenCalled();
     });

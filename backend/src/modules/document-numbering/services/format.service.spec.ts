@@ -219,5 +219,41 @@ describe('FormatService', () => {
       // When recipient is missing, it defaults to 'GEN'
       expect(result.previewNumber).toContain('GEN');
     });
+
+    it('should default org code to GEN when originatorOrganizationId is undefined', async () => {
+      const optionsWithoutOrg = {
+        ...mockFormatOptions,
+        originatorOrganizationId: undefined as unknown as number,
+      };
+      (formatRepo.findOne as jest.Mock).mockResolvedValue(mockSpecificFormat);
+      (projectRepo.findOne as jest.Mock).mockResolvedValue(mockProject);
+      (typeRepo.findOne as jest.Mock).mockResolvedValue(mockType);
+      (orgRepo.findOne as jest.Mock).mockResolvedValueOnce(mockRecipient);
+      (disciplineRepo.findOne as jest.Mock).mockResolvedValue(mockDiscipline);
+
+      const result = await service.format(optionsWithoutOrg);
+
+      // When originator is missing, resolveOrgCode returns 'GEN' without calling orgRepo
+      expect(result.previewNumber).toContain('GEN');
+    });
+
+    it('should default discipline code to GEN when disciplineId is undefined', async () => {
+      const optionsWithoutDiscipline = {
+        ...mockFormatOptions,
+        disciplineId: undefined,
+      };
+      (formatRepo.findOne as jest.Mock).mockResolvedValue(mockSpecificFormat);
+      (projectRepo.findOne as jest.Mock).mockResolvedValue(mockProject);
+      (typeRepo.findOne as jest.Mock).mockResolvedValue(mockType);
+      (orgRepo.findOne as jest.Mock)
+        .mockResolvedValueOnce(mockRecipient)
+        .mockResolvedValueOnce(mockOrg);
+      (disciplineRepo.findOne as jest.Mock).mockResolvedValue(mockDiscipline);
+
+      await service.format(optionsWithoutDiscipline);
+
+      // disciplineRepo.findOne should not be called when disciplineId is undefined
+      expect(disciplineRepo.findOne).not.toHaveBeenCalled();
+    });
   });
 });

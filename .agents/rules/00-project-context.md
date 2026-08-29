@@ -162,3 +162,22 @@ Best practice — follow when possible:
 | Change Redis lock TTL or disable Redlock                        | Risk of document number race condition (ADR-002)                 |
 | Create or supersede an ADR unilaterally                         | Architecture decisions require team consensus and review process |
 | Add new columns to production tables without schema review      | Must update Data Dictionary + downstream queries simultaneously  |
+
+---
+
+## Collaboration & Sub-agents Commands
+
+> คำสั่งเหล่านี้ขึ้นกับ IDE/Agent platform ที่กำลังใช้งาน อย่าใช้ชื่อ Devin เป็นคำสั่งหลักให้กับ IDE อื่น โดยไม่ระบุ mapping
+
+| Platform                            | คำสั่งหลัก                                      | ฟังก์ชัน                                                    |
+| ----------------------------------- | ----------------------------------------------- | ----------------------------------------------------------- |
+| Devin / Windsurf                    | `run_subagent` / `read_subagent`                | เปิด/อ่านผล subagent (ใช้ได้เมื่อ `subagents_enabled=true`) |
+| Codex CLI                           | `codex --task` หรือคำสั่ง multi-agent ของ Codex | รัน task ย่อยใน session แยก                                 |
+| opencode                            | `opencode agents` / `opencode tasks`            | รัน agent/task ย่อย                                         |
+| Amp / Antigravity / AGENTS.md tools | ตามเอกสารของเครื่องมือนั้น ๆ                    | fallback เป็น inline ถ้าไม่มี multi-agent                   |
+
+หลักการ:
+
+- ห้ามอ้างอิง `run_subagent` หรือ `read_subagent` เป็น universal command ใน AGENTS.md
+- ถ้า IDE ปัจจุบันไม่มี subagent ให้ทำงาน inline ด้วยเครื่องมือปกติ โดยไม่แกล้งว่ามีการกระจายงาน
+- สกิลที่ใช้ subagent ต้องระบุใน description หรือ doc ของตัวเองว่าใช้งานได้บน platform ไหน

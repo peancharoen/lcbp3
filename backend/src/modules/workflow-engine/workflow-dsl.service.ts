@@ -5,6 +5,8 @@ import {
   ValidationException,
   WorkflowException,
 } from '../../common/exceptions';
+// ADR-001/ADR-049 FR-015: ใช้ JSON Logic สำหรับ transition condition (ห้าม string eval)
+import jsonLogic from 'json-logic-js';
 
 // ==========================================
 // 1. Interfaces for RAW DSL (Input from User)
@@ -20,6 +22,9 @@ export interface RawState {
   name: string;
   initial?: boolean;
   terminal?: boolean;
+  // ADR-049: statusProjection — map workflow state → module status code
+  // Engine เขียน projected status ลง entity column ตอน transition (เช่น { rfa: 'FRE' })
+  statusProjection?: Record<string, string>;
   on?: Record<string, RawTransition>;
 }
 
@@ -29,7 +34,12 @@ export interface RawTransition {
     role?: string | string[];
     user?: string;
   };
-  condition?: string; // JavaScript Expression string
+  // ADR-001/ADR-049 FR-015: JSON Logic object (ห้าม string eval)
+  // ตัวอย่าง: { "==": [{ "var": "context.amount" }, 100] }
+  condition?: Record<string, unknown>;
+  // ADR-049: approveCode — code ที่ engine เขียนลง rfa_approve_code_id เมื่อ transition นี้สำเร็จ
+  // เป็น metadata ไม่มีผลต่อ state (state กำหนดโดย `to`) แต่เป็นตัวบอกว่า transition นี้ map ไป code ไหน
+  approveCode?: string;
   events?: RawEvent[];
 }
 
@@ -52,6 +62,8 @@ export interface CompiledWorkflow {
 
 export interface CompiledState {
   terminal: boolean;
+  // ADR-049: statusProjection — map workflow state → module status code
+  statusProjection: Record<string, string>;
   transitions: Record<string, CompiledTransition>;
 }
 
@@ -61,7 +73,10 @@ export interface CompiledTransition {
     roles: string[];
     userId?: string;
   };
-  condition?: string;
+  // ADR-001/ADR-049 FR-015: JSON Logic object (ห้าม string eval)
+  condition?: Record<string, unknown>;
+  // ADR-049: approveCode — code ที่ engine เขียนลง rfa_approve_code_id
+  approveCode?: string;
   events: RawEvent[];
 }
 
@@ -103,6 +118,8 @@ export class WorkflowDslService {
 
       const compiledState: CompiledState = {
         terminal: !!rawState.terminal,
+        // ADR-049: เก็บ statusProjection จาก DSL (default = empty object ถ้าไม่ระบุ)
+        statusProjection: rawState.statusProjection ?? {},
         transitions: {},
       };
 
@@ -119,6 +136,21 @@ export class WorkflowDslService {
             );
           }
 
+          // ADR-001/ADR-049 FR-015: ปฏิเสธ string condition (ห้าม string eval)
+          if (
+            rule.condition !== undefined &&
+            typeof rule.condition !== 'object'
+          ) {
+            throw new WorkflowException(
+              'DSL_STRING_CONDITION_FORBIDDEN',
+              `DSL Error: Transition "${action}" in state "${rawState.name}" has a string condition — JSON Logic required (ADR-001/FR-015)`,
+              'DSL ใช้ string condition ซึ่งถูกห้าม — ต้องใช้ JSON Logic object',
+              [
+                'แปลง condition เป็น JSON Logic format เช่น { "==": [{ "var": "field" }, value] }',
+              ]
+            );
+          }
+
           compiledState.transitions[action] = {
             to: rule.to,
             requirements: {
@@ -130,6 +162,8 @@ export class WorkflowDslService {
               userId: rule.require?.user,
             },
             condition: rule.condition,
+            // ADR-049: เก็บ approveCode metadata จาก DSL
+            approveCode: rule.approveCode,
             events: rule.events || [],
           };
         }
@@ -163,7 +197,7 @@ export class WorkflowDslService {
     currentState: string,
     action: string,
     context: Record<string, unknown> = {}
-  ): { nextState: string; events: RawEvent[] } {
+  ): { nextState: string; events: RawEvent[]; approveCode?: string } {
     const stateConfig = compiled.states[currentState];
 
     // 1. Validate State Existence
@@ -217,6 +251,8 @@ export class WorkflowDslService {
     return {
       nextState: transition.to,
       events: transition.events,
+      // ADR-049: ส่ง approveCode กลับให้ engine เขียนลง rfa_approve_code_id
+      approveCode: transition.approveCode,
     };
   }
 
@@ -274,29 +310,20 @@ export class WorkflowDslService {
   }
 
   /**
-   * Evaluate simple JS expression securely
-   * NOTE: In production, use a safe parser like 'json-logic-js' or vm2
-   * For this phase, we use a simple Function constructor with restricted scope.
+   * ADR-001/ADR-049 FR-015: Evaluate JSON Logic condition (ห้าม string eval)
+   * ใช้ json-logic-js library ซึ่งเป็น safe evaluator — ไม่มี code injection risk
    */
   private evaluateCondition(
-    expression: string,
+    condition: Record<string, unknown>,
     context: Record<string, unknown>
   ): boolean {
     try {
-      // Simple guard against malicious code (basic)
-      if (expression.includes('process') || expression.includes('require')) {
-        throw new Error('Unsafe expression detected');
-      }
-
-      // Create a function that returns the expression result
-      // "context" is available inside the expression
-      // eslint-disable-next-line @typescript-eslint/no-implied-eval
-      const func = new Function('context', `return ${expression};`);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-      return !!func(context);
+      // json-logic-js รับ rule object + data context แล้วคืน boolean/value
+      const result = jsonLogic.apply(condition, context);
+      return !!result;
     } catch (error: unknown) {
       this.logger.error(
-        `Condition Error: "${expression}" -> ${error instanceof Error ? error.message : String(error)}`
+        `JSON Logic Condition Error: ${JSON.stringify(condition)} -> ${error instanceof Error ? error.message : String(error)}`
       );
       return false; // Fail safe
     }

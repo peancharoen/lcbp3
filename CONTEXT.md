@@ -57,6 +57,66 @@ _Avoid_: Status, Stage (ใช้ภายใน DSL ได้แต่ห้า
 การเปลี่ยน state ที่บันทึกใน `workflow_histories` พร้อม `actor_user_id` (มนุษย์เท่านั้น)
 _Avoid_: Auto-execute, AI-driven approval
 
+**Status Projection** _(resolved 2026-08-27, grill session)_:
+บล็อก `statusProjection` ในแต่ละ state ของ DSL — map workflow state → module status code (เช่น RFA `FRE`/`FAP`/`FCO`, Correspondence `SUBOWN`/`CLBOWN`, Circulation `IN_REVIEW`/`COMPLETED`) Engine เป็นคนเขียน projected status ลง entity column ตอน transition; `statusMap` dict ที่กระจายในแต่ละ module service ถูกลบทิ้งทั้งหมด DSL จึงเป็น source of truth เดียวของทั้ง state และ status — versioned, admin-editable, test ได้ในฐานะ data
+_Avoid_: statusMap dict ใน module service, WorkflowStatusProjector กลาง (เป็นที่ที่สองให้ drift), syncRevisionStatus() helper
+
+**Canonical Workflow State** _(resolved 2026-08-27, grill session)_:
+ชุด state กลางที่ใช้กับทุก document type — ไม่ผูกกับ role ใด role หนึ่ง (consultant/owner เป็น concern ของ `require.role` ใน transition ไม่ใช่ชื่อ state): `DRAFT`, `UNDER_REVIEW`, `PENDING_APPROVAL`, `APPROVED`, `APPROVED_WITH_COMMENTS`, `REJECTED`, `REVISE_REQUIRED`, `CANCELLED`, `COMPLETED` การแยก "ฝั่งไหน review/approve" อยู่ใน `require.role` ของ transition แต่ละอัน ไม่ใช่ในชื่อ state
+_Avoid_: `CONSULTANT_REVIEW`/`OWNER_REVIEW` (ผูก role ลงชื่อ state), `IN_REVIEW_CSC`/`IN_REVIEW_OWNER` (เดิมจากโค้ดตาย), `IN_REVIEW` เปล่า ๆ (สื่อไม่ได้ว่าระยะไหน)
+
+**RFA Multi-Party Approval Flow** _(resolved 2026-08-27, grill session)_:
+RFA เป็น multi-party sequential approval ที่ต้องการ state เฉพาะระยะ (เป็นข้อยกเว้นจาก Canonical Workflow State เพราะแต่ละระยะมี action vocabulary เป็นของตัวเอง):
+
+```
+DRAFT
+  └─ SUBMIT ─→ CONSULTANT_REVIEW (ฝ่ายที่ 1)
+                ├─ CONSENT_FOR_APPROVE ─→ OWNER_APPROVAL (ฝ่ายที่ 3)
+                ├─ ASK_DESIGNER         ─→ DESIGNER_REVIEW (ฝ่ายที่ 2, optional — human decision)
+                ├─ RESUBMIT             ─→ REVISE_REQUIRED (terminal)
+                └─ REJECT               ─→ REJECTED (terminal)
+
+DESIGNER_REVIEW
+  ├─ AGREED / AGREED_WITH_COMMENTS / NO_OBJECTION ─→ CONSULTANT_REVIEW
+  └─ OBJECTED ─→ CONSULTANT_REVIEW
+
+OWNER_APPROVAL
+  ├─ APPROVE              ─→ APPROVED (terminal)
+  ├─ APPROVE_WITH_COMMENTS ─→ APPROVED_WITH_COMMENTS (terminal)
+  ├─ RESUBMIT             ─→ CONSULTANT_REVIEW (กลับ CONSULTANT)
+  └─ REJECT               ─→ REJECTED (terminal)
+```
+
+`ASK_DESIGNER` เป็น optional branch — CONSULTANT เลือก action ตอน transition (human decision) ไม่ใช่ DSL condition auto-route
+_Avoid_: generic `UNDER_REVIEW` สำหรับ RFA (สูญเสียข้อมูลระยะ), `context.currentPhase` workaround (ผิดกฎ deterministic from state alone)
+
+**RFA Approve Code** _(resolved 2026-08-27, grill session)_:
+Code ตัวเลขที่ map ไป state โดยตรง — เป็น transition action ใน DSL ไม่ใช่ payload metadata:
+| Code | State | ใครใช้ |
+|------|-------|--------|
+| `1` | APPROVED | OWNER |
+| `2` | APPROVED*WITH_COMMENTS | OWNER |
+| `3` | REVISE_REQUIRED | OWNER/CONSULTANT |
+| `4` | REJECTED | ใครก็ได้ |
+`5N` (No Further Action) ถูกเอาออกจาก scheme ใหม่ — การยกเลิกเอกสารใช้ `cancel()` ของ RfaService ไม่ใช่ผ่าน workflow transition
+\_Avoid*: `1A`/`1C`/`1N`/`1R`/`3C`/`3R`/`4X`/`5N` (scheme เดิมที่ผสม action + reason ปนกัน), approve code เป็น payload metadata (ไม่กำหนด state)
+
+**RFA Consent Reason** _(resolved 2026-08-27, grill session)_:
+เหตุผลประกอบในการอนุมัติของ CONSULTANT ตอน "Consented for approve" — เก็บในตารางใหม่ `rfa_consent_reasons` แยกจาก `rfa_approve_codes` เป็น metadata ไม่มีผลต่อ state ใช้เฉพาะตอน CONSULTANT ทำ `CONSENT_FOR_APPROVE`
+_Avoid_: ผสมเหตุผลประกอบลงใน `rfa_approve_codes` (ผสม 2 concept ในตารางเดียว)
+
+**Workflow Impersonation** _(resolved 2026-08-27, grill session)_:
+Superadmin และ Organization Admin สามารถทำ action แทน DESIGNER/CONSULTANT/OWNER ได้ทุก action (รวม approval ขั้นสุดท้าย) — ระบบบันทึกใน `workflow_histories` พร้อม `impersonated: true` + `on_behalf_of: <original handler>` ทุกครั้ง เป็นการขยายจาก ADR-021 (เดิมจำกัด impersonation เฉพาะ upload step-specific attachments)
+_Avoid_: จำกัด impersonation เฉพาะ action กลาง flow (สร้าง deadlock ถ้า OWNER ลาพัก), co-sign requirement (ซับซ้อนเกินไปสำหรับ v1)
+
+**RFA Revision Lifecycle** _(resolved 2026-08-27, grill session)_:
+Revision ใหม่ = workflow instance ใหม่ — เมื่อ `REVISE_REQUIRED` (terminal) เกิด ผู้สร้างสร้าง RFA Revision ใหม่ (revision number +1) ระบบสร้าง workflow instance ใหม่ที่ state `DRAFT` instance เดิมจบที่ `REVISE_REQUIRED` (status `COMPLETED` ใน `workflow_instances`) แต่ละ revision มี instance ของตัวเอง ประวัติแยกกันชัด ดูประวัติรวมผ่าน `rfa_revisions.rfa_id`
+_Avoid_: วนกลับ DRAFT ใน instance เดิม (ขัดกับ REVISE_REQUIRED เป็น terminal), `previous_instance_id` link (ซับซ้อนโดยไม่จำเป็น — `rfa_revisions.rfa_id` มีอยู่แล้ว)
+
+**Workflow RBAC** _(resolved 2026-08-27, grill session)_:
+CASL guard (coarse: authenticated + project access) + DSL `require.role` (fine-grained: state + action + role) ทำงานร่วมกัน — defense in depth สอดคล้องทั้ง ADR-001 และ ADR-016 การแยก "ฝ่ายไหน review/approve" อยู่ใน `require.role` ของ transition แต่ละอัน
+_Avoid_: DSL `require.role` อย่างเดียว (ละเมิด ADR-016 CASL), CASL อย่างเดียว (ไม่รู้ state ปัจจุบัน)
+
 ### Intent Classification
 
 **Intent Classifier**:
@@ -298,6 +358,25 @@ _Avoid_: Storage server, File server (generic)
 **Docker-Internal Isolation**:
 การที่ services ทุกตัวอยู่บน Docker bridge network เดียวกัน (`lcbp3`) — สื่อสารผ่าน DNS names ไม่ผ่าน LAN — ทำให้ sidecar/Ollama ไม่ต้อง expose ports ออก LAN (ADR-040 D5, ADR-041 D3)
 _Avoid_: Network isolation (generic), VLAN isolation (เป็น layer อื่น)
+
+### AI GPU Coordination (resolved)
+
+**GPU Coordination**:
+Umbrella resource policy ที่บังคับให้ Ollama model และ Sidecar BGE ไม่ถือ VRAM ซ้อนกันในช่วง OCR หรือ LLM generate โดย unload BGE ก่อนงานเหล่านั้น และ auto-evict Ollama model เมื่อ headroom ไม่พอ.
+_Avoid_: GPU scheduling, VRAM management (ambiguous), flat shared GPU pool
+
+**Ollama VRAM Management**:
+ระบบควบคุม load/unload ของ `np-dms-ai` และ `np-dms-ocr` บน Ollama VRAM พร้อม empty-queue guard และ auto-eviction ของ inactive model ก่อนโหลด target.
+_Avoid_: VRAM monitor, model switcher
+
+**Sidecar GPU Management**:
+ระบบควบคุม lazy load/unload ของ BGE-M3 และ BGE-Reranker ใน OCR sidecar โดยไม่โหลดตอน startup, auto-unload หลัง idle, และ explicit unload ก่อน OCR/LLM.
+_Avoid_: BGE service, embed service, always-resident BGE
+
+## Relationships
+
+- **Ollama VRAM Management** and **Sidecar GPU Management** are peer policies governed by **GPU Coordination**.
+- **GPU Coordination** requires BGE release before **Ollama VRAM Management** loads a model for OCR or LLM generation.
 
 ## System readiness summary (resolved)
 

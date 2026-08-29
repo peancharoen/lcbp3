@@ -11,7 +11,7 @@ import {
 import { Organization } from '../../organization/entities/organization.entity';
 import { User } from '../../user/entities/user.entity';
 import { RfaRevision } from './rfa-revision.entity';
-import { RfaActionType } from './rfa-workflow-template-step.entity'; // ✅ Import Enum
+import { RfaActionType } from './rfa-action-type'; // ADR-049: enum แยกหลังลบ template step entity
 
 @Entity('rfa_workflows')
 export class RfaWorkflow {

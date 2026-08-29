@@ -281,5 +281,113 @@ describe('ReservationService', () => {
 
       await expect(service.cleanupExpired()).resolves.not.toThrow();
     });
+
+    it('should handle non-Error rejection gracefully', async () => {
+      const mockQueryBuilder = {
+        update: jest.fn().mockReturnThis(),
+        set: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        execute: jest.fn().mockRejectedValue('string-error'),
+      };
+      (reservationRepo.createQueryBuilder as jest.Mock).mockReturnValue(
+        mockQueryBuilder
+      );
+
+      await expect(service.cleanupExpired()).resolves.not.toThrow();
+    });
+
+    it('should not log when no expired reservations found', async () => {
+      const mockQueryBuilder = {
+        update: jest.fn().mockReturnThis(),
+        set: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        execute: jest.fn().mockResolvedValue({ affected: 0 }),
+      };
+      (reservationRepo.createQueryBuilder as jest.Mock).mockReturnValue(
+        mockQueryBuilder
+      );
+
+      await service.cleanupExpired();
+
+      expect(mockQueryBuilder.execute).toHaveBeenCalled();
+    });
+
+    it('should handle null affected count', async () => {
+      const mockQueryBuilder = {
+        update: jest.fn().mockReturnThis(),
+        set: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        execute: jest.fn().mockResolvedValue({ affected: null }),
+      };
+      (reservationRepo.createQueryBuilder as jest.Mock).mockReturnValue(
+        mockQueryBuilder
+      );
+
+      await service.cleanupExpired();
+
+      expect(mockQueryBuilder.execute).toHaveBeenCalled();
+    });
+  });
+
+  describe('cancel - success path', () => {
+    it('should cancel a RESERVED reservation and save', async () => {
+      const activeReservation = {
+        ...mockReservation,
+        status: ReservationStatus.RESERVED,
+      };
+      (reservationRepo.findOne as jest.Mock).mockResolvedValue(
+        activeReservation
+      );
+      (reservationRepo.save as jest.Mock).mockResolvedValue({
+        ...activeReservation,
+        status: ReservationStatus.CANCELLED,
+      });
+
+      await service.cancel('test-token-123', 1, 'User cancelled');
+
+      expect(reservationRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: ReservationStatus.CANCELLED,
+          cancelledAt: expect.any(Date),
+        })
+      );
+    });
+  });
+
+  describe('confirm - without documentId', () => {
+    it('should confirm with null documentId when not provided', async () => {
+      (reservationRepo.findOne as jest.Mock).mockResolvedValue(mockReservation);
+      (reservationRepo.save as jest.Mock).mockResolvedValue({
+        ...mockReservation,
+        status: ReservationStatus.CONFIRMED,
+      });
+
+      const result = await service.confirm({ token: 'test-token-123' }, 1);
+
+      expect(result).toHaveProperty('documentNumber');
+      expect(reservationRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ documentId: null })
+      );
+    });
+  });
+
+  describe('reserve - without recipientOrganizationId', () => {
+    it('should default recipientOrganizationId to 0 when not provided', async () => {
+      (reservationRepo.save as jest.Mock).mockResolvedValue(mockReservation);
+
+      await service.reserve(
+        { ...mockReserveDto, recipientOrganizationId: 0 },
+        1,
+        '127.0.0.1',
+        'test-agent'
+      );
+
+      expect(reservationRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ recipientOrganizationId: 0 })
+      );
+    });
   });
 });

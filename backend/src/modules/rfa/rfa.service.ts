@@ -31,6 +31,7 @@ import { Discipline } from '../master/entities/discipline.entity';
 import { Organization } from '../organization/entities/organization.entity';
 import { User } from '../user/entities/user.entity';
 import { RfaApproveCode } from './entities/rfa-approve-code.entity';
+import { RfaConsentReason } from './entities/rfa-consent-reason.entity';
 import { RfaItem } from './entities/rfa-item.entity';
 import { RfaRevision } from './entities/rfa-revision.entity';
 import { RfaStatusCode } from './entities/rfa-status-code.entity';
@@ -42,6 +43,7 @@ import { WorkflowActionDto } from '../correspondence/dto/workflow-action.dto';
 import { CreateRfaDto } from './dto/create-rfa.dto';
 import { SearchRfaDto } from './dto/search-rfa.dto';
 import { UpdateRfaDto } from './dto/update-rfa.dto';
+import { CreateRfaRevisionDto } from './dto/create-rfa-revision.dto';
 
 // Constants
 import * as RFA from './constants/rfa.constants';
@@ -61,7 +63,7 @@ export interface RfaMapped extends Rfa {
 }
 
 // Interfaces & Enums
-import { WorkflowAction } from '../workflow-engine/interfaces/workflow.interface';
+import { WorkflowStatus } from '../workflow-engine/entities/workflow-instance.entity';
 
 // Services
 import { DocumentNumberingService } from '../document-numbering/services/document-numbering.service';
@@ -78,13 +80,6 @@ export class RfaService {
 
   /** ADR-001: รหัส Workflow ที่ลงทะเบียนใน seed DSL */
   static readonly WORKFLOW_CODE = RFA.RFA_WORKFLOW_CODE;
-
-  /** แมป Workflow State → RFA Status Code ตาม seed data */
-  static readonly STATE_TO_STATUS: Record<string, string> =
-    RFA.STATE_TO_STATUS_MAP;
-
-  /** รหัสอนุมัติเริ่มต้นเมื่อถึงสถานะ Terminal */
-  static readonly DEFAULT_APPROVED_CODE = RFA.DEFAULT_APPROVED_CODE;
 
   private async hasSystemManageAllPermission(userId: number): Promise<boolean> {
     const permissions = await this.userService.getUserPermissions(userId);
@@ -179,6 +174,8 @@ export class RfaService {
     private rfaStatusRepo: Repository<RfaStatusCode>,
     @InjectRepository(RfaApproveCode)
     private rfaApproveRepo: Repository<RfaApproveCode>,
+    @InjectRepository(RfaConsentReason)
+    private rfaConsentReasonRepo: Repository<RfaConsentReason>,
     @InjectRepository(AsBuiltDrawingRevision)
     private asBuiltDrawingRevRepo: Repository<AsBuiltDrawingRevision>,
     @InjectRepository(ShopDrawingRevision)
@@ -611,7 +608,9 @@ export class RfaService {
     if (search) {
       queryBuilder.andWhere(
         '(corr.correspondenceNumber LIKE :search OR corrRev.subject LIKE :search)',
-        { search: `%${search}%` }
+        {
+          search: `%${search}%`,
+        }
       );
     }
 
@@ -634,7 +633,9 @@ export class RfaService {
         } else {
           queryBuilder.andWhere(
             '(rfaRev.id IS NULL OR status.statusCode != :dftCode)',
-            { dftCode: RFA.RFA_STATUS_DRAFT }
+            {
+              dftCode: RFA.RFA_STATUS_DRAFT,
+            }
           );
         }
       }
@@ -825,8 +826,12 @@ export class RfaService {
       user.publicId
     );
 
-    // Sync สถานะ RFA Revision ตาม state ใหม่ (เช่น CONSULTANT_REVIEW → FRE)
-    await this.syncRevisionStatus(currentRfaRev, result.nextState);
+    // ADR-049 T015: Sync สถานะ RFA Revision จาก DSL statusProjection (ไม่ใช้ module statusMap)
+    await this.syncRevisionStatus(
+      currentRfaRev,
+      result.nextState,
+      result.statusProjection
+    );
     currentCorrRev.issuedDate = new Date();
     await this.corrRevRepo.save(currentCorrRev);
 
@@ -885,44 +890,111 @@ export class RfaService {
       );
     }
 
+    // ADR-049 T016/T018: approveCode + consentReasonCode จาก DTO
     const approveCodeStr =
-      typeof dto.payload?.approveCode === 'string'
-        ? dto.payload.approveCode
+      typeof dto.approveCode === 'string'
+        ? dto.approveCode
+        : typeof dto.payload?.approveCode === 'string'
+          ? dto.payload.approveCode
+          : undefined;
+    const consentReasonCode =
+      typeof dto.consentReasonCode === 'string'
+        ? dto.consentReasonCode
         : undefined;
+
+    // ADR-049 T030: resolve impersonatedUserId (UUID) → internal user id + uuid
+    const impersonatedUserId = dto.impersonatedUserId;
+    const onBehalfOfUserId = impersonatedUserId
+      ? await this.uuidResolver.resolveUserId(impersonatedUserId)
+      : undefined;
+    const isImpersonating =
+      onBehalfOfUserId !== undefined && onBehalfOfUserId !== user.user_id;
+
+    // ADR-049 T026: validate consent reason code กับ master data (ถ้ามี)
+    if (consentReasonCode) {
+      const consentReason = await this.rfaConsentReasonRepo.findOne({
+        where: { code: consentReasonCode, isActive: true },
+      });
+      if (!consentReason) {
+        throw new WorkflowException(
+          'RFA_INVALID_CONSENT_REASON',
+          `Consent reason code ${consentReasonCode} not found or inactive`,
+          'รหัสเหตุผลการ consent ไม่ถูกต้อง',
+          ['ตรวจสอบ consentReasonCode จาก master data']
+        );
+      }
+    }
 
     const result = await this.workflowEngine.processTransition(
       instance.id,
       dto.action,
       user.user_id,
       dto.comment ?? dto.comments,
-      { roles, approveCode: approveCodeStr },
+      {
+        roles,
+        approveCode: approveCodeStr,
+        consentReasonCode,
+        // ADR-049 review-fix: ส่ง impersonationReason ไปใน payload เพื่อบันทึกใน history metadata
+        ...(dto.impersonationReason
+          ? { impersonationReason: dto.impersonationReason }
+          : {}),
+      },
       undefined,
-      user.publicId
+      user.publicId,
+      undefined,
+      isImpersonating,
+      onBehalfOfUserId,
+      impersonatedUserId
     );
 
-    // Sync RFA Revision status + approve code ตาม state ใหม่
+    // ADR-049: Sync RFA Revision status จาก DSL statusProjection + approve code จาก engine
+    // ADR-049 review-fix: ไม่ special-case REJECT — DSL คืน approveCode '4' สำหรับ REJECT แล้ว ต้อง persist ทุก terminal
+    const effectiveApproveCode = result.approveCode;
     await this.syncRevisionStatus(
       currentRfaRev,
       result.nextState,
-      dto.action === WorkflowAction.REJECT ? undefined : approveCodeStr,
+      result.statusProjection,
+      effectiveApproveCode,
       result.isCompleted
     );
 
-    return { message: 'Action processed', result };
+    // ADR-049 T026: บันทึก consent reason code ลง details ถ้ามี (metadata ไม่มีผลต่อ state)
+    if (consentReasonCode && currentRfaRev.details) {
+      const details = (currentRfaRev.details as Record<string, unknown>) ?? {};
+      details.consentReasonCode = consentReasonCode;
+      currentRfaRev.details = details;
+      await this.rfaRevisionRepo.save(currentRfaRev);
+    }
+
+    // ADR-049 review-fix: คืน shape ตาม contracts/rfa-action-api.md (ไม่ใช่ raw engine result)
+    return {
+      rfaPublicId: rfa.correspondence?.publicId ?? '',
+      workflowInstancePublicId: instance.id,
+      currentState: result.nextState,
+      previousState: result.previousState,
+      action: dto.action,
+      rfaStatus: result.statusProjection.rfa ?? RFA.RFA_STATUS_DRAFT,
+      approveCode: result.approveCode,
+      consentReasonCode,
+      impersonated: result.impersonated,
+      onBehalfOf: result.onBehalfOfUserPublicId ?? null,
+      transitionedAt: new Date().toISOString(),
+    };
   }
 
   /**
-   * Helper: Map Workflow State → RFA Status Code (+ Approve Code เมื่อถึง Terminal) แล้วบันทึก
-   * เลิก hardcode magic string — ใช้ STATE_TO_STATUS map + payload override
+   * ADR-049 T015: Sync RFA Revision status + approve code จาก DSL statusProjection
+   * เลิกใช้ STATE_TO_STATUS map (FR-003) — อ่าน status code จาก `statusProjection.rfa` ที engine คืนมา
    */
   private async syncRevisionStatus(
     revision: RfaRevision,
     workflowState: string,
+    statusProjection: Record<string, unknown> = {},
     approveCodeStr?: string,
-    isTerminalApproved = false
+    isTerminal = false
   ): Promise<void> {
     const targetStatusCode =
-      RfaService.STATE_TO_STATUS[workflowState] ?? RFA.RFA_STATUS_DRAFT;
+      (statusProjection.rfa as string) ?? RFA.RFA_STATUS_DRAFT;
     const status = await this.rfaStatusRepo.findOne({
       where: { statusCode: targetStatusCode },
     });
@@ -930,10 +1002,9 @@ export class RfaService {
       revision.rfaStatusCodeId = status.id;
     }
 
-    if (isTerminalApproved) {
-      const codeToUse = approveCodeStr ?? RfaService.DEFAULT_APPROVED_CODE;
+    if (isTerminal && approveCodeStr) {
       const approveCode = await this.rfaApproveRepo.findOne({
-        where: { approveCode: codeToUse },
+        where: { approveCode: approveCodeStr, isActive: true },
       });
       if (approveCode) {
         revision.rfaApproveCodeId = approveCode.id;
@@ -943,7 +1014,7 @@ export class RfaService {
 
     await this.rfaRevisionRepo.save(revision);
     this.logger.log(
-      `Synced RFA Revision ${revision.id}: state=${workflowState} → status=${targetStatusCode}`
+      `ADR-049: Synced RFA Revision ${revision.id}: state=${workflowState} → status=${targetStatusCode}`
     );
   }
 
@@ -1059,5 +1130,128 @@ export class RfaService {
     );
 
     return { message: 'RFA cancelled successfully' };
+  }
+  /**
+   * ADR-049 T035: สร้าง RFA revision ใหม่หลังจาก workflow instance เดิม terminal
+   * แต่ละ revision มี workflow instance ของตัวเอง — ไม่ reuse instance เดิม
+   */
+  async createRevision(
+    rfaId: number,
+    dto: CreateRfaRevisionDto,
+    user: User
+  ): Promise<{ revisionPublicId: string; workflowInstancePublicId: string }> {
+    // findOne โยน NotFoundException เองถ้าไม่พบ — ไม่ต้องเช็คซ้ำ
+    const rfa = await this.findOne(rfaId, true);
+
+    // ตรวจ instance เดิมต้อง terminal (REVISE_REQUIRED / REJECTED / APPROVED ฯลฯ)
+    const oldInstance = await this.workflowEngine.getLatestInstanceByEntity(
+      RFA.ENTITY_TYPE_RFA,
+      rfaId.toString()
+    );
+    if (!oldInstance || oldInstance.status !== WorkflowStatus.COMPLETED) {
+      throw new WorkflowException(
+        'RFA_REVISION_NOT_TERMINAL',
+        'Cannot create new revision until current workflow is terminal',
+        'ไม่สามารถสร้าง revision ใหม่ได้จนกว่า workflow ปัจจุบันจะสิ้นสุด',
+        ['รอจนกว่า RFA ปัจจุบันจะถึงสถานะ REVISE_REQUIRED หรือ terminal อื่น']
+      );
+    }
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // ปิด isCurrent ของ revision เก่า
+      const revisions =
+        (rfa.correspondence?.revisions as CorrRevWithRfa[] | undefined) ?? [];
+      for (const rev of revisions) {
+        if (rev.isCurrent) {
+          rev.isCurrent = false;
+          await queryRunner.manager.save(rev);
+        }
+      }
+
+      // หา revision number ใหม่
+      const maxRev = revisions.reduce(
+        (max, rev) => (rev.revisionNumber > max ? rev.revisionNumber : max),
+        0
+      );
+      const nextRevisionNumber = maxRev + 1;
+
+      // หา status DRAFT ของ Correspondence
+      const corrStatusDraft = await this.corrStatusRepo.findOne({
+        where: { statusCode: 'DRAFT' },
+      });
+      if (!corrStatusDraft) {
+        throw new SystemException(
+          'Correspondence DRAFT status not found in Master Data'
+        );
+      }
+
+      // สร้าง Correspondence Revision ใหม่
+      const newCorrRev = queryRunner.manager.create(CorrespondenceRevision, {
+        correspondenceId: rfa.correspondence.id,
+        revisionNumber: nextRevisionNumber,
+        revisionLabel: String(nextRevisionNumber),
+        isCurrent: true,
+        statusId: corrStatusDraft.id,
+        subject: dto.subject,
+        body: dto.body,
+        remarks: dto.remarks,
+        description: dto.description,
+        dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
+        documentDate: new Date(),
+        createdBy: user.user_id,
+        schemaVersion: 1,
+      });
+      const savedCorrRev = await queryRunner.manager.save(newCorrRev);
+
+      // หา RFA DRAFT status
+      const statusDraft = await this.rfaStatusRepo.findOne({
+        where: { statusCode: RFA.RFA_STATUS_DRAFT },
+      });
+      if (!statusDraft) {
+        throw new SystemException('RFA DRAFT status not found in Master Data');
+      }
+
+      // สร้าง RFA Revision ใหม่
+      const newRfaRev = queryRunner.manager.create(RfaRevision, {
+        id: savedCorrRev.id,
+        rfaStatusCodeId: statusDraft.id,
+        details: dto.details,
+        schemaVersion: 1,
+      });
+      await queryRunner.manager.save(newRfaRev);
+
+      // สร้าง workflow instance ใหม่ใน DRAFT
+      const newInstance = await this.workflowEngine.createInstance(
+        RFA.RFA_WORKFLOW_CODE,
+        RFA.ENTITY_TYPE_RFA,
+        rfaId.toString(),
+        {
+          rfaType: rfa.correspondence?.correspondenceTypeId,
+          discipline: rfa.correspondence?.discipline,
+          ownerId: user.user_id,
+          revisionId: savedCorrRev.id,
+        }
+      );
+
+      await queryRunner.commitTransaction();
+
+      this.logger.log(
+        `RFA #${rfaId}: created revision ${nextRevisionNumber} with new workflow instance ${newInstance.id}`
+      );
+
+      return {
+        revisionPublicId: savedCorrRev.publicId,
+        workflowInstancePublicId: newInstance.id,
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 }

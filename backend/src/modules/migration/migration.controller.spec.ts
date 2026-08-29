@@ -311,7 +311,9 @@ describe('MigrationController', () => {
       const result = await controller.triggerRagBatch(
         { batchId: 'batch-rag-001' },
         'idem-key-rag-001',
-        { user_id: 5 } as User
+        {
+          user_id: 5,
+        } as User
       );
 
       expect(ragBatchService.triggerRagBatch).toHaveBeenCalledWith(
@@ -361,7 +363,9 @@ describe('MigrationController', () => {
       await controller.rejectQueueItem(
         '019505a1-7c3e-7000-8000-queue001',
         'idem-key-reject-001',
-        { user_id: 5 } as User
+        {
+          user_id: 5,
+        } as User
       );
 
       expect(service.rejectQueueItemByPublicId).toHaveBeenCalledWith(
@@ -448,6 +452,430 @@ describe('MigrationController', () => {
           user
         )
       ).rejects.toThrow(ValidationException);
+    });
+  });
+
+  describe('commitBatch', () => {
+    it('should call migrationService.commitBatch with dto, key, and userId', async () => {
+      service.commitBatch = jest.fn().mockResolvedValue({ success: true });
+      const dto = { queuePublicIds: ['uuid-1', 'uuid-2'] };
+      const user = { user_id: 5 } as User;
+
+      const result = await controller.commitBatch(dto, 'idem-key-1', user);
+
+      expect(service.commitBatch).toHaveBeenCalledWith(dto, 'idem-key-1', 5);
+      expect(result).toEqual({ success: true });
+    });
+
+    it('should throw ValidationException when Idempotency-Key is missing', async () => {
+      const dto = { queuePublicIds: ['uuid-1'] };
+      const user = { user_id: 5 } as User;
+
+      await expect(
+        controller.commitBatch(dto, undefined, user)
+      ).rejects.toThrow(ValidationException);
+    });
+
+    it('should throw UnauthorizedException when user is undefined', async () => {
+      const dto = { queuePublicIds: ['uuid-1'] };
+
+      await expect(
+        controller.commitBatch(dto, 'idem-key-1', undefined as unknown as User)
+      ).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
+  describe('enqueueRecord', () => {
+    it('should call migrationService.enqueueRecord with dto', async () => {
+      service.enqueueRecord = jest
+        .fn()
+        .mockResolvedValue({ publicId: 'uuid-1' });
+      const dto = { batchId: 'batch-1', documentNumber: 'DOC-001' };
+
+      const result = await controller.enqueueRecord(dto, 'idem-key-1');
+
+      expect(service.enqueueRecord).toHaveBeenCalledWith(dto);
+      expect(result).toEqual({ publicId: 'uuid-1' });
+    });
+
+    it('should throw ValidationException when Idempotency-Key is missing', async () => {
+      const dto = { batchId: 'batch-1' };
+
+      await expect(controller.enqueueRecord(dto, undefined)).rejects.toThrow(
+        ValidationException
+      );
+    });
+  });
+
+  describe('getReviewQueue', () => {
+    it('should call migrationService.getReviewQueue with query', async () => {
+      service.getReviewQueue = jest
+        .fn()
+        .mockResolvedValue({ data: [], total: 0 });
+      const query = { page: 1, limit: 20 };
+
+      const result = await controller.getReviewQueue(query as never);
+
+      expect(service.getReviewQueue).toHaveBeenCalledWith(query);
+      expect(result).toEqual({ data: [], total: 0 });
+    });
+  });
+
+  describe('getQueueBatches', () => {
+    it('should call migrationService.getQueueBatches and wrap in object', async () => {
+      service.getQueueBatches = jest
+        .fn()
+        .mockResolvedValue(['batch-1', 'batch-2']);
+
+      const result = await controller.getQueueBatches();
+
+      expect(service.getQueueBatches).toHaveBeenCalled();
+      expect(result).toEqual({ batches: ['batch-1', 'batch-2'] });
+    });
+  });
+
+  describe('getQueueItemByPublicId', () => {
+    it('should call migrationService.getQueueItemByPublicId with publicId', async () => {
+      service.getQueueItemByPublicId = jest
+        .fn()
+        .mockResolvedValue({ publicId: 'uuid-1' });
+
+      const result = await controller.getQueueItemByPublicId(
+        '019505a1-7c3e-7000-8000-queue001'
+      );
+
+      expect(service.getQueueItemByPublicId).toHaveBeenCalledWith(
+        '019505a1-7c3e-7000-8000-queue001'
+      );
+      expect(result).toEqual({ publicId: 'uuid-1' });
+    });
+  });
+
+  describe('createError', () => {
+    it('should call migrationService.createError with dto', async () => {
+      service.createError = jest.fn().mockResolvedValue({ success: true });
+      const dto = { batchId: 'batch-1', error: 'test error' };
+
+      const result = await controller.createError(dto, 'idem-key-1');
+
+      expect(service.createError).toHaveBeenCalledWith(dto);
+      expect(result).toEqual({ success: true });
+    });
+
+    it('should throw ValidationException when Idempotency-Key is missing', async () => {
+      const dto = { batchId: 'batch-1', error: 'test' };
+
+      await expect(controller.createError(dto, undefined)).rejects.toThrow(
+        ValidationException
+      );
+    });
+  });
+
+  describe('getErrorBatches', () => {
+    it('should call migrationService.getErrorBatches and wrap in object', async () => {
+      service.getErrorBatches = jest.fn().mockResolvedValue(['err-batch-1']);
+
+      const result = await controller.getErrorBatches();
+
+      expect(service.getErrorBatches).toHaveBeenCalled();
+      expect(result).toEqual({ batches: ['err-batch-1'] });
+    });
+  });
+
+  describe('getErrors', () => {
+    it('should call migrationService.getErrors with page and limit', async () => {
+      service.getErrors = jest.fn().mockResolvedValue({ data: [], total: 0 });
+
+      const result = await controller.getErrors(1, 20);
+
+      expect(service.getErrors).toHaveBeenCalledWith(1, 20);
+      expect(result).toEqual({ data: [], total: 0 });
+    });
+
+    it('should call migrationService.getErrors with undefined params', async () => {
+      service.getErrors = jest.fn().mockResolvedValue({ data: [], total: 0 });
+
+      await controller.getErrors();
+
+      expect(service.getErrors).toHaveBeenCalledWith(undefined, undefined);
+    });
+  });
+
+  describe('deleteReviewQueue', () => {
+    it('should call migrationService.deleteReviewQueueByBatch with batchId', async () => {
+      service.deleteReviewQueueByBatch = jest
+        .fn()
+        .mockResolvedValue({ deleted: 5 });
+
+      const result = await controller.deleteReviewQueue(
+        'batch-1',
+        undefined,
+        undefined,
+        'idem-key-1'
+      );
+
+      expect(service.deleteReviewQueueByBatch).toHaveBeenCalledWith(
+        'batch-1',
+        false,
+        undefined
+      );
+      expect(result).toEqual({ deleted: 5 });
+    });
+
+    it('should parse all flag from string "true"', async () => {
+      service.deleteReviewQueueByBatch = jest
+        .fn()
+        .mockResolvedValue({ deleted: 10 });
+
+      await controller.deleteReviewQueue(
+        undefined,
+        'true',
+        undefined,
+        'idem-key-1'
+      );
+
+      expect(service.deleteReviewQueueByBatch).toHaveBeenCalledWith(
+        undefined,
+        true,
+        undefined
+      );
+    });
+
+    it('should parse all flag from string "1"', async () => {
+      service.deleteReviewQueueByBatch = jest
+        .fn()
+        .mockResolvedValue({ deleted: 10 });
+
+      await controller.deleteReviewQueue(
+        undefined,
+        '1',
+        undefined,
+        'idem-key-1'
+      );
+
+      expect(service.deleteReviewQueueByBatch).toHaveBeenCalledWith(
+        undefined,
+        true,
+        undefined
+      );
+    });
+
+    it('should parse comma-separated publicIds', async () => {
+      service.deleteReviewQueueByBatch = jest
+        .fn()
+        .mockResolvedValue({ deleted: 3 });
+
+      await controller.deleteReviewQueue(
+        undefined,
+        undefined,
+        'uuid-1, uuid-2,uuid-3',
+        'idem-key-1'
+      );
+
+      expect(service.deleteReviewQueueByBatch).toHaveBeenCalledWith(
+        undefined,
+        false,
+        ['uuid-1', 'uuid-2', 'uuid-3']
+      );
+    });
+
+    it('should throw ValidationException when Idempotency-Key is missing', async () => {
+      await expect(
+        controller.deleteReviewQueue('batch-1', undefined, undefined, undefined)
+      ).rejects.toThrow(ValidationException);
+    });
+  });
+
+  describe('deleteErrors', () => {
+    it('should call migrationService.deleteErrorsByBatch with batchId', async () => {
+      service.deleteErrorsByBatch = jest.fn().mockResolvedValue({ deleted: 3 });
+
+      const result = await controller.deleteErrors(
+        'batch-1',
+        undefined,
+        'idem-key-1'
+      );
+
+      expect(service.deleteErrorsByBatch).toHaveBeenCalledWith(
+        'batch-1',
+        false
+      );
+      expect(result).toEqual({ deleted: 3 });
+    });
+
+    it('should parse all flag from string "true"', async () => {
+      service.deleteErrorsByBatch = jest
+        .fn()
+        .mockResolvedValue({ deleted: 10 });
+
+      await controller.deleteErrors(undefined, 'true', 'idem-key-1');
+
+      expect(service.deleteErrorsByBatch).toHaveBeenCalledWith(undefined, true);
+    });
+
+    it('should throw ValidationException when Idempotency-Key is missing', async () => {
+      await expect(
+        controller.deleteErrors('batch-1', undefined, undefined)
+      ).rejects.toThrow(ValidationException);
+    });
+  });
+
+  describe('approveQueueItem', () => {
+    it('should call migrationService.approveQueueItemByPublicId', async () => {
+      service.approveQueueItemByPublicId = jest
+        .fn()
+        .mockResolvedValue({ success: true });
+      const dto = {
+        documentNumber: 'DOC-001',
+        subject: 'Test',
+      } as ImportCorrespondenceDto;
+      const user = { user_id: 5 } as User;
+
+      const result = await controller.approveQueueItem(
+        '019505a1-7c3e-7000-8000-queue001',
+        dto,
+        'idem-key-1',
+        user
+      );
+
+      expect(service.approveQueueItemByPublicId).toHaveBeenCalledWith(
+        '019505a1-7c3e-7000-8000-queue001',
+        dto,
+        'idem-key-1',
+        5
+      );
+      expect(result).toEqual({ success: true });
+    });
+
+    it('should throw UnauthorizedException when user is undefined', async () => {
+      const dto = {} as ImportCorrespondenceDto;
+
+      await expect(
+        controller.approveQueueItem(
+          'uuid-1',
+          dto,
+          'idem-key-1',
+          undefined as unknown as User
+        )
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should throw ValidationException when Idempotency-Key is missing', async () => {
+      const dto = {} as ImportCorrespondenceDto;
+      const user = { user_id: 5 } as User;
+
+      await expect(
+        controller.approveQueueItem('uuid-1', dto, undefined, user)
+      ).rejects.toThrow(ValidationException);
+    });
+  });
+
+  describe('extractQueueItem', () => {
+    it('should call migrationService.startExtractQueueItem', async () => {
+      service.startExtractQueueItem = jest
+        .fn()
+        .mockResolvedValue({ success: true });
+      const user = { user_id: 5 } as User;
+
+      const result = await controller.extractQueueItem(
+        '019505a1-7c3e-7000-8000-queue001',
+        'idem-key-1',
+        user
+      );
+
+      expect(service.startExtractQueueItem).toHaveBeenCalledWith(
+        '019505a1-7c3e-7000-8000-queue001',
+        'idem-key-1',
+        5
+      );
+      expect(result).toEqual({ success: true });
+    });
+
+    it('should throw ValidationException when Idempotency-Key is missing', async () => {
+      const user = { user_id: 5 } as User;
+
+      await expect(
+        controller.extractQueueItem('uuid-1', undefined, user)
+      ).rejects.toThrow(ValidationException);
+    });
+  });
+
+  describe('extractBatch', () => {
+    it('should call migrationService.startExtractBatch', async () => {
+      service.startExtractBatch = jest
+        .fn()
+        .mockResolvedValue({ success: true });
+      const dto = { queuePublicIds: ['uuid-1', 'uuid-2'] };
+      const user = { user_id: 5 } as User;
+
+      const result = await controller.extractBatch(dto, 'idem-key-1', user);
+
+      expect(service.startExtractBatch).toHaveBeenCalledWith(
+        ['uuid-1', 'uuid-2'],
+        'idem-key-1',
+        5
+      );
+      expect(result).toEqual({ success: true });
+    });
+
+    it('should throw ValidationException when Idempotency-Key is missing', async () => {
+      const dto = { queuePublicIds: ['uuid-1'] };
+      const user = { user_id: 5 } as User;
+
+      await expect(
+        controller.extractBatch(dto, undefined, user)
+      ).rejects.toThrow(ValidationException);
+    });
+  });
+
+  describe('importCorrespondence - error cases', () => {
+    it('should throw UnauthorizedException when user is undefined', async () => {
+      const dto = {} as ImportCorrespondenceDto;
+
+      await expect(
+        controller.importCorrespondence(
+          dto,
+          'idem-key-1',
+          undefined as unknown as User
+        )
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should throw ValidationException when Idempotency-Key is missing', async () => {
+      const dto = {} as ImportCorrespondenceDto;
+      const user = { user_id: 5 } as User;
+
+      await expect(
+        controller.importCorrespondence(dto, undefined, user)
+      ).rejects.toThrow(ValidationException);
+    });
+  });
+
+  describe('rejectQueueItem - error cases', () => {
+    it('should throw UnauthorizedException when user is undefined', async () => {
+      await expect(
+        controller.rejectQueueItem(
+          'uuid-1',
+          'idem-key-1',
+          undefined as unknown as User
+        )
+      ).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
+  describe('listLegacyExcelFiles', () => {
+    it('should return empty files when NAS path does not exist', () => {
+      const result = controller.listLegacyExcelFiles();
+
+      expect(result).toEqual({ files: [] });
+    });
+  });
+
+  describe('listLegacyFolders', () => {
+    it('should return empty tree when NAS path does not exist', () => {
+      const result = controller.listLegacyFolders();
+
+      expect(result).toEqual({ tree: [] });
     });
   });
 });

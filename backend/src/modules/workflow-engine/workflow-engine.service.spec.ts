@@ -20,6 +20,7 @@ import {
 import { WorkflowHistory } from './entities/workflow-history.entity';
 import { Attachment } from '../../common/file-storage/entities/attachment.entity';
 import { WorkflowDslService } from './workflow-dsl.service';
+import { UserService } from '../user/user.service';
 import { WorkflowEventService } from './workflow-event.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 // ADR-007: \u0e43\u0e0a\u0e49 custom exceptions \u0e17\u0e31\u0e49\u0e07\u0e2b\u0e21\u0e14\u0e08\u0e32\u0e01 common/exceptions (\u0e44\u0e21\u0e48\u0e43\u0e0a\u0e49 @nestjs/common built-in)
@@ -113,12 +114,13 @@ describe('WorkflowEngineService', () => {
             create: jest.fn(),
             save: jest.fn(),
             findOne: jest.fn(),
+            update: jest.fn().mockResolvedValue({ affected: 1 }),
           },
         },
         {
           provide: getRepositoryToken(WorkflowHistory),
           useValue: {
-            create: jest.fn(),
+            create: jest.fn((dto: unknown) => dto), // คืน args ที่ส่งไป เพื่อให้ manager.save ได้ history object
             save: jest.fn(),
             find: jest.fn(),
           },
@@ -175,6 +177,15 @@ describe('WorkflowEngineService', () => {
           useValue: {
             labels: jest.fn().mockReturnThis(),
             observe: jest.fn(),
+          },
+        },
+        {
+          provide: UserService,
+          useValue: {
+            getUserPermissions: jest.fn().mockResolvedValue([]),
+            findOne: jest
+              .fn()
+              .mockRejectedValue(new NotFoundException('User', '1')),
           },
         },
       ],
@@ -893,6 +904,493 @@ describe('WorkflowEngineService', () => {
       // Assert: ไม่ต้องออก DB
       expect(result).toEqual(cachedDef);
       expect(defRepo.findOne).not.toHaveBeenCalled();
+    });
+  });
+
+  // ====================================================================
+  // ADR-049: T008-T010 — statusProjection + impersonation + approveCode
+  // TDD RED phase — tests จะ fail ก่อน implement T008-T010
+  // ====================================================================
+  describe('ADR-049: statusProjection + impersonation + approveCode', () => {
+    const mockAdr049Workflow = {
+      initialState: 'DRAFT',
+      states: {
+        DRAFT: {
+          transitions: { SUBMIT: { to: 'CONSULTANT_REVIEW' } },
+          terminal: false,
+          statusProjection: { rfa: 'DFT' },
+        },
+        CONSULTANT_REVIEW: {
+          transitions: { CONSENT_FOR_APPROVE: { to: 'OWNER_APPROVAL' } },
+          terminal: false,
+          statusProjection: { rfa: 'FRE' },
+        },
+        OWNER_APPROVAL: {
+          transitions: { APPROVE: { to: 'APPROVED', approveCode: '1' } },
+          terminal: false,
+          statusProjection: { rfa: 'FAP' },
+        },
+        APPROVED: {
+          transitions: {},
+          terminal: true,
+          statusProjection: { rfa: 'FCO' },
+        },
+      },
+    };
+
+    const setupSuccessfulTransition = (currentState: string) => {
+      mockQueryRunner.manager.findOne.mockReset();
+      mockQueryRunner.manager.save.mockReset();
+      mockQueryRunner.commitTransaction.mockReset();
+      mockQueryRunner.rollbackTransaction.mockReset();
+      mockDslService.evaluate.mockReset();
+      mockCasQueryBuilder.execute
+        .mockReset()
+        .mockResolvedValue({ affected: 1 });
+      mockQueryRunner.manager.findOne.mockResolvedValue({
+        id: 'inst-1',
+        currentState,
+        status: WorkflowStatus.ACTIVE,
+        versionNo: 1,
+        definition: { compiled: mockAdr049Workflow },
+        context: {},
+      });
+      mockQueryRunner.manager.save.mockResolvedValue({ id: 'history-123' });
+      mockQueryRunner.commitTransaction.mockResolvedValue(undefined);
+      mockDslService.evaluate.mockReturnValue({
+        nextState: 'APPROVED',
+        events: [],
+        approveCode: '1',
+      });
+    };
+
+    it('T008: should write statusProjection to history metadata on transition', async () => {
+      setupSuccessfulTransition('OWNER_APPROVAL');
+      await service.processTransition('inst-1', 'APPROVE', 1);
+      expect(mockQueryRunner.manager.save).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          toState: 'APPROVED',
+          metadata: expect.objectContaining({
+            statusProjection: { rfa: 'FCO' },
+          }),
+        })
+      );
+    });
+
+    it('T009: should write impersonation fields to history when impersonated', async () => {
+      setupSuccessfulTransition('OWNER_APPROVAL');
+      const userService = compiledModule.get(UserService);
+      userService.getUserPermissions = jest
+        .fn()
+        .mockResolvedValue(['system.manage_all']);
+      userService.findOne = jest.fn().mockResolvedValue({
+        user_id: 100,
+        publicId: '019505a1-7c3e-7000-8000-owner001',
+        isActive: true,
+      });
+      await service.processTransition(
+        'inst-1',
+        'APPROVE',
+        999,
+        'Admin on behalf',
+        {},
+        undefined,
+        '019505a1-7c3e-7000-8000-admin001',
+        undefined,
+        true,
+        100,
+        '019505a1-7c3e-7000-8000-owner001'
+      );
+      expect(mockQueryRunner.manager.save).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          impersonated: true,
+          onBehalfOfUserId: 100,
+          onBehalfOfUserUuid: '019505a1-7c3e-7000-8000-owner001',
+        })
+      );
+    });
+
+    it('T010: should write approveCode to history metadata when DSL transition has approveCode', async () => {
+      setupSuccessfulTransition('OWNER_APPROVAL');
+      await service.processTransition('inst-1', 'APPROVE', 1);
+      expect(mockQueryRunner.manager.save).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          metadata: expect.objectContaining({ approveCode: '1' }),
+        })
+      );
+    });
+
+    it('T024: should return statusProjection per module type from DSL state', async () => {
+      setupSuccessfulTransition('OWNER_APPROVAL');
+      const result = await service.processTransition('inst-1', 'APPROVE', 1);
+      expect(result.statusProjection).toEqual({ rfa: 'FCO' });
+    });
+
+    it('T028: should reject approveCode that does not match DSL transition', async () => {
+      setupSuccessfulTransition('OWNER_APPROVAL');
+      // DSL says approveCode = '1', client sends '2'
+      await expect(
+        service.processTransition('inst-1', 'APPROVE', 1, 'wrong code', {
+          approveCode: '2',
+        })
+      ).rejects.toBeInstanceOf(Error);
+    });
+    it('T033a: should reject impersonation if actor lacks admin permission', async () => {
+      setupSuccessfulTransition('OWNER_APPROVAL');
+      const userService = compiledModule.get(UserService);
+      userService.getUserPermissions = jest
+        .fn()
+        .mockResolvedValue(['correspondence.view']);
+      userService.findOne = jest.fn().mockResolvedValue({
+        user_id: 100,
+        publicId: '019505a1-7c3e-7000-8000-owner001',
+        isActive: true,
+      });
+      await expect(
+        service.processTransition(
+          'inst-1',
+          'APPROVE',
+          999,
+          'Admin on behalf',
+          {},
+          undefined,
+          '019505a1-7c3e-7000-8000-admin001',
+          undefined,
+          true,
+          100,
+          '019505a1-7c3e-7000-8000-owner001'
+        )
+      ).rejects.toBeInstanceOf(WorkflowException);
+    });
+
+    it('T033b: should include onBehalfOfUserActive=false when original handler is deactivated', async () => {
+      setupSuccessfulTransition('OWNER_APPROVAL');
+      const userService = compiledModule.get(UserService);
+      userService.getUserPermissions = jest
+        .fn()
+        .mockResolvedValue(['system.manage_all']);
+      userService.findOne = jest.fn().mockResolvedValue({
+        user_id: 100,
+        publicId: '019505a1-7c3e-7000-8000-owner001',
+        isActive: false,
+      });
+      const result = await service.processTransition(
+        'inst-1',
+        'APPROVE',
+        999,
+        'Admin on behalf',
+        {},
+        undefined,
+        '019505a1-7c3e-7000-8000-admin001',
+        undefined,
+        true,
+        100,
+        '019505a1-7c3e-7000-8000-owner001'
+      );
+      expect(result.onBehalfOfUserActive).toBe(false);
+      expect(result.onBehalfOfUserPublicId).toBe(
+        '019505a1-7c3e-7000-8000-owner001'
+      );
+      expect(mockQueryRunner.manager.save).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          metadata: expect.objectContaining({ onBehalfOfUserActive: false }),
+        })
+      );
+    });
+
+    it('T009: should default impersonated=false when no impersonation params', async () => {
+      setupSuccessfulTransition('OWNER_APPROVAL');
+      await service.processTransition('inst-1', 'APPROVE', 1);
+      expect(mockQueryRunner.manager.save).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          impersonated: false,
+        })
+      );
+    });
+
+    it('EC1: OWNER RESUBMIT should transition to CONSULTANT_REVIEW (non-terminal) with approveCode 3', async () => {
+      setupSuccessfulTransition('OWNER_APPROVAL');
+      mockDslService.evaluate.mockReturnValue({
+        nextState: 'CONSULTANT_REVIEW',
+        events: [],
+        approveCode: '3',
+      });
+
+      await service.processTransition('inst-1', 'RESUBMIT', 1);
+
+      // Verify instance was saved with non-terminal state (first save = instance)
+      expect(mockQueryRunner.manager.save).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          currentState: 'CONSULTANT_REVIEW',
+          status: WorkflowStatus.ACTIVE,
+        })
+      );
+      // Verify history saved with approveCode 3 (second save = history)
+      expect(mockQueryRunner.manager.save).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          toState: 'CONSULTANT_REVIEW',
+          metadata: expect.objectContaining({
+            approveCode: '3',
+          }),
+        })
+      );
+    });
+
+    it('EC2: DESIGNER OBJECTED should transition to CONSULTANT_REVIEW with comment preserved', async () => {
+      setupSuccessfulTransition('DESIGNER_REVIEW');
+      mockDslService.evaluate.mockReturnValue({
+        nextState: 'CONSULTANT_REVIEW',
+        events: [],
+      });
+
+      await service.processTransition('inst-1', 'OBJECTED', 1, undefined, {
+        comment: 'Design needs revision on structural load',
+      });
+
+      // Verify instance stays ACTIVE (non-terminal)
+      expect(mockQueryRunner.manager.save).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          currentState: 'CONSULTANT_REVIEW',
+          status: WorkflowStatus.ACTIVE,
+        })
+      );
+      // Verify history saved with OBJECTED action
+      expect(mockQueryRunner.manager.save).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          toState: 'CONSULTANT_REVIEW',
+          action: 'OBJECTED',
+        })
+      );
+    });
+  });
+
+  describe('validateDsl', () => {
+    it('should return valid=true when DSL compiles successfully', () => {
+      mockDslService.compile.mockReturnValue(mockCompiledWorkflow);
+      const result = service.validateDsl({ workflow: 'TEST', states: [] });
+      expect(result.valid).toBe(true);
+    });
+
+    it('should return valid=false with errors when DSL compilation fails', () => {
+      mockDslService.compile.mockImplementation(() => {
+        throw new Error('Invalid DSL: missing states');
+      });
+      const result = service.validateDsl({ workflow: 'BAD' });
+      expect(result.valid).toBe(false);
+      expect(result.errors).toHaveLength(1);
+      if (!result.valid) {
+        expect(result.errors[0].message).toContain('Invalid DSL');
+      }
+    });
+  });
+
+  describe('getAvailableActions', () => {
+    it('should return action keys from compiled DSL state', async () => {
+      const compiled = {
+        states: {
+          PENDING: { transitions: { APPROVE: {}, REJECT: {}, COMMENT: {} } },
+        },
+      };
+      jest.spyOn(defRepo, 'findOne').mockResolvedValue({
+        compiled: compiled as unknown as Record<string, unknown>,
+      } as WorkflowDefinition);
+
+      const actions = await service.getAvailableActions('TEST_FLOW', 'PENDING');
+      expect(actions).toEqual(['APPROVE', 'REJECT', 'COMMENT']);
+    });
+
+    it('should return empty array when definition not found', async () => {
+      jest.spyOn(defRepo, 'findOne').mockResolvedValue(null);
+      const actions = await service.getAvailableActions('UNKNOWN', 'START');
+      expect(actions).toEqual([]);
+    });
+
+    it('should return empty array when state not found in compiled DSL', async () => {
+      jest.spyOn(defRepo, 'findOne').mockResolvedValue({
+        compiled: { states: { OTHER_STATE: { transitions: {} } } },
+      } as WorkflowDefinition);
+      const actions = await service.getAvailableActions(
+        'TEST_FLOW',
+        'UNKNOWN_STATE'
+      );
+      expect(actions).toEqual([]);
+    });
+  });
+
+  describe('getLatestInstanceByEntity', () => {
+    it('should return latest instance ordered by createdAt DESC', async () => {
+      const mockInstance = { id: 'inst-1', currentState: 'PENDING' };
+      jest
+        .spyOn(instanceRepo, 'findOne')
+        .mockResolvedValue(mockInstance as WorkflowInstance);
+      const result = await service.getLatestInstanceByEntity('RFA', '123');
+      expect(result).toEqual(mockInstance);
+      expect(instanceRepo.findOne).toHaveBeenCalledWith({
+        where: { entityType: 'RFA', entityId: '123' },
+        order: { createdAt: 'DESC' },
+        relations: ['definition'],
+      });
+    });
+
+    it('should return null when no instance found', async () => {
+      jest.spyOn(instanceRepo, 'findOne').mockResolvedValue(null);
+      const result = await service.getLatestInstanceByEntity('RFA', '999');
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('getInstanceById', () => {
+    it('should return instance when found', async () => {
+      const mockInstance = { id: 'inst-1', currentState: 'DRAFT' };
+      jest
+        .spyOn(instanceRepo, 'findOne')
+        .mockResolvedValue(mockInstance as WorkflowInstance);
+      const result = await service.getInstanceById('inst-1');
+      expect(result).toEqual(mockInstance);
+    });
+
+    it('should throw NotFoundException when instance not found', async () => {
+      jest.spyOn(instanceRepo, 'findOne').mockResolvedValue(null);
+      await expect(service.getInstanceById('missing')).rejects.toThrow(
+        NotFoundException
+      );
+    });
+  });
+
+  describe('getInstanceByEntity', () => {
+    it('should return null when no active instance found', async () => {
+      jest.spyOn(instanceRepo, 'findOne').mockResolvedValue(null);
+      const result = await service.getInstanceByEntity('RFA', '123');
+      expect(result).toBeNull();
+    });
+
+    it('should return instance with availableActions from compiled DSL', async () => {
+      const compiled = {
+        states: {
+          PENDING: { transitions: { APPROVE: {}, REJECT: {} } },
+        },
+      };
+      jest.spyOn(instanceRepo, 'findOne').mockResolvedValue({
+        id: 'inst-1',
+        currentState: 'PENDING',
+        status: WorkflowStatus.ACTIVE,
+        definition: { compiled },
+      } as unknown as WorkflowInstance);
+
+      const result = await service.getInstanceByEntity('RFA', '123');
+      expect(result).toEqual({
+        id: 'inst-1',
+        currentState: 'PENDING',
+        availableActions: ['APPROVE', 'REJECT'],
+      });
+    });
+
+    it('should return empty availableActions when compiled DSL has no transitions', async () => {
+      jest.spyOn(instanceRepo, 'findOne').mockResolvedValue({
+        id: 'inst-1',
+        currentState: 'DRAFT',
+        status: WorkflowStatus.ACTIVE,
+        definition: { compiled: { states: { DRAFT: {} } } },
+      } as unknown as WorkflowInstance);
+
+      const result = await service.getInstanceByEntity('RFA', '123');
+      expect(result?.availableActions).toEqual([]);
+    });
+  });
+
+  describe('terminateInstance', () => {
+    it('should set status=CANCELLED and currentState=CANCELLED', async () => {
+      jest.spyOn(instanceRepo, 'findOne').mockResolvedValue({
+        id: 'inst-1',
+        versionNo: 1,
+      } as WorkflowInstance);
+      const updateSpy = instanceRepo.update as jest.Mock;
+      updateSpy.mockClear();
+
+      await service.terminateInstance('inst-1', 'Document cancelled');
+      expect(updateSpy).toHaveBeenCalledWith('inst-1', {
+        status: WorkflowStatus.CANCELLED,
+        currentState: 'CANCELLED',
+      });
+    });
+
+    it('should throw NotFoundException when instance not found', async () => {
+      jest.spyOn(instanceRepo, 'findOne').mockResolvedValue(null);
+      await expect(
+        service.terminateInstance('missing', 'test')
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should work without reason parameter', async () => {
+      jest.spyOn(instanceRepo, 'findOne').mockResolvedValue({
+        id: 'inst-1',
+        versionNo: 1,
+      } as WorkflowInstance);
+      const updateSpy = instanceRepo.update as jest.Mock;
+      updateSpy.mockClear();
+
+      await service.terminateInstance('inst-1');
+      expect(updateSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe('getDefinitions', () => {
+    it('should return latest version of each workflow definition', async () => {
+      const mockDefs = [
+        { workflow_code: 'RFA_APPROVAL', version: 2 },
+        { workflow_code: 'CIRCULATION', version: 2 },
+      ];
+      const qb = {
+        where: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue(mockDefs),
+      };
+      (
+        defRepo as unknown as { createQueryBuilder: jest.Mock }
+      ).createQueryBuilder = jest.fn().mockReturnValue(qb);
+      const result = await service.getDefinitions();
+      expect(result).toEqual(mockDefs);
+      expect(qb.where).toHaveBeenCalled();
+    });
+  });
+
+  describe('update — DSL validation', () => {
+    it('should throw WorkflowException when DSL is invalid', async () => {
+      jest.spyOn(defRepo, 'findOne').mockResolvedValue({
+        id: 'def-1',
+        dsl: {},
+        compiled: {},
+      } as WorkflowDefinition);
+      mockDslService.compile.mockImplementation(() => {
+        throw new Error('DSL syntax error');
+      });
+
+      await expect(
+        service.update('def-1', { dsl: { bad: true } } as never)
+      ).rejects.toThrow();
+    });
+
+    it('should update DSL and compiled when valid', async () => {
+      const def = { id: 'def-1', dsl: {}, compiled: {} };
+      jest
+        .spyOn(defRepo, 'findOne')
+        .mockResolvedValue(def as WorkflowDefinition);
+      mockDslService.compile.mockReturnValue(mockCompiledWorkflow);
+      const saveSpy = jest
+        .spyOn(defRepo, 'save')
+        .mockResolvedValue(def as WorkflowDefinition);
+
+      await service.update('def-1', { dsl: { workflow: 'NEW' } } as never);
+      expect(saveSpy).toHaveBeenCalled();
+      expect(def.dsl).toEqual({ workflow: 'NEW' });
     });
   });
 });

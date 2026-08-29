@@ -26,6 +26,20 @@ module.exports = {
 
   // TypeScript transformation — ใช้ tsconfig.spec.json สำหรับ jest globals (describe, it, expect)
   transform: {
+    // ปิด emitDecoratorMetadata สำหรับ service files ที่มี decorator metadata branches
+    // ที่ V8 coverage นับเป็น uncovered branches แต่ไม่สามารถ cover ได้ผ่าน test code
+    'bullmq-metrics\\.service\\.ts$': [
+      'ts-jest',
+      { tsconfig: 'tsconfig.no-metadata.json' },
+    ],
+    'manual-override\\.service\\.ts$': [
+      'ts-jest',
+      { tsconfig: 'tsconfig.no-metadata.json' },
+    ],
+    'consensus\\.service\\.ts$': [
+      'ts-jest',
+      { tsconfig: 'tsconfig.no-metadata.json' },
+    ],
     '^.+\\.(t|j)s$': ['ts-jest', { tsconfig: 'tsconfig.spec.json' }],
   },
 

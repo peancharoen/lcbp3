@@ -278,4 +278,150 @@ describe('SchemaMigrationService', () => {
       expect(result['key']).toBe('value'); // ไม่ถูกแตะ
     });
   });
+
+  describe('edge cases for branch coverage', () => {
+    const runStep = async (
+      step: Record<string, unknown>,
+      data: Record<string, unknown>,
+      entityDetails?: Record<string, unknown> | null,
+      schemaVersion?: number | null
+    ) => {
+      const targetSchema = {
+        version: 2,
+        schemaCode: 'TEST',
+        migrationScript: { steps: [step] },
+      };
+      mockJsonSchemaService.findLatestByCode.mockResolvedValueOnce(
+        targetSchema
+      );
+      mockQR.manager.query.mockResolvedValueOnce([
+        {
+          details: entityDetails !== undefined ? entityDetails : data,
+          schema_version: schemaVersion !== undefined ? schemaVersion : 1,
+        },
+      ]);
+      mockJsonSchemaService.findOneByCodeAndVersion.mockResolvedValueOnce(
+        targetSchema
+      );
+      let capturedData: Record<string, unknown> = {};
+      mockJsonSchemaService.validateData.mockImplementationOnce(
+        (_code: string, d: Record<string, unknown>) => {
+          capturedData = d;
+          return Promise.resolve({ isValid: true, sanitizedData: d });
+        }
+      );
+      mockQR.manager.query.mockResolvedValueOnce(undefined);
+      await service.migrateData('test_table', 1, 'TEST');
+      return capturedData;
+    };
+
+    it('should default details to {} when entity.details is null', async () => {
+      const targetSchema = {
+        version: 2,
+        schemaCode: 'TEST',
+        migrationScript: { steps: [] },
+      };
+      mockJsonSchemaService.findLatestByCode.mockResolvedValueOnce(
+        targetSchema
+      );
+      mockQR.manager.query.mockResolvedValueOnce([
+        { details: null, schema_version: 1 },
+      ]);
+      mockJsonSchemaService.findOneByCodeAndVersion.mockResolvedValueOnce(
+        targetSchema
+      );
+      mockJsonSchemaService.validateData.mockResolvedValueOnce({
+        isValid: true,
+        sanitizedData: {},
+      });
+      mockQR.manager.query.mockResolvedValueOnce(undefined);
+
+      const result = await service.migrateData('test_table', 1, 'TEST');
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should default schema_version to 1 when null', async () => {
+      const targetSchema = {
+        version: 2,
+        schemaCode: 'TEST',
+        migrationScript: { steps: [] },
+      };
+      mockJsonSchemaService.findLatestByCode.mockResolvedValueOnce(
+        targetSchema
+      );
+      mockQR.manager.query.mockResolvedValueOnce([
+        { details: { key: 'val' }, schema_version: null },
+      ]);
+      mockJsonSchemaService.findOneByCodeAndVersion.mockResolvedValueOnce(
+        targetSchema
+      );
+      mockJsonSchemaService.validateData.mockResolvedValueOnce({
+        isValid: true,
+        sanitizedData: { key: 'val' },
+      });
+      mockQR.manager.query.mockResolvedValueOnce(undefined);
+
+      const result = await service.migrateData('test_table', 1, 'TEST');
+
+      expect(result.success).toBe(true);
+      expect(result.fromVersion).toBe(1);
+    });
+
+    it('should handle non-Error in catch block', async () => {
+      mockJsonSchemaService.findLatestByCode.mockResolvedValueOnce({
+        version: 2,
+        schemaCode: 'TEST',
+        migrationScript: null,
+      });
+      mockQR.manager.query.mockRejectedValueOnce('string-error');
+
+      await expect(service.migrateData('test_table', 1, 'TEST')).rejects.toBe(
+        'string-error'
+      );
+      expect(mockQR.rollbackTransaction).toHaveBeenCalled();
+      expect(mockQR.release).toHaveBeenCalled();
+    });
+
+    it('MAP_VALUES: should JSON.stringify non-string/number val', async () => {
+      const result = await runStep(
+        {
+          type: 'FIELD_TRANSFORM',
+          config: {
+            field: 'meta',
+            transform: 'MAP_VALUES',
+            mapping: { '{"key":"val"}': 'mapped' },
+          },
+        },
+        { meta: { key: 'val' } }
+      );
+      expect(result['meta']).toBe('mapped');
+    });
+
+    it('MAP_VALUES: should keep original when mapping has no match', async () => {
+      const result = await runStep(
+        {
+          type: 'FIELD_TRANSFORM',
+          config: {
+            field: 'status',
+            transform: 'MAP_VALUES',
+            mapping: { DRAFT: 'IN_DRAFT' },
+          },
+        },
+        { status: 'APPROVED' }
+      );
+      expect(result['status']).toBe('APPROVED');
+    });
+
+    it('TO_STRING: should JSON.stringify non-string/number val', async () => {
+      const result = await runStep(
+        {
+          type: 'FIELD_TRANSFORM',
+          config: { field: 'obj', transform: 'TO_STRING' },
+        },
+        { obj: { key: 'val' } }
+      );
+      expect(result['obj']).toBe(JSON.stringify({ key: 'val' }));
+    });
+  });
 });

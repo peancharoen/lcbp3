@@ -27,9 +27,10 @@
 **Date:** 2026-06-20 (Revised: 2026-07-30)
 **Supersedes:** ADR-033 §7 (X-API-Key sidecar auth)
 **Amends:**
+
 - ADR-036 §5 (sidecar contract)
 - **ADR-035 (OCR engine routing, `/normalize` endpoint, model identity)** — see D1/D2
-**Related Documents:**
+  **Related Documents:**
 - [ADR-016: Security & Authentication](./ADR-016-security-authentication.md)
 - [ADR-008: Email Notification Strategy](./ADR-008-email-notification-strategy.md)
 - [ADR-029: Dynamic Prompt Management](./ADR-029-dynamic-prompt-management.md)
@@ -50,6 +51,7 @@
 ### Current Architecture
 
 OCR Sidecar บน Desk-5439 (RTX 5060 Ti 16GB) ทำหน้าที่เป็น FastAPI HTTP service สำหรับ:
+
 - `/ocr` - สกัดข้อความจาก PDF ผ่าน Typhoon OCR (np-dms-ocr via Ollama)
 - `/embed` - สร้าง vector embedding ผ่าน BGE-M3
 - `/rerank` - จัดลำดับผลลัพธ์ retrieval ผ่าน FlagReranker
@@ -71,6 +73,7 @@ OCR Sidecar บน Desk-5439 (RTX 5060 Ti 16GB) ทำหน้าที่เ�
 ### Conflict with Canonical Specs
 
 การทบทวนทั้งสองแผนพบว่า:
+
 - **Claude** สมมติ `np-dms-ai = llama3.2 3B (~2–3GB)` แต่ ADR-034/CONTEXT ระบุ `np-dms-ai` runtime คือ `scb10x/typhoon2.5-qwen3-4b:latest` (~2.5GB) — ขนาดใกล้เคียงกัน แต่ Claude เลือก model ผิด (llama3.2 ไม่ใช่ Typhoon) จึงไม่ใช่ canonical identity
 - **ทั้งสองแผน** เสนอลบ `vram_monitor.py` / `residency_policy.py` และบังคับ BGE+Reranker GPU-resident — ละเมิด LLM-First GPU Ownership + CPU Fallback Retrieval ที่ CONTEXT.md ได้ resolve ไว้แล้ว
 - **ทั้งสองแผน** ถือ `keep_alive` เป็น fixed config value — ละเมิด ADR-036 Gap-2 (keep_alive = lazy resource param via residency policy)
@@ -79,19 +82,21 @@ OCR Sidecar บน Desk-5439 (RTX 5060 Ti 16GB) ทำหน้าที่เ�
 
 ## ⚙️ Decision Drivers
 
-* **Preserve Resolved GPU Policy:** Adaptive OCR Residency + CPU Fallback Retrieval + LLM-First GPU Ownership (CONTEXT.md)
-* **Profile-Only Parameter Governance:** พารามิเตอร์ AI model (temperature, top_p, keep_alive) ต้องมาจาก `ai_execution_profiles` row `ocr-extract` (ADR-036)
-* **Security (ADR-016):** Path traversal hardening, no hardcoded secrets
-* **Network Trust Boundary:** Server consolidation (ADR-041) ทำให้ Docker-internal isolation เป็นไปได้จริง
-* **No Invented Orchestration:** ห้ามสร้าง `VramMutexService`, `GpuTaskQueue`, `PromptBuilderService` ใหม่ — ใช้ existing services/Active Prompt ตาม ADR-008, ADR-029/037
-* **ADR-023A Boundary:** AI sidecar ห้ามเข้าถึง DB/storage โดยตรง
+- **Preserve Resolved GPU Policy:** Adaptive OCR Residency + CPU Fallback Retrieval + LLM-First GPU Ownership (CONTEXT.md)
+- **Profile-Only Parameter Governance:** พารามิเตอร์ AI model (temperature, top_p, keep_alive) ต้องมาจาก `ai_execution_profiles` row `ocr-extract` (ADR-036)
+- **Security (ADR-016):** Path traversal hardening, no hardcoded secrets
+- **Network Trust Boundary:** Server consolidation (ADR-041) ทำให้ Docker-internal isolation เป็นไปได้จริง
+- **No Invented Orchestration:** ห้ามสร้าง `VramMutexService`, `GpuTaskQueue`, `PromptBuilderService` ใหม่ — ใช้ existing services/Active Prompt ตาม ADR-008, ADR-029/037
+- **ADR-023A Boundary:** AI sidecar ห้ามเข้าถึง DB/storage โดยตรง
 
 ---
 
 ## 🏛️ Decisions
 
 ### D1: Sidecar as Pure Compute Worker
+
 Sidecar ทำหน้าที่เป็น compute worker เท่านั้น — orchestration, parameter governance, และ business logic อยู่ใน backend (existing services)
+
 - **Reject:** การสร้าง `PromptBuilderService`, `OcrNoiseFilterService`, `OcrOrchestratorService` ใหม่ (Qwen plan)
 - **Fast-path decision** (PyMuPDF chars > 100 → fast path): คงไว้ใน sidecar
 - **Page range calculation:** ย้ายไป backend
@@ -99,28 +104,33 @@ Sidecar ทำหน้าที่เป็น compute worker เท่าน�
 - **systemPrompt validation** (ตรวจสอบ placeholders เช่น `{{ocr_text}}`): backend
 
 ### D2: Remove /normalize Endpoint
+
 - **ตัด /normalize endpoint** ออกจาก sidecar
 - **ใช้แค่ np-dms-ocr (OCR)** เท่านั้น — sidecar ไม่รองรับ Thai normalization
 - ThaiPreprocessProcessor ไม่มีการใช้งาน — ไม่ต้องแก้ไข backend
 
 ### D3: Async I/O + Lifespan + Shared AsyncClient
+
 - `process_ocr` → `async def`
 - ใช้ `httpx.AsyncClient` shared ผ่าน lifespan context manager
 - เปลี่ยนจาก `@app.on_event("startup")` เป็น `@asynccontextmanager` lifespan
 - Load models ผ่าน `asyncio.to_thread` เพื่อไม่ block startup
 
 ### D4: keep_alive via calculate_ocr_residency() (Lazy, ADR-036 Gap-2)
+
 - Wire `calculate_ocr_residency(active_profile)` เข้า `process_ocr`
 - ไม่ใช้ fixed value (Claude 300, Qwen 0/10m)
 - **ไม่รับ** explicit `options_override["keep_alive"]` จาก backend — keep_alive เป็น lazy resource param ที่คำนวณณ process time เท่านั้น (ADR-036 Gap-2)
 - **Reject:** การลบ `vram_monitor.py` / `residency_policy.py`
 
 ### D5: Retain vram_monitor + CPU-Fallback for /embed, /rerank
+
 - **Reject:** การบังคับ BGE-M3 + Reranker GPU-resident ถาวร
 - **Keep:** Dynamic CPU/GPU selection ผ่าน `.to(device)` logic
 - เป็นการ implement LLM-First GPU Ownership + CPU Fallback Retrieval
 
 ### D6: Remove Hardcoded Default Key; Auth = Network Isolation (2-Phase)
+
 - **Phase 1** (ก่อน consolidation): ลบ hardcoded default `OCR_SIDECAR_API_KEY` — fail-fast ถ้า env missing
 - **Phase 2** (หลัง consolidation): **Supersedes ADR-033** — ลบ `X-API-Key` validation จาก sidecar endpoints และ backend send-side
 - **Network Isolation:** ตรวจสอบผ่าน Docker-internal network (post-consolidation) หรือ VLAN/firewall ACL (interim cross-host)
@@ -129,11 +139,13 @@ Sidecar ทำหน้าที่เป็น compute worker เท่าน�
 - Rotate leaked key ก่อน cutover
 
 ### D7: Path Canonicalization + Base-Path Whitelist on /ocr
+
 - Canonicalize `pdfPath` ผ่าน `os.path.abspath()` + `os.path.realpath()`
 - Whitelist base path = `OCR_SIDECAR_UPLOAD_BASE` (CIFS mount base)
 - Reject paths ที่ไม่ได้อยู่ภายใต้ base path → 403 Forbidden
 
 ### D8: Runtime Params from Job Snapshot (ocr-extract row)
+
 - **Backend** resolve params จาก `ai_execution_profiles` (row `ocr-extract` สำหรับ OCR, profile สำหรับ LLM)
 - **Backend** ส่ง params (`temperature`, `top_p`, `repeat_penalty`, `max_tokens`) ไปให้ sidecar
 - **Sidecar** รับ params จาก backend แล้วส่งต่อไป Ollama (ในทุกครั้งที่ load/generate)
@@ -142,11 +154,20 @@ Sidecar ทำหน้าที่เป็น compute worker เท่าน�
 - Align กับ ADR-036 Profile-Only Parameter Governance
 
 ### D9: DMS Tags + SystemPrompt from Active Prompt
+
 - **Backend** resolve systemPrompt จาก Active Prompt ใน `ai_prompts` (ADR-029/037)
 - **Backend** resolve DMS extraction tags (`<document_number>`, `<document_date>`, `<received_date>`) จาก Active Prompt
 - **Backend** ส่งทั้ง systemPrompt และ DMS tags ไปให้ sidecar
 - **Sidecar** รับ systemPrompt และ DMS tags จาก backend แล้วส่งต่อไป Ollama (ในทุกครั้งที่ load/generate)
 - **Reject:** การสร้าง `PromptBuilderService` ใหม่เป็น prompt authority
+
+### D10: BGE Lazy-Load + Auto-Unload for GPU Coordination (D170)
+
+- BGE-M3 และ BGE-Reranker ต้องไม่โหลดเข้า GPU ตอน sidecar startup — โหลดตาม demand เมื่อมีการเรียก `/embed` หรือ `/rerank` เท่านั้น
+- หลังใช้งาน BGE จะถูก auto-unload ออกจาก GPU หลัง idle 300 วินาที เพื่อคืน VRAM ให้ Ollama (`np-dms-ocr` / `np-dms-ai`)
+- เพิ่ม endpoints สำหรับ admin/runtime control: `POST /bge/load`, `POST /bge/unload`, `GET /bge/status`
+- Backend ต้องสั่ง `OcrService.unloadBgeModels()` ก่อน OCR job (`ai-batch.processor.ts`) และหลัง rerank ก่อน LLM generate (`AiRagService`) เพื่อป้องกัน VRAM contention
+- ยืนยัน **Sidecar GPU Management** เป็น peer ของ **Ollama VRAM Management** ภายใต้ **GPU Coordination** ใน `CONTEXT.md` — ทั้งสอง engine ไม่ถือ VRAM ซ้อนกันในช่วง OCR/LLM
 
 ---
 
@@ -154,30 +175,30 @@ Sidecar ทำหน้าที่เป็น compute worker เท่าน�
 
 ### Phase 1 — ก่อน ADR-041 Consolidation (ยังคง X-API-Key)
 
-| Task ID | Component | Summary | Status |
-| :--- | :--- | :--- | :--- |
-| T001 | Sidecar | Remove hardcoded default API key (fail-fast if env missing) | ✅ Done (app.py:123-125) |
-| T002 | Sidecar | Fix mutable default arg `options_override={}` | ✅ Done (app.py:269,292 — `Optional[dict]=None` + `or {}`) |
-| T003 | Sidecar | Remove duplicate `import tempfile` | ✅ Done (app.py:43 — single import) |
-| T004 | Sidecar | Refactor to async I/O + shared AsyncClient | ✅ Done (app.py:72,266 — `async def` + shared `httpx.AsyncClient`) |
-| T005 | Sidecar | Replace `@app.on_event("startup")` with lifespan | ✅ Done (app.py:92,119 — `@asynccontextmanager lifespan`) |
-| T006 | Sidecar | Wire `calculate_ocr_residency()` into `process_ocr` | ✅ Done (app.py:295 — `asyncio.to_thread(calculate_ocr_residency, ...)`) |
-| T007 | Sidecar | Path canonicalization + base-path whitelist on `/ocr` | ✅ Done (app.py:163-165 — `abspath` + `realpath` + base whitelist) |
-| T008 | Sidecar | Remove hardcoded runtime params (use from job snapshot) | ✅ Done (app.py:377-382 — params from `merged_params`, no hardcoded defaults) |
-| T009 | Sidecar | Receive systemPrompt + DMS tags from backend, pass to Ollama | ✅ Done (app.py:454-456,535-537 — Form fields + passthrough) |
-| T010 | Sidecar | Remove `/normalize` endpoint (D2) | ✅ Done (2026-06-20, sidecar change log) |
-| T011 | Backend | Send runtime params from `ai_execution_profiles` snapshot to sidecar | ✅ Done (ocr.service.ts:437-452 — `runtimeParams` from profile) |
-| T012 | Backend | Wire Active Prompt injection for DMS tags + systemPrompt | ✅ Done (ocr.service.ts:465-479 — `activePrompt.template` + `dmsTags`) |
-| T013 | Tests | Pytest for path-traversal (403) | ✅ Done (`tests/unit/ocr-sidecar/test_path_traversal.py`) |
-| T014 | Tests | Unit check for residency wiring | ✅ Done (`tests/unit/ocr-sidecar/test_residency_wiring.py`) |
+| Task ID | Component | Summary                                                              | Status                                                                        |
+| :------ | :-------- | :------------------------------------------------------------------- | :---------------------------------------------------------------------------- |
+| T001    | Sidecar   | Remove hardcoded default API key (fail-fast if env missing)          | ✅ Done (app.py:123-125)                                                      |
+| T002    | Sidecar   | Fix mutable default arg `options_override={}`                        | ✅ Done (app.py:269,292 — `Optional[dict]=None` + `or {}`)                    |
+| T003    | Sidecar   | Remove duplicate `import tempfile`                                   | ✅ Done (app.py:43 — single import)                                           |
+| T004    | Sidecar   | Refactor to async I/O + shared AsyncClient                           | ✅ Done (app.py:72,266 — `async def` + shared `httpx.AsyncClient`)            |
+| T005    | Sidecar   | Replace `@app.on_event("startup")` with lifespan                     | ✅ Done (app.py:92,119 — `@asynccontextmanager lifespan`)                     |
+| T006    | Sidecar   | Wire `calculate_ocr_residency()` into `process_ocr`                  | ✅ Done (app.py:295 — `asyncio.to_thread(calculate_ocr_residency, ...)`)      |
+| T007    | Sidecar   | Path canonicalization + base-path whitelist on `/ocr`                | ✅ Done (app.py:163-165 — `abspath` + `realpath` + base whitelist)            |
+| T008    | Sidecar   | Remove hardcoded runtime params (use from job snapshot)              | ✅ Done (app.py:377-382 — params from `merged_params`, no hardcoded defaults) |
+| T009    | Sidecar   | Receive systemPrompt + DMS tags from backend, pass to Ollama         | ✅ Done (app.py:454-456,535-537 — Form fields + passthrough)                  |
+| T010    | Sidecar   | Remove `/normalize` endpoint (D2)                                    | ✅ Done (2026-06-20, sidecar change log)                                      |
+| T011    | Backend   | Send runtime params from `ai_execution_profiles` snapshot to sidecar | ✅ Done (ocr.service.ts:437-452 — `runtimeParams` from profile)               |
+| T012    | Backend   | Wire Active Prompt injection for DMS tags + systemPrompt             | ✅ Done (ocr.service.ts:465-479 — `activePrompt.template` + `dmsTags`)        |
+| T013    | Tests     | Pytest for path-traversal (403)                                      | ✅ Done (`tests/unit/ocr-sidecar/test_path_traversal.py`)                     |
+| T014    | Tests     | Unit check for residency wiring                                      | ✅ Done (`tests/unit/ocr-sidecar/test_residency_wiring.py`)                   |
 
 ### Phase 2 — หลัง ADR-041 Consolidation (ลบ X-API-Key)
 
-| Task ID | Component | Summary | Status |
-| :--- | :--- | :--- | :--- |
-| T016 | Sidecar | Remove `X-API-Key` validation from endpoints | ✅ Done (2026-07-30, app.py — ลบ get_api_key + APIKeyHeader + Depends + OCR_SIDECAR_API_KEY env) |
-| T017 | Backend | Remove `X-API-Key` send-side in `OcrService` | ✅ Done (2026-07-30, ocr.service.ts — ลบ ocrSidecarApiKey field + 5 headers) |
-| T018 | Backend | Remove `X-API-Key` send-side in `SandboxOcrEngineService` | ✅ Done (2026-07-30, sandbox-ocr-engine.service.ts — ลบ ocrSidecarApiKey field + 1 header) |
+| Task ID | Component | Summary                                                   | Status                                                                                           |
+| :------ | :-------- | :-------------------------------------------------------- | :----------------------------------------------------------------------------------------------- |
+| T016    | Sidecar   | Remove `X-API-Key` validation from endpoints              | ✅ Done (2026-07-30, app.py — ลบ get_api_key + APIKeyHeader + Depends + OCR_SIDECAR_API_KEY env) |
+| T017    | Backend   | Remove `X-API-Key` send-side in `OcrService`              | ✅ Done (2026-07-30, ocr.service.ts — ลบ ocrSidecarApiKey field + 5 headers)                     |
+| T018    | Backend   | Remove `X-API-Key` send-side in `SandboxOcrEngineService` | ✅ Done (2026-07-30, sandbox-ocr-engine.service.ts — ลบ ocrSidecarApiKey field + 1 header)       |
 
 > **✅ Phase 2 Complete (2026-07-30):** X-API-Key auth ถูกลบออกจาก sidecar และ backend ทั้งหมด — ใช้ Docker-internal network isolation แทน (ADR-041 consolidation complete) ลบ `OCR_SIDECAR_API_KEY` env var จาก docker-compose, .env.template, .env.example, MIGRATION-PLAN.md ลบ test_api_key_validation.py (feature ไม่มีแล้ว) อัปเดต test_retrieval_fallback.py, test_path_traversal.py, test_residency_wiring.py, test_cpu_fallback.py, test_parameter_governance.py, test_active_prompt.py (ลบ headers + env setup)
 
@@ -187,34 +208,34 @@ Sidecar ทำหน้าที่เป็น compute worker เท่าน�
 
 ### Positive
 
-* **OOM Safety Retained:** รักษา Adaptive OCR Residency + CPU Fallback Retrieval — ป้องกัน VRAM exhaustion
-* **Spec-Consistent:** สอดคล้องกับ ADR-036, ADR-029/037, CONTEXT.md
-* **Smaller Sidecar Surface:** Pure compute worker — ไม่มี business logic หรือ parameter governance
-* **Security Hardened:** Path traversal fix, no hardcoded secrets
-* **Performance:** Async I/O ลด blocking, shared AsyncClient ลด connection overhead
+- **OOM Safety Retained:** รักษา Adaptive OCR Residency + CPU Fallback Retrieval — ป้องกัน VRAM exhaustion
+- **Spec-Consistent:** สอดคล้องกับ ADR-036, ADR-029/037, CONTEXT.md
+- **Smaller Sidecar Surface:** Pure compute worker — ไม่มี business logic หรือ parameter governance
+- **Security Hardened:** Path traversal fix, no hardcoded secrets
+- **Performance:** Async I/O ลด blocking, shared AsyncClient ลด connection overhead
 
 ### Negative
 
-* **Lose Defense-in-Depth Auth:** ลบ `X-API-Key` ทำให้ขึ้นอยู่กับ network isolation เท่านั้น — mitigated โดย ACL/bridge network
-* **Cross-Host Firewall Rule Mandatory:** ใน topology ปัจจุบัน (ก่อน consolidation) ต้องมี VLAN/firewall ACL เป็น interim constraint
-* **Migration Complexity:** Sequencing ของ auth removal ต้อง sync กับ ADR-041 cutover
+- **Lose Defense-in-Depth Auth:** ลบ `X-API-Key` ทำให้ขึ้นอยู่กับ network isolation เท่านั้น — mitigated โดย ACL/bridge network
+- **Cross-Host Firewall Rule Mandatory:** ใน topology ปัจจุบัน (ก่อน consolidation) ต้องมี VLAN/firewall ACL เป็น interim constraint
+- **Migration Complexity:** Sequencing ของ auth removal ต้อง sync กับ ADR-041 cutover
 
 ---
 
 ## 🚫 Out of Scope (Future ADR)
 
-* 1-page-1-request horizontal scaling rework (Qwen 2.7) — ต้องการ separate spec + load evidence
-* OpenTelemetry/Prometheus/Grafana observability (Qwen 4.4–4.5) — separate ticket
-* **/normalize endpoint** — ตัดออกจาก sidecar แล้ว (D2); ThaiPreprocessProcessor ไม่มีการใช้งาน
+- 1-page-1-request horizontal scaling rework (Qwen 2.7) — ต้องการ separate spec + load evidence
+- OpenTelemetry/Prometheus/Grafana observability (Qwen 4.4–4.5) — separate ticket
+- **/normalize endpoint** — ตัดออกจาก sidecar แล้ว (D2); ThaiPreprocessProcessor ไม่มีการใช้งาน
 
 ---
 
 ## 🔄 Rollback Plan
 
-* Revert `app.py` ไปเวอร์ชันก่อน refactor
-* Restore `X-API-Key` send-side ใน `OcrService` และ `SandboxOcrEngineService`
-* Re-pin `keep_alive` default เป็น `0` ใน `process_ocr`
-* Restore hardcoded runtime params (ถ้าต้องการ emergency fallback)
+- Revert `app.py` ไปเวอร์ชันก่อน refactor
+- Restore `X-API-Key` send-side ใน `OcrService` และ `SandboxOcrEngineService`
+- Re-pin `keep_alive` default เป็น `0` ใน `process_ocr`
+- Restore hardcoded runtime params (ถ้าต้องการ emergency fallback)
 
 ---
 

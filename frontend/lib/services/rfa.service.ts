@@ -3,10 +3,17 @@ import apiClient from '@/lib/api/client';
 import { CreateRfaDto, UpdateRfaDto, SearchRfaDto } from '@/types/dto/rfa/rfa.dto';
 
 // DTO สำหรับการอนุมัติ (อาจจะย้ายไปไว้ใน folder dto/rfa/ ก็ได้ในอนาคต)
+// ADR-049 T030: รองรับ impersonation, approveCode, consentReasonCode
 export interface WorkflowActionDto {
-  action: 'APPROVE' | 'REJECT' | 'COMMENT' | 'ACKNOWLEDGE';
+  action: string;
   comments?: string;
   stepNumber?: number; // อาจจะไม่จำเป็นถ้า Backend เช็ค state ปัจจุบันได้เอง
+  approveCode?: string;
+  consentReasonCode?: string;
+  /** ADR-049 T030: UUID ของ handler ดั้งเดิมที admin ทำแทน */
+  impersonatedUserId?: string;
+  /** ADR-049 T048: เหตุผลในการทำแทน (UI audit metadata) */
+  impersonationReason?: string;
 }
 
 export interface SubmitRfaDto {

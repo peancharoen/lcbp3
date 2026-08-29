@@ -199,4 +199,40 @@ describe('CounterService', () => {
       expect(mockQueryRunner.save).toHaveBeenCalled();
     });
   });
+
+  describe('version arrow function coverage', () => {
+    it('should invoke version function in incrementCounter set call', async () => {
+      mockQueryRunner.findOne.mockResolvedValue(mockCounter);
+      mockQueryBuilder.set.mockImplementation(
+        (args: Record<string, unknown>) => {
+          if (typeof args.version === 'function') {
+            (args.version as () => void)();
+          }
+          return mockQueryBuilder;
+        }
+      );
+      mockQueryBuilder.execute.mockResolvedValue({ affected: 1 });
+
+      const result = await service.incrementCounter(mockCounterKey);
+
+      expect(result).toBe(11);
+    });
+
+    it('should invoke version function in forceUpdateCounter set call', async () => {
+      mockQueryRunner.findOne.mockResolvedValue(mockCounter);
+      mockQueryBuilder.set.mockImplementation(
+        (args: Record<string, unknown>) => {
+          if (typeof args.version === 'function') {
+            (args.version as () => void)();
+          }
+          return mockQueryBuilder;
+        }
+      );
+      mockQueryBuilder.execute.mockResolvedValue({ affected: 1 });
+
+      await service.forceUpdateCounter(mockCounterKey, 999);
+
+      expect(mockQueryBuilder.execute).toHaveBeenCalled();
+    });
+  });
 });

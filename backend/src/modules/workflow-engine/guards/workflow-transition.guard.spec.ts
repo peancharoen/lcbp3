@@ -403,6 +403,73 @@ describe('WorkflowTransitionGuard', () => {
     });
   });
 
+  // T039: RBAC layering — CONSULTANT (only contract.view / document.view) ถูกปฏิเสธจาก APPROVE ที DSL กำหนดให้ OWNER
+  describe('T039: DSL fine-grained rejection', () => {
+    it('should deny CONSULTANT attempting APPROVE in OWNER_APPROVAL state', async () => {
+      userService.getUserPermissions.mockResolvedValue([
+        'contract.view',
+        'workflow.action_review',
+      ]);
+      const mockInstance = {
+        id: 'instance-owner-approval',
+        currentState: 'OWNER_APPROVAL',
+        context: { organizationId: 99, assignedUserId: 777 },
+        contractId: null,
+        definition: {
+          compiled: {
+            states: {
+              OWNER_APPROVAL: {
+                transitions: {
+                  APPROVE: { requirements: { roles: ['OWNER'] } },
+                },
+              },
+            },
+          },
+        },
+      };
+      instanceRepo.findOne.mockResolvedValue(mockInstance);
+      const context = mockContext(
+        mockRequest({ id: 'instance-owner-approval' }, mockUser, 'APPROVE')
+      );
+
+      await expect(guard.canActivate(context)).rejects.toThrow(
+        ForbiddenException
+      );
+    });
+
+    it('should allow OWNER attempting APPROVE in OWNER_APPROVAL state', async () => {
+      userService.getUserPermissions.mockResolvedValue([
+        'contract.view',
+        'workflow.action_review',
+      ]);
+      const ownerUser = { ...mockUser, user_id: 777, primaryOrganizationId: 1 };
+      const mockInstance = {
+        id: 'instance-owner-approval',
+        currentState: 'OWNER_APPROVAL',
+        context: { organizationId: 99, assignedUserId: 777 },
+        contractId: null,
+        definition: {
+          compiled: {
+            states: {
+              OWNER_APPROVAL: {
+                transitions: {
+                  APPROVE: { requirements: { roles: ['OWNER'] } },
+                },
+              },
+            },
+          },
+        },
+      };
+      instanceRepo.findOne.mockResolvedValue(mockInstance);
+      const context = mockContext(
+        mockRequest({ id: 'instance-owner-approval' }, ownerUser, 'APPROVE')
+      );
+
+      const result = await guard.canActivate(context);
+      expect(result).toBe(true);
+    });
+  });
+
   describe('Level 4: Unauthorized Users', () => {
     it('should deny access for regular users without any special permissions', async () => {
       // Arrange

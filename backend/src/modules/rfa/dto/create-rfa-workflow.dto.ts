@@ -6,12 +6,8 @@ import {
   IsEnum,
   IsString,
 } from 'class-validator';
-
-export enum RfaActionType {
-  REVIEW = 'REVIEW',
-  APPROVE = 'APPROVE',
-  ACKNOWLEDGE = 'ACKNOWLEDGE',
-}
+// ADR-049 review-fix: ใช้ RfaActionType จาก entities/rfa-action-type.ts (single source of truth)
+import { RfaActionType } from '../entities/rfa-action-type';
 
 export class CreateRfaWorkflowDto {
   @IsInt()

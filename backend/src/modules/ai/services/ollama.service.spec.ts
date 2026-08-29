@@ -260,5 +260,187 @@ describe('OllamaService (ADR-034)', () => {
         'LLM timeout'
       );
     });
+
+    it('ควร throw error เมื่อ Ollama generate ล้มเหลวด้วย non-Error', async () => {
+      mockedAxios.post = jest
+        .fn()
+        .mockRejectedValueOnce('string error' as unknown as Error);
+      await expect(service.generate('test prompt')).rejects.toBe(
+        'string error'
+      );
+    });
+
+    it('ควรคืน empty string เมื่อ response.data.response เป็น undefined', async () => {
+      mockedAxios.post = jest.fn().mockResolvedValueOnce({ data: {} });
+      const result = await service.generate('test prompt');
+      expect(result).toBe('');
+    });
+  });
+
+  describe('generateEmbedding() non-Error path', () => {
+    it('ควร throw เมื่อ embedding ล้มเหลวด้วย non-Error', async () => {
+      mockedAxios.post = jest
+        .fn()
+        .mockRejectedValueOnce('network error' as unknown as Error);
+      await expect(service.generateEmbedding('test')).rejects.toBe(
+        'network error'
+      );
+    });
+  });
+
+  describe('constructor fallbacks', () => {
+    it('ควรใช้ AI_HOST_URL เป็น fallback เมื่อ OLLAMA_URL ไม่ได้ตั้งค่า', async () => {
+      const fallbackConfig = {
+        get: jest.fn(<T>(key: string, defaultValue?: T): T | undefined => {
+          const vals: Record<string, unknown> = {
+            AI_HOST_URL: 'http://192.168.10.11:11434',
+            OLLAMA_MODEL_MAIN: 'np-dms-ai:latest',
+            OLLAMA_MODEL_OCR: 'np-dms-ocr:latest',
+          };
+          return (vals[key] as T | undefined) ?? defaultValue;
+        }),
+      };
+      const mod = await Test.createTestingModule({
+        providers: [
+          OllamaService,
+          { provide: ConfigService, useValue: fallbackConfig },
+        ],
+      }).compile();
+      const svc = mod.get<OllamaService>(OllamaService);
+      mockedAxios.get = jest.fn().mockResolvedValueOnce({ data: {} });
+      await svc.checkHealth();
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        'http://192.168.10.11:11434/api/tags',
+        expect.anything()
+      );
+    });
+
+    it('ควรใช้ default URL เมื่อไม่ได้ตั้งค่า OLLAMA_URL และ AI_HOST_URL', async () => {
+      const emptyConfig = {
+        get: jest.fn(<T>(key: string, defaultValue?: T): T | undefined => {
+          return defaultValue;
+        }),
+      };
+      const mod = await Test.createTestingModule({
+        providers: [
+          OllamaService,
+          { provide: ConfigService, useValue: emptyConfig },
+        ],
+      }).compile();
+      const svc = mod.get<OllamaService>(OllamaService);
+      mockedAxios.get = jest.fn().mockResolvedValueOnce({ data: {} });
+      await svc.checkHealth();
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        'http://192.168.10.11:11434/api/tags',
+        expect.anything()
+      );
+    });
+  });
+
+  describe('checkHealth() โดยไม่มี embed model', () => {
+    it('ควรคืน models เฉพาะ main model เมื่อ embedModel ว่าง', async () => {
+      const noEmbedConfig = {
+        get: jest.fn(<T>(key: string, defaultValue?: T): T | undefined => {
+          const vals: Record<string, unknown> = {
+            OLLAMA_URL: 'http://localhost:11434',
+            OLLAMA_MODEL_MAIN: 'np-dms-ai:latest',
+            OLLAMA_MODEL_OCR: 'np-dms-ocr:latest',
+            OLLAMA_MODEL_EMBED: '',
+            AI_TIMEOUT_MS: 30000,
+            AI_BATCH_TIMEOUT_MS: 120000,
+          };
+          return (vals[key] as T | undefined) ?? defaultValue;
+        }),
+      };
+      const mod = await Test.createTestingModule({
+        providers: [
+          OllamaService,
+          { provide: ConfigService, useValue: noEmbedConfig },
+        ],
+      }).compile();
+      const svc = mod.get<OllamaService>(OllamaService);
+      mockedAxios.get = jest
+        .fn()
+        .mockResolvedValueOnce({ data: {} })
+        .mockResolvedValueOnce({ data: { models: [] } });
+      const result = await svc.checkHealth();
+      expect(result.status).toBe('HEALTHY');
+      expect(result.models).toEqual(['np-dms-ai:latest']);
+    });
+
+    it('ควรคืน models เฉพาะ main model เมื่อ /api/tags ล้มเหลวและไม่มี embedModel', async () => {
+      const noEmbedConfig = {
+        get: jest.fn(<T>(key: string, defaultValue?: T): T | undefined => {
+          const vals: Record<string, unknown> = {
+            OLLAMA_URL: 'http://localhost:11434',
+            OLLAMA_MODEL_MAIN: 'np-dms-ai:latest',
+            OLLAMA_MODEL_OCR: 'np-dms-ocr:latest',
+            OLLAMA_MODEL_EMBED: '',
+            AI_TIMEOUT_MS: 30000,
+            AI_BATCH_TIMEOUT_MS: 120000,
+          };
+          return (vals[key] as T | undefined) ?? defaultValue;
+        }),
+      };
+      const mod = await Test.createTestingModule({
+        providers: [
+          OllamaService,
+          { provide: ConfigService, useValue: noEmbedConfig },
+        ],
+      }).compile();
+      const svc = mod.get<OllamaService>(OllamaService);
+      mockedAxios.get = jest
+        .fn()
+        .mockRejectedValueOnce(new Error('ECONNREFUSED'));
+      const result = await svc.checkHealth();
+      expect(result.status).toBe('DOWN');
+      expect(result.models).toEqual(['np-dms-ai:latest']);
+    });
+
+    it('ควรจัดการ non-Error ใน /api/ps error', async () => {
+      mockedAxios.get = jest
+        .fn()
+        .mockResolvedValueOnce({ data: {} })
+        .mockRejectedValueOnce('string error' as unknown as Error);
+      const result = await service.checkHealth();
+      expect(result.status).toBe('HEALTHY');
+    });
+  });
+
+  describe('loadModel() edge cases', () => {
+    it('ควรคืน false เมื่อ tagsResponse.data เป็น null', async () => {
+      mockedAxios.get = jest.fn().mockResolvedValueOnce({ data: null });
+      const result = await service.loadModel('np-dms-ai:latest');
+      expect(result).toBe(false);
+    });
+
+    it('ควรคืน false เมื่อ non-Error ถูก throw ใน loadModel', async () => {
+      mockedAxios.get = jest
+        .fn()
+        .mockRejectedValueOnce('network error' as unknown as Error);
+      const result = await service.loadModel('np-dms-ai:latest');
+      expect(result).toBe(false);
+    });
+
+    it('ควรตรวจพบ model โดยใช้ startsWith match', async () => {
+      mockedAxios.get = jest.fn().mockResolvedValueOnce({
+        data: {
+          models: [{ name: 'np-dms-ai:latest', model: 'other' }],
+        },
+      });
+      mockedAxios.post = jest.fn().mockResolvedValueOnce({ data: {} });
+      const result = await service.loadModel('np-dms-ai');
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('unloadModel() non-Error path', () => {
+    it('ควรคืน false เมื่อ non-Error ถูก throw ใน unloadModel', async () => {
+      mockedAxios.post = jest
+        .fn()
+        .mockRejectedValueOnce('connection error' as unknown as Error);
+      const result = await service.unloadModel('np-dms-ocr:latest');
+      expect(result).toBe(false);
+    });
   });
 });

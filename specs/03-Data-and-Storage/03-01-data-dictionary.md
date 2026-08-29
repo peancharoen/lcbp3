@@ -92,12 +92,13 @@ erDiagram
 >
 > คอลัมน์ Public Identifier (`uuid` / `public_id`) ในทุกตารางประกอบด้วย **UUID 2 เวอร์ชัน** ที่เก็บใน BINARY(16) รูปแบบเดียวกัน:
 >
-> | เวอร์ชัน | แหล่งที่มา | ใช้เมื่อใด | ลำดับเวลา |
-> |---|---|---|---|
-> | **UUIDv7** (RFC 9562) | NestJS `@BeforeInsert() → uuidv7()` (package `uuid`) | ข้อมูลที่ backend สร้างขณะ runtime | ✅ Time-ordered (B-tree friendly) |
-> | **UUIDv1** (RFC 4122) | MariaDB `DEFAULT UUID()` / `DEFAULT (UUID())` | Seed data, migration data, fallback เมื่อ app layer ไม่ได้สร้าง | ⚠️ Time-based แต่ node part คงที่ |
+> | เวอร์ชัน              | แหล่งที่มา                                           | ใช้เมื่อใด                                                      | ลำดับเวลา                         |
+> | --------------------- | ---------------------------------------------------- | --------------------------------------------------------------- | --------------------------------- |
+> | **UUIDv7** (RFC 9562) | NestJS `@BeforeInsert() → uuidv7()` (package `uuid`) | ข้อมูลที่ backend สร้างขณะ runtime                              | ✅ Time-ordered (B-tree friendly) |
+> | **UUIDv1** (RFC 4122) | MariaDB `DEFAULT UUID()` / `DEFAULT (UUID())`        | Seed data, migration data, fallback เมื่อ app layer ไม่ได้สร้าง | ⚠️ Time-based แต่ node part คงที่ |
 >
 > **กฎการใช้งาน:**
+>
 > - ข้อมูลที่ insert ผ่าน NestJS backend → ได้ **UUIDv7** เสมอ (เพราะ `@BeforeInsert()` override default)
 > - ข้อมูลที่ insert ผ่าน SQL script ตรง ๆ (seed/migration) → ได้ **UUIDv1** (ใช้ DB default)
 > - ทั้งสองเวอร์ชัน expose เป็น string format `8-4-4-4-12` เท่านั้น — ห้าม `parseInt()` / `Number()` / `+` (ADR-019 critical rule)
@@ -165,7 +166,7 @@ erDiagram
 
     ### 1.6 system_settings (NEW v1.9.0)
     - - Purpose **: ตารางเก็บข้อมูลการตั้งค่าระบบแบบไดนามิก (เช่น สถานะการเปิด/ปิด AI features ทั่วทั้งระบบ) | COLUMN Name | Data TYPE | Constraints | Description | |: -------------- | :----------- | :----------- | :--------------------- |
-        | id | INT | PK, AI | ID ของตาราง | | setting_key | VARCHAR(100) | NOT NULL, UNIQUE | คีย์การตั้งค่าระบบ (เช่น 'AI_FEATURES_ENABLED') | | setting_value | TEXT | NOT NULL | ค่าที่บันทึก (stringified) | | data_type | ENUM | NOT NULL, DEFAULT 'string' | ประเภทข้อมูลสำหรับ validation ('string', 'number', 'boolean', 'json') | | category | VARCHAR(50) | NULL | หมวดหมู่การตั้งค่า (เช่น 'ai') | | is_encrypted | TINYINT(1) | DEFAULT 0 | เข้ารหัสค่า sensitive (1 = เข้ารหัส, 0 = ไม่เข้ารหัส) | | validation_rules | JSON | NULL | กฎ validation (min, max, allowed_values) | | description | TEXT | NULL | คำอธิบายข้อมูลการตั้งค่า | | is_public | TINYINT(1) | DEFAULT 0 | เผยแพร่ให้ frontend อ่านได้หรือ admin เท่านั้น (1 = เผยแพร่, 0 = แอดมินเท่านั้น) | | updated_by | INT | FK, NULL | ผู้แก้ไขล่าสุด | | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | เวลาสร้างเรคคอร์ด | | updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | เวลาอัปเดตเรคคอร์ดล่าสุด | ** INDEXES \*\*: - PRIMARY KEY (id) - UNIQUE (setting_key) - FOREIGN KEY (updated_by) REFERENCES users(user_id) ON DELETE SET NULL - INDEX idx_system_settings_category (category) - INDEX idx_system_settings_is_public (is_public) ** Business Rules \*\*: - ใช้เก็บค่าการตั้งค่าระดับระบบที่ต้องการปรับเปลี่ยนแบบไดนามิกผ่านหน้า Admin Console - คีย์ `AI_FEATURES_ENABLED` ควบคุมสถานะการทำงานของฟีเจอร์ AI สำหรับผู้ใช้ทั่วไป ---
+        | id | INT | PK, AI | ID ของตาราง | | setting_key | VARCHAR(100) | NOT NULL, UNIQUE | คีย์การตั้งค่าระบบ (เช่น 'AI_FEATURES_ENABLED') | | setting_value | TEXT | NOT NULL | ค่าที่บันทึก (stringified) | | data_type | ENUM | NOT NULL, DEFAULT 'string' | ประเภทข้อมูลสำหรับ validation ('string', 'number', 'boolean', 'json') | | category | VARCHAR(50) | NULL | หมวดหมู่การตั้งค่า (เช่น 'ai') | | is_encrypted | TINYINT(1) | DEFAULT 0 | เข้ารหัสค่า sensitive (1 = เข้ารหัส, 0 = ไม่เข้ารหัส) | | validation_rules | JSON | NULL | กฎ validation (min, max, allowed_values) | | description | TEXT | NULL | คำอธิบายข้อมูลการตั้งค่า | | is_public | TINYINT(1) | DEFAULT 0 | เผยแพร่ให้ frontend อ่านได้หรือ admin เท่านั้น (1 = เผยแพร่, 0 = แอดมินเท่านั้น) | | updated_by | INT | FK, NULL | ผู้แก้ไขล่าสุด | | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | เวลาสร้างเรคคอร์ด | | updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | เวลาอัปเดตเรคคอร์ดล่าสุด | ** INDEXES \*\*: - PRIMARY KEY (id) - UNIQUE (setting_key) - FOREIGN KEY (updated_by) REFERENCES users(user_id) ON DELETE SET NULL - INDEX idx_system_settings_category (category) - INDEX idx_system_settings_is_public (is_public) \*\* Business Rules \*\*: - ใช้เก็บค่าการตั้งค่าระดับระบบที่ต้องการปรับเปลี่ยนแบบไดนามิกผ่านหน้า Admin Console - คีย์ `AI_FEATURES_ENABLED` ควบคุมสถานะการทำงานของฟีเจอร์ AI สำหรับผู้ใช้ทั่วไป ---
 
     ## **2. 👥 Users & RBAC Tables (ผู้ใช้, สิทธิ์, บทบาท)**
 
@@ -347,19 +348,19 @@ erDiagram
 
 **Purpose**: Master table for correspondence documents (non-revisioned data)
 
-| Column Name               | Data Type    | Constraints                 | Description                                |
-| ------------------------- | ------------ | --------------------------- | ------------------------------------------ |
-| id                        | INT          | PRIMARY KEY, AUTO_INCREMENT | Master correspondence ID                   |
+| Column Name               | Data Type    | Constraints                 | Description                                                                                                    |
+| ------------------------- | ------------ | --------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| id                        | INT          | PRIMARY KEY, AUTO_INCREMENT | Master correspondence ID                                                                                       |
 | uuid                      | UUID         | NOT NULL, UNIQUE, DEFAULT   | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
-| correspondence_number     | VARCHAR(100) | NOT NULL                    | Document number (from numbering system)    |
-| correspondence_type_id    | INT          | NOT NULL, FK                | Reference to correspondence_types          |
-| **discipline_id**         | **INT**      | **NULL, FK**                | **[NEW] สาขางาน (ถ้ามี)**                  |
-| is_internal_communication | TINYINT(1)   | DEFAULT 0                   | Internal (1) or external (0) communication |
-| project_id                | INT          | NOT NULL, FK                | Reference to projects table                |
-| originator_id             | INT          | NULL, FK                    | Originating organization                   |
-| created_at                | DATETIME     | DEFAULT CURRENT_TIMESTAMP   | Record creation timestamp                  |
-| created_by                | INT          | NULL, FK                    | User who created the record                |
-| deleted_at                | DATETIME     | NULL                        | Soft delete timestamp                      |
+| correspondence_number     | VARCHAR(100) | NOT NULL                    | Document number (from numbering system)                                                                        |
+| correspondence_type_id    | INT          | NOT NULL, FK                | Reference to correspondence_types                                                                              |
+| **discipline_id**         | **INT**      | **NULL, FK**                | **[NEW] สาขางาน (ถ้ามี)**                                                                                      |
+| is_internal_communication | TINYINT(1)   | DEFAULT 0                   | Internal (1) or external (0) communication                                                                     |
+| project_id                | INT          | NOT NULL, FK                | Reference to projects table                                                                                    |
+| originator_id             | INT          | NULL, FK                    | Originating organization                                                                                       |
+| created_at                | DATETIME     | DEFAULT CURRENT_TIMESTAMP   | Record creation timestamp                                                                                      |
+| created_by                | INT          | NULL, FK                    | User who created the record                                                                                    |
+| deleted_at                | DATETIME     | NULL                        | Soft delete timestamp                                                                                          |
 
 **Indexes**:
 
@@ -386,27 +387,27 @@ erDiagram
 
 **Purpose**: Child table storing revision history of correspondences (1:N)
 
-| Column Name              | Data Type    | Constraints                       | Description                                                  |
-| ------------------------ | ------------ | --------------------------------- | ------------------------------------------------------------ |
-| id                       | INT          | PRIMARY KEY, AUTO_INCREMENT       | Unique revision ID                                           |
-| uuid                     | UUID         | NOT NULL, UNIQUE, DEFAULT         | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
-| correspondence_id        | INT          | NOT NULL, FK                      | Master correspondence ID                                     |
-| revision_number          | INT          | NOT NULL                          | Revision sequence (0, 1, 2...)                               |
-| revision_label           | VARCHAR(10)  | NULL                              | Display revision (A, B, 1.1...)                              |
-| is_current               | BOOLEAN      | DEFAULT FALSE                     | Current revision flag                                        |
+| Column Name              | Data Type    | Constraints                       | Description                                                                                                                                                       |
+| ------------------------ | ------------ | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| id                       | INT          | PRIMARY KEY, AUTO_INCREMENT       | Unique revision ID                                                                                                                                                |
+| uuid                     | UUID         | NOT NULL, UNIQUE, DEFAULT         | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019)                                                    |
+| correspondence_id        | INT          | NOT NULL, FK                      | Master correspondence ID                                                                                                                                          |
+| revision_number          | INT          | NOT NULL                          | Revision sequence (0, 1, 2...)                                                                                                                                    |
+| revision_label           | VARCHAR(10)  | NULL                              | Display revision (A, B, 1.1...)                                                                                                                                   |
+| is_current               | BOOLEAN      | DEFAULT FALSE                     | Current revision flag                                                                                                                                             |
 | current_corr_key         | INT          | GENERATED, STORED, NULL           | ADR-044: Generated column = correspondence_id when is_current=1, NULL otherwise. Used for unique constraint to ensure only 1 current revision per correspondence. |
-| correspondence_status_id | INT          | NOT NULL, FK                      | Current status of this revision                              |
-| title                    | VARCHAR(255) | NOT NULL                          | Document title                                               |
-| document_date            | DATE         | NULL                              | Document date                                                |
-| issued_date              | DATETIME     | NULL                              | Issue date                                                   |
-| received_date            | DATETIME     | NULL                              | Received date                                                |
-| due_date                 | DATETIME     | NULL                              | Due date for response                                        |
-| description              | TEXT         | NULL                              | Revision description                                         |
-| details                  | JSON         | NULL                              | Type-specific details (e.g., RFI questions)                  |
-| created_at               | DATETIME     | DEFAULT CURRENT_TIMESTAMP         | Revision creation timestamp                                  |
-| created_by               | INT          | NULL, FK                          | User who created revision                                    |
-| updated_by               | INT          | NULL, FK                          | User who last updated                                        |
-| v_ref_project_id         | INT          | GENERATED ALWAYS AS (...) VIRTUAL | Virtual Column ดึง Project ID จาก JSON details เพื่อทำ Index |
+| correspondence_status_id | INT          | NOT NULL, FK                      | Current status of this revision                                                                                                                                   |
+| title                    | VARCHAR(255) | NOT NULL                          | Document title                                                                                                                                                    |
+| document_date            | DATE         | NULL                              | Document date                                                                                                                                                     |
+| issued_date              | DATETIME     | NULL                              | Issue date                                                                                                                                                        |
+| received_date            | DATETIME     | NULL                              | Received date                                                                                                                                                     |
+| due_date                 | DATETIME     | NULL                              | Due date for response                                                                                                                                             |
+| description              | TEXT         | NULL                              | Revision description                                                                                                                                              |
+| details                  | JSON         | NULL                              | Type-specific details (e.g., RFI questions)                                                                                                                       |
+| created_at               | DATETIME     | DEFAULT CURRENT_TIMESTAMP         | Revision creation timestamp                                                                                                                                       |
+| created_by               | INT          | NULL, FK                          | User who created revision                                                                                                                                         |
+| updated_by               | INT          | NULL, FK                          | User who last updated                                                                                                                                             |
+| v_ref_project_id         | INT          | GENERATED ALWAYS AS (...) VIRTUAL | Virtual Column ดึง Project ID จาก JSON details เพื่อทำ Index                                                                                                      |
 
 | v_doc_subtype | VARCHAR(50) | GENERATED ALWAYS AS (...) VIRTUAL | Virtual Column ดึง Type จาก JSON details |
 | schema_version | INT | DEFAULT 1 | Version of the schema used with this details |
@@ -458,17 +459,17 @@ erDiagram
 
 **Purpose**: Master table for document tagging system (Supports multi-tenant per project)
 
-| Column Name    | Data Type       | Constraints                         | Description                             |
-| -------------- | --------------- | ----------------------------------- | --------------------------------------- |
-| id             | INT             | PRIMARY KEY, AUTO_INCREMENT         | Unique tag ID                           |
-| **project_id** | **INT**         | **NULL, FK**                        | **[NEW] Project scope (NULL = Global)** |
-| tag_name       | VARCHAR(100)    | NOT NULL                            | Tag name                                |
+| Column Name    | Data Type       | Constraints                         | Description                                                                                                                                             |
+| -------------- | --------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| id             | INT             | PRIMARY KEY, AUTO_INCREMENT         | Unique tag ID                                                                                                                                           |
+| **project_id** | **INT**         | **NULL, FK**                        | **[NEW] Project scope (NULL = Global)**                                                                                                                 |
+| tag_name       | VARCHAR(100)    | NOT NULL                            | Tag name                                                                                                                                                |
 | **color_code** | **VARCHAR(30)** | **DEFAULT 'default'**               | **[ADR-046] Palette key — default/slate/red/orange/amber/yellow/green/teal/blue/indigo/violet/purple/pink/rose; frontend map key→hex ผ่าน TAG_PALETTE** |
-| description    | TEXT            | NULL                                | Tag description                         |
-| created_at     | TIMESTAMP       | DEFAULT CURRENT_TIMESTAMP           | Record creation timestamp               |
-| updated_at     | TIMESTAMP       | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp                   |
-| **created_by** | **INT**         | **NULL, FK**                        | **[NEW] User who created the tag**      |
-| **deleted_at** | **DATETIME**    | **NULL**                            | **[NEW] Soft delete timestamp**         |
+| description    | TEXT            | NULL                                | Tag description                                                                                                                                         |
+| created_at     | TIMESTAMP       | DEFAULT CURRENT_TIMESTAMP           | Record creation timestamp                                                                                                                               |
+| updated_at     | TIMESTAMP       | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp                                                                                                                                   |
+| **created_by** | **INT**         | **NULL, FK**                        | **[NEW] User who created the tag**                                                                                                                      |
+| **deleted_at** | **DATETIME**    | **NULL**                            | **[NEW] Soft delete timestamp**                                                                                                                         |
 
 **Indexes**:
 
@@ -584,18 +585,18 @@ erDiagram
 
 ---
 
-### 4.3 rfa_approve_codes
+### 4.3 rfa_approve_codes (UPDATE v1.9.11 — ADR-049)
 
 **Purpose**: Master table for RFA approval result codes
 
-| Column Name  | Data Type    | Constraints                 | Description                      |
-| ------------ | ------------ | --------------------------- | -------------------------------- |
-| id           | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique identifier                |
-| approve_code | VARCHAR(20)  | NOT NULL, UNIQUE            | Approval code (1A, 1C, 3R, etc.) |
-| approve_name | VARCHAR(100) | NOT NULL                    | Full approval name               |
-| description  | TEXT         | NULL                        | Code description                 |
-| sort_order   | INT          | DEFAULT 0                   | Display order                    |
-| is_active    | TINYINT(1)   | DEFAULT 1                   | Active status                    |
+| Column Name  | Data Type    | Constraints                 | Description                                                                                                                                                 |
+| ------------ | ------------ | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| id           | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique identifier                                                                                                                                           |
+| approve_code | VARCHAR(20)  | NOT NULL, UNIQUE            | Approval code — ADR-049 scheme: 1=Approved, 2=Approved with Comments, 3=Revise and Resubmit, 4=Rejected (code เดิม 1A/1C/1N/1R/3C/3R/4X/5N ปิด is_active=0) |
+| approve_name | VARCHAR(100) | NOT NULL                    | Full approval name                                                                                                                                          |
+| description  | TEXT         | NULL                        | Code description                                                                                                                                            |
+| sort_order   | INT          | DEFAULT 0                   | Display order                                                                                                                                               |
+| is_active    | TINYINT(1)   | DEFAULT 1                   | Active status                                                                                                                                               |
 
 **Indexes**:
 
@@ -607,6 +608,35 @@ erDiagram
 **Relationships**:
 
 - Referenced by: rfa_revisions
+
+---
+
+### 4.3a rfa_consent_reasons (NEW v1.9.11 — ADR-049)
+
+**Purpose**: Master table for CONSULTANT consent reason metadata (ไม่มีผลต่อ workflow state — แยกจาก approve codes ตาม ADR-049)
+
+| Column Name | Data Type    | Constraints                 | Description                                                 |
+| ----------- | ------------ | --------------------------- | ----------------------------------------------------------- |
+| id          | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique identifier                                           |
+| public_id   | CHAR(36)     | NOT NULL, UNIQUE            | ADR-019: UUIDv7 สำหรับ API response                         |
+| code        | VARCHAR(20)  | NOT NULL, UNIQUE            | Consent reason code (NO_OBJECTION, COMMENTS_PROVIDED, etc.) |
+| description | VARCHAR(200) | NOT NULL                    | Consent reason description                                  |
+| sort_order  | INT          | DEFAULT 0                   | Display order                                               |
+| is_active   | TINYINT(1)   | DEFAULT 1                   | Active status                                               |
+| created_at  | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP   | Created timestamp                                           |
+| updated_at  | TIMESTAMP    | ON UPDATE CURRENT_TIMESTAMP | Updated timestamp                                           |
+
+**Indexes**:
+
+- PRIMARY KEY (id)
+- UNIQUE (public_id)
+- UNIQUE (code)
+- INDEX (is_active)
+- INDEX (sort_order)
+
+**Relationships**:
+
+- Referenced by: workflow_histories.metadata.consentReasonCode (JSON, soft reference)
 
 ---
 
@@ -852,20 +882,20 @@ erDiagram
 
 **Purpose**: Master table for contract drawings (from contract specifications)
 
-| Column Name     | Data Type    | Constraints                         | Description                              |
-| --------------- | ------------ | ----------------------------------- | ---------------------------------------- |
-| id              | INT          | PRIMARY KEY, AUTO_INCREMENT         | Unique drawing ID                        |
+| Column Name     | Data Type    | Constraints                         | Description                                                                                                    |
+| --------------- | ------------ | ----------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| id              | INT          | PRIMARY KEY, AUTO_INCREMENT         | Unique drawing ID                                                                                              |
 | uuid            | UUID         | NOT NULL, UNIQUE, DEFAULT           | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
-| project_id      | INT          | NOT NULL, FK                        | Reference to projects                    |
-| condwg_no       | VARCHAR(255) | NOT NULL                            | Contract drawing number                  |
-| title           | VARCHAR(255) | NOT NULL                            | Drawing title                            |
-| **map_cat_id**  | **INT**      | **NULL, FK**                        | **[CHANGED] Reference to mapping table** |
-| volume_id       | INT          | NULL, FK                            | Reference to volume                      |
-| **volume_page** | **INT**      | **NULL**                            | **[NEW] Page number within volume**      |
-| created_at      | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP           | Record creation timestamp                |
-| updated_at      | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp                    |
-| deleted_at      | DATETIME     | NULL                                | Soft delete timestamp                    |
-| updated_by      | INT          | NULL, FK                            | User who last updated                    |
+| project_id      | INT          | NOT NULL, FK                        | Reference to projects                                                                                          |
+| condwg_no       | VARCHAR(255) | NOT NULL                            | Contract drawing number                                                                                        |
+| title           | VARCHAR(255) | NOT NULL                            | Drawing title                                                                                                  |
+| **map_cat_id**  | **INT**      | **NULL, FK**                        | **[CHANGED] Reference to mapping table**                                                                       |
+| volume_id       | INT          | NULL, FK                            | Reference to volume                                                                                            |
+| **volume_page** | **INT**      | **NULL**                            | **[NEW] Page number within volume**                                                                            |
+| created_at      | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP           | Record creation timestamp                                                                                      |
+| updated_at      | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp                                                                                          |
+| deleted_at      | DATETIME     | NULL                                | Soft delete timestamp                                                                                          |
+| updated_by      | INT          | NULL, FK                            | User who last updated                                                                                          |
 
 **Indexes**:
 
@@ -972,18 +1002,18 @@ erDiagram
 
 **Purpose**: Master table for shop drawings (contractor-submitted)
 
-| Column Name      | Data Type    | Constraints                         | Description                      |
-| ---------------- | ------------ | ----------------------------------- | -------------------------------- |
-| id               | INT          | PRIMARY KEY, AUTO_INCREMENT         | Unique drawing ID                |
+| Column Name      | Data Type    | Constraints                         | Description                                                                                                    |
+| ---------------- | ------------ | ----------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| id               | INT          | PRIMARY KEY, AUTO_INCREMENT         | Unique drawing ID                                                                                              |
 | uuid             | UUID         | NOT NULL, UNIQUE, DEFAULT           | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
-| project_id       | INT          | NOT NULL, FK                        | Reference to projects            |
-| drawing_number   | VARCHAR(100) | NOT NULL, UNIQUE                    | Shop drawing number              |
-| main_category_id | INT          | NOT NULL, FK                        | Reference to main category       |
-| sub_category_id  | INT          | NOT NULL, FK                        | Reference to sub-category        |
-| created_at       | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP           | Record creation timestamp        |
-| updated_at       | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp            |
-| deleted_at       | DATETIME     | NULL                                | Soft delete timestamp            |
-| updated_by       | INT          | NULL, FK                            | User who last updated            |
+| project_id       | INT          | NOT NULL, FK                        | Reference to projects                                                                                          |
+| drawing_number   | VARCHAR(100) | NOT NULL, UNIQUE                    | Shop drawing number                                                                                            |
+| main_category_id | INT          | NOT NULL, FK                        | Reference to main category                                                                                     |
+| sub_category_id  | INT          | NOT NULL, FK                        | Reference to sub-category                                                                                      |
+| created_at       | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP           | Record creation timestamp                                                                                      |
+| updated_at       | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp                                                                                          |
+| deleted_at       | DATETIME     | NULL                                | Soft delete timestamp                                                                                          |
+| updated_by       | INT          | NULL, FK                            | User who last updated                                                                                          |
 
 **Indexes**:
 
@@ -1018,18 +1048,18 @@ erDiagram
 
 **Purpose**: Child table storing revision history of shop drawings (1:N)
 
-| Column Name               | Data Type        | Constraints                 | Description                              |
-| ------------------------- | ---------------- | --------------------------- | ---------------------------------------- |
-| id                        | INT              | PRIMARY KEY, AUTO_INCREMENT | Unique revision ID                       |
+| Column Name               | Data Type        | Constraints                 | Description                                                                                                    |
+| ------------------------- | ---------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| id                        | INT              | PRIMARY KEY, AUTO_INCREMENT | Unique revision ID                                                                                             |
 | uuid                      | UUID             | NOT NULL, UNIQUE, DEFAULT   | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
-| shop_drawing_id           | INT              | NOT NULL, FK                | Master shop drawing ID                   |
-| revision_number           | INT              | NOT NULL                    | Revision sequence (0, 1, 2...)           |
-| revision_label            | VARCHAR(10)      | NULL                        | Display revision (A, B, C...)            |
-| revision_date             | DATE             | NULL                        | Revision date                            |
-| **title**                 | **VARCHAR(500)** | **NOT NULL**                | **[NEW] Drawing title**                  |
-| description               | TEXT             | NULL                        | Revision description/changes             |
-| **legacy_drawing_number** | **VARCHAR(100)** | **NULL**                    | **[NEW] Original/legacy drawing number** |
-| created_at                | TIMESTAMP        | DEFAULT CURRENT_TIMESTAMP   | Revision creation timestamp              |
+| shop_drawing_id           | INT              | NOT NULL, FK                | Master shop drawing ID                                                                                         |
+| revision_number           | INT              | NOT NULL                    | Revision sequence (0, 1, 2...)                                                                                 |
+| revision_label            | VARCHAR(10)      | NULL                        | Display revision (A, B, C...)                                                                                  |
+| revision_date             | DATE             | NULL                        | Revision date                                                                                                  |
+| **title**                 | **VARCHAR(500)** | **NOT NULL**                | **[NEW] Drawing title**                                                                                        |
+| description               | TEXT             | NULL                        | Revision description/changes                                                                                   |
+| **legacy_drawing_number** | **VARCHAR(100)** | **NULL**                    | **[NEW] Original/legacy drawing number**                                                                       |
+| created_at                | TIMESTAMP        | DEFAULT CURRENT_TIMESTAMP   | Revision creation timestamp                                                                                    |
 
 **Indexes**:
 
@@ -1087,18 +1117,18 @@ erDiagram
 
 **Purpose**: Master table for AS Built drawings (final construction records)
 
-| Column Name      | Data Type    | Constraints                         | Description                      |
-| ---------------- | ------------ | ----------------------------------- | -------------------------------- |
-| id               | INT          | PRIMARY KEY, AUTO_INCREMENT         | Unique drawing ID                |
+| Column Name      | Data Type    | Constraints                         | Description                                                                                                    |
+| ---------------- | ------------ | ----------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| id               | INT          | PRIMARY KEY, AUTO_INCREMENT         | Unique drawing ID                                                                                              |
 | uuid             | UUID         | NOT NULL, UNIQUE, DEFAULT           | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
-| project_id       | INT          | NOT NULL, FK                        | Reference to projects            |
-| drawing_number   | VARCHAR(100) | NOT NULL, UNIQUE                    | AS Built drawing number          |
-| main_category_id | INT          | NOT NULL, FK                        | Reference to main category       |
-| sub_category_id  | INT          | NOT NULL, FK                        | Reference to sub-category        |
-| created_at       | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP           | Record creation timestamp        |
-| updated_at       | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp            |
-| deleted_at       | DATETIME     | NULL                                | Soft delete timestamp            |
-| updated_by       | INT          | NULL, FK                            | User who last updated            |
+| project_id       | INT          | NOT NULL, FK                        | Reference to projects                                                                                          |
+| drawing_number   | VARCHAR(100) | NOT NULL, UNIQUE                    | AS Built drawing number                                                                                        |
+| main_category_id | INT          | NOT NULL, FK                        | Reference to main category                                                                                     |
+| sub_category_id  | INT          | NOT NULL, FK                        | Reference to sub-category                                                                                      |
+| created_at       | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP           | Record creation timestamp                                                                                      |
+| updated_at       | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp                                                                                          |
+| deleted_at       | DATETIME     | NULL                                | Soft delete timestamp                                                                                          |
+| updated_by       | INT          | NULL, FK                            | User who last updated                                                                                          |
 
 **Indexes**:
 
@@ -1133,18 +1163,18 @@ erDiagram
 
 **Purpose**: Child table storing revision history of AS Built drawings (1:N)
 
-| Column Name           | Data Type    | Constraints                 | Description                      |
-| --------------------- | ------------ | --------------------------- | -------------------------------- |
-| id                    | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique revision ID               |
+| Column Name           | Data Type    | Constraints                 | Description                                                                                                    |
+| --------------------- | ------------ | --------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| id                    | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique revision ID                                                                                             |
 | uuid                  | UUID         | NOT NULL, UNIQUE, DEFAULT   | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
-| asbuilt_drawing_id    | INT          | NOT NULL, FK                | Master AS Built drawing ID       |
-| revision_number       | INT          | NOT NULL                    | Revision sequence (0, 1, 2...)   |
-| revision_label        | VARCHAR(10)  | NULL                        | Display revision (A, B, C...)    |
-| revision_date         | DATE         | NULL                        | Revision date                    |
-| title                 | VARCHAR(500) | NOT NULL                    | Drawing title                    |
-| description           | TEXT         | NULL                        | Revision description/changes     |
-| legacy_drawing_number | VARCHAR(100) | NULL                        | Original/legacy drawing number   |
-| created_at            | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP   | Revision creation timestamp      |
+| asbuilt_drawing_id    | INT          | NOT NULL, FK                | Master AS Built drawing ID                                                                                     |
+| revision_number       | INT          | NOT NULL                    | Revision sequence (0, 1, 2...)                                                                                 |
+| revision_label        | VARCHAR(10)  | NULL                        | Display revision (A, B, C...)                                                                                  |
+| revision_date         | DATE         | NULL                        | Revision date                                                                                                  |
+| title                 | VARCHAR(500) | NOT NULL                    | Drawing title                                                                                                  |
+| description           | TEXT         | NULL                        | Revision description/changes                                                                                   |
+| legacy_drawing_number | VARCHAR(100) | NULL                        | Original/legacy drawing number                                                                                 |
+| created_at            | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP   | Revision creation timestamp                                                                                    |
 
 **Indexes**:
 
@@ -1267,20 +1297,20 @@ erDiagram
 
 **Purpose**: Master table for internal circulation sheets (document routing)
 
-| Column Name             | Data Type    | Constraints                         | Description                               |
-| ----------------------- | ------------ | ----------------------------------- | ----------------------------------------- |
-| id                      | INT          | PRIMARY KEY, AUTO_INCREMENT         | Unique circulation ID                     |
+| Column Name             | Data Type    | Constraints                         | Description                                                                                                    |
+| ----------------------- | ------------ | ----------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| id                      | INT          | PRIMARY KEY, AUTO_INCREMENT         | Unique circulation ID                                                                                          |
 | uuid                    | UUID         | NOT NULL, UNIQUE, DEFAULT           | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
-| correspondence_id       | INT          | UNIQUE, FK                          | Link to correspondence (1:1 relationship) |
-| organization_id         | INT          | NOT NULL, FK                        | Organization that owns this circulation   |
-| circulation_no          | VARCHAR(100) | NOT NULL                            | Circulation sheet number                  |
-| circulation_subject     | VARCHAR(500) | NOT NULL                            | Subject/title                             |
-| circulation_status_code | VARCHAR(20)  | NOT NULL, FK                        | Current status code                       |
-| created_by_user_id      | INT          | NOT NULL, FK                        | User who created circulation              |
-| submitted_at            | TIMESTAMP    | NULL                                | Submission timestamp                      |
-| closed_at               | TIMESTAMP    | NULL                                | Closure timestamp                         |
-| created_at              | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP           | Record creation timestamp                 |
-| updated_at              | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp                     |
+| correspondence_id       | INT          | UNIQUE, FK                          | Link to correspondence (1:1 relationship)                                                                      |
+| organization_id         | INT          | NOT NULL, FK                        | Organization that owns this circulation                                                                        |
+| circulation_no          | VARCHAR(100) | NOT NULL                            | Circulation sheet number                                                                                       |
+| circulation_subject     | VARCHAR(500) | NOT NULL                            | Subject/title                                                                                                  |
+| circulation_status_code | VARCHAR(20)  | NOT NULL, FK                        | Current status code                                                                                            |
+| created_by_user_id      | INT          | NOT NULL, FK                        | User who created circulation                                                                                   |
+| submitted_at            | TIMESTAMP    | NULL                                | Submission timestamp                                                                                           |
+| closed_at               | TIMESTAMP    | NULL                                | Closure timestamp                                                                                              |
+| created_at              | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP           | Record creation timestamp                                                                                      |
+| updated_at              | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp                                                                                          |
 
 **Indexes**:
 
@@ -1378,24 +1408,24 @@ erDiagram
 
 **Purpose**: Central repository for all file attachments in the system
 
-| Column Name         | Data Type    | Constraints                 | Description                                                                |
-| ------------------- | ------------ | --------------------------- | -------------------------------------------------------------------------- |
-| id                  | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique attachment ID                                                       |
-| uuid                | UUID         | NOT NULL, UNIQUE, DEFAULT   | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
-| original_filename   | VARCHAR(255) | NOT NULL                    | Original filename from upload                                              |
-| stored_filename     | VARCHAR(255) | NOT NULL                    | System-generated unique filename                                           |
-| file_path           | VARCHAR(500) | NOT NULL                    | Full file path on server (/share/dms-data/)                                |
-| mime_type           | VARCHAR(100) | NOT NULL                    | MIME type (application/pdf, image/jpeg, etc.)                              |
-| file_size           | INT          | NOT NULL                    | File size in bytes                                                         |
-| uploaded_by_user_id | INT          | NOT NULL, FK                | User who uploaded file                                                     |
-| created_at          | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP   | Upload timestamp                                                           |
-| is_temporary        | BOOLEAN      | DEFAULT TRUE                | ระบุว่าเป็นไฟล์ชั่วคราว (ยังไม่ได้ Commit)                                 |
-| temp_id\*           | VARCHAR(100) | NULL                        | ID ชั่วคราวสำหรับอ้างอิงตอน Upload Phase 1 (อาจใช้ร่วมกับ id หรือแยกก็ได้) |
-| expires_at          | DATETIME     | NULL                        | เวลาหมดอายุของไฟล์ Temp (เพื่อให้ Cron Job ลบออก)                          |
-| checksum            | VARCHAR(64)  | NULL                        | SHA-256 Checksum สำหรับ Verify File Integrity [Req 3.9.3]                  |
-| reference_date      | DATE         | NULL                        | Date used for folder structure (e.g. Issue Date) to prevent broken paths   |
-| workflow_history_id | VARCHAR(36)  | NULL, FK                    | **[ADR-021]** อ้างอิง workflow_histories.publicId — NULL = ไฟล์แนบหลักของเอกสาร; NOT NULL = ไฟล์หลักฐานประจำ Workflow Step |
-| ai_processing_status | ENUM | NOT NULL, DEFAULT 'PENDING' | **[ADR-023A]** สถานะ AI job ของไฟล์เอกสาร: PENDING / PROCESSING / DONE / FAILED |
+| Column Name          | Data Type    | Constraints                 | Description                                                                                                                |
+| -------------------- | ------------ | --------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| id                   | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique attachment ID                                                                                                       |
+| uuid                 | UUID         | NOT NULL, UNIQUE, DEFAULT   | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019)             |
+| original_filename    | VARCHAR(255) | NOT NULL                    | Original filename from upload                                                                                              |
+| stored_filename      | VARCHAR(255) | NOT NULL                    | System-generated unique filename                                                                                           |
+| file_path            | VARCHAR(500) | NOT NULL                    | Full file path on server (/share/dms-data/)                                                                                |
+| mime_type            | VARCHAR(100) | NOT NULL                    | MIME type (application/pdf, image/jpeg, etc.)                                                                              |
+| file_size            | INT          | NOT NULL                    | File size in bytes                                                                                                         |
+| uploaded_by_user_id  | INT          | NOT NULL, FK                | User who uploaded file                                                                                                     |
+| created_at           | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP   | Upload timestamp                                                                                                           |
+| is_temporary         | BOOLEAN      | DEFAULT TRUE                | ระบุว่าเป็นไฟล์ชั่วคราว (ยังไม่ได้ Commit)                                                                                 |
+| temp_id\*            | VARCHAR(100) | NULL                        | ID ชั่วคราวสำหรับอ้างอิงตอน Upload Phase 1 (อาจใช้ร่วมกับ id หรือแยกก็ได้)                                                 |
+| expires_at           | DATETIME     | NULL                        | เวลาหมดอายุของไฟล์ Temp (เพื่อให้ Cron Job ลบออก)                                                                          |
+| checksum             | VARCHAR(64)  | NULL                        | SHA-256 Checksum สำหรับ Verify File Integrity [Req 3.9.3]                                                                  |
+| reference_date       | DATE         | NULL                        | Date used for folder structure (e.g. Issue Date) to prevent broken paths                                                   |
+| workflow_history_id  | VARCHAR(36)  | NULL, FK                    | **[ADR-021]** อ้างอิง workflow_histories.publicId — NULL = ไฟล์แนบหลักของเอกสาร; NOT NULL = ไฟล์หลักฐานประจำ Workflow Step |
+| ai_processing_status | ENUM         | NOT NULL, DEFAULT 'PENDING' | **[ADR-023A]** สถานะ AI job ของไฟล์เอกสาร: PENDING / PROCESSING / DONE / FAILED                                            |
 
 **Indexes**:
 
@@ -1436,11 +1466,11 @@ erDiagram
 > **[FIX v1.8.1]** เปลี่ยนจาก `correspondence_attachments` (FK → `correspondences.id`) → `correspondence_revision_attachments` (FK → `correspondence_revisions.id`)
 > เหตุผล: ไฟล์แนบผูกกับ revision ไม่ใช่ correspondence master เพราะแต่ละ revision อาจมีไฟล์แนบต่างกัน
 
-| Column Name                  | Data Type | Constraints     | Description                             |
-| ---------------------------- | --------- | --------------- | --------------------------------------- |
-| correspondence_revision_id   | INT       | PRIMARY KEY, FK | Reference to correspondence_revisions   |
-| attachment_id                | INT       | PRIMARY KEY, FK | Reference to attachments                |
-| is_main_document             | BOOLEAN   | DEFAULT FALSE   | Main/primary document flag of revision  |
+| Column Name                | Data Type | Constraints     | Description                            |
+| -------------------------- | --------- | --------------- | -------------------------------------- |
+| correspondence_revision_id | INT       | PRIMARY KEY, FK | Reference to correspondence_revisions  |
+| attachment_id              | INT       | PRIMARY KEY, FK | Reference to attachments               |
+| is_main_document           | BOOLEAN   | DEFAULT FALSE   | Main/primary document flag of revision |
 
 **Indexes**:
 
@@ -1715,17 +1745,17 @@ erDiagram
 
 **Purpose**: เก็บแม่แบบ (Template) ของ Workflow (Definition / DSL)
 
-| Column Name   | Data Type   | Constraints  | Description                               |
-| :------------ | :---------- | :----------- | :---------------------------------------- |
+| Column Name   | Data Type   | Constraints  | Description                                                                                                 |
+| :------------ | :---------- | :----------- | :---------------------------------------------------------------------------------------------------------- |
 | id            | CHAR(36)    | PK, UUID     | UUIDv4 (TypeORM `@PrimaryGeneratedColumn('uuid')` — ไม่ใช่ ADR-019 publicId). Unique Workflow Definition ID |
-| workflow_code | VARCHAR(50) | NOT NULL     | รหัส Workflow (เช่น RFA_FLOW_V1)          |
-| version       | INT         | DEFAULT 1    | หมายเลข Version                           |
-| description   | TEXT        | NULL         | คำอธิบาย Workflow                         |
-| dsl           | JSON        | NOT NULL     | นิยาม Workflow ต้นฉบับ (YAML/JSON Format) |
-| compiled      | JSON        | NOT NULL     | โครงสร้าง Execution Tree ที่ Compile แล้ว |
-| is_active     | BOOLEAN     | DEFAULT TRUE | สถานะการใช้งาน                            |
-| created_at    | TIMESTAMP   | DEFAULT NOW  | วันที่สร้าง                               |
-| updated_at    | TIMESTAMP   | ON UPDATE    | วันที่แก้ไขล่าสุด                         |
+| workflow_code | VARCHAR(50) | NOT NULL     | รหัส Workflow (เช่น RFA_FLOW_V1)                                                                            |
+| version       | INT         | DEFAULT 1    | หมายเลข Version                                                                                             |
+| description   | TEXT        | NULL         | คำอธิบาย Workflow                                                                                           |
+| dsl           | JSON        | NOT NULL     | นิยาม Workflow ต้นฉบับ (YAML/JSON Format)                                                                   |
+| compiled      | JSON        | NOT NULL     | โครงสร้าง Execution Tree ที่ Compile แล้ว                                                                   |
+| is_active     | BOOLEAN     | DEFAULT TRUE | สถานะการใช้งาน                                                                                              |
+| created_at    | TIMESTAMP   | DEFAULT NOW  | วันที่สร้าง                                                                                                 |
+| updated_at    | TIMESTAMP   | ON UPDATE    | วันที่แก้ไขล่าสุด                                                                                           |
 
 **Indexes**:
 
@@ -1739,19 +1769,19 @@ erDiagram
 
 **Purpose**: เก็บสถานะของ Workflow ที่กำลังรันอยู่จริง (Runtime)
 
-| Column Name   | Data Type   | Constraints                | Description                                                                                     |
-| :------------ | :---------- | :------------------------- | :---------------------------------------------------------------------------------------------- |
-| id            | CHAR(36)    | PK, UUID                   | UUIDv4 (TypeORM `@PrimaryGeneratedColumn('uuid')` — ไม่ใช่ ADR-019 publicId). Unique Instance ID |
-| definition_id | CHAR(36)    | FK, NOT NULL               | อ้างอิง Definition ที่ใช้                                                                           |
-| **contract_id** | **INT**   | **NULL, FK**               | **[delta-07 / ADR-021 C3]** Contract ที่ Workflow นี้สังกัด (NULL = org-scoped เช่น Circulation) |
-| entity_type   | VARCHAR(50) | NOT NULL                   | ประเภทเอกสาร (rfa, correspondence, transmittal, circulation)                             |
-| entity_id     | VARCHAR(50) | NOT NULL                   | ID ของเอกสาร                                                                                    |
-| current_state | VARCHAR(50) | NOT NULL                   | สถานะปัจจุบัน                                                                                   |
-| status        | ENUM        | DEFAULT 'ACTIVE'           | ACTIVE, COMPLETED, CANCELLED, TERMINATED                                                        |
-| context       | JSON        | NULL                       | ตัวแปร Context สำหรับตัดสินใจ (รวม contractId, projectId, initiatorId เป็นต้น)                      |
-| **version_no** | **INT**   | **NOT NULL, DEFAULT 1**   | **[ADR-001 v1.1 FR-002] Optimistic lock counter — incremented on every successful transition. Client sends current value; server rejects with 409 if mismatch.** |
-| created_at    | TIMESTAMP   | DEFAULT NOW                | เวลาที่สร้าง                                                                                    |
-| updated_at    | TIMESTAMP   | ON UPDATE                  | เวลาที่อัปเดตล่าสุด                                                                         |
+| Column Name     | Data Type   | Constraints             | Description                                                                                                                                                      |
+| :-------------- | :---------- | :---------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| id              | CHAR(36)    | PK, UUID                | UUIDv4 (TypeORM `@PrimaryGeneratedColumn('uuid')` — ไม่ใช่ ADR-019 publicId). Unique Instance ID                                                                 |
+| definition_id   | CHAR(36)    | FK, NOT NULL            | อ้างอิง Definition ที่ใช้                                                                                                                                        |
+| **contract_id** | **INT**     | **NULL, FK**            | **[delta-07 / ADR-021 C3]** Contract ที่ Workflow นี้สังกัด (NULL = org-scoped เช่น Circulation)                                                                 |
+| entity_type     | VARCHAR(50) | NOT NULL                | ประเภทเอกสาร (rfa, correspondence, transmittal, circulation)                                                                                                     |
+| entity_id       | VARCHAR(50) | NOT NULL                | ID ของเอกสาร                                                                                                                                                     |
+| current_state   | VARCHAR(50) | NOT NULL                | สถานะปัจจุบัน                                                                                                                                                    |
+| status          | ENUM        | DEFAULT 'ACTIVE'        | ACTIVE, COMPLETED, CANCELLED, TERMINATED                                                                                                                         |
+| context         | JSON        | NULL                    | ตัวแปร Context สำหรับตัดสินใจ (รวม contractId, projectId, initiatorId เป็นต้น)                                                                                   |
+| **version_no**  | **INT**     | **NOT NULL, DEFAULT 1** | **[ADR-001 v1.1 FR-002] Optimistic lock counter — incremented on every successful transition. Client sends current value; server rejects with 409 if mismatch.** |
+| created_at      | TIMESTAMP   | DEFAULT NOW             | เวลาที่สร้าง                                                                                                                                                     |
+| updated_at      | TIMESTAMP   | ON UPDATE               | เวลาที่อัปเดตล่าสุด                                                                                                                                              |
 
 **Business Rules**:
 
@@ -1769,22 +1799,25 @@ erDiagram
 - INDEX (contract_id, entity_type, status)
 - INDEX (id, version_no) — `idx_wf_inst_version` [ADR-001 v1.1 FR-002] — Supports CAS check: WHERE id = ? AND version_no = ?
 
-### 10.3 workflow_histories
+### 10.3 workflow_histories (UPDATE v1.9.11 — ADR-049)
 
-**Purpose**: เก็บประวัติการดำเนินการในแต่ละ Step (Audit Trail)
+**Purpose**: เก็บประวัติการดำเนินการในแต่ละ Step (Audit Trail) — รวม admin impersonation metadata (ADR-049)
 
-| Column Name       | Data Type   | Constraints  | Description               |
-| :---------------- | :---------- | :----------- | :------------------------ |
-| id                | CHAR(36)    | PK, UUID     | UUIDv4 (TypeORM `@PrimaryGeneratedColumn('uuid')` — ไม่ใช่ ADR-019 publicId). Unique ID |
-| instance_id       | CHAR(36)    | FK, NOT NULL | อ้างอิง Instance          |
-| from_state        | VARCHAR(50) | NOT NULL     | สถานะต้นทาง               |
-| to_state          | VARCHAR(50) | NOT NULL     | สถานะปลายทาง              |
-| action            | VARCHAR(50) | NOT NULL     | Action ที่กระทำ           |
-| action_by_user_id | INT         | FK, NULL     | User ID ผู้กระทำ          |
-| **action_by_user_uuid** | **VARCHAR(36)** | **NULL** | **[ADR-019 FR-003] UUID ของ User ผู้ดำเนินการ (คัดลอกจาก users.uuid ขณะ insert — อาจเป็น UUIDv7 หรือ UUIDv1 ตามที่มาของ user record) — ใช้ใน API Response แทน INT FK. NULL = System Action หรือ Pre-migration record** |
-| comment           | TEXT        | NULL         | ความเห็น                  |
-| metadata          | JSON        | NULL         | Snapshot ข้อมูล ณ ขณะนั้น |
-| created_at        | TIMESTAMP   | DEFAULT NOW  | เวลาที่กระทำ              |
+| Column Name                | Data Type       | Constraints             | Description                                                                                                                                                                                                            |
+| :------------------------- | :-------------- | :---------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| id                         | CHAR(36)        | PK, UUID                | UUIDv4 (TypeORM `@PrimaryGeneratedColumn('uuid')` — ไม่ใช่ ADR-019 publicId). Unique ID                                                                                                                                |
+| instance_id                | CHAR(36)        | FK, NOT NULL            | อ้างอิง Instance                                                                                                                                                                                                       |
+| from_state                 | VARCHAR(50)     | NOT NULL                | สถานะต้นทาง                                                                                                                                                                                                            |
+| to_state                   | VARCHAR(50)     | NOT NULL                | สถานะปลายทาง                                                                                                                                                                                                           |
+| action                     | VARCHAR(50)     | NOT NULL                | Action ที่กระทำ                                                                                                                                                                                                        |
+| action_by_user_id          | INT             | FK, NULL                | User ID ผู้กระทำ                                                                                                                                                                                                       |
+| **action_by_user_uuid**    | **VARCHAR(36)** | **NULL**                | **[ADR-019 FR-003] UUID ของ User ผู้ดำเนินการ (คัดลอกจาก users.uuid ขณะ insert — อาจเป็น UUIDv7 หรือ UUIDv1 ตามที่มาของ user record) — ใช้ใน API Response แทน INT FK. NULL = System Action หรือ Pre-migration record** |
+| **impersonated**           | **TINYINT(1)**  | **NOT NULL, DEFAULT 0** | **[ADR-049] 1 = admin ทำ action แทน handler ดั้งเดิม (Superadmin/Org Admin impersonation)**                                                                                                                            |
+| **on_behalf_of_user_id**   | **INT**         | **NULL**                | **[ADR-049] FK → users.id ของ handler ดั้งเดิม (เจ้าของเดิม) — NULL ถ้าไม่ใช่ impersonation (ไม่ใส่ FK constraint เพราะ user อาจ inactive แล้ว — edge case T031a)**                                                    |
+| **on_behalf_of_user_uuid** | **VARCHAR(36)** | **NULL**                | **[ADR-049] UUID ของ handler ดั้งเดิม สำหรับ API response (ADR-019) — NULL ถ้าไม่ใช่ impersonation**                                                                                                                   |
+| comment                    | TEXT            | NULL                    | ความเห็น                                                                                                                                                                                                               |
+| metadata                   | JSON            | NULL                    | Snapshot ข้อมูล ณ ขณะนั้น (รวม on_behalf_of_user_active: boolean สำหรับ edge case T031a — ระบุว่า user ต้นทาง inactive แล้ว)                                                                                           |
+| created_at                 | TIMESTAMP       | DEFAULT NOW             | เวลาที่กระทำ                                                                                                                                                                                                           |
 
 **Indexes**:
 
@@ -1792,6 +1825,7 @@ erDiagram
 - FOREIGN KEY (instance_id) REFERENCES workflow_instances(id) ON DELETE CASCADE
 - INDEX (instance_id)
 - INDEX (action_by_user_id)
+- INDEX (on_behalf_of_user_id) — `idx_wf_hist_on_behalf_of_user_id` [ADR-049]
 
 ---
 
@@ -1885,18 +1919,18 @@ erDiagram
 
 **Purpose**: System notifications for users
 
-| Column Name       | Data Type    | Constraints                 | Description                      |
-| :---------------- | :----------- | :-------------------------- | :------------------------------- |
-| id                | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique notification ID           |
+| Column Name       | Data Type    | Constraints                 | Description                                                                                                    |
+| :---------------- | :----------- | :-------------------------- | :------------------------------------------------------------------------------------------------------------- |
+| id                | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique notification ID                                                                                         |
 | uuid              | UUID         | NOT NULL, DEFAULT           | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
-| user_id           | INT          | NOT NULL, FK                | Recipient user ID                |
-| title             | VARCHAR(255) | NOT NULL                    | Notification title               |
-| message           | TEXT         | NOT NULL                    | Notification body                |
-| notification_type | ENUM         | NOT NULL                    | Type: EMAIL, LINE, SYSTEM        |
-| is_read           | BOOLEAN      | DEFAULT FALSE               | Read status                      |
-| entity_type       | VARCHAR(50)  | NULL                        | Related Entity Type              |
-| entity_id         | INT          | NULL                        | Related Entity ID                |
-| created_at        | DATETIME     | DEFAULT CURRENT_TIMESTAMP   | Notification timestamp           |
+| user_id           | INT          | NOT NULL, FK                | Recipient user ID                                                                                              |
+| title             | VARCHAR(255) | NOT NULL                    | Notification title                                                                                             |
+| message           | TEXT         | NOT NULL                    | Notification body                                                                                              |
+| notification_type | ENUM         | NOT NULL                    | Type: EMAIL, LINE, SYSTEM                                                                                      |
+| is_read           | BOOLEAN      | DEFAULT FALSE               | Read status                                                                                                    |
+| entity_type       | VARCHAR(50)  | NULL                        | Related Entity Type                                                                                            |
+| entity_id         | INT          | NULL                        | Related Entity ID                                                                                              |
+| created_at        | DATETIME     | DEFAULT CURRENT_TIMESTAMP   | Notification timestamp                                                                                         |
 
 **Indexes**:
 
@@ -2000,21 +2034,21 @@ PARTITION BY RANGE (YEAR(created_at)) (
 
 ### 13.1 Performance Indexes
 
-| Table Name               | Index Columns                                     | Purpose                        |
-| :----------------------- | :------------------------------------------------ | :----------------------------- |
-| correspondences          | (project_id, correspondence_number)               | Fast lookup by document number |
-| correspondences          | (correspondence_type_id)                          | Filter by type                 |
-| correspondence_revisions | (correspondence_id, is_current)                   | Get current revision           |
-| rfas                     | (rfa_type_id)                                     | Filter by RFA type             |
-| rfa_revisions            | (rfa_id, is_current)                              | Get current RFA revision       |
-| rfa_revisions            | (rfa_status_code_id)                              | Filter by status               |
-| audit_logs               | (created_at)                                      | Date range queries             |
-| audit_logs               | (user_id)                                         | User activity history          |
-| audit_logs               | (module, action)                                  | Action type analysis           |
-| notifications            | (user_id, is_read)                                | Unread notifications query     |
-| document_number_counters | (project_id, correspondence_type_id, reset_scope) | Running number generation      |
-| workflow_instances       | (entity_type, entity_id)                          | Workflow lookup by document ID                            |
-| workflow_instances       | (current_state)                                   | Monitor active workflows                                  |
+| Table Name               | Index Columns                                     | Purpose                                                     |
+| :----------------------- | :------------------------------------------------ | :---------------------------------------------------------- |
+| correspondences          | (project_id, correspondence_number)               | Fast lookup by document number                              |
+| correspondences          | (correspondence_type_id)                          | Filter by type                                              |
+| correspondence_revisions | (correspondence_id, is_current)                   | Get current revision                                        |
+| rfas                     | (rfa_type_id)                                     | Filter by RFA type                                          |
+| rfa_revisions            | (rfa_id, is_current)                              | Get current RFA revision                                    |
+| rfa_revisions            | (rfa_status_code_id)                              | Filter by status                                            |
+| audit_logs               | (created_at)                                      | Date range queries                                          |
+| audit_logs               | (user_id)                                         | User activity history                                       |
+| audit_logs               | (module, action)                                  | Action type analysis                                        |
+| notifications            | (user_id, is_read)                                | Unread notifications query                                  |
+| document_number_counters | (project_id, correspondence_type_id, reset_scope) | Running number generation                                   |
+| workflow_instances       | (entity_type, entity_id)                          | Workflow lookup by document ID                              |
+| workflow_instances       | (current_state)                                   | Monitor active workflows                                    |
 | workflow_instances       | (contract_id, entity_type, status)                | **[delta-07]** Guard contract-membership + dashboard filter |
 
 ### 13.2 Unique Constraints
@@ -2258,29 +2292,29 @@ SELECT * FROM correspondences WHERE deleted_at IS NULL;
 
 **วัตถุประสงค์:** ติดตามสถานะการประมวลผล AI สำหรับเอกสารแต่ละรายการ ใช้ในกระบวนการ Legacy Migration และ New Ingestion
 
-| Column | Type | Nullable | Description |
-|--------|------|----------|-------------|
-| `id` | INT AUTO_INCREMENT | NO | Internal PK — ห้าม expose ใน API (ADR-019) |
-| `uuid` | UUID | NO | UUIDv7 (NestJS @BeforeInsert, ADR-019) — app layer สร้างเสมอ (ไม่มี DB DEFAULT). ใช้ใน API response เป็น `publicId` |
-| `source_file` | VARCHAR(255) | NO | Path หรือ publicId ของไฟล์ต้นทาง |
-| `source_metadata` | JSON | YES | Metadata จากแหล่งต้นทาง (Excel, manual input) |
-| `ai_extracted_metadata` | JSON | YES | Metadata ที่ AI สกัดได้ — ประกอบด้วย subject, date, discipline, drawingReference, contractNumber |
-| `confidence_score` | DECIMAL(3,2) | YES | คะแนนความมั่นใจของ AI (0.00–1.00) ตาม ADR-020 Confidence Strategy |
-| `status` | ENUM | NO | สถานะปัจจุบัน (ดู State Machine ด้านล่าง) |
-| `admin_feedback` | TEXT | YES | ความเห็นของ Admin ผู้ตรวจสอบ |
-| `reviewed_by` | INT | YES | FK → `users.user_id` — Admin ที่ทำการตรวจสอบ |
-| `reviewed_at` | TIMESTAMP | YES | เวลาที่ Admin ตรวจสอบ |
-| `created_at` | TIMESTAMP | NO | วันที่สร้าง record |
-| `updated_at` | TIMESTAMP | NO | วันที่แก้ไขล่าสุด (Auto-update) |
+| Column                  | Type               | Nullable | Description                                                                                                         |
+| ----------------------- | ------------------ | -------- | ------------------------------------------------------------------------------------------------------------------- |
+| `id`                    | INT AUTO_INCREMENT | NO       | Internal PK — ห้าม expose ใน API (ADR-019)                                                                          |
+| `uuid`                  | UUID               | NO       | UUIDv7 (NestJS @BeforeInsert, ADR-019) — app layer สร้างเสมอ (ไม่มี DB DEFAULT). ใช้ใน API response เป็น `publicId` |
+| `source_file`           | VARCHAR(255)       | NO       | Path หรือ publicId ของไฟล์ต้นทาง                                                                                    |
+| `source_metadata`       | JSON               | YES      | Metadata จากแหล่งต้นทาง (Excel, manual input)                                                                       |
+| `ai_extracted_metadata` | JSON               | YES      | Metadata ที่ AI สกัดได้ — ประกอบด้วย subject, date, discipline, drawingReference, contractNumber                    |
+| `confidence_score`      | DECIMAL(3,2)       | YES      | คะแนนความมั่นใจของ AI (0.00–1.00) ตาม ADR-020 Confidence Strategy                                                   |
+| `status`                | ENUM               | NO       | สถานะปัจจุบัน (ดู State Machine ด้านล่าง)                                                                           |
+| `admin_feedback`        | TEXT               | YES      | ความเห็นของ Admin ผู้ตรวจสอบ                                                                                        |
+| `reviewed_by`           | INT                | YES      | FK → `users.user_id` — Admin ที่ทำการตรวจสอบ                                                                        |
+| `reviewed_at`           | TIMESTAMP          | YES      | เวลาที่ Admin ตรวจสอบ                                                                                               |
+| `created_at`            | TIMESTAMP          | NO       | วันที่สร้าง record                                                                                                  |
+| `updated_at`            | TIMESTAMP          | NO       | วันที่แก้ไขล่าสุด (Auto-update)                                                                                     |
 
 #### Status Enum Values
 
-| Status | Description | Action Required |
-|--------|-------------|-----------------|
-| `PENDING_REVIEW` | รอ Admin ตรวจสอบ (Default) | Admin ต้องตรวจสอบและเปลี่ยนสถานะ |
-| `VERIFIED` | Admin ยืนยันแล้ว พร้อม Import | ระบบนำเข้าหรือรอ Batch Import |
-| `IMPORTED` | นำเข้าสู่ระบบสำเร็จ (Terminal State) | ไม่สามารถแก้ไขได้อีก |
-| `FAILED` | ล้มเหลว — AI หรือ Validation ไม่ผ่าน | สามารถ Retry ได้ (→ PENDING_REVIEW) |
+| Status           | Description                          | Action Required                     |
+| ---------------- | ------------------------------------ | ----------------------------------- |
+| `PENDING_REVIEW` | รอ Admin ตรวจสอบ (Default)           | Admin ต้องตรวจสอบและเปลี่ยนสถานะ    |
+| `VERIFIED`       | Admin ยืนยันแล้ว พร้อม Import        | ระบบนำเข้าหรือรอ Batch Import       |
+| `IMPORTED`       | นำเข้าสู่ระบบสำเร็จ (Terminal State) | ไม่สามารถแก้ไขได้อีก                |
+| `FAILED`         | ล้มเหลว — AI หรือ Validation ไม่ผ่าน | สามารถ Retry ได้ (→ PENDING_REVIEW) |
 
 #### State Machine (Status Transitions)
 
@@ -2292,6 +2326,7 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 ```
 
 **กฎ:**
+
 - `IMPORTED` เป็น Terminal State — ห้ามเปลี่ยนสถานะ
 - Admin สามารถเปลี่ยนได้เฉพาะ `PENDING_REVIEW → VERIFIED` หรือ `PENDING_REVIEW → FAILED`
 - `FAILED → PENDING_REVIEW` สำหรับ Retry
@@ -2315,45 +2350,45 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 
 **วัตถุประสงค์:** ตาราง staging queue สำหรับ AI migration ตาม ADR-023A — เก็บข้อมูลเอกสาร legacy ที่ AI ประมวลผลแล้วรอ Admin ตรวจสอบ
 
-| Column | Type | Nullable | Description |
-|--------|------|----------|-------------|
-| `id` | INT AUTO_INCREMENT | NO | Internal PK — ห้าม expose ใน API (ADR-019) |
-| `uuid` | UUID | NO | UUIDv7 (NestJS @BeforeInsert, ADR-019) — app layer สร้างเสมอ (ไม่มี DB DEFAULT) |
-| `batch_id` | VARCHAR(100) | NO | n8n batch identifier |
-| `idempotency_key` | VARCHAR(200) | YES | Idempotency-Key สำหรับป้องกัน queue ซ้ำ (nullable — entity เก่าไม่ได้ใช้) |
-| `original_filename` | VARCHAR(500) | YES | ชื่อไฟล์ต้นฉบับจาก legacy source (nullable — entity เก่าไม่ได้ใช้) |
-| `storage_temp_path` | VARCHAR(1000) | YES | temp storage path ก่อน import (nullable — entity เก่าไม่ได้ใช้) |
-| `ai_job_id` | VARCHAR(36) | YES | BullMQ Job ID สำหรับงานประมวลผล AI |
-| `ai_metadata_json` | JSON | NO | AI suggestion payload เต็มสำหรับ human review |
-| `confidence_score` | DECIMAL(5,4) | YES | AI confidence score 0.0000-1.0000 (nullable — entity เก่าไม่ได้ใช้) |
-| `ocr_used` | TINYINT(1) | NO | ระบุว่าใช้ OCR path หรือไม่ (default: 0) |
-| `status` | ENUM | NO | สถานะ: PENDING / PENDING_REVIEW / IMPORTED / REJECTED |
-| `temp_attachment_id` | INT | YES | Temporary attachment ID referencing attachments.id (ADR-028) |
-| `temp_attachment_ids` | JSON | YES | รายการ internal attachment IDs หลายไฟล์ (FR-001, FR-002) |
-| `reviewed_by` | INT | YES | Internal users.user_id ของผู้ review |
-| `reviewed_at` | DATETIME | YES | เวลาที่ review record |
-| `rejection_reason` | VARCHAR(500) | YES | เหตุผลเมื่อ reject |
-| `version` | INT | NO | Optimistic locking version |
-| `compare_status` | ENUM | NO | สถานะการเปรียบเทียบ: COMPARED / UNAVAILABLE (FR-012a) |
-| `compare_unavailable_reason` | VARCHAR(500) | YES | เหตุผลภาษาไทยเมื่อ compareStatus = UNAVAILABLE (FR-012b) |
-| `document_number` | VARCHAR(100) | YES | เลขที่เอกสารเก่า (จาก OCR/Excel) — UNIQUE |
-| `subject` | TEXT | YES | หัวข้อเรื่อง (ตรงกับ correspondence_revisions.subject) |
-| `original_subject` | TEXT | YES | หัวข้อเดิมจาก Excel (ก่อน AI แก้ไข) |
-| `body` | TEXT | YES | เนื้อความสรุปจาก AI |
-| `ai_suggested_category` | VARCHAR(50) | YES | หมวดหมู่ที่ AI แนะนำ |
-| `ai_confidence` | DECIMAL(4,3) | YES | ค่าความมั่นใจของ AI (0.000 - 1.000) |
-| `ai_issues` | JSON | YES | รายละเอียดปัญหาที่ AI พบ |
-| `review_reason` | VARCHAR(255) | YES | เหตุผลที่ต้องตรวจสอบ (เช่น Confidence ต่ำ) |
-| `project_id` | INT | YES | Project ID จาก Lookups |
-| `sender_organization_id` | INT | YES | Sender ID จาก Lookups |
-| `receiver_organization_id` | INT | YES | Receiver ID จาก Lookups |
-| `received_date` | DATE | YES | วันที่รับเอกสาร |
-| `issued_date` | DATE | YES | วันที่ออกเอกสาร |
-| `remarks` | TEXT | YES | หมายเหตุจากหน้างาน |
-| `ai_summary` | TEXT | YES | สรุปเนื้อหาจาก AI (4-5 บรรทัด) |
-| `extracted_tags` | JSON | YES | Tag ที่ AI นำเสนอหรือจับคู่ได้ |
-| `created_at` | DATETIME | NO | วันที่สร้าง |
-| `updated_at` | DATETIME | NO | วันที่แก้ไขล่าสุด |
+| Column                       | Type               | Nullable | Description                                                                     |
+| ---------------------------- | ------------------ | -------- | ------------------------------------------------------------------------------- |
+| `id`                         | INT AUTO_INCREMENT | NO       | Internal PK — ห้าม expose ใน API (ADR-019)                                      |
+| `uuid`                       | UUID               | NO       | UUIDv7 (NestJS @BeforeInsert, ADR-019) — app layer สร้างเสมอ (ไม่มี DB DEFAULT) |
+| `batch_id`                   | VARCHAR(100)       | NO       | n8n batch identifier                                                            |
+| `idempotency_key`            | VARCHAR(200)       | YES      | Idempotency-Key สำหรับป้องกัน queue ซ้ำ (nullable — entity เก่าไม่ได้ใช้)       |
+| `original_filename`          | VARCHAR(500)       | YES      | ชื่อไฟล์ต้นฉบับจาก legacy source (nullable — entity เก่าไม่ได้ใช้)              |
+| `storage_temp_path`          | VARCHAR(1000)      | YES      | temp storage path ก่อน import (nullable — entity เก่าไม่ได้ใช้)                 |
+| `ai_job_id`                  | VARCHAR(36)        | YES      | BullMQ Job ID สำหรับงานประมวลผล AI                                              |
+| `ai_metadata_json`           | JSON               | NO       | AI suggestion payload เต็มสำหรับ human review                                   |
+| `confidence_score`           | DECIMAL(5,4)       | YES      | AI confidence score 0.0000-1.0000 (nullable — entity เก่าไม่ได้ใช้)             |
+| `ocr_used`                   | TINYINT(1)         | NO       | ระบุว่าใช้ OCR path หรือไม่ (default: 0)                                        |
+| `status`                     | ENUM               | NO       | สถานะ: PENDING / PENDING_REVIEW / IMPORTED / REJECTED                           |
+| `temp_attachment_id`         | INT                | YES      | Temporary attachment ID referencing attachments.id (ADR-028)                    |
+| `temp_attachment_ids`        | JSON               | YES      | รายการ internal attachment IDs หลายไฟล์ (FR-001, FR-002)                        |
+| `reviewed_by`                | INT                | YES      | Internal users.user_id ของผู้ review                                            |
+| `reviewed_at`                | DATETIME           | YES      | เวลาที่ review record                                                           |
+| `rejection_reason`           | VARCHAR(500)       | YES      | เหตุผลเมื่อ reject                                                              |
+| `version`                    | INT                | NO       | Optimistic locking version                                                      |
+| `compare_status`             | ENUM               | NO       | สถานะการเปรียบเทียบ: COMPARED / UNAVAILABLE (FR-012a)                           |
+| `compare_unavailable_reason` | VARCHAR(500)       | YES      | เหตุผลภาษาไทยเมื่อ compareStatus = UNAVAILABLE (FR-012b)                        |
+| `document_number`            | VARCHAR(100)       | YES      | เลขที่เอกสารเก่า (จาก OCR/Excel) — UNIQUE                                       |
+| `subject`                    | TEXT               | YES      | หัวข้อเรื่อง (ตรงกับ correspondence_revisions.subject)                          |
+| `original_subject`           | TEXT               | YES      | หัวข้อเดิมจาก Excel (ก่อน AI แก้ไข)                                             |
+| `body`                       | TEXT               | YES      | เนื้อความสรุปจาก AI                                                             |
+| `ai_suggested_category`      | VARCHAR(50)        | YES      | หมวดหมู่ที่ AI แนะนำ                                                            |
+| `ai_confidence`              | DECIMAL(4,3)       | YES      | ค่าความมั่นใจของ AI (0.000 - 1.000)                                             |
+| `ai_issues`                  | JSON               | YES      | รายละเอียดปัญหาที่ AI พบ                                                        |
+| `review_reason`              | VARCHAR(255)       | YES      | เหตุผลที่ต้องตรวจสอบ (เช่น Confidence ต่ำ)                                      |
+| `project_id`                 | INT                | YES      | Project ID จาก Lookups                                                          |
+| `sender_organization_id`     | INT                | YES      | Sender ID จาก Lookups                                                           |
+| `receiver_organization_id`   | INT                | YES      | Receiver ID จาก Lookups                                                         |
+| `received_date`              | DATE               | YES      | วันที่รับเอกสาร                                                                 |
+| `issued_date`                | DATE               | YES      | วันที่ออกเอกสาร                                                                 |
+| `remarks`                    | TEXT               | YES      | หมายเหตุจากหน้างาน                                                              |
+| `ai_summary`                 | TEXT               | YES      | สรุปเนื้อหาจาก AI (4-5 บรรทัด)                                                  |
+| `extracted_tags`             | JSON               | YES      | Tag ที่ AI นำเสนอหรือจับคู่ได้                                                  |
+| `created_at`                 | DATETIME           | NO       | วันที่สร้าง                                                                     |
+| `updated_at`                 | DATETIME           | NO       | วันที่แก้ไขล่าสุด                                                               |
 
 **Indexes**:
 
@@ -2379,29 +2414,29 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 
 **วัตถุประสงค์:** บันทึก AI Development Feedback Log ตาม ADR-023/ADR-023A — เก็บ AI Suggestion + การตัดสินใจของมนุษย์เพื่อวิเคราะห์และปรับปรุงคุณภาพโมเดล (ไม่ใช่ Compliance Audit Trail)
 
-| Column | Type | Nullable | Description |
-|--------|------|----------|-------------|
-| `id` | INT AUTO_INCREMENT | NO | Internal PK — ห้าม expose ใน API (ADR-019) |
-| `uuid` | UUID | NO | UUIDv7 (NestJS @BeforeInsert, ADR-019) — app layer สร้างเสมอ (ไม่มี DB DEFAULT) |
-| `document_public_id` | UUID | YES | Imported document publicId (UUIDv7 หรือ UUIDv1 ตามที่มาของ document) when available |
-| `ai_model` | VARCHAR(50) | NO | Legacy AI model column used by current gateway service (default: gemma4) |
-| `model_name` | VARCHAR(100) | NO | Local model name used by ADR-023 AI pipeline |
-| `effective_profile` | VARCHAR(50) | YES | ExecutionProfile ที่ backend กำหนด: interactive\|standard\|quality\|deep-analysis (Feature-235) |
-| `canonical_model` | VARCHAR(50) | YES | Canonical model identity: np-dms-ai หรือ np-dms-ocr (Feature-235, ADR-023) |
-| `snapshot_params_json` | LONGTEXT | YES | Runtime parameters snapshot ณ เวลา dispatch — ใช้จริงใน Ollama call (FR-A09, Feature-235) |
-| `model_type` | VARCHAR(50) | YES | ประเภท OCR/LLM model ที่ใช้ เช่น tesseract, typhoon-ocr-3b |
-| `vram_usage_mb` | INT | YES | VRAM ที่ใช้จริง (MB) ณ เวลาประมวลผล |
-| `cache_hit` | TINYINT(1) | NO | 1 = ผลลัพธ์มาจาก Redis cache, 0 = OCR ใหม่ |
-| `ai_suggestion_json` | LONGTEXT | YES | AI suggested metadata |
-| `human_override_json` | LONGTEXT | YES | Human approved or overridden metadata |
-| `processing_time_ms` | INT | YES | Legacy processing duration field |
-| `confidence_score` | DECIMAL(4,3) | YES | AI confidence score 0.000-1.000 |
-| `input_hash` | VARCHAR(64) | YES | Legacy SHA-256 input hash |
-| `output_hash` | VARCHAR(64) | YES | Legacy SHA-256 output hash |
-| `status` | ENUM | NO | Legacy processing status field: SUCCESS / FAILED / TIMEOUT |
-| `error_message` | TEXT | YES | Legacy processing error field |
-| `confirmed_by_user_id` | INT | YES | Internal users.user_id that confirmed the record |
-| `created_at` | TIMESTAMP | NO | วันที่สร้าง |
+| Column                 | Type               | Nullable | Description                                                                                     |
+| ---------------------- | ------------------ | -------- | ----------------------------------------------------------------------------------------------- |
+| `id`                   | INT AUTO_INCREMENT | NO       | Internal PK — ห้าม expose ใน API (ADR-019)                                                      |
+| `uuid`                 | UUID               | NO       | UUIDv7 (NestJS @BeforeInsert, ADR-019) — app layer สร้างเสมอ (ไม่มี DB DEFAULT)                 |
+| `document_public_id`   | UUID               | YES      | Imported document publicId (UUIDv7 หรือ UUIDv1 ตามที่มาของ document) when available             |
+| `ai_model`             | VARCHAR(50)        | NO       | Legacy AI model column used by current gateway service (default: gemma4)                        |
+| `model_name`           | VARCHAR(100)       | NO       | Local model name used by ADR-023 AI pipeline                                                    |
+| `effective_profile`    | VARCHAR(50)        | YES      | ExecutionProfile ที่ backend กำหนด: interactive\|standard\|quality\|deep-analysis (Feature-235) |
+| `canonical_model`      | VARCHAR(50)        | YES      | Canonical model identity: np-dms-ai หรือ np-dms-ocr (Feature-235, ADR-023)                      |
+| `snapshot_params_json` | LONGTEXT           | YES      | Runtime parameters snapshot ณ เวลา dispatch — ใช้จริงใน Ollama call (FR-A09, Feature-235)       |
+| `model_type`           | VARCHAR(50)        | YES      | ประเภท OCR/LLM model ที่ใช้ เช่น tesseract, typhoon-ocr-3b                                      |
+| `vram_usage_mb`        | INT                | YES      | VRAM ที่ใช้จริง (MB) ณ เวลาประมวลผล                                                             |
+| `cache_hit`            | TINYINT(1)         | NO       | 1 = ผลลัพธ์มาจาก Redis cache, 0 = OCR ใหม่                                                      |
+| `ai_suggestion_json`   | LONGTEXT           | YES      | AI suggested metadata                                                                           |
+| `human_override_json`  | LONGTEXT           | YES      | Human approved or overridden metadata                                                           |
+| `processing_time_ms`   | INT                | YES      | Legacy processing duration field                                                                |
+| `confidence_score`     | DECIMAL(4,3)       | YES      | AI confidence score 0.000-1.000                                                                 |
+| `input_hash`           | VARCHAR(64)        | YES      | Legacy SHA-256 input hash                                                                       |
+| `output_hash`          | VARCHAR(64)        | YES      | Legacy SHA-256 output hash                                                                      |
+| `status`               | ENUM               | NO       | Legacy processing status field: SUCCESS / FAILED / TIMEOUT                                      |
+| `error_message`        | TEXT               | YES      | Legacy processing error field                                                                   |
+| `confirmed_by_user_id` | INT                | YES      | Internal users.user_id that confirmed the record                                                |
+| `created_at`           | TIMESTAMP          | NO       | วันที่สร้าง                                                                                     |
 
 **Indexes**:
 
@@ -2429,22 +2464,23 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 
 **วัตถุประสงค์:** เก็บรายการโมเดล AI ที่ให้เลือกใช้งานในระบบ (ADR-027, ADR-034)
 
-| Column | Type | Nullable | Description |
-|--------|------|----------|-------------|
-| `id` | INT AUTO_INCREMENT | NO | ID ของตาราง |
-| `model_name` | VARCHAR(100) | NO | ชื่อโมเดล เช่น gemma4:e2b, gemma4:e4b |
-| `model_version` | VARCHAR(50) | NO | เวอร์ชั่นของโมเดล |
-| `description` | VARCHAR(500) | YES | รายละเอียดโมเดล |
-| `vram_gb` | DECIMAL(4,2) | YES | VRAM ที่ใช้โดยประมาณ (GB) |
-| `is_active` | TINYINT(1) | NO | สถานะใช้งาน |
-| `is_default` | TINYINT(1) | NO | โมเดลเริ่มต้น |
-| `created_by` | INT | YES | ผู้สร้าง |
-| `updated_by` | INT | YES | ผู้แก้ไขล่าสุด |
-| `created_at` | DATETIME(3) | NO | วันที่สร้าง |
-| `updated_at` | DATETIME(3) | NO | วันที่แก้ไขล่าสุด |
-| `deleted_at` | DATETIME(3) | YES | วันที่ลบ (Soft Delete) |
+| Column          | Type               | Nullable | Description                           |
+| --------------- | ------------------ | -------- | ------------------------------------- |
+| `id`            | INT AUTO_INCREMENT | NO       | ID ของตาราง                           |
+| `model_name`    | VARCHAR(100)       | NO       | ชื่อโมเดล เช่น gemma4:e2b, gemma4:e4b |
+| `model_version` | VARCHAR(50)        | NO       | เวอร์ชั่นของโมเดล                     |
+| `description`   | VARCHAR(500)       | YES      | รายละเอียดโมเดล                       |
+| `vram_gb`       | DECIMAL(4,2)       | YES      | VRAM ที่ใช้โดยประมาณ (GB)             |
+| `is_active`     | TINYINT(1)         | NO       | สถานะใช้งาน                           |
+| `is_default`    | TINYINT(1)         | NO       | โมเดลเริ่มต้น                         |
+| `created_by`    | INT                | YES      | ผู้สร้าง                              |
+| `updated_by`    | INT                | YES      | ผู้แก้ไขล่าสุด                        |
+| `created_at`    | DATETIME(3)        | NO       | วันที่สร้าง                           |
+| `updated_at`    | DATETIME(3)        | NO       | วันที่แก้ไขล่าสุด                     |
+| `deleted_at`    | DATETIME(3)        | YES      | วันที่ลบ (Soft Delete)                |
 
 **Indexes**:
+
 - PRIMARY KEY (id)
 - UNIQUE KEY uk_model_name (model_name)
 - KEY idx_is_active (is_active)
@@ -2456,25 +2492,26 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 
 **วัตถุประสงค์:** ตาราง versioned prompt templates สำหรับ OCR extraction (ADR-029)
 
-| Column | Type | Nullable | Description |
-|--------|------|----------|-------------|
-| `id` | INT AUTO_INCREMENT | NO | ID ภายใน (ไม่ expose ใน API) |
-| `public_id` | UUID | NO | UUIDv7 (NestJS @BeforeInsert, ADR-019) — app layer สร้างเสมอ (ไม่มี DB DEFAULT) |
-| `prompt_type` | VARCHAR(50) | NO | ประเภท prompt เช่น ocr_extraction |
-| `version_number` | INT | NO | เลข version ต่อเนื่องต่อ prompt_type (1, 2, 3...) |
-| `template` | TEXT | NO | prompt template ที่มี {{ocr_text}} placeholder บังคับ |
-| `field_schema` | LONGTEXT | YES | definition ของ fields ที่คาดหวังในผลลัพธ์ JSON |
-| `is_active` | TINYINT(1) | NO | 1 = version นี้ใช้งานจริงทั้ง sandbox และ migrate-document (1 per prompt_type) |
-| `test_result_json` | LONGTEXT | YES | ผลลัพธ์ JSON จาก sandbox run ล่าสุด (auto-save โดย processor) |
-| `manual_note` | TEXT | YES | หมายเหตุ/annotation จาก admin (manual input) |
-| `last_tested_at` | TIMESTAMP | YES | เวลาที่ sandbox รันครั้งล่าสุดสำหรับ version นี้ |
-| `activated_at` | TIMESTAMP | YES | เวลาที่ version นี้ถูก activate เป็น active |
-| `created_by` | INT | NO | user_id ของผู้สร้าง version นี้ |
-| `created_at` | TIMESTAMP | NO | วันที่สร้าง |
-| `context_config` | LONGTEXT | YES | Configuration สำหรับ context ที่ backend ต้องส่งให้ AI (filter, pageSize, language, etc.) |
-| `version` | INT | NO | Optimistic locking version |
+| Column             | Type               | Nullable | Description                                                                               |
+| ------------------ | ------------------ | -------- | ----------------------------------------------------------------------------------------- |
+| `id`               | INT AUTO_INCREMENT | NO       | ID ภายใน (ไม่ expose ใน API)                                                              |
+| `public_id`        | UUID               | NO       | UUIDv7 (NestJS @BeforeInsert, ADR-019) — app layer สร้างเสมอ (ไม่มี DB DEFAULT)           |
+| `prompt_type`      | VARCHAR(50)        | NO       | ประเภท prompt เช่น ocr_extraction                                                         |
+| `version_number`   | INT                | NO       | เลข version ต่อเนื่องต่อ prompt_type (1, 2, 3...)                                         |
+| `template`         | TEXT               | NO       | prompt template ที่มี {{ocr_text}} placeholder บังคับ                                     |
+| `field_schema`     | LONGTEXT           | YES      | definition ของ fields ที่คาดหวังในผลลัพธ์ JSON                                            |
+| `is_active`        | TINYINT(1)         | NO       | 1 = version นี้ใช้งานจริงทั้ง sandbox และ migrate-document (1 per prompt_type)            |
+| `test_result_json` | LONGTEXT           | YES      | ผลลัพธ์ JSON จาก sandbox run ล่าสุด (auto-save โดย processor)                             |
+| `manual_note`      | TEXT               | YES      | หมายเหตุ/annotation จาก admin (manual input)                                              |
+| `last_tested_at`   | TIMESTAMP          | YES      | เวลาที่ sandbox รันครั้งล่าสุดสำหรับ version นี้                                          |
+| `activated_at`     | TIMESTAMP          | YES      | เวลาที่ version นี้ถูก activate เป็น active                                               |
+| `created_by`       | INT                | NO       | user_id ของผู้สร้าง version นี้                                                           |
+| `created_at`       | TIMESTAMP          | NO       | วันที่สร้าง                                                                               |
+| `context_config`   | LONGTEXT           | YES      | Configuration สำหรับ context ที่ backend ต้องส่งให้ AI (filter, pageSize, language, etc.) |
+| `version`          | INT                | NO       | Optimistic locking version                                                                |
 
 **Indexes**:
+
 - PRIMARY KEY (id)
 - UNIQUE KEY uk_type_version (prompt_type, version_number)
 - KEY idx_prompt_type_active (prompt_type, is_active)
@@ -2487,23 +2524,24 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 
 **วัตถุประสงค์:** ตาราง execution profile parameters สำหรับ np-dms-ai (ADR-025, ADR-027)
 
-| Column | Type | Nullable | Description |
-|--------|------|----------|-------------|
-| `id` | INT AUTO_INCREMENT | NO | ID ภายใน |
-| `profile_name` | VARCHAR(50) | NO | ชื่อ profile |
-| `canonical_model` | VARCHAR(20) | NO | Model identity (default: np-dms-ai) |
-| `temperature` | DECIMAL(4,3) | NO | LLM temperature |
-| `top_p` | DECIMAL(4,3) | NO | LLM top_p |
-| `max_tokens` | INT | YES | Maximum tokens |
-| `num_ctx` | INT | YES | Context window size |
-| `repeat_penalty` | DECIMAL(5,3) | NO | Repeat penalty |
-| `keep_alive_seconds` | INT | NO | Model keep_alive in seconds |
-| `is_active` | TINYINT(1) | NO | 1 = active; 0 = disabled |
-| `updated_by` | INT | YES | user_id |
-| `updated_at` | TIMESTAMP | NO | วันที่แก้ไขล่าสุด |
-| `created_at` | TIMESTAMP | NO | วันที่สร้าง |
+| Column               | Type               | Nullable | Description                         |
+| -------------------- | ------------------ | -------- | ----------------------------------- |
+| `id`                 | INT AUTO_INCREMENT | NO       | ID ภายใน                            |
+| `profile_name`       | VARCHAR(50)        | NO       | ชื่อ profile                        |
+| `canonical_model`    | VARCHAR(20)        | NO       | Model identity (default: np-dms-ai) |
+| `temperature`        | DECIMAL(4,3)       | NO       | LLM temperature                     |
+| `top_p`              | DECIMAL(4,3)       | NO       | LLM top_p                           |
+| `max_tokens`         | INT                | YES      | Maximum tokens                      |
+| `num_ctx`            | INT                | YES      | Context window size                 |
+| `repeat_penalty`     | DECIMAL(5,3)       | NO       | Repeat penalty                      |
+| `keep_alive_seconds` | INT                | NO       | Model keep_alive in seconds         |
+| `is_active`          | TINYINT(1)         | NO       | 1 = active; 0 = disabled            |
+| `updated_by`         | INT                | YES      | user_id                             |
+| `updated_at`         | TIMESTAMP          | NO       | วันที่แก้ไขล่าสุด                   |
+| `created_at`         | TIMESTAMP          | NO       | วันที่สร้าง                         |
 
 **Indexes**:
+
 - PRIMARY KEY (id)
 - UNIQUE KEY uk_profile_name (profile_name)
 - KEY idx_profile_active (profile_name, is_active)
@@ -2516,22 +2554,23 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 
 **วัตถุประสงค์:** ตาราง sandbox profile parameters
 
-| Column | Type | Nullable | Description |
-|--------|------|----------|-------------|
-| `id` | INT AUTO_INCREMENT | NO | ID ภายใน |
-| `profile_name` | VARCHAR(50) | NO | ชื่อ profile |
-| `canonical_model` | VARCHAR(20) | NO | Model identity (default: np-dms-ai) |
-| `temperature` | DECIMAL(4,3) | NO | LLM temperature |
-| `top_p` | DECIMAL(4,3) | NO | LLM top_p |
-| `max_tokens` | INT | YES | Maximum tokens |
-| `num_ctx` | INT | NO | Context window size |
-| `repeat_penalty` | DECIMAL(5,3) | NO | Repeat penalty |
-| `keep_alive_seconds` | INT | NO | Model keep_alive in seconds |
-| `updated_by` | INT | YES | user_id |
-| `updated_at` | TIMESTAMP | NO | วันที่แก้ไขล่าสุด |
-| `created_at` | TIMESTAMP | NO | วันที่สร้าง |
+| Column               | Type               | Nullable | Description                         |
+| -------------------- | ------------------ | -------- | ----------------------------------- |
+| `id`                 | INT AUTO_INCREMENT | NO       | ID ภายใน                            |
+| `profile_name`       | VARCHAR(50)        | NO       | ชื่อ profile                        |
+| `canonical_model`    | VARCHAR(20)        | NO       | Model identity (default: np-dms-ai) |
+| `temperature`        | DECIMAL(4,3)       | NO       | LLM temperature                     |
+| `top_p`              | DECIMAL(4,3)       | NO       | LLM top_p                           |
+| `max_tokens`         | INT                | YES      | Maximum tokens                      |
+| `num_ctx`            | INT                | NO       | Context window size                 |
+| `repeat_penalty`     | DECIMAL(5,3)       | NO       | Repeat penalty                      |
+| `keep_alive_seconds` | INT                | NO       | Model keep_alive in seconds         |
+| `updated_by`         | INT                | YES      | user_id                             |
+| `updated_at`         | TIMESTAMP          | NO       | วันที่แก้ไขล่าสุด                   |
+| `created_at`         | TIMESTAMP          | NO       | วันที่สร้าง                         |
 
 **Indexes**:
+
 - PRIMARY KEY (id)
 - UNIQUE KEY uk_profile_name (profile_name)
 - KEY idx_ai_sandbox_profile_model (canonical_model)
@@ -2544,18 +2583,19 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 
 **วัตถุประสงค์:** ตาราง Error Log สำหรับ Migration (ลบได้หลัง Migration เสร็จ) (ADR-028)
 
-| Column | Type | Nullable | Description |
-|--------|------|----------|-------------|
-| `id` | INT AUTO_INCREMENT | NO | ID |
-| `batch_id` | VARCHAR(50) | YES | n8n batch identifier |
-| `document_number` | VARCHAR(100) | YES | เลขที่เอกสาร |
-| `error_type` | ENUM | YES | FILE_NOT_FOUND, MISSING_FILENAME, FILE_ERROR, AI_PARSE_ERROR, API_ERROR, DB_ERROR, SECURITY, UNKNOWN |
-| `error_message` | TEXT | YES | ข้อความ error |
-| `job_id` | VARCHAR(100) | YES | BullMQ Job ID |
-| `raw_ai_response` | TEXT | YES | AI response ดิบ |
-| `created_at` | TIMESTAMP | NO | วันที่สร้าง |
+| Column            | Type               | Nullable | Description                                                                                          |
+| ----------------- | ------------------ | -------- | ---------------------------------------------------------------------------------------------------- |
+| `id`              | INT AUTO_INCREMENT | NO       | ID                                                                                                   |
+| `batch_id`        | VARCHAR(50)        | YES      | n8n batch identifier                                                                                 |
+| `document_number` | VARCHAR(100)       | YES      | เลขที่เอกสาร                                                                                         |
+| `error_type`      | ENUM               | YES      | FILE_NOT_FOUND, MISSING_FILENAME, FILE_ERROR, AI_PARSE_ERROR, API_ERROR, DB_ERROR, SECURITY, UNKNOWN |
+| `error_message`   | TEXT               | YES      | ข้อความ error                                                                                        |
+| `job_id`          | VARCHAR(100)       | YES      | BullMQ Job ID                                                                                        |
+| `raw_ai_response` | TEXT               | YES      | AI response ดิบ                                                                                      |
+| `created_at`      | TIMESTAMP          | NO       | วันที่สร้าง                                                                                          |
 
 **Indexes**:
+
 - PRIMARY KEY (id)
 - KEY idx_batch_id (batch_id)
 - KEY idx_job_id (job_id)
@@ -2567,21 +2607,21 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 
 **วัตถุประสงค์:** เก็บ vector metadata สำหรับ RAG ingestion ตาม ADR-022
 
-| Column | Type | Nullable | Description |
-|--------|------|----------|-------------|
-| `id` | CHAR(36) | NO | UUIDv4 = Qdrant point ID (TypeORM `@PrimaryGeneratedColumn('uuid')` สำหรับ ai_document_chunks หรือ UUID ที่ Qdrant assign) |
-| `document_id` | CHAR(36) | NO | FK → attachments.public_id (UUIDv7) |
-| `chunk_index` | INT | NO | ลำดับ chunk ภายใน document |
-| `content` | TEXT | NO | เนื้อหา chunk หลัง PyThaiNLP normalize |
-| `doc_type` | VARCHAR(20) | NO | CORR, RFA, DRAWING, CONTRACT, RPT, TRANS |
-| `doc_number` | VARCHAR(100) | YES | หมายเลขเอกสาร เช่น REF-2026-001 |
-| `revision` | VARCHAR(20) | YES | Revision เช่น Rev.A |
-| `project_code` | VARCHAR(50) | NO | รหัสโครงการ (ใช้ filter) |
-| `project_public_id` | CHAR(36) | NO | UUIDv7 ของโครงการ (Qdrant tenant key) |
-| `version` | VARCHAR(20) | YES | เวอร์ชันเอกสาร เช่น 1.0, 2.1 (ถ้ามี) |
-| `classification` | ENUM | NO | PUBLIC, INTERNAL, CONFIDENTIAL (DEFAULT: INTERNAL) |
-| `embedding_model` | VARCHAR(100) | NO | nomic-embed-text |
-| `created_at` | DATETIME(3) | NO | วันที่สร้าง |
+| Column              | Type         | Nullable | Description                                                                                                                |
+| ------------------- | ------------ | -------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `id`                | CHAR(36)     | NO       | UUIDv4 = Qdrant point ID (TypeORM `@PrimaryGeneratedColumn('uuid')` สำหรับ ai_document_chunks หรือ UUID ที่ Qdrant assign) |
+| `document_id`       | CHAR(36)     | NO       | FK → attachments.public_id (UUIDv7)                                                                                        |
+| `chunk_index`       | INT          | NO       | ลำดับ chunk ภายใน document                                                                                                 |
+| `content`           | TEXT         | NO       | เนื้อหา chunk หลัง PyThaiNLP normalize                                                                                     |
+| `doc_type`          | VARCHAR(20)  | NO       | CORR, RFA, DRAWING, CONTRACT, RPT, TRANS                                                                                   |
+| `doc_number`        | VARCHAR(100) | YES      | หมายเลขเอกสาร เช่น REF-2026-001                                                                                            |
+| `revision`          | VARCHAR(20)  | YES      | Revision เช่น Rev.A                                                                                                        |
+| `project_code`      | VARCHAR(50)  | NO       | รหัสโครงการ (ใช้ filter)                                                                                                   |
+| `project_public_id` | CHAR(36)     | NO       | UUIDv7 ของโครงการ (Qdrant tenant key)                                                                                      |
+| `version`           | VARCHAR(20)  | YES      | เวอร์ชันเอกสาร เช่น 1.0, 2.1 (ถ้ามี)                                                                                       |
+| `classification`    | ENUM         | NO       | PUBLIC, INTERNAL, CONFIDENTIAL (DEFAULT: INTERNAL)                                                                         |
+| `embedding_model`   | VARCHAR(100) | NO       | nomic-embed-text                                                                                                           |
+| `created_at`        | DATETIME(3)  | NO       | วันที่สร้าง                                                                                                                |
 
 **Indexes**:
 
@@ -2601,12 +2641,12 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 
 ### 19.4 Confidence Scoring Strategy (ADR-020)
 
-| Score Range | Action | Description |
-|-------------|--------|-------------|
-| **0.95–1.00** | `auto_approve` | นำเข้าอัตโนมัติ (Migration mode เท่านั้น) |
-| **0.85–0.94** | `low_priority_review` | รอ Admin ตรวจสอบ — ลำดับต่ำ |
-| **0.60–0.84** | `high_priority_review` | รอ Admin ตรวจสอบ — ลำดับสูง |
-| **< 0.60** | `reject` | ปฏิเสธ — Admin ต้องกรอกข้อมูลเอง |
+| Score Range   | Action                 | Description                               |
+| ------------- | ---------------------- | ----------------------------------------- |
+| **0.95–1.00** | `auto_approve`         | นำเข้าอัตโนมัติ (Migration mode เท่านั้น) |
+| **0.85–0.94** | `low_priority_review`  | รอ Admin ตรวจสอบ — ลำดับต่ำ               |
+| **0.60–0.84** | `high_priority_review` | รอ Admin ตรวจสอบ — ลำดับสูง               |
+| **< 0.60**    | `reject`               | ปฏิเสธ — Admin ต้องกรอกข้อมูลเอง          |
 
 ---
 
@@ -2618,25 +2658,27 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 
 **วัตถุประสงค์:** เก็บ Intent Definitions (ประเภทความตั้งใจของผู้ใช้) สำหรับ Hybrid Intent Classifier ตาม ADR-024
 
-| Column Name | Data Type | Constraints | Description |
-| ----------- | --------- | ----------- | ----------- |
-| id | INT | PRIMARY KEY, AUTO_INCREMENT | Internal PK (ห้าม expose ใน API) |
-| public_id | UUID | NOT NULL, UNIQUE, DEFAULT UUID() | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
-| intent_code | VARCHAR(50) | NOT NULL, UNIQUE | รหัส Intent เช่น RAG_QUERY, GET_RFA |
-| description_th | VARCHAR(255) | NOT NULL | คำอธิบายภาษาไทย |
-| description_en | VARCHAR(255) | NOT NULL | คำอธิบายภาษาอังกฤษ |
-| category | ENUM | NOT NULL | read, suggest, utility |
-| is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | สถานะการใช้งาน |
-| created_at | TIMESTAMP | NOT NULL, DEFAULT CURRENT_TIMESTAMP | วันที่สร้าง |
-| updated_at | TIMESTAMP | NOT NULL, ON UPDATE CURRENT_TIMESTAMP | วันที่แก้ไขล่าสุด |
+| Column Name    | Data Type    | Constraints                           | Description                                                                                                    |
+| -------------- | ------------ | ------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| id             | INT          | PRIMARY KEY, AUTO_INCREMENT           | Internal PK (ห้าม expose ใน API)                                                                               |
+| public_id      | UUID         | NOT NULL, UNIQUE, DEFAULT UUID()      | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
+| intent_code    | VARCHAR(50)  | NOT NULL, UNIQUE                      | รหัส Intent เช่น RAG_QUERY, GET_RFA                                                                            |
+| description_th | VARCHAR(255) | NOT NULL                              | คำอธิบายภาษาไทย                                                                                                |
+| description_en | VARCHAR(255) | NOT NULL                              | คำอธิบายภาษาอังกฤษ                                                                                             |
+| category       | ENUM         | NOT NULL                              | read, suggest, utility                                                                                         |
+| is_active      | BOOLEAN      | NOT NULL, DEFAULT TRUE                | สถานะการใช้งาน                                                                                                 |
+| created_at     | TIMESTAMP    | NOT NULL, DEFAULT CURRENT_TIMESTAMP   | วันที่สร้าง                                                                                                    |
+| updated_at     | TIMESTAMP    | NOT NULL, ON UPDATE CURRENT_TIMESTAMP | วันที่แก้ไขล่าสุด                                                                                              |
 
 **Indexes**:
+
 - PRIMARY KEY (id)
 - UNIQUE KEY uk_intent_public_id (public_id)
 - UNIQUE KEY uk_intent_code (intent_code)
 - INDEX idx_intent_active (is_active, category)
 
 **Business Rules**:
+
 1. **Intent Categories** — read (ดึงข้อมูล), suggest (แนะนำ), utility (อื่นๆ)
 2. **Active Status** — Intent ที่ไม่ active จะไม่ถูกใช้ในการ classify
 3. **Seed Data** — 12 Intent Definitions พร้อม patterns v1 (RAG_QUERY, GET_RFA, GET_DRAWING, ฯลฯ)
@@ -2647,20 +2689,21 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 
 **วัตถุประสงค์:** เก็บ Patterns (keyword และ regex) สำหรับ Pattern Matching ใน Hybrid Intent Classifier
 
-| Column Name | Data Type | Constraints | Description |
-| ----------- | --------- | ----------- | ----------- |
-| id | INT | PRIMARY KEY, AUTO_INCREMENT | Internal PK (ห้าม expose ใน API) |
-| public_id | UUID | NOT NULL, UNIQUE, DEFAULT UUID() | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
-| intent_code | VARCHAR(50) | NOT NULL, FK | รหัส Intent (FK to ai_intent_definitions) |
-| language | ENUM | NOT NULL, DEFAULT 'any' | th, en, any |
-| pattern_type | ENUM | NOT NULL, DEFAULT 'keyword' | keyword, regex |
-| pattern_value | VARCHAR(255) | NOT NULL | ค่า pattern (keyword หรือ regex) |
-| priority | INT | NOT NULL, DEFAULT 100 | ลำดับความสำคัญ (ยิ่งน้อยยิ่งสำคัญ) |
-| is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | สถานะการใช้งาน |
-| created_at | TIMESTAMP | NOT NULL, DEFAULT CURRENT_TIMESTAMP | วันที่สร้าง |
-| updated_at | TIMESTAMP | NOT NULL, ON UPDATE CURRENT_TIMESTAMP | วันที่แก้ไขล่าสุด |
+| Column Name   | Data Type    | Constraints                           | Description                                                                                                    |
+| ------------- | ------------ | ------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| id            | INT          | PRIMARY KEY, AUTO_INCREMENT           | Internal PK (ห้าม expose ใน API)                                                                               |
+| public_id     | UUID         | NOT NULL, UNIQUE, DEFAULT UUID()      | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
+| intent_code   | VARCHAR(50)  | NOT NULL, FK                          | รหัส Intent (FK to ai_intent_definitions)                                                                      |
+| language      | ENUM         | NOT NULL, DEFAULT 'any'               | th, en, any                                                                                                    |
+| pattern_type  | ENUM         | NOT NULL, DEFAULT 'keyword'           | keyword, regex                                                                                                 |
+| pattern_value | VARCHAR(255) | NOT NULL                              | ค่า pattern (keyword หรือ regex)                                                                               |
+| priority      | INT          | NOT NULL, DEFAULT 100                 | ลำดับความสำคัญ (ยิ่งน้อยยิ่งสำคัญ)                                                                             |
+| is_active     | BOOLEAN      | NOT NULL, DEFAULT TRUE                | สถานะการใช้งาน                                                                                                 |
+| created_at    | TIMESTAMP    | NOT NULL, DEFAULT CURRENT_TIMESTAMP   | วันที่สร้าง                                                                                                    |
+| updated_at    | TIMESTAMP    | NOT NULL, ON UPDATE CURRENT_TIMESTAMP | วันที่แก้ไขล่าสุด                                                                                              |
 
 **Indexes**:
+
 - PRIMARY KEY (id)
 - UNIQUE KEY uk_pattern_public_id (public_id)
 - INDEX idx_pattern_intent_code (intent_code)
@@ -2668,6 +2711,7 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 - CONSTRAINT fk_intent_pattern_definition FOREIGN KEY (intent_code) REFERENCES ai_intent_definitions(intent_code) ON UPDATE CASCADE ON DELETE RESTRICT
 
 **Business Rules**:
+
 1. **Pattern Types** — keyword (ตรงตัว), regex (regular expression)
 2. **Priority** — ยิ่งน้อยยิ่งสำคัญ (ตัวอย่าง: keyword=10, regex=5)
 3. **Language** — th (ไทย), en (อังกฤษ), any (ทุกภาษา)
@@ -2702,17 +2746,17 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 
 **Purpose**: ทีมตรวจสอบแยกตาม Discipline สำหรับ RFA Approval
 
-| Column Name           | Data Type    | Constraints                     | Description                                   |
-| --------------------- | ------------ | ------------------------------- | --------------------------------------------- |
-| id                    | INT          | PRIMARY KEY, AUTO_INCREMENT     | Internal ID                                   |
-| uuid                  | UUID         | NOT NULL, UNIQUE, DEFAULT UUID()| UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
-| project_id            | INT          | NOT NULL, FK                    | Reference to projects                         |
-| name                  | VARCHAR(100) | NOT NULL                        | Team name                                     |
-| description           | VARCHAR(255) | NULL                            | Team description                              |
-| default_for_rfa_types | TEXT         | NULL                            | Comma-separated RFA type codes (e.g. SDW,DDW) |
-| is_active             | TINYINT(1)   | NOT NULL, DEFAULT 1             | Active status                                 |
-| created_at            | DATETIME(6)  | NOT NULL, DEFAULT NOW           | Record creation timestamp                     |
-| updated_at            | DATETIME(6)  | NOT NULL, ON UPDATE             | Last update timestamp                         |
+| Column Name           | Data Type    | Constraints                      | Description                                                                                                    |
+| --------------------- | ------------ | -------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| id                    | INT          | PRIMARY KEY, AUTO_INCREMENT      | Internal ID                                                                                                    |
+| uuid                  | UUID         | NOT NULL, UNIQUE, DEFAULT UUID() | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
+| project_id            | INT          | NOT NULL, FK                     | Reference to projects                                                                                          |
+| name                  | VARCHAR(100) | NOT NULL                         | Team name                                                                                                      |
+| description           | VARCHAR(255) | NULL                             | Team description                                                                                               |
+| default_for_rfa_types | TEXT         | NULL                             | Comma-separated RFA type codes (e.g. SDW,DDW)                                                                  |
+| is_active             | TINYINT(1)   | NOT NULL, DEFAULT 1              | Active status                                                                                                  |
+| created_at            | DATETIME(6)  | NOT NULL, DEFAULT NOW            | Record creation timestamp                                                                                      |
+| updated_at            | DATETIME(6)  | NOT NULL, ON UPDATE              | Last update timestamp                                                                                          |
 
 **Indexes**:
 
@@ -2733,16 +2777,16 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 
 **Purpose**: สมาชิกในทีมแยกตาม Discipline (M:N ระหว่าง review_teams และ users)
 
-| Column Name    | Data Type   | Constraints                     | Description                           |
-| -------------- | ----------- | ------------------------------- | ------------------------------------- |
-| id             | INT         | PRIMARY KEY, AUTO_INCREMENT     | Internal ID                           |
-| uuid           | UUID        | NOT NULL, UNIQUE, DEFAULT UUID()| UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
-| team_id        | INT         | NOT NULL, FK                    | Reference to review_teams             |
-| user_id        | INT         | NOT NULL, FK                    | Reference to users (user_id)          |
-| discipline_id  | INT         | NOT NULL, FK                    | Reference to disciplines              |
-| role           | ENUM        | NOT NULL, DEFAULT 'REVIEWER'    | REVIEWER, LEAD, MANAGER               |
-| priority_order | INT         | NOT NULL, DEFAULT 0             | Assignment priority within discipline |
-| created_at     | DATETIME(6) | NOT NULL, DEFAULT NOW           | Record creation timestamp             |
+| Column Name    | Data Type   | Constraints                      | Description                                                                                                    |
+| -------------- | ----------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| id             | INT         | PRIMARY KEY, AUTO_INCREMENT      | Internal ID                                                                                                    |
+| uuid           | UUID        | NOT NULL, UNIQUE, DEFAULT UUID() | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
+| team_id        | INT         | NOT NULL, FK                     | Reference to review_teams                                                                                      |
+| user_id        | INT         | NOT NULL, FK                     | Reference to users (user_id)                                                                                   |
+| discipline_id  | INT         | NOT NULL, FK                     | Reference to disciplines                                                                                       |
+| role           | ENUM        | NOT NULL, DEFAULT 'REVIEWER'     | REVIEWER, LEAD, MANAGER                                                                                        |
+| priority_order | INT         | NOT NULL, DEFAULT 0              | Assignment priority within discipline                                                                          |
+| created_at     | DATETIME(6) | NOT NULL, DEFAULT NOW            | Record creation timestamp                                                                                      |
 
 **Indexes**:
 
@@ -2759,20 +2803,20 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 
 **Purpose**: รหัสตอบกลับมาตรฐาน (Approval Matrix) สำหรับ RFA Review
 
-| Column Name     | Data Type | Constraints                         | Description                                                          |
-| --------------- | --------- | ----------------------------------- | -------------------------------------------------------------------- |
-| id              | INT       | PRIMARY KEY, AUTO_INCREMENT         | Internal ID                                                          |
-| uuid            | UUID      | NOT NULL, UNIQUE, DEFAULT UUID()    | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
-| code            | VARCHAR(10)| NOT NULL                           | Response code (1A, 1B, 1C, 1D, 1E, 1F, 1G, 2, 3, 4)               |
-| sub_status      | VARCHAR(10)| NULL                               | Optional sub-status                                                  |
-| category        | ENUM      | NOT NULL                            | ENGINEERING, MATERIAL, CONTRACT, TESTING, ESG                        |
-| description_th  | TEXT      | NOT NULL                            | Thai description                                                     |
-| description_en  | TEXT      | NOT NULL                            | English description                                                  |
-| implications    | JSON      | NULL                                | {affectsSchedule, affectsCost, requiresContractReview}              |
-| notify_roles    | TEXT      | NULL                                | Comma-separated roles to notify (e.g. CONTRACT_MANAGER,QS_MANAGER)  |
-| is_active       | TINYINT(1)| NOT NULL, DEFAULT 1                 | Active status                                                        |
-| is_system       | TINYINT(1)| NOT NULL, DEFAULT 0                 | System default — cannot delete                                       |
-| created_at      | DATETIME(6)| NOT NULL, DEFAULT NOW              | Record creation timestamp                                            |
+| Column Name    | Data Type   | Constraints                      | Description                                                                                                    |
+| -------------- | ----------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| id             | INT         | PRIMARY KEY, AUTO_INCREMENT      | Internal ID                                                                                                    |
+| uuid           | UUID        | NOT NULL, UNIQUE, DEFAULT UUID() | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
+| code           | VARCHAR(10) | NOT NULL                         | Response code (1A, 1B, 1C, 1D, 1E, 1F, 1G, 2, 3, 4)                                                            |
+| sub_status     | VARCHAR(10) | NULL                             | Optional sub-status                                                                                            |
+| category       | ENUM        | NOT NULL                         | ENGINEERING, MATERIAL, CONTRACT, TESTING, ESG                                                                  |
+| description_th | TEXT        | NOT NULL                         | Thai description                                                                                               |
+| description_en | TEXT        | NOT NULL                         | English description                                                                                            |
+| implications   | JSON        | NULL                             | {affectsSchedule, affectsCost, requiresContractReview}                                                         |
+| notify_roles   | TEXT        | NULL                             | Comma-separated roles to notify (e.g. CONTRACT_MANAGER,QS_MANAGER)                                             |
+| is_active      | TINYINT(1)  | NOT NULL, DEFAULT 1              | Active status                                                                                                  |
+| is_system      | TINYINT(1)  | NOT NULL, DEFAULT 0              | System default — cannot delete                                                                                 |
+| created_at     | DATETIME(6) | NOT NULL, DEFAULT NOW            | Record creation timestamp                                                                                      |
 
 **Indexes**:
 
@@ -2787,19 +2831,19 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 
 **Purpose**: กฎการใช้ Response Code ต่อโครงการ/ประเภทเอกสาร (Project-level Override)
 
-| Column Name            | Data Type   | Constraints                  | Description                              |
-| ---------------------- | ----------- | ---------------------------- | ---------------------------------------- |
-| id                     | INT         | PRIMARY KEY, AUTO_INCREMENT  | Internal ID                              |
-| uuid                   | UUID        | NOT NULL, UNIQUE             | UUIDv7 (NestJS @BeforeInsert, ADR-019) — app layer สร้างเสมอ (ไม่มี DB DEFAULT) |
-| project_id             | INT         | NULL, FK                     | NULL = global default                    |
-| document_type_id       | INT         | NOT NULL, FK                 | Reference to correspondence_types        |
-| response_code_id       | INT         | NOT NULL, FK                 | Reference to response_codes              |
-| is_enabled             | TINYINT(1)  | NOT NULL, DEFAULT 1          | Enable/disable this code for the context |
-| requires_comments      | TINYINT(1)  | NOT NULL, DEFAULT 0          | Force comment when selecting this code   |
-| triggers_notification  | TINYINT(1)  | NOT NULL, DEFAULT 0          | Send notification when used              |
-| parent_rule_id         | INT         | NULL, FK                     | For inheritance tracking                 |
-| created_at             | DATETIME(6) | NOT NULL, DEFAULT NOW        | Record creation timestamp                |
-| updated_at             | DATETIME(6) | NOT NULL, ON UPDATE          | Last update timestamp                    |
+| Column Name           | Data Type   | Constraints                 | Description                                                                     |
+| --------------------- | ----------- | --------------------------- | ------------------------------------------------------------------------------- |
+| id                    | INT         | PRIMARY KEY, AUTO_INCREMENT | Internal ID                                                                     |
+| uuid                  | UUID        | NOT NULL, UNIQUE            | UUIDv7 (NestJS @BeforeInsert, ADR-019) — app layer สร้างเสมอ (ไม่มี DB DEFAULT) |
+| project_id            | INT         | NULL, FK                    | NULL = global default                                                           |
+| document_type_id      | INT         | NOT NULL, FK                | Reference to correspondence_types                                               |
+| response_code_id      | INT         | NOT NULL, FK                | Reference to response_codes                                                     |
+| is_enabled            | TINYINT(1)  | NOT NULL, DEFAULT 1         | Enable/disable this code for the context                                        |
+| requires_comments     | TINYINT(1)  | NOT NULL, DEFAULT 0         | Force comment when selecting this code                                          |
+| triggers_notification | TINYINT(1)  | NOT NULL, DEFAULT 0         | Send notification when used                                                     |
+| parent_rule_id        | INT         | NULL, FK                    | For inheritance tracking                                                        |
+| created_at            | DATETIME(6) | NOT NULL, DEFAULT NOW       | Record creation timestamp                                                       |
+| updated_at            | DATETIME(6) | NOT NULL, ON UPDATE         | Last update timestamp                                                           |
 
 **Business Rules**:
 
@@ -2813,24 +2857,24 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 
 **Purpose**: งานตรวจสอบสำหรับแต่ละ Discipline ใน Parallel Review Flow
 
-| Column Name              | Data Type   | Constraints                         | Description                                   |
-| ------------------------ | ----------- | ----------------------------------- | --------------------------------------------- |
-| id                       | INT         | PRIMARY KEY, AUTO_INCREMENT         | Internal ID                                   |
-| uuid                     | UUID        | NOT NULL, UNIQUE, DEFAULT UUID()    | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
-| rfa_revision_id          | INT         | NOT NULL, FK                        | Reference to rfa_revisions                    |
-| team_id                  | INT         | NOT NULL, FK                        | Reference to review_teams                     |
-| discipline_id            | INT         | NOT NULL, FK                        | Reference to disciplines                      |
-| assigned_to_user_id      | INT         | NULL, FK                            | Assigned reviewer (NULL = auto-assign)        |
-| status                   | ENUM        | NOT NULL, DEFAULT 'PENDING'         | PENDING, IN_PROGRESS, COMPLETED, DELEGATED, EXPIRED, CANCELLED |
-| due_date                 | DATE        | NULL                                | Review due date                               |
-| response_code_id         | INT         | NULL, FK                            | Selected response code                        |
-| comments                 | TEXT        | NULL                                | Reviewer comments                             |
-| attachments              | JSON        | NULL                                | Array of attachment publicIds (ADR-021)       |
-| delegated_from_user_id   | INT         | NULL                                | Original assignee when task was delegated     |
-| completed_at             | TIMESTAMP   | NULL                                | Completion timestamp                          |
-| version                  | INT         | NOT NULL, DEFAULT 1                 | Optimistic locking (ADR-002)                  |
-| created_at               | DATETIME(6) | NOT NULL, DEFAULT NOW               | Record creation timestamp                     |
-| updated_at               | DATETIME(6) | NOT NULL, ON UPDATE                 | Last update timestamp                         |
+| Column Name            | Data Type   | Constraints                      | Description                                                                                                    |
+| ---------------------- | ----------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| id                     | INT         | PRIMARY KEY, AUTO_INCREMENT      | Internal ID                                                                                                    |
+| uuid                   | UUID        | NOT NULL, UNIQUE, DEFAULT UUID() | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
+| rfa_revision_id        | INT         | NOT NULL, FK                     | Reference to rfa_revisions                                                                                     |
+| team_id                | INT         | NOT NULL, FK                     | Reference to review_teams                                                                                      |
+| discipline_id          | INT         | NOT NULL, FK                     | Reference to disciplines                                                                                       |
+| assigned_to_user_id    | INT         | NULL, FK                         | Assigned reviewer (NULL = auto-assign)                                                                         |
+| status                 | ENUM        | NOT NULL, DEFAULT 'PENDING'      | PENDING, IN_PROGRESS, COMPLETED, DELEGATED, EXPIRED, CANCELLED                                                 |
+| due_date               | DATE        | NULL                             | Review due date                                                                                                |
+| response_code_id       | INT         | NULL, FK                         | Selected response code                                                                                         |
+| comments               | TEXT        | NULL                             | Reviewer comments                                                                                              |
+| attachments            | JSON        | NULL                             | Array of attachment publicIds (ADR-021)                                                                        |
+| delegated_from_user_id | INT         | NULL                             | Original assignee when task was delegated                                                                      |
+| completed_at           | TIMESTAMP   | NULL                             | Completion timestamp                                                                                           |
+| version                | INT         | NOT NULL, DEFAULT 1              | Optimistic locking (ADR-002)                                                                                   |
+| created_at             | DATETIME(6) | NOT NULL, DEFAULT NOW            | Record creation timestamp                                                                                      |
+| updated_at             | DATETIME(6) | NOT NULL, ON UPDATE              | Last update timestamp                                                                                          |
 
 **Indexes**:
 
@@ -2850,20 +2894,20 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 
 **Purpose**: การมอบหมายงาน (Task Delegation) ระหว่างผู้ใช้
 
-| Column Name        | Data Type   | Constraints                     | Description                                                 |
-| ------------------ | ----------- | ------------------------------- | ----------------------------------------------------------- |
-| id                 | INT         | PRIMARY KEY, AUTO_INCREMENT     | Internal ID                                                 |
-| uuid               | UUID        | NOT NULL, UNIQUE, DEFAULT UUID()| UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
-| delegator_user_id  | INT         | NOT NULL, FK                    | ผู้มอบหมาย → users(user_id)                                 |
-| delegate_user_id   | INT         | NOT NULL, FK                    | ผู้รับมอบหมาย → users(user_id)                              |
-| start_date         | DATE        | NOT NULL                        | วันที่เริ่มการมอบหมาย                                       |
-| end_date           | DATE        | NULL                            | วันที่สิ้นสุด — BullMQ job flip is_active=0 เมื่อผ่าน (ADR-008) |
-| scope              | ENUM        | NOT NULL, DEFAULT 'ALL'         | ALL, RFA_ONLY, CORRESPONDENCE_ONLY, SPECIFIC_TYPES          |
-| document_types     | TEXT        | NULL                            | Comma-separated doc type codes when scope=SPECIFIC_TYPES    |
-| is_active          | TINYINT(1)  | NOT NULL, DEFAULT 1             | Managed by BullMQ scheduler — ห้าม flip manual              |
-| reason             | TEXT        | NULL                            | เหตุผลการมอบหมาย                                            |
-| created_at         | DATETIME(6) | NOT NULL, DEFAULT NOW           | Record creation timestamp                                   |
-| updated_at         | DATETIME(6) | NOT NULL, ON UPDATE             | Last update timestamp                                       |
+| Column Name       | Data Type   | Constraints                      | Description                                                                                                    |
+| ----------------- | ----------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| id                | INT         | PRIMARY KEY, AUTO_INCREMENT      | Internal ID                                                                                                    |
+| uuid              | UUID        | NOT NULL, UNIQUE, DEFAULT UUID() | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) |
+| delegator_user_id | INT         | NOT NULL, FK                     | ผู้มอบหมาย → users(user_id)                                                                                    |
+| delegate_user_id  | INT         | NOT NULL, FK                     | ผู้รับมอบหมาย → users(user_id)                                                                                 |
+| start_date        | DATE        | NOT NULL                         | วันที่เริ่มการมอบหมาย                                                                                          |
+| end_date          | DATE        | NULL                             | วันที่สิ้นสุด — BullMQ job flip is_active=0 เมื่อผ่าน (ADR-008)                                                |
+| scope             | ENUM        | NOT NULL, DEFAULT 'ALL'          | ALL, RFA_ONLY, CORRESPONDENCE_ONLY, SPECIFIC_TYPES                                                             |
+| document_types    | TEXT        | NULL                             | Comma-separated doc type codes when scope=SPECIFIC_TYPES                                                       |
+| is_active         | TINYINT(1)  | NOT NULL, DEFAULT 1              | Managed by BullMQ scheduler — ห้าม flip manual                                                                 |
+| reason            | TEXT        | NULL                             | เหตุผลการมอบหมาย                                                                                               |
+| created_at        | DATETIME(6) | NOT NULL, DEFAULT NOW            | Record creation timestamp                                                                                      |
+| updated_at        | DATETIME(6) | NOT NULL, ON UPDATE              | Last update timestamp                                                                                          |
 
 **Business Rules**:
 
@@ -2877,22 +2921,22 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 
 **Purpose**: กฎการแจ้งเตือน (Reminder/Escalation) สำหรับ Review Tasks
 
-| Column Name                | Data Type   | Constraints              | Description                                              |
-| -------------------------- | ----------- | ------------------------ | -------------------------------------------------------- |
-| id                         | INT         | PRIMARY KEY, AUTO_INCREMENT | Internal ID                                           |
-| uuid                       | UUID        | NOT NULL, UNIQUE         | UUIDv7 (NestJS @BeforeInsert, ADR-019) — app layer สร้างเสมอ (ไม่มี DB DEFAULT) |
-| name                       | VARCHAR(100)| NOT NULL                 | Rule name                                                |
-| project_id                 | INT         | NULL, FK                 | NULL = global rule                                       |
-| document_type_id           | INT         | NULL, FK                 | NULL = applies to all types                              |
-| trigger_days_before_due    | INT         | NOT NULL, DEFAULT 2      | วันก่อน due date ที่จะแจ้งเตือน                          |
-| escalation_days_after_due  | INT         | NOT NULL, DEFAULT 1      | วันหลัง due date ที่จะ escalate                           |
-| reminder_type              | ENUM        | NOT NULL                 | DUE_SOON, ON_DUE, OVERDUE, ESCALATION_L1, ESCALATION_L2 |
-| recipients                 | TEXT        | NOT NULL                 | Comma-separated: ASSIGNEE, MANAGER, PROJECT_MANAGER      |
-| message_template_th        | TEXT        | NOT NULL                 | Thai message template                                    |
-| message_template_en        | TEXT        | NOT NULL                 | English message template                                 |
-| is_active                  | TINYINT(1)  | NOT NULL, DEFAULT 1      | Active status                                            |
-| created_at                 | DATETIME(6) | NOT NULL, DEFAULT NOW    | Record creation timestamp                                |
-| updated_at                 | DATETIME(6) | NOT NULL, ON UPDATE      | Last update timestamp                                    |
+| Column Name               | Data Type    | Constraints                 | Description                                                                     |
+| ------------------------- | ------------ | --------------------------- | ------------------------------------------------------------------------------- |
+| id                        | INT          | PRIMARY KEY, AUTO_INCREMENT | Internal ID                                                                     |
+| uuid                      | UUID         | NOT NULL, UNIQUE            | UUIDv7 (NestJS @BeforeInsert, ADR-019) — app layer สร้างเสมอ (ไม่มี DB DEFAULT) |
+| name                      | VARCHAR(100) | NOT NULL                    | Rule name                                                                       |
+| project_id                | INT          | NULL, FK                    | NULL = global rule                                                              |
+| document_type_id          | INT          | NULL, FK                    | NULL = applies to all types                                                     |
+| trigger_days_before_due   | INT          | NOT NULL, DEFAULT 2         | วันก่อน due date ที่จะแจ้งเตือน                                                 |
+| escalation_days_after_due | INT          | NOT NULL, DEFAULT 1         | วันหลัง due date ที่จะ escalate                                                 |
+| reminder_type             | ENUM         | NOT NULL                    | DUE_SOON, ON_DUE, OVERDUE, ESCALATION_L1, ESCALATION_L2                         |
+| recipients                | TEXT         | NOT NULL                    | Comma-separated: ASSIGNEE, MANAGER, PROJECT_MANAGER                             |
+| message_template_th       | TEXT         | NOT NULL                    | Thai message template                                                           |
+| message_template_en       | TEXT         | NOT NULL                    | English message template                                                        |
+| is_active                 | TINYINT(1)   | NOT NULL, DEFAULT 1         | Active status                                                                   |
+| created_at                | DATETIME(6)  | NOT NULL, DEFAULT NOW       | Record creation timestamp                                                       |
+| updated_at                | DATETIME(6)  | NOT NULL, ON UPDATE         | Last update timestamp                                                           |
 
 ---
 
@@ -2900,17 +2944,17 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 
 **Purpose**: ตารางกำหนดกฎการกระจายเอกสาร (Distribution Matrix) ตาม Response Code
 
-| Column Name      | Data Type   | Constraints              | Description                                    |
-| ---------------- | ----------- | ------------------------ | ---------------------------------------------- |
-| id               | INT         | PRIMARY KEY, AUTO_INCREMENT | Internal ID                                 |
-| uuid             | UUID        | NOT NULL, UNIQUE         | UUIDv7 (NestJS @BeforeInsert, ADR-019) — app layer สร้างเสมอ (ไม่มี DB DEFAULT) |
-| name             | VARCHAR(100)| NOT NULL                 | Matrix name                                    |
-| project_id       | INT         | NULL, FK                 | NULL = global matrix                           |
-| document_type_id | INT         | NOT NULL, FK             | Reference to correspondence_types              |
-| response_code_id | INT         | NULL, FK                 | NULL = applies to all codes                    |
-| conditions       | JSON        | NULL                     | {codes:["1A","1B"], excludeCodes:["3","4"]}   |
-| is_active        | TINYINT(1)  | NOT NULL, DEFAULT 1      | Active status                                  |
-| created_at       | DATETIME(6) | NOT NULL, DEFAULT NOW    | Record creation timestamp                      |
+| Column Name      | Data Type    | Constraints                 | Description                                                                     |
+| ---------------- | ------------ | --------------------------- | ------------------------------------------------------------------------------- |
+| id               | INT          | PRIMARY KEY, AUTO_INCREMENT | Internal ID                                                                     |
+| uuid             | UUID         | NOT NULL, UNIQUE            | UUIDv7 (NestJS @BeforeInsert, ADR-019) — app layer สร้างเสมอ (ไม่มี DB DEFAULT) |
+| name             | VARCHAR(100) | NOT NULL                    | Matrix name                                                                     |
+| project_id       | INT          | NULL, FK                    | NULL = global matrix                                                            |
+| document_type_id | INT          | NOT NULL, FK                | Reference to correspondence_types                                               |
+| response_code_id | INT          | NULL, FK                    | NULL = applies to all codes                                                     |
+| conditions       | JSON         | NULL                        | {codes:["1A","1B"], excludeCodes:["3","4"]}                                     |
+| is_active        | TINYINT(1)   | NOT NULL, DEFAULT 1         | Active status                                                                   |
+| created_at       | DATETIME(6)  | NOT NULL, DEFAULT NOW       | Record creation timestamp                                                       |
 
 ---
 
@@ -2918,25 +2962,25 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 
 **Purpose**: ผู้รับเอกสารใน Distribution Matrix (Polymorphic Reference)
 
-| Column Name          | Data Type   | Constraints              | Description                                                       |
-| -------------------- | ----------- | ------------------------ | ----------------------------------------------------------------- |
-| id                   | INT         | PRIMARY KEY, AUTO_INCREMENT | Internal ID                                                    |
-| uuid                 | UUID        | NOT NULL, UNIQUE         | UUIDv7 (NestJS @BeforeInsert, ADR-019) — app layer สร้างเสมอ (ไม่มี DB DEFAULT) |
-| matrix_id            | INT         | NOT NULL, FK             | Reference to distribution_matrices                                |
-| recipient_type       | ENUM        | NOT NULL                 | USER, ORGANIZATION, TEAM, ROLE                                    |
-| recipient_public_id  | UUID        | NOT NULL                 | publicId ของ target entity — UUIDv7 หรือ UUIDv1 ตามที่มาของ record อ้างอิง (ดูตาราง Polymorphic Resolution ด้านล่าง) |
-| delivery_method      | ENUM        | NOT NULL, DEFAULT 'BOTH' | EMAIL, IN_APP, BOTH                                               |
-| sequence             | INT         | NULL                     | For ordered delivery                                              |
-| created_at           | DATETIME(6) | NOT NULL, DEFAULT NOW    | Record creation timestamp                                         |
+| Column Name         | Data Type   | Constraints                 | Description                                                                                                          |
+| ------------------- | ----------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| id                  | INT         | PRIMARY KEY, AUTO_INCREMENT | Internal ID                                                                                                          |
+| uuid                | UUID        | NOT NULL, UNIQUE            | UUIDv7 (NestJS @BeforeInsert, ADR-019) — app layer สร้างเสมอ (ไม่มี DB DEFAULT)                                      |
+| matrix_id           | INT         | NOT NULL, FK                | Reference to distribution_matrices                                                                                   |
+| recipient_type      | ENUM        | NOT NULL                    | USER, ORGANIZATION, TEAM, ROLE                                                                                       |
+| recipient_public_id | UUID        | NOT NULL                    | publicId ของ target entity — UUIDv7 หรือ UUIDv1 ตามที่มาของ record อ้างอิง (ดูตาราง Polymorphic Resolution ด้านล่าง) |
+| delivery_method     | ENUM        | NOT NULL, DEFAULT 'BOTH'    | EMAIL, IN_APP, BOTH                                                                                                  |
+| sequence            | INT         | NULL                        | For ordered delivery                                                                                                 |
+| created_at          | DATETIME(6) | NOT NULL, DEFAULT NOW       | Record creation timestamp                                                                                            |
 
 **Polymorphic Resolution Table**:
 
-| recipient_type | recipient_public_id อ้างอิง | FK | หมายเหตุ |
-|---|---|---|---|
-| USER | users.uuid | Soft (no FK) | Resolved via UserService |
-| ORGANIZATION | organizations.uuid | Soft (no FK) | Resolved via OrgService |
-| TEAM | review_teams.uuid | Soft (no FK) | Q4A — ทีมตรวจสอบ RFA |
-| ROLE | roles.uuid | Soft (no FK) | Q4B — ต้องใช้หลัง Apply delta-11 |
+| recipient_type | recipient_public_id อ้างอิง | FK           | หมายเหตุ                         |
+| -------------- | --------------------------- | ------------ | -------------------------------- |
+| USER           | users.uuid                  | Soft (no FK) | Resolved via UserService         |
+| ORGANIZATION   | organizations.uuid          | Soft (no FK) | Resolved via OrgService          |
+| TEAM           | review_teams.uuid           | Soft (no FK) | Q4A — ทีมตรวจสอบ RFA             |
+| ROLE           | roles.uuid                  | Soft (no FK) | Q4B — ต้องใช้หลัง Apply delta-11 |
 
 **Business Rules**:
 
@@ -2950,34 +2994,36 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 
 **Purpose**: Staging queue สำหรับ AI migration ตาม ADR-023A — เก็บผลลัพธ์ AI enrichment ก่อน human review และ commit เข้าระบบ
 
-| Column               | Data Type       | Constraints                          | Description                                                        |
-| -------------------- | --------------- | ------------------------------------ | ------------------------------------------------------------------ |
-| id                   | INT             | PRIMARY KEY, AUTO_INCREMENT          | Internal PK (ห้าม expose ใน API, ADR-019)                          |
-| uuid                 | UUID            | NOT NULL, UNIQUE, DEFAULT UUID()     | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 fallback      |
-| batch_id             | VARCHAR(100)    | NOT NULL                             | n8n batch identifier                                               |
-| idempotency_key      | VARCHAR(200)    | NULL                                 | Idempotency-Key สำหรับป้องกัน queue ซ้ำ                            |
-| original_filename    | VARCHAR(500)    | NULL                                 | ชื่อไฟล์ต้นฉบับจาก legacy source                                    |
-| storage_temp_path    | VARCHAR(1000)   | NULL                                 | temp storage path ก่อน import                                      |
-| ai_job_id            | VARCHAR(36)     | NULL                                 | BullMQ Job ID สำหรับงานประมวลผล AI                                 |
-| ai_failed            | TINYINT(1)      | NOT NULL, DEFAULT 0                  | Edge Case 4: AI enrichment failed after retries (ADR-047)          |
-| ai_metadata_json     | LONGTEXT        | NOT NULL, CHECK(json_valid)          | AI suggestion payload เต็มสำหรับ human review                      |
-| confidence_score     | DECIMAL(5,4)    | NULL                                 | AI confidence score 0.0000-1.0000                                  |
-| extracted_tags       | JSON            | NULL                                 | Tag ที่ AI นำเสนอหรือจับคู่ได้                                       |
-| ocr_text             | LONGTEXT        | NULL                                 | ข้อความ OCR 3 หน้าแรก (ADR-042/047)                                |
-| status               | VARCHAR(50)     | NOT NULL, DEFAULT 'PENDING_REVIEW'   | PENDING_REVIEW, APPROVED, REJECTED, COMMITTED                      |
-| reviewed_by          | VARCHAR(50)     | NULL                                 | ผู้ review (userId)                                                 |
-| reviewed_at          | DATETIME        | NULL                                 | วันที่ review                                                       |
-| rejection_reason     | TEXT            | NULL                                 | เหตุผลการ reject                                                    |
-| created_at           | TIMESTAMP       | DEFAULT CURRENT_TIMESTAMP            | Record creation timestamp                                           |
-| updated_at           | TIMESTAMP       | DEFAULT CURRENT_TIMESTAMP ON UPDATE  | Last update timestamp                                               |
+| Column            | Data Type     | Constraints                         | Description                                                   |
+| ----------------- | ------------- | ----------------------------------- | ------------------------------------------------------------- |
+| id                | INT           | PRIMARY KEY, AUTO_INCREMENT         | Internal PK (ห้าม expose ใน API, ADR-019)                     |
+| uuid              | UUID          | NOT NULL, UNIQUE, DEFAULT UUID()    | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 fallback |
+| batch_id          | VARCHAR(100)  | NOT NULL                            | n8n batch identifier                                          |
+| idempotency_key   | VARCHAR(200)  | NULL                                | Idempotency-Key สำหรับป้องกัน queue ซ้ำ                       |
+| original_filename | VARCHAR(500)  | NULL                                | ชื่อไฟล์ต้นฉบับจาก legacy source                              |
+| storage_temp_path | VARCHAR(1000) | NULL                                | temp storage path ก่อน import                                 |
+| ai_job_id         | VARCHAR(36)   | NULL                                | BullMQ Job ID สำหรับงานประมวลผล AI                            |
+| ai_failed         | TINYINT(1)    | NOT NULL, DEFAULT 0                 | Edge Case 4: AI enrichment failed after retries (ADR-047)     |
+| ai_metadata_json  | LONGTEXT      | NOT NULL, CHECK(json_valid)         | AI suggestion payload เต็มสำหรับ human review                 |
+| confidence_score  | DECIMAL(5,4)  | NULL                                | AI confidence score 0.0000-1.0000                             |
+| extracted_tags    | JSON          | NULL                                | Tag ที่ AI นำเสนอหรือจับคู่ได้                                |
+| ocr_text          | LONGTEXT      | NULL                                | ข้อความ OCR 3 หน้าแรก (ADR-042/047)                           |
+| status            | VARCHAR(50)   | NOT NULL, DEFAULT 'PENDING_REVIEW'  | PENDING_REVIEW, APPROVED, REJECTED, COMMITTED                 |
+| reviewed_by       | VARCHAR(50)   | NULL                                | ผู้ review (userId)                                           |
+| reviewed_at       | DATETIME      | NULL                                | วันที่ review                                                 |
+| rejection_reason  | TEXT          | NULL                                | เหตุผลการ reject                                              |
+| created_at        | TIMESTAMP     | DEFAULT CURRENT_TIMESTAMP           | Record creation timestamp                                     |
+| updated_at        | TIMESTAMP     | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp                                         |
 
 **Indexes**:
+
 - PRIMARY KEY (id)
 - UNIQUE (uuid)
 - INDEX (batch_id)
 - INDEX (status)
 
 **Business Rules**:
+
 - API ใช้ `uuid` (publicId) เท่านั้น — ห้าม expose `id` (ADR-019)
 - `ai_failed = 1` เมื่อ BullMQ retry ครบ 3 ครั้งแล้วยังไม่สำเร็จ (Edge Case 4)
 - `ocr_text` เก็บ OCR 3 หน้าแรกและสามารถแก้ไขได้โดย Admin (ADR-042)

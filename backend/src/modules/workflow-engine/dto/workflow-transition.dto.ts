@@ -60,4 +60,25 @@ export class WorkflowTransitionDto {
   @Min(1)
   @IsOptional()
   versionNo?: number;
+
+  // ADR-049 T013: Impersonation — UUID ของ handler ดั้งเดิมที่ admin ทำแทน
+  // เฉพาะ Superadmin/Org Admin เท่านั้นที่ส่งได้ (validate ใน guard T014)
+  @ApiPropertyOptional({
+    description:
+      'ADR-049: UUID ของ handler ดั้งเดิมที่ admin ทำแทน (impersonation) — เฉพาะ Superadmin/Org Admin',
+    example: '019505a1-7c3e-7000-8000-abc123def456',
+  })
+  @IsUUID()
+  @IsOptional()
+  onBehalfOfUserUuid?: string;
+
+  // ADR-049 T013: Consent reason code — metadata ของ CONSULTANT consent (ไม่มีผลต่อ state)
+  @ApiPropertyOptional({
+    description:
+      'ADR-049: Consent reason code ของ CONSULTANT (NO_OBJECTION, COMMENTS_PROVIDED, etc.) — metadata เท่านั้น',
+    example: 'NO_OBJECTION',
+  })
+  @IsString()
+  @IsOptional()
+  consentReasonCode?: string;
 }

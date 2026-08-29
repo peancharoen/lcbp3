@@ -91,7 +91,7 @@ export class CorrespondenceWorkflowService {
 
       await this.syncStatus(
         revision,
-        transitionResult.nextState,
+        transitionResult.statusProjection,
         queryRunner,
         true
       );
@@ -186,7 +186,7 @@ export class CorrespondenceWorkflowService {
         where: { id: Number(instance.entityId) },
       });
       if (revision) {
-        await this.syncStatus(revision, result.nextState);
+        await this.syncStatus(revision, result.statusProjection);
       }
     }
 
@@ -195,17 +195,11 @@ export class CorrespondenceWorkflowService {
 
   private async syncStatus(
     revision: CorrespondenceRevision,
-    workflowState: string,
+    statusProjection: Record<string, unknown> = {},
     queryRunner?: import('typeorm').QueryRunner,
     skipRagPrepare = false
   ) {
-    const statusMap: Record<string, string> = {
-      DRAFT: 'DRAFT',
-      IN_REVIEW: 'SUBOWN',
-      APPROVED: 'CLBOWN',
-      REJECTED: 'CCBOWN',
-    };
-    const targetCode = statusMap[workflowState] || 'DRAFT';
+    const targetCode = (statusProjection.correspondence as string) || 'DRAFT';
     const status = await this.statusRepo.findOne({
       where: { statusCode: targetCode },
     });
@@ -218,7 +212,7 @@ export class CorrespondenceWorkflowService {
     }
     // Await RAG preparation เพื่อให้ unit test assert ได้
     // caller (submitWorkflow/processAction) ก็ยังคง await syncStatus ตามปกติ
-    if (!skipRagPrepare && workflowState !== 'DRAFT') {
+    if (!skipRagPrepare && targetCode !== 'DRAFT') {
       await this.triggerRagPrepare(revision, targetCode);
     }
   }

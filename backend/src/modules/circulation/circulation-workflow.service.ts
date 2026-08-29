@@ -72,10 +72,10 @@ export class CirculationWorkflowService {
         {}
       );
 
-      // Sync Status
+      // ADR-049 T021: Sync Status จาก DSL statusProjection (ไม่ใช้ module statusMap)
       await this.syncStatus(
         circulation,
-        transitionResult.nextState,
+        transitionResult.statusProjection,
         queryRunner
       );
 
@@ -118,7 +118,7 @@ export class CirculationWorkflowService {
         where: { id: Number(instance.entityId) },
       });
       if (circulation) {
-        await this.syncStatus(circulation, result.nextState);
+        await this.syncStatus(circulation, result.statusProjection);
       }
     }
 
@@ -126,21 +126,14 @@ export class CirculationWorkflowService {
   }
 
   /**
-   * Helper: Map Workflow State -> Circulation Status (OPEN, IN_REVIEW, COMPLETED)
+   * ADR-049 T021: Sync Circulation Status จาก DSL statusProjection
    */
   private async syncStatus(
     circulation: Circulation,
-    workflowState: string,
+    statusProjection: Record<string, unknown> = {},
     queryRunner?: import('typeorm').QueryRunner
   ) {
-    const statusMap: Record<string, string> = {
-      DRAFT: 'OPEN',
-      ROUTING: 'IN_REVIEW',
-      COMPLETED: 'COMPLETED',
-      CANCELLED: 'CANCELLED',
-    };
-
-    const targetCode = statusMap[workflowState] || 'IN_REVIEW';
+    const targetCode = (statusProjection.circulation as string) || 'IN_REVIEW';
 
     // เนื่องจาก circulation เก็บ status_code เป็น String ในตารางเลย (ตาม Schema v1.4.4)
     // หรืออาจเป็น Relation ID ขึ้นอยู่กับ Implementation จริง
@@ -159,7 +152,7 @@ export class CirculationWorkflowService {
     await manager.save(circulation);
 
     this.logger.log(
-      `Synced Circulation #${circulation.id}: State=${workflowState} -> Status=${targetCode}`
+      `Synced Circulation #${circulation.id}: Status from DSL projection: ${JSON.stringify(statusProjection)} -> Status=${targetCode}`
     );
   }
 }

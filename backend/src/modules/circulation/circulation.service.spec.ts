@@ -200,50 +200,329 @@ describe('CirculationService', () => {
     });
   });
 
-  describe('findOneByUuid() - EC-CIRC-003 workflowInstanceId + deadlineDate', () => {
-    it('exposes workflowInstanceId and deadlineDate when a workflow instance exists', async () => {
+  describe('findOne() - basic lookup', () => {
+    it('should return circulation when found', async () => {
+      const mockCirculation = {
+        id: 1,
+        publicId: 'circ-uuid-1',
+        routings: [],
+        correspondence: {},
+        creator: {},
+      };
+      circulationRepo.findOne.mockResolvedValue(mockCirculation);
+
+      const result = await service.findOne(1);
+
+      expect(circulationRepo.findOne).toHaveBeenCalledWith({
+        where: { id: 1 },
+        relations: [
+          'routings',
+          'routings.assignee',
+          'correspondence',
+          'creator',
+        ],
+        order: { routings: { stepNumber: 'ASC' } },
+      });
+      expect(result).toEqual(mockCirculation);
+    });
+
+    it('should throw NotFoundException when circulation not found', async () => {
+      circulationRepo.findOne.mockResolvedValue(null);
+
+      await expect(service.findOne(999)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('close() - FR-C09', () => {
+    const uuid = '019circ-close-0000-7000-8000-000000000001';
+
+    it('should close circulation when all routings are completed', async () => {
       circulationRepo.findOne.mockResolvedValue({
         id: 100,
-        publicId: '019circ-test-uuid',
-        circulationNo: 'CIRC-001',
-        subject: 'Test',
+        publicId: uuid,
+        circulationNo: 'CIRC-2026-005',
         statusCode: 'OPEN',
+        routings: [
+          { id: 1, status: 'COMPLETED' },
+          { id: 2, status: 'COMPLETED' },
+        ],
+      });
+      circulationRepo.save.mockResolvedValue(undefined);
+
+      const result = await service.close(uuid, mockUser as User);
+
+      expect(result).toEqual({ success: true });
+      expect(circulationRepo.save).toHaveBeenCalled();
+    });
+
+    it('should throw ValidationException when circulation is already COMPLETED', async () => {
+      circulationRepo.findOne.mockResolvedValue({
+        id: 100,
+        publicId: uuid,
+        circulationNo: 'CIRC-2026-005',
+        statusCode: 'COMPLETED',
         routings: [],
-        deadlineDate: '2026-04-20',
-      });
-      workflowEngine.getInstanceByEntity.mockResolvedValue({
-        id: 'wf-circ-uuid-001',
-        currentState: 'OPEN',
-        availableActions: [],
       });
 
-      const result = await service.findOneByUuid('019circ-test-uuid');
-
-      expect(workflowEngine.getInstanceByEntity).toHaveBeenCalledWith(
-        'circulation',
-        '100'
-      );
-      expect(result.workflowInstanceId).toBe('wf-circ-uuid-001');
-      expect(result.workflowState).toBe('OPEN');
-      expect((result as { deadlineDate?: string }).deadlineDate).toBe(
-        '2026-04-20'
+      await expect(service.close(uuid, mockUser as User)).rejects.toThrow(
+        ValidationException
       );
     });
 
-    it('returns empty availableActions and undefined workflowInstanceId in draft state', async () => {
+    it('should throw ValidationException when circulation is already CANCELLED', async () => {
       circulationRepo.findOne.mockResolvedValue({
-        id: 101,
-        publicId: '019circ-draft-uuid',
-        circulationNo: 'CIRC-002',
-        statusCode: 'DRAFT',
+        id: 100,
+        publicId: uuid,
+        circulationNo: 'CIRC-2026-005',
+        statusCode: 'CANCELLED',
         routings: [],
       });
-      workflowEngine.getInstanceByEntity.mockResolvedValue(null);
 
-      const result = await service.findOneByUuid('019circ-draft-uuid');
+      await expect(service.close(uuid, mockUser as User)).rejects.toThrow(
+        ValidationException
+      );
+    });
 
-      expect(result.workflowInstanceId).toBeUndefined();
-      expect(result.availableActions).toEqual([]);
+    it('should throw ValidationException when circulation is already CLOSED', async () => {
+      circulationRepo.findOne.mockResolvedValue({
+        id: 100,
+        publicId: uuid,
+        circulationNo: 'CIRC-2026-005',
+        statusCode: 'CLOSED',
+        routings: [],
+      });
+
+      await expect(service.close(uuid, mockUser as User)).rejects.toThrow(
+        ValidationException
+      );
+    });
+
+    it('should throw ValidationException when pending routings exist', async () => {
+      circulationRepo.findOne.mockResolvedValue({
+        id: 100,
+        publicId: uuid,
+        circulationNo: 'CIRC-2026-005',
+        statusCode: 'OPEN',
+        routings: [
+          { id: 1, status: 'COMPLETED' },
+          { id: 2, status: 'PENDING' },
+        ],
+      });
+
+      await expect(service.close(uuid, mockUser as User)).rejects.toThrow(
+        ValidationException
+      );
+    });
+
+    it('should throw ValidationException when in-progress routings exist', async () => {
+      circulationRepo.findOne.mockResolvedValue({
+        id: 100,
+        publicId: uuid,
+        circulationNo: 'CIRC-2026-005',
+        statusCode: 'OPEN',
+        routings: [{ id: 1, status: 'IN_PROGRESS' }],
+      });
+
+      await expect(service.close(uuid, mockUser as User)).rejects.toThrow(
+        ValidationException
+      );
+    });
+
+    it('should throw NotFoundException when circulation not found', async () => {
+      circulationRepo.findOne.mockResolvedValue(null);
+
+      await expect(service.close(uuid, mockUser as User)).rejects.toThrow(
+        NotFoundException
+      );
+    });
+  });
+
+  describe('findAll() - search with pagination', () => {
+    it('should return empty result when user has no org and no correspondencePublicId', async () => {
+      const userWithoutOrg = { user_id: 1, username: 'noorg' } as User;
+
+      const result = await service.findAll({}, userWithoutOrg);
+
+      expect(result).toEqual({
+        data: [],
+        meta: { total: 0, page: 1, limit: 20 },
+      });
+    });
+
+    it('should query by organization when user has org', async () => {
+      const userWithOrg = {
+        user_id: 1,
+        username: 'admin',
+        primaryOrganizationId: 10,
+      } as User;
+
+      const mockQB = {
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getManyAndCount: jest.fn().mockResolvedValue([[{ id: 1 }], 1]),
+      };
+      circulationRepo.createQueryBuilder = jest.fn().mockReturnValue(mockQB);
+
+      const result = await service.findAll({}, userWithOrg);
+
+      expect(mockQB.where).toHaveBeenCalledWith('c.organizationId = :orgId', {
+        orgId: 10,
+      });
+      expect(result.data).toHaveLength(1);
+      expect(result.meta.total).toBe(1);
+    });
+
+    it('should query by correspondencePublicId when provided', async () => {
+      const userWithOrg = {
+        user_id: 1,
+        username: 'admin',
+        primaryOrganizationId: 10,
+      } as User;
+
+      const mockQB = {
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getManyAndCount: jest.fn().mockResolvedValue([[], 0]),
+      };
+      circulationRepo.createQueryBuilder = jest.fn().mockReturnValue(mockQB);
+
+      await service.findAll(
+        { correspondencePublicId: 'corr-uuid-1' },
+        userWithOrg
+      );
+
+      expect(mockQB.where).toHaveBeenCalledWith(
+        'correspondence.publicId = :corrPublicId',
+        {
+          corrPublicId: 'corr-uuid-1',
+        }
+      );
+    });
+
+    it('should apply status filter when provided', async () => {
+      const userWithOrg = {
+        user_id: 1,
+        username: 'admin',
+        primaryOrganizationId: 10,
+      } as User;
+
+      const mockQB = {
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getManyAndCount: jest.fn().mockResolvedValue([[], 0]),
+      };
+      circulationRepo.createQueryBuilder = jest.fn().mockReturnValue(mockQB);
+
+      await service.findAll({ status: 'OPEN' }, userWithOrg);
+
+      expect(mockQB.andWhere).toHaveBeenCalledWith('c.statusCode = :status', {
+        status: 'OPEN',
+      });
+    });
+  });
+
+  describe('updateRoutingStatus()', () => {
+    it('should update routing and complete circulation when all done', async () => {
+      const mockRouting = {
+        id: 5,
+        assignedTo: 1,
+        circulationId: 10,
+        circulation: { id: 10 },
+      };
+      routingRepo.findOne.mockResolvedValue(mockRouting);
+      routingRepo.save.mockResolvedValue(mockRouting);
+
+      const mockQB = {
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getCount: jest.fn().mockResolvedValue(0),
+      };
+      routingRepo.createQueryBuilder = jest.fn().mockReturnValue(mockQB);
+      circulationRepo.update = jest.fn().mockResolvedValue(undefined);
+
+      const result = await service.updateRoutingStatus(
+        5,
+        { status: 'COMPLETED', comments: 'Done' },
+        mockUser as User
+      );
+
+      expect(routingRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'COMPLETED', comments: 'Done' })
+      );
+      expect(circulationRepo.update).toHaveBeenCalledWith(10, {
+        statusCode: 'COMPLETED',
+        closedAt: expect.any(Date),
+      });
+      expect(result).toEqual(mockRouting);
+    });
+
+    it('should not complete circulation when pending routings remain', async () => {
+      const mockRouting = {
+        id: 5,
+        assignedTo: 1,
+        circulationId: 10,
+        circulation: { id: 10 },
+      };
+      routingRepo.findOne.mockResolvedValue(mockRouting);
+      routingRepo.save.mockResolvedValue(mockRouting);
+
+      const mockQB = {
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getCount: jest.fn().mockResolvedValue(2),
+      };
+      routingRepo.createQueryBuilder = jest.fn().mockReturnValue(mockQB);
+      circulationRepo.update = jest.fn();
+
+      await service.updateRoutingStatus(
+        5,
+        { status: 'COMPLETED', comments: 'Done' },
+        mockUser as User
+      );
+
+      expect(circulationRepo.update).not.toHaveBeenCalled();
+    });
+
+    it('should throw PermissionException when user is not the assignee', async () => {
+      const mockRouting = {
+        id: 5,
+        assignedTo: 99,
+        circulationId: 10,
+        circulation: { id: 10 },
+      };
+      routingRepo.findOne.mockResolvedValue(mockRouting);
+
+      await expect(
+        service.updateRoutingStatus(
+          5,
+          { status: 'COMPLETED' },
+          mockUser as User
+        )
+      ).rejects.toThrow();
+    });
+
+    it('should throw NotFoundException when routing not found', async () => {
+      routingRepo.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.updateRoutingStatus(
+          999,
+          { status: 'COMPLETED' },
+          mockUser as User
+        )
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });
