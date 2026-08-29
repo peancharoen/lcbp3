@@ -38,6 +38,7 @@ ENV PNPM_STORE_DIR=/root/.local/share/pnpm/store
 
 # Copy workspace structure
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY patches/ ./patches/
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/backend/node_modules ./backend/node_modules
 
