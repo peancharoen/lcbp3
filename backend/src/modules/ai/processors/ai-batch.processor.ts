@@ -1051,6 +1051,7 @@ export class AiBatchProcessor extends WorkerHost {
         const ocrResult = await this.ocrService.detectAndExtract({
           pdfPath: attachmentPath,
           activeProfile: data.effectiveProfile,
+          timeoutMs: 600_000,
         });
         cachedOcrText = ocrResult.text;
       } catch (err: unknown) {
@@ -2019,16 +2020,26 @@ export class AiBatchProcessor extends WorkerHost {
       // 0. Unload BGE models ก่อน OCR — คืน GPU memory ให้ Ollama (coordination logic)
       await this.ocrService.unloadBgeModels();
 
-      // 1. OCR 3 หน้าแรก
+      // 1. OCR 3 หน้าแรก (ADR-034/040 classification ใช้ 3 หน้าแรก; timeout 600s สำหรับ image PDF)
       let ocrText = '';
+      let ocrFailed = false;
       const hasPdf = pdfPath && pdfPath.trim().length > 0;
       if (hasPdf) {
         try {
           const ocrResult = await this.ocrService.detectAndExtract({
             pdfPath,
+            maxPages: 3,
+            timeoutMs: 600_000,
           });
           ocrText = ocrResult.text || '';
+          if (ocrText.trim().length === 0) {
+            this.logger.warn(
+              `OCR returned empty text for legacy doc [${documentNumber}]`
+            );
+            ocrFailed = true;
+          }
         } catch (ocrErr: unknown) {
+          ocrFailed = true;
           this.logger.warn(
             `OCR extraction failed for legacy doc [${documentNumber}]: ${String(ocrErr)}`
           );
@@ -2087,24 +2098,36 @@ ${truncatedOcr}`;
       if (!hasPdf) {
         ocrText = 'ไม่มี ไฟล์ PDF (ยกเลิก/ถอน)';
         aiConfidence = 0;
+      } else if (ocrFailed) {
+        aiConfidence = 0;
       }
 
       // 3. บันทึกผลลัพธ์กลับสู่ migration_review_queue
       await this.migrationService.updateQueueEnrichment(queueId, {
-        ocrText: ocrText || undefined,
+        ocrText,
         aiSummary,
-        aiSuggestedCategory: hasPdf ? aiSuggestedCategory : undefined,
+        aiSuggestedCategory:
+          hasPdf && !ocrFailed ? aiSuggestedCategory : undefined,
         extractedTags: extractedTags.length > 0 ? extractedTags : undefined,
         aiConfidence,
         aiIssues: hasPdf
-          ? undefined
+          ? ocrFailed
+            ? [
+                {
+                  type: 'OCR_FAILED',
+                  message:
+                    'OCR ไม่สามารถสกัดข้อความได้ (timeout หรือเนื้อหาเปล่า) — กรุณาตรวจสอบไฟล์ PDF แล้วกด Extract ใหม่หรือแก้ไข OCR text เอง',
+                },
+              ]
+            : undefined
           : [{ type: 'NO_PDF', message: 'ไม่พบไฟล์ PDF สำหรับทำ OCR' }],
-        aiStatus: MigrationAiStatus.DONE,
+        aiFailed: ocrFailed,
+        aiStatus: ocrFailed ? MigrationAiStatus.FAILED : MigrationAiStatus.DONE,
         status: MigrationReviewStatus.PENDING_REVIEW,
       });
 
       this.logger.log(
-        `processLegacyAiEnrichment: successfully enriched queue item [${queueId}]`
+        `processLegacyAiEnrichment: ${ocrFailed ? 'OCR failed' : 'successfully enriched'} queue item [${queueId}]`
       );
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);

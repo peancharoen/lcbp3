@@ -20,6 +20,12 @@
 // - 2026-07-30: ADR-040 Phase 2 (T017) — ลบ X-API-Key send-side (network isolation แทน, ADR-041 complete)
 //   - ลบ ocrSidecarApiKey field + env var validation
 //   - ลบ headers: { 'X-API-Key': ... } จากทุก axios call (health, ocr-upload x2, embed, rerank)
+// - 2026-08-29: Bugfix — OCR timeout สั้นเกินไปสำหรับ image-based PDF (ใช้เวลา >300s ต่อ 4 หน้า)
+//   ทำให้ legacy-ai-enrichment และ rag-prepare timeout แล้ว swallow error → false ai_status=DONE
+//   - ยก np-dms-ocr timeout 120s → 600s (OCR_NP_DMS_OCR_TIMEOUT_MS)
+//   - ยก auto-fallback timeout 90s → 300s (OCR_AUTO_FALLBACK_TIMEOUT_MS)
+//   - เพิ่ม OcrDetectionInput.timeoutMs (granular override ตาม job type) และ OcrDetectionInput.maxPages
+//   - ส่ง maxPages form field ไปยัง sidecar /ocr-upload เพื่อจำกัดจำนวนหน้า (ADR-034/040 classification ใช้ 3 หน้าแรก)
 
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -56,6 +62,12 @@ export interface OcrDetectionInput {
     topP?: number;
     repeatPenalty?: number;
   };
+  /** Override axios timeout (ms) สำหรับ job ที่รู้ว่าต้องใช้เวลานาน เช่น legacy-enrich/rag-prepare
+   *  หากไม่ส่ง จะใช้ default ตาม engine (np-dms-ocr=600s, auto-fallback=300s) */
+  timeoutMs?: number;
+  /** จำกัดจำนวนหน้าที่ส่งให้ sidecar OCR (ADR-034/040: classification ใช้ 3 หน้าแรก)
+   *  0 หรือไม่ส่ง = ทุกหน้า */
+  maxPages?: number;
 }
 
 export interface OcrDetectionResult {
@@ -83,6 +95,11 @@ const OCR_ENGINE_ID = '019505a1-7c3e-7000-8000-abc123def002';
 
 // VRAM ที่ np-dms-ocr ต้องการ (MB)
 const OCR_REQUIRED_VRAM_MB = 4000;
+
+// OCR axios timeout (ms) — image-based PDF ขนาดใหญ่อาจใช้เวลา >300s ต่อ 4 หน้า
+// (incident 2026-08-29: CHEC-LCP-C2-O-24-0002 ใช้เวลา >300s จน timeout ที่ 120s/90s)
+const OCR_NP_DMS_OCR_TIMEOUT_MS = 600_000; // 600s — engine หลัก
+const OCR_AUTO_FALLBACK_TIMEOUT_MS = 300_000; // 300s — fallback path
 
 const FAST_PATH_ENGINE: OcrEngineConfiguration = {
   engineId: FAST_PATH_ENGINE_ID,
@@ -362,11 +379,14 @@ export class OcrService {
         'upload.pdf'
       );
       form.append('engine', 'auto');
+      if (input.maxPages && input.maxPages > 0) {
+        form.append('maxPages', String(input.maxPages));
+      }
       const response = await axios.post<OcrSidecarResponse>(
         `${this.ocrApiUrl}/ocr-upload`,
         form,
         {
-          timeout: 90000,
+          timeout: input.timeoutMs ?? OCR_AUTO_FALLBACK_TIMEOUT_MS,
         }
       );
       const text = response.data.text ?? '';
@@ -479,12 +499,15 @@ export class OcrService {
       form.append('temperature', String(runtimeParams.temperature));
       form.append('topP', String(runtimeParams.top_p));
       form.append('repeatPenalty', String(runtimeParams.repeat_penalty));
+      if (input.maxPages && input.maxPages > 0) {
+        form.append('maxPages', String(input.maxPages));
+      }
 
       const response = await axios.post<OcrSidecarResponse>(
         `${this.ocrApiUrl}/ocr-upload`,
         form,
         {
-          timeout: 120000,
+          timeout: input.timeoutMs ?? OCR_NP_DMS_OCR_TIMEOUT_MS,
         }
       );
       const text = response.data.text ?? '';

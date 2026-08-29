@@ -58,6 +58,7 @@ describe('AiBatchProcessor', () => {
     detectAndExtract: jest
       .fn()
       .mockResolvedValue({ text: 'OCR text LCBP3-CIV-001 Civil' }),
+    unloadBgeModels: jest.fn().mockResolvedValue(undefined),
     processWithAutoDetect: jest.fn().mockResolvedValue({
       text: 'extracted ocr text from document that is long enough to bypass character length check',
     }),
@@ -145,6 +146,7 @@ describe('AiBatchProcessor', () => {
   const mockMigrationService = {
     createError: jest.fn().mockResolvedValue(undefined),
     enqueueRecord: jest.fn().mockResolvedValue(undefined),
+    updateQueueEnrichment: jest.fn().mockResolvedValue(undefined),
   };
   const mockAiPromptsService = {
     getActive: jest.fn().mockImplementation((promptType: string) => {
@@ -605,6 +607,67 @@ describe('AiBatchProcessor', () => {
     expect(mockAiAuditLogRepo.create).toHaveBeenCalledTimes(1);
     expect(mockAiAuditLogRepo.save).toHaveBeenCalledTimes(1);
   });
+  it('ควร mark ai_status=FAILED เมื่อ OCR ล้มเหลวสำหรับ PDF ใน legacy-ai-enrichment (ADR-047)', async () => {
+    ocrService.detectAndExtract.mockRejectedValueOnce(new Error('OCR timeout'));
+    const job = {
+      id: 'job-legacy-enrich-fail',
+      data: {
+        jobType: 'legacy-ai-enrichment',
+        queueId: 2693,
+        queuePublicId: 'queue-uuid-123',
+        documentNumber: 'CHEC-LCP-C2-O-24-0002',
+        pdfPath: '/files/test-image.pdf',
+        projectPublicId: 'proj-uuid-456',
+      },
+    } as unknown as Job<AiBatchJobData>;
+    await processor.process(job);
+    expect(ocrService.detectAndExtract).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pdfPath: '/files/test-image.pdf',
+        maxPages: 3,
+        timeoutMs: 600_000,
+      })
+    );
+    expect(mockMigrationService.updateQueueEnrichment).toHaveBeenCalledWith(
+      2693,
+      expect.objectContaining({
+        ocrText: '',
+        aiStatus: 'FAILED',
+        aiFailed: true,
+        aiIssues: expect.arrayContaining([
+          expect.objectContaining({ type: 'OCR_FAILED' }),
+        ]),
+      })
+    );
+  });
+
+  it('ควร persist ocr_text เป็น empty string เมื่อ OCR สำเร็จแต่ได้ text ว่างใน legacy-ai-enrichment', async () => {
+    ocrService.detectAndExtract.mockResolvedValueOnce({
+      text: '',
+      ocrUsed: true,
+    });
+    const job = {
+      id: 'job-legacy-enrich-empty',
+      data: {
+        jobType: 'legacy-ai-enrichment',
+        queueId: 2694,
+        queuePublicId: 'queue-uuid-124',
+        documentNumber: 'EMPTY-OCR-001',
+        pdfPath: '/files/test-empty.pdf',
+        projectPublicId: 'proj-uuid-456',
+      },
+    } as unknown as Job<AiBatchJobData>;
+    await processor.process(job);
+    expect(mockMigrationService.updateQueueEnrichment).toHaveBeenCalledWith(
+      2694,
+      expect.objectContaining({
+        ocrText: '',
+        aiStatus: 'FAILED',
+        aiFailed: true,
+      })
+    );
+  });
+
   describe('rag-prepare', () => {
     it('ควรประมวลผล rag-prepare สำเร็จเมื่อส่ง cachedOcrText มาโดยตรง — persist ocr_text และ enqueue embed-document (ADR-042)', async () => {
       const job = {
