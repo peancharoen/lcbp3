@@ -24,6 +24,7 @@ WORKDIR /w
 # Copy workspace root manifests
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY frontend/package.json ./frontend/
+COPY patches/ ./patches/
 
 # Install frontend deps only (--ignore-scripts เพื่อข้าม postinstall ที่อาจ fail ใน CI)
 RUN pnpm install --frozen-lockfile --ignore-scripts --filter lcbp3-frontend...
@@ -38,6 +39,7 @@ RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
 # --- Workspace root at /w (holds pnpm manifests + root node_modules) ---
 WORKDIR /w
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY patches/ ./patches/
 COPY --from=deps /w/node_modules ./node_modules
 
 # --- Frontend source directly at /w/frontend ---
