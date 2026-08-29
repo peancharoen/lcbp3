@@ -19,6 +19,7 @@ WORKDIR /app
 # Copy workspace root manifests
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY backend/package.json ./backend/
+COPY patches/ ./patches/
 
 # Install backend deps only using pnpm workspace filter
 RUN pnpm install --frozen-lockfile --filter backend...
