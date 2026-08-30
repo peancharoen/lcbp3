@@ -3,6 +3,7 @@
 // - 2026-05-22: เพิ่มฟิลด์ aiJobId สำหรับเก็บ jobId ของ BullMQ (ADR-028)
 // - 2026-08-06: เพิ่ม tempAttachmentIds (JSON), compareStatus (enum), compareUnavailableReason สำหรับ Feature 242 (FR-001, FR-002, FR-012a, FR-012b)
 // - 2026-08-22: ปรับ status enum ให้ตรง DB (PENDING, PENDING_REVIEW, IMPORTED, REJECTED) และเพิ่ม aiStatus (ADR-047)
+// - 2026-08-30: ทำให้ nullable AI fields รับค่า `null` ตรงกับฐานข้อมูล (เพื่อรองรับ re-extract reset)
 // - 2026-08-23: ขยาย ai_job_id เป็น VARCHAR(150) — custom BullMQ jobId ยาวกว่า UUID เปล่า (Bugfix ADR-047)
 
 import {
@@ -60,8 +61,13 @@ export class MigrationReviewQueue extends UuidBaseEntity {
   @Column({ type: 'text', nullable: true })
   body?: string;
 
-  @Column({ name: 'ai_suggested_category', length: 50, nullable: true })
-  aiSuggestedCategory?: string;
+  @Column({
+    name: 'ai_suggested_category',
+    type: 'varchar',
+    length: 50,
+    nullable: true,
+  })
+  aiSuggestedCategory?: string | null;
 
   @Column({
     name: 'ai_confidence',
@@ -70,10 +76,10 @@ export class MigrationReviewQueue extends UuidBaseEntity {
     scale: 3,
     nullable: true,
   })
-  aiConfidence?: number;
+  aiConfidence?: number | null;
 
   @Column({ name: 'ai_issues', type: 'json', nullable: true })
-  aiIssues?: Record<string, unknown>[];
+  aiIssues?: Record<string, unknown>[] | null;
 
   @Column({ name: 'review_reason', length: 255, nullable: true })
   reviewReason?: string;
@@ -110,10 +116,10 @@ export class MigrationReviewQueue extends UuidBaseEntity {
   remarks?: string;
 
   @Column({ name: 'ai_summary', type: 'text', nullable: true })
-  aiSummary?: string;
+  aiSummary?: string | null;
 
   @Column({ name: 'extracted_tags', type: 'json', nullable: true })
-  extractedTags?: Record<string, string>[];
+  extractedTags?: Record<string, string>[] | null;
 
   /** ข้อความ OCR 3 หน้าแรกสำหรับตรวจแก้คำผิดและ Re-embed ลง Qdrant (ADR-042/047) */
   @Column({ name: 'ocr_text', type: 'longtext', nullable: true })

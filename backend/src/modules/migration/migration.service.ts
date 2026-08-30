@@ -2,6 +2,7 @@
 // Change Log:
 // - 2026-08-23: ใช้ disciplineId (INT) โดยตรง, แก้ recipient lookup ให้แยก recipientType: TO
 // - 2026-08-22: Persist IMPORTED after approve-and-import to match the database enum
+// - 2026-08-30: เพิ่ม reExtractQueueItem สำหรับ re-extract ก่อน Execute Import
 // - 2026-08-22: เพิ่ม startExtractQueueItem / startExtractBatch และปรับ execute import flow ตาม ADR-047
 // - 2026-08-23: Execute Import บันทึก ocrText ลง Attachment/Revision และใช้ rag-prepare pipeline เดียวกับเอกสารปกติ
 // - 2026-08-25: นำ remarks จาก Excel → correspondence_revisions.remarks (approve fallback จาก queueItem)
@@ -897,6 +898,68 @@ export class MigrationService {
       message: 'AI extraction started',
       jobId: String(job.id),
     };
+  }
+
+  /**
+   * ADR-047: re-extract queue item ก่อน Execute Import
+   * ล้างผลลัพธ์เก่า ลบ BullMQ job เดิม (best-effort) แล้ว enqueue `legacy-ai-enrichment` ใหม่
+   */
+  async reExtractQueueItem(
+    publicId: string,
+    idempotencyKey: string,
+    userId: number
+  ) {
+    const queueItem = await this.getQueueItemByPublicId(publicId);
+
+    if (
+      queueItem.status !== MigrationReviewStatus.PENDING &&
+      queueItem.status !== MigrationReviewStatus.PENDING_REVIEW
+    ) {
+      throw new ConflictException(
+        'MIGRATION_INVALID_STATE',
+        `Queue item ${publicId} is ${queueItem.status}`,
+        'รายการนี้ไม่อยู่ในสถานะทีสามารถ re-extract ได้'
+      );
+    }
+
+    if (queueItem.aiStatus === MigrationAiStatus.RUNNING) {
+      return {
+        message: 'AI extraction currently running',
+        jobId: queueItem.aiJobId,
+      };
+    }
+
+    if (queueItem.aiJobId) {
+      try {
+        await this.aiBatchQueue.remove(queueItem.aiJobId);
+        this.logger.log(
+          `Removed previous ai-batch job ${queueItem.aiJobId} for re-extract ${publicId}`
+        );
+      } catch (err: unknown) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        this.logger.warn(
+          `Failed to remove previous ai-batch job ${queueItem.aiJobId}: ${errMsg}`
+        );
+      }
+    }
+
+    queueItem.aiStatus = MigrationAiStatus.PENDING;
+    queueItem.aiJobId = null;
+    queueItem.aiFailed = false;
+    queueItem.ocrText = null;
+    queueItem.aiSummary = null;
+    queueItem.aiSuggestedCategory = null;
+    queueItem.extractedTags = null;
+    queueItem.aiConfidence = null;
+    queueItem.aiIssues = null;
+    queueItem.status = MigrationReviewStatus.PENDING;
+    await this.reviewQueueRepo.save(queueItem);
+
+    this.logger.log(
+      `User ${userId} reset AI extraction for queue ${publicId}, re-enqueue with idem ${idempotencyKey}`
+    );
+
+    return this.startExtractQueueItem(publicId, idempotencyKey, userId);
   }
 
   /**

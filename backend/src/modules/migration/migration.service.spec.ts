@@ -6,6 +6,7 @@
 // - 2026-08-17: Added ConfigService mock for path traversal guard (Issue #3, ADR-016)
 // - 2026-08-25: Added D159 regression tests — revision.body ใช้ aiSummary ไม่ใช่ ocrText
 // - 2026-08-26: Added regression tests — importStagingFile ต้องได้ issueDate จาก dto.documentDate
+// - 2026-08-30: เพิ่ม tests สำหรับ reExtractQueueItem
 // - 2026-08-27: Expand coverage to 80%+ — tests for all uncovered methods
 
 jest.mock('fs', () => {
@@ -1442,6 +1443,107 @@ describe('MigrationService', () => {
       );
       expect(result.message).toBe('AI extraction started');
       expect(mockProjectRepo.findOne).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── reExtractQueueItem ────────────────────────────────────────────────────────
+  describe('reExtractQueueItem', () => {
+    it('throws ConflictException when status is not PENDING or PENDING_REVIEW', async () => {
+      mockReviewQueueRepo.findOne.mockResolvedValue({
+        id: 10,
+        publicId: 'queue-uuid-010',
+        status: MigrationReviewStatus.IMPORTED,
+        aiStatus: MigrationAiStatus.DONE,
+        aiJobId: 'job-010',
+      });
+
+      await expect(
+        service.reExtractQueueItem('queue-uuid-010', 'idem-re-1', 1)
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('returns currently running when aiStatus is RUNNING', async () => {
+      mockReviewQueueRepo.findOne.mockResolvedValue({
+        id: 11,
+        publicId: 'queue-uuid-011',
+        status: MigrationReviewStatus.PENDING_REVIEW,
+        aiStatus: MigrationAiStatus.RUNNING,
+        aiJobId: 'job-011',
+      });
+
+      const result = await service.reExtractQueueItem(
+        'queue-uuid-011',
+        'idem-re-2',
+        1
+      );
+      expect(result.message).toBe('AI extraction currently running');
+      expect(result.jobId).toBe('job-011');
+    });
+
+    it('resets and re-enqueues legacy-ai-enrichment from DONE status', async () => {
+      mockReviewQueueRepo.findOne
+        .mockResolvedValueOnce({
+          id: 12,
+          publicId: 'queue-uuid-012',
+          status: MigrationReviewStatus.PENDING_REVIEW,
+          aiStatus: MigrationAiStatus.DONE,
+          aiJobId: 'job-012',
+          projectId: 100,
+          documentNumber: 'DOC-RE',
+          details: { source_file_path: '/staging/doc.pdf' },
+          ocrText: 'old ocr',
+          aiSummary: 'old summary',
+          aiSuggestedCategory: 'LETTER',
+          extractedTags: [{ id: '1', name: 'old' }],
+          aiConfidence: 0.9,
+          aiIssues: [{ code: 'OLD' }],
+          aiFailed: false,
+        })
+        .mockResolvedValueOnce({
+          id: 12,
+          publicId: 'queue-uuid-012',
+          status: MigrationReviewStatus.PENDING,
+          aiStatus: MigrationAiStatus.PENDING,
+          aiJobId: null,
+          projectId: 100,
+          documentNumber: 'DOC-RE',
+          details: { source_file_path: '/staging/doc.pdf' },
+        });
+
+      mockProjectRepo.findOne.mockResolvedValue({
+        id: 100,
+        publicId: 'proj-uuid-012',
+      });
+      mockAiBatchQueue.remove.mockResolvedValue(undefined);
+      mockAiBatchQueue.add.mockResolvedValue({ id: 'job-999' });
+      mockReviewQueueRepo.save.mockResolvedValue({});
+      mockAttachmentFind.mockResolvedValue([]);
+      mockDataSource.manager.find.mockResolvedValue([]);
+      mockTypeRepo.find.mockResolvedValue([]);
+
+      const result = await service.reExtractQueueItem(
+        'queue-uuid-012',
+        'idem-re-3',
+        1
+      );
+
+      expect(result.message).toBe('AI extraction started');
+      expect(result.jobId).toBe('job-999');
+      expect(mockAiBatchQueue.remove).toHaveBeenCalledWith('job-012');
+      expect(mockReviewQueueRepo.save).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          aiStatus: MigrationAiStatus.PENDING,
+          aiJobId: null,
+          ocrText: null,
+          aiSummary: null,
+          aiSuggestedCategory: null,
+          extractedTags: null,
+          aiConfidence: null,
+          aiIssues: null,
+          status: MigrationReviewStatus.PENDING,
+        })
+      );
     });
   });
 

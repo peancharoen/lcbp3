@@ -1,6 +1,6 @@
 // File: backend/src/modules/migration/migration.controller.spec.ts
 // Change Log:
-// - 2026-08-06: Initial creation
+// - 2026-08-30: เพิ่ม tests สำหรับ reExtractQueueItem endpoint
 // - 2026-08-07: Added tests for resolve-batch, trigger-rag-batch, review-thresholds endpoints
 // - 2026-08-17: Updated tests for ADR-016/019 compliance — Idempotency-Key
 //   missing now throws ValidationException (not return 400 object), undefined
@@ -796,6 +796,36 @@ describe('MigrationController', () => {
 
       await expect(
         controller.extractQueueItem('uuid-1', undefined, user)
+      ).rejects.toThrow(ValidationException);
+    });
+  });
+
+  describe('reExtractQueueItem', () => {
+    it('should call migrationService.reExtractQueueItem', async () => {
+      service.reExtractQueueItem = jest
+        .fn()
+        .mockResolvedValue({ success: true });
+      const user = { user_id: 5 } as User;
+
+      const result = await controller.reExtractQueueItem(
+        '019505a1-7c3e-7000-8000-queue001',
+        'idem-key-re',
+        user
+      );
+
+      expect(service.reExtractQueueItem).toHaveBeenCalledWith(
+        '019505a1-7c3e-7000-8000-queue001',
+        'idem-key-re',
+        5
+      );
+      expect(result).toEqual({ success: true });
+    });
+
+    it('should throw ValidationException when Idempotency-Key is missing', async () => {
+      const user = { user_id: 5 } as User;
+
+      await expect(
+        controller.reExtractQueueItem('uuid-1', undefined, user)
       ).rejects.toThrow(ValidationException);
     });
   });

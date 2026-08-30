@@ -1,6 +1,7 @@
 // File: backend/src/modules/migration/migration.controller.ts
 // Change Log:
 // - 2026-08-06: Initial creation with resolution & review endpoints
+// - 2026-08-30: เพิ่ม `POST queue/:publicId/re-extract` สำหรับ re-extract ก่อน Execute Import
 // - 2026-08-20: Added Streaming Legacy Ingestion & OCR sync endpoints (ADR-047)
 
 import {
@@ -400,6 +401,33 @@ export class MigrationController {
     requireIdempotencyKey(idempotencyKey);
     const userId = requireUserId(user);
     return this.migrationService.startExtractQueueItem(
+      publicId,
+      idempotencyKey!,
+      userId
+    );
+  }
+
+  // ADR-047: re-extract queue item หนึ่งรายการก่อน Execute Import
+  @Post('queue/:publicId/re-extract')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @RequirePermission('migration.import')
+  @ApiOperation({
+    summary: 'Re-run OCR/AI extraction for a queued migration item',
+  })
+  @ApiParam({ name: 'publicId', type: String, format: 'uuid' })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    required: true,
+    description: 'Unique key per re-extraction request (ADR-016)',
+  })
+  async reExtractQueueItem(
+    @Param('publicId', ParseUUIDPipe) publicId: string,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @CurrentUser() user: User
+  ) {
+    requireIdempotencyKey(idempotencyKey);
+    const userId = requireUserId(user);
+    return this.migrationService.reExtractQueueItem(
       publicId,
       idempotencyKey!,
       userId
