@@ -20,6 +20,7 @@
 // - 2026-06-11: แก้ไข ESLint errors โดยการเพิ่ม properties (effectiveProfile, canonicalModel, snapshotParams) ใน AiBatchJobData และยกเลิกการใช้ as any
 // - 2026-08-07: แก้ sandbox-rag-prep timeout 30s → ใช้ OllamaService.getBatchTimeoutMs() (env AI_BATCH_TIMEOUT_MS, default 120000) ทั้ง 6 จุด แทน hardcoded 120000/missing
 // - 2026-08-24: ADR-048 T017 — เพิ่ม clear-failed-jobs job type + processClearFailedJobs handler (chunked 1,000 รอบ, สูงสุด 10,000)
+// - 2026-08-30: ปรับ lockDuration 150000ms → 700000ms เพื่อรองรับ OCR timeout 600s ของ np-dms-ocr โดยไม่ให้ job stall ตอนกลางคัน
 // - 2026-08-26: Bugfix — processRagPrepare อ่าน cachedOcrText/attachmentPath/attachmentPublicId จาก top level
 //   ของ job data ด้วย (ไม่ใช่แค่ data.payload) — enqueueRagPrepare ส่ง fields ที่ top level ไม่ได้ห่อใน payload
 
@@ -219,10 +220,10 @@ const sanitizeOcrText = (text: string): string =>
   removeControlCharacters(text.replace(/\r\n/g, '\n'), true).trim();
 
 /** Processor สำหรับงาน AI batch ที่รันทีละงานเพื่อคุม VRAM
- *  lockDuration: 150000ms — รองรับ Ollama sandbox ที่ใช้เวลาสูงสุด 120s (ADR-029 FR-008)
+ *  lockDuration: 700000ms — รองรับ np-dms-ocr timeout 600s + margin โดยไม่ให้ job stall (ADR-029 FR-008)
  *  ค่า default ของ BullMQ คือ 30000ms ซึ่งน้อยกว่า timeout → job stall
  */
-@Processor(QUEUE_AI_BATCH, { concurrency: 1, lockDuration: 150000 })
+@Processor(QUEUE_AI_BATCH, { concurrency: 1, lockDuration: 700000 })
 export class AiBatchProcessor extends WorkerHost {
   private readonly logger = new Logger(AiBatchProcessor.name);
   private readonly abortControllers = new Map<string, AbortController>();

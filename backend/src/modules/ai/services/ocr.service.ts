@@ -20,6 +20,7 @@
 // - 2026-07-30: ADR-040 Phase 2 (T017) — ลบ X-API-Key send-side (network isolation แทน, ADR-041 complete)
 //   - ลบ ocrSidecarApiKey field + env var validation
 //   - ลบ headers: { 'X-API-Key': ... } จากทุก axios call (health, ocr-upload x2, embed, rerank)
+// - 2026-08-30: processWithNpDmsOcr ดึง prompt 'ocr_system' แทน 'ocr_extraction' เพื่อส่งคำสั่น raw OCR ทีถูกต้อง (ไม่ใช่ metadata extraction)
 // - 2026-08-29: Bugfix — OCR timeout สั้นเกินไปสำหรับ image-based PDF (ใช้เวลา >300s ต่อ 4 หน้า)
 //   ทำให้ legacy-ai-enrichment และ rag-prepare timeout แล้ว swallow error → false ai_status=DONE
 //   - ยก np-dms-ocr timeout 120s → 600s (OCR_NP_DMS_OCR_TIMEOUT_MS)
@@ -467,13 +468,12 @@ export class OcrService {
         runtimeParams.repeat_penalty = input.ocrOptions.repeatPenalty;
       }
 
-      // Resolve Active Prompt from DB (ocr_extraction)
-      const activePrompt =
-        await this.aiPromptsService.getActive('ocr_extraction');
+      // Resolve Active Prompt from DB (ocr_system) - raw OCR system prompt
+      const activePrompt = await this.aiPromptsService.getActive('ocr_system');
       if (!activePrompt) {
         throw new BusinessException(
           'NO_ACTIVE_PROMPT',
-          'No active ocr_extraction prompt found',
+          'No active ocr_system prompt found',
           'ไม่พบ Prompt OCR สำหรับดึงข้อมูลที่เปิดใช้งาน'
         );
       }
