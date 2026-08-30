@@ -55,6 +55,11 @@ jobs:
             exit 1
           fi
 
+      - name: 🔍 Patch integrity check
+        # ตรวจสอบว่าทุก patchedDependencies มี package อยู่ใน workspace อย่างน้อย 1 ตัว
+        # ป้องกัน orphan patch ที่จะทำให้ pnpm --filter deploy fail (allowUnusedPatches ปิด safety net)
+        run: ./scripts/check-patches.sh
+
       # ── [3] แยก step — เห็น failure ได้ชัดขึ้น ──────────────
       - name: 🧪 Test backend
         run: pnpm test
