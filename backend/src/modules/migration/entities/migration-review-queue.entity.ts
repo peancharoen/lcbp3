@@ -5,6 +5,8 @@
 // - 2026-08-22: ปรับ status enum ให้ตรง DB (PENDING, PENDING_REVIEW, IMPORTED, REJECTED) และเพิ่ม aiStatus (ADR-047)
 // - 2026-08-30: ทำให้ nullable AI fields รับค่า `null` ตรงกับฐานข้อมูล (เพื่อรองรับ re-extract reset)
 // - 2026-08-23: ขยาย ai_job_id เป็น VARCHAR(150) — custom BullMQ jobId ยาวกว่า UUID เปล่า (Bugfix ADR-047)
+// - 2026-08-31: ADR-050 — เพิ่ม requiresHumanReview (promoted จาก server-computed confidence gate)
+//   และ ocrQualityConfidence (promoted จาก details.ocrQuality.confidence) สำหรับ filter/sort คิว
 
 import {
   Entity,
@@ -81,6 +83,24 @@ export class MigrationReviewQueue extends UuidBaseEntity {
   @Column({ name: 'ai_issues', type: 'json', nullable: true })
   aiIssues?: Record<string, unknown>[] | null;
 
+  /**
+   * ADR-050 Decision 3: server-computed เสมอ — ห้ามเชื่อค่าที่ LLM ส่งมาใน details JSON แม้จะมี
+   * field นี้อยู่ก็ตาม คำนวณจาก min(ocrQuality.confidence, metadata.confidence.*) < minConfidence
+   * (ReviewThresholdService) ใช้ filter คิว "ต้อง review" ในตาราง admin
+   */
+  @Column({ name: 'requires_human_review', type: 'boolean', default: false })
+  requiresHumanReview!: boolean;
+
+  /** ADR-050: promote จาก details.ocrQuality.confidence (0.000-1.000) สำหรับ sort/filter คิวตามคุณภาพ OCR */
+  @Column({
+    name: 'ocr_quality_confidence',
+    type: 'decimal',
+    precision: 4,
+    scale: 3,
+    nullable: true,
+  })
+  ocrQualityConfidence?: number | null;
+
   @Column({ name: 'review_reason', length: 255, nullable: true })
   reviewReason?: string;
 
@@ -125,7 +145,14 @@ export class MigrationReviewQueue extends UuidBaseEntity {
   @Column({ name: 'ocr_text', type: 'longtext', nullable: true })
   ocrText?: string | null;
 
-  /** Feature 242: JSON metadata เก็บ compareResult, capturedThresholds, attachments[] (FR-005, FR-007, FR-010c) */
+  /**
+   * Feature 242: JSON metadata เก็บ compareResult, capturedThresholds, attachments[] (FR-005, FR-007, FR-010c)
+   * ADR-050: หลัง extraction ยังเก็บ `ocrQuality`/`metadata.confidence`/`fieldResolutions` ตาม
+   * `MigrationAiExtractionDetails` (`../types/ai-extraction-details.type.ts`) — คง type ระดับ entity
+   * เป็น bag กว้างๆ เพราะ column เดียวกันถูกใช้เก็บ key อื่นที่ไม่เกี่ยวกับ AI extraction ด้วย
+   * (attachments[], compareResult ฯลฯ) ใช้ type แคบ (`MigrationAiExtractionDetails`) เฉพาะตอน cast
+   * ที่ service layer แทน
+   */
   @Column({ name: 'ai_metadata_json', type: 'json', nullable: true })
   details?: Record<string, unknown> | null;
 

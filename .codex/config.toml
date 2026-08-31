@@ -1,0 +1,58 @@
+# File: .codex/config.toml
+# Project-scoped Codex MCP configuration for LCBP3-DMS.
+# Secrets are supplied through environment variables and must not be committed.
+
+[mcp_servers.project-mariadb]
+command = "npx"
+args = ["-y", "@naganpm/mysql-mcp-server"]
+env_vars = ["MYSQL_DATABASE", "MYSQL_HOST", "MYSQL_PASSWORD", "MYSQL_PORT", "MYSQL_USER"]
+default_tools_approval_mode = "prompt"
+
+[mcp_servers.project-playwright]
+command = "npx"
+args = ["-y", "@playwright/mcp@latest"]
+default_tools_approval_mode = "prompt"
+
+[mcp_servers.project-redis]
+command = "bash"
+args = [".codex/mcp/redis.sh"]
+cwd = "/opt/np-dms-lcbp3"
+env_vars = ["REDIS_URL"]
+default_tools_approval_mode = "prompt"
+
+[mcp_servers.project-qdrant]
+command = "npx"
+args = ["-y", "@infoinlet/mcp-qdrant"]
+env_vars = ["QDRANT_URL", "QDRANT_API_KEY"]
+default_tools_approval_mode = "prompt"
+
+[mcp_servers.project-memory]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-memory"]
+env_vars = ["MEMORY_FILE_PATH"]
+default_tools_approval_mode = "prompt"
+
+[mcp_servers.project-fetch]
+command = "npx"
+args = ["-y", "mcp-fetch-server"]
+default_tools_approval_mode = "prompt"
+
+[mcp_servers.project-gitea]
+command = "npx"
+args = ["-y", "@amonstack/gitea-mcp"]
+env_vars = ["GITEA_BASE_URL", "GITEA_TOKEN", "GITEA_DEFAULT_OWNER", "GITEA_DEFAULT_REPO"]
+default_tools_approval_mode = "prompt"
+
+[mcp_servers.project-stitch]
+url = "https://stitch.googleapis.com/mcp"
+env_http_headers = { "X-Goog-Api-Key" = "STITCH_API_KEY" }
+default_tools_approval_mode = "prompt"
+
+[mcp_servers.project-n8n]
+url = "https://n8n.np-dms.work/mcp-server/http"
+env_http_headers = { Authorization = "N8N_MCP_AUTHORIZATION" }
+default_tools_approval_mode = "prompt"
+
+[mcp_servers.cloudflare-docs]
+url = "https://docs.mcp.cloudflare.com/mcp"
+default_tools_approval_mode = "prompt"

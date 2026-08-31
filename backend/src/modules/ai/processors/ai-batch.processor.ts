@@ -67,6 +67,12 @@ import {
 } from '../../migration/entities/migration-review-queue.entity';
 import { ReviewThresholdService } from '../../migration/services/review-threshold.service';
 import type { ExcelMetadataDto } from '../dto/excel-metadata.dto';
+import type {
+  MigrationAiExtractionDetails,
+  OcrQualityIssue,
+  TagSuggestion,
+} from '../../migration/types/ai-extraction-details.type';
+import { SystemException } from '../../../common/exceptions';
 
 interface MigrateDocumentMetadata extends Record<string, unknown> {
   projectPublicId?: string;
@@ -1985,6 +1991,100 @@ export class AiBatchProcessor extends WorkerHost {
    * ใช้ queueId (INT PK) สำหรับเรียก updateQueueEnrichment() ภายใน —
    * ไม่ใช่ API boundary จึงใช้ INT ได้ตาม ADR-019 (อนุญาต INT ใน internal service methods)
    */
+  /**
+   * ADR-050 §2/§3, data-model.md §2-3: ตรวจสอบ raw JSON จาก LLM ตาม MigrationAiExtractionDetails
+   * shape ก่อนใช้งาน — ocrQuality.confidence และ metadata.confidence.* ต้องอยู่ใน [0,1],
+   * metadata.category ต้องอยู่ใน allowedCategories, tags[]/issues[] ต้อง well-formed
+   * คืนค่า null เมื่อ invalid (ไม่ throw — caller ตัดสินใจตั้ง aiFailureReason='SCHEMA_VALIDATION_FAILED')
+   */
+  private validateExtractionOutput(
+    raw: Record<string, unknown>,
+    allowedCategories: string[]
+  ): MigrationAiExtractionDetails | null {
+    const isUnitInterval = (v: unknown): v is number =>
+      typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 1;
+
+    const ocrQualityRaw = raw.ocrQuality;
+    if (!ocrQualityRaw || typeof ocrQualityRaw !== 'object') return null;
+    const ocrQuality = ocrQualityRaw as Record<string, unknown>;
+    if (!isUnitInterval(ocrQuality.confidence)) return null;
+    const issuesRaw = ocrQuality.issues;
+    if (!Array.isArray(issuesRaw)) return null;
+    const issues: OcrQualityIssue[] = [];
+    for (const issue of issuesRaw) {
+      if (
+        !issue ||
+        typeof issue !== 'object' ||
+        typeof (issue as Record<string, unknown>).type !== 'string' ||
+        typeof (issue as Record<string, unknown>).message !== 'string' ||
+        typeof (issue as Record<string, unknown>).evidence !== 'string'
+      ) {
+        return null;
+      }
+      const i = issue as Record<string, unknown>;
+      issues.push({
+        type: i.type as string,
+        message: i.message as string,
+        evidence: i.evidence as string,
+      });
+    }
+
+    const metadataRaw = raw.metadata;
+    if (!metadataRaw || typeof metadataRaw !== 'object') return null;
+    const metadata = metadataRaw as Record<string, unknown>;
+    if (typeof metadata.summary !== 'string') return null;
+    if (
+      typeof metadata.category !== 'string' ||
+      !allowedCategories.includes(metadata.category)
+    ) {
+      return null;
+    }
+    const tagsRaw = metadata.tags;
+    if (!Array.isArray(tagsRaw)) return null;
+    const tags: TagSuggestion[] = [];
+    for (const tag of tagsRaw) {
+      if (
+        !tag ||
+        typeof tag !== 'object' ||
+        typeof (tag as Record<string, unknown>).name !== 'string' ||
+        typeof (tag as Record<string, unknown>).isNew !== 'boolean' ||
+        typeof (tag as Record<string, unknown>).evidence !== 'string'
+      ) {
+        return null;
+      }
+      const t = tag as Record<string, unknown>;
+      tags.push({
+        name: t.name as string,
+        isNew: t.isNew as boolean,
+        evidence: t.evidence as string,
+      });
+    }
+    const confidenceRaw = metadata.confidence;
+    if (!confidenceRaw || typeof confidenceRaw !== 'object') return null;
+    const confidence = confidenceRaw as Record<string, unknown>;
+    if (
+      !isUnitInterval(confidence.summary) ||
+      !isUnitInterval(confidence.category) ||
+      !isUnitInterval(confidence.tags)
+    ) {
+      return null;
+    }
+
+    return {
+      ocrQuality: { confidence: ocrQuality.confidence, issues },
+      metadata: {
+        summary: metadata.summary,
+        category: metadata.category,
+        tags,
+        confidence: {
+          summary: confidence.summary,
+          category: confidence.category,
+          tags: confidence.tags,
+        },
+      },
+    };
+  }
+
   private async processLegacyAiEnrichment(
     data: Record<string, unknown>
   ): Promise<void> {
@@ -2005,6 +2105,12 @@ export class AiBatchProcessor extends WorkerHost {
         : documentNumberRaw == null
           ? ''
           : JSON.stringify(documentNumberRaw);
+    const projectId =
+      typeof data.projectId === 'number' ? data.projectId : null;
+    const projectPublicId =
+      typeof data.projectPublicId === 'string'
+        ? data.projectPublicId
+        : undefined;
 
     if (!queueId) {
       this.logger.warn(`processLegacyAiEnrichment: missing queueId`);
@@ -2047,50 +2153,87 @@ export class AiBatchProcessor extends WorkerHost {
         }
       }
 
-      // 2. LLM Tag & Metadata Extraction
-      let aiSummary: string | undefined;
-      let aiSuggestedCategory: string | undefined;
-      let aiConfidence = 0.8;
-      const extractedTags: Record<string, string>[] = [];
+      // 2. LLM Metadata Extraction — ADR-050: เรียก Active Prompt (ocr_extraction) เหมือน
+      // processOcrExtract/processMigrateDocument แทนการ hardcode prompt string ตรงๆ (T008)
+      // + validate output ตาม schema ก่อนใช้งาน (T009, FR-010)
+      let extraction: MigrationAiExtractionDetails | null = null;
+      let aiFailed = false;
+      let aiFailureReason:
+        | 'SCHEMA_VALIDATION_FAILED'
+        | 'LLM_CALL_FAILED'
+        | undefined;
 
       if (ocrText && ocrText.trim().length > 0) {
         try {
+          const activePrompt =
+            await this.aiPromptsService.getActive('ocr_extraction');
+          if (!activePrompt) {
+            throw new SystemException(
+              'No active ocr_extraction prompt version found'
+            );
+          }
+          // ADR-050 Decision 2: allowed_categories มาจาก correspondence_types.typeCode
+          const allowedCategories =
+            await this.migrationService.getAllowedCategoryCodes();
+          // ADR-050 §9: existing_tags ช่วยให้ LLM ตัดสิน tags[].isNew ได้แม่นขึ้น
+          const existingTags = await this.tagsService.findByProject(projectId);
+          const masterDataContext = await this.aiPromptsService.resolveContext(
+            activePrompt,
+            projectPublicId,
+            undefined
+          );
           const truncatedOcr = ocrText.slice(0, MAX_OCR_TEXT_CHARS);
-          const prompt = `วิเคราะห์เอกสารราชการ/เอกสารก่อสร้างต่อไปนี้ และสกัดข้อมูลเป็น JSON:
-{
-  "summary": "สรุปสาระสำคัญของเอกสาร 2-3 บรรทัด",
-  "category": "Letter หรือ RFA หรือ Drawing หรือ Report หรือ Other",
-  "tags": ["สาขางาน", "ประเภทเอกสาร", "หน่วยงาน"],
-  "confidence": 0.85
-}
+          const PLACEHOLDERS: Record<string, string> = {
+            '{{ocr_text}}': truncatedOcr,
+            '{{allowed_categories}}': allowedCategories.join(', '),
+            '{{existing_tags}}': existingTags.map((t) => t.tagName).join(', '),
+            '{{master_data_context}}': JSON.stringify(masterDataContext),
+          };
+          const resolvedPrompt = activePrompt.template.replace(
+            /\{\{ocr_text\}\}|\{\{allowed_categories\}\}|\{\{existing_tags\}\}|\{\{master_data_context\}\}/g,
+            (match) => PLACEHOLDERS[match] ?? match
+          );
 
-ข้อความเอกสาร:
-${truncatedOcr}`;
-
-          const llmResponse = await this.generateStructuredJson(prompt, {
-            timeoutMs: this.ollamaService.getBatchTimeoutMs(),
-            format: 'json',
-          });
-
-          if (llmResponse?.extractedMetadata) {
-            const parsed = llmResponse.extractedMetadata;
-            aiSummary =
-              typeof parsed.summary === 'string' ? parsed.summary : undefined;
-            aiSuggestedCategory =
-              typeof parsed.category === 'string' ? parsed.category : undefined;
-            aiConfidence =
-              typeof parsed.confidence === 'number' ? parsed.confidence : 0.8;
-            if (Array.isArray(parsed.tags)) {
-              for (const tag of parsed.tags) {
-                if (typeof tag === 'string' && tag.trim()) {
-                  extractedTags.push({ name: tag.trim() });
-                }
+          let parsed: Record<string, unknown> = {};
+          try {
+            const llmResponse = await this.generateStructuredJson(
+              resolvedPrompt,
+              {
+                timeoutMs: this.ollamaService.getBatchTimeoutMs(),
+                format: 'json',
               }
+            );
+            parsed = llmResponse.extractedMetadata;
+          } catch (llmErr: unknown) {
+            aiFailed = true;
+            aiFailureReason = 'LLM_CALL_FAILED';
+            this.logger.warn(
+              `LLM metadata extraction failed for [${documentNumber}]: ${String(llmErr)}`
+            );
+          }
+
+          if (!aiFailed) {
+            const validated = this.validateExtractionOutput(
+              parsed,
+              allowedCategories
+            );
+            if (!validated) {
+              aiFailed = true;
+              aiFailureReason = 'SCHEMA_VALIDATION_FAILED';
+              this.logger.warn(
+                `LLM output failed schema validation for [${documentNumber}]`
+              );
+            } else {
+              extraction = validated;
             }
           }
-        } catch (llmErr: unknown) {
+        } catch (setupErr: unknown) {
+          // ครอบคลุมกรณี getActive คืน null/prompt-context resolution ล้มเหลว — ถือเป็น
+          // "เรียกใช้ AI ไม่สำเร็จ" (ไม่ใช่ schema-invalid เพราะยังไม่ได้เรียก LLM เลย)
+          aiFailed = true;
+          aiFailureReason = 'LLM_CALL_FAILED';
           this.logger.warn(
-            `LLM metadata extraction failed for [${documentNumber}]: ${String(llmErr)}`
+            `processLegacyAiEnrichment: prompt/context resolution failed for [${documentNumber}]: ${String(setupErr)}`
           );
         }
       }
@@ -2098,19 +2241,28 @@ ${truncatedOcr}`;
       // Fallback: ไม่มี PDF ให้บันทึกข้อความใน ocr_text
       if (!hasPdf) {
         ocrText = 'ไม่มี ไฟล์ PDF (ยกเลิก/ถอน)';
-        aiConfidence = 0;
-      } else if (ocrFailed) {
-        aiConfidence = 0;
       }
 
-      // 3. บันทึกผลลัพธ์กลับสู่ migration_review_queue
+      // spec.md Edge Cases: ไม่มีข้อความอ่านได้ (no PDF / OCR ล้มเหลว) → ต้อง flag
+      // requiresHumanReview=true โดย default เพราะไม่มี confidence ให้คำนวณได้จริง
+      const isHardFailure = !hasPdf || ocrFailed || aiFailed;
+      const extractedTags: Record<string, string>[] = extraction
+        ? extraction.metadata.tags.map((t) => ({ name: t.name }))
+        : [];
+
+      // 3. บันทึกผลลัพธ์กลับสู่ migration_review_queue — ADR-050 T010/T011/T012: ส่งเฉพาะ
+      // confidence values ผ่าน details ให้ MigrationService คำนวณ requiresHumanReview/
+      // ocrQualityConfidence/ai_confidence(alias) เอง (ไม่เชื่อ requiresHumanReview จาก LLM เลย
+      // เพราะ MigrationAiExtractionDetails ไม่มี field นี้อยู่แล้ว)
       await this.migrationService.updateQueueEnrichment(queueId, {
         ocrText,
-        aiSummary,
+        aiSummary: extraction ? extraction.metadata.summary : undefined,
         aiSuggestedCategory:
-          hasPdf && !ocrFailed ? aiSuggestedCategory : undefined,
+          extraction && !isHardFailure
+            ? extraction.metadata.category
+            : undefined,
         extractedTags: extractedTags.length > 0 ? extractedTags : undefined,
-        aiConfidence,
+        aiConfidence: isHardFailure ? 0 : undefined,
         aiIssues: hasPdf
           ? ocrFailed
             ? [
@@ -2122,13 +2274,22 @@ ${truncatedOcr}`;
               ]
             : undefined
           : [{ type: 'NO_PDF', message: 'ไม่พบไฟล์ PDF สำหรับทำ OCR' }],
-        aiFailed: ocrFailed,
-        aiStatus: ocrFailed ? MigrationAiStatus.FAILED : MigrationAiStatus.DONE,
+        aiFailed: isHardFailure,
+        requiresHumanReview: isHardFailure ? true : undefined,
+        ocrQualityConfidence: isHardFailure ? 0 : undefined,
+        details: extraction
+          ? { ocrQuality: extraction.ocrQuality, metadata: extraction.metadata }
+          : aiFailureReason
+            ? ({ aiFailureReason } as unknown as Record<string, unknown>)
+            : undefined,
+        aiStatus: isHardFailure
+          ? MigrationAiStatus.FAILED
+          : MigrationAiStatus.DONE,
         status: MigrationReviewStatus.PENDING_REVIEW,
       });
 
       this.logger.log(
-        `processLegacyAiEnrichment: ${ocrFailed ? 'OCR failed' : 'successfully enriched'} queue item [${queueId}]`
+        `processLegacyAiEnrichment: ${isHardFailure ? 'failed (' + (aiFailureReason ?? (ocrFailed ? 'OCR_FAILED' : 'NO_PDF')) + ')' : 'successfully enriched'} queue item [${queueId}]`
       );
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);

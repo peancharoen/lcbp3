@@ -33,6 +33,7 @@ import { MigrationReviewQueue } from './entities/migration-review-queue.entity';
 import { MigrationError } from './entities/migration-error.entity';
 import { FileStorageService } from '../../common/file-storage/file-storage.service';
 import { RagBatchService } from './services/rag-batch.service';
+import { ReviewThresholdService } from './services/review-threshold.service';
 import { Discipline } from '../master/entities/discipline.entity';
 import { Correspondence } from '../correspondence/entities/correspondence.entity';
 import { CorrespondenceRecipient } from '../correspondence/entities/correspondence-recipient.entity';
@@ -151,6 +152,12 @@ describe('MigrationService', () => {
     getRawMany: jest.fn(),
   };
 
+  const mockReviewThresholdService = {
+    getThresholds: jest
+      .fn()
+      .mockResolvedValue({ maxMismatchFields: 3, minConfidence: 0.6 }),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
     const module: TestingModule = await Test.createTestingModule({
@@ -203,6 +210,10 @@ describe('MigrationService', () => {
           useValue: {
             enqueueRagPrepare: jest.fn().mockResolvedValue(undefined),
           },
+        },
+        {
+          provide: ReviewThresholdService,
+          useValue: mockReviewThresholdService,
         },
       ],
     }).compile();
@@ -767,21 +778,16 @@ describe('MigrationService', () => {
       expect(mockTypeRepo.findOne).toHaveBeenCalledTimes(2);
     });
 
-    it('resolves type via alias map when both typeName and typeCode fail', async () => {
+    // ADR-050 Decision 2: CATEGORY_ALIAS hardcode map ถูกลบออก — allowed_categories มาจาก
+    // correspondence_types.typeCode โดยตรง (AI ต้องส่ง category ที่อยู่ใน allowed_categories
+    // เท่านั้น ไม่มี alias fallback อีกต่อไป) เมื่อทั้ง typeName และ typeCode lookup ล้มเหลว
+    // ต้อง throw ValidationException แทนที่จะพยายาม alias เพิ่มเติม
+    it('throws ValidationException when both typeName and typeCode fail (no alias fallback — ADR-050)', async () => {
       mockTypeRepo.findOne
         .mockResolvedValueOnce(null) // typeName
-        .mockResolvedValueOnce(null) // typeCode
-        .mockResolvedValueOnce({ id: 3, typeCode: 'OTHER' }); // alias
+        .mockResolvedValueOnce(null); // typeCode
       mockStatusRepo.findOne.mockResolvedValue({ id: 10 });
       mockProjectRepo.findOne.mockResolvedValue({ id: 100 });
-      mockDataSource.manager.findOne.mockResolvedValue(null);
-      mockQueryRunner.manager.findOne.mockResolvedValue(null);
-      mockQueryRunner.manager.create.mockImplementation(
-        (_e: unknown, v: unknown) => v
-      );
-      mockQueryRunner.manager.save.mockResolvedValue({ id: 1 });
-      mockQueryRunner.manager.find.mockResolvedValue([]);
-      mockQueryRunner.manager.query.mockResolvedValue([]);
 
       const dto: ImportCorrespondenceDto = {
         documentNumber: 'DOC-ALIAS',
@@ -791,8 +797,10 @@ describe('MigrationService', () => {
         batchId: 'BATCH-ALIAS',
         projectId: 100,
       };
-      await service.importCorrespondence(dto, 'idem-alias', 1);
-      expect(mockTypeRepo.findOne).toHaveBeenCalledTimes(3);
+      await expect(
+        service.importCorrespondence(dto, 'idem-alias', 1)
+      ).rejects.toThrow(ValidationException);
+      expect(mockTypeRepo.findOne).toHaveBeenCalledTimes(2);
     });
 
     it('falls back to DRAFT status when CLBOWN not found', async () => {
@@ -1626,6 +1634,67 @@ describe('MigrationService', () => {
       expect(result.total).toBe(0);
       expect(mockQueryBuilder.where).not.toHaveBeenCalled();
     });
+
+    // ADR-050/FR-003/FR-004 (T019)
+    it('filters by requiresHumanReview when provided', async () => {
+      mockReviewQueueRepo.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([
+        [{ id: 1, documentNumber: 'DOC-1', requiresHumanReview: true }],
+        1,
+      ]);
+      mockAttachmentFind.mockResolvedValue([]);
+
+      const query: MigrationQueueQueryDto = {
+        page: 1,
+        limit: 10,
+        requiresHumanReview: true,
+      } as unknown as MigrationQueueQueryDto;
+
+      await service.getReviewQueue(query);
+
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'queue.requiresHumanReview = :requiresHumanReview',
+        { requiresHumanReview: true }
+      );
+    });
+
+    it('sorts by ocrQualityConfidence with given sortOrder when sortBy provided', async () => {
+      mockReviewQueueRepo.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
+      mockAttachmentFind.mockResolvedValue([]);
+
+      const query: MigrationQueueQueryDto = {
+        page: 1,
+        limit: 10,
+        sortBy: 'ocrQualityConfidence',
+        sortOrder: 'desc',
+      } as unknown as MigrationQueueQueryDto;
+
+      await service.getReviewQueue(query);
+
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
+        'queue.ocrQualityConfidence',
+        'DESC'
+      );
+      // default createdAt DESC sort must not also be applied when sortBy overrides it
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledTimes(1);
+    });
+
+    it('defaults to createdAt DESC sort when sortBy is absent', async () => {
+      mockReviewQueueRepo.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
+      mockAttachmentFind.mockResolvedValue([]);
+
+      const query: MigrationQueueQueryDto =
+        {} as unknown as MigrationQueueQueryDto;
+
+      await service.getReviewQueue(query);
+
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
+        'queue.createdAt',
+        'DESC'
+      );
+    });
   });
 
   // ── getQueueItemByPublicId ────────────────────────────────────────────────────
@@ -2158,6 +2227,203 @@ describe('MigrationService', () => {
       );
       expect(stream).toBeDefined();
       expect(mockedCreateReadStream).toHaveBeenCalled();
+    });
+  });
+
+  // ── ADR-050 T007: getAllowedCategoryCodes ───────────────────────────────────────
+  describe('getAllowedCategoryCodes (ADR-050 Decision 2)', () => {
+    it('returns typeCode list sourced from correspondence_types, not a hardcoded alias map', async () => {
+      mockTypeRepo.find.mockResolvedValue([
+        { id: 1, typeCode: 'LETTER' },
+        { id: 2, typeCode: 'RFA' },
+        { id: 3, typeCode: 'OTHER' },
+      ]);
+      const result = await service.getAllowedCategoryCodes();
+      expect(result).toEqual(['LETTER', 'RFA', 'OTHER']);
+      expect(mockTypeRepo.find).toHaveBeenCalled();
+    });
+  });
+
+  // ── ADR-050 T020: requiresHumanReview deterministic computation ─────────────────
+  describe('requiresHumanReview computation (ADR-050 Decision 3, T020)', () => {
+    it('uses ReviewThresholdService.minConfidence and flags true when min(confidence) < threshold, ignoring any LLM-supplied requiresHumanReview value', async () => {
+      mockReviewThresholdService.getThresholds.mockResolvedValueOnce({
+        maxMismatchFields: 3,
+        minConfidence: 0.6,
+      });
+      const queueItem = {
+        id: 501,
+        publicId: 'queue-uuid-501',
+      } as unknown as MigrationReviewQueue;
+      mockReviewQueueRepo.findOne.mockResolvedValue(queueItem);
+
+      await service.updateQueueEnrichment(501, {
+        details: {
+          ocrQuality: { confidence: 0.9, issues: [] },
+          metadata: {
+            summary: 'test',
+            category: 'LETTER',
+            tags: [],
+            // ต่ำกว่า threshold 0.6 → ต้อง flag true
+            confidence: { summary: 0.9, category: 0.9, tags: 0.5 },
+          },
+          // ค่าที่ LLM พยายามส่งมาเอง — backend ต้อง ignore ทิ้งเสมอ (Decision 3)
+          requiresHumanReview: false,
+        } as unknown as Record<string, unknown>,
+      });
+
+      expect(mockReviewThresholdService.getThresholds).toHaveBeenCalled();
+      expect(mockReviewQueueRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ requiresHumanReview: true })
+      );
+    });
+
+    it('flags false when all confidence values are >= threshold', async () => {
+      mockReviewThresholdService.getThresholds.mockResolvedValueOnce({
+        maxMismatchFields: 3,
+        minConfidence: 0.6,
+      });
+      const queueItem = {
+        id: 502,
+        publicId: 'queue-uuid-502',
+      } as unknown as MigrationReviewQueue;
+      mockReviewQueueRepo.findOne.mockResolvedValue(queueItem);
+
+      await service.updateQueueEnrichment(502, {
+        details: {
+          ocrQuality: { confidence: 0.8, issues: [] },
+          metadata: {
+            summary: 'test',
+            category: 'LETTER',
+            tags: [],
+            confidence: { summary: 0.7, category: 0.75, tags: 0.65 },
+          },
+        } as unknown as Record<string, unknown>,
+      });
+
+      expect(mockReviewQueueRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ requiresHumanReview: false })
+      );
+    });
+
+    it('also persists ocrQualityConfidence and the backward-compat ai_confidence alias as min(metadata.confidence.*) only (excludes ocrQuality)', async () => {
+      mockReviewThresholdService.getThresholds.mockResolvedValueOnce({
+        maxMismatchFields: 3,
+        minConfidence: 0.6,
+      });
+      const queueItem = {
+        id: 503,
+        publicId: 'queue-uuid-503',
+      } as unknown as MigrationReviewQueue;
+      mockReviewQueueRepo.findOne.mockResolvedValue(queueItem);
+
+      await service.updateQueueEnrichment(503, {
+        details: {
+          ocrQuality: { confidence: 0.99, issues: [] },
+          metadata: {
+            summary: 'test',
+            category: 'LETTER',
+            tags: [],
+            confidence: { summary: 0.7, category: 0.65, tags: 0.6 },
+          },
+        } as unknown as Record<string, unknown>,
+      });
+
+      expect(mockReviewQueueRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ocrQualityConfidence: 0.99,
+          // min(0.7, 0.65, 0.6) = 0.6 — ไม่รวม ocrQuality.confidence (0.99) ใน scalar นี้
+          aiConfidence: 0.6,
+        })
+      );
+    });
+  });
+
+  // ── ADR-050 T023: legacy-shaped queue item server-side guard ────────────────────
+  describe('legacy item review-mode guard (ADR-050/FR-011/SC-006, T023)', () => {
+    it('rejects getQueueItemByPublicId with a BusinessException when the item finished extraction (aiStatus=DONE) but details lacks metadata.confidence (pre-ADR-050 shape)', async () => {
+      const legacyItem = {
+        id: 601,
+        publicId: 'queue-uuid-601',
+        aiStatus: MigrationAiStatus.DONE,
+        details: { some: 'old-shape-payload' },
+        tempAttachmentIds: null,
+        tempAttachmentId: null,
+      } as unknown as MigrationReviewQueue;
+      mockReviewQueueRepo.findOne.mockResolvedValue(legacyItem);
+      mockAttachmentFind.mockResolvedValue([]);
+      mockDataSource.manager.findOne.mockResolvedValue(null);
+      mockTypeRepo.find.mockResolvedValue([]);
+
+      await expect(
+        service.getQueueItemByPublicId('queue-uuid-601')
+      ).rejects.toThrow(BusinessException);
+    });
+
+    it('allows getQueueItemByPublicId for an item already in the new-contract shape (metadata.confidence present)', async () => {
+      const newFormatItem = {
+        id: 602,
+        publicId: 'queue-uuid-602',
+        aiStatus: MigrationAiStatus.DONE,
+        details: {
+          ocrQuality: { confidence: 0.9, issues: [] },
+          metadata: {
+            summary: 's',
+            category: 'LETTER',
+            tags: [],
+            confidence: { summary: 0.9, category: 0.9, tags: 0.9 },
+          },
+        },
+        tempAttachmentIds: null,
+        tempAttachmentId: null,
+      } as unknown as MigrationReviewQueue;
+      mockReviewQueueRepo.findOne.mockResolvedValue(newFormatItem);
+      mockAttachmentFind.mockResolvedValue([]);
+      mockDataSource.manager.findOne.mockResolvedValue(null);
+      mockTypeRepo.find.mockResolvedValue([]);
+
+      const result = await service.getQueueItemByPublicId('queue-uuid-602');
+      expect(result.id).toBe(602);
+    });
+
+    it('does not block an item still pending extraction (aiStatus not DONE) even though details lacks metadata.confidence', async () => {
+      const pendingItem = {
+        id: 603,
+        publicId: 'queue-uuid-603',
+        aiStatus: MigrationAiStatus.PENDING,
+        details: null,
+        tempAttachmentIds: null,
+        tempAttachmentId: null,
+      } as unknown as MigrationReviewQueue;
+      mockReviewQueueRepo.findOne.mockResolvedValue(pendingItem);
+      mockAttachmentFind.mockResolvedValue([]);
+      mockDataSource.manager.findOne.mockResolvedValue(null);
+      mockTypeRepo.find.mockResolvedValue([]);
+
+      const result = await service.getQueueItemByPublicId('queue-uuid-603');
+      expect(result.id).toBe(603);
+    });
+
+    it('does not block re-extract flow (reExtractQueueItem) even for a legacy-shaped item — re-extraction path must remain open (FR-011)', async () => {
+      const legacyItem = {
+        id: 604,
+        publicId: 'queue-uuid-604',
+        status: MigrationReviewStatus.PENDING_REVIEW,
+        aiStatus: MigrationAiStatus.DONE,
+        aiJobId: null,
+        details: { legacyShape: true },
+        tempAttachmentIds: null,
+        tempAttachmentId: null,
+      } as unknown as MigrationReviewQueue;
+      mockReviewQueueRepo.findOne.mockResolvedValue(legacyItem);
+      mockAttachmentFind.mockResolvedValue([]);
+      mockDataSource.manager.findOne.mockResolvedValue(null);
+      mockTypeRepo.find.mockResolvedValue([]);
+      mockAiBatchQueue.add.mockResolvedValue({ id: 'job-604' });
+
+      await expect(
+        service.reExtractQueueItem('queue-uuid-604', 'idem-604', 1)
+      ).resolves.toBeDefined();
     });
   });
 });

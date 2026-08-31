@@ -164,5 +164,29 @@
     "llm_output": "LLM Output",
     "rag_chunks": "RAG Chunks",
     "runtime_parameters": "Runtime Parameters"
+  },
+  "migration_review": {
+    "requires_human_review_badge": "ต้องตรวจสอบ",
+    "ocr_quality_title": "คุณภาพ OCR",
+    "ocr_quality_confidence": "ความมั่นใจ OCR",
+    "ocr_quality_issues": "ปัญหาการอ่านข้อความ",
+    "tag_is_new_badge": "ใหม่",
+    "tag_evidence_tooltip": "ข้อความตัวอย่างจากเอกสารที่สนับสนุนแท็กนี้",
+    "category_dropdown_label": "หมวดหมู่",
+    "commit_unresolved_fields_error": "กรุณาแก้ไขฟิลด์ต่อไปนี้ก่อนบันทึก: {{fields}}",
+    "metadata_confidence_title": "ความมั่นใจ Metadata",
+    "acknowledge_ocr_quality": "รับทราบคุณภาพ OCR",
+    "acknowledged": "รับทราบแล้ว",
+    "ack_summary": "รับทราบ Summary",
+    "ack_category": "รับทราบ Category",
+    "ack_tags": "รับทราบแท็ก",
+    "tag_accept": "ยอมรับ",
+    "tag_reject": "ปฏิเสธ",
+    "sort_none": "ไม่เรียงลำดับ",
+    "sort_asc": "ต่ำ→สูง",
+    "sort_desc": "สูง→ต่ำ",
+    "legacy_reextract_badge": "ต้องดึงข้อมูลใหม่",
+    "legacy_reextract_button": "ดึงข้อมูลใหม่",
+    "tag_suggestions_title": "แท็กที่ AI แนะนำ"
   }
 }

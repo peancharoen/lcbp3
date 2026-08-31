@@ -1,5 +1,6 @@
 // File: frontend/lib/services/migration.service.ts
 // Change Log:
+// - 2026-08-31: T030 — เพิ่ม requiresHumanReview, sortBy, sortOrder params ใน getReviewQueue (ADR-050)
 // - 2026-06-13: Add support for direct array response in normalizePaginatedResponse and add file header
 
 import api from '../api/client';
@@ -101,6 +102,9 @@ export const migrationService = {
     status?: MigrationReviewStatus;
     aiStatus?: MigrationAiStatus;
     batchId?: string;
+    requiresHumanReview?: boolean;
+    sortBy?: 'ocrQualityConfidence';
+    sortOrder?: 'asc' | 'desc';
   }): Promise<PaginatedResponse<MigrationReviewQueueItem>> => {
     const { data } = await api.get('/migration/queue', { params });
     return normalizePaginatedResponse<MigrationReviewQueueItem>(data);

@@ -23,6 +23,7 @@ import {
   MigrationAiStatus,
 } from './entities/migration-review-queue.entity';
 import { MigrationService } from './migration.service';
+import { ReviewThresholdService } from './services/review-threshold.service';
 
 describe('MigrationService approve-and-import status', () => {
   let service: MigrationService;
@@ -89,6 +90,14 @@ describe('MigrationService approve-and-import status', () => {
           provide: RagBatchService,
           useValue: {
             enqueueRagPrepare: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: ReviewThresholdService,
+          useValue: {
+            getThresholds: jest
+              .fn()
+              .mockResolvedValue({ maxMismatchFields: 3, minConfidence: 0.6 }),
           },
         },
       ],

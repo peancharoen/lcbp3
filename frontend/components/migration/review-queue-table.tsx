@@ -1,9 +1,10 @@
 // File: components/migration/review-queue-table.tsx
 // Change Log:
+// - 2026-08-31: T032/T033/T034 — เพิ่ม requiresHumanReview badge, OCR quality indicator, needs-review filter, sort-by-OCR-quality, legacy re-extract (ADR-050)
 // - 2026-05-22: Initial creation of ReviewQueueTable component for US2 (T024)
 // - 2026-05-22: Integrated hybrid identifiers and Radix Sheet panel with zero blank lines inside function bodies (T024)
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Table,
   TableBody,
@@ -32,10 +33,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useCommitMigrationReview, useRejectMigrationReview } from '@/hooks/use-migration-review';
+import { useCommitMigrationReview, useRejectMigrationReview, useStartExtractQueueItem } from '@/hooks/use-migration-review';
 import { useProjects, useOrganizations } from '@/hooks/use-master-data';
 import { MigrationReviewQueueItem, MigrationReviewStatus, CompareStatus } from '@/types/migration';
-import { Loader2, Calendar, Tag, AlertCircle, Edit, Check, X, Plus, GitCompare } from 'lucide-react';
+import { Loader2, Calendar, Tag, AlertCircle, Edit, Check, X, Plus, GitCompare, RefreshCw, ShieldAlert } from 'lucide-react';
+import aiMessages from '@/public/locales/th/ai.json';
+
+/** ADR-050: i18n helper สำหรับ migration_review namespace จาก ai.json */
+const migrationReviewT = (key: string): string => {
+  const parts = key.split('.');
+  let current: unknown = (aiMessages as Record<string, unknown>).migration_review;
+  for (const part of parts) {
+    if (typeof current !== 'object' || current === null) return key;
+    current = (current as Record<string, unknown>)[part];
+  }
+  return typeof current === 'string' ? current : key;
+};
 
 interface ReviewTag {
   name?: string;
@@ -71,6 +84,16 @@ const getTagLabel = (tag: Record<string, unknown>): string =>
 const getIssueText = (issue: Record<string, unknown>): string =>
   getStringField(issue, 'description') ?? getStringField(issue, 'message') ?? '';
 
+/** ADR-050 (T034): ตรวจสอบ legacy item — details ไม่มี metadata.confidence (pre-refactor shape) */
+const isLegacyItem = (item: MigrationReviewQueueItem): boolean => {
+  if (!item.details || typeof item.details !== 'object') return true;
+  const details = item.details as Record<string, unknown>;
+  const metadata = details.metadata;
+  if (!metadata || typeof metadata !== 'object') return true;
+  const confidence = (metadata as Record<string, unknown>).confidence;
+  return !confidence || typeof confidence !== 'object';
+};
+
 interface ReviewQueueTableProps {
   items: MigrationReviewQueueItem[];
   isLoading: boolean;
@@ -89,12 +112,32 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
   const [editBody, setEditBody] = useState('');
   const [editTags, setEditTags] = useState<string[]>([]);
   const [newTagInput, setNewTagInput] = useState('');
+  // T033: needs-review filter + sort-by-OCR-quality state
+  const [needsReviewFilter, setNeedsReviewFilter] = useState(false);
+  const [sortByOcrQuality, setSortByOcrQuality] = useState<'none' | 'asc' | 'desc'>('none');
   const commitMutation = useCommitMigrationReview();
   const rejectMutation = useRejectMigrationReview();
+  const extractMutation = useStartExtractQueueItem();
   const { data: projects = [] } = useProjects();
   const { data: organizations = [] } = useOrganizations();
   const projectOptions = projects as ProjectOption[];
   const organizationOptions = organizations as OrganizationOption[];
+  // T033: compute filtered + sorted items for display
+  const displayItems = useMemo(() => {
+    let result = items;
+    if (needsReviewFilter) {
+      result = result.filter((item) => item.requiresHumanReview === true);
+    }
+    if (sortByOcrQuality !== 'none') {
+      const sorted = [...result].sort((a, b) => {
+        const aConf = a.ocrQualityConfidence ?? -1;
+        const bConf = b.ocrQualityConfidence ?? -1;
+        return sortByOcrQuality === 'asc' ? aConf - bConf : bConf - aConf;
+      });
+      result = sorted;
+    }
+    return result;
+  }, [items, needsReviewFilter, sortByOcrQuality]);
   const handleOpenReview = (item: MigrationReviewQueueItem) => {
     setSelectedItem(item);
     setEditSubject(item.subject || item.title || '');
@@ -157,6 +200,15 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
       }
     }
   };
+  // T034: เริ่มดึงข้อมูล OCR/AI ใหม่สำหรับ legacy item
+  const handleReExtract = async (publicId: string) => {
+    const idempotencyKey = `migration_extract_${publicId}_${Date.now()}`;
+    try {
+      await extractMutation.mutateAsync({ publicId, idempotencyKey });
+    } catch {
+      return;
+    }
+  };
   const getStatusBadge = (status: MigrationReviewStatus) => {
     const configs: Record<MigrationReviewStatus, { label: string; className: string }> = {
       [MigrationReviewStatus.PENDING]: {
@@ -216,8 +268,71 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
       </Badge>
     );
   };
+  /** T032: แสดง OCR quality confidence indicator (ADR-050) */
+  const getOcrQualityConfidenceDisplay = (item: MigrationReviewQueueItem) => {
+    if (item.ocrQualityConfidence === null || item.ocrQualityConfidence === undefined) {
+      return <span className="text-muted-foreground text-xs">—</span>;
+    }
+    const pct = `${(Number(item.ocrQualityConfidence) * 100).toFixed(1)}%`;
+    const conf = Number(item.ocrQualityConfidence);
+    let className = 'text-green-600';
+    if (conf < 0.5) {
+      className = 'text-red-600';
+    } else if (conf < 0.75) {
+      className = 'text-yellow-600';
+    }
+    return (
+      <span className={`font-mono text-sm font-semibold ${className}`} title={migrationReviewT('ocr_quality_confidence')}>
+        {pct}
+      </span>
+    );
+  };
+  /** T032: แสดง requiresHumanReview badge (visually distinct — ADR-050) */
+  const getRequiresHumanReviewBadge = (item: MigrationReviewQueueItem) => {
+    if (!item.requiresHumanReview) return <span className="text-muted-foreground text-xs">—</span>;
+    return (
+      <Badge
+        data-testid="requires-human-review-badge"
+        className="bg-red-500/20 text-red-600 border-red-500/30 animate-pulse"
+      >
+        <ShieldAlert className="h-3 w-3 mr-1" />
+        {migrationReviewT('requires_human_review_badge')}
+      </Badge>
+    );
+  };
   return (
     <div className="w-full">
+      {/* T033: needs-review filter + sort-by-OCR-quality controls */}
+      <div className="flex items-center justify-between gap-4 mb-3 px-1">
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={needsReviewFilter}
+            onChange={(e) => setNeedsReviewFilter(e.target.checked)}
+            data-testid="needs-review-filter"
+            className="h-4 w-4 rounded border-input"
+          />
+          <span className="text-sm font-medium">
+            {migrationReviewT('requires_human_review_badge')}
+          </span>
+        </label>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">{migrationReviewT('ocr_quality_confidence')}:</span>
+          <Select
+            value={sortByOcrQuality}
+            onValueChange={(value: string) => setSortByOcrQuality(value as 'none' | 'asc' | 'desc')}
+          >
+            <SelectTrigger className="w-[160px] h-8" data-testid="sort-ocr-quality">
+              <SelectValue placeholder={migrationReviewT('sort_none')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">{migrationReviewT('sort_none')}</SelectItem>
+              <SelectItem value="asc">{migrationReviewT('sort_asc')}</SelectItem>
+              <SelectItem value="desc">{migrationReviewT('sort_desc')}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
       <div className="rounded-md border bg-card text-card-foreground shadow-sm overflow-hidden">
         <Table>
           <TableHeader>
@@ -226,7 +341,9 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
               <TableHead>หัวข้อเอกสาร (Subject)</TableHead>
               <TableHead className="w-[120px]">หมวดหมู่ AI</TableHead>
               <TableHead className="w-[100px] text-center">ความมั่นใจ AI</TableHead>
+              <TableHead className="w-[100px] text-center">{migrationReviewT('ocr_quality_title')}</TableHead>
               <TableHead className="w-[120px] text-center">การเปรียบเทียบ</TableHead>
+              <TableHead className="w-[110px] text-center">{migrationReviewT('requires_human_review_badge')}</TableHead>
               <TableHead className="w-[120px]">สถานะ</TableHead>
               <TableHead className="w-[100px] text-right">การกระทำ</TableHead>
             </TableRow>
@@ -234,49 +351,100 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-32 text-center">
+                <TableCell colSpan={9} className="h-32 text-center">
                   <div className="flex flex-col items-center justify-center space-y-2">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     <span className="text-sm text-muted-foreground">กำลังโหลดรายการรอรีวิว...</span>
                   </div>
                 </TableCell>
               </TableRow>
-            ) : items.length === 0 ? (
+            ) : displayItems.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
+                <TableCell colSpan={9} className="h-32 text-center text-muted-foreground">
                   ไม่พบรายการที่รอตรวจสอบในคิวขณะนี้
                 </TableCell>
               </TableRow>
             ) : (
-              items.map((item) => (
-                <TableRow key={item.publicId} className="hover:bg-muted/50 transition-colors">
-                  <TableCell className="font-mono text-sm font-semibold">{item.documentNumber}</TableCell>
-                  <TableCell className="max-w-md truncate font-medium">
-                    {item.subject || item.title || 'ไม่มีหัวข้อ'}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{item.aiSuggestedCategory || 'Correspondence'}</Badge>
-                  </TableCell>
-                  <TableCell className="text-center font-mono">
-                    {item.aiConfidence ? `${(Number(item.aiConfidence) * 100).toFixed(1)}%` : '-'}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {getCompareStatusBadge(item.compareStatus, item.compareResult?.mismatches.length)}
-                  </TableCell>
-                  <TableCell>{getStatusBadge(item.status)}</TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant={item.status === MigrationReviewStatus.PENDING ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => handleOpenReview(item)}
-                      className="inline-flex items-center space-x-1"
-                    >
-                      <Edit className="h-3.5 w-3.5" />
-                      <span>{item.status === MigrationReviewStatus.PENDING ? 'รีวิว' : 'ดูรายละเอียด'}</span>
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
+              displayItems.map((item) => {
+                // T034: legacy items (details lacks metadata.confidence) → re-extract required state
+                if (isLegacyItem(item)) {
+                  return (
+                    <TableRow key={item.publicId} className="hover:bg-muted/50 transition-colors bg-amber-500/5">
+                      <TableCell className="font-mono text-sm font-semibold">{item.documentNumber}</TableCell>
+                      <TableCell className="max-w-md truncate font-medium">
+                        {item.subject || item.title || 'ไม่มีหัวข้อ'}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="opacity-60">{item.aiSuggestedCategory || 'Correspondence'}</Badge>
+                      </TableCell>
+                      <TableCell className="text-center font-mono">
+                        {item.aiConfidence ? `${(Number(item.aiConfidence) * 100).toFixed(1)}%` : '-'}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <span className="text-muted-foreground text-xs italic">—</span>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <span className="text-muted-foreground text-xs italic">—</span>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge className="bg-amber-500/20 text-amber-600 border-amber-500/30">
+                          <RefreshCw className="h-3 w-3 mr-1" />
+                          {migrationReviewT('legacy_reextract_badge')}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{getStatusBadge(item.status)}</TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleReExtract(item.publicId)}
+                          disabled={extractMutation.isPending}
+                          data-testid={`re-extract-${item.publicId}`}
+                          className="inline-flex items-center space-x-1"
+                        >
+                          <RefreshCw className={`h-3.5 w-3.5 ${extractMutation.isPending ? 'animate-spin' : ''}`} />
+                          <span>{migrationReviewT('legacy_reextract_button')}</span>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                }
+                return (
+                  <TableRow key={item.publicId} className="hover:bg-muted/50 transition-colors">
+                    <TableCell className="font-mono text-sm font-semibold">{item.documentNumber}</TableCell>
+                    <TableCell className="max-w-md truncate font-medium">
+                      {item.subject || item.title || 'ไม่มีหัวข้อ'}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{item.aiSuggestedCategory || 'Correspondence'}</Badge>
+                    </TableCell>
+                    <TableCell className="text-center font-mono">
+                      {item.aiConfidence ? `${(Number(item.aiConfidence) * 100).toFixed(1)}%` : '-'}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {getOcrQualityConfidenceDisplay(item)}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {getCompareStatusBadge(item.compareStatus, item.compareResult?.mismatches.length)}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {getRequiresHumanReviewBadge(item)}
+                    </TableCell>
+                    <TableCell>{getStatusBadge(item.status)}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant={item.status === MigrationReviewStatus.PENDING ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => handleOpenReview(item)}
+                        className="inline-flex items-center space-x-1"
+                      >
+                        <Edit className="h-3.5 w-3.5" />
+                        <span>{item.status === MigrationReviewStatus.PENDING ? 'รีวิว' : 'ดูรายละเอียด'}</span>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>

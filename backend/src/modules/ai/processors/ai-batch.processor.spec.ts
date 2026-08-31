@@ -142,11 +142,19 @@ describe('AiBatchProcessor', () => {
         isNew: false,
       },
     ]),
+    // ADR-050 T008: existing_tags placeholder source สำหรับ processLegacyAiEnrichment
+    findByProject: jest
+      .fn()
+      .mockResolvedValue([{ id: 5, projectId: 2, tagName: 'foundation' }]),
   };
   const mockMigrationService = {
     createError: jest.fn().mockResolvedValue(undefined),
     enqueueRecord: jest.fn().mockResolvedValue(undefined),
     updateQueueEnrichment: jest.fn().mockResolvedValue(undefined),
+    // ADR-050 T007/T008: allowed_categories source สำหรับ prompt + schema validation
+    getAllowedCategoryCodes: jest
+      .fn()
+      .mockResolvedValue(['LETTER', 'RFA', 'OTHER']),
   };
   const mockAiPromptsService = {
     getActive: jest.fn().mockImplementation((promptType: string) => {
@@ -666,6 +674,224 @@ describe('AiBatchProcessor', () => {
         aiFailed: true,
       })
     );
+  });
+
+  // ── ADR-050 T021/T022: processLegacyAiEnrichment governance fix ─────────────────
+  describe('legacy-ai-enrichment — ADR-050 Active Prompt + schema validation (T021/T022)', () => {
+    const legacyPromptTemplate =
+      'OCR: {{ocr_text}} | Categories: {{allowed_categories}} | ExistingTags: {{existing_tags}} | Context: {{master_data_context}}';
+
+    beforeEach(() => {
+      ocrService.detectAndExtract.mockResolvedValue({
+        text: 'เอกสารทดสอบ LCBP3-CIV-001',
+        ocrUsed: true,
+      });
+      mockAiPromptsService.getActive.mockImplementation(
+        (promptType: string) => {
+          if (promptType === 'ocr_extraction') {
+            return Promise.resolve({
+              id: 1,
+              promptType: 'ocr_extraction',
+              versionNumber: 3,
+              template: legacyPromptTemplate,
+              isActive: true,
+              contextConfig: { filter: {} },
+            });
+          }
+          return Promise.resolve(null);
+        }
+      );
+    });
+
+    afterEach(() => {
+      // คืนค่า default mock กลับ (ครอบคลุมทั้ง 'ocr_extraction' และ 'migration_compare')
+      // เพราะ mockImplementation ด้านบนแทนที่ implementation แบบถาวรจนกว่าจะถูก override อีกที
+      mockAiPromptsService.getActive.mockImplementation(
+        (promptType: string) => {
+          if (promptType === 'migration_compare') {
+            return Promise.resolve({
+              id: 2,
+              promptType: 'migration_compare',
+              versionNumber: 1,
+              template:
+                'Compare OCR text {{ocr_text}} with register {{excel_metadata}} truncated {{ocr_truncated}}',
+              isActive: true,
+              contextConfig: { filter: {} },
+            });
+          }
+          return Promise.resolve({
+            id: 1,
+            promptType: 'ocr_extraction',
+            versionNumber: 2,
+            template:
+              'Resolved test prompt with OCR text {{ocr_text}} and context {{master_data_context}}',
+            isActive: true,
+            contextConfig: { filter: {} },
+          });
+        }
+      );
+    });
+
+    it('T021: calls aiPromptsService.getActive("ocr_extraction") and resolves the Active Prompt template — no hardcoded prompt string remains', async () => {
+      mockOllamaService.generate.mockResolvedValueOnce(
+        JSON.stringify({
+          ocrQuality: { confidence: 0.9, issues: [] },
+          metadata: {
+            summary: 'สรุปเอกสาร',
+            category: 'LETTER',
+            tags: [{ name: 'civil', isNew: false, evidence: 'Civil' }],
+            confidence: { summary: 0.9, category: 0.85, tags: 0.8 },
+          },
+        })
+      );
+      const job = {
+        id: 'job-legacy-t021',
+        data: {
+          jobType: 'legacy-ai-enrichment',
+          queueId: 3001,
+          queuePublicId: 'queue-uuid-3001',
+          documentNumber: 'DOC-T021',
+          pdfPath: '/files/test-t021.pdf',
+          projectPublicId: 'proj-uuid-456',
+          projectId: 2,
+        },
+      } as unknown as Job<AiBatchJobData>;
+
+      await processor.process(job);
+
+      expect(mockAiPromptsService.getActive).toHaveBeenCalledWith(
+        'ocr_extraction'
+      );
+      // ต้องใช้ resolved template จาก Active Prompt จริง (มี allowed_categories/existing_tags
+      // ที่ resolve แล้ว) ไม่ใช่ prompt hardcoded แบบเดิม ("วิเคราะห์เอกสารราชการ...")
+      expect(mockOllamaService.generate).toHaveBeenCalledWith(
+        expect.stringContaining('Categories: LETTER, RFA, OTHER'),
+        expect.anything()
+      );
+      expect(mockOllamaService.generate).not.toHaveBeenCalledWith(
+        expect.stringContaining('วิเคราะห์เอกสารราชการ'),
+        expect.anything()
+      );
+      expect(mockMigrationService.getAllowedCategoryCodes).toHaveBeenCalled();
+      expect(mockTagsService.findByProject).toHaveBeenCalled();
+      expect(mockMigrationService.updateQueueEnrichment).toHaveBeenCalledWith(
+        3001,
+        expect.objectContaining({
+          aiFailed: false,
+          aiStatus: 'DONE',
+          details: expect.objectContaining({
+            ocrQuality: expect.objectContaining({ confidence: 0.9 }),
+            metadata: expect.objectContaining({ category: 'LETTER' }),
+          }),
+        })
+      );
+    });
+
+    it('T022: sets aiFailed=true + details.aiFailureReason=SCHEMA_VALIDATION_FAILED when the LLM output fails schema validation (category outside allowed_categories)', async () => {
+      mockOllamaService.generate.mockResolvedValueOnce(
+        JSON.stringify({
+          ocrQuality: { confidence: 0.9, issues: [] },
+          metadata: {
+            summary: 'สรุปเอกสาร',
+            category: 'NOT_A_REAL_CATEGORY',
+            tags: [],
+            confidence: { summary: 0.9, category: 0.85, tags: 0.8 },
+          },
+        })
+      );
+      const job = {
+        id: 'job-legacy-t022',
+        data: {
+          jobType: 'legacy-ai-enrichment',
+          queueId: 3002,
+          queuePublicId: 'queue-uuid-3002',
+          documentNumber: 'DOC-T022',
+          pdfPath: '/files/test-t022.pdf',
+          projectPublicId: 'proj-uuid-456',
+          projectId: 2,
+        },
+      } as unknown as Job<AiBatchJobData>;
+
+      await processor.process(job);
+
+      expect(mockMigrationService.updateQueueEnrichment).toHaveBeenCalledWith(
+        3002,
+        expect.objectContaining({
+          aiFailed: true,
+          details: expect.objectContaining({
+            aiFailureReason: 'SCHEMA_VALIDATION_FAILED',
+          }),
+        })
+      );
+    });
+
+    it('T022b: sets aiFailed=true + details.aiFailureReason=SCHEMA_VALIDATION_FAILED when a confidence value is out of the [0,1] range', async () => {
+      mockOllamaService.generate.mockResolvedValueOnce(
+        JSON.stringify({
+          ocrQuality: { confidence: 0.9, issues: [] },
+          metadata: {
+            summary: 'สรุปเอกสาร',
+            category: 'LETTER',
+            tags: [],
+            confidence: { summary: 1.5, category: 0.85, tags: 0.8 },
+          },
+        })
+      );
+      const job = {
+        id: 'job-legacy-t022b',
+        data: {
+          jobType: 'legacy-ai-enrichment',
+          queueId: 3003,
+          queuePublicId: 'queue-uuid-3003',
+          documentNumber: 'DOC-T022B',
+          pdfPath: '/files/test-t022b.pdf',
+          projectPublicId: 'proj-uuid-456',
+          projectId: 2,
+        },
+      } as unknown as Job<AiBatchJobData>;
+
+      await processor.process(job);
+
+      expect(mockMigrationService.updateQueueEnrichment).toHaveBeenCalledWith(
+        3003,
+        expect.objectContaining({
+          aiFailed: true,
+          details: expect.objectContaining({
+            aiFailureReason: 'SCHEMA_VALIDATION_FAILED',
+          }),
+        })
+      );
+    });
+
+    it('sets aiFailed=true + details.aiFailureReason=LLM_CALL_FAILED when the LLM call itself throws', async () => {
+      mockOllamaService.generate.mockRejectedValueOnce(
+        new Error('LLM timeout')
+      );
+      const job = {
+        id: 'job-legacy-t021-callfail',
+        data: {
+          jobType: 'legacy-ai-enrichment',
+          queueId: 3004,
+          queuePublicId: 'queue-uuid-3004',
+          documentNumber: 'DOC-CALLFAIL',
+          pdfPath: '/files/test-callfail.pdf',
+          projectPublicId: 'proj-uuid-456',
+          projectId: 2,
+        },
+      } as unknown as Job<AiBatchJobData>;
+
+      await processor.process(job);
+
+      expect(mockMigrationService.updateQueueEnrichment).toHaveBeenCalledWith(
+        3004,
+        expect.objectContaining({
+          aiFailed: true,
+          details: expect.objectContaining({
+            aiFailureReason: 'LLM_CALL_FAILED',
+          }),
+        })
+      );
+    });
   });
 
   describe('rag-prepare', () => {

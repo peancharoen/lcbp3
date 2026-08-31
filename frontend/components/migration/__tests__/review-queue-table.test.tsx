@@ -1,4 +1,7 @@
 // File: frontend/components/migration/__tests__/review-queue-table.test.tsx
+// Change Log:
+// - 2026-08-31: T028 — added tests for requiresHumanReview badge, needs-review filter, OCR quality, legacy re-extract
+// - 2026-05-22: Initial creation of ReviewQueueTable component tests (T024)
 import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -9,6 +12,7 @@ import { MigrationReviewStatus, MigrationReviewQueueItem } from '@/types/migrati
 // Mock hooks
 const mockMutateAsyncCommit = vi.fn();
 const mockMutateAsyncReject = vi.fn();
+const mockMutateAsyncExtract = vi.fn();
 
 vi.mock('@/hooks/use-migration-review', () => ({
   useCommitMigrationReview: () => ({
@@ -17,6 +21,10 @@ vi.mock('@/hooks/use-migration-review', () => ({
   }),
   useRejectMigrationReview: () => ({
     mutateAsync: mockMutateAsyncReject,
+    isPending: false
+  }),
+  useStartExtractQueueItem: () => ({
+    mutateAsync: mockMutateAsyncExtract,
     isPending: false
   })
 }));
@@ -59,7 +67,19 @@ describe('ReviewQueueTable', () => {
       receivedDate: '2026-06-02T00:00:00.000Z',
       body: 'Migration test body',
       extractedTags: [{ name: 'Urgent', is_new: false }],
-      aiIssues: [{ message: 'Confidence is slightly low on receiver' }]
+      aiIssues: [{ message: 'Confidence is slightly low on receiver' }],
+      requiresHumanReview: true,
+      ocrQualityConfidence: 0.82,
+      details: {
+        ocrQuality: { confidence: 0.82, issues: [] },
+        metadata: {
+          summary: 'Test summary',
+          category: 'RFA',
+          tags: [{ name: 'Urgent', isNew: false, evidence: 'text' }],
+          confidence: { summary: 0.9, category: 0.85, tags: 0.8 },
+        },
+        fieldResolutions: {},
+      },
     },
     {
       id: 2,
@@ -69,7 +89,30 @@ describe('ReviewQueueTable', () => {
       aiSuggestedCategory: 'Correspondence',
       aiConfidence: 0.85,
       status: MigrationReviewStatus.IMPORTED,
-    }
+      requiresHumanReview: false,
+      ocrQualityConfidence: 0.91,
+      details: {
+        ocrQuality: { confidence: 0.91, issues: [] },
+        metadata: {
+          summary: 'Test summary 2',
+          category: 'Correspondence',
+          tags: [],
+          confidence: { summary: 0.92, category: 0.88, tags: 0.9 },
+        },
+        fieldResolutions: {},
+      },
+    },
+    {
+      id: 3,
+      publicId: 'mig-3',
+      documentNumber: 'DOC-003',
+      subject: 'Legacy Migration Doc',
+      aiSuggestedCategory: 'Correspondence',
+      aiConfidence: 0.70,
+      status: MigrationReviewStatus.PENDING,
+      // Legacy item — details lacks metadata.confidence (pre-refactor shape)
+      details: { source_file_path: '/legacy/path' },
+    },
   ];
 
   beforeEach(() => {
@@ -256,5 +299,116 @@ describe('ReviewQueueTable', () => {
     await waitFor(() => {
       expect(screen.queryByText('รีวิวการย้ายข้อมูลเอกสาร')).not.toBeInTheDocument();
     });
+  });
+
+  // T028: requiresHumanReview badge + needs-review filter + OCR quality + legacy re-extract
+
+  it('renders requiresHumanReview badge for items flagged as needing review', () => {
+    render(<ReviewQueueTable items={mockItems} isLoading={false} />);
+    // mig-1 has requiresHumanReview: true → badge text from i18n key migration_review.requires_human_review_badge
+    // Thai locale default: "ต้องตรวจสอบ"
+    const badges = screen.getAllByText('ต้องตรวจสอบ');
+    expect(badges.length).toBeGreaterThan(0);
+  });
+
+  it('does not render requiresHumanReview badge for items not needing review', () => {
+    const itemsWithoutReview: MigrationReviewQueueItem[] = [
+      {
+        id: 10,
+        publicId: 'mig-10',
+        documentNumber: 'DOC-010',
+        subject: 'No Review Needed',
+        aiSuggestedCategory: 'Correspondence',
+        aiConfidence: 0.99,
+        status: MigrationReviewStatus.PENDING_REVIEW,
+        requiresHumanReview: false,
+        ocrQualityConfidence: 0.95,
+        details: {
+          ocrQuality: { confidence: 0.95, issues: [] },
+          metadata: {
+            summary: 'Summary',
+            category: 'Correspondence',
+            tags: [],
+            confidence: { summary: 0.95, category: 0.95, tags: 0.95 },
+          },
+          fieldResolutions: {},
+        },
+      },
+    ];
+    render(<ReviewQueueTable items={itemsWithoutReview} isLoading={false} />);
+    // The "ต้องตรวจสอบ" text should NOT appear as a row badge
+    // (it may appear as the filter checkbox label, so check the badge specifically)
+    const reviewBadges = screen.queryAllByTestId('requires-human-review-badge');
+    expect(reviewBadges).toHaveLength(0);
+  });
+
+  it('renders OCR quality confidence indicator for items with ocrQualityConfidence', () => {
+    render(<ReviewQueueTable items={mockItems} isLoading={false} />);
+    // mig-1 has ocrQualityConfidence: 0.82 → "82.0%"
+    expect(screen.getByText('82.0%')).toBeInTheDocument();
+    // mig-2 has ocrQualityConfidence: 0.91 → "91.0%"
+    expect(screen.getByText('91.0%')).toBeInTheDocument();
+  });
+
+  it('needs review filter narrows visible rows to only requiresHumanReview items', () => {
+    render(<ReviewQueueTable items={mockItems} isLoading={false} />);
+    // Initially all 3 items are visible
+    expect(screen.getByText('DOC-001')).toBeInTheDocument();
+    expect(screen.getByText('DOC-002')).toBeInTheDocument();
+    expect(screen.getByText('DOC-003')).toBeInTheDocument();
+
+    // Click the "needs review" filter checkbox
+    const filterCheckbox = screen.getByTestId('needs-review-filter');
+    fireEvent.click(filterCheckbox);
+
+    // After filter: only mig-1 (requiresHumanReview: true) should be visible
+    // mig-2 (requiresHumanReview: false) and mig-3 (legacy, no flag) should be hidden
+    expect(screen.getByText('DOC-001')).toBeInTheDocument();
+    expect(screen.queryByText('DOC-002')).not.toBeInTheDocument();
+    expect(screen.queryByText('DOC-003')).not.toBeInTheDocument();
+  });
+
+  it('renders legacy items with re-extract required state', () => {
+    render(<ReviewQueueTable items={mockItems} isLoading={false} />);
+    // mig-3 is a legacy item (details lacks metadata.confidence)
+    // Should show re-extract button instead of normal review button
+    const reExtractButton = screen.getByTestId('re-extract-mig-3');
+    expect(reExtractButton).toBeInTheDocument();
+  });
+
+  it('calls startExtractQueueItem when re-extract button is clicked', async () => {
+    render(<ReviewQueueTable items={mockItems} isLoading={false} />);
+
+    const reExtractButton = screen.getByTestId('re-extract-mig-3');
+    fireEvent.click(reExtractButton);
+
+    await waitFor(() => {
+      expect(mockMutateAsyncExtract).toHaveBeenCalledWith(
+        expect.objectContaining({ publicId: 'mig-3' })
+      );
+    });
+  });
+
+  it('sorts by OCR quality confidence when sort control is changed', () => {
+    render(<ReviewQueueTable items={mockItems} isLoading={false} />);
+
+    // Default order: DOC-001 (0.82), DOC-002 (0.91), DOC-003 (legacy)
+    const rowsBefore = screen.getAllByRole('row');
+    // Rows include header row, so data rows start from index 1
+    // Find the document number cells in order
+    const docNumbersBefore = screen.getAllByText(/DOC-00/).map((el) => el.textContent);
+    expect(docNumbersBefore[0]).toBe('DOC-001');
+
+    // Change sort to descending (highest confidence first)
+    const sortSelect = screen.getByTestId('sort-ocr-quality');
+    fireEvent.click(sortSelect);
+    // Click the "desc" option
+    const descOption = screen.getByText('สูง→ต่ำ');
+    fireEvent.click(descOption);
+
+    // After sort desc: DOC-002 (0.91) should come before DOC-001 (0.82)
+    const docNumbersAfter = screen.getAllByText(/DOC-00/).map((el) => el.textContent);
+    expect(docNumbersAfter[0]).toBe('DOC-002');
+    expect(docNumbersAfter[1]).toBe('DOC-001');
   });
 });

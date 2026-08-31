@@ -132,5 +132,29 @@
     "llm_output": "LLM Output",
     "rag_chunks": "RAG Chunks",
     "runtime_parameters": "Runtime Parameters"
+  },
+  "migration_review": {
+    "requires_human_review_badge": "Needs Review",
+    "ocr_quality_title": "OCR Quality",
+    "ocr_quality_confidence": "OCR Confidence",
+    "ocr_quality_issues": "Readability Issues",
+    "tag_is_new_badge": "New",
+    "tag_evidence_tooltip": "Excerpt from the document supporting this tag suggestion",
+    "category_dropdown_label": "Category",
+    "commit_unresolved_fields_error": "Please resolve the following fields before committing: {{fields}}",
+    "metadata_confidence_title": "Metadata Confidence",
+    "acknowledge_ocr_quality": "Acknowledge OCR Quality",
+    "acknowledged": "Acknowledged",
+    "ack_summary": "Ack Summary",
+    "ack_category": "Ack Category",
+    "ack_tags": "Ack Tags",
+    "tag_accept": "Accept",
+    "tag_reject": "Reject",
+    "sort_none": "No sorting",
+    "sort_asc": "Low to High",
+    "sort_desc": "High to Low",
+    "legacy_reextract_badge": "Re-extract Required",
+    "legacy_reextract_button": "Re-extract",
+    "tag_suggestions_title": "AI-Suggested Tags"
   }
 }

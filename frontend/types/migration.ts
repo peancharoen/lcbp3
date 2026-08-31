@@ -1,5 +1,6 @@
 // File: types/migration.ts
 // Change Log:
+// - 2026-08-31: T029 — เพิ่ม requiresHumanReview, ocrQualityConfidence, MigrationAiExtractionDetails (ADR-050)
 // - 2026-08-23: เพิ่ม details field ใน MigrationReviewQueueItem สำหรับ source_file_path/disciplineId
 // - 2026-05-22: Initial creation and update for ADR-019 compatibility and added subject fields
 // - 2026-08-06: เพิ่ม CompareStatus, CompareResult, CompareFieldResult, FieldResolution สำหรับ Feature 242
@@ -68,6 +69,60 @@ export interface CapturedThresholds {
   minConfidence: number;
 }
 
+/** ADR-050: Tag suggestion จาก AI extraction (data-model.md §3) */
+export interface MigrationTagSuggestion {
+  name: string;
+  isNew: boolean;
+  evidence: string;
+}
+
+/** ADR-050: สถานะการ resolve รายช่องของผู้ตรวจสอบ (data-model.md §4) */
+export interface MigrationFieldResolutionState {
+  ocrQuality?: 'edited' | 'acknowledged';
+  summary?: 'edited' | 'acknowledged';
+  category?: 'edited' | 'acknowledged';
+  tags?: 'edited' | 'acknowledged';
+}
+
+/** ADR-050: คุณภาพ OCR จาก AI extraction (data-model.md §2) */
+export interface MigrationOcrQualityAssessment {
+  confidence: number;
+  issues: Array<{
+    type: string;
+    message: string;
+    evidence: string;
+  }>;
+}
+
+/** ADR-050: confidence รายช่องของ metadata (data-model.md §1) */
+export interface MigrationMetadataConfidence {
+  summary: number;
+  category: number;
+  tags: number;
+}
+
+/** ADR-050: metadata ที่สกัดจาก AI (data-model.md §1) */
+export interface MigrationExtractedMetadata {
+  summary: string;
+  category: string;
+  tags: MigrationTagSuggestion[];
+  confidence: MigrationMetadataConfidence;
+}
+
+/** ADR-050: สาเหตุการล้มเหลวของ AI (data-model.md §1) */
+export type MigrationAiFailureReason = 'SCHEMA_VALIDATION_FAILED' | 'LLM_CALL_FAILED';
+
+/** ADR-050: details JSON shape เต็มรูปแบบสำหรับ AI extraction output (data-model.md §1)
+ *  มี index signature เพื่อรองรับ legacy/extra fields (เช่น source_file_path, disciplineId)
+ *  ที่อาจอยู่ร่วมกับ new-shape fields ใน JSON เดียวกัน */
+export interface MigrationAiExtractionDetails {
+  ocrQuality: MigrationOcrQualityAssessment;
+  metadata: MigrationExtractedMetadata;
+  aiFailureReason?: MigrationAiFailureReason;
+  fieldResolutions: MigrationFieldResolutionState;
+  [key: string]: unknown;
+}
+
 export interface MigrationReviewQueueItem {
   publicId: string; // ADR-019: public identifier
   id?: number; // Internal INT (excluded from API)
@@ -113,8 +168,14 @@ export interface MigrationReviewQueueItem {
   capturedThresholds?: CapturedThresholds;
   /** Edge Case 4: flag แสดงว่า AI enrichment ล้มเหลวหลัง retry ครบ */
   aiFailed?: boolean;
-  /** Metadata จาก ingestion / AI enrichment เช่น source_file_path, disciplineId (ADR-047) */
-  details?: Record<string, unknown> | null;
+  /** ADR-050: server-computed flag — แสดงว่า item ต้องการการตรวจสอบโดยมนุษย์ (FR-003) */
+  requiresHumanReview?: boolean;
+  /** ADR-050: OCR quality confidence 0-1, promoted from details.ocrQuality.confidence (FR-004) */
+  ocrQualityConfidence?: number | null;
+  /** Metadata จาก ingestion / AI enrichment เช่น source_file_path, disciplineId (ADR-047)
+   *  ADR-050: หลัง refactor จะมี shape เต็มรูปแบบตาม MigrationAiExtractionDetails
+   *  Legacy items (pre-refactor) อาจมี shape เดิมที่ไม่มี metadata.confidence */
+  details?: MigrationAiExtractionDetails | Record<string, unknown> | null;
 }
 
 export interface CommitBatchItemDto {

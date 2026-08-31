@@ -171,7 +171,7 @@ _Avoid_: Production prompt (sandbox และ migrate-document ใช้เด�
 
 **Prompt Template**:
 String ที่ใส่ placeholder ตาม `prompt_type` — backend validate ก่อน save; processor แทนที่ด้วยค่าจริงก่อนส่งเข้า Ollama (ADR-029, ADR-037)
-Canonical placeholder names per type: `ocr_extraction` → `{{ocr_text}}` (required), `{{master_data_context}}` (optional); `rag_query_prompt` → `{{query}}`, `{{context}}` (both required); `rag_prep_prompt` → `{{text}}` (required); `classification_prompt` → `{{document_text}}` (required)
+Canonical placeholder names per type: `ocr_extraction` → `{{ocr_text}}` (required), `{{master_data_context}}` (optional), `{{allowed_categories}}` (optional, ADR-050 — รายการ `correspondence_types.typeCode` สำหรับ metadata extraction step), `{{existing_tags}}` (optional, ADR-050 — รายการ tag ที่มีอยู่แล้วเพื่อลด `isNew` false positive); `rag_query_prompt` → `{{query}}`, `{{context}}` (both required); `rag_prep_prompt` → `{{text}}` (required); `classification_prompt` → `{{document_text}}` (required)
 _Avoid_: Prompt string, Prompt text (ambiguous); ห้ามใช้ชื่อ placeholder อื่น เช่น `{{user_query}}`, `{{retrieved_chunks}}`, `{{document_metadata}}` — ชื่อเหล่านี้ไม่ใช่ canonical
 
 **Human-in-the-loop**:
@@ -441,6 +441,7 @@ _Avoid_: BGE service, embed service, always-resident BGE
 - **"Entity/Service canonicalModel mapping (Gap 7)"** — resolved: `AiExecutionProfileEntity` ไม่มี mapping `canonical_model` column; `getProfileParameters` (`:125`) hardcode `canonicalModel: 'np-dms-ai'` → ต้องเพิ่ม `@Column({ name: 'canonical_model' })` ใน Entity; แก้ `getProfileParameters` อ่านจาก column แทน hardcode; สร้าง accessor `getModelDefaults(canonicalModel)` สำหรับ query ตาม canonical_model โดยตรง
 - **"OCR Sidecar X-API-Key"** — resolved: ใช้ **Network Isolation Only** (ADR-040 D6 Phase 2 — complete 2026-07-30) — supersede ADR-033 §7; ลบ `X-API-Key` validation จาก sidecar endpoints และ backend send-side ทั้งหมดแล้ว; ตรวจสอบผ่าน Docker-internal network (post-consolidation); `OCR_SIDECAR_API_KEY` env var ถูกลบจาก docker-compose, .env, test files
 - **"Cross-host trust gap ของ OCR sidecar"** — resolved: ใช้ **Server Consolidation** (ADR-041) — co-locate ทุก services บน single Docker host (Ryzen 5 5600 / 32GB / RTX 5060 Ti 16GB); sidecar+backend อยู่บน Docker bridge เดียวกัน → Docker-internal isolation จริง; ASUSTOR เป็น Primary NAS (CIFS); NPM แยกไว้ QNAP เป็น Edge Proxy (SPOF mitigation)
+- **"`allowed_categories` (AI Prompt Refactor, 2026-08-31) คือ concept เดียวกับ `correspondence_types` หรือไม่"** — resolved: **ใช่ concept เดียวกัน** — `allowed_categories` ที่ส่งเข้า metadata-extraction prompt ของ `np-dms-ai` ดึงจาก `correspondence_types` (master data ที่มีอยู่แล้ว, `GET /master/correspondence-types`) โดยตรง; ต้องลบ `CATEGORY_ALIAS` hardcode map (`migration.service.ts:154-160`) และ prompt hardcode string `"Letter หรือ RFA หรือ Drawing หรือ Report หรือ Other"` (`ai-batch.processor.ts:2062`) ทิ้งทั้งคู่ — ไม่สร้างตาราง `document_categories`/`allowed_categories` ใหม่
 
 ## ADRs ที่เกี่ยวข้องกับ AI Runtime Layer
 

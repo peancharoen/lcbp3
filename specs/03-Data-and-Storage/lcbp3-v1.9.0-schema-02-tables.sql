@@ -1545,6 +1545,9 @@ CREATE TABLE migration_review_queue (
   extracted_tags JSON NULL COMMENT 'Tag ที่ AI นำเสนอหรือจับคู่ได้',
   ocr_text LONGTEXT NULL COMMENT 'ข้อความ OCR 3 หน้าแรก (ADR-042/047)',
   ai_failed TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Edge Case 4: AI enrichment failed after retries',
+  -- ADR-050 columns (added 2026-08-31, delta: 2026-08-31-migration-review-queue-human-review-flags.sql)
+  requires_human_review TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'ADR-050: server-computed จาก min(confidence ทั้งหมด) < threshold — ไม่เชื่อค่าที่ LLM ส่งมา',
+  ocr_quality_confidence DECIMAL(4, 3) NULL COMMENT 'ADR-050: promote จาก details.ocrQuality.confidence (0.000-1.000) สำหรับ sort/filter',
   PRIMARY KEY (id),
   UNIQUE KEY uq_migration_review_uuid (uuid),
   UNIQUE KEY uq_migration_review_idempotency (idempotency_key),

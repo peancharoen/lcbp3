@@ -1,0 +1,209 @@
+# File: specs/200-fullstacks/250-ai-metadata-extraction-contract/contracts/migration-review-queue.openapi.yaml
+# Change Log:
+# - 2026-08-31: Phase 1 contract fragment for AI Metadata Extraction Output Contract
+#
+# Scope: only the 3 endpoints this feature changes. Full API surface already exists in
+# backend/src/modules/migration/migration.controller.ts and migration-review.controller.ts —
+# this fragment documents the DELTA only (new query params, new response fields, new commit shape).
+
+openapi: 3.0.3
+info:
+  title: LCBP3-DMS Migration Review Queue — AI Metadata Extraction Contract (delta)
+  version: "1.0.0"
+paths:
+  /migration/queue:
+    get:
+      summary: Get migration review queue (existing endpoint — extended)
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: aiStatus
+          in: query
+          schema: { type: string }
+        - name: batchId
+          in: query
+          schema: { type: string }
+        - name: requiresHumanReview
+          in: query
+          description: NEW — filter to only items flagged as requiring human review (FR-003)
+          schema: { type: boolean }
+        - name: sortBy
+          in: query
+          description: NEW — sort key, adds ocrQualityConfidence to any existing sort options (FR-004)
+          schema: { type: string, enum: [ocrQualityConfidence] }
+        - name: sortOrder
+          in: query
+          schema: { type: string, enum: [asc, desc], default: asc }
+      responses:
+        "200":
+          description: Paginated queue items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/MigrationQueueItemSummary"
+
+  /migration/queue/{publicId}:
+    get:
+      summary: Get a specific queue item by publicId (existing endpoint — response extended)
+      parameters:
+        - name: publicId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Queue item detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MigrationQueueItemDetail"
+
+  /ai/migration/review:
+    post:
+      summary: Commit reviewer decisions for a queue item (existing endpoint — request body BREAKING CHANGE)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommitMigrationReviewRequest"
+      responses:
+        "200":
+          description: Commit accepted
+        "422":
+          description: >
+            NEW — Business exception: commit blocked because one or more low-confidence
+            fields have not been resolved (edited or acknowledged). Response body lists the
+            unresolved field names (FR-013/FR-014).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnresolvedFieldsError"
+
+components:
+  schemas:
+    OcrQualityAssessment:
+      type: object
+      required: [confidence, issues]
+      properties:
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        issues:
+          type: array
+          items:
+            type: object
+            required: [type, message, evidence]
+            properties:
+              type: { type: string, example: GARBLED_TEXT }
+              message: { type: string }
+              evidence: { type: string }
+
+    TagSuggestion:
+      type: object
+      required: [name, isNew, evidence]
+      properties:
+        name: { type: string }
+        isNew: { type: boolean }
+        evidence: { type: string }
+
+    ExtractedMetadataConfidence:
+      type: object
+      required: [summary, category, tags]
+      properties:
+        summary: { type: number, minimum: 0, maximum: 1 }
+        category: { type: number, minimum: 0, maximum: 1 }
+        tags: { type: number, minimum: 0, maximum: 1 }
+
+    ExtractedMetadata:
+      type: object
+      required: [summary, category, tags, confidence]
+      properties:
+        summary: { type: string }
+        category:
+          type: string
+          description: MUST be one of correspondence_types.typeCode (FR-005)
+        tags:
+          type: array
+          items: { $ref: "#/components/schemas/TagSuggestion" }
+        confidence: { $ref: "#/components/schemas/ExtractedMetadataConfidence" }
+
+    MigrationQueueItemSummary:
+      type: object
+      description: Existing fields unchanged; new fields listed below (FR-001/FR-002)
+      properties:
+        publicId: { type: string, format: uuid }
+        requiresHumanReview:
+          type: boolean
+          description: NEW — server-computed, never trusts raw LLM output (Decision 3)
+        ocrQualityConfidence:
+          type: number
+          nullable: true
+          minimum: 0
+          maximum: 1
+          description: NEW — promoted from details.ocrQuality.confidence for sort/filter
+
+    MigrationQueueItemDetail:
+      allOf:
+        - $ref: "#/components/schemas/MigrationQueueItemSummary"
+        - type: object
+          properties:
+            ocrQuality: { $ref: "#/components/schemas/OcrQualityAssessment" }
+            metadata: { $ref: "#/components/schemas/ExtractedMetadata" }
+            aiFailureReason:
+              type: string
+              enum: [SCHEMA_VALIDATION_FAILED, LLM_CALL_FAILED]
+              nullable: true
+            fieldResolutions:
+              type: object
+              description: NEW — per-field reviewer resolution state (FR-014)
+              properties:
+                ocrQuality: { type: string, enum: [edited, acknowledged], nullable: true }
+                summary: { type: string, enum: [edited, acknowledged], nullable: true }
+                category: { type: string, enum: [edited, acknowledged], nullable: true }
+                tags: { type: string, enum: [edited, acknowledged], nullable: true }
+
+    CommitMigrationReviewRequest:
+      type: object
+      required: [category, tagDecisions]
+      properties:
+        category:
+          type: string
+          description: MUST be one of correspondence_types.typeCode
+        summary:
+          type: string
+        tagDecisions:
+          type: array
+          description: BREAKING CHANGE — replaces prior `tags: string[]` (Decision 4)
+          items:
+            type: object
+            required: [name, accepted]
+            properties:
+              name: { type: string }
+              accepted: { type: boolean }
+              evidence:
+                type: string
+                description: carried through for audit even when accepted=false
+        fieldAcknowledgments:
+          type: array
+          description: NEW — explicit "proceed despite low confidence" for fields not otherwise edited
+          items:
+            type: string
+            enum: [ocrQuality, summary, category, tags]
+
+    UnresolvedFieldsError:
+      type: object
+      properties:
+        message: { type: string }
+        unresolvedFields:
+          type: array
+          items:
+            type: string
+            enum: [ocrQuality, summary, category, tags]

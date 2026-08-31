@@ -2,6 +2,15 @@
 // Change Log:
 // - 2026-08-06: Initial creation — unit tests for multi-attachment commit (T039, T040, Feature 242)
 // - 2026-08-26: Expand commitRecord coverage to 80%+ — idempotency, validation, RFA, tags, rollback
+// - 2026-08-31: ADR-050 (FOUND-COMMIT — T014 remainder, T016/T024, T017/T025, T018/T026):
+//   - inject mocked MigrationService/ReviewThresholdService (new commitRecord dependencies)
+//   - convert `dto.tags: string[]` fixtures (removed) → `dto.tagDecisions[]`
+//   - update exception-type assertions: catch-all in commitRecord no longer rewraps every
+//     error as SystemException — it now rethrows BaseException subclasses (NotFoundException/
+//     ConflictException/ValidationException/BusinessException) as-is (ADR-007 bugfix, see
+//     migration-review.service.ts change log same date)
+//   - add new describe blocks: legacy-shape guard, per-field commit gate, category allow-list,
+//     tagDecisions accept/reject + ai_audit_logs audit trail
 
 jest.mock('fs-extra', () => ({
   ensureDir: jest.fn(),
@@ -15,10 +24,15 @@ jest.mock('./utils/attachment-linking.util', () => ({
 
 import { Test } from '@nestjs/testing';
 import { DataSource } from 'typeorm';
-import { MigrationReviewService } from './migration-review.service';
+import {
+  MigrationReviewService,
+  UnresolvedFieldsException,
+} from './migration-review.service';
 import { UuidResolverService } from '../../common/services/uuid-resolver.service';
 import { RagBatchService } from './services/rag-batch.service';
 import { FileStorageService } from '../../common/file-storage/file-storage.service';
+import { MigrationService } from './migration.service';
+import { ReviewThresholdService } from './services/review-threshold.service';
 import {
   MigrationReviewQueue,
   MigrationReviewStatus,
@@ -33,10 +47,31 @@ import { Project } from '../project/entities/project.entity';
 import { Attachment } from '../../common/file-storage/entities/attachment.entity';
 import { Rfa } from '../rfa/entities/rfa.entity';
 import { RfaRevision } from '../rfa/entities/rfa-revision.entity';
+import { AiAuditLog } from '../ai/entities/ai-audit-log.entity';
+import { Tag } from '../tags/entities/tag.entity';
+import { CorrespondenceTag } from '../tags/entities/correspondence-tag.entity';
 import { CommitMigrationReviewDto } from './dto/commit-migration-review.dto';
-import { SystemException } from '../../common/exceptions';
+import type { MigrationAiExtractionDetails } from './types/ai-extraction-details.type';
+import {
+  BusinessException,
+  ConflictException,
+  NotFoundException,
+  SystemException,
+  ValidationException,
+} from '../../common/exceptions';
 import * as fs from 'fs-extra';
 import { linkAttachmentsToRevision } from './utils/attachment-linking.util';
+
+/** typeCode ที่ mock ให้ "อนุญาต" เป็นค่า default สำหรับทุก happy-path test (T017 gate) —
+ *  รวม 'Correspondence' (ค่า default ของ aiSuggestedCategory ใน makeQueueItem) ไว้ด้วยเพื่อไม่ให้
+ *  ต้อง rewrite ทุก test เดิมที่ไม่เกี่ยวกับ T017 โดยตรง — test ใหม่ของ T025 ใช้ category ที่ไม่อยู่
+ *  ในรายการนี้อย่างชัดเจนแทน */
+const DEFAULT_ALLOWED_CATEGORY_CODES = [
+  'LETTER',
+  'RFA',
+  'OTHER',
+  'Correspondence',
+];
 
 const mockedFs = fs as jest.Mocked<typeof fs>;
 const mockedLinkAttachments = jest.mocked(linkAttachmentsToRevision);
@@ -153,6 +188,10 @@ function createMockQueryRunner(
             if (select.includes('publicId')) return cfg.mainAttachment;
             if (select.includes('storedFilename')) return cfg.attachmentRecord;
             return cfg.attachmentExists;
+          case Tag:
+            return qcfg.tagRes[0] ?? null;
+          case CorrespondenceTag:
+            return null;
           default:
             return null;
         }
@@ -166,7 +205,15 @@ function createMockQueryRunner(
       const id = idCounter++;
       return { id, publicId: `uuid-${id}`, ...data };
     }),
-    save: jest.fn((..._args: unknown[]) => undefined),
+    save: jest.fn((entity: EntityCtor, data: Record<string, unknown>) => {
+      if (entity === Tag) {
+        return { id: qcfg.tagInsertRes.insertId, ...data };
+      }
+      if (entity === CorrespondenceTag) {
+        return { ...data };
+      }
+      return undefined;
+    }),
     update: jest.fn((..._args: unknown[]) => undefined),
     query: jest.fn((sql: string) => {
       if (sql.includes('rfa_types')) return qcfg.rfaTypeRes;
@@ -240,6 +287,12 @@ describe('MigrationReviewService', () => {
   let mockRagBatchService: jest.Mocked<RagBatchService>;
   let mockFileStorageService: jest.Mocked<FileStorageService>;
   let mockQueueRepo: { findOne: jest.Mock; save: jest.Mock };
+  let mockMigrationService: {
+    isLegacyExtractionShape: jest.Mock;
+    getAllowedCategoryCodes: jest.Mock;
+    parseExtractionDetails: jest.Mock;
+  };
+  let mockReviewThresholdService: { getThresholds: jest.Mock };
 
   beforeEach(async () => {
     // fs-extra defaults
@@ -267,6 +320,27 @@ describe('MigrationReviewService', () => {
       permanentDir: '/tmp/uploads/permanent',
     } as unknown as jest.Mocked<FileStorageService>;
 
+    // ADR-050 T014/T017 — default: ไม่ใช่ legacy-shape, category ที่ทดสอบทั่วไปอยู่ในรายการที่อนุญาต
+    mockMigrationService = {
+      isLegacyExtractionShape: jest.fn().mockReturnValue(false),
+      getAllowedCategoryCodes: jest
+        .fn()
+        .mockResolvedValue(DEFAULT_ALLOWED_CATEGORY_CODES),
+      parseExtractionDetails: jest
+        .fn()
+        .mockImplementation(
+          (raw: unknown) =>
+            raw as Partial<MigrationAiExtractionDetails> | null | undefined
+        ),
+    };
+
+    // ADR-050 T016 — default threshold เดียวกับ DEFAULT_REVIEW_THRESHOLDS (0.6)
+    mockReviewThresholdService = {
+      getThresholds: jest
+        .fn()
+        .mockResolvedValue({ minConfidence: 0.6, maxMismatchFields: 2 }),
+    };
+
     dataSource = {
       createQueryRunner: jest.fn(),
       getRepository: jest.fn().mockImplementation((entity) => {
@@ -282,6 +356,11 @@ describe('MigrationReviewService', () => {
         { provide: UuidResolverService, useValue: mockUuidResolver },
         { provide: RagBatchService, useValue: mockRagBatchService },
         { provide: FileStorageService, useValue: mockFileStorageService },
+        { provide: MigrationService, useValue: mockMigrationService },
+        {
+          provide: ReviewThresholdService,
+          useValue: mockReviewThresholdService,
+        },
       ],
     }).compile();
 
@@ -339,7 +418,7 @@ describe('MigrationReviewService', () => {
       expect(qr.commitTransaction).not.toHaveBeenCalled();
     });
 
-    it('throws SystemException for duplicate tx with failed status', async () => {
+    it('throws ConflictException for duplicate tx with failed status', async () => {
       const qr = createMockQueryRunner({
         importTx: { id: 42, statusCode: 500 },
       });
@@ -347,7 +426,7 @@ describe('MigrationReviewService', () => {
 
       await expect(
         service.commitRecord(makeDto(), 1, 'idem-key-001')
-      ).rejects.toThrow(SystemException);
+      ).rejects.toThrow(ConflictException);
       expect(qr.rollbackTransaction).toHaveBeenCalled();
     });
   });
@@ -355,17 +434,17 @@ describe('MigrationReviewService', () => {
   // ── commitRecord — Queue Item Validation ─────────────────────────────────────
 
   describe('commitRecord — queue item validation', () => {
-    it('throws SystemException when queue item not found', async () => {
+    it('throws NotFoundException when queue item not found', async () => {
       const qr = createMockQueryRunner({ queueItem: null });
       dataSource.createQueryRunner.mockReturnValue(qr);
 
       await expect(
         service.commitRecord(makeDto(), 1, 'idem-key-002')
-      ).rejects.toThrow(SystemException);
+      ).rejects.toThrow(NotFoundException);
       expect(qr.rollbackTransaction).toHaveBeenCalled();
     });
 
-    it('throws SystemException when queue item is not PENDING', async () => {
+    it('throws ConflictException when queue item is not PENDING', async () => {
       const qr = createMockQueryRunner({
         queueItem: makeQueueItem({ status: MigrationReviewStatus.IMPORTED }),
       });
@@ -373,7 +452,7 @@ describe('MigrationReviewService', () => {
 
       await expect(
         service.commitRecord(makeDto(), 1, 'idem-key-003')
-      ).rejects.toThrow(SystemException);
+      ).rejects.toThrow(ConflictException);
       expect(qr.rollbackTransaction).toHaveBeenCalled();
     });
   });
@@ -381,7 +460,7 @@ describe('MigrationReviewService', () => {
   // ── commitRecord — Project Validation ────────────────────────────────────────
 
   describe('commitRecord — project validation', () => {
-    it('throws SystemException when project ID is missing', async () => {
+    it('throws ValidationException when project ID is missing', async () => {
       const qr = createMockQueryRunner({
         queueItem: makeQueueItem({ projectId: undefined }),
       });
@@ -393,17 +472,17 @@ describe('MigrationReviewService', () => {
           1,
           'idem-key-004'
         )
-      ).rejects.toThrow(SystemException);
+      ).rejects.toThrow(ValidationException);
       expect(qr.rollbackTransaction).toHaveBeenCalled();
     });
 
-    it('throws SystemException when project not found in DB', async () => {
+    it('throws NotFoundException when project not found in DB', async () => {
       const qr = createMockQueryRunner({ project: null });
       dataSource.createQueryRunner.mockReturnValue(qr);
 
       await expect(
         service.commitRecord(makeDto(), 1, 'idem-key-005')
-      ).rejects.toThrow(SystemException);
+      ).rejects.toThrow(NotFoundException);
       expect(qr.rollbackTransaction).toHaveBeenCalled();
     });
   });
@@ -411,7 +490,7 @@ describe('MigrationReviewService', () => {
   // ── commitRecord — Category Validation ───────────────────────────────────────
 
   describe('commitRecord — category validation', () => {
-    it('throws SystemException when category is missing', async () => {
+    it('throws ValidationException when category is missing', async () => {
       const qr = createMockQueryRunner({
         queueItem: makeQueueItem({ aiSuggestedCategory: undefined }),
       });
@@ -423,11 +502,11 @@ describe('MigrationReviewService', () => {
           1,
           'idem-key-006'
         )
-      ).rejects.toThrow(SystemException);
+      ).rejects.toThrow(ValidationException);
       expect(qr.rollbackTransaction).toHaveBeenCalled();
     });
 
-    it('throws SystemException when category not found in CorrespondenceType', async () => {
+    it('throws BusinessException (T017) when category not in allowed correspondence_types.typeCode list', async () => {
       const qr = createMockQueryRunner({
         queueItem: makeQueueItem({ aiSuggestedCategory: 'UnknownCat' }),
         typeByTypeName: null,
@@ -442,7 +521,7 @@ describe('MigrationReviewService', () => {
           1,
           'idem-key-007'
         )
-      ).rejects.toThrow(SystemException);
+      ).rejects.toThrow(BusinessException);
       expect(qr.rollbackTransaction).toHaveBeenCalled();
     });
 
@@ -631,7 +710,7 @@ describe('MigrationReviewService', () => {
       expect(qr.commitTransaction).toHaveBeenCalled();
     });
 
-    it('throws SystemException when RFA type not found', async () => {
+    it('throws BusinessException when RFA type not found', async () => {
       const qr = createMockQueryRunner(
         {
           queueItem: makeQueueItem({ aiSuggestedCategory: 'RFA' }),
@@ -651,11 +730,11 @@ describe('MigrationReviewService', () => {
           1,
           'idem-key-rfa-002'
         )
-      ).rejects.toThrow(SystemException);
+      ).rejects.toThrow(BusinessException);
       expect(qr.rollbackTransaction).toHaveBeenCalled();
     });
 
-    it('throws SystemException when RFA status not found', async () => {
+    it('throws BusinessException when RFA status not found', async () => {
       const qr = createMockQueryRunner(
         {
           queueItem: makeQueueItem({ aiSuggestedCategory: 'RFA' }),
@@ -676,7 +755,7 @@ describe('MigrationReviewService', () => {
           1,
           'idem-key-rfa-003'
         )
-      ).rejects.toThrow(SystemException);
+      ).rejects.toThrow(BusinessException);
       expect(qr.rollbackTransaction).toHaveBeenCalled();
     });
   });
@@ -684,7 +763,7 @@ describe('MigrationReviewService', () => {
   // ── commitRecord — Attachment Validation ─────────────────────────────────────
 
   describe('commitRecord — attachment validation', () => {
-    it('throws SystemException when no attachment IDs resolved', async () => {
+    it('throws ValidationException when no attachment IDs resolved', async () => {
       const qr = createMockQueryRunner({
         queueItem: makeQueueItem({
           tempAttachmentIds: null,
@@ -695,11 +774,11 @@ describe('MigrationReviewService', () => {
 
       await expect(
         service.commitRecord(makeDto(), 1, 'idem-key-016')
-      ).rejects.toThrow(SystemException);
+      ).rejects.toThrow(ValidationException);
       expect(qr.rollbackTransaction).toHaveBeenCalled();
     });
 
-    it('throws SystemException when attachment ID does not exist', async () => {
+    it('throws ValidationException when attachment ID does not exist', async () => {
       const qr = createMockQueryRunner({
         queueItem: makeQueueItem({ tempAttachmentIds: [999] }),
         attachmentExists: null,
@@ -708,7 +787,7 @@ describe('MigrationReviewService', () => {
 
       await expect(
         service.commitRecord(makeDto(), 1, 'idem-key-017')
-      ).rejects.toThrow(SystemException);
+      ).rejects.toThrow(ValidationException);
       expect(qr.rollbackTransaction).toHaveBeenCalled();
     });
 
@@ -833,24 +912,28 @@ describe('MigrationReviewService', () => {
 
   // ── commitRecord — Tags ──────────────────────────────────────────────────────
 
-  describe('commitRecord — tags', () => {
-    it('links tags from dto.tags when provided', async () => {
+  describe('commitRecord — tags (ADR-050 tagDecisions)', () => {
+    it('links tags from dto.tagDecisions (accepted=true) when provided', async () => {
       const qr = createMockQueryRunner({
         tagRes: [{ id: 300 }],
       });
       dataSource.createQueryRunner.mockReturnValue(qr);
 
       await service.commitRecord(
-        makeDto({ tags: ['important', 'urgent'] }),
+        makeDto({
+          tagDecisions: [
+            { name: 'important', accepted: true },
+            { name: 'urgent', accepted: true },
+          ],
+        }),
         1,
         'idem-key-tags-001'
       );
 
-      const tagSelectCalls = qr.manager.query.mock.calls.filter(
-        (call) =>
-          typeof call[0] === 'string' && call[0].includes('SELECT id FROM tags')
+      const tagFindOneCalls = qr.manager.findOne.mock.calls.filter(
+        (call) => call[0] === Tag
       );
-      expect(tagSelectCalls.length).toBe(2);
+      expect(tagFindOneCalls.length).toBe(2);
       expect(qr.commitTransaction).toHaveBeenCalled();
     });
 
@@ -865,20 +948,19 @@ describe('MigrationReviewService', () => {
       dataSource.createQueryRunner.mockReturnValue(qr);
 
       await service.commitRecord(
-        makeDto({ tags: ['newtag'] }),
+        makeDto({ tagDecisions: [{ name: 'newtag', accepted: true }] }),
         1,
         'idem-key-tags-002'
       );
 
-      const insertTagCalls = qr.manager.query.mock.calls.filter(
-        (call) =>
-          typeof call[0] === 'string' && call[0].includes('INSERT INTO tags')
+      const insertTagCalls = qr.manager.save.mock.calls.filter(
+        (call) => call[0] === Tag
       );
       expect(insertTagCalls.length).toBe(1);
       expect(qr.commitTransaction).toHaveBeenCalled();
     });
 
-    it('links extractedTags from queueItem when dto.tags is empty', async () => {
+    it('links extractedTags from queueItem when dto.tagDecisions is empty (backward-compat fallback)', async () => {
       const qr = createMockQueryRunner({
         queueItem: makeQueueItem({
           extractedTags: [{ name: 'tag-from-extract' }, { tagName: 'tag2' }],
@@ -889,31 +971,332 @@ describe('MigrationReviewService', () => {
 
       await service.commitRecord(makeDto(), 1, 'idem-key-tags-003');
 
-      const tagSelectCalls = qr.manager.query.mock.calls.filter(
-        (call) =>
-          typeof call[0] === 'string' && call[0].includes('SELECT id FROM tags')
+      const tagFindOneCalls = qr.manager.findOne.mock.calls.filter(
+        (call) => call[0] === Tag
       );
-      expect(tagSelectCalls.length).toBe(2);
+      expect(tagFindOneCalls.length).toBe(2);
     });
 
-    it('skips empty/whitespace tags', async () => {
+    it('skips empty/whitespace tag names in tagDecisions', async () => {
       const qr = createMockQueryRunner({
         tagRes: [{ id: 300 }],
       });
       dataSource.createQueryRunner.mockReturnValue(qr);
 
       await service.commitRecord(
-        makeDto({ tags: ['valid', '  ', ''] }),
+        makeDto({
+          tagDecisions: [
+            { name: 'valid', accepted: true },
+            { name: '  ', accepted: true },
+            { name: '', accepted: true },
+          ],
+        }),
         1,
         'idem-key-tags-004'
       );
 
-      const tagSelectCalls = qr.manager.query.mock.calls.filter(
-        (call) =>
-          typeof call[0] === 'string' && call[0].includes('SELECT id FROM tags')
+      const tagFindOneCalls = qr.manager.findOne.mock.calls.filter(
+        (call) => call[0] === Tag
       );
       // เฉพาะ 'valid' ที่ผ่านการ trim แล้วไม่ว่าง
-      expect(tagSelectCalls.length).toBe(1);
+      expect(tagFindOneCalls.length).toBe(1);
+    });
+  });
+
+  // ── commitRecord — T014 remainder: legacy-shape guard ────────────────────────
+
+  describe('commitRecord — legacy-shape guard (ADR-050 T014 remainder, FR-011/SC-006)', () => {
+    it('throws BusinessException when queue item is legacy-shaped (pre-ADR-050 details)', async () => {
+      mockMigrationService.isLegacyExtractionShape.mockReturnValue(true);
+      const qr = createMockQueryRunner();
+      dataSource.createQueryRunner.mockReturnValue(qr);
+
+      await expect(
+        service.commitRecord(makeDto(), 1, 'idem-key-legacy-001')
+      ).rejects.toThrow(BusinessException);
+      expect(qr.rollbackTransaction).toHaveBeenCalled();
+      expect(qr.commitTransaction).not.toHaveBeenCalled();
+    });
+
+    it('does not block commit when queue item is not legacy-shaped', async () => {
+      mockMigrationService.isLegacyExtractionShape.mockReturnValue(false);
+      const qr = createMockQueryRunner();
+      dataSource.createQueryRunner.mockReturnValue(qr);
+
+      const res = await service.commitRecord(
+        makeDto(),
+        1,
+        'idem-key-legacy-002'
+      );
+
+      expect(res.success).toBe(true);
+      expect(qr.commitTransaction).toHaveBeenCalled();
+    });
+  });
+
+  // ── commitRecord — T016/T024: per-field commit gate ──────────────────────────
+
+  describe('commitRecord — per-field commit gate (ADR-050 T016, FR-013/FR-014)', () => {
+    /** queueItem ที่มี field `summary` confidence ต่ำกว่า threshold (0.6) — field อื่นสูงพอ */
+    function makeLowConfidenceQueueItem(
+      overrides: Record<string, unknown> = {}
+    ) {
+      return makeQueueItem({
+        details: {
+          ocrQuality: { confidence: 0.9, issues: [] },
+          metadata: {
+            summary: 'AI generated summary text',
+            category: 'LETTER',
+            tags: [],
+            confidence: { summary: 0.3, category: 0.9, tags: 0.9 },
+          },
+        },
+        ocrQualityConfidence: 0.9,
+        ...overrides,
+      });
+    }
+
+    it('rejects commit with UnresolvedFieldsException listing the unresolved field when neither edited nor acknowledged', async () => {
+      const qr = createMockQueryRunner({
+        queueItem: makeLowConfidenceQueueItem(),
+      });
+      dataSource.createQueryRunner.mockReturnValue(qr);
+
+      const error = await service
+        .commitRecord(makeDto({ category: 'LETTER' }), 1, 'idem-key-gate-001')
+        .catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(UnresolvedFieldsException);
+      expect((error as UnresolvedFieldsException).unresolvedFields).toEqual([
+        'summary',
+      ]);
+      expect(qr.rollbackTransaction).toHaveBeenCalled();
+      expect(qr.commitTransaction).not.toHaveBeenCalled();
+    });
+
+    it('includes unresolvedFields in getResponse() payload even under NODE_ENV=production (GlobalExceptionFilter response-shaping path)', async () => {
+      const qr = createMockQueryRunner({
+        queueItem: makeLowConfidenceQueueItem(),
+      });
+      dataSource.createQueryRunner.mockReturnValue(qr);
+
+      const error = await service
+        .commitRecord(makeDto({ category: 'LETTER' }), 1, 'idem-key-gate-prod')
+        .catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(UnresolvedFieldsException);
+
+      const originalNodeEnv = process.env['NODE_ENV'];
+      process.env['NODE_ENV'] = 'production';
+      try {
+        // Mirror GlobalExceptionFilter.catch()'s handling of BaseException:
+        // `const payload = exception.getResponse() as { error: ErrorPayload };`
+        const payload = (error as UnresolvedFieldsException).getResponse() as {
+          error: Record<string, unknown>;
+        };
+        expect(payload.error['unresolvedFields']).toEqual(['summary']);
+      } finally {
+        process.env['NODE_ENV'] = originalNodeEnv;
+      }
+    });
+
+    it('allows commit when the triggering field is resolved by editing (dto.subject differs from AI summary)', async () => {
+      const qr = createMockQueryRunner({
+        queueItem: makeLowConfidenceQueueItem(),
+      });
+      dataSource.createQueryRunner.mockReturnValue(qr);
+
+      const res = await service.commitRecord(
+        makeDto({ category: 'LETTER', subject: 'Reviewer-edited subject' }),
+        1,
+        'idem-key-gate-002'
+      );
+
+      expect(res.success).toBe(true);
+      expect(qr.commitTransaction).toHaveBeenCalled();
+    });
+
+    it('allows commit when the triggering field is resolved by explicit acknowledgment', async () => {
+      const qr = createMockQueryRunner({
+        queueItem: makeLowConfidenceQueueItem(),
+      });
+      dataSource.createQueryRunner.mockReturnValue(qr);
+
+      const res = await service.commitRecord(
+        makeDto({
+          category: 'LETTER',
+          fieldAcknowledgments: ['summary'],
+        }),
+        1,
+        'idem-key-gate-003'
+      );
+
+      expect(res.success).toBe(true);
+      expect(qr.commitTransaction).toHaveBeenCalled();
+    });
+
+    it('resolving an unrelated field does not clear the flag for the actual triggering field', async () => {
+      const qr = createMockQueryRunner({
+        queueItem: makeLowConfidenceQueueItem(),
+      });
+      dataSource.createQueryRunner.mockReturnValue(qr);
+
+      // reviewer แก้ category (ซึ่งไม่ใช่ field ที่ trigger — summary ต่างหากที่ trigger)
+      const error = await service
+        .commitRecord(
+          makeDto({ category: 'LETTER', fieldAcknowledgments: ['category'] }),
+          1,
+          'idem-key-gate-004'
+        )
+        .catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(UnresolvedFieldsException);
+      expect((error as UnresolvedFieldsException).unresolvedFields).toEqual([
+        'summary',
+      ]);
+    });
+
+    it('does not gate when queue item has no ADR-050 confidence data (legacy/manual item)', async () => {
+      const qr = createMockQueryRunner(); // makeQueueItem() default — no `details`
+      dataSource.createQueryRunner.mockReturnValue(qr);
+
+      const res = await service.commitRecord(makeDto(), 1, 'idem-key-gate-005');
+
+      expect(res.success).toBe(true);
+      expect(qr.commitTransaction).toHaveBeenCalled();
+    });
+  });
+
+  // ── commitRecord — T018/T026: tagDecisions accept/reject + audit trail ───────
+
+  describe('commitRecord — tagDecisions accept/reject audit trail (ADR-050 T018, FR-006/FR-007/FR-008)', () => {
+    it('applies accepted tags to the document and does not apply rejected tags', async () => {
+      const qr = createMockQueryRunner({
+        queueItem: makeQueueItem({
+          details: {
+            ocrQuality: { confidence: 0.95, issues: [] },
+            metadata: {
+              summary: 'summary',
+              category: 'LETTER',
+              tags: [
+                { name: 'accepted-tag', isNew: true, evidence: 'ev-1' },
+                { name: 'rejected-tag', isNew: false, evidence: 'ev-2' },
+              ],
+              confidence: { summary: 0.95, category: 0.95, tags: 0.95 },
+            },
+          },
+        }),
+        tagRes: [{ id: 300 }],
+      });
+      dataSource.createQueryRunner.mockReturnValue(qr);
+
+      await service.commitRecord(
+        makeDto({
+          category: 'LETTER',
+          tagDecisions: [
+            { name: 'accepted-tag', accepted: true, evidence: 'ev-1' },
+            {
+              name: 'rejected-tag',
+              accepted: false,
+              evidence: 'ev-2 rejected because irrelevant',
+            },
+          ],
+        }),
+        1,
+        'idem-key-audit-001'
+      );
+
+      const tagFindOneCalls = qr.manager.findOne.mock.calls.filter(
+        (call) => call[0] === Tag
+      );
+      // เฉพาะ tag ที่ accepted=true เท่านั้นที่ผูกกับเอกสาร
+      expect(tagFindOneCalls.length).toBe(1);
+      expect(qr.commitTransaction).toHaveBeenCalled();
+    });
+
+    it('writes an ai_audit_logs row with evidence and actor for each rejected tag', async () => {
+      const qr = createMockQueryRunner({
+        queueItem: makeQueueItem({
+          details: {
+            ocrQuality: { confidence: 0.95, issues: [] },
+            metadata: {
+              summary: 'summary',
+              category: 'LETTER',
+              tags: [
+                {
+                  name: 'rejected-tag',
+                  isNew: true,
+                  evidence: 'evidence-text',
+                },
+              ],
+              confidence: { summary: 0.95, category: 0.95, tags: 0.95 },
+            },
+          },
+        }),
+      });
+      dataSource.createQueryRunner.mockReturnValue(qr);
+
+      await service.commitRecord(
+        makeDto({
+          category: 'LETTER',
+          tagDecisions: [
+            {
+              name: 'rejected-tag',
+              accepted: false,
+              evidence: 'evidence-text',
+            },
+          ],
+        }),
+        1,
+        'idem-key-audit-002'
+      );
+
+      expect(qr.manager.create).toHaveBeenCalledWith(
+        AiAuditLog,
+        expect.objectContaining({
+          documentPublicId: 'queue-uuid-001',
+          confirmedByUserId: 1,
+          aiSuggestionJson: expect.objectContaining({
+            tagName: 'rejected-tag',
+            evidence: 'evidence-text',
+            isNew: true,
+          }),
+          humanOverrideJson: { action: 'TAG_REJECTED' },
+        })
+      );
+      expect(qr.manager.save).toHaveBeenCalledWith(
+        AiAuditLog,
+        expect.anything()
+      );
+    });
+
+    it('rejects with ValidationException when tagDecisions contains a name not in the original AI suggestion', async () => {
+      const qr = createMockQueryRunner({
+        queueItem: makeQueueItem({
+          details: {
+            ocrQuality: { confidence: 0.95, issues: [] },
+            metadata: {
+              summary: 'summary',
+              category: 'LETTER',
+              tags: [{ name: 'real-suggestion', isNew: false, evidence: 'ev' }],
+              confidence: { summary: 0.95, category: 0.95, tags: 0.95 },
+            },
+          },
+        }),
+      });
+      dataSource.createQueryRunner.mockReturnValue(qr);
+
+      await expect(
+        service.commitRecord(
+          makeDto({
+            category: 'LETTER',
+            tagDecisions: [{ name: 'forged-tag-name', accepted: true }],
+          }),
+          1,
+          'idem-key-audit-003'
+        )
+      ).rejects.toThrow(ValidationException);
+      expect(qr.rollbackTransaction).toHaveBeenCalled();
     });
   });
 
@@ -1087,7 +1470,7 @@ describe('MigrationReviewService', () => {
         makeDto({
           subject: 'Custom Subject',
           body: 'Custom body',
-          tags: ['custom-tag'],
+          tagDecisions: [{ name: 'custom-tag', accepted: true }],
           issuedDate: '2026-03-20',
           receivedDate: '2026-03-21',
         }),

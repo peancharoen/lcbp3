@@ -9,6 +9,11 @@
 // - 2026-08-25: เพิ่ม LEGACY_NAS_PATH ใน getStagingFileStream allowed roots (D157)
 // - 2026-08-25: RAG trigger ไม่ต้องมี ocrText — processRagPrepare ทำ OCR เองได้ (D158)
 // - 2026-08-25: revision.body ใช้ aiSummary (AI สรุป) แทน ocrText (OCR ดิบ) — D159
+// - 2026-08-31: ADR-050 — ลบ CATEGORY_ALIAS hardcode map, เพิ่ม getAllowedCategoryCodes()
+//   (source of truth = correspondence_types.typeCode), เพิ่ม deterministic requiresHumanReview
+//   computation ใน updateQueueEnrichment (ไม่เชื่อค่าที่ LLM ส่งมา), promote ocrQualityConfidence/
+//   requiresHumanReview columns, backward-compat ai_confidence alias = min(metadata.confidence.*),
+//   legacy-shape detection (FR-011) + server-side review-mode fetch guard (getQueueItemByPublicId)
 // - 2026-08-26: Bugfix — ส่ง queryRunner.manager เข้า importStagingFile เพื่อให้ attachment
 //   ถูกสร้างใน transaction เดียวกัน (ป้องกัน MariaDB error 1020 "Record has changed
 //   since last read in table 'attachments'") และเพิ่ม INSERT ลง
@@ -62,6 +67,11 @@ import { Attachment } from '../../common/file-storage/entities/attachment.entity
 import { createReadStream, existsSync } from 'fs';
 import * as path from 'path';
 import { RagBatchService } from './services/rag-batch.service';
+import { ReviewThresholdService } from './services/review-threshold.service';
+import type {
+  MigrationAiExtractionDetails,
+  MetadataConfidence,
+} from './types/ai-extraction-details.type';
 import { Rfa } from '../rfa/entities/rfa.entity';
 import { RfaRevision } from '../rfa/entities/rfa-revision.entity';
 import { linkAttachmentsToRevision } from './utils/attachment-linking.util';
@@ -107,7 +117,8 @@ export class MigrationService {
     @InjectQueue('ai-batch')
     private readonly aiBatchQueue: Queue,
     private readonly fileStorageService: FileStorageService,
-    private readonly ragBatchService: RagBatchService
+    private readonly ragBatchService: RagBatchService,
+    private readonly reviewThresholdService: ReviewThresholdService
   ) {
     this.stagingDir =
       this.configService.get<string>(ENV_STAGING_DIR) || STAGING_DIR_FALLBACK;
@@ -150,36 +161,22 @@ export class MigrationService {
     }
 
     // 2. Fetch Dependencies
-    // Alias map: n8n AI categories → correspondence_types.type_code
-    const CATEGORY_ALIAS: Record<string, string> = {
-      Correspondence: 'LETTER',
-      Letter: 'LETTER',
-      Drawing: 'OTHER',
-      Report: 'OTHER',
-      Other: 'OTHER',
-    };
-
+    // ADR-050 Decision 2: allowed_categories มาจาก correspondence_types.typeCode โดยตรง
+    // ลบ CATEGORY_ALIAS hardcode map ทิ้ง — ตั้งแต่ ADR-050 เป็นต้นไป ค่า dto.category ที่มาจาก
+    // AI extraction ถูกบังคับให้เป็นหนึ่งใน allowed_categories (typeCode) อยู่แล้วโดย prompt
+    // contract (§9) และ schema validation ฝั่ง ai-batch.processor จึงไม่ต้อง alias เดาความหมายอีก
     const type = await this.correspondenceTypeRepo.findOne({
       where: { typeName: dto.category },
     });
 
     // If exact name isn't found, try typeCode just in case
-    let typeId = type
+    const typeId = type
       ? type.id
       : (
           await this.correspondenceTypeRepo.findOne({
             where: { typeCode: dto.category },
           })
         )?.id;
-
-    // Third-level fallback: resolve via alias map
-    if (!typeId && dto.category && CATEGORY_ALIAS[dto.category]) {
-      typeId = (
-        await this.correspondenceTypeRepo.findOne({
-          where: { typeCode: CATEGORY_ALIAS[dto.category] },
-        })
-      )?.id;
-    }
 
     if (!typeId) {
       throw new ValidationException(
@@ -784,8 +781,95 @@ export class MigrationService {
   }
 
   /**
+   * ADR-050 Decision 2: allowed_categories สำหรับ AI extraction prompt (`{{allowed_categories}}`)
+   * และสำหรับ schema validation ของ AI output — มาจาก correspondence_types.typeCode โดยตรง
+   * ไม่มี hardcoded alias map อีกต่อไป
+   */
+  async getAllowedCategoryCodes(): Promise<string[]> {
+    const types = await this.correspondenceTypeRepo.find();
+    return types
+      .map((t) => t.typeCode)
+      .filter((code): code is string => !!code);
+  }
+
+  /**
+   * ADR-050 Decision 3: คำนวณ requiresHumanReview แบบ deterministic ฝั่ง backend เสมอ
+   * = min(ocrQualityConfidence, metadata.confidence.summary/.category/.tags) < minConfidence
+   * ห้ามรับค่าที่ LLM ส่งมาเอง (ฟังก์ชันนี้รับเฉพาะตัวเลข confidence ไม่รับ raw LLM payload
+   * จึงไม่มีทางอ่านค่า requiresHumanReview ที่ LLM อาจแนบมาได้เลย)
+   * เมื่อไม่มี confidence ให้คำนวณได้เลย (เช่น ไม่มีข้อความอ่านได้) ให้ default เป็น true
+   * (spec.md Edge Cases: "no readable text at all → must be flagged by default")
+   */
+  computeRequiresHumanReview(
+    ocrQualityConfidence: number | null | undefined,
+    metadataConfidence: Partial<MetadataConfidence> | null | undefined,
+    minConfidence: number
+  ): boolean {
+    const values = [
+      ocrQualityConfidence,
+      metadataConfidence?.summary,
+      metadataConfidence?.category,
+      metadataConfidence?.tags,
+    ].filter((v): v is number => typeof v === 'number');
+    if (values.length < 4) return true;
+    return Math.min(...values) < minConfidence;
+  }
+
+  /**
+   * ADR-050 Decision 1: backward-compat alias — ai_confidence (scalar เดิม) เขียนเป็น
+   * min(metadata.confidence.summary, .category, .tags) เท่านั้น (ไม่รวม ocrQuality.confidence)
+   */
+  private computeAiConfidenceAlias(
+    metadataConfidence: Partial<MetadataConfidence> | null | undefined
+  ): number | undefined {
+    const values = [
+      metadataConfidence?.summary,
+      metadataConfidence?.category,
+      metadataConfidence?.tags,
+    ].filter((v): v is number => typeof v === 'number');
+    if (values.length < 3) return undefined;
+    return Math.min(...values);
+  }
+
+  /**
+   * FR-011 / data-model.md: legacy item = extraction เสร็จแล้ว (aiStatus=DONE) แต่ details
+   * ยังเป็น pre-ADR-050 shape (ไม่มี metadata.confidence ครบทั้ง 3 field) — ต้อง re-extract ก่อน
+   * ถึงจะเปิดดูเพื่อ review ได้ (ไอเทมที่ยังไม่เคย extract เลย ไม่ถือเป็น legacy)
+   */
+  isLegacyExtractionShape(
+    item: Pick<MigrationReviewQueue, 'aiStatus' | 'details'>
+  ): boolean {
+    if (item.aiStatus !== MigrationAiStatus.DONE) return false;
+    const details = this.parseExtractionDetails(item.details);
+    const confidence = details?.metadata?.confidence;
+    return !(
+      confidence &&
+      typeof confidence.summary === 'number' &&
+      typeof confidence.category === 'number' &&
+      typeof confidence.tags === 'number'
+    );
+  }
+
+  /**
+   * ADR-050: parse/validate `details` JSON จาก queue item ให้เป็น
+   * MigrationAiExtractionDetails แบบ Partial หรือ null/undefined
+   * ใช้ร่วมกันแทนการ cast กระจายทั่ว service
+   */
+  public parseExtractionDetails(
+    raw: unknown
+  ): Partial<MigrationAiExtractionDetails> | null | undefined {
+    if (raw === undefined) return undefined;
+    if (!raw || typeof raw !== 'object') return null;
+    return raw as Partial<MigrationAiExtractionDetails>;
+  }
+
+  /**
    * อัปเดตผลลัพธ์จากการประมวลผล AI (OCR, Tags, Category, Confidence) ลงใน Staging Queue (ADR-047)
    * Edge Case 4: รองรับการ mark ai_failed เมื่อ BullMQ retry ครบแล้วยังไม่สำเร็จ
+   * ADR-050: เมื่อ `data.details` เป็น shape ใหม่ (มี ocrQuality + metadata.confidence ครบ) จะคำนวณ
+   * requiresHumanReview/ocrQualityConfidence/ai_confidence(alias) ให้อัตโนมัติบน write path เดียวกัน
+   * (T010/T011/T012) — override ด้วย data.requiresHumanReview/data.ocrQualityConfidence ได้ตรงๆ
+   * สำหรับ failure path ที่ไม่มี confidence ให้คำนวณ (เช่น ไม่มี PDF/OCR ล้มเหลว)
    */
   async updateQueueEnrichment(
     queueId: number,
@@ -799,6 +883,9 @@ export class MigrationService {
       aiFailed?: boolean;
       aiStatus?: MigrationAiStatus;
       status?: MigrationReviewStatus;
+      details?: Record<string, unknown> | null;
+      requiresHumanReview?: boolean;
+      ocrQualityConfidence?: number | null;
     }
   ) {
     const queueItem = await this.reviewQueueRepo.findOne({
@@ -817,6 +904,43 @@ export class MigrationService {
       if (data.aiFailed !== undefined) queueItem.aiFailed = data.aiFailed;
       if (data.aiStatus !== undefined) queueItem.aiStatus = data.aiStatus;
       if (data.status !== undefined) queueItem.status = data.status;
+      if (data.details !== undefined) {
+        queueItem.details = data.details;
+        // ADR-050 T010/T011/T012: shape ใหม่ (ocrQuality + metadata.confidence ครบ) →
+        // คำนวณ promoted columns + ai_confidence alias เสมอ ฝั่ง backend เท่านั้น
+        const extraction = this.parseExtractionDetails(data.details);
+        const metadataConfidence = extraction?.metadata?.confidence;
+        if (
+          extraction?.ocrQuality &&
+          metadataConfidence &&
+          typeof metadataConfidence.summary === 'number' &&
+          typeof metadataConfidence.category === 'number' &&
+          typeof metadataConfidence.tags === 'number'
+        ) {
+          const thresholds = await this.reviewThresholdService.getThresholds();
+          queueItem.requiresHumanReview = this.computeRequiresHumanReview(
+            extraction.ocrQuality.confidence,
+            metadataConfidence,
+            thresholds.minConfidence
+          );
+          queueItem.ocrQualityConfidence =
+            typeof extraction.ocrQuality.confidence === 'number'
+              ? extraction.ocrQuality.confidence
+              : null;
+          const aliasConfidence =
+            this.computeAiConfidenceAlias(metadataConfidence);
+          if (aliasConfidence !== undefined) {
+            queueItem.aiConfidence = aliasConfidence;
+          }
+        }
+      }
+      // Override ตรง ๆ มีความสำคัญกว่าค่าที่คำนวณจาก details เสมอ (เช่น failure path ที่ไม่มี
+      // confidence ให้คำนวณ — no-PDF/OCR-failed ต้อง flag requiresHumanReview=true ตาม spec.md
+      // Edge Cases: "no readable text at all → must be flagged by default")
+      if (data.requiresHumanReview !== undefined)
+        queueItem.requiresHumanReview = data.requiresHumanReview;
+      if (data.ocrQualityConfidence !== undefined)
+        queueItem.ocrQualityConfidence = data.ocrQualityConfidence;
       await this.reviewQueueRepo.save(queueItem);
     }
   }
@@ -829,7 +953,7 @@ export class MigrationService {
     idempotencyKey: string,
     userId: number
   ) {
-    const queueItem = await this.getQueueItemByPublicId(publicId);
+    const queueItem = await this.fetchQueueItemByPublicId(publicId);
     if (queueItem.status !== MigrationReviewStatus.PENDING) {
       throw new ConflictException(
         'MIGRATION_INVALID_STATE',
@@ -909,7 +1033,7 @@ export class MigrationService {
     idempotencyKey: string,
     userId: number
   ) {
-    const queueItem = await this.getQueueItemByPublicId(publicId);
+    const queueItem = await this.fetchQueueItemByPublicId(publicId);
 
     if (
       queueItem.status !== MigrationReviewStatus.PENDING &&
@@ -989,7 +1113,16 @@ export class MigrationService {
   }
 
   async getReviewQueue(query: MigrationQueueQueryDto) {
-    const { page = 1, limit = 10, status, aiStatus, batchId } = query;
+    const {
+      page = 1,
+      limit = 10,
+      status,
+      aiStatus,
+      batchId,
+      requiresHumanReview,
+      sortBy,
+      sortOrder = 'asc',
+    } = query;
     const skip = (page - 1) * limit;
 
     const queryBuilder = this.reviewQueueRepo.createQueryBuilder('queue');
@@ -1002,8 +1135,24 @@ export class MigrationService {
     if (batchId) {
       queryBuilder.andWhere('queue.batch_id = :batchId', { batchId });
     }
+    // ADR-050/FR-003 (T019): filter to only items requiring human review
+    if (requiresHumanReview !== undefined) {
+      queryBuilder.andWhere(
+        'queue.requiresHumanReview = :requiresHumanReview',
+        { requiresHumanReview }
+      );
+    }
 
-    queryBuilder.orderBy('queue.createdAt', 'DESC');
+    // ADR-050/FR-004 (T019): sort by ocrQualityConfidence when requested,
+    // otherwise preserve the existing default sort (createdAt DESC)
+    if (sortBy === 'ocrQualityConfidence') {
+      queryBuilder.orderBy(
+        'queue.ocrQualityConfidence',
+        sortOrder === 'desc' ? 'DESC' : 'ASC'
+      );
+    } else {
+      queryBuilder.orderBy('queue.createdAt', 'DESC');
+    }
     queryBuilder.skip(skip).take(limit);
 
     const [items, total] = await queryBuilder.getManyAndCount();
@@ -1147,10 +1296,11 @@ export class MigrationService {
   }
 
   /**
-   * ADR-019: ค้นหา queue item ด้วย publicId (UUIDv7) แทน INT PK
-   * ใช้สำหรับ public API endpoints เพื่อไม่ leak internal row id
+   * ADR-019: ค้นหา queue item ด้วย publicId (UUIDv7) แทน INT PK — internal fetch ไม่มี legacy
+   * guard ใช้เฉพาะภายใน service สำหรับ flow ที่ต้อง "เปิดทางไว้เสมอ" เช่น re-extract
+   * (ADR-050/FR-011: ห้าม block เส้นทาง re-extract — ผู้ใช้ต้อง re-extract legacy item ได้)
    */
-  async getQueueItemByPublicId(publicId: string) {
+  private async fetchQueueItemByPublicId(publicId: string) {
     const item = await this.reviewQueueRepo.findOne({
       where: { publicId },
     });
@@ -1160,6 +1310,27 @@ export class MigrationService {
     let enriched = await this.enrichWithAttachments([item]);
     enriched = await this.enrichWithReferenceData(enriched);
     return enriched[0];
+  }
+
+  /**
+   * ADR-019: ค้นหา queue item ด้วย publicId (UUIDv7) แทน INT PK
+   * ใช้สำหรับ public API endpoints (review-mode access) เพื่อไม่ leak internal row id
+   * ADR-050/FR-011/SC-006: ปฏิเสธด้วย BusinessException ถ้าเป็น legacy-shaped item (extraction
+   * เสร็จแล้วแต่ยังไม่มี metadata.confidence ตาม contract ใหม่) — reviewer ต้องสั่ง re-extract
+   * ก่อนถึงจะเปิดดูเพื่อ review ได้ (frontend-only hiding ไม่พอ — ปิดช่องโหว่จาก /106-speckit-analyze
+   * finding C2) เส้นทาง re-extract เองใช้ fetchQueueItemByPublicId ที่ไม่มี guard นี้แทน
+   */
+  async getQueueItemByPublicId(publicId: string) {
+    const item = await this.fetchQueueItemByPublicId(publicId);
+    if (this.isLegacyExtractionShape(item)) {
+      throw new BusinessException(
+        'MIGRATION_LEGACY_ITEM_NOT_REVIEWABLE',
+        `Queue item ${publicId} was processed before ADR-050 and lacks the new confidence contract — re-extraction required`,
+        'รายการนี้ประมวลผลด้วยระบบเก่า (ก่อน ADR-050) ยังไม่มีข้อมูล confidence รูปแบบใหม่ กรุณาสั่ง Re-extract ก่อนเปิดตรวจสอบ',
+        ['กด "Re-extract" เพื่อประมวลผลใหม่ด้วย AI contract ปัจจุบัน']
+      );
+    }
+    return item;
   }
 
   async createError(dto: CreateMigrationErrorDto) {
