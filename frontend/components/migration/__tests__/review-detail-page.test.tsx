@@ -89,7 +89,7 @@ const mockItem: MigrationReviewQueueItem = {
   publicId: 'test-uuid-123',
   documentNumber: 'DOC-001',
   subject: 'Test Document Subject',
-  aiSuggestedCategory: 'RFA',
+  aiSuggestedCorrespondenceType: 'RFA',
   aiConfidence: 0.65,
   status: MigrationReviewStatus.PENDING_REVIEW,
   aiIssues: [{ message: 'Receiver organization confidence is low' }],
@@ -108,12 +108,12 @@ const mockItem: MigrationReviewQueueItem = {
     },
     metadata: {
       summary: 'AI suggested summary text',
-      category: 'RFA',
+      correspondenceType: 'RFA',
       tags: [
         { name: 'Urgent', isNew: false, evidence: 'urgent keyword found' },
         { name: 'Safety', isNew: true, evidence: 'safety concern mentioned in body' },
       ],
-      confidence: { summary: 0.7, category: 0.6, tags: 0.8 },
+      confidence: { summary: 0.7, correspondenceType: 0.6, tags: 0.8 },
     },
     fieldResolutions: {},
   },
@@ -242,7 +242,7 @@ describe('MigrationReviewPage — detail page diagnostics', () => {
     // Acknowledge summary
     fireEvent.click(screen.getByTestId('acknowledge-summary'));
     // Acknowledge category
-    fireEvent.click(screen.getByTestId('acknowledge-category'));
+    fireEvent.click(screen.getByTestId('acknowledge-correspondenceType'));
 
     // Submit
     const submitButton = screen.getByRole('button', { name: /Execute Import/i });
@@ -254,7 +254,7 @@ describe('MigrationReviewPage — detail page diagnostics', () => {
 
     const callArg = mockCommitMutateAsync.mock.calls[0][0];
     expect(callArg.fieldAcknowledgments).toContain('summary');
-    expect(callArg.fieldAcknowledgments).toContain('category');
+    expect(callArg.fieldAcknowledgments).toContain('correspondenceType');
   });
 
   // T040: surfaces 422 unresolvedFields error as inline per-field warnings
@@ -318,7 +318,7 @@ describe('MigrationReviewPage — detail page diagnostics', () => {
 
     // Category error warning should be visible
     await waitFor(() => {
-      const warning = screen.getByTestId('category-error-warning');
+      const warning = screen.getByTestId('correspondenceType-error-warning');
       expect(warning).toBeInTheDocument();
     });
   });

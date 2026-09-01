@@ -1,0 +1,180 @@
+// File: specs/200-fullstacks/251-prompt-types-domain-rename/contracts/ai-prompt-types.openapi.yaml
+// Change Log:
+// - 2026-09-01: Initial API contract for ai_prompt_types CRUD
+
+openapi: 3.0.3
+info:
+  title: AI Prompt Types API
+  version: 1.0.0
+  description: |
+    CRUD API สำหรับจัดการ ai_prompt_types master table (Feature 251).
+    RBAC: system.manage_all สำหรับทุก mutation (ADR-016).
+paths:
+  /ai/prompt-types:
+    get:
+      summary: ดึงรายการ prompt types ทั้งหมด
+      description: สำหรับ dropdown ใน frontend — คืนทุก type ที่ is_active=1
+      tags: [AI Prompt Types]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: รายการ prompt types
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AiPromptTypeResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      summary: สร้าง prompt type ใหม่ (super-admin only)
+      tags: [AI Prompt Types]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAiPromptTypeDto'
+      responses:
+        '201':
+          description: สร้างสำเร็จ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiPromptTypeResponse'
+        '400':
+          $ref: '#/components/responses/ValidationException'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: prompt_type ซ้ำ
+  /ai/prompt-types/{promptType}:
+    delete:
+      summary: ลบ prompt type (super-admin only)
+      description: |
+        ถ้ามี ai_prompts อ้างอิง type นี้ → FK RESTRICT บล็อก
+        และ application คืน error ก่อนถึง DB constraint
+      tags: [AI Prompt Types]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PromptTypeParam'
+      responses:
+        '204':
+          description: ลบสำเร็จ
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: ไม่สามารถลบได้เพราะมี ai_prompts อ้างอิงอยู่
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BusinessError'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+      description: ADR-016 idempotency
+    PromptTypeParam:
+      name: promptType
+      in: path
+      required: true
+      schema:
+        type: string
+      description: prompt type name เช่น ocr_extraction
+  responses:
+    Unauthorized:
+      description: ไม่ได้ login
+    Forbidden:
+      description: ไม่มีสิทธิ์ system.manage_all
+    NotFound:
+      description: ไม่พบ prompt type
+    ValidationException:
+      description: ข้อมูลไม่ถูกต้อง
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationError'
+  schemas:
+    AiPromptTypeResponse:
+      type: object
+      properties:
+        publicId:
+          type: string
+          format: uuid
+        promptType:
+          type: string
+        displayName:
+          type: string
+        description:
+          type: string
+          nullable: true
+        expectedPlaceholders:
+          type: array
+          items:
+            type: string
+          nullable: true
+        isSystemManaged:
+          type: boolean
+        isActive:
+          type: boolean
+      required: [publicId, promptType, displayName, isSystemManaged, isActive]
+    CreateAiPromptTypeDto:
+      type: object
+      properties:
+        promptType:
+          type: string
+          maxLength: 50
+          pattern: '^[a-z][a-z0-9_]*$'
+        displayName:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+        expectedPlaceholders:
+          type: array
+          items:
+            type: string
+      required: [promptType, displayName]
+    ValidationError:
+      type: object
+      properties:
+        message:
+          type: string
+        userMessage:
+          type: string
+      required: [message]
+    BusinessError:
+      type: object
+      properties:
+        message:
+          type: string
+        userMessage:
+          type: string
+        recoveryAction:
+          type: string
+      required: [message, userMessage]

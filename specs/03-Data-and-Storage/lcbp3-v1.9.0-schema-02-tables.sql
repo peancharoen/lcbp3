@@ -490,8 +490,7 @@ CREATE TABLE rfa_consent_reasons (
   is_active TINYINT(1) DEFAULT 1 COMMENT 'สถานะการใช้งาน',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่อัปเดต'
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci
-  COMMENT = 'ADR-049: ตาราง Master สำหรับ consent reason ของ CONSULTANT (metadata ไม่มีผลต่อ workflow state)';
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'ADR-049: ตาราง Master สำหรับ consent reason ของ CONSULTANT (metadata ไม่มีผลต่อ workflow state)';
 
 CREATE TABLE rfas (
   id INT PRIMARY KEY COMMENT 'ID ของตาราง (RFA Master ID)',
@@ -1531,7 +1530,7 @@ CREATE TABLE migration_review_queue (
   subject TEXT NULL COMMENT 'หัวข้อเรื่อง (ตรงกับ correspondence_revisions.subject)',
   original_subject TEXT NULL COMMENT 'หัวข้อเดิมจาก Excel (ก่อน AI แก้ไข)',
   body TEXT NULL COMMENT 'เนื้อความสรุปจาก AI',
-  ai_suggested_category VARCHAR(50) NULL COMMENT 'หมวดหมู่ที่ AI แนะนำ',
+  ai_suggested_correspondence_type VARCHAR(50) NULL COMMENT 'Correspondence Type ที่ AI แนะนำ (correspondence_types.typeCode)',
   ai_confidence DECIMAL(4, 3) NULL COMMENT 'ค่าความมั่นใจของ AI (0.000 - 1.000)',
   ai_issues JSON NULL COMMENT 'รายละเอียดปัญหาที่ AI พบ',
   review_reason VARCHAR(255) NULL COMMENT 'เหตุผลที่ต้องตรวจสอบ',
@@ -1620,6 +1619,21 @@ CREATE TABLE ai_available_models (
 -- =====================================================
 -- 14. 🤖 AI Prompts (ADR-029)
 -- =====================================================
+-- ตาราง master สำหรับประเภท prompt (Feature 251)
+CREATE TABLE ai_prompt_types (
+  id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'ID ภายใน (ไม่ expose ใน API)',
+  public_id UUID NOT NULL UNIQUE COMMENT 'UUIDv7 (NestJS @BeforeInsert, ADR-019) — app layer สร้างเสมอ',
+  prompt_type VARCHAR(50) NOT NULL UNIQUE COMMENT 'ชื่อประเภท prompt เช่น ocr_extraction',
+  display_name VARCHAR(255) NOT NULL COMMENT 'ชื่อแสดงผลใน dropdown',
+  description TEXT NULL COMMENT 'คำอธิบายประเภท',
+  expected_placeholders JSON NULL COMMENT 'placeholder ที่ template ต้องมี',
+  is_system_managed TINYINT(1) NOT NULL DEFAULT 1 COMMENT '1 = ระบบ seed (ห้ามลบ), 0 = admin สร้าง',
+  is_active TINYINT(1) NOT NULL DEFAULT 1 COMMENT '1 = ใช้งานได้, 0 = ปิดใช้งาน',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_prompt_type (prompt_type)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'ตาราง master สำหรับประเภท AI prompt';
+
 -- ตาราง versioned prompt templates สำหรับ OCR extraction
 CREATE TABLE ai_prompts (
   id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'ID ภายใน (ไม่ expose ใน API)',
@@ -1640,7 +1654,8 @@ CREATE TABLE ai_prompts (
   UNIQUE KEY uk_type_version (prompt_type, version_number),
   KEY idx_prompt_type_active (prompt_type, is_active),
   KEY created_by (created_by),
-  CONSTRAINT ai_prompts_ibfk_1 FOREIGN KEY (created_by) REFERENCES users (user_id)
+  CONSTRAINT ai_prompts_ibfk_1 FOREIGN KEY (created_by) REFERENCES users (user_id),
+  CONSTRAINT ai_prompts_fk_type FOREIGN KEY (prompt_type) REFERENCES ai_prompt_types(prompt_type) ON DELETE RESTRICT
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'ตาราง versioned prompt templates สำหรับ OCR extraction (ADR-029)';
 
 -- =====================================================

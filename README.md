@@ -144,9 +144,9 @@ LCBP3-DMS เป็นระบบบริหารจัดการเอก�
 
 ### ข้อกำหนดระบบ
 
-- **Node.js**: v24.15.0 LTS (>=24.0.0)
-- **pnpm**: v8.x หรือสูงกว่า
-- **Docker**: v24.x หรือสูงกว่า
+- **Node.js**: v24.15.0 LTS (>=24.0.0) — ดู `.nvmrc`
+- **pnpm**: v10.33.0 หรือสูงกว่า (`corepack enable && corepack use pnpm@10.33.0`)
+- **Docker**: v24.x หรือสูงกว่า (สำหรับรัน MariaDB/Redis ในเครื่อง ถ้ายังไม่มี)
 - **MariaDB**: 11.8
 - **Redis**: 7.x
 
@@ -155,49 +155,73 @@ LCBP3-DMS เป็นระบบบริหารจัดการเอก�
 #### 1. Clone Repository
 
 ```bash
-git clone https://git.np-dms.work/lcbp3/lcbp3-dms.git
-cd lcbp3-dms
+git clone ssh://git@git.np-dms.work:2222/np-dms/lcbp3.git
+cd lcbp3
 ```
 
 #### 2. ติดตั้ง Dependencies
 
 ```bash
-# ติดตั้ง dependencies ทั้งหมด (backend + frontend)
+# ติดตั้ง dependencies ทั้งหมด (backend + frontend, pnpm workspace)
 pnpm install
 ```
 
-#### 3. ตั้งค่า Environment Variables
+#### 3. เตรียม MariaDB และ Redis (ถ้ายังไม่มี instance ในเครื่อง)
+
+```bash
+docker run -d --name lcbp3-mariadb -p 3306:3306 \
+  -e MARIADB_ROOT_PASSWORD=Center2025 \
+  -e MARIADB_DATABASE=lcbp3_dev \
+  -e MARIADB_USER=admin \
+  -e MARIADB_PASSWORD=Center2025 \
+  mariadb:11.8
+
+docker run -d --name lcbp3-redis -p 16379:6379 \
+  redis:7-alpine redis-server --requirepass Center2025
+```
+
+ค่าเหล่านี้ตรงกับ default ใน `backend/.env.example` อยู่แล้ว — ถ้าใช้ MariaDB/Redis ที่มีอยู่แล้ว ให้แก้ `.env` ในขั้นตอนถัดไปให้ตรงกับ instance จริงแทน
+
+#### 4. ตั้งค่า Environment Variables
 
 **Backend:**
 
 ```bash
 cd backend
 cp .env.example .env
-# แก้ไข .env ตามความเหมาะสม
+# ต้องแก้ JWT_SECRET เป็นค่าจริงยาว >= 32 ตัวอักษร (ค่า default ใน .env.example ยาวไม่พอ ทำให้ backend start ไม่ขึ้น)
+JWT_SECRET=$(openssl rand -hex 32)
+sed -i "s#^JWT_SECRET=.*#JWT_SECRET=${JWT_SECRET}#" .env
+cd ..
 ```
 
 **Frontend:**
 
 ```bash
 cd frontend
-cp .env.local.example .env.local
-# แก้ไข .env.local ตามความเหมาะสม
+cp .env.example .env.local
+# แก้ไข .env.local ตามความเหมาะสม (NEXT_PUBLIC_API_URL, AUTH_SECRET)
+cd ..
 ```
 
-#### 4. ตั้งค่า Database
+#### 5. ตั้งค่า Database
 
 ```bash
+# สร้าง database ก่อน (schema script ไม่มี CREATE DATABASE)
+# ข้ามขั้นตอนนี้ได้ถ้าใช้ container จาก step 3 — MARIADB_DATABASE สร้าง lcbp3_dev ให้แล้ว
+mysql -u root -p -h 127.0.0.1 -e "CREATE DATABASE IF NOT EXISTS lcbp3_dev CHARACTER SET utf8mb4;"
+
 # Import schema (v1.9.0 — ดู ADR-009: No migrations, แก้ไข SQL ตรง)
-mysql -u root -p lcbp3_dev < specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-01-drop.sql
-mysql -u root -p lcbp3_dev < specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql
-mysql -u root -p lcbp3_dev < specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-03-views-indexes.sql
+mysql -u admin -p -h 127.0.0.1 lcbp3_dev < specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-01-drop.sql
+mysql -u admin -p -h 127.0.0.1 lcbp3_dev < specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql
+mysql -u admin -p -h 127.0.0.1 lcbp3_dev < specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-03-views-indexes.sql
 
 # Import seed data
-mysql -u root -p lcbp3_dev < specs/03-Data-and-Storage/lcbp3-v1.9.0-seed-basic.sql
-mysql -u root -p lcbp3_dev < specs/03-Data-and-Storage/lcbp3-v1.9.0-seed-permissions.sql
+mysql -u admin -p -h 127.0.0.1 lcbp3_dev < specs/03-Data-and-Storage/lcbp3-v1.9.0-seed-basic.sql
+mysql -u admin -p -h 127.0.0.1 lcbp3_dev < specs/03-Data-and-Storage/lcbp3-v1.9.0-seed-permissions.sql
 ```
 
-#### 5. รัน Development Server
+#### 6. รัน Development Server
 
 **Backend:**
 
@@ -213,11 +237,13 @@ cd frontend
 pnpm run dev
 ```
 
+หรือรันทั้งคู่พร้อมกันจาก root ด้วย `pnpm run dev`
+
 ### การเข้าถึงระบบ
 
 - **Frontend**: `http://localhost:3000`
-- **Backend API**: `http://localhost:3001`
-- **API Documentation**: `http://localhost:3001/api`
+- **Backend API**: `http://localhost:3001/api`
+- **API Documentation (Swagger)**: `http://localhost:3001/docs`
 
 ### ข้อมูลเข้าสู่ระบบเริ่มต้น
 

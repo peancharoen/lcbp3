@@ -1,0 +1,108 @@
+// File: specs/200-fullstacks/251-prompt-types-domain-rename/contracts/migration-review-rename.openapi.yaml
+// Change Log:
+// - 2026-09-01: API contract changes for category → correspondenceType rename
+
+openapi: 3.0.3
+info:
+  title: Migration Review API — Correspondence Type Rename
+  version: 1.0.0
+  description: |
+    Breaking change: field `category` → `correspondenceType` ใน migration review API
+    (Feature 251, atomic deploy — ไม่มี backward-compat)
+paths:
+  /migration/queue:
+    get:
+      summary: ดึงคิว migration review
+      parameters:
+        - name: requiresHumanReview
+          in: query
+          schema:
+            type: boolean
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [ocrQualityConfidence, createdAt, aiSuggestedCorrespondenceType]
+      responses:
+        '200':
+          description: รายการคิว
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MigrationReviewQueueItem'
+  /migration/review/{publicId}:
+    get:
+      summary: ดึงรายละเอียด migration review item
+      responses:
+        '200':
+          description: รายละเอียด
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MigrationReviewQueueItem'
+  /migration/review/{publicId}/commit:
+    post:
+      summary: Commit migration review
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommitMigrationReviewDto'
+      responses:
+        '200':
+          description: Commit สำเร็จ
+        '400':
+          description: Validation error (เช่น correspondenceType ไม่อยู่ใน correspondence_types)
+components:
+  schemas:
+    MigrationReviewQueueItem:
+      type: object
+      properties:
+        publicId:
+          type: string
+          format: uuid
+        aiSuggestedCorrespondenceType:
+          type: string
+          nullable: true
+          description: เดิมชื่อ aiSuggestedCategory — correspondence_types.typeCode ที่ AI แนะนำ
+        details:
+          type: object
+          properties:
+            metadata:
+              type: object
+              properties:
+                correspondenceType:
+                  type: string
+                confidence:
+                  type: object
+                  properties:
+                    correspondenceType:
+                      type: number
+                      format: float
+                      minimum: 0
+                      maximum: 1
+            fieldResolutions:
+              type: object
+              properties:
+                correspondenceType:
+                  type: string
+                  enum: [edited, acknowledged]
+    CommitMigrationReviewDto:
+      type: object
+      properties:
+        correspondenceType:
+          type: string
+          description: เดิมชื่อ category — ต้องอยู่ใน correspondence_types.typeCode
+        fieldAcknowledgments:
+          type: array
+          items:
+            type: string
+            enum: [correspondenceType, summary, tags]
+          description: เดิมค่า 'category' เปลี่ยนเป็น 'correspondenceType'
+      required: [correspondenceType]

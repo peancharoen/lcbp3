@@ -463,7 +463,7 @@ export class AiController {
   @ApiOperation({
     summary: 'AI Control Center — Load model into VRAM (cold-start: 5-10s)',
     description:
-      'โหลดโมเดลเข้า VRAM ผ่าน Ollama keep_alive=-1 เซ็ต Redis lock ai:model:transitioning 15s (ADR-048)',
+      'โหลดโมเดลเข้า VRAM ตาม finite residency policy และเซ็ต Redis lock ai:model:transitioning 15s (ADR-048)',
   })
   @ApiParam({
     name: 'modelName',

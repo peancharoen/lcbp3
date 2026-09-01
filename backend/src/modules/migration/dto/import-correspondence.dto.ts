@@ -26,7 +26,7 @@ export class ImportCorrespondenceDto {
 
   @IsString()
   @IsNotEmpty()
-  category!: string;
+  correspondenceType!: string;
 
   @IsString()
   @IsOptional()

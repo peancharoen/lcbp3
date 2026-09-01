@@ -23,7 +23,7 @@ import { Type } from 'class-transformer';
 export const ACKNOWLEDGEABLE_FIELDS = [
   'ocrQuality',
   'summary',
-  'category',
+  'correspondenceType',
   'tags',
 ] as const;
 export type AcknowledgeableField = (typeof ACKNOWLEDGEABLE_FIELDS)[number];
@@ -91,10 +91,10 @@ export class CommitMigrationReviewDto {
   @IsOptional()
   subject?: string;
 
-  @ApiProperty({ description: 'หมวดหมู่เอกสาร (แก้ไขได้)', required: false })
+  @ApiProperty({ description: 'ประเภทเอกสาร (แก้ไขได้)', required: false })
   @IsString()
   @IsOptional()
-  category?: string;
+  correspondenceType?: string;
 
   @ApiProperty({
     description: 'ID หรือ UUID ของ Project (แก้ไขได้)',
@@ -142,7 +142,7 @@ export class CommitMigrationReviewDto {
   @ApiPropertyOptional({
     description:
       'field ที่ผู้ตรวจสอบรับทราบว่า confidence ต่ำกว่าเกณฑ์แล้ว "ยืนยันดำเนินการต่อ" โดยไม่ได้แก้ไขค่า ' +
-      '(ADR-050 §4/data-model.md §4, FR-013/FR-014) — field ที่ผู้ตรวจสอบแก้ไขค่าจริง (category/summary ต่างจาก AI suggestion, ' +
+      '(ADR-050 §4/data-model.md §4, FR-013/FR-014) — field ที่ผู้ตรวจสอบแก้ไขค่าจริง (correspondenceType/summary ต่างจาก AI suggestion, ' +
       'หรือส่ง tagDecisions มา) ถือว่า "edited" โดยอัตโนมัติ ไม่ต้องระบุในนี้',
     enum: ACKNOWLEDGEABLE_FIELDS,
     isArray: true,

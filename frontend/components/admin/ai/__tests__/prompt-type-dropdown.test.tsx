@@ -2,6 +2,7 @@
 // Change Log:
 // - 2026-06-14: สร้างใหม่สำหรับ Phase 3 Coverage
 // - 2026-06-15: เพิ่ม i18n mock เพื่อแก้ไข test failure
+// - 2026-09-01: เพิ่ม useQuery mock สำหรับ dynamic ai_prompt_types (Feature 251)
 
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
@@ -9,6 +10,15 @@ import PromptTypeDropdown from '../PromptTypeDropdown';
 
 vi.mock('@/hooks/use-translations', () => ({
   useTranslations: () => (key: string) => key,
+}));
+
+vi.mock('@tanstack/react-query', () => ({
+  useQuery: vi.fn().mockReturnValue({
+    data: [
+      { publicId: '1', promptType: 'ocr_extraction', displayName: 'OCR Extraction', isSystemManaged: true, isActive: true },
+    ],
+    isLoading: false,
+  }),
 }));
 
 describe('PromptTypeDropdown', () => {

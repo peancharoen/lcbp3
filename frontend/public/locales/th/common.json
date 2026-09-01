@@ -225,7 +225,8 @@
   "ai.vram.catalog.capacityLow": "หน่วยความจำไม่เพียงพอ (OOM Guard)",
   "ai.vram.catalog.column.model": "โมเดล",
   "ai.vram.catalog.column.residency": "สถานะ",
-  "ai.vram.catalog.column.vram": "VRAM (MB)",
+  "ai.vram.catalog.column.modelSize": "ขนาดรวม (MB)",
+  "ai.vram.catalog.column.vram": "บน GPU (MB)",
   "ai.vram.residency.loaded": "โหลดอยู่",
   "ai.vram.residency.notLoaded": "ยังไม่โหลด"
 }

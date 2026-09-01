@@ -8,11 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { AlertCircle, CheckCircle, Save, HelpCircle } from 'lucide-react';
-import { PromptType } from '@/lib/types/ai-prompts';
 import { PLACEHOLDER_REQUIREMENTS } from '@/contracts/frontend-types';
 
 interface PromptEditorProps {
-  promptType: PromptType;
+  promptType: string;
   initialTemplate: string;
   onSave: (template: string, manualNote: string) => Promise<void>;
   isSaving: boolean;
@@ -49,7 +48,7 @@ export default function PromptEditor({
     onSave(template, manualNote);
   };
 
-  const getFriendlyTypeName = (type: PromptType) => {
+  const getFriendlyTypeName = (type: string) => {
     switch (type) {
       case 'ocr_system':
         return 'คำสั่งระบบ OCR (OCR System Prompt)';
@@ -61,6 +60,8 @@ export default function PromptEditor({
         return 'เตรียมข้อมูล RAG (RAG Prep)';
       case 'classification_prompt':
         return 'จำแนกประเภทเอกสาร (Classification)';
+      default:
+        return type;
     }
   };
 

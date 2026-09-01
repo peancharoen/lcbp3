@@ -1,7 +1,7 @@
 # Project Memory Override
 
 > **Project:** NAP-DMS (LCBP3) — Laem Chabang Port Phase 3 Document Management System
-> **Version:** 1.9.16 (Last Synced: 2026-08-31 Feature 250 review fixes + validation)
+> **Version:** 1.9.16 (Last Synced: 2026-09-01 Ollama/OCR residency + runtime sync)
 > **Stack:** NestJS 11 + Next.js 16 + TypeScript + MariaDB 11.8 + Redis + BullMQ + Elasticsearch + Ollama (on-prem AI)
 
 > [!IMPORTANT]
@@ -221,6 +221,7 @@
 | D192  | **AI prompt template substitution = single-pass** — ห้าม insert OCR text ก่อนแล้ว rescan เป็น template syntax (prompt injection); ใช้ regex แทนที่ placeholder ทั้งหมดในรอบเดียว เพื่อให้ OCR content ที่มี `{{allowed_categories}}` หรือ `{{existing_tags}}` ไม่ถูก expand ด้วยข้อมูลระบบ                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | ADR-050 / Session 2026-08-31 (continuation)                                                                                                                                                                                                                                                                                          |
 | D193  | **Tag linking ใน `migration-review.service.ts` ใช้ TypeORM entity operations เท่านั้น** — `manager.findOne(Tag, ...)` + `manager.create(Tag, ...)` + `manager.save(Tag, ...)` + `manager.findOne(CorrespondenceTag, ...)` + `manager.save(CorrespondenceTag, ...)`; ห้าม raw SQL (`SELECT id FROM tags` / `INSERT INTO tags` / `INSERT IGNORE INTO correspondence_tags`) — กัน SQL injection และผูก MySQL-specific syntax                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | ADR-050 / Session 2026-08-31 (continuation)                                                                                                                                                                                                                                                                                          |
 | D194  | **ใช้ `MigrationService.parseExtractionDetails()` helper แทน direct cast** — ทุกจุดใน migration + migration-review service ที่ต้องอ่าน `MigrationAiExtractionDetails` ต้องเรียก helper นี้ ห้าม `as Partial<MigrationAiExtractionDetails>` ตรง ๆ                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | ADR-050 / Session 2026-08-31 (continuation)                                                                                                                                                                                                                                                                                          |
+| D195  | **Ollama residency และ OCR runtime sync** — `np-dms-ai` ใช้ finite residency default 120 วินาที (ห้าม default `keep_alive=-1`); unload model ผ่าน native `/api/generate` + empty prompt + `keep_alive:0`; telemetry แยก model `size` จาก `size_vram`; จัดการตัวรันจริง OCR ผ่าน `/opt/np-dms/04-ai/ocr-sidecar` พร้อม `--env-file ../../.env` และรักษา canonical compose ให้ตรงกับ runtime                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | ADR-040/048 / Session 2026-09-01                                                                                                                                                                                                                                                                                                     |
 
 ## Environment & Services
 
@@ -260,6 +261,16 @@ QDRANT_URL
 ```
 
 ## Next Session Focus
+
+### Ollama/OCR Residency + Runtime Sync (Session 2026-09-01) ✅ Complete
+
+- [x] เปลี่ยน `np-dms-ai` เป็น finite residency 120 วินาที
+- [x] แก้ OCR unload เป็น native `/api/generate`
+- [x] แยก model footprint และ GPU-resident memory ใน Control Center
+- [x] Sync และ rebuild `/opt/np-dms/04-ai/ocr-sidecar` ด้วย env-file กลาง
+- [x] Sync canonical/runtime OCR compose และยืนยัน SHA256 ตรงกัน
+- [x] Verification: backend 101, frontend 996, sidecar 16 tests; builds/lints ผ่าน; runtime healthy
+- [ ] Commit + push การเปลี่ยนแปลงใน repository
 
 ### Feature 250 Review Fixes + Validation (Session 2026-08-31 continuation) ✅ Complete (pending commit + T048 + T003)
 

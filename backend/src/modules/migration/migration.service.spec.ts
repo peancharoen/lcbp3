@@ -379,7 +379,7 @@ describe('MigrationService', () => {
       const dto: ImportCorrespondenceDto = {
         documentNumber: 'DOC-001',
         subject: 'Test',
-        category: 'Letter',
+        correspondenceType: 'Letter',
         migratedBy: 'SYSTEM_IMPORT',
         batchId: 'BATCH-001',
         projectId: 100,
@@ -413,7 +413,7 @@ describe('MigrationService', () => {
       const dto: ImportCorrespondenceDto = {
         documentNumber: 'DOC-002',
         subject: 'Test',
-        category: 'Letter',
+        correspondenceType: 'Letter',
         migratedBy: 'SYSTEM_IMPORT',
         batchId: 'BATCH-002',
         projectId: 100,
@@ -490,7 +490,7 @@ describe('MigrationService', () => {
       ): ImportCorrespondenceDto => ({
         documentNumber: 'DOC-D159',
         subject: 'D159 Test',
-        category: 'Letter',
+        correspondenceType: 'Letter',
         migratedBy: 'SYSTEM_IMPORT',
         batchId: 'BATCH-D159',
         projectId: 100,
@@ -581,7 +581,7 @@ describe('MigrationService', () => {
         const dto: ImportCorrespondenceDto = {
           documentNumber: 'DOC-DATE-1',
           subject: 'Attachment date',
-          category: 'Letter',
+          correspondenceType: 'Letter',
           migratedBy: 'SYSTEM_IMPORT',
           batchId: 'BATCH-DATE',
           projectId: 100,
@@ -610,7 +610,7 @@ describe('MigrationService', () => {
         const dto: ImportCorrespondenceDto = {
           documentNumber: 'DOC-DATE-2',
           subject: 'Attachment date multi',
-          category: 'Letter',
+          correspondenceType: 'Letter',
           migratedBy: 'SYSTEM_IMPORT',
           batchId: 'BATCH-DATE',
           projectId: 100,
@@ -637,7 +637,7 @@ describe('MigrationService', () => {
         const dto: ImportCorrespondenceDto = {
           documentNumber: 'DOC-DATE-3',
           subject: 'No document date',
-          category: 'Letter',
+          correspondenceType: 'Letter',
           migratedBy: 'SYSTEM_IMPORT',
           batchId: 'BATCH-DATE',
           projectId: 100,
@@ -684,7 +684,7 @@ describe('MigrationService', () => {
       const dto: ImportCorrespondenceDto = {
         documentNumber: 'DOC-X',
         subject: 'Test',
-        category: 'Letter',
+        correspondenceType: 'Letter',
         migratedBy: 'SYSTEM_IMPORT',
         batchId: 'BATCH-X',
         projectId: 100,
@@ -702,7 +702,7 @@ describe('MigrationService', () => {
       const dto: ImportCorrespondenceDto = {
         documentNumber: 'DOC-SUCC',
         subject: 'Test',
-        category: 'Letter',
+        correspondenceType: 'Letter',
         migratedBy: 'SYSTEM_IMPORT',
         batchId: 'BATCH-SUCC',
         projectId: 100,
@@ -719,7 +719,7 @@ describe('MigrationService', () => {
       const dto: ImportCorrespondenceDto = {
         documentNumber: 'DOC-FAIL',
         subject: 'Test',
-        category: 'Letter',
+        correspondenceType: 'Letter',
         migratedBy: 'SYSTEM_IMPORT',
         batchId: 'BATCH-FAIL',
         projectId: 100,
@@ -741,7 +741,7 @@ describe('MigrationService', () => {
       const dto: ImportCorrespondenceDto = {
         documentNumber: 'DOC-NOTYPE',
         subject: 'Test',
-        category: 'NonExistent',
+        correspondenceType: 'NonExistent',
         migratedBy: 'SYSTEM_IMPORT',
         batchId: 'BATCH-NOTYPE',
         projectId: 100,
@@ -769,7 +769,7 @@ describe('MigrationService', () => {
       const dto: ImportCorrespondenceDto = {
         documentNumber: 'DOC-CODE',
         subject: 'Test',
-        category: 'LETTER',
+        correspondenceType: 'LETTER',
         migratedBy: 'SYSTEM_IMPORT',
         batchId: 'BATCH-CODE',
         projectId: 100,
@@ -792,7 +792,7 @@ describe('MigrationService', () => {
       const dto: ImportCorrespondenceDto = {
         documentNumber: 'DOC-ALIAS',
         subject: 'Test',
-        category: 'Drawing',
+        correspondenceType: 'Drawing',
         migratedBy: 'SYSTEM_IMPORT',
         batchId: 'BATCH-ALIAS',
         projectId: 100,
@@ -821,7 +821,7 @@ describe('MigrationService', () => {
       const dto: ImportCorrespondenceDto = {
         documentNumber: 'DOC-DRAFT',
         subject: 'Test',
-        category: 'Letter',
+        correspondenceType: 'Letter',
         migratedBy: 'SYSTEM_IMPORT',
         batchId: 'BATCH-DRAFT',
         projectId: 100,
@@ -836,7 +836,7 @@ describe('MigrationService', () => {
       const dto: ImportCorrespondenceDto = {
         documentNumber: 'DOC-NOSTAT',
         subject: 'Test',
-        category: 'Letter',
+        correspondenceType: 'Letter',
         migratedBy: 'SYSTEM_IMPORT',
         batchId: 'BATCH-NOSTAT',
         projectId: 100,
@@ -853,7 +853,7 @@ describe('MigrationService', () => {
       const dto: ImportCorrespondenceDto = {
         documentNumber: 'DOC-NOPROJ',
         subject: 'Test',
-        category: 'Letter',
+        correspondenceType: 'Letter',
         migratedBy: 'SYSTEM_IMPORT',
         batchId: 'BATCH-NOPROJ',
         projectId: 999,
@@ -871,7 +871,7 @@ describe('MigrationService', () => {
       const dto: ImportCorrespondenceDto = {
         documentNumber: 'DOC-NOSENDER',
         subject: 'Test',
-        category: 'Letter',
+        correspondenceType: 'Letter',
         migratedBy: 'SYSTEM_IMPORT',
         batchId: 'BATCH-NOSENDER',
         projectId: 100,
@@ -892,7 +892,7 @@ describe('MigrationService', () => {
       const dto: ImportCorrespondenceDto = {
         documentNumber: 'DOC-NORECV',
         subject: 'Test',
-        category: 'Letter',
+        correspondenceType: 'Letter',
         migratedBy: 'SYSTEM_IMPORT',
         batchId: 'BATCH-NORECV',
         projectId: 100,
@@ -912,7 +912,7 @@ describe('MigrationService', () => {
       const dto: ImportCorrespondenceDto = {
         documentNumber: 'DOC-NODISC',
         subject: 'Test',
-        category: 'Letter',
+        correspondenceType: 'Letter',
         migratedBy: 'SYSTEM_IMPORT',
         batchId: 'BATCH-NODISC',
         projectId: 100,
@@ -937,7 +937,7 @@ describe('MigrationService', () => {
       const dto: ImportCorrespondenceDto = {
         documentNumber: 'DOC-RFA',
         subject: 'RFA Test',
-        category: 'RFA',
+        correspondenceType: 'RFA',
         migratedBy: 'SYSTEM_IMPORT',
         batchId: 'BATCH-RFA',
         projectId: 100,
@@ -963,7 +963,7 @@ describe('MigrationService', () => {
       const dto: ImportCorrespondenceDto = {
         documentNumber: 'DOC-RFA-NOTYPE',
         subject: 'RFA No Type',
-        category: 'RFA',
+        correspondenceType: 'RFA',
         migratedBy: 'SYSTEM_IMPORT',
         batchId: 'BATCH-RFA',
         projectId: 100,
@@ -984,7 +984,7 @@ describe('MigrationService', () => {
       const dto: ImportCorrespondenceDto = {
         documentNumber: 'DOC-RFA-NOSTAT',
         subject: 'RFA No Status',
-        category: 'RFA',
+        correspondenceType: 'RFA',
         migratedBy: 'SYSTEM_IMPORT',
         batchId: 'BATCH-RFA',
         projectId: 100,
@@ -1015,7 +1015,7 @@ describe('MigrationService', () => {
       const dto: ImportCorrespondenceDto = {
         documentNumber: 'DOC-EXIST',
         subject: 'Existing',
-        category: 'Letter',
+        correspondenceType: 'Letter',
         migratedBy: 'SYSTEM_IMPORT',
         batchId: 'BATCH-EXIST',
         projectId: 100,
@@ -1046,7 +1046,7 @@ describe('MigrationService', () => {
       const dto: ImportCorrespondenceDto = {
         documentNumber: 'DOC-REVUPD',
         subject: 'Updated Subject',
-        category: 'Letter',
+        correspondenceType: 'Letter',
         migratedBy: 'SYSTEM_IMPORT',
         batchId: 'BATCH-REVUPD',
         projectId: 100,
@@ -1063,7 +1063,7 @@ describe('MigrationService', () => {
       const dto: ImportCorrespondenceDto = {
         documentNumber: 'DOC-ATTIDS',
         subject: 'Test',
-        category: 'Letter',
+        correspondenceType: 'Letter',
         migratedBy: 'SYSTEM_IMPORT',
         batchId: 'BATCH-ATTIDS',
         projectId: 100,
@@ -1087,7 +1087,7 @@ describe('MigrationService', () => {
       const dto: ImportCorrespondenceDto = {
         documentNumber: 'DOC-MULTIERR',
         subject: 'Multi error',
-        category: 'Letter',
+        correspondenceType: 'Letter',
         migratedBy: 'SYSTEM_IMPORT',
         batchId: 'BATCH-MULTIERR',
         projectId: 100,
@@ -1106,7 +1106,7 @@ describe('MigrationService', () => {
       const dto: ImportCorrespondenceDto = {
         documentNumber: 'DOC-SINGLEERR',
         subject: 'Single error',
-        category: 'Letter',
+        correspondenceType: 'Letter',
         migratedBy: 'SYSTEM_IMPORT',
         batchId: 'BATCH-SINGLEERR',
         projectId: 100,
@@ -1129,7 +1129,7 @@ describe('MigrationService', () => {
       const dto: ImportCorrespondenceDto = {
         documentNumber: 'DOC-RAG',
         subject: 'RAG Test',
-        category: 'Letter',
+        correspondenceType: 'Letter',
         migratedBy: 'SYSTEM_IMPORT',
         batchId: 'BATCH-RAG',
         projectId: 100,
@@ -1152,7 +1152,7 @@ describe('MigrationService', () => {
       const dto: ImportCorrespondenceDto = {
         documentNumber: 'DOC-TAGS',
         subject: 'Tags Test',
-        category: 'Letter',
+        correspondenceType: 'Letter',
         migratedBy: 'SYSTEM_IMPORT',
         batchId: 'BATCH-TAGS',
         projectId: 100,
@@ -1183,7 +1183,7 @@ describe('MigrationService', () => {
       const dto: ImportCorrespondenceDto = {
         documentNumber: 'DOC-ERR',
         subject: 'Error Test',
-        category: 'Letter',
+        correspondenceType: 'Letter',
         migratedBy: 'SYSTEM_IMPORT',
         batchId: 'BATCH-ERR',
         projectId: 100,
@@ -1252,7 +1252,7 @@ describe('MigrationService', () => {
       const dto: EnqueueMigrationDto = {
         documentNumber: 'DOC-NEW',
         subject: 'New doc',
-        category: 'Letter',
+        correspondenceType: 'Letter',
         projectId: 100,
         tempAttachmentIds: [10, 20],
         compareStatus: CompareStatus.COMPARED,
@@ -1314,7 +1314,7 @@ describe('MigrationService', () => {
         id: 1,
         ocrText: null,
         aiSummary: null,
-        aiSuggestedCategory: null,
+        aiSuggestedCorrespondenceType: null,
         extractedTags: null,
         aiConfidence: null,
         aiIssues: null,
@@ -1328,7 +1328,7 @@ describe('MigrationService', () => {
       await service.updateQueueEnrichment(1, {
         ocrText: 'OCR text',
         aiSummary: 'Summary',
-        aiSuggestedCategory: 'LETTER',
+        aiSuggestedCorrespondenceType: 'LETTER',
         extractedTags: [{ tag: 'value' }],
         aiConfidence: 0.85,
         aiIssues: [{ issue: 'test' }],
@@ -1339,7 +1339,7 @@ describe('MigrationService', () => {
 
       expect(item.ocrText).toBe('OCR text');
       expect(item.aiSummary).toBe('Summary');
-      expect(item.aiSuggestedCategory).toBe('LETTER');
+      expect(item.aiSuggestedCorrespondenceType).toBe('LETTER');
       expect(item.aiConfidence).toBe(0.85);
       expect(item.aiStatus).toBe(MigrationAiStatus.DONE);
       expect(item.status).toBe(MigrationReviewStatus.PENDING_REVIEW);
@@ -1501,7 +1501,7 @@ describe('MigrationService', () => {
           details: { source_file_path: '/staging/doc.pdf' },
           ocrText: 'old ocr',
           aiSummary: 'old summary',
-          aiSuggestedCategory: 'LETTER',
+          aiSuggestedCorrespondenceType: 'LETTER',
           extractedTags: [{ id: '1', name: 'old' }],
           aiConfidence: 0.9,
           aiIssues: [{ code: 'OLD' }],
@@ -1545,7 +1545,7 @@ describe('MigrationService', () => {
           aiJobId: null,
           ocrText: null,
           aiSummary: null,
-          aiSuggestedCategory: null,
+          aiSuggestedCorrespondenceType: null,
           extractedTags: null,
           aiConfidence: null,
           aiIssues: null,
@@ -1708,7 +1708,7 @@ describe('MigrationService', () => {
         tempAttachmentId: null,
         senderOrganizationId: 10,
         receiverOrganizationId: 20,
-        aiSuggestedCategory: 'LETTER',
+        aiSuggestedCorrespondenceType: 'LETTER',
       } as unknown as MigrationReviewQueue;
       mockReviewQueueRepo.findOne.mockResolvedValue(item);
       mockAttachmentFind.mockResolvedValue([]);
@@ -1901,7 +1901,7 @@ describe('MigrationService', () => {
       const dto: ImportCorrespondenceDto = {
         documentNumber: 'DOC-1',
         subject: 'Test',
-        category: 'Letter',
+        correspondenceType: 'Letter',
         migratedBy: 'SYSTEM_IMPORT',
         projectId: 100,
       };
@@ -1918,7 +1918,7 @@ describe('MigrationService', () => {
       const dto: ImportCorrespondenceDto = {
         documentNumber: 'DOC-1',
         subject: 'Test',
-        category: 'Letter',
+        correspondenceType: 'Letter',
         migratedBy: 'SYSTEM_IMPORT',
         projectId: 100,
       };
@@ -1962,7 +1962,7 @@ describe('MigrationService', () => {
       const dto: ImportCorrespondenceDto = {
         documentNumber: 'DOC-APPR',
         subject: 'Approve',
-        category: 'Letter',
+        correspondenceType: 'Letter',
         migratedBy: 'SYSTEM_IMPORT',
         batchId: 'BATCH-APPR',
         projectId: 100,
@@ -1980,7 +1980,7 @@ describe('MigrationService', () => {
       const dto: ImportCorrespondenceDto = {
         documentNumber: 'DOC-1',
         subject: 'Test',
-        category: 'Letter',
+        correspondenceType: 'Letter',
         migratedBy: 'SYSTEM_IMPORT',
         projectId: 100,
       };
@@ -1998,7 +1998,7 @@ describe('MigrationService', () => {
       const dto: ImportCorrespondenceDto = {
         documentNumber: 'DOC-1',
         subject: 'Test',
-        category: 'Letter',
+        correspondenceType: 'Letter',
         migratedBy: 'SYSTEM_IMPORT',
         projectId: 100,
       };
@@ -2042,7 +2042,7 @@ describe('MigrationService', () => {
       const dto: ImportCorrespondenceDto = {
         documentNumber: 'DOC-APPRPB',
         subject: 'Approve by publicId',
-        category: 'Letter',
+        correspondenceType: 'Letter',
         migratedBy: 'SYSTEM_IMPORT',
         batchId: 'BATCH-APPRPB',
         projectId: 100,
@@ -2118,7 +2118,7 @@ describe('MigrationService', () => {
             dto: {
               documentNumber: 'DOC-OK',
               subject: 'OK',
-              category: 'Letter',
+              correspondenceType: 'Letter',
               migratedBy: 'SYSTEM_IMPORT',
               projectId: 100,
             } as unknown as ImportCorrespondenceDto,
@@ -2128,7 +2128,7 @@ describe('MigrationService', () => {
             dto: {
               documentNumber: 'DOC-BAD',
               subject: 'Bad',
-              category: 'Letter',
+              correspondenceType: 'Letter',
               migratedBy: 'SYSTEM_IMPORT',
               projectId: 100,
             } as unknown as ImportCorrespondenceDto,
@@ -2262,10 +2262,10 @@ describe('MigrationService', () => {
           ocrQuality: { confidence: 0.9, issues: [] },
           metadata: {
             summary: 'test',
-            category: 'LETTER',
+            correspondenceType: 'LETTER',
             tags: [],
             // ต่ำกว่า threshold 0.6 → ต้อง flag true
-            confidence: { summary: 0.9, category: 0.9, tags: 0.5 },
+            confidence: { summary: 0.9, correspondenceType: 0.9, tags: 0.5 },
           },
           // ค่าที่ LLM พยายามส่งมาเอง — backend ต้อง ignore ทิ้งเสมอ (Decision 3)
           requiresHumanReview: false,
@@ -2294,9 +2294,9 @@ describe('MigrationService', () => {
           ocrQuality: { confidence: 0.8, issues: [] },
           metadata: {
             summary: 'test',
-            category: 'LETTER',
+            correspondenceType: 'LETTER',
             tags: [],
-            confidence: { summary: 0.7, category: 0.75, tags: 0.65 },
+            confidence: { summary: 0.7, correspondenceType: 0.75, tags: 0.65 },
           },
         } as unknown as Record<string, unknown>,
       });
@@ -2322,9 +2322,9 @@ describe('MigrationService', () => {
           ocrQuality: { confidence: 0.99, issues: [] },
           metadata: {
             summary: 'test',
-            category: 'LETTER',
+            correspondenceType: 'LETTER',
             tags: [],
-            confidence: { summary: 0.7, category: 0.65, tags: 0.6 },
+            confidence: { summary: 0.7, correspondenceType: 0.65, tags: 0.6 },
           },
         } as unknown as Record<string, unknown>,
       });
@@ -2369,9 +2369,9 @@ describe('MigrationService', () => {
           ocrQuality: { confidence: 0.9, issues: [] },
           metadata: {
             summary: 's',
-            category: 'LETTER',
+            correspondenceType: 'LETTER',
             tags: [],
-            confidence: { summary: 0.9, category: 0.9, tags: 0.9 },
+            confidence: { summary: 0.9, correspondenceType: 0.9, tags: 0.9 },
           },
         },
         tempAttachmentIds: null,

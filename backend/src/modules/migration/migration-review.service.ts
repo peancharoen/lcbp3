@@ -85,7 +85,12 @@ const readTagName = (value: Record<string, string>): string => {
 };
 
 /** field ที่ commit gate ตรวจสอบได้ (ADR-050 §4/data-model.md §4, FR-013/FR-014) */
-const GATED_FIELDS = ['ocrQuality', 'summary', 'category', 'tags'] as const;
+const GATED_FIELDS = [
+  'ocrQuality',
+  'summary',
+  'correspondenceType',
+  'tags',
+] as const;
 type GatedField = (typeof GATED_FIELDS)[number];
 
 /**
@@ -211,7 +216,7 @@ export class MigrationReviewService {
     const confidenceOf: Record<GatedField, number | undefined> = {
       ocrQuality: typeof ocrConfidence === 'number' ? ocrConfidence : undefined,
       summary: metaConfidence?.summary,
-      category: metaConfidence?.category,
+      correspondenceType: metaConfidence?.correspondenceType,
       tags: metaConfidence?.tags,
     };
 
@@ -235,10 +240,10 @@ export class MigrationReviewService {
         edited =
           dto.subject !== undefined &&
           dto.subject !== details?.metadata?.summary;
-      } else if (field === 'category') {
+      } else if (field === 'correspondenceType') {
         edited =
-          dto.category !== undefined &&
-          dto.category !== details?.metadata?.category;
+          dto.correspondenceType !== undefined &&
+          dto.correspondenceType !== details?.metadata?.correspondenceType;
       } else if (field === 'tags') {
         // การส่ง tagDecisions มา (ไม่ว่าง) ถือเป็น review action ของ tag ชุดนี้แล้ว (simplify)
         edited = Array.isArray(dto.tagDecisions) && dto.tagDecisions.length > 0;
@@ -439,23 +444,24 @@ export class MigrationReviewService {
       if (!project) {
         throw new NotFoundException('Project', String(resolvedProjectId));
       }
-      const category = dto.category ?? queueItem.aiSuggestedCategory;
-      if (!category) {
-        throw new ValidationException('Category is required');
+      const correspondenceType =
+        dto.correspondenceType ?? queueItem.aiSuggestedCorrespondenceType;
+      if (!correspondenceType) {
+        throw new ValidationException('Correspondence Type is required');
       }
-      // ADR-050 T017 (FR-005/SC-003): category ที่จะ commit ต้องอยู่ใน correspondence_types.typeCode
+      // ADR-050 T017 (FR-005/SC-003): correspondenceType ที่จะ commit ต้องอยู่ใน correspondence_types.typeCode
       // (จริง — ไม่ใช่แค่ prompt-time restriction ที่ T007 ทำไปแล้ว) ป้องกันเขียนหมวดหมู่นอกรายการ
-      const allowedCategoryCodes =
+      const allowedCorrespondenceTypeCodes =
         await this.migrationService.getAllowedCategoryCodes();
-      if (!allowedCategoryCodes.includes(category)) {
+      if (!allowedCorrespondenceTypeCodes.includes(correspondenceType)) {
         throw new BusinessException(
           'CATEGORY_NOT_ALLOWED',
-          `Category "${category}" is not in the allowed correspondence_types.typeCode list`,
-          `หมวดหมู่ "${category}" ไม่อยู่ในรายการที่ระบบอนุญาต`,
+          `Correspondence Type "${correspondenceType}" is not in the allowed correspondence_types.typeCode list`,
+          `ประเภทเอกสาร "${correspondenceType}" ไม่อยู่ในรายการที่ระบบอนุญาต`,
           ['เลือกหมวดหมู่จากรายการที่ระบบกำหนด (correspondence_types)']
         );
       }
-      // หมายเหตุ: การ gate T017 ด้านบนบังคับให้ category ต้องเป็น typeCode ตรงตัวอยู่แล้ว —
+      // หมายเหตุ: การ gate T017 ด้านบนบังคับให้ correspondenceType ต้องเป็น typeCode ตรงตัวอยู่แล้ว —
       // alias map ด้านล่างนี้จึงไม่ถูกใช้งานจริงอีกต่อไปสำหรับ commit path ใหม่ (unreachable
       // สำหรับค่า alias เดิมอย่าง "Correspondence"/"Drawing"/ฯลฯ) คงไว้เพื่อลด blast radius —
       // ไม่อยู่ใน scope ของ FOUND-COMMIT (ADR-050 §1 สั่งลบเฉพาะ map ใน migration.service.ts)
@@ -467,25 +473,25 @@ export class MigrationReviewService {
         Other: 'OTHER',
       };
       const type = await queryRunner.manager.findOne(CorrespondenceType, {
-        where: { typeName: category },
+        where: { typeName: correspondenceType },
       });
       let typeId = type
         ? type.id
         : (
             await queryRunner.manager.findOne(CorrespondenceType, {
-              where: { typeCode: category },
+              where: { typeCode: correspondenceType },
             })
           )?.id;
-      if (!typeId && CATEGORY_ALIAS[category]) {
+      if (!typeId && CATEGORY_ALIAS[correspondenceType]) {
         typeId = (
           await queryRunner.manager.findOne(CorrespondenceType, {
-            where: { typeCode: CATEGORY_ALIAS[category] },
+            where: { typeCode: CATEGORY_ALIAS[correspondenceType] },
           })
         )?.id;
       }
       if (!typeId) {
         throw new ValidationException(
-          `Category "${category}" not found in system`
+          `Correspondence Type "${correspondenceType}" not found in system`
         );
       }
       let status = await queryRunner.manager.findOne(CorrespondenceStatus, {
@@ -526,7 +532,7 @@ export class MigrationReviewService {
           createdBy: userId,
         });
         await queryRunner.manager.save(correspondence);
-        const isRFA = type?.typeCode === 'RFA' || category === 'RFA';
+        const isRFA = type?.typeCode === 'RFA' || correspondenceType === 'RFA';
         if (isRFA) {
           const rfaTypeRes = await queryRunner.manager.query<{ id: number }[]>(
             'SELECT id FROM rfa_types WHERE type_code = ? LIMIT 1',
@@ -601,7 +607,9 @@ export class MigrationReviewService {
         dto.issuedDate ?? queueItem.issuedDate
       );
       const docTypeForFolder =
-        dto.category ?? queueItem.aiSuggestedCategory ?? 'General';
+        dto.correspondenceType ??
+        queueItem.aiSuggestedCorrespondenceType ??
+        'General';
       const yearFolder = issuedDateForFolder.getFullYear().toString();
       const monthFolder = (issuedDateForFolder.getMonth() + 1)
         .toString()
@@ -727,7 +735,7 @@ export class MigrationReviewService {
         revision.id,
         attachmentIds
       );
-      const isRFA = type?.typeCode === 'RFA' || category === 'RFA';
+      const isRFA = type?.typeCode === 'RFA' || docTypeForFolder === 'RFA';
       if (isRFA) {
         const rfaStatusRes = await queryRunner.manager.query<{ id: number }[]>(
           'SELECT id FROM rfa_status_codes WHERE status_code = ? LIMIT 1',

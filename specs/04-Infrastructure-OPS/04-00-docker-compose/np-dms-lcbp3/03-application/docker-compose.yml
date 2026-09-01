@@ -136,6 +136,7 @@ services:
       # --- AI timeouts (ms) — realtime default 30s, batch 120s (ADR-023A) ---
       AI_TIMEOUT_MS: ${AI_TIMEOUT_MS:-30000}
       AI_BATCH_TIMEOUT_MS: ${AI_BATCH_TIMEOUT_MS:-120000}
+      OLLAMA_MAIN_KEEP_ALIVE_SECONDS: ${OLLAMA_MAIN_KEEP_ALIVE_SECONDS:-120}
       # --- Numbering ---
       NUMBERING_LOCK_TIMEOUT: '5000'
       NUMBERING_RESERVATION_TTL: '300'

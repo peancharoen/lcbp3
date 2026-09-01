@@ -64,12 +64,12 @@ export class MigrationReviewQueue extends UuidBaseEntity {
   body?: string;
 
   @Column({
-    name: 'ai_suggested_category',
+    name: 'ai_suggested_correspondence_type',
     type: 'varchar',
     length: 50,
     nullable: true,
   })
-  aiSuggestedCategory?: string | null;
+  aiSuggestedCorrespondenceType?: string | null;
 
   @Column({
     name: 'ai_confidence',
@@ -219,7 +219,7 @@ export class MigrationReviewQueue extends UuidBaseEntity {
   /** รหัสองค์กรผู้รับ (แสดงผลใน Legacy Management) */
   receiverOrganizationCode?: string | null;
   /** ชื่อประเภทเอกสาร (แสดงผลใน Legacy Management) */
-  aiSuggestedCategoryName?: string | null;
+  aiSuggestedCorrespondenceTypeName?: string | null;
   /** ADR-019: publicId (UUID) ขององค์กรผู้ส่ง (สำหรับ dropdown selection) */
   senderOrganizationPublicId?: string | null;
   /** ADR-019: publicId (UUID) ขององค์กรผู้รับ (สำหรับ dropdown selection) */

@@ -20,7 +20,7 @@ editing an existing row in place).
 Alongside the existing `{{ocr_text}}` and `{{master_data_context}}` placeholders, this
 version adds:
 
-- `{{allowed_categories}}` — sourced from `correspondence_types.typeCode` (ADR-050 §9,
+- `{{allowed_correspondence_types}}` — sourced from `correspondence_types.typeCode` (ADR-050 §9,
   decision item 1)
 - `{{existing_tags}}` — sourced from master `tags` (project-scoped and/or global) to help
   the LLM decide `tags[].isNew` accurately (ADR-050 §9)
@@ -38,8 +38,8 @@ version adds:
 ## OCR Text
 {{ocr_text}}
 
-## หมวดหมู่ที่อนุญาต (allowed_categories)
-{{allowed_categories}}
+## ประเภทเอกสารที่อนุญาต (allowed_correspondence_types)
+{{allowed_correspondence_types}}
 
 ## Tag ที่มีอยู่แล้วในระบบ (existing_tags)
 {{existing_tags}}
@@ -49,7 +49,7 @@ version adds:
 
 # กติกา
 
-1. `category` ต้องเลือกจาก `allowed_categories` เท่านั้น ห้ามสร้างค่าใหม่
+1. `correspondenceType` ต้องเลือกจาก `allowed_correspondence_types` เท่านั้น ห้ามสร้างค่าใหม่
 2. `tags[].isNew = true` เฉพาะเมื่อชื่อ tag ไม่ตรง (case-insensitive) กับรายการใน `existing_tags`
 3. `tags[].evidence` ต้องเป็นข้อความที่ตัดตรงมาจาก OCR Text เท่านั้น ห้ามแต่งเอง
 4. `ocrQuality.confidence` ประเมินจาก "อ่านได้/ต่อเนื่องของข้อความ" เท่านั้น — คุณไม่เห็นภาพต้นฉบับ ห้ามอ้างว่าเป็นความถูกต้องเทียบต้นฉบับ
@@ -68,11 +68,11 @@ version adds:
   },
   "metadata": {
     "summary": "string",
-    "category": "string (ต้องอยู่ใน allowed_categories)",
+    "correspondenceType": "string (ต้องอยู่ใน allowed_correspondence_types)",
     "tags": [
       { "name": "string", "isNew": true, "evidence": "string" }
     ],
-    "confidence": { "summary": 0.0, "category": 0.0, "tags": 0.0 }
+    "confidence": { "summary": 0.0, "correspondenceType": 0.0, "tags": 0.0 }
   }
 }
 ```

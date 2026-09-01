@@ -324,7 +324,7 @@ export class LegacyIngestionService {
 
             queueItem.subject = subject || undefined;
             queueItem.originalSubject = subject || undefined;
-            queueItem.aiSuggestedCategory =
+            queueItem.aiSuggestedCorrespondenceType =
               resolvedCategory ?? category ?? undefined;
             queueItem.projectId = project.id;
             queueItem.senderOrganizationId = senderOrgId;

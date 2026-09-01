@@ -6,18 +6,24 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AiPrompt } from './ai-prompts.entity';
+import { AiPromptType } from './ai-prompt-types.entity';
 import { AuditLog } from '../../../common/entities/audit-log.entity';
 import { AiPromptsService } from './ai-prompts.service';
+import { AiPromptTypesService } from './ai-prompt-types.service';
 import { AiPromptsController } from './ai-prompts.controller';
+import { AiPromptTypesController } from './ai-prompt-types.controller';
 import { UserModule } from '../../user/user.module';
 
 /**
  * Module สำหรับการจัดการเวอร์ชันของ AI Prompts ใน OCR Pipeline
  */
 @Module({
-  imports: [TypeOrmModule.forFeature([AiPrompt, AuditLog]), UserModule],
-  controllers: [AiPromptsController],
-  providers: [AiPromptsService],
-  exports: [AiPromptsService],
+  imports: [
+    TypeOrmModule.forFeature([AiPrompt, AiPromptType, AuditLog]),
+    UserModule,
+  ],
+  controllers: [AiPromptsController, AiPromptTypesController],
+  providers: [AiPromptsService, AiPromptTypesService],
+  exports: [AiPromptsService, AiPromptTypesService],
 })
 export class AiPromptsModule {}

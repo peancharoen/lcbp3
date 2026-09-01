@@ -9,12 +9,28 @@ import { DataSource } from 'typeorm';
 import { ForbiddenException } from '@nestjs/common';
 import { AiPromptsService } from './ai-prompts.service';
 import { AiPrompt } from './ai-prompts.entity';
+import { AiPromptTypesService } from './ai-prompt-types.service';
 import { AuditLog } from '../../../common/entities/audit-log.entity';
 import {
   BusinessException,
   ValidationException,
   NotFoundException,
 } from '../../../common/exceptions';
+
+const mockAiPromptTypesService = {
+  findByType: jest.fn().mockImplementation((type: string) => {
+    const expectedPlaceholders: Record<string, string[]> = {
+      ocr_extraction: ['ocr_text'],
+      rag_query_prompt: ['query', 'context'],
+      rag_prep_prompt: ['text'],
+      classification_prompt: ['document_text'],
+    };
+    return Promise.resolve({
+      promptType: type,
+      expectedPlaceholders: expectedPlaceholders[type] ?? [],
+    });
+  }),
+};
 
 describe('AiPromptsService', () => {
   let service: AiPromptsService;
@@ -71,6 +87,10 @@ describe('AiPromptsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AiPromptsService,
+        {
+          provide: AiPromptTypesService,
+          useValue: mockAiPromptTypesService,
+        },
         {
           provide: getRepositoryToken(AiPrompt),
           useValue: mockAiPromptRepo,

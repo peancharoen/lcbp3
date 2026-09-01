@@ -101,7 +101,7 @@ async def unload_ollama_model(
     """
     บังคับ unload model จาก Ollama VRAM โดยส่ง empty request พร้อม keep_alive=0 (FR-002)
 
-    ใช้ endpoint /v1/chat/completions (OpenAI-compatible) เพื่อความสอดคล้องกับ inference endpoint
+    ใช้ native endpoint /api/generate เพราะรองรับ empty prompt สำหรับ unload โดยตรง
 
     Args:
         ollama_url: Ollama API base URL (เช่น http://host.docker.internal:11434)
@@ -113,7 +113,7 @@ async def unload_ollama_model(
     """
     payload = {
         "model": model_name,
-        "messages": [],
+        "prompt": "",
         "keep_alive": 0,
         "stream": False,
     }
@@ -125,9 +125,8 @@ async def unload_ollama_model(
 
     try:
         response = await client.post(
-            f"{ollama_url}/v1/chat/completions",
+            f"{ollama_url}/api/generate",
             json=payload,
-            headers={"Authorization": "Bearer ollama"},
         )
         response.raise_for_status()
         logger.info(f"Model unload successful: model={model_name}")

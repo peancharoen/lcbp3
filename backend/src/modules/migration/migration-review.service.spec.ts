@@ -63,7 +63,7 @@ import * as fs from 'fs-extra';
 import { linkAttachmentsToRevision } from './utils/attachment-linking.util';
 
 /** typeCode ที่ mock ให้ "อนุญาต" เป็นค่า default สำหรับทุก happy-path test (T017 gate) —
- *  รวม 'Correspondence' (ค่า default ของ aiSuggestedCategory ใน makeQueueItem) ไว้ด้วยเพื่อไม่ให้
+ *  รวม 'Correspondence' (ค่า default ของ aiSuggestedCorrespondenceType ใน makeQueueItem) ไว้ด้วยเพื่อไม่ให้
  *  ต้อง rewrite ทุก test เดิมที่ไม่เกี่ยวกับ T017 โดยตรง — test ใหม่ของ T025 ใช้ category ที่ไม่อยู่
  *  ในรายการนี้อย่างชัดเจนแทน */
 const DEFAULT_ALLOWED_CATEGORY_CODES = [
@@ -249,7 +249,7 @@ function makeQueueItem(
     status: MigrationReviewStatus.PENDING,
     documentNumber: 'DOC-001',
     projectId: 5,
-    aiSuggestedCategory: 'Correspondence',
+    aiSuggestedCorrespondenceType: 'Correspondence',
     subject: 'Test Subject',
     originalSubject: 'Original Subject',
     body: 'Test body',
@@ -492,13 +492,13 @@ describe('MigrationReviewService', () => {
   describe('commitRecord — category validation', () => {
     it('throws ValidationException when category is missing', async () => {
       const qr = createMockQueryRunner({
-        queueItem: makeQueueItem({ aiSuggestedCategory: undefined }),
+        queueItem: makeQueueItem({ aiSuggestedCorrespondenceType: undefined }),
       });
       dataSource.createQueryRunner.mockReturnValue(qr);
 
       await expect(
         service.commitRecord(
-          makeDto({ category: undefined }),
+          makeDto({ correspondenceType: undefined }),
           1,
           'idem-key-006'
         )
@@ -508,7 +508,9 @@ describe('MigrationReviewService', () => {
 
     it('throws BusinessException (T017) when category not in allowed correspondence_types.typeCode list', async () => {
       const qr = createMockQueryRunner({
-        queueItem: makeQueueItem({ aiSuggestedCategory: 'UnknownCat' }),
+        queueItem: makeQueueItem({
+          aiSuggestedCorrespondenceType: 'UnknownCat',
+        }),
         typeByTypeName: null,
         typeByCode: null,
         typeByAlias: null,
@@ -517,7 +519,7 @@ describe('MigrationReviewService', () => {
 
       await expect(
         service.commitRecord(
-          makeDto({ category: 'UnknownCat' }),
+          makeDto({ correspondenceType: 'UnknownCat' }),
           1,
           'idem-key-007'
         )
@@ -527,13 +529,13 @@ describe('MigrationReviewService', () => {
 
     it('resolves category via typeName lookup (first match)', async () => {
       const qr = createMockQueryRunner({
-        queueItem: makeQueueItem({ aiSuggestedCategory: 'LETTER' }),
+        queueItem: makeQueueItem({ aiSuggestedCorrespondenceType: 'LETTER' }),
         typeByTypeName: { id: 7, typeCode: 'LETTER' },
       });
       dataSource.createQueryRunner.mockReturnValue(qr);
 
       const res = await service.commitRecord(
-        makeDto({ category: 'LETTER' }),
+        makeDto({ correspondenceType: 'LETTER' }),
         1,
         'idem-key-008'
       );
@@ -544,7 +546,7 @@ describe('MigrationReviewService', () => {
 
     it('resolves category via typeCode lookup (second match)', async () => {
       const qr = createMockQueryRunner({
-        queueItem: makeQueueItem({ aiSuggestedCategory: 'RFA' }),
+        queueItem: makeQueueItem({ aiSuggestedCorrespondenceType: 'RFA' }),
         typeByTypeName: null,
         typeByCode: { id: 3, typeCode: 'RFA' },
         typeByAlias: null,
@@ -552,7 +554,7 @@ describe('MigrationReviewService', () => {
       dataSource.createQueryRunner.mockReturnValue(qr);
 
       const res = await service.commitRecord(
-        makeDto({ category: 'RFA' }),
+        makeDto({ correspondenceType: 'RFA' }),
         1,
         'idem-key-009'
       );
@@ -683,7 +685,7 @@ describe('MigrationReviewService', () => {
     it('creates Rfa record for new RFA correspondence', async () => {
       const qr = createMockQueryRunner(
         {
-          queueItem: makeQueueItem({ aiSuggestedCategory: 'RFA' }),
+          queueItem: makeQueueItem({ aiSuggestedCorrespondenceType: 'RFA' }),
           typeByTypeName: null,
           typeByCode: { id: 3, typeCode: 'RFA' },
           typeByAlias: null,
@@ -696,7 +698,7 @@ describe('MigrationReviewService', () => {
       dataSource.createQueryRunner.mockReturnValue(qr);
 
       const res = await service.commitRecord(
-        makeDto({ category: 'RFA' }),
+        makeDto({ correspondenceType: 'RFA' }),
         1,
         'idem-key-rfa-001'
       );
@@ -713,7 +715,7 @@ describe('MigrationReviewService', () => {
     it('throws BusinessException when RFA type not found', async () => {
       const qr = createMockQueryRunner(
         {
-          queueItem: makeQueueItem({ aiSuggestedCategory: 'RFA' }),
+          queueItem: makeQueueItem({ aiSuggestedCorrespondenceType: 'RFA' }),
           typeByTypeName: null,
           typeByCode: { id: 3, typeCode: 'RFA' },
           typeByAlias: null,
@@ -726,7 +728,7 @@ describe('MigrationReviewService', () => {
 
       await expect(
         service.commitRecord(
-          makeDto({ category: 'RFA' }),
+          makeDto({ correspondenceType: 'RFA' }),
           1,
           'idem-key-rfa-002'
         )
@@ -737,7 +739,7 @@ describe('MigrationReviewService', () => {
     it('throws BusinessException when RFA status not found', async () => {
       const qr = createMockQueryRunner(
         {
-          queueItem: makeQueueItem({ aiSuggestedCategory: 'RFA' }),
+          queueItem: makeQueueItem({ aiSuggestedCorrespondenceType: 'RFA' }),
           typeByTypeName: null,
           typeByCode: { id: 3, typeCode: 'RFA' },
           typeByAlias: null,
@@ -751,7 +753,7 @@ describe('MigrationReviewService', () => {
 
       await expect(
         service.commitRecord(
-          makeDto({ category: 'RFA' }),
+          makeDto({ correspondenceType: 'RFA' }),
           1,
           'idem-key-rfa-003'
         )
@@ -1046,9 +1048,9 @@ describe('MigrationReviewService', () => {
           ocrQuality: { confidence: 0.9, issues: [] },
           metadata: {
             summary: 'AI generated summary text',
-            category: 'LETTER',
+            correspondenceType: 'LETTER',
             tags: [],
-            confidence: { summary: 0.3, category: 0.9, tags: 0.9 },
+            confidence: { summary: 0.3, correspondenceType: 0.9, tags: 0.9 },
           },
         },
         ocrQualityConfidence: 0.9,
@@ -1063,7 +1065,11 @@ describe('MigrationReviewService', () => {
       dataSource.createQueryRunner.mockReturnValue(qr);
 
       const error = await service
-        .commitRecord(makeDto({ category: 'LETTER' }), 1, 'idem-key-gate-001')
+        .commitRecord(
+          makeDto({ correspondenceType: 'LETTER' }),
+          1,
+          'idem-key-gate-001'
+        )
         .catch((e: unknown) => e);
 
       expect(error).toBeInstanceOf(UnresolvedFieldsException);
@@ -1081,7 +1087,11 @@ describe('MigrationReviewService', () => {
       dataSource.createQueryRunner.mockReturnValue(qr);
 
       const error = await service
-        .commitRecord(makeDto({ category: 'LETTER' }), 1, 'idem-key-gate-prod')
+        .commitRecord(
+          makeDto({ correspondenceType: 'LETTER' }),
+          1,
+          'idem-key-gate-prod'
+        )
         .catch((e: unknown) => e);
 
       expect(error).toBeInstanceOf(UnresolvedFieldsException);
@@ -1107,7 +1117,10 @@ describe('MigrationReviewService', () => {
       dataSource.createQueryRunner.mockReturnValue(qr);
 
       const res = await service.commitRecord(
-        makeDto({ category: 'LETTER', subject: 'Reviewer-edited subject' }),
+        makeDto({
+          correspondenceType: 'LETTER',
+          subject: 'Reviewer-edited subject',
+        }),
         1,
         'idem-key-gate-002'
       );
@@ -1124,7 +1137,7 @@ describe('MigrationReviewService', () => {
 
       const res = await service.commitRecord(
         makeDto({
-          category: 'LETTER',
+          correspondenceType: 'LETTER',
           fieldAcknowledgments: ['summary'],
         }),
         1,
@@ -1144,7 +1157,10 @@ describe('MigrationReviewService', () => {
       // reviewer แก้ category (ซึ่งไม่ใช่ field ที่ trigger — summary ต่างหากที่ trigger)
       const error = await service
         .commitRecord(
-          makeDto({ category: 'LETTER', fieldAcknowledgments: ['category'] }),
+          makeDto({
+            correspondenceType: 'LETTER',
+            fieldAcknowledgments: ['correspondenceType'],
+          }),
           1,
           'idem-key-gate-004'
         )
@@ -1177,12 +1193,16 @@ describe('MigrationReviewService', () => {
             ocrQuality: { confidence: 0.95, issues: [] },
             metadata: {
               summary: 'summary',
-              category: 'LETTER',
+              correspondenceType: 'LETTER',
               tags: [
                 { name: 'accepted-tag', isNew: true, evidence: 'ev-1' },
                 { name: 'rejected-tag', isNew: false, evidence: 'ev-2' },
               ],
-              confidence: { summary: 0.95, category: 0.95, tags: 0.95 },
+              confidence: {
+                summary: 0.95,
+                correspondenceType: 0.95,
+                tags: 0.95,
+              },
             },
           },
         }),
@@ -1192,7 +1212,7 @@ describe('MigrationReviewService', () => {
 
       await service.commitRecord(
         makeDto({
-          category: 'LETTER',
+          correspondenceType: 'LETTER',
           tagDecisions: [
             { name: 'accepted-tag', accepted: true, evidence: 'ev-1' },
             {
@@ -1221,7 +1241,7 @@ describe('MigrationReviewService', () => {
             ocrQuality: { confidence: 0.95, issues: [] },
             metadata: {
               summary: 'summary',
-              category: 'LETTER',
+              correspondenceType: 'LETTER',
               tags: [
                 {
                   name: 'rejected-tag',
@@ -1229,7 +1249,11 @@ describe('MigrationReviewService', () => {
                   evidence: 'evidence-text',
                 },
               ],
-              confidence: { summary: 0.95, category: 0.95, tags: 0.95 },
+              confidence: {
+                summary: 0.95,
+                correspondenceType: 0.95,
+                tags: 0.95,
+              },
             },
           },
         }),
@@ -1238,7 +1262,7 @@ describe('MigrationReviewService', () => {
 
       await service.commitRecord(
         makeDto({
-          category: 'LETTER',
+          correspondenceType: 'LETTER',
           tagDecisions: [
             {
               name: 'rejected-tag',
@@ -1277,9 +1301,13 @@ describe('MigrationReviewService', () => {
             ocrQuality: { confidence: 0.95, issues: [] },
             metadata: {
               summary: 'summary',
-              category: 'LETTER',
+              correspondenceType: 'LETTER',
               tags: [{ name: 'real-suggestion', isNew: false, evidence: 'ev' }],
-              confidence: { summary: 0.95, category: 0.95, tags: 0.95 },
+              confidence: {
+                summary: 0.95,
+                correspondenceType: 0.95,
+                tags: 0.95,
+              },
             },
           },
         }),
@@ -1289,7 +1317,7 @@ describe('MigrationReviewService', () => {
       await expect(
         service.commitRecord(
           makeDto({
-            category: 'LETTER',
+            correspondenceType: 'LETTER',
             tagDecisions: [{ name: 'forged-tag-name', accepted: true }],
           }),
           1,

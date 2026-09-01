@@ -23,6 +23,7 @@ describe('OllamaService (ADR-034)', () => {
     OLLAMA_MODEL_EMBED: 'nomic-embed-text', // ยังตั้งค่าใน test เพื่อทดสอบ generateEmbedding path
     AI_TIMEOUT_MS: 30000,
     AI_BATCH_TIMEOUT_MS: 120000,
+    OLLAMA_MAIN_KEEP_ALIVE_SECONDS: 120,
   };
   const mockConfigService = {
     get: jest.fn(<T>(key: string, defaultValue?: T): T | undefined => {
@@ -89,7 +90,7 @@ describe('OllamaService (ADR-034)', () => {
     });
   });
   describe('loadModel()', () => {
-    it('ควรส่ง keep_alive: -1 เป็น default เมื่อไม่ระบุ keepAlive', async () => {
+    it('ควรส่ง finite keep_alive จาก config เมื่อไม่ระบุ keepAlive', async () => {
       mockedAxios.get = jest.fn().mockResolvedValueOnce({
         data: {
           models: [
@@ -104,7 +105,7 @@ describe('OllamaService (ADR-034)', () => {
       await service.loadModel('np-dms-ai:latest');
       expect(mockedAxios.post).toHaveBeenCalledWith(
         expect.stringContaining('/api/generate'),
-        expect.objectContaining({ keep_alive: -1 }),
+        expect.objectContaining({ keep_alive: 120 }),
         expect.anything()
       );
     });

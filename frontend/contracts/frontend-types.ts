@@ -2,7 +2,7 @@
 // Change Log:
 // - 2026-06-14: Created frontend contract types from specifications (conforming to task T010)
 
-export type PromptType = 'ocr_system' | 'ocr_extraction' | 'rag_query_prompt' | 'rag_prep_prompt' | 'classification_prompt';
+export type PromptType = string;
 
 export interface ContextConfig {
   filter: {
@@ -16,7 +16,7 @@ export interface ContextConfig {
 
 export interface PromptVersion {
   id: string;
-  promptType: PromptType;
+  promptType: string;
   versionNumber: number;
   version?: number;
   template: string;
@@ -86,9 +86,9 @@ export interface UpdateContextConfigDto {
   outputLanguage: string;
 }
 
-export const PLACEHOLDER_REQUIREMENTS: Record<PromptType, string[]> = {
+export const PLACEHOLDER_REQUIREMENTS: Record<string, string[]> = {
   ocr_system: [],
-  ocr_extraction: ['{{ocr_text}}'],
+  ocr_extraction: ['{{ocr_text}}', '{{allowed_correspondence_types}}', '{{existing_tags}}'],
   rag_query_prompt: ['{{query}}', '{{context}}'],
   rag_prep_prompt: ['{{text}}'],
   classification_prompt: ['{{document_text}}'],

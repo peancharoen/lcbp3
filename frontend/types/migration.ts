@@ -80,7 +80,7 @@ export interface MigrationTagSuggestion {
 export interface MigrationFieldResolutionState {
   ocrQuality?: 'edited' | 'acknowledged';
   summary?: 'edited' | 'acknowledged';
-  category?: 'edited' | 'acknowledged';
+  correspondenceType?: 'edited' | 'acknowledged';
   tags?: 'edited' | 'acknowledged';
 }
 
@@ -97,14 +97,14 @@ export interface MigrationOcrQualityAssessment {
 /** ADR-050: confidence รายช่องของ metadata (data-model.md §1) */
 export interface MigrationMetadataConfidence {
   summary: number;
-  category: number;
+  correspondenceType: number;
   tags: number;
 }
 
 /** ADR-050: metadata ที่สกัดจาก AI (data-model.md §1) */
 export interface MigrationExtractedMetadata {
   summary: string;
-  category: string;
+  correspondenceType: string;
   tags: MigrationTagSuggestion[];
   confidence: MigrationMetadataConfidence;
 }
@@ -133,8 +133,8 @@ export interface MigrationReviewQueueItem {
   subject?: string;
   originalSubject?: string;
   body?: string;
-  aiSuggestedCategory?: string;
-  aiSuggestedCategoryName?: string | null;
+  aiSuggestedCorrespondenceType?: string;
+  aiSuggestedCorrespondenceTypeName?: string | null;
   senderOrganizationCode?: string | null;
   receiverOrganizationCode?: string | null;
   /** ADR-019: publicId (UUID) ขององค์กรผู้ส่ง (สำหรับ dropdown selection) */

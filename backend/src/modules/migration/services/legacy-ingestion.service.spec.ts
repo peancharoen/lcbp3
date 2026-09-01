@@ -499,11 +499,11 @@ describe('LegacyIngestionService (ADR-047)', () => {
       pdfFolderPath: tempTestDir,
     });
 
-    // ตรวจสอบว่า aiSuggestedCategory ถูกตั้งเป็น 'RFA' (resolved from id=1)
+    // ตรวจสอบว่า aiSuggestedCorrespondenceType ถูกตั้งเป็น 'RFA' (resolved from id=1)
     const savedEntity = (
       mockReviewQueueRepo.save.mock.calls[0] as unknown[]
     )[0] as MockEntity;
-    expect(savedEntity.aiSuggestedCategory).toBe('RFA');
+    expect(savedEntity.aiSuggestedCorrespondenceType).toBe('RFA');
   });
 
   it('ควร resolve correspondence type จาก type code ใน Excel', async () => {
@@ -553,7 +553,7 @@ describe('LegacyIngestionService (ADR-047)', () => {
     const savedEntity = (
       mockReviewQueueRepo.save.mock.calls[0] as unknown[]
     )[0] as MockEntity;
-    expect(savedEntity.aiSuggestedCategory).toBe('LETTER');
+    expect(savedEntity.aiSuggestedCorrespondenceType).toBe('LETTER');
   });
 
   it('ควรบันทึก unresolved orgs ใน details เมื่อ sender/receiver ไม่ตรงกับ master data', async () => {

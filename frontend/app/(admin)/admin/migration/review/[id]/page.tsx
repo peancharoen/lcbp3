@@ -63,7 +63,7 @@ const migrationReviewT = (key: string): string => {
 };
 
 /** ADR-050: field ที่รองรับการ acknowledge (FR-013/FR-014) */
-type AcknowledgeableField = 'ocrQuality' | 'summary' | 'category' | 'tags';
+type AcknowledgeableField = 'ocrQuality' | 'summary' | 'correspondenceType' | 'tags';
 
 /** ADR-050 (T043): สถานะการตัดสินใจของผู้ตรวจสอบต่อ tag suggestion
  *  'pending' = ยังไม่ตัดสินใจ (default), 'accepted' = ยอมรับ, 'rejected' = ปฏิเสธ */
@@ -121,7 +121,7 @@ interface MigrationAiIssues {
 const reviewFormSchema = z.object({
   documentNumber: z.string().min(1, 'Document number is required'),
   subject: z.string().min(1, 'Subject is required'),
-  category: z.string().min(1, 'Category is required'),
+  correspondenceType: z.string().min(1, 'Category is required'),
   documentDate: z.string().optional(),
   receivedDate: z.string().optional(),
   senderPublicId: z.string().optional(),
@@ -151,7 +151,7 @@ export default function MigrationReviewPage() {
   // ADR-050 (T040): commit error state สำหรับ inline per-field warnings
   const [commitError, setCommitError] = useState<{
     unresolvedFields?: string[];
-    categoryError?: string;
+    correspondenceTypeError?: string;
   } | null>(null);
   // ADR-050 (T039): commit hook — POST /ai/migration/review (new contract path)
   const commitMutation = useCommitMigrationReview();
@@ -165,7 +165,7 @@ export default function MigrationReviewPage() {
     defaultValues: {
       documentNumber: '',
       subject: '',
-      category: '',
+      correspondenceType: '',
       documentDate: '',
       receivedDate: '',
       senderPublicId: '',
@@ -210,7 +210,7 @@ export default function MigrationReviewPage() {
           form.reset({
             documentNumber: res.documentNumber || '',
             subject: res.subject || res.originalSubject || '',
-            category: res.aiSuggestedCategory || '',
+            correspondenceType: res.aiSuggestedCorrespondenceType || '',
             documentDate: res.issuedDate
               ? String(res.issuedDate).split('T')[0]
               : issues.documentDate || '',
@@ -298,7 +298,7 @@ export default function MigrationReviewPage() {
         publicId: item.publicId,
         idempotencyKey,
         subject: values.subject,
-        category: values.category,
+        correspondenceType: values.correspondenceType,
         projectId: item.projectId || 1,
         issuedDate: values.documentDate || undefined,
         receivedDate: values.receivedDate || undefined,
@@ -326,7 +326,7 @@ export default function MigrationReviewPage() {
       if (errorObj?.code === 'UNRESOLVED_FIELDS' && Array.isArray(errorObj.unresolvedFields)) {
         setCommitError({ unresolvedFields: errorObj.unresolvedFields });
       } else if (errorObj?.code === 'CATEGORY_NOT_ALLOWED') {
-        setCommitError({ categoryError: errorObj.message || 'หมวดหมู่ไม่ถูกต้อง' });
+        setCommitError({ correspondenceTypeError: errorObj.message || 'หมวดหมู่ไม่ถูกต้อง' });
       }
       // hook จัดการ toast.error เอง — ไม่ toast ซ้ำ
     } finally {
@@ -502,7 +502,7 @@ export default function MigrationReviewPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="category"
+                    name="correspondenceType"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Category</FormLabel>
@@ -718,8 +718,8 @@ export default function MigrationReviewPage() {
                         </span>
                       </Badge>
                       <Badge variant="outline" className="text-xs">
-                        Category: <span className={`ml-1 font-mono font-semibold ${getConfidenceColor(metadataConfidence.category)}`}>
-                          {formatConfidence(metadataConfidence.category)}
+                        Category: <span className={`ml-1 font-mono font-semibold ${getConfidenceColor(metadataConfidence.correspondenceType)}`}>
+                          {formatConfidence(metadataConfidence.correspondenceType)}
                         </span>
                       </Badge>
                       <Badge variant="outline" className="text-xs">
@@ -742,13 +742,13 @@ export default function MigrationReviewPage() {
                       </Button>
                       <Button
                         type="button"
-                        variant={fieldAcknowledgments.includes('category') ? 'default' : 'outline'}
+                        variant={fieldAcknowledgments.includes('correspondenceType') ? 'default' : 'outline'}
                         size="sm"
-                        data-testid="acknowledge-category"
-                        onClick={() => toggleAcknowledgment('category')}
+                        data-testid="acknowledge-correspondenceType"
+                        onClick={() => toggleAcknowledgment('correspondenceType')}
                         className="flex-1"
                       >
-                        {fieldAcknowledgments.includes('category') ? `✓ ${migrationReviewT('acknowledged')}` : migrationReviewT('ack_category')}
+                        {fieldAcknowledgments.includes('correspondenceType') ? `✓ ${migrationReviewT('acknowledged')}` : migrationReviewT('ack_correspondenceType')}
                       </Button>
                       {/* Orchestrator review fix: when metadata.tags is empty but confidence.tags is
                           still low, there are no tag chips to accept/reject (see the section below,
@@ -771,14 +771,14 @@ export default function MigrationReviewPage() {
                 )}
 
                 {/* ADR-050 (T040): category-invalid inline warning */}
-                {commitError?.categoryError && (
+                {commitError?.correspondenceTypeError && (
                   <div
-                    data-testid="category-error-warning"
+                    data-testid="correspondenceType-error-warning"
                     className="mt-2 p-2 rounded-md border border-red-300 bg-red-50 text-xs text-red-700"
                   >
                     <div className="flex items-center gap-1.5">
                       <AlertTriangleIcon className="h-3.5 w-3.5" />
-                      {commitError.categoryError}
+                      {commitError.correspondenceTypeError}
                     </div>
                   </div>
                 )}

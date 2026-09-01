@@ -17,6 +17,7 @@ import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import { randomUUID } from 'crypto';
 import { AiPrompt } from './ai-prompts.entity';
+import { AiPromptTypesService } from './ai-prompt-types.service';
 import { AuditLog } from '../../../common/entities/audit-log.entity';
 import { CreateAiPromptDto } from './dto/create-ai-prompt.dto';
 import { ContextConfigDto } from '../dto/context-config.dto';
@@ -42,7 +43,8 @@ export class AiPromptsService {
     private readonly auditLogRepo: Repository<AuditLog>,
     @InjectRedis()
     private readonly redis: Redis,
-    private readonly dataSource: DataSource
+    private readonly dataSource: DataSource,
+    private readonly aiPromptTypesService: AiPromptTypesService
   ) {}
 
   /**
@@ -322,6 +324,9 @@ export class AiPromptsService {
    * @returns Prompt version ที่เปิดใช้งานอยู่ หรือ null หากไม่พบ
    */
   async getActive(promptType: string): Promise<AiPrompt | null> {
+    // ตรวจสอบว่า prompt type มีใน master table ก่อน (FR-014)
+    await this.aiPromptTypesService.findByType(promptType);
+
     const cacheKey = `${this.cachePrefix}${promptType}`;
     try {
       const cached = await this.redis.get(cacheKey);
@@ -364,15 +369,19 @@ export class AiPromptsService {
   }
 
   /**
-   * ค้นหา prompt ที่มีผลใช้งานจริง และแทนที่ placeholder {{ocr_text}} ด้วยข้อความ OCR
+   * ค้นหา prompt ที่มีผลใช้งานจริง และแทนที่ placeholder ต่าง ๆ ตามประเภท prompt
    * @param promptType ประเภทของ prompt
    * @param ocrText ข้อความที่สกัดจาก OCR
+   * @param projectPublicId UUID โครงการสำหรับ resolve master data context (optional)
+   * @param contractPublicId UUID สัญญาสำหรับ resolve master data context (optional)
    * @returns Prompt ที่แทนที่ placeholder แล้ว พร้อม version number
    * @throws BusinessException หากไม่พบ active prompt
    */
   async resolveActive(
     promptType: string,
-    ocrText: string
+    ocrText: string,
+    projectPublicId?: string,
+    contractPublicId?: string
   ): Promise<{ resolvedPrompt: string; versionNumber: number }> {
     const prompt = await this.getActive(promptType);
     if (!prompt) {
@@ -382,7 +391,43 @@ export class AiPromptsService {
         'ไม่พบ Prompt Version ที่เปิดใช้งานในระบบ'
       );
     }
-    const resolvedPrompt = prompt.template.replace('{{ocr_text}}', ocrText);
+
+    let resolvedPrompt = prompt.template.replace('{{ocr_text}}', ocrText);
+
+    // ADR-050 (Feature 251): ocr_extraction ต้อง resolve master data + tags + correspondence types
+    const needsContext =
+      prompt.template.includes('{{master_data_context}}') ||
+      prompt.template.includes('{{allowed_correspondence_types}}') ||
+      prompt.template.includes('{{existing_tags}}');
+    if (needsContext) {
+      const masterDataContext = await this.resolveContext(
+        prompt,
+        projectPublicId,
+        contractPublicId
+      );
+      const compactMasterDataContext = JSON.stringify(masterDataContext);
+
+      const rawCorrespondenceTypes =
+        masterDataContext['availableCorrespondenceTypes'];
+      const allowedCorrespondenceTypes = Array.isArray(rawCorrespondenceTypes)
+        ? (rawCorrespondenceTypes as unknown as Array<{ code: string }>)
+            .map((t) => t.code)
+            .join(', ')
+        : '';
+
+      const rawTags = masterDataContext['availableTags'];
+      const existingTags = Array.isArray(rawTags)
+        ? (rawTags as unknown as Array<{ name: string }>)
+            .map((t) => t.name)
+            .join(', ')
+        : '';
+
+      resolvedPrompt = resolvedPrompt
+        .replace('{{master_data_context}}', compactMasterDataContext)
+        .replace('{{allowed_correspondence_types}}', allowedCorrespondenceTypes)
+        .replace('{{existing_tags}}', existingTags);
+    }
+
     return { resolvedPrompt, versionNumber: prompt.versionNumber };
   }
 
@@ -399,32 +444,14 @@ export class AiPromptsService {
     dto: CreateAiPromptDto,
     userId: number
   ): Promise<AiPrompt> {
-    // ocr_system: free-form system prompt, no required placeholders
-    if (promptType === 'ocr_system') {
-      // No validation required - system prompt is free-form
-    } else if (promptType === 'ocr_extraction') {
-      if (!dto.template.includes('{{ocr_text}}')) {
+    // ดึง metadata จาก ai_prompt_types เพื่อ validate placeholder แบบ dynamic (FR-006)
+    const promptTypeRecord =
+      await this.aiPromptTypesService.findByType(promptType);
+    const expectedPlaceholders = promptTypeRecord.expectedPlaceholders ?? [];
+    for (const placeholder of expectedPlaceholders) {
+      if (!dto.template.includes(`{{${placeholder}}}`)) {
         throw new ValidationException(
-          'template ต้องมี {{ocr_text}} placeholder'
-        );
-      }
-    } else if (promptType === 'rag_query_prompt') {
-      if (
-        !dto.template.includes('{{query}}') ||
-        !dto.template.includes('{{context}}')
-      ) {
-        throw new ValidationException(
-          'template ต้องมี {{query}} และ {{context}} placeholder'
-        );
-      }
-    } else if (promptType === 'rag_prep_prompt') {
-      if (!dto.template.includes('{{text}}')) {
-        throw new ValidationException('template ต้องมี {{text}} placeholder');
-      }
-    } else if (promptType === 'classification_prompt') {
-      if (!dto.template.includes('{{document_text}}')) {
-        throw new ValidationException(
-          'template ต้องมี {{document_text}} placeholder'
+          `template ต้องมี {{${placeholder}}} placeholder`
         );
       }
     }

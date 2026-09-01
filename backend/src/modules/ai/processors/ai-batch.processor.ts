@@ -568,8 +568,11 @@ export class AiBatchProcessor extends WorkerHost {
         keepAlive: 0,
       });
     } finally {
-      this.logger.log(`[ModelSwitch] Reloading ${mainModel} (keep_alive:-1)`);
-      await this.ollamaService.loadModel(mainModel, -1);
+      const mainKeepAliveSeconds = this.ollamaService.getMainKeepAliveSeconds();
+      this.logger.log(
+        `[ModelSwitch] Reloading ${mainModel} (keep_alive:${mainKeepAliveSeconds})`
+      );
+      await this.ollamaService.loadModel(mainModel, mainKeepAliveSeconds);
     }
     await this.redis.setex(
       `ai:ocr:result:${documentPublicId}`,
@@ -652,6 +655,20 @@ export class AiBatchProcessor extends WorkerHost {
       );
       const compactMasterDataContext = JSON.stringify(masterDataContext);
 
+      const rawCorrespondenceTypes =
+        masterDataContext['availableCorrespondenceTypes'];
+      const allowedCorrespondenceTypes = Array.isArray(rawCorrespondenceTypes)
+        ? (rawCorrespondenceTypes as unknown as Array<{ code: string }>)
+            .map((t) => t.code)
+            .join(', ')
+        : '';
+      const rawTags = masterDataContext['availableTags'];
+      const existingTags = Array.isArray(rawTags)
+        ? (rawTags as unknown as Array<{ name: string }>)
+            .map((t) => t.name)
+            .join(', ')
+        : '';
+
       const ocrTextSafe =
         sanitizedOcrText.length > MAX_OCR_TEXT_CHARS
           ? (this.logger.warn(
@@ -662,7 +679,9 @@ export class AiBatchProcessor extends WorkerHost {
 
       const resolvedPrompt = activePrompt.template
         .replace('{{ocr_text}}', ocrTextSafe)
-        .replace('{{master_data_context}}', compactMasterDataContext);
+        .replace('{{master_data_context}}', compactMasterDataContext)
+        .replace('{{allowed_correspondence_types}}', allowedCorrespondenceTypes)
+        .replace('{{existing_tags}}', existingTags);
 
       this.logger.debug(
         `Prompt stats: OCR=${ocrTextSafe.length} chars, MasterData=${compactMasterDataContext.length} chars, Total=${resolvedPrompt.length} chars`
@@ -1440,7 +1459,7 @@ export class AiBatchProcessor extends WorkerHost {
       subject: excelMeta.subject || payloadTitle,
       originalSubject: payloadTitle,
       body: '',
-      category: matchedCategory,
+      correspondenceType: matchedCategory,
       aiSummary: '',
       projectId: project.id,
       senderOrgId: senderOrgId,
@@ -1686,12 +1705,27 @@ export class AiBatchProcessor extends WorkerHost {
         projectPublicId,
         undefined
       );
+      const rawCorrespondenceTypes =
+        masterDataContext['availableCorrespondenceTypes'];
+      const allowedCorrespondenceTypes = Array.isArray(rawCorrespondenceTypes)
+        ? (rawCorrespondenceTypes as unknown as Array<{ code: string }>)
+            .map((t) => t.code)
+            .join(', ')
+        : '';
+      const rawTags = masterDataContext['availableTags'];
+      const existingTags = Array.isArray(rawTags)
+        ? (rawTags as unknown as Array<{ name: string }>)
+            .map((t) => t.name)
+            .join(', ')
+        : '';
       const resolvedPrompt = activePrompt.template
         .replace('{{ocr_text}}', ocrResult.text.slice(0, MAX_OCR_TEXT_CHARS))
         .replace(
           '{{master_data_context}}',
           JSON.stringify(masterDataContext, null, 2)
-        );
+        )
+        .replace('{{allowed_correspondence_types}}', allowedCorrespondenceTypes)
+        .replace('{{existing_tags}}', existingTags);
 
       // 5. AI extraction (LLM)
       const snapshotParams = job.data.snapshotParams;
@@ -2034,8 +2068,8 @@ export class AiBatchProcessor extends WorkerHost {
     const metadata = metadataRaw as Record<string, unknown>;
     if (typeof metadata.summary !== 'string') return null;
     if (
-      typeof metadata.category !== 'string' ||
-      !allowedCategories.includes(metadata.category)
+      typeof metadata.correspondenceType !== 'string' ||
+      !allowedCategories.includes(metadata.correspondenceType)
     ) {
       return null;
     }
@@ -2064,7 +2098,7 @@ export class AiBatchProcessor extends WorkerHost {
     const confidence = confidenceRaw as Record<string, unknown>;
     if (
       !isUnitInterval(confidence.summary) ||
-      !isUnitInterval(confidence.category) ||
+      !isUnitInterval(confidence.correspondenceType) ||
       !isUnitInterval(confidence.tags)
     ) {
       return null;
@@ -2074,11 +2108,11 @@ export class AiBatchProcessor extends WorkerHost {
       ocrQuality: { confidence: ocrQuality.confidence, issues },
       metadata: {
         summary: metadata.summary,
-        category: metadata.category,
+        correspondenceType: metadata.correspondenceType,
         tags,
         confidence: {
           summary: confidence.summary,
-          category: confidence.category,
+          correspondenceType: confidence.correspondenceType,
           tags: confidence.tags,
         },
       },
@@ -2172,8 +2206,8 @@ export class AiBatchProcessor extends WorkerHost {
               'No active ocr_extraction prompt version found'
             );
           }
-          // ADR-050 Decision 2: allowed_categories มาจาก correspondence_types.typeCode
-          const allowedCategories =
+          // ADR-050 Decision 2: allowed_correspondence_types มาจาก correspondence_types.typeCode
+          const allowedCorrespondenceTypes =
             await this.migrationService.getAllowedCategoryCodes();
           // ADR-050 §9: existing_tags ช่วยให้ LLM ตัดสิน tags[].isNew ได้แม่นขึ้น
           const existingTags = await this.tagsService.findByProject(projectId);
@@ -2185,12 +2219,13 @@ export class AiBatchProcessor extends WorkerHost {
           const truncatedOcr = ocrText.slice(0, MAX_OCR_TEXT_CHARS);
           const PLACEHOLDERS: Record<string, string> = {
             '{{ocr_text}}': truncatedOcr,
-            '{{allowed_categories}}': allowedCategories.join(', '),
+            '{{allowed_correspondence_types}}':
+              allowedCorrespondenceTypes.join(', '),
             '{{existing_tags}}': existingTags.map((t) => t.tagName).join(', '),
             '{{master_data_context}}': JSON.stringify(masterDataContext),
           };
           const resolvedPrompt = activePrompt.template.replace(
-            /\{\{ocr_text\}\}|\{\{allowed_categories\}\}|\{\{existing_tags\}\}|\{\{master_data_context\}\}/g,
+            /\{\{ocr_text\}\}|\{\{allowed_correspondence_types\}\}|\{\{existing_tags\}\}|\{\{master_data_context\}\}/g,
             (match) => PLACEHOLDERS[match] ?? match
           );
 
@@ -2215,7 +2250,7 @@ export class AiBatchProcessor extends WorkerHost {
           if (!aiFailed) {
             const validated = this.validateExtractionOutput(
               parsed,
-              allowedCategories
+              allowedCorrespondenceTypes
             );
             if (!validated) {
               aiFailed = true;
@@ -2257,9 +2292,9 @@ export class AiBatchProcessor extends WorkerHost {
       await this.migrationService.updateQueueEnrichment(queueId, {
         ocrText,
         aiSummary: extraction ? extraction.metadata.summary : undefined,
-        aiSuggestedCategory:
+        aiSuggestedCorrespondenceType:
           extraction && !isHardFailure
-            ? extraction.metadata.category
+            ? extraction.metadata.correspondenceType
             : undefined,
         extractedTags: extractedTags.length > 0 ? extractedTags : undefined,
         aiConfidence: isHardFailure ? 0 : undefined,

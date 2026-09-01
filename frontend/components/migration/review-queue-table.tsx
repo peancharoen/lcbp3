@@ -141,7 +141,7 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
   const handleOpenReview = (item: MigrationReviewQueueItem) => {
     setSelectedItem(item);
     setEditSubject(item.subject || item.title || '');
-    setEditCategory(item.aiSuggestedCategory || 'Correspondence');
+    setEditCategory(item.aiSuggestedCorrespondenceType || 'Correspondence');
     setEditProjectId(String(item.projectId || ''));
     setEditSenderId(String(item.senderOrganizationId || ''));
     setEditReceiverId(String(item.receiverOrganizationId || ''));
@@ -172,7 +172,7 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
         publicId: selectedItem.publicId,
         idempotencyKey,
         subject: editSubject,
-        category: editCategory,
+        correspondenceType: editCategory,
         projectId: editProjectId || undefined,
         senderId: editSenderId || undefined,
         receiverId: editReceiverId || undefined,
@@ -375,7 +375,7 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
                         {item.subject || item.title || 'ไม่มีหัวข้อ'}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="opacity-60">{item.aiSuggestedCategory || 'Correspondence'}</Badge>
+                        <Badge variant="outline" className="opacity-60">{item.aiSuggestedCorrespondenceType || 'Correspondence'}</Badge>
                       </TableCell>
                       <TableCell className="text-center font-mono">
                         {item.aiConfidence ? `${(Number(item.aiConfidence) * 100).toFixed(1)}%` : '-'}
@@ -416,7 +416,7 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
                       {item.subject || item.title || 'ไม่มีหัวข้อ'}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{item.aiSuggestedCategory || 'Correspondence'}</Badge>
+                      <Badge variant="outline">{item.aiSuggestedCorrespondenceType || 'Correspondence'}</Badge>
                     </TableCell>
                     <TableCell className="text-center font-mono">
                       {item.aiConfidence ? `${(Number(item.aiConfidence) * 100).toFixed(1)}%` : '-'}

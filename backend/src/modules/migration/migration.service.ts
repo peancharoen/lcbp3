@@ -162,11 +162,11 @@ export class MigrationService {
 
     // 2. Fetch Dependencies
     // ADR-050 Decision 2: allowed_categories มาจาก correspondence_types.typeCode โดยตรง
-    // ลบ CATEGORY_ALIAS hardcode map ทิ้ง — ตั้งแต่ ADR-050 เป็นต้นไป ค่า dto.category ที่มาจาก
+    // ลบ CATEGORY_ALIAS hardcode map ทิ้ง — ตั้งแต่ ADR-050 เป็นต้นไป ค่า dto.correspondenceType ที่มาจาก
     // AI extraction ถูกบังคับให้เป็นหนึ่งใน allowed_categories (typeCode) อยู่แล้วโดย prompt
     // contract (§9) และ schema validation ฝั่ง ai-batch.processor จึงไม่ต้อง alias เดาความหมายอีก
     const type = await this.correspondenceTypeRepo.findOne({
-      where: { typeName: dto.category },
+      where: { typeName: dto.correspondenceType },
     });
 
     // If exact name isn't found, try typeCode just in case
@@ -174,13 +174,13 @@ export class MigrationService {
       ? type.id
       : (
           await this.correspondenceTypeRepo.findOne({
-            where: { typeCode: dto.category },
+            where: { typeCode: dto.correspondenceType },
           })
         )?.id;
 
     if (!typeId) {
       throw new ValidationException(
-        `Category "${dto.category}" not found in system`
+        `Category "${dto.correspondenceType}" not found in system`
       );
     }
 
@@ -207,7 +207,7 @@ export class MigrationService {
       throw new NotFoundException('Project', String(dto.projectId));
     }
 
-    const isRFA = type?.typeCode === 'RFA' || dto.category === 'RFA';
+    const isRFA = type?.typeCode === 'RFA' || dto.correspondenceType === 'RFA';
 
     // ADR-019: resolve UUID publicId → internal INT id สำหรับ sender/receiver/discipline
     let resolvedSenderId = dto.senderId;
@@ -392,7 +392,7 @@ export class MigrationService {
               sfPath,
               userId,
               {
-                documentType: dto.category,
+                documentType: dto.correspondenceType,
                 issueDate: dto.documentDate
                   ? new Date(dto.documentDate)
                   : undefined,
@@ -420,7 +420,7 @@ export class MigrationService {
             dto.sourceFilePath,
             userId,
             {
-              documentType: dto.category,
+              documentType: dto.correspondenceType,
               issueDate: dto.documentDate
                 ? new Date(dto.documentDate)
                 : undefined,
@@ -734,7 +734,7 @@ export class MigrationService {
     queueItem.subject = dto.subject;
     queueItem.originalSubject = dto.originalSubject;
     queueItem.body = dto.body;
-    queueItem.aiSuggestedCategory = dto.category;
+    queueItem.aiSuggestedCorrespondenceType = dto.correspondenceType;
     queueItem.aiIssues = dto.aiIssues;
     queueItem.projectId = dto.projectId;
     queueItem.senderOrganizationId = dto.senderOrgId;
@@ -808,7 +808,7 @@ export class MigrationService {
     const values = [
       ocrQualityConfidence,
       metadataConfidence?.summary,
-      metadataConfidence?.category,
+      metadataConfidence?.correspondenceType,
       metadataConfidence?.tags,
     ].filter((v): v is number => typeof v === 'number');
     if (values.length < 4) return true;
@@ -824,7 +824,7 @@ export class MigrationService {
   ): number | undefined {
     const values = [
       metadataConfidence?.summary,
-      metadataConfidence?.category,
+      metadataConfidence?.correspondenceType,
       metadataConfidence?.tags,
     ].filter((v): v is number => typeof v === 'number');
     if (values.length < 3) return undefined;
@@ -845,7 +845,7 @@ export class MigrationService {
     return !(
       confidence &&
       typeof confidence.summary === 'number' &&
-      typeof confidence.category === 'number' &&
+      typeof confidence.correspondenceType === 'number' &&
       typeof confidence.tags === 'number'
     );
   }
@@ -876,7 +876,7 @@ export class MigrationService {
     data: {
       ocrText?: string;
       aiSummary?: string;
-      aiSuggestedCategory?: string;
+      aiSuggestedCorrespondenceType?: string;
       extractedTags?: Record<string, string>[];
       aiConfidence?: number;
       aiIssues?: Record<string, unknown>[];
@@ -894,8 +894,9 @@ export class MigrationService {
     if (queueItem) {
       if (data.ocrText !== undefined) queueItem.ocrText = data.ocrText;
       if (data.aiSummary !== undefined) queueItem.aiSummary = data.aiSummary;
-      if (data.aiSuggestedCategory !== undefined)
-        queueItem.aiSuggestedCategory = data.aiSuggestedCategory;
+      if (data.aiSuggestedCorrespondenceType !== undefined)
+        queueItem.aiSuggestedCorrespondenceType =
+          data.aiSuggestedCorrespondenceType;
       if (data.extractedTags !== undefined)
         queueItem.extractedTags = data.extractedTags;
       if (data.aiConfidence !== undefined)
@@ -914,7 +915,7 @@ export class MigrationService {
           extraction?.ocrQuality &&
           metadataConfidence &&
           typeof metadataConfidence.summary === 'number' &&
-          typeof metadataConfidence.category === 'number' &&
+          typeof metadataConfidence.correspondenceType === 'number' &&
           typeof metadataConfidence.tags === 'number'
         ) {
           const thresholds = await this.reviewThresholdService.getThresholds();
@@ -1072,7 +1073,7 @@ export class MigrationService {
     queueItem.aiFailed = false;
     queueItem.ocrText = null;
     queueItem.aiSummary = null;
-    queueItem.aiSuggestedCategory = null;
+    queueItem.aiSuggestedCorrespondenceType = null;
     queueItem.extractedTags = null;
     queueItem.aiConfidence = null;
     queueItem.aiIssues = null;
@@ -1239,7 +1240,8 @@ export class MigrationService {
     for (const item of items) {
       if (item.senderOrganizationId) orgIds.add(item.senderOrganizationId);
       if (item.receiverOrganizationId) orgIds.add(item.receiverOrganizationId);
-      if (item.aiSuggestedCategory) typeCodes.add(item.aiSuggestedCategory);
+      if (item.aiSuggestedCorrespondenceType)
+        typeCodes.add(item.aiSuggestedCorrespondenceType);
     }
 
     const orgMap = new Map<number, { code: string; publicId: string }>();
@@ -1277,9 +1279,9 @@ export class MigrationService {
       item.receiverOrganizationCode = receiverOrg?.code ?? null;
       item.senderOrganizationPublicId = senderOrg?.publicId ?? null;
       item.receiverOrganizationPublicId = receiverOrg?.publicId ?? null;
-      item.aiSuggestedCategoryName =
-        typeMap.get(item.aiSuggestedCategory ?? '')?.typeName ??
-        item.aiSuggestedCategory ??
+      item.aiSuggestedCorrespondenceTypeName =
+        typeMap.get(item.aiSuggestedCorrespondenceType ?? '')?.typeName ??
+        item.aiSuggestedCorrespondenceType ??
         null;
     }
     return items;

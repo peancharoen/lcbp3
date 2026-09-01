@@ -14,12 +14,12 @@ export interface TagDecision {
 }
 
 /** ADR-050: field ที่รองรับการ acknowledge เมื่อ confidence ต่ำกว่า threshold (FR-013/FR-014) */
-export type AcknowledgeableMigrationField = 'ocrQuality' | 'summary' | 'category' | 'tags';
+export type AcknowledgeableMigrationField = 'ocrQuality' | 'summary' | 'correspondenceType' | 'tags';
 
 export interface CommitMigrationReviewDto {
   publicId: string;
   subject?: string;
-  category?: string;
+  correspondenceType?: string;
   projectId?: number | string;
   senderId?: number | string;
   receiverId?: number | string;

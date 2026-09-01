@@ -32,6 +32,7 @@ export interface VramStatus {
     modelId: string;
     modelName: string;
     vramUsageMB: number;
+    modelSizeMB: number;
   }>;
   hasCapacity: boolean;
 }
@@ -117,6 +118,7 @@ export class VramMonitorService {
       const response = await axios.get<{
         models?: Array<{
           name: string;
+          size: number;
           size_vram: number;
         }>;
       }>(`${this.ollamaUrl}/api/ps`, { timeout: 3000 });
@@ -125,6 +127,7 @@ export class VramMonitorService {
         modelId: m.name,
         modelName: m.name,
         vramUsageMB: Math.round((m.size_vram || 0) / (1024 * 1024)),
+        modelSizeMB: Math.round((m.size || 0) / (1024 * 1024)),
       }));
       const headroom = await this.getVramHeadroom();
       return {
@@ -192,7 +195,7 @@ export class VramMonitorService {
   private readonly MODEL_LOAD_REQUIRED_MB = 4000;
 
   /**
-   * โหลดโมเดลเข้า VRAM ผ่าน Ollama keep_alive=-1 (permanent)
+   * โหลดโมเดลเข้า VRAM ตาม finite residency policy ของโมเดลหลัก
    * ADR-048 FR-007: ตรวจสอบ global empty-queue guard ก่อน (ทั้ง ai-batch และ ai-realtime)
    * ADR-048 FR-008: ถ้า VRAM ไม่พอ จะ auto-evict inactive model ก่อนโหลด
    * ADR-048 FR-009: ใช้ atomic SET NX EX สำหรับ transition lock (ownership token)
@@ -228,8 +231,10 @@ export class VramMonitorService {
       );
     }
     try {
-      // ส่ง empty generate พร้อม keep_alive=-1 เพื่อบังคับ Ollama โหลดโมเดลเข้า VRAM
-      await this.ollamaService.loadModel(modelName, -1);
+      await this.ollamaService.loadModel(
+        modelName,
+        this.ollamaService.getMainKeepAliveSeconds()
+      );
       this.logger.log(
         `[VRAM Load] Model ${modelName} loaded successfully into VRAM`
       );

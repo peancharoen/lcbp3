@@ -178,7 +178,7 @@
     "acknowledge_ocr_quality": "รับทราบคุณภาพ OCR",
     "acknowledged": "รับทราบแล้ว",
     "ack_summary": "รับทราบ Summary",
-    "ack_category": "รับทราบ Category",
+    "ack_correspondenceType": "รับทราบประเภทเอกสาร",
     "ack_tags": "รับทราบแท็ก",
     "tag_accept": "ยอมรับ",
     "tag_reject": "ปฏิเสธ",

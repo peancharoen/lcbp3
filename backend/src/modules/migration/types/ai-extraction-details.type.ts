@@ -42,14 +42,14 @@ export interface TagSuggestion {
 /** ADR-050 §4/§9 — per-field confidence ของ metadata แต่ละ field (แยกจาก ocrQuality.confidence) */
 export interface MetadataConfidence {
   summary: number;
-  category: number;
+  correspondenceType: number;
   tags: number;
 }
 
 export interface MigrationAiExtractionMetadata {
   summary: string;
   /** MUST เป็นค่าใน correspondence_types.typeCode (FR-005) */
-  category: string;
+  correspondenceType: string;
   tags: TagSuggestion[];
   confidence: MetadataConfidence;
 }
@@ -67,7 +67,7 @@ export type AiFailureReason = 'SCHEMA_VALIDATION_FAILED' | 'LLM_CALL_FAILED';
 export interface FieldResolutionState {
   ocrQuality?: 'edited' | 'acknowledged';
   summary?: 'edited' | 'acknowledged';
-  category?: 'edited' | 'acknowledged';
+  correspondenceType?: 'edited' | 'acknowledged';
   tags?: 'edited' | 'acknowledged';
 }
 

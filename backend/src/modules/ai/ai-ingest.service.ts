@@ -209,7 +209,7 @@ export class AiIngestService {
       {
         documentNumber: dto.documentNumber,
         subject: dto.subject,
-        category: correspondenceType.typeCode,
+        correspondenceType: correspondenceType.typeCode,
         migratedBy: 'AI_STAGING_APPROVAL',
         batchId: record.batchId,
         projectId: project.id,

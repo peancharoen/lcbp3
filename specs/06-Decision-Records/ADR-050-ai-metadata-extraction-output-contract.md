@@ -12,7 +12,7 @@
 - [ADR-029: Dynamic Prompt Management](./ADR-029-dynamic-prompt-management.md) (Active Prompt source)
 - [ADR-037: Unified Prompt Management UX/UI](./ADR-037-unified-prompt-management-ux-ui.md)
 - [ADR-044: Database Schema Strategy Amendment](./ADR-044-database-schema-strategy-amendment.md) (SQL delta convention)
-- [CONTEXT.md](../../CONTEXT.md) — resolved ambiguity: `allowed_categories` = `correspondence_types`
+- [CONTEXT.md](../../CONTEXT.md) — resolved ambiguity: `allowed_correspondence_types` = `correspondence_types`
 
 ---
 
@@ -22,7 +22,7 @@
 
 - `migration_review_queue.ai_confidence` — scalar เดียว (`decimal(4,3)`)
 - `migration_review_queue.extracted_tags` — `Record<string,string>[]` ไม่บังคับ shape
-- `migration_review_queue.ai_suggested_category` — free `VARCHAR(50)` ไม่มี FK, resolve ผ่าน hardcoded `CATEGORY_ALIAS` map ใน `migration.service.ts:154-160`
+- `migration_review_queue.ai_suggested_correspondence_type` — free `VARCHAR(50)` ไม่มี FK, resolve ผ่าน hardcoded `CATEGORY_ALIAS` map ใน `migration.service.ts:154-160`
 - `migration_review_queue.ai_issues` — ใช้เก็บ **business validation issues** (EC-001 tag ใหม่, EC-002 UUID ผู้ส่ง/ผู้รับหาไม่เจอ) ไม่ใช่เรื่อง OCR readability
 
 จึงเป็นการออกแบบ contract ใหม่ทั้งชุด ไม่ใช่การ migrate ข้อมูลเดิม
@@ -42,11 +42,11 @@
 
 ### 1. Category source — ไม่สร้างตารางใหม่
 
-`allowed_categories` = ดึงจาก `correspondence_types` ที่มีอยู่แล้ว (`GET /master/correspondence-types`) โดยตรง ลบ `CATEGORY_ALIAS` hardcode map (`migration.service.ts:154-160`) และ prompt hardcode string (`ai-batch.processor.ts:2062`) ทิ้งทั้งคู่ — บันทึกเป็น resolved ambiguity ใน `CONTEXT.md` แล้ว
+`allowed_correspondence_types` = ดึงจาก `correspondence_types` ที่มีอยู่แล้ว (`GET /master/correspondence-types`) โดยตรง ลบ `CATEGORY_ALIAS` hardcode map (`migration.service.ts:154-160`) และ prompt hardcode string (`ai-batch.processor.ts:2062`) ทิ้งทั้งคู่ — บันทึกเป็น resolved ambiguity ใน `CONTEXT.md` แล้ว
 
 ### 2. Storage — Bag + promoted flags
 
-Payload ใหม่ทั้งก้อน (`ocrQuality`, `metadata.summary/category/tags/confidence.*`) เก็บใน `migration_review_queue.details` (JSON bag เดิม) ไม่เพิ่ม column ต่อ field — ยกเว้น 2 field ที่ต้อง query/filter/sort ระดับ DB จึง promote เป็น real column:
+Payload ใหม่ทั้งก้อน (`ocrQuality`, `metadata.summary/correspondenceType/tags/confidence.*`) เก็บใน `migration_review_queue.details` (JSON bag เดิม) ไม่เพิ่ม column ต่อ field — ยกเว้น 2 field ที่ต้อง query/filter/sort ระดับ DB จึง promote เป็น real column:
 
 | Column ใหม่ | Type | เหตุผล |
 |---|---|---|
@@ -57,7 +57,7 @@ Payload ใหม่ทั้งก้อน (`ocrQuality`, `metadata.summary/ca
 
 ### 3. `requiresHumanReview` — backend คำนวณ deterministic เสมอ
 
-Backend คำนวณจาก `min(ocrQuality.confidence, metadata.confidence.summary, .category, .tags) < minConfidence` แล้วบังคับ `true`/`false` เอง **ไม่เชื่อค่าที่ LLM ส่งมาใน JSON แม้จะมี field นี้อยู่ก็ตาม** — ป้องกัน LLM ประเมินตัวเองผิดแล้วข้าม human review ไป ขัดหลัก Human-in-the-loop
+Backend คำนวณจาก `min(ocrQuality.confidence, metadata.confidence.summary, .correspondenceType, .tags) < minConfidence` แล้วบังคับ `true`/`false` เอง **ไม่เชื่อค่าที่ LLM ส่งมาใน JSON แม้จะมี field นี้อยู่ก็ตาม** — ป้องกัน LLM ประเมินตัวเองผิดแล้วข้าม human review ไป ขัดหลัก Human-in-the-loop
 
 **แก้ไข (พบระหว่าง `/104-speckit-plan`)**: `0.75` ใน `docs/ai-prompt-refactor-20260831.md` เป็นแค่ตัวเลขตัวอย่าง ระบบมี `ReviewThresholdService`/`MIGRATION_MIN_CONFIDENCE` (`system_settings`, Redis cache, Feature 242/R2/FR-010) อยู่แล้ว — admin ปรับได้ผ่าน `PATCH /migration/review-thresholds`, default `0.6` แต่ปัจจุบัน**ไม่มี consumer เรียกใช้จริงในระบบเลย** ต้องใช้ `reviewThresholdService.getThresholds().minConfidence` แทนการ hardcode `0.75` — ใช้โครงสร้าง config ที่มีอยู่แล้วแทนการสร้างค่าคงที่ใหม่
 
@@ -77,18 +77,18 @@ Backend คำนวณจาก `min(ocrQuality.confidence, metadata.confidence
 
 ### 7. Schema validation failure — ใช้ `aiFailed` เดิม + reason code
 
-เมื่อ backend validate JSON จาก LLM แล้วไม่ผ่าน (Zod/DTO: confidence นอกช่วง 0-1, category ไม่อยู่ใน `allowed_categories`, tags shape ผิด) → set `aiFailed = true` เหมือน LLM call ล้มเหลว แต่เพิ่ม `details.aiFailureReason` (`SCHEMA_VALIDATION_FAILED` | `LLM_CALL_FAILED`) เพื่อให้ reviewer เห็นสาเหตุต่างกันได้ใน UI โดยไม่เพิ่ม boolean state ใหม่
+เมื่อ backend validate JSON จาก LLM แล้วไม่ผ่าน (Zod/DTO: confidence นอกช่วง 0-1, category ไม่อยู่ใน `allowed_correspondence_types`, tags shape ผิด) → set `aiFailed = true` เหมือน LLM call ล้มเหลว แต่เพิ่ม `details.aiFailureReason` (`SCHEMA_VALIDATION_FAILED` | `LLM_CALL_FAILED`) เพื่อให้ reviewer เห็นสาเหตุต่างกันได้ใน UI โดยไม่เพิ่ม boolean state ใหม่
 
 ### 8. UI layout
 
 - **Table row** (`review-queue-table.tsx`): badge `requiresHumanReview` (สีเด่น) + `ocrQuality.confidence` โดยรวม, เพิ่ม filter "ต้อง review" และ sort by confidence ในหัวตาราง (ต้องเพิ่ม query param ฝั่ง `GET /migration/queue`)
-- **Detail page** (`review/[id]/page.tsx`): แสดงเต็มรูปแบบ — `ocrQuality.confidence` + `issues[]` แยก section, `metadata.confidence.summary/category/tags` แยก badge ต่อ field, category เป็น dropdown ผูก `correspondence_types`, tags เป็น chip accept/reject ตามข้อ 4
+- **Detail page** (`review/[id]/page.tsx`): แสดงเต็มรูปแบบ — `ocrQuality.confidence` + `issues[]` แยก section, `metadata.confidence.summary/correspondenceType/tags` แยก badge ต่อ field, correspondenceType เป็น dropdown ผูก `correspondence_types`, tags เป็น chip accept/reject ตามข้อ 4
 
 ### 9. Prompt templates — placeholder เพิ่ม 2 ตัวใน `ocr_extraction`
 
 `ocr_system` (step 1, np-dms-ocr) **ไม่เปลี่ยน** — ยังคง free-form system prompt ไม่มี placeholder ตามเดิม (ห้ามสั่ง category/tags/confidence ใดๆ ที่นี่)
 
-`ocr_extraction` (step 2, np-dms-ai) เพิ่ม placeholder ใหม่ 2 ตัว: `{{allowed_categories}}` (จาก `correspondence_types.typeCode`, ตัดสินใจข้อ 1) และ `{{existing_tags}}` (จาก master `tags` ในโปรเจกต์/global เพื่อช่วยให้ LLM ตัดสิน `isNew` แม่นขึ้น) เพิ่มเข้าไปข้าง `{{ocr_text}}`/`{{master_data_context}}` เดิม — บันทึกเป็น canonical placeholder ใน `CONTEXT.md` แล้ว
+`ocr_extraction` (step 2, np-dms-ai) เพิ่ม placeholder ใหม่ 2 ตัว: `{{allowed_correspondence_types}}` (จาก `correspondence_types.typeCode`, ตัดสินใจข้อ 1) และ `{{existing_tags}}` (จาก master `tags` ในโปรเจกต์/global เพื่อช่วยให้ LLM ตัดสิน `isNew` แม่นขึ้น) เพิ่มเข้าไปข้าง `{{ocr_text}}`/`{{master_data_context}}` เดิม — บันทึกเป็น canonical placeholder ใน `CONTEXT.md` แล้ว
 
 **ตัวอย่าง `ocr_system` (step 1 — ไม่เปลี่ยนจากเดิม):**
 
@@ -123,8 +123,8 @@ Backend คำนวณจาก `min(ocrQuality.confidence, metadata.confidence
 ## OCR Text
 {{ocr_text}}
 
-## หมวดหมู่ที่อนุญาต (allowed_categories)
-{{allowed_categories}}
+## หมวดหมู่ที่อนุญาต (allowed_correspondence_types)
+{{allowed_correspondence_types}}
 
 ## Tag ที่มีอยู่แล้วในระบบ (existing_tags)
 {{existing_tags}}
@@ -134,7 +134,7 @@ Backend คำนวณจาก `min(ocrQuality.confidence, metadata.confidence
 
 # กติกา
 
-1. `category` ต้องเลือกจาก `allowed_categories` เท่านั้น ห้ามสร้างค่าใหม่
+1. `correspondenceType` ต้องเลือกจาก `allowed_correspondence_types` เท่านั้น ห้ามสร้างค่าใหม่
 2. `tags[].isNew = true` เฉพาะเมื่อชื่อ tag ไม่ตรง (case-insensitive) กับรายการใน `existing_tags`
 3. `tags[].evidence` ต้องเป็นข้อความที่ตัดตรงมาจาก OCR Text เท่านั้น ห้ามแต่งเอง
 4. `ocrQuality.confidence` ประเมินจาก "อ่านได้/ต่อเนื่องของข้อความ" เท่านั้น — คุณไม่เห็นภาพต้นฉบับ ห้ามอ้างว่าเป็นความถูกต้องเทียบต้นฉบับ
@@ -153,11 +153,11 @@ Backend คำนวณจาก `min(ocrQuality.confidence, metadata.confidence
   },
   "metadata": {
     "summary": "string",
-    "category": "string (ต้องอยู่ใน allowed_categories)",
+    "correspondenceType": "string (ต้องอยู่ใน allowed_correspondence_types)",
     "tags": [
       { "name": "string", "isNew": true, "evidence": "string" }
     ],
-    "confidence": { "summary": 0.0, "category": 0.0, "tags": 0.0 }
+    "confidence": { "summary": 0.0, "correspondenceType": 0.0, "tags": 0.0 }
   }
 }
 \`\`\`
@@ -193,7 +193,7 @@ Backend คำนวณจาก `min(ocrQuality.confidence, metadata.confidence
 | **Backend Entity** | 🟡 Medium | `migration-review-queue.entity.ts` เพิ่ม 2 column ใหม่ |
 | **Backend DTO** | 🔴 High | `CommitMigrationReviewDto.tags: string[]` → `tagDecisions[]`; เพิ่ม Zod/class-validator สำหรับ payload ใหม่ทั้งก้อน |
 | **Backend Service** | 🔴 High | `migration.service.ts` ลบ `CATEGORY_ALIAS`; เพิ่ม deterministic `requiresHumanReview` calc; เขียน `ai_audit_logs` ต่อ tag reject |
-| **Backend Processor** | 🔴 High | `processLegacyAiEnrichment` (`ai-batch.processor.ts:~2050-2110`) เลิก hardcode prompt, เปลี่ยนไปเรียก `aiPromptsService.getActive('ocr_extraction')` + `{{allowed_categories}}`/`{{existing_tags}}` เหมือน `processOcrExtract`/`processMigrateDocument`; parse output ใหม่ตาม §9 schema — **step 1 (OCR/model switching/`ocr_system`) ไม่ต้องแก้ ใช้ `ocrService.detectAndExtract()` เดิม** (§10) |
+| **Backend Processor** | 🔴 High | `processLegacyAiEnrichment` (`ai-batch.processor.ts:~2050-2110`) เลิก hardcode prompt, เปลี่ยนไปเรียก `aiPromptsService.getActive('ocr_extraction')` + `{{allowed_correspondence_types}}`/`{{existing_tags}}` เหมือน `processOcrExtract`/`processMigrateDocument`; parse output ใหม่ตาม §9 schema — **step 1 (OCR/model switching/`ocr_system`) ไม่ต้องแก้ ใช้ `ocrService.detectAndExtract()` เดิม** (§10) |
 | **Backend Controller** | 🟡 Medium | `GET /migration/queue` เพิ่ม query param filter (`requiresHumanReview`) + sort (`ocrQualityConfidence`) |
 | **Migration endpoint** | 🟢 Low | ใช้ re-extract endpoint เดิม (commit `83362606`) สำหรับแถวเก่า |
 | **Frontend types** | 🔴 High | `types/migration.ts` เพิ่ม `ocrQuality`, `metadata.confidence.*`, `requiresHumanReview`, เปลี่ยน `extractedTags` shape |
@@ -222,6 +222,6 @@ Backend คำนวณจาก `min(ocrQuality.confidence, metadata.confidence
 
 ## Relationships
 
-- **ADR-029 / ADR-037** — Active Prompt ของ `metadata extraction` (prompt_type ใหม่) ต้องอัปเดต placeholder ให้รับ `{{allowed_categories}}` จาก `correspondence_types`
+- **ADR-029 / ADR-037** — Active Prompt ของ `metadata extraction` (prompt_type ใหม่) ต้องอัปเดต placeholder ให้รับ `{{allowed_correspondence_types}}` จาก `correspondence_types`
 - **ADR-044** — schema delta process สำหรับ 2 column ใหม่
-- **CONTEXT.md** — resolved ambiguity เรื่อง `allowed_categories` = `correspondence_types`
+- **CONTEXT.md** — resolved ambiguity เรื่อง `allowed_correspondence_types` = `correspondence_types`

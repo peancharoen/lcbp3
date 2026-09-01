@@ -199,7 +199,15 @@ class TestUnloadOllamaModel:
         )
 
         assert result is True
-        mock_client.post.assert_called_once()
+        mock_client.post.assert_awaited_once_with(
+            "http://localhost:11434/api/generate",
+            json={
+                "model": "np-dms-ocr:latest",
+                "prompt": "",
+                "keep_alive": 0,
+                "stream": False,
+            },
+        )
 
     @pytest.mark.asyncio
     async def test_unload_failure_returns_false(self):

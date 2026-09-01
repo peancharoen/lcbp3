@@ -225,7 +225,8 @@
   "ai.vram.catalog.capacityLow": "Insufficient VRAM (OOM Guard)",
   "ai.vram.catalog.column.model": "Model",
   "ai.vram.catalog.column.residency": "Residency",
-  "ai.vram.catalog.column.vram": "VRAM (MB)",
+  "ai.vram.catalog.column.modelSize": "Total size (MB)",
+  "ai.vram.catalog.column.vram": "GPU resident (MB)",
   "ai.vram.residency.loaded": "Loaded",
   "ai.vram.residency.notLoaded": "Not Loaded"
 }

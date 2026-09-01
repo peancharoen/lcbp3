@@ -414,7 +414,7 @@ describe('AiIngestService', () => {
         expect.objectContaining({
           documentNumber: 'CORR-001',
           subject: 'Test Subject',
-          category: 'CORR',
+          correspondenceType: 'CORR',
           projectId: 5,
         }),
         'idem-key-001',

@@ -49,6 +49,7 @@ export class OllamaService {
   private readonly timeoutMs: number;
   /** Timeout สำหรับ BullMQ ai-batch jobs (LLM นานกว่า realtime) — env AI_BATCH_TIMEOUT_MS, default 120000ms */
   private readonly batchTimeoutMs: number;
+  private readonly mainKeepAliveSeconds: number;
 
   constructor(private readonly configService: ConfigService) {
     this.ollamaUrl = this.configService.get<string>(
@@ -75,6 +76,10 @@ export class OllamaService {
       'AI_BATCH_TIMEOUT_MS',
       120000
     );
+    this.mainKeepAliveSeconds = this.configService.get<number>(
+      'OLLAMA_MAIN_KEEP_ALIVE_SECONDS',
+      120
+    );
   }
 
   /** สร้างข้อความตอบกลับด้วย np-dms-ai:latest หรือโมเดลที่ระบุใน options.model / ENV */
@@ -92,7 +97,7 @@ export class OllamaService {
           format: options.format,
           stream: false,
           options: options.options,
-          keep_alive: options.keepAlive ?? -1,
+          keep_alive: options.keepAlive ?? this.mainKeepAliveSeconds,
         },
         {
           timeout: options.timeoutMs ?? this.timeoutMs,
@@ -146,6 +151,10 @@ export class OllamaService {
    *  ใช้สำหรับงาน batch ที่ LLM ใช้เวลานานกว่า realtime calls (เช่น sandbox-rag-prep, migrate-document) */
   getBatchTimeoutMs(): number {
     return this.batchTimeoutMs;
+  }
+
+  getMainKeepAliveSeconds(): number {
+    return this.mainKeepAliveSeconds;
   }
 
   /** ตรวจสอบสุขภาพและความเร็ว (Latency) ของระบบ Ollama */
@@ -202,7 +211,7 @@ export class OllamaService {
   }
 
   /** โหลดโมเดลเข้า VRAM — ใช้สำหรับ preload และ model switching (ADR-033, ADR-034)
-   * @param keepAlive ค่า keep_alive: -1 = ค้างใน VRAM ตลอด (main), 0 = unload หลังจบ (OCR)
+   * @param keepAlive ค่า keep_alive; ถ้าไม่ระบุจะใช้ finite residency จาก config
    */
   async loadModel(
     modelName: string,
@@ -224,7 +233,7 @@ export class OllamaService {
         return false;
       }
       this.logger.log(
-        `Synchronously pre-loading model ${modelName} into GPU memory (keep_alive=${String(keepAlive ?? -1)})...`
+        `Synchronously pre-loading model ${modelName} into GPU memory (keep_alive=${String(keepAlive ?? this.mainKeepAliveSeconds)})...`
       );
       await axios.post(
         `${this.ollamaUrl}/api/generate`,
@@ -232,7 +241,7 @@ export class OllamaService {
           model: modelName,
           prompt: '',
           stream: false,
-          keep_alive: keepAlive ?? -1,
+          keep_alive: keepAlive ?? this.mainKeepAliveSeconds,
         },
         { timeout: 60000 }
       );

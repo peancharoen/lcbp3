@@ -28,6 +28,7 @@ describe('VramMonitorService', () => {
   const mockOllamaService = {
     loadModel: jest.fn().mockResolvedValue(undefined),
     unloadModel: jest.fn().mockResolvedValue(undefined),
+    getMainKeepAliveSeconds: jest.fn().mockReturnValue(120),
   };
 
   const mockAiQueueService = {
@@ -151,7 +152,11 @@ describe('VramMonitorService', () => {
           // first call: /api/ps ใน getVramStatus
           data: {
             models: [
-              { name: 'np-dms-ai:latest', size_vram: 3 * 1024 * 1024 * 1024 },
+              {
+                name: 'np-dms-ai:latest',
+                size: 5 * 1024 * 1024 * 1024,
+                size_vram: 3 * 1024 * 1024 * 1024,
+              },
             ],
           },
         })
@@ -159,7 +164,11 @@ describe('VramMonitorService', () => {
           // second call: /api/ps ใน getVramHeadroom
           data: {
             models: [
-              { name: 'np-dms-ai:latest', size_vram: 3 * 1024 * 1024 * 1024 },
+              {
+                name: 'np-dms-ai:latest',
+                size: 5 * 1024 * 1024 * 1024,
+                size_vram: 3 * 1024 * 1024 * 1024,
+              },
             ],
           },
         });
@@ -169,6 +178,7 @@ describe('VramMonitorService', () => {
           modelId: 'np-dms-ai:latest',
           modelName: 'np-dms-ai:latest',
           vramUsageMB: 3072,
+          modelSizeMB: 5120,
         },
       ]);
       expect(status.totalVramMb).toBe(8192);
@@ -240,7 +250,7 @@ describe('VramMonitorService', () => {
       await service.loadModelVram('np-dms-ai:latest');
       expect(mockOllamaService.loadModel).toHaveBeenCalledWith(
         'np-dms-ai:latest',
-        -1
+        120
       );
     });
   });
@@ -316,7 +326,7 @@ describe('VramMonitorService', () => {
       );
       expect(mockOllamaService.loadModel).toHaveBeenCalledWith(
         'np-dms-ai:latest',
-        -1
+        120
       );
     });
 
@@ -339,7 +349,7 @@ describe('VramMonitorService', () => {
       expect(mockOllamaService.unloadModel).not.toHaveBeenCalled();
       expect(mockOllamaService.loadModel).toHaveBeenCalledWith(
         'np-dms-ocr:latest',
-        -1
+        120
       );
     });
 
@@ -354,7 +364,7 @@ describe('VramMonitorService', () => {
       expect(mockOllamaService.unloadModel).not.toHaveBeenCalled();
       expect(mockOllamaService.loadModel).toHaveBeenCalledWith(
         'np-dms-ai:latest',
-        -1
+        120
       );
     });
 
@@ -383,7 +393,7 @@ describe('VramMonitorService', () => {
       );
       expect(mockOllamaService.loadModel).toHaveBeenCalledWith(
         'np-dms-ai:latest',
-        -1
+        120
       );
     });
 
@@ -461,7 +471,7 @@ describe('VramMonitorService', () => {
       // ยังโหลดได้แม้ eviction query ล้มเหลว
       expect(mockOllamaService.loadModel).toHaveBeenCalledWith(
         'np-dms-ai:latest',
-        -1
+        120
       );
     });
   });

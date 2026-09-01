@@ -24,8 +24,20 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { adminAiService, type AiSystemHealth, type VramStatusResponse, type BgeStatusResponse } from '@/lib/services/admin-ai.service';
-import { MAIN_MODEL_NAME, MAIN_MODEL_30B_NAME, OCR_MODEL_NAME, BGE_MODEL_NAME, ensureArray, toCanonicalModel } from './ai-constants';
+import {
+  adminAiService,
+  type AiSystemHealth,
+  type VramStatusResponse,
+  type BgeStatusResponse,
+} from '@/lib/services/admin-ai.service';
+import {
+  MAIN_MODEL_NAME,
+  MAIN_MODEL_30B_NAME,
+  OCR_MODEL_NAME,
+  BGE_MODEL_NAME,
+  ensureArray,
+  toCanonicalModel,
+} from './ai-constants';
 
 interface CombinedOllamaEngineCardProps {
   health: AiSystemHealth | undefined;
@@ -39,6 +51,7 @@ interface VramLoadedModelView {
   modelId: string;
   modelName: string;
   vramUsageMB?: number;
+  modelSizeMB?: number;
 }
 
 /** แปลงข้อมูล loaded models จาก response ให้เป็น VramLoadedModelView[] */
@@ -68,6 +81,7 @@ function normalizeLoadedModels(value: unknown): VramLoadedModelView[] {
         modelName?: string;
         name?: string;
         vramUsageMB?: number;
+        modelSizeMB?: number;
       };
       const rawName = model.modelName ?? model.name ?? `model-${index + 1}`;
       const name = rawName.toLowerCase();
@@ -83,6 +97,7 @@ function normalizeLoadedModels(value: unknown): VramLoadedModelView[] {
         modelId: model.modelId ?? rawName,
         modelName: normName,
         vramUsageMB: model.vramUsageMB,
+        modelSizeMB: model.modelSizeMB,
       };
     }
     return {
@@ -152,6 +167,7 @@ export function CombinedOllamaEngineCard({
       canonicalName,
       isLoaded: Boolean(loaded),
       vramUsageMB: loaded?.vramUsageMB,
+      modelSizeMB: loaded?.modelSizeMB,
     };
   });
 
@@ -222,7 +238,8 @@ export function CombinedOllamaEngineCard({
     },
   });
 
-  const isBusy = loadMutation.isPending || unloadMutation.isPending || bgeLoadMutation.isPending || bgeUnloadMutation.isPending;
+  const isBusy =
+    loadMutation.isPending || unloadMutation.isPending || bgeLoadMutation.isPending || bgeUnloadMutation.isPending;
 
   return (
     <Card className="relative overflow-hidden border border-border/50 bg-background/50 backdrop-blur-md md:col-span-3">
@@ -318,9 +335,7 @@ export function CombinedOllamaEngineCard({
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">{t('ai.vram.catalog.title')}</span>
                 <Badge variant={vramStatus.canLoadModel ? 'default' : 'destructive'} className="text-[10px]">
-                  {vramStatus.canLoadModel
-                    ? t('ai.vram.catalog.capacityOk')
-                    : t('ai.vram.catalog.capacityLow')}
+                  {vramStatus.canLoadModel ? t('ai.vram.catalog.capacityOk') : t('ai.vram.catalog.capacityLow')}
                 </Badge>
               </div>
               <div className="rounded-md border border-border/50 overflow-hidden">
@@ -329,6 +344,7 @@ export function CombinedOllamaEngineCard({
                     <tr>
                       <th className="text-left py-1.5 px-2 font-medium">{t('ai.vram.catalog.column.model')}</th>
                       <th className="text-left py-1.5 px-2 font-medium">{t('ai.vram.catalog.column.residency')}</th>
+                      <th className="text-right py-1.5 px-2 font-medium">{t('ai.vram.catalog.column.modelSize')}</th>
                       <th className="text-right py-1.5 px-2 font-medium">{t('ai.vram.catalog.column.vram')}</th>
                       <th className="text-right py-1.5 px-2 font-medium">{t('ai.queue.column.actions')}</th>
                     </tr>
@@ -347,6 +363,9 @@ export function CombinedOllamaEngineCard({
                               {t('ai.vram.residency.notLoaded')}
                             </Badge>
                           )}
+                        </td>
+                        <td className="py-1.5 px-2 text-right">
+                          {typeof row.modelSizeMB === 'number' ? row.modelSizeMB : '—'}
                         </td>
                         <td className="py-1.5 px-2 text-right">
                           {typeof row.vramUsageMB === 'number' ? row.vramUsageMB : '—'}
@@ -445,9 +464,7 @@ export function CombinedOllamaEngineCard({
             </div>
           </>
         ) : (
-          <p className="text-xs text-muted-foreground italic text-center py-2">
-            กำลังดึงข้อมูลสถานะ GPU VRAM...
-          </p>
+          <p className="text-xs text-muted-foreground italic text-center py-2">กำลังดึงข้อมูลสถานะ GPU VRAM...</p>
         )}
       </CardContent>
 

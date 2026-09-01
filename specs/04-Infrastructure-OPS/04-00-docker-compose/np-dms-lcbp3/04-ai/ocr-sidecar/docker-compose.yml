@@ -20,6 +20,7 @@
 # - 2026-06-17: ลบชื่อ Typhoon ออกจากทุก environment variable และ comment (เปลี่ยนเป็น OCR_* ตาม ADR-036)
 # - 2026-06-20: ADR-040 Phase 6+8 — ลบ OCR_LANG, USE_GPU (stale Tesseract config); เพิ่ม OCR_SIDECAR_API_KEY, OCR_ACTIVE_PROFILE
 # - 2026-07-30: ADR-040 Phase 2 (T016) — ลบ OCR_SIDECAR_API_KEY env (network isolation แทน X-API-Key auth)
+# - 2026-08-26: เพิ่ม runtime: nvidia + GPU device reservation — ให้ BGE-M3/BGE-Reranker ลง GPU ได้ (แก้ CPU rerank timeout 504)
 #
 # วิธีรัน:
 #   docker compose --env-file ../../.env up -d --build
@@ -41,14 +42,19 @@ services:
       dockerfile: Dockerfile
     container_name: ocr-sidecar
     restart: unless-stopped
+    runtime: nvidia
     deploy:
       resources:
         limits:
           cpus: '2.0'
-          memory: 2G
+          memory: 4G
         reservations:
           cpus: '0.5'
           memory: 512M
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     ports:
       - "192.168.10.11:8765:8765"
     networks:
@@ -60,7 +66,7 @@ services:
     environment:
       OCR_CHAR_THRESHOLD: "100"
       OCR_PORT: "8765"
-      OCR_MAX_PAGES: "0"
+      OCR_MAX_PAGES: "5"
       # ─── Adaptive OCR Residency (ADR-040 Phase 4) ───────────────────
       # OCR_ACTIVE_PROFILE: ชื่อ profile ใน ai_execution_profiles (ถ้าไม่ระบุ จะใช้ default)
       OCR_ACTIVE_PROFILE: ${OCR_ACTIVE_PROFILE:-}

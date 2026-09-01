@@ -1,13 +1,14 @@
 // File: frontend/app/(admin)/admin/ai/prompt-management/page.tsx
 // Change Log:
 // - 2026-06-14: Created unified prompt management page (conforming to tasks T019, T029, T038)
+// - 2026-09-01: Simplified to single page with dynamic prompt type dropdown (Feature 251)
 
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminAiService } from '@/lib/services/admin-ai.service';
-import { PromptType, PromptVersion, ContextConfig } from '@/lib/types/ai-prompts';
+import { PromptVersion, ContextConfig } from '@/lib/types/ai-prompts';
 import PromptTypeDropdown from '@/components/admin/ai/PromptTypeDropdown';
 import VersionHistory from '@/components/admin/ai/VersionHistory';
 import PromptEditor from '@/components/admin/ai/PromptEditor';
@@ -20,20 +21,17 @@ import { Brain, Sliders, Play, Settings } from 'lucide-react';
 
 export default function UnifiedPromptManagementPage() {
   const queryClient = useQueryClient();
-  const [selectedType, setSelectedType] = useState<PromptType | 'all'>('ocr_extraction');
+  const [selectedType, setSelectedType] = useState<string>('ocr_extraction');
   const [selectedVersion, setSelectedVersion] = useState<PromptVersion | null>(null);
-  const promptSeparationTabValue =
-    selectedType === 'ocr_system' || selectedType === 'ocr_extraction' ? selectedType : 'other';
 
   // ดึงข้อมูลประวัติเวอร์ชันทั้งหมดของ prompt_type ที่เลือก
   const { data: versions = [], isLoading } = useQuery<PromptVersion[]>({
     queryKey: ['admin-ai-prompts', selectedType],
     queryFn: async () => {
-      if (selectedType === 'all') return [];
       const res = await adminAiService.listPrompts(selectedType);
       return res || [];
     },
-    enabled: selectedType !== 'all',
+    enabled: selectedType !== '',
   });
 
   // อัปเดต selectedVersion เมื่อเปลี่ยนประเภทหรือข้อมูลรีเฟรช
@@ -49,7 +47,6 @@ export default function UnifiedPromptManagementPage() {
   // สร้างเวอร์ชันใหม่
   const createMutation = useMutation({
     mutationFn: async (payload: { template: string; manualNote: string }) => {
-      if (selectedType === 'all') throw new Error('Cannot create prompt for "All Types"');
       return await adminAiService.createPrompt(selectedType, {
         template: payload.template,
         manualNote: payload.manualNote,
@@ -64,7 +61,6 @@ export default function UnifiedPromptManagementPage() {
       const userMessage = (err as { response?: { data?: { userMessage?: string } } })?.response?.data?.userMessage;
       const recoveryAction = (err as { response?: { data?: { recoveryAction?: string } } })?.response?.data?.recoveryAction;
 
-      // ADR-007 layered error handling (T073)
       if (userMessage) {
         toast.error(userMessage, {
           description: recoveryAction || 'กรุณาตรวจสอบข้อมูลและลองใหม่',
@@ -78,7 +74,6 @@ export default function UnifiedPromptManagementPage() {
   // เปิดใช้งานเวอร์ชัน
   const activateMutation = useMutation({
     mutationFn: async (versionNumber: number) => {
-      if (selectedType === 'all') throw new Error('Cannot activate prompt for "All Types"');
       const promptVersion = versions.find((version) => version.versionNumber === versionNumber);
       return await adminAiService.activatePrompt(selectedType, versionNumber, promptVersion?.version);
     },
@@ -91,7 +86,6 @@ export default function UnifiedPromptManagementPage() {
       const userMessage = (err as { response?: { data?: { userMessage?: string } } })?.response?.data?.userMessage;
       const recoveryAction = (err as { response?: { data?: { recoveryAction?: string } } })?.response?.data?.recoveryAction;
 
-      // ADR-007 layered error handling (T073)
       if (userMessage) {
         toast.error(userMessage, {
           description: recoveryAction || 'กรุณาตรวจสอบข้อมูลและลองใหม่',
@@ -105,7 +99,6 @@ export default function UnifiedPromptManagementPage() {
   // ลบเวอร์ชัน
   const deleteMutation = useMutation({
     mutationFn: async (versionNumber: number) => {
-      if (selectedType === 'all') throw new Error('Cannot delete prompt for "All Types"');
       return await adminAiService.deletePrompt(selectedType, versionNumber);
     },
     onSuccess: () => {
@@ -117,7 +110,6 @@ export default function UnifiedPromptManagementPage() {
       const userMessage = (err as { response?: { data?: { userMessage?: string } } })?.response?.data?.userMessage;
       const recoveryAction = (err as { response?: { data?: { recoveryAction?: string } } })?.response?.data?.recoveryAction;
 
-      // ADR-007 layered error handling (T073)
       if (userMessage) {
         toast.error(userMessage, {
           description: recoveryAction || 'กรุณาตรวจสอบข้อมูลและลองใหม่',
@@ -131,7 +123,6 @@ export default function UnifiedPromptManagementPage() {
   // อัปเดตบริบทข้อมูล (Context Config)
   const updateConfigMutation = useMutation({
     mutationFn: async (payload: { versionNumber: number; config: ContextConfig }) => {
-      if (selectedType === 'all') throw new Error('Cannot update config for "All Types"');
       return await adminAiService.updateContextConfig(
         selectedType,
         payload.versionNumber,
@@ -147,7 +138,6 @@ export default function UnifiedPromptManagementPage() {
       const userMessage = (err as { response?: { data?: { userMessage?: string } } })?.response?.data?.userMessage;
       const recoveryAction = (err as { response?: { data?: { recoveryAction?: string } } })?.response?.data?.recoveryAction;
 
-      // ADR-007 layered error handling (T073)
       if (userMessage) {
         toast.error(userMessage, {
           description: recoveryAction || 'กรุณาตรวจสอบข้อมูลและลองใหม่',
@@ -172,23 +162,6 @@ export default function UnifiedPromptManagementPage() {
           </p>
         </div>
         <div className="w-full sm:w-[360px] md:w-[420px] space-y-2">
-          <Tabs
-            value={promptSeparationTabValue}
-            onValueChange={(value) => {
-              if (value === 'ocr_system' || value === 'ocr_extraction') {
-                setSelectedType(value);
-              }
-            }}
-          >
-            <TabsList className="grid w-full grid-cols-2 bg-background/40 border border-border/50 p-1">
-              <TabsTrigger value="ocr_system" className="text-xs font-semibold whitespace-nowrap">
-                OCR System Prompt
-              </TabsTrigger>
-              <TabsTrigger value="ocr_extraction" className="text-xs font-semibold whitespace-nowrap">
-                AI Extraction Prompt
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
           <div className="bg-background/40 p-2 sm:p-2.5 rounded-lg border border-border/50">
             <PromptTypeDropdown value={selectedType} onChange={setSelectedType} />
           </div>
@@ -231,34 +204,25 @@ export default function UnifiedPromptManagementPage() {
             </TabsList>
 
             <TabsContent value="editor" className="space-y-4 mt-0 focus-visible:outline-none">
-              {selectedType !== 'all' && (
-                <>
-                  <PromptEditor
-                    promptType={selectedType}
-                    initialTemplate={selectedVersion?.template || ''}
-                    onSave={async (tmpl, note) => {
-                      await createMutation.mutateAsync({ template: tmpl, manualNote: note });
-                    }}
-                    isSaving={createMutation.isPending}
-                  />
-                  {selectedVersion && (
-                    <ContextConfigEditor
-                      initialConfig={selectedVersion.contextConfig}
-                      onSave={async (config) => {
-                        await updateConfigMutation.mutateAsync({
-                          versionNumber: selectedVersion.versionNumber,
-                          config,
-                        });
-                      }}
-                      isSaving={updateConfigMutation.isPending}
-                    />
-                  )}
-                </>
-              )}
-              {selectedType === 'all' && (
-                <div className="text-center text-sm text-muted-foreground py-10">
-                  กรุณาเลือกประเภท Prompt เพื่อแก้ไข
-                </div>
+              <PromptEditor
+                promptType={selectedType}
+                initialTemplate={selectedVersion?.template || ''}
+                onSave={async (tmpl, note) => {
+                  await createMutation.mutateAsync({ template: tmpl, manualNote: note });
+                }}
+                isSaving={createMutation.isPending}
+              />
+              {selectedVersion && (
+                <ContextConfigEditor
+                  initialConfig={selectedVersion.contextConfig}
+                  onSave={async (config) => {
+                    await updateConfigMutation.mutateAsync({
+                      versionNumber: selectedVersion.versionNumber,
+                      config,
+                    });
+                  }}
+                  isSaving={updateConfigMutation.isPending}
+                />
               )}
             </TabsContent>
 

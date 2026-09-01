@@ -155,7 +155,7 @@ function LegacyManagementTab() {
           dto: {
             documentNumber: item.documentNumber,
             subject: item.subject || item.originalSubject || 'Untitled',
-            category: item.aiSuggestedCategory || 'Correspondence',
+            correspondenceType: item.aiSuggestedCorrespondenceType || 'Correspondence',
             projectId: item.projectId || 1,
             migratedBy: 'SYSTEM_IMPORT',
             // ADR-019: tempAttachmentId/tempAttachmentIds เป็น @Exclude ใน entity
@@ -358,7 +358,7 @@ function LegacyManagementTab() {
                       />
                     </TableCell>
                     <TableCell className="font-medium">{item.documentNumber}</TableCell>
-                    <TableCell>{item.aiSuggestedCategoryName || item.aiSuggestedCategory || 'Unknown'}</TableCell>
+                    <TableCell>{item.aiSuggestedCorrespondenceTypeName || item.aiSuggestedCorrespondenceType || 'Unknown'}</TableCell>
                     <TableCell>{item.issuedDate ? format(new Date(item.issuedDate), 'dd/MM/yyyy') : '—'}</TableCell>
                     <TableCell>{item.receivedDate ? format(new Date(item.receivedDate), 'dd/MM/yyyy') : '—'}</TableCell>
                     <TableCell>{item.senderOrganizationCode ?? '—'}</TableCell>

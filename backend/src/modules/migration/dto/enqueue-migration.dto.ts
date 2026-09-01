@@ -36,7 +36,7 @@ export class EnqueueMigrationDto {
 
   @IsString()
   @IsOptional()
-  category?: string;
+  correspondenceType?: string;
 
   @IsString()
   @IsOptional()

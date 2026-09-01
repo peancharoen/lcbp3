@@ -1,15 +1,16 @@
-// File: e:\np-dms\lcbp3\frontend/app/(admin)/admin/ai/prompt-management/__tests__/page.test.tsx
+// File: frontend/app/(admin)/admin/ai/prompt-management/__tests__/page.test.tsx
 // Change Log:
 // - 2026-06-18: Created test for prompt-management page rendering and tab switching (gap-4)
+// - 2026-09-01: Update for unified prompt management page with dynamic ai_prompt_types (Feature 251)
 
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import UnifiedPromptManagementPage from '../page';
 
 const mockListPrompts = vi.fn();
+const mockListPromptTypes = vi.fn();
 const mockCreatePrompt = vi.fn();
 const mockActivatePrompt = vi.fn();
 const mockDeletePrompt = vi.fn();
@@ -17,6 +18,7 @@ const mockUpdateContextConfig = vi.fn();
 
 vi.mock('@/lib/services/admin-ai.service', () => ({
   adminAiService: {
+    listPromptTypes: (...args: unknown[]) => mockListPromptTypes(...args),
     listPrompts: (...args: unknown[]) => mockListPrompts(...args),
     createPrompt: (...args: unknown[]) => mockCreatePrompt(...args),
     activatePrompt: (...args: unknown[]) => mockActivatePrompt(...args),
@@ -52,6 +54,10 @@ describe('UnifiedPromptManagementPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     window.PointerEvent = MouseEvent as unknown as typeof PointerEvent;
+    mockListPromptTypes.mockResolvedValue([
+      { publicId: '1', promptType: 'ocr_extraction', displayName: 'OCR Extraction', isSystemManaged: true, isActive: true },
+      { publicId: '2', promptType: 'ocr_system', displayName: 'OCR System', isSystemManaged: true, isActive: true },
+    ]);
   });
 
   const renderWithQueryClient = (component: React.ReactNode) => {
@@ -62,17 +68,8 @@ describe('UnifiedPromptManagementPage', () => {
     );
   };
 
-  it('renders correctly with OCR System Prompt and AI Extraction Prompt tabs', async () => {
-    mockListPrompts.mockResolvedValue([
-      {
-        versionNumber: 1,
-        template: 'Test OCR system prompt',
-        isActive: true,
-        contextConfig: null,
-        manualNote: 'Initial version',
-        createdAt: '2026-06-18T00:00:00Z',
-      },
-    ]);
+  it('renders the unified page title and prompt type dropdown', async () => {
+    mockListPrompts.mockResolvedValue([]);
 
     renderWithQueryClient(<UnifiedPromptManagementPage />);
 
@@ -80,46 +77,8 @@ describe('UnifiedPromptManagementPage', () => {
       expect(screen.getByText(/ระบบจัดการ Prompt และบริบท/i)).toBeInTheDocument();
     });
 
-    // Check for the two prompt separation tabs
-    expect(screen.getByText('OCR System Prompt')).toBeInTheDocument();
-    expect(screen.getByText('AI Extraction Prompt')).toBeInTheDocument();
-  });
-
-  it('switches between OCR System Prompt and AI Extraction Prompt tabs', async () => {
-    mockListPrompts.mockResolvedValue([]);
-
-    const user = userEvent.setup();
-    renderWithQueryClient(<UnifiedPromptManagementPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText('OCR System Prompt')).toBeInTheDocument();
-    });
-
-    // Click on AI Extraction Prompt tab
-    const aiExtractionTab = screen.getByText('AI Extraction Prompt');
-    await user.click(aiExtractionTab);
-
-    // Verify tab switching (selectedType should change)
-    // The tab should remain visible and active
-    expect(screen.getByText('AI Extraction Prompt')).toBeInTheDocument();
-  });
-
-  it('displays warning when no active OCR system prompt exists', async () => {
-    mockListPrompts.mockResolvedValue([]);
-
-    renderWithQueryClient(<UnifiedPromptManagementPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText('OCR System Prompt')).toBeInTheDocument();
-    });
-
-    // Click on OCR System Prompt tab
-    const ocrSystemTab = screen.getByText('OCR System Prompt');
-    await userEvent.click(ocrSystemTab);
-
-    // The warning should appear in SandboxTabs when no template is selected
-    // This is tested in SandboxTabs.test.tsx, but we verify the page loads correctly
-    expect(screen.getByText('OCR System Prompt')).toBeInTheDocument();
+    expect(mockListPromptTypes).toHaveBeenCalled();
+    expect(screen.getByText('prompt_management.prompt_type')).toBeInTheDocument();
   });
 
   it('renders Editor & Context, Sandbox, and Runtime Params tabs', async () => {
@@ -134,10 +93,10 @@ describe('UnifiedPromptManagementPage', () => {
     // Check for the three main tabs
     expect(screen.getByText(/ตัวแก้ไขและบริบท/i)).toBeInTheDocument();
     expect(screen.getByText(/บอร์ดทดลอง/i)).toBeInTheDocument();
-    expect(screen.getByText(/พารามิเตอร์รันไทม์/i)).toBeInTheDocument();
+    expect(screen.getByText(/พารามิเตอร์รันไทม์/)).toBeInTheDocument();
   });
 
-  it('loads prompt versions when tab is selected', async () => {
+  it('loads prompt versions for the default selected prompt type', async () => {
     const mockVersions = [
       {
         versionNumber: 1,
@@ -157,21 +116,7 @@ describe('UnifiedPromptManagementPage', () => {
       expect(mockListPrompts).toHaveBeenCalled();
     });
 
-    // Verify that the API was called with the correct prompt type
+    // Verify that the API was called with the default prompt type
     expect(mockListPrompts).toHaveBeenCalledWith('ocr_extraction');
-  });
-
-  it('activation button is disabled when steps are incomplete (fix-4)', async () => {
-    mockListPrompts.mockResolvedValue([]);
-
-    renderWithQueryClient(<UnifiedPromptManagementPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText(/ระบบจัดการ Prompt และบริบท/i)).toBeInTheDocument();
-    });
-
-    // Verify the page loads correctly with OCR System Prompt and AI Extraction Prompt tabs
-    expect(screen.getByText('OCR System Prompt')).toBeInTheDocument();
-    expect(screen.getByText('AI Extraction Prompt')).toBeInTheDocument();
   });
 });

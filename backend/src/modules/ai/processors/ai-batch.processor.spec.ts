@@ -80,6 +80,7 @@ describe('AiBatchProcessor', () => {
     getMainModelName: jest.fn().mockReturnValue('np-dms-ai:latest'),
     getOcrModelName: jest.fn().mockReturnValue('np-dms-ocr:latest'),
     getBatchTimeoutMs: jest.fn().mockReturnValue(120000),
+    getMainKeepAliveSeconds: jest.fn().mockReturnValue(120),
     loadModel: jest.fn().mockResolvedValue(true),
     unloadModel: jest.fn().mockResolvedValue(true),
     // Feature 242: เปลี่ยนจาก extraction format เป็น compare result format
@@ -292,7 +293,7 @@ describe('AiBatchProcessor', () => {
     );
     expect(mockOllamaService.loadModel).toHaveBeenCalledWith(
       'np-dms-ai:latest',
-      -1
+      120
     );
     expect(mockRedis.setex).toHaveBeenCalledWith(
       'ai:ocr:result:doc-ocr-uuid-001',
@@ -679,7 +680,7 @@ describe('AiBatchProcessor', () => {
   // ── ADR-050 T021/T022: processLegacyAiEnrichment governance fix ─────────────────
   describe('legacy-ai-enrichment — ADR-050 Active Prompt + schema validation (T021/T022)', () => {
     const legacyPromptTemplate =
-      'OCR: {{ocr_text}} | Categories: {{allowed_categories}} | ExistingTags: {{existing_tags}} | Context: {{master_data_context}}';
+      'OCR: {{ocr_text}} | Categories: {{allowed_correspondence_types}} | ExistingTags: {{existing_tags}} | Context: {{master_data_context}}';
 
     beforeEach(() => {
       ocrService.detectAndExtract.mockResolvedValue({
@@ -738,9 +739,9 @@ describe('AiBatchProcessor', () => {
           ocrQuality: { confidence: 0.9, issues: [] },
           metadata: {
             summary: 'สรุปเอกสาร',
-            category: 'LETTER',
+            correspondenceType: 'LETTER',
             tags: [{ name: 'civil', isNew: false, evidence: 'Civil' }],
-            confidence: { summary: 0.9, category: 0.85, tags: 0.8 },
+            confidence: { summary: 0.9, correspondenceType: 0.85, tags: 0.8 },
           },
         })
       );
@@ -762,7 +763,7 @@ describe('AiBatchProcessor', () => {
       expect(mockAiPromptsService.getActive).toHaveBeenCalledWith(
         'ocr_extraction'
       );
-      // ต้องใช้ resolved template จาก Active Prompt จริง (มี allowed_categories/existing_tags
+      // ต้องใช้ resolved template จาก Active Prompt จริง (มี allowed_correspondence_types/existing_tags
       // ที่ resolve แล้ว) ไม่ใช่ prompt hardcoded แบบเดิม ("วิเคราะห์เอกสารราชการ...")
       expect(mockOllamaService.generate).toHaveBeenCalledWith(
         expect.stringContaining('Categories: LETTER, RFA, OTHER'),
@@ -781,7 +782,7 @@ describe('AiBatchProcessor', () => {
           aiStatus: 'DONE',
           details: expect.objectContaining({
             ocrQuality: expect.objectContaining({ confidence: 0.9 }),
-            metadata: expect.objectContaining({ category: 'LETTER' }),
+            metadata: expect.objectContaining({ correspondenceType: 'LETTER' }),
           }),
         })
       );
@@ -1464,6 +1465,52 @@ describe('AiBatchProcessor', () => {
         return key === `ai:clear_failed:job:${trackingId}`;
       });
       expect(setexCalls.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('FR-010: old metadata.category rejection (Feature 251)', () => {
+    it('ควร reject LLM output ที่ยังใช้ metadata.category โดยไม่ map ค่าไป correspondenceType', async () => {
+      const raw = {
+        ocrQuality: { confidence: 0.95, issues: [] },
+        metadata: {
+          summary: 'test summary',
+          category: 'LETTER', // old key
+          tags: [],
+          confidence: { summary: 0.9, category: 0.85, tags: 0.8 }, // old confidence keys
+        },
+      };
+
+      const result = await (
+        processor as unknown as {
+          validateExtractionOutput: (
+            raw: Record<string, unknown>,
+            allowed: string[]
+          ) => unknown;
+        }
+      ).validateExtractionOutput(raw, ['LETTER']);
+      expect(result).toBeNull();
+    });
+
+    it('ควรยอมรับ LLM output ที่ใช้ metadata.correspondenceType ตาม ADR-050', async () => {
+      const raw = {
+        ocrQuality: { confidence: 0.95, issues: [] },
+        metadata: {
+          summary: 'test summary',
+          correspondenceType: 'LETTER',
+          tags: [],
+          confidence: { summary: 0.9, correspondenceType: 0.85, tags: 0.8 },
+        },
+      };
+
+      const result = await (
+        processor as unknown as {
+          validateExtractionOutput: (
+            raw: Record<string, unknown>,
+            allowed: string[]
+          ) => unknown;
+        }
+      ).validateExtractionOutput(raw, ['LETTER']);
+      expect(result).not.toBeNull();
     });
   });
 });

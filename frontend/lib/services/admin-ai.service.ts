@@ -22,7 +22,7 @@
 
 import api from '../api/client';
 import { AiJobResponse, AiJobStatusResponse, AiJobResult } from '../../types/ai';
-import { PromptType, PromptVersion, ContextConfig } from '../types/ai-prompts';
+import { PromptType, PromptVersion, ContextConfig, AiPromptType } from '../types/ai-prompts';
 
 export interface AiAdminSettings {
   aiFeaturesEnabled: boolean;
@@ -98,6 +98,7 @@ export interface LoadedModelInfo {
   modelId: string;
   modelName: string;
   vramUsageMB: number;
+  modelSizeMB?: number;
 }
 
 /** ข้อมูล CPU usage ของ host (ADR-048 T007) */
@@ -509,11 +510,7 @@ export const adminAiService = {
    * @returns AiJobStatusResponse เมื่อ completed/failed
    * @throws Error เมื่อ timeout หรือ job failed
    */
-  pollAiJob: async (
-    jobId: string,
-    intervalMs = 2000,
-    timeoutMs = 120_000
-  ): Promise<AiJobStatusResponse> => {
+  pollAiJob: async (jobId: string, intervalMs = 2000, timeoutMs = 120_000): Promise<AiJobStatusResponse> => {
     const startTime = Date.now();
 
     while (true) {
@@ -537,6 +534,11 @@ export const adminAiService = {
     return extractData<PromptVersion[]>(data);
   },
 
+  listPromptTypes: async (): Promise<AiPromptType[]> => {
+    const { data } = await api.get('/ai/prompt-types');
+    return extractData<AiPromptType[]>(data);
+  },
+
   createPrompt: async (
     type: PromptType,
     updates: { template: string; contextConfig?: ContextConfig | null; manualNote?: string }
@@ -553,11 +555,9 @@ export const adminAiService = {
 
   activatePrompt: async (type: PromptType, versionNumber: number, expectedVersion?: number): Promise<PromptVersion> => {
     const body = expectedVersion === undefined ? {} : { expectedVersion };
-    const { data } = await api.post(
-      `/ai/prompts/${type}/${versionNumber}/activate`,
-      body,
-      { headers: { 'Idempotency-Key': createIdempotencyKey() } }
-    );
+    const { data } = await api.post(`/ai/prompts/${type}/${versionNumber}/activate`, body, {
+      headers: { 'Idempotency-Key': createIdempotencyKey() },
+    });
     return extractData<PromptVersion>(data);
   },
 

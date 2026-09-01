@@ -146,7 +146,7 @@
     "acknowledge_ocr_quality": "Acknowledge OCR Quality",
     "acknowledged": "Acknowledged",
     "ack_summary": "Ack Summary",
-    "ack_category": "Ack Category",
+    "ack_correspondenceType": "Ack Correspondence Type",
     "ack_tags": "Ack Tags",
     "tag_accept": "Accept",
     "tag_reject": "Reject",
