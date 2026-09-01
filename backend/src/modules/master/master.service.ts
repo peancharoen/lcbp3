@@ -15,7 +15,7 @@ import { RfaType } from '../rfa/entities/rfa-type.entity';
 import { RfaStatusCode } from '../rfa/entities/rfa-status-code.entity';
 import { RfaApproveCode } from '../rfa/entities/rfa-approve-code.entity';
 import { CirculationStatusCode } from '../circulation/entities/circulation-status-code.entity';
-import { Tag } from './entities/tag.entity';
+import { Tag } from '../tags/entities/tag.entity';
 
 // [New] Entities
 import { Discipline } from './entities/discipline.entity';

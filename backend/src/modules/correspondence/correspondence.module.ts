@@ -12,7 +12,7 @@ import { CorrespondenceType } from './entities/correspondence-type.entity';
 import { CorrespondenceStatus } from './entities/correspondence-status.entity';
 import { CorrespondenceReference } from './entities/correspondence-reference.entity';
 import { CorrespondenceRecipient } from './entities/correspondence-recipient.entity';
-import { CorrespondenceTag } from './entities/correspondence-tag.entity';
+import { CorrespondenceTag } from '../tags/entities/correspondence-tag.entity';
 import { CorrespondenceRevisionAttachment } from './entities/correspondence-revision-attachment.entity';
 import { Organization } from '../organization/entities/organization.entity';
 

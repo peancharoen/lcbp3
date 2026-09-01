@@ -6,7 +6,7 @@ import { MasterService } from './master.service';
 import { MasterController } from './master.controller';
 
 // Import Entities เดิม
-import { Tag } from './entities/tag.entity';
+import { Tag } from '../tags/entities/tag.entity';
 import { CorrespondenceType } from '../correspondence/entities/correspondence-type.entity';
 import { CorrespondenceStatus } from '../correspondence/entities/correspondence-status.entity';
 import { RfaType } from '../rfa/entities/rfa-type.entity';
