@@ -126,7 +126,7 @@ export default function VersionHistory({
                   {getPromptTypeLabel(promptType)}
                 </div>
                 {visibleGroupVersions.map((version) => {
-                  const isActive = version.isActive === true;
+                  const isActive = !!version.isActive;
                   return (
                     <div
                       key={version.versionNumber}
@@ -207,7 +207,7 @@ export default function VersionHistory({
         ) : (
           // Single type view — infinite scroll (T075)
           visibleVersions.map((version) => {
-            const isActive = version.isActive === true;
+            const isActive = !!version.isActive;
             return (
               <div
                 key={version.versionNumber}
