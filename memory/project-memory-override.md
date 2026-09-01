@@ -262,6 +262,22 @@ QDRANT_URL
 
 ## Next Session Focus
 
+### Feature 251 Prompt Types Domain Rename (Session 2026-09-01) ✅ Complete
+
+- [x] สร้าง + seed `ai_prompt_types` master table บน MariaDB (7 types)
+- [x] Add FK `ai_prompts.prompt_type → ai_prompt_types.prompt_type` with `ON DELETE RESTRICT`
+- [x] Rename `ai_suggested_category` → `ai_suggested_correspondence_type`
+- [x] Rename `category` → `correspondenceType` ทั้ง backend/frontend/i18n/ADR-050
+- [x] สร้าง `ai-prompt-types` module (entity, DTOs, service, controller) + wiring
+- [x] รวมหน้า Prompt Management เป็นหน้าเดียว
+- [x] Activate `ocr_extraction` v3 บน `ai_prompts` ด้วย ADR-050 canonical template
+- [x] Update `field_schema` สำหรับ `ocr_extraction` v3
+- [x] `resolveActive()` resolve `{{ocr_text}}` + context placeholders (`allowed_correspondence_types`, `existing_tags`, `master_data_context`)
+- [x] `ai-batch.processor.ts` แทน `{{allowed_categories}}` ด้วย `{{allowed_correspondence_types}}`
+- [x] Verification: backend 2253/2264, frontend 993/993, builds/lints ผ่าน
+- [x] Commit + push `main` สำเร็จ (`8584d52a`)
+- [ ] End-to-end กับ Ollama จริง — pending backend container rebuild
+
 ### Ollama/OCR Residency + Runtime Sync (Session 2026-09-01) ✅ Complete
 
 - [x] เปลี่ยน `np-dms-ai` เป็น finite residency 120 วินาที
