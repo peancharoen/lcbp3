@@ -369,41 +369,19 @@ async def _process_ocr_impl(
         user_content.append(base_image_content)
     messages.append({"role": "user", "content": user_content})
 
-    # Resolve runtime parameters: remove hardcoded fallback values from sidecar
-    # Use empty dict if runtime_params not provided to allow Ollama Modelfile default
-    params = {}
-    if runtime_params:
-        if hasattr(runtime_params, "dict"):
-            params = runtime_params.dict()
-        elif isinstance(runtime_params, dict):
-            params = runtime_params
-
-    # Options override (e.g., from Sandbox form parameter overrides) takes precedence
-    merged_params = {}
-    if params:
-        merged_params.update(params)
-    if options_override:
-        merged_params.update(options_override)
-
-    # ค่า default ตาม official; options_override ยัง override ได้บางส่วน
+    # ADR-040 D3: Ollama OpenAI-compatible endpoint มี bug — การส่ง param ใดๆ ใน payload
+    # จะทำให้ Ollama reset Modelfile params อื่นๆ (เช่น top_p, num_ctx) เป็น Ollama defaults
+    # แทนที่จะใช้ค่าจาก Modelfile ส่งผลให้ model อ่าน image ไม่ออกและ echo training prompt
+    # Fix: ไม่ส่ง runtime params ไป Ollama เลย เพื่อให้ Modelfile defaults ทำงาน
+    # Modelfile มีค่าที่ถูกต้องสำหรับ np-dms-ocr: temperature=0.1, top_p=0.6,
+    # repeat_penalty=1.1, num_predict=4096, num_ctx=16384
+    # Admin Console สามารถเปลี่ยน params ได้ผ่านการ update Modelfile โดยตรง
     payload = {
         "model": model_name,
         "messages": messages,
         "stream": False,
         "keep_alive": residency.keep_alive_seconds,
     }
-
-    # Only send keys to Ollama if they are defined in merged_params (to support Modelfile fallback)
-    if "temperature" in merged_params and merged_params["temperature"] is not None:
-        payload["temperature"] = float(merged_params["temperature"])
-    if "top_p" in merged_params and merged_params["top_p"] is not None:
-        payload["top_p"] = float(merged_params["top_p"])
-    if "repeat_penalty" in merged_params and merged_params["repeat_penalty"] is not None:
-        payload["repetition_penalty"] = float(merged_params["repeat_penalty"])
-    elif "repetition_penalty" in merged_params and merged_params["repetition_penalty"] is not None:
-        payload["repetition_penalty"] = float(merged_params["repetition_penalty"])
-    if "max_tokens" in merged_params and merged_params["max_tokens"] is not None:
-        payload["max_tokens"] = int(merged_params["max_tokens"])
 
     # T044: ใช้ shared AsyncClient (ollama_client) แทน httpx.Client แบบ sync
     # ถ้า ollama_client ยังไม่ถูกสร้าง (เช่น unit test ที่เรียกตรง) ให้สร้างชั่วคราว
@@ -434,17 +412,27 @@ async def _process_ocr_impl(
         result_text = json.loads(raw_text).get("natural_text", raw_text)
     except (json.JSONDecodeError, AttributeError):
         result_text = raw_text
-    logger.info(
-        f"[DIAG] Ollama response — model={model_name} "
-        f"textLen={len(result_text)} "
-        f"done={data.get('done')} "
-        f"done_reason={data.get('done_reason')} "
-        f"eval_count={data.get('eval_count', 0)}"
-    )
     if not result_text:
         logger.warning(
-            f"[DIAG] Ollama returned empty response — full response keys: {list(data.keys())}"
+            f"Ollama returned empty response — model={model_name} keys={list(data.keys())}"
         )
+    # ADR-040 D3: Prompt leakage detection — model อาจ echo training prompt format
+    # เมื่ออ่าน image ไม่ออก (เช่น scanned PDF คุณภาพต่ำ, ภาพหมุน, หน้าว่าง)
+    # ตรวจจับ instruction markers ที่ไม่ควรปรากฏใน OCR output ของเอกสารจริง
+    _LEAKAGE_MARKERS = (
+        "Extract all text from the image",
+        "Only return the clean Markdown",
+        "Do not include any explanation or extra text",
+        "You must include all information on the page",
+    )
+    _leakage_found = [m for m in _LEAKAGE_MARKERS if m.lower() in result_text.lower()]
+    if _leakage_found:
+        logger.warning(
+            f"[DIAG] Prompt leakage detected — model echoed training prompt format. "
+            f"markers={_leakage_found} textLen={len(result_text)} "
+            f"(returning empty text to prevent leakage in OCR output)"
+        )
+        result_text = ""
     # ปิด temporary client ถ้าสร้างชั่วคราว
     if ollama_client is None:
         await client.aclose()
@@ -494,8 +482,10 @@ async def ocr_upload(
 ):
     """OCR จาก multipart file upload — ไม่ต้องการ shared volume mount"""
     # Validate systemPrompt / userPrompt ถ้ามีส่งมา (gap-1: sidecar validation)
+    # ADR-040 D3: Normalize line endings — backend อาจส่ง \r\n (Windows) ทำให้ prompt hash
+    # เปลี่ยนและ model behavior ต่างจาก Unix \n ที่ typhoon_ocr ใช้
     if systemPrompt is not None:
-        systemPrompt = systemPrompt.strip()
+        systemPrompt = systemPrompt.replace('\r\n', '\n').replace('\r', '\n').strip()
         if not systemPrompt:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -507,7 +497,7 @@ async def ocr_upload(
                 detail=f"systemPrompt exceeds maximum length of {MAX_SYSTEM_PROMPT_LENGTH} characters"
             )
     if userPrompt is not None:
-        userPrompt = userPrompt.strip()
+        userPrompt = userPrompt.replace('\r\n', '\n').replace('\r', '\n').strip()
         if userPrompt and len(userPrompt) > MAX_SYSTEM_PROMPT_LENGTH:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
