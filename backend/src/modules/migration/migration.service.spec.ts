@@ -1346,6 +1346,41 @@ describe('MigrationService', () => {
       expect(mockReviewQueueRepo.save).toHaveBeenCalled();
     });
 
+    it('merges details instead of overwriting to preserve source_file_path', async () => {
+      const item = {
+        id: 1,
+        ocrText: null,
+        aiSummary: null,
+        aiSuggestedCorrespondenceType: null,
+        extractedTags: null,
+        aiConfidence: null,
+        aiIssues: null,
+        aiFailed: false,
+        aiStatus: null,
+        status: MigrationReviewStatus.PENDING,
+        details: {
+          source_file_path: '/mnt/legacy-staging/doc.pdf',
+          original_row_index: 5,
+        },
+      };
+      mockReviewQueueRepo.findOne.mockResolvedValue(item);
+      mockReviewQueueRepo.save.mockResolvedValue(item);
+
+      await service.updateQueueEnrichment(1, {
+        aiFailed: true,
+        aiStatus: MigrationAiStatus.FAILED,
+        status: MigrationReviewStatus.PENDING_REVIEW,
+        details: { aiFailureReason: 'LLM_CALL_FAILED' },
+      });
+
+      expect(item.details).toEqual({
+        source_file_path: '/mnt/legacy-staging/doc.pdf',
+        original_row_index: 5,
+        aiFailureReason: 'LLM_CALL_FAILED',
+      });
+      expect(mockReviewQueueRepo.save).toHaveBeenCalled();
+    });
+
     it('does nothing when queue item is not found', async () => {
       mockReviewQueueRepo.findOne.mockResolvedValue(null);
       await service.updateQueueEnrichment(999, { ocrText: 'text' });

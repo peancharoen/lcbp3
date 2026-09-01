@@ -1,7 +1,7 @@
 # File: specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/services/prompt_cache.py
 # Prompt Cache Invalidation — Redis-based prompt hash tracking + Ollama model unload (Feature-142)
 # Change Log:
-# - 2026-07-23: Initial creation — prompt hash storage, unload logic, check_and_unload_if_changed
+# - 2026-09-01: เพิ่ม effective_prompt parameter ใน check_and_unload_if_changed เพื่อ hash ทั้ง system + user + dms tags
 
 """
 โมดูลสำหรับจัดการ prompt cache invalidation ใน Ollama
@@ -149,28 +149,32 @@ async def check_and_unload_if_changed(
     ollama_url: str,
     redis_client: aioredis.Redis,
     ollama_client: Optional[httpx.AsyncClient] = None,
+    effective_prompt: Optional[str] = None,
 ) -> bool:
     """
     เปรียบเทียบ prompt hash และ unload model หาก prompt เปลี่ยน (FR-001 ถึง FR-005)
 
     Flow:
-    1. คำนวณ hash ของ system_prompt ปัจจุบัน
+    1. คำนวณ hash ของ effective prompt ปัจจุบัน (ถ้าไม่ระบุ ใช้ system_prompt)
     2. อ่าน hash เดิมจาก Redis
     3. หาก hash เหมือนกัน → skip unload (FR-003)
     4. หาก hash ต่างกัน → unload model (FR-002) → อัปเดต Redis hash (FR-004)
     5. หากไม่มี hash ใน Redis (first request) → skip unload (FR-003)
 
     Args:
-        system_prompt: system prompt text หรือ None
+        system_prompt: system prompt text หรือ None (สำหรับ backward compat / logging)
         model_name: ชื่อ Ollama model
         ollama_url: Ollama API base URL
         redis_client: async Redis client
         ollama_client: shared httpx.AsyncClient
+        effective_prompt: prompt ทั้งหมดที่มีผลต่อ model (รวม system + user + dms tags)
 
     Returns:
         True หากมีการ unload, False หาก skip unload
     """
-    current_hash = compute_prompt_hash(system_prompt)
+    # FR-020: hash ต้องสะท้อน effective prompt ทั้งหมด ไม่ใช่แค่ system prompt
+    prompt_to_hash = effective_prompt if effective_prompt is not None else system_prompt
+    current_hash = compute_prompt_hash(prompt_to_hash)
     stored_hash = await get_prompt_hash(redis_client, model_name)
 
     if stored_hash is None:

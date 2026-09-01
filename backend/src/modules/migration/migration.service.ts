@@ -906,7 +906,10 @@ export class MigrationService {
       if (data.aiStatus !== undefined) queueItem.aiStatus = data.aiStatus;
       if (data.status !== undefined) queueItem.status = data.status;
       if (data.details !== undefined) {
-        queueItem.details = data.details;
+        // รวมเข้ากับ details เดิมเสมอ เพื่อรักษา legacy metadata (เช่น source_file_path,
+        // original_row_index, attachment_ids) ที่บันทึกไว้ตั้งแต่ ingestion (ADR-047)
+        // ไม่ให้ AI enrichment update ทับหาย
+        queueItem.details = { ...(queueItem.details ?? {}), ...data.details };
         // ADR-050 T010/T011/T012: shape ใหม่ (ocrQuality + metadata.confidence ครบ) →
         // คำนวณ promoted columns + ai_confidence alias เสมอ ฝั่ง backend เท่านั้น
         const extraction = this.parseExtractionDetails(data.details);

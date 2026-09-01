@@ -67,6 +67,10 @@ vi.mock('@/hooks/use-migration-review', () => ({
     mutateAsync: mockCommitMutateAsync,
     isPending: false,
   }),
+  useReExtractQueueItem: () => ({
+    mutateAsync: vi.fn(),
+    isPending: false,
+  }),
 }));
 
 // Mock child components to simplify rendering

@@ -145,6 +145,16 @@ export const migrationService = {
     return data?.data || data;
   },
 
+  // ADR-047: เริ่มประมวลผล OCR/AI ใหม่ (re-extract) สำหรับ queue item ที่เคยประมวลผลแล้ว
+  reExtractQueueItem: async (publicId: string, idempotencyKey: string) => {
+    const { data } = await api.post(`/migration/queue/${publicId}/re-extract`, {}, {
+      headers: {
+        'idempotency-key': idempotencyKey,
+      },
+    });
+    return data?.data || data;
+  },
+
   // ADR-047: เริ่มประมวลผล OCR/AI แบบ batch
   startExtractBatch: async (publicIds: string[], idempotencyKey: string) => {
     const { data } = await api.post('/migration/extract', { queuePublicIds: publicIds }, {

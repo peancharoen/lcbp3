@@ -151,3 +151,28 @@ export function useStartExtractQueueItem() {
     },
   });
 }
+
+/**
+ * ADR-047: Hook สำหรับ re-extract queue item ที่อยู่ในสถานะ PENDING_REVIEW หรือ FAILED
+ * เรียกผ่าน migrationService.reExtractQueueItem (POST /migration/queue/:publicId/re-extract)
+ */
+export function useReExtractQueueItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ publicId, idempotencyKey }: { publicId: string; idempotencyKey: string }) => {
+      return migrationService.reExtractQueueItem(publicId, idempotencyKey);
+    },
+    onSuccess: () => {
+      toast.success('เริ่ม Re-Extract สำเร็จ', {
+        description: 'ระบบกำลังประมวลผล OCR/AI ใหม่',
+      });
+      void queryClient.invalidateQueries({ queryKey: migrationReviewKeys.all });
+    },
+    onError: (error: unknown) => {
+      const errMsg = getApiErrorMessage(error, 'เกิดข้อผิดพลาดในการ Re-Extract');
+      toast.error('ไม่สามารถ Re-Extract ได้', {
+        description: errMsg,
+      });
+    },
+  });
+}

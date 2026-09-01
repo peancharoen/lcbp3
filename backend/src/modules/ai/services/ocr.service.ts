@@ -20,7 +20,7 @@
 // - 2026-07-30: ADR-040 Phase 2 (T017) — ลบ X-API-Key send-side (network isolation แทน, ADR-041 complete)
 //   - ลบ ocrSidecarApiKey field + env var validation
 //   - ลบ headers: { 'X-API-Key': ... } จากทุก axios call (health, ocr-upload x2, embed, rerank)
-// - 2026-08-30: processWithNpDmsOcr ดึง prompt 'ocr_system' แทน 'ocr_extraction' เพื่อส่งคำสั่น raw OCR ทีถูกต้อง (ไม่ใช่ metadata extraction)
+// - 2026-09-01: ADR-040 D2 — ส่ง systemPrompt เป็น system role และ userPrompt (ocr_user) ไป sidecar ตาม prompt hot-load
 // - 2026-08-29: Bugfix — OCR timeout สั้นเกินไปสำหรับ image-based PDF (ใช้เวลา >300s ต่อ 4 หน้า)
 //   ทำให้ legacy-ai-enrichment และ rag-prepare timeout แล้ว swallow error → false ai_status=DONE
 //   - ยก np-dms-ocr timeout 120s → 600s (OCR_NP_DMS_OCR_TIMEOUT_MS)
@@ -480,6 +480,21 @@ export class OcrService {
       const systemPrompt = activePrompt.template;
       const dmsTags = activePrompt.contextConfig?.dmsTags;
 
+      // ADR-040 D2: แยก user prompt สำหรับ OCR image (ocr_user) — ถ้ายังไม่มี prompt type หรือ active จะ fallback ไป typhoon_ocr ภายใน sidecar
+      let userPrompt: string | undefined;
+      try {
+        const userPromptRecord =
+          await this.aiPromptsService.getActive('ocr_user');
+        if (userPromptRecord) {
+          userPrompt = userPromptRecord.template;
+        }
+      } catch (err: unknown) {
+        // ยังไม่มี ocr_user prompt type จะไม่ทำงานหยุด — sidecar จะใช้ default typhoon_ocr user prompt
+        this.logger.debug(
+          `ocr_user prompt not configured or unavailable, sidecar will use default user prompt: ${err instanceof Error ? err.message : String(err)}`
+        );
+      }
+
       this.logger.debug(`np-dms-ocr processing: ${input.pdfPath}`);
       const fileBuffer = fs.readFileSync(input.pdfPath!);
       const form = new FormData();
@@ -490,6 +505,9 @@ export class OcrService {
       );
       form.append('engine', 'np-dms-ocr');
       form.append('systemPrompt', systemPrompt);
+      if (userPrompt) {
+        form.append('userPrompt', userPrompt);
+      }
       if (dmsTags) {
         form.append('dmsTags', JSON.stringify(dmsTags));
       }

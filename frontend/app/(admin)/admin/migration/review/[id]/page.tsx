@@ -24,7 +24,7 @@ import * as z from 'zod';
 import { migrationService } from '@/lib/services/migration.service';
 import { organizationService } from '@/lib/services/organization.service';
 import { masterDataService } from '@/lib/services/master-data.service';
-import { useCommitMigrationReview } from '@/hooks/use-migration-review';
+import { useCommitMigrationReview, useReExtractQueueItem } from '@/hooks/use-migration-review';
 import {
   MigrationReviewQueueItem,
   FieldResolution,
@@ -155,6 +155,8 @@ export default function MigrationReviewPage() {
   } | null>(null);
   // ADR-050 (T039): commit hook — POST /ai/migration/review (new contract path)
   const commitMutation = useCommitMigrationReview();
+  // ADR-047: re-extract hook — POST /migration/queue/:publicId/re-extract
+  const reExtractMutation = useReExtractQueueItem();
   // Reference data สำหรับ dropdown
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [disciplines, setDisciplines] = useState<Discipline[]>([]);
@@ -258,6 +260,22 @@ export default function MigrationReviewPage() {
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string } } };
       toast.error(err?.response?.data?.message || 'เริ่มประมวลผลไม่สำเร็จ');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleReExtract = async () => {
+    if (!item?.publicId) return;
+    try {
+      setSubmitting(true);
+      const idempotencyKey = `re-extract-${item.publicId}-${Date.now()}`;
+      await reExtractMutation.mutateAsync({ publicId: item.publicId, idempotencyKey });
+      toast.success('เริ่ม Re-Extract แล้ว กรุณารอสักครู่แล้วรีเฟรช');
+      await fetchItem(item.publicId);
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err?.response?.data?.message || 'Re-Extract ไม่สำเร็จ');
     } finally {
       setSubmitting(false);
     }
@@ -894,6 +912,22 @@ export default function MigrationReviewPage() {
                       >
                         <RefreshCwIcon className="w-4 h-4 mr-2" />
                         Start Extract
+                      </Button>
+                    )}
+                  {(item.status === MigrationReviewStatus.PENDING_REVIEW ||
+                    (item.aiStatus === MigrationAiStatus.FAILED &&
+                      item.status !== MigrationReviewStatus.PENDING)) &&
+                    item.aiStatus !== MigrationAiStatus.RUNNING &&
+                    item.aiStatus !== MigrationAiStatus.WAITING && (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="flex-1"
+                        onClick={handleReExtract}
+                        disabled={submitting || reExtractMutation.isPending}
+                      >
+                        <RefreshCwIcon className="w-4 h-4 mr-2" />
+                        Re Extract
                       </Button>
                     )}
                   <Button

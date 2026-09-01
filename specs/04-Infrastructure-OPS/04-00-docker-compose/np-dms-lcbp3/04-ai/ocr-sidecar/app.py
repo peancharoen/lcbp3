@@ -29,7 +29,7 @@
 # - 2026-06-18: เพิ่ม MAX_SYSTEM_PROMPT_LENGTH environment variable สำหรับ configurable validation (fix-3)
 # - 2026-06-20: ADR-040 Phase 1-4 — ลบ default API key, เพิ่ม path whitelist, และ wire adaptive OCR residency
 # - 2026-06-20: ADR-040 Phase 6 — async I/O refactor: async process_ocr, AsyncClient via lifespan, asyncio.to_thread model loading
-# - 2026-06-20: ADR-040 Phase 8 — ลบ /normalize endpoint (ไม่มี consumers) และ pythainlp imports
+# - 2026-09-01: ADR-040 D2 — แยก system/user prompt เป็น OpenAI-compatible roles รองรับ userPrompt; effective prompt hash สำหรับ hot-load
 # - 2026-07-23: Feature-142 — Prompt cache invalidation: asyncio.Lock + Redis prompt hash + auto unload on prompt change
 # - 2026-07-30: ADR-040 D1 — refactor _process_pdf_doc: 'auto' engine เป็น known engine (ลด Unknown warning)
 #   - 'auto' ลอง PyMuPDF text layer ก่อน → ถ้าไม่พอ fallback ไป np-dms-ocr โดยตรง (ไม่ใช่ "Unknown engine")
@@ -173,6 +173,7 @@ class OcrRequest(BaseModel):
     keep_alive: Optional[int] = None
     runtime_params: Optional[dict] = None
     system_prompt: Optional[str] = None
+    user_prompt: Optional[str] = None
     dms_tags: Optional[dict] = None
 
 class OcrResponse(BaseModel):
@@ -198,6 +199,7 @@ async def _process_pdf_doc(
     ocr_options: Optional[dict] = None,
     pdf_path: str | None = None,
     system_prompt: Optional[str] = None,
+    user_prompt: Optional[str] = None,
     runtime_params: Optional[dict] = None,
     dms_tags: Optional[dict] = None,
 ) -> OcrResponse:
@@ -242,6 +244,7 @@ async def _process_pdf_doc(
                 page_num=i + 1,
                 options_override=ocr_options,
                 system_prompt=system_prompt,
+                user_prompt=user_prompt,
                 runtime_params=runtime_params,
                 dms_tags=dms_tags,
             )
@@ -260,6 +263,7 @@ async def process_ocr(
     page_num: int = 1,
     options_override: Optional[dict] = None,
     system_prompt: Optional[str] = None,
+    user_prompt: Optional[str] = None,
     runtime_params: Optional[dict] = None,
     dms_tags: Optional[dict] = None,
 ) -> str:
@@ -268,7 +272,7 @@ async def process_ocr(
     # ระหว่าง unload กับ request ถัดไป (request ถัดไปต้องรอจนกว่า unload + reload + ประมวลผลเสร็จ)
     async with ocr_lock:
         return await _process_ocr_impl(
-            pdf_path, page_num, options_override, system_prompt, runtime_params, dms_tags
+            pdf_path, page_num, options_override, system_prompt, user_prompt, runtime_params, dms_tags
         )
 
 
@@ -277,48 +281,24 @@ async def _process_ocr_impl(
     page_num: int = 1,
     options_override: Optional[dict] = None,
     system_prompt: Optional[str] = None,
+    user_prompt: Optional[str] = None,
     runtime_params: Optional[dict] = None,
     dms_tags: Optional[dict] = None,
 ) -> str:
-    """Implementation ของ process_ocr — ทำงานภายใต้ ocr_lock (FR-008)"""
+    """Implementation ของ process_ocr — ทำงานภายใต้ ocr_lock (FR-008)
+
+    ADR-040 D2: แยก system prompt / user prompt เป็น OpenAI-compatible roles
+    - system message: backend ocr_system template + DMS tags
+    - user message: typhoon_ocr structure prompt (หรือ backend user_prompt ถ้ามี) + image
+    ป้องกัน model อ่าน prompt เป็นส่วนหนึ่งของเอกสารแล้ว echo กลับ
+    """
     options_override = options_override or {}
     if "keep_alive" in options_override:
         raise ValueError("keep_alive must be calculated by OCR residency policy")
     residency = await asyncio.to_thread(calculate_ocr_residency, OCR_ACTIVE_PROFILE)
     model_name = OCR_MODEL
 
-    # Feature-142: Prompt cache invalidation — ตรวจจับ prompt เปลี่ยน และ unload ก่อน inference
-    # ทำหลัง residency calculation เพื่อให้ log แสดง keep_alive context (T015)
-    if redis_client is not None:
-        await check_and_unload_if_changed(
-            system_prompt=system_prompt,
-            model_name=model_name,
-            ollama_url=OLLAMA_API_URL,
-            redis_client=redis_client,
-            ollama_client=ollama_client,
-        )
-        # T015: log residency decision ควบคู่กับ prompt hash comparison สำหรับ debug บน New Server
-        from services.prompt_cache import compute_prompt_hash
-        current_hash = compute_prompt_hash(system_prompt)
-        logger.info(
-            f"OCR residency + prompt cache: keep_alive={residency.keep_alive_seconds}s "
-            f"reason={residency.reason} headroom={residency.vram_headroom_mb}MB "
-            f"prompt_hash={current_hash}"
-        )
-    else:
-        logger.info(
-            f"OCR residency decision: keep_alive={residency.keep_alive_seconds}s "
-            f"reason={residency.reason} headroom={residency.vram_headroom_mb}MB "
-            f"(prompt cache disabled — no Redis)"
-        )
-
-    # prepare_ocr_messages จัดการ PDF → image ผ่าน poppler/pdftoppm ภายใน
-    messages = prepare_ocr_messages(pdf_path, task_type="structure", page_num=page_num)
-    # inject system prompt ถ้ามี (ก่อน DMS tags)
-    if system_prompt:
-        messages[0]["content"].append({"type": "text", "text": system_prompt})
-
-    # Dynamic dms_tags mapping to prompts
+    # สร้าง DMS tags text ก่อนเพื่อรวมใน effective prompt
     if dms_tags:
         dms_text = "Additionally:\n"
         for key in dms_tags.keys():
@@ -335,11 +315,59 @@ async def _process_ocr_impl(
             "If a field is not found, omit the tag."
         )
 
-    # inject DMS-specific extraction tags ต่อท้าย content
-    messages[0]["content"].append({
-        "type": "text",
-        "text": dms_text,
-    })
+    # สร้าง user prompt จาก typhoon_ocr หรือ backend override
+    # prepare_ocr_messages จัดการ PDF → image ผ่าน poppler/pdftoppm ภายใน
+    base_messages = prepare_ocr_messages(pdf_path, task_type="structure", page_num=page_num)
+    base_image_content = None
+    base_user_prompt = ""
+    for item in base_messages[0].get("content", []):
+        if item.get("type") == "image_url":
+            base_image_content = item
+        elif item.get("type") == "text":
+            base_user_prompt = item.get("text", "")
+
+    chosen_user_prompt = user_prompt.strip() if user_prompt else base_user_prompt
+
+    # effective prompt สำหรับ hash = ทั้ง system + user + dms tags
+    effective_system = (system_prompt or "").strip()
+    if dms_text:
+        effective_system = f"{effective_system}\n\n{dms_text}".strip() if effective_system else dms_text
+    effective_prompt = f"[SYSTEM]\n{effective_system}\n\n[USER]\n{chosen_user_prompt}"
+
+    # Feature-142: Prompt cache invalidation — ตรวจจับ prompt เปลี่ยน และ unload ก่อน inference
+    # ทำหลัง residency calculation เพื่อให้ log แสดง keep_alive context (T015)
+    if redis_client is not None:
+        await check_and_unload_if_changed(
+            system_prompt=system_prompt,
+            model_name=model_name,
+            ollama_url=OLLAMA_API_URL,
+            redis_client=redis_client,
+            ollama_client=ollama_client,
+            effective_prompt=effective_prompt,
+        )
+        # T015: log residency decision ควบคู่กับ prompt hash comparison สำหรับ debug บน New Server
+        from services.prompt_cache import compute_prompt_hash
+        current_hash = compute_prompt_hash(effective_prompt)
+        logger.info(
+            f"OCR residency + prompt cache: keep_alive={residency.keep_alive_seconds}s "
+            f"reason={residency.reason} headroom={residency.vram_headroom_mb}MB "
+            f"prompt_hash={current_hash}"
+        )
+    else:
+        logger.info(
+            f"OCR residency decision: keep_alive={residency.keep_alive_seconds}s "
+            f"reason={residency.reason} headroom={residency.vram_headroom_mb}MB "
+            f"(prompt cache disabled — no Redis)"
+        )
+
+    # สร้าง OpenAI-compatible messages แบบ system/user แยกกัน
+    messages = []
+    if effective_system:
+        messages.append({"role": "system", "content": effective_system})
+    user_content = [{"type": "text", "text": chosen_user_prompt}]
+    if base_image_content:
+        user_content.append(base_image_content)
+    messages.append({"role": "user", "content": user_content})
 
     # Resolve runtime parameters: remove hardcoded fallback values from sidecar
     # Use empty dict if runtime_params not provided to allow Ollama Modelfile default
@@ -444,6 +472,7 @@ async def ocr_extract(req: OcrRequest):
         ocr_options,
         pdf_path=str(pdf_path),
         system_prompt=req.system_prompt,
+        user_prompt=req.user_prompt,
         runtime_params=req.runtime_params,
         dms_tags=req.dms_tags,
     )
@@ -459,11 +488,12 @@ async def ocr_upload(
     maxTokens: Optional[int] = Form(default=None),
     keep_alive: Optional[int] = Form(default=None),
     systemPrompt: Optional[str] = Form(default=None),
+    userPrompt: Optional[str] = Form(default=None),
     dmsTags: Optional[str] = Form(default=None),
     runtimeParams: Optional[str] = Form(default=None),
 ):
     """OCR จาก multipart file upload — ไม่ต้องการ shared volume mount"""
-    # Validate systemPrompt ถ้ามีส่งมา (gap-1: sidecar validation)
+    # Validate systemPrompt / userPrompt ถ้ามีส่งมา (gap-1: sidecar validation)
     if systemPrompt is not None:
         systemPrompt = systemPrompt.strip()
         if not systemPrompt:
@@ -475,6 +505,13 @@ async def ocr_upload(
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"systemPrompt exceeds maximum length of {MAX_SYSTEM_PROMPT_LENGTH} characters"
+            )
+    if userPrompt is not None:
+        userPrompt = userPrompt.strip()
+        if userPrompt and len(userPrompt) > MAX_SYSTEM_PROMPT_LENGTH:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"userPrompt exceeds maximum length of {MAX_SYSTEM_PROMPT_LENGTH} characters"
             )
     selected_engine = engine.strip().lower()
     max_pages = maxPages or MAX_PAGES
@@ -550,6 +587,7 @@ async def ocr_upload(
             ocr_options,
             pdf_path=tmp_pdf_path,
             system_prompt=systemPrompt,
+            user_prompt=userPrompt,
             runtime_params=runtime_params_dict,
             dms_tags=dms_tags_dict,
         )
