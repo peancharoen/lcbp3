@@ -97,7 +97,7 @@ export class OllamaService {
           format: options.format,
           stream: false,
           options: options.options,
-          keep_alive: options.keepAlive ?? this.mainKeepAliveSeconds,
+          keep_alive: `${options.keepAlive ?? this.mainKeepAliveSeconds}s`,
         },
         {
           timeout: options.timeoutMs ?? this.timeoutMs,

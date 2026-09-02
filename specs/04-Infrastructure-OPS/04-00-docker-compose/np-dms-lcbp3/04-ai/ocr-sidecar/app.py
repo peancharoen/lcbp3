@@ -326,7 +326,29 @@ async def _process_ocr_impl(
         elif item.get("type") == "text":
             base_user_prompt = item.get("text", "")
 
-    chosen_user_prompt = user_prompt.strip() if user_prompt else base_user_prompt
+    # ADR-040 D2: เมื่อ backend ส่ง userPrompt มาเอง ให้ inject raw text (Page dimensions + Image info)
+    # จาก typhoon_ocr ระหว่าง RAW_TEXT_START และ RAW_TEXT_END เพื่อให้ model มี image metadata
+    # ไม่เช่นนั้น model จะ echo training prompt format เพราะเห็น prompt ว่างเปล่า
+    if user_prompt and user_prompt.strip():
+        chosen_user_prompt = user_prompt.strip()
+        # ดึง raw_text จาก typhoon_ocr default prompt (ระหว่าง RAW_TEXT_START และ RAW_TEXT_END)
+        if "RAW_TEXT_START" in base_user_prompt and "RAW_TEXT_END" in base_user_prompt:
+            raw_start_idx = base_user_prompt.index("RAW_TEXT_START") + len("RAW_TEXT_START")
+            raw_end_idx = base_user_prompt.index("RAW_TEXT_END")
+            typhoon_raw_text = base_user_prompt[raw_start_idx:raw_end_idx].strip()
+            # Inject raw_text ลงใน backend prompt ถ้ามี placeholder ว่าง
+            if "RAW_TEXT_START\n\nRAW_TEXT_END" in chosen_user_prompt:
+                chosen_user_prompt = chosen_user_prompt.replace(
+                    "RAW_TEXT_START\n\nRAW_TEXT_END",
+                    f"RAW_TEXT_START\n{typhoon_raw_text}\nRAW_TEXT_END"
+                )
+            elif "RAW_TEXT_START\nRAW_TEXT_END" in chosen_user_prompt:
+                chosen_user_prompt = chosen_user_prompt.replace(
+                    "RAW_TEXT_START\nRAW_TEXT_END",
+                    f"RAW_TEXT_START\n{typhoon_raw_text}\nRAW_TEXT_END"
+                )
+    else:
+        chosen_user_prompt = base_user_prompt
 
     # effective prompt สำหรับ hash = ทั้ง system + user + dms tags
     effective_system = (system_prompt or "").strip()
@@ -360,82 +382,94 @@ async def _process_ocr_impl(
             f"(prompt cache disabled — no Redis)"
         )
 
-    # สร้าง OpenAI-compatible messages แบบ system/user แยกกัน
-    messages = []
+    # สร้าง messages สำหรับ Ollama native /api/chat endpoint
+    # ADR-040 D3 (revised): /v1/chat/completions มี bug กับ image content array format
+    # ทำให้ model ไม่ได้รับ image อย่างถูกต้องและ echo training prompt format
+    # Fix: ใช้ native /api/chat ที่รองรับ images: [base64] ใน message object โดยตรง
+    ollama_messages = []
     if effective_system:
-        messages.append({"role": "system", "content": effective_system})
-    user_content = [{"type": "text", "text": chosen_user_prompt}]
+        ollama_messages.append({"role": "system", "content": effective_system})
+    # แปลง image_url content เป็น images: [base64] format สำหรับ native endpoint
+    user_images = []
     if base_image_content:
-        user_content.append(base_image_content)
-    messages.append({"role": "user", "content": user_content})
+        image_url = base_image_content.get("image_url", {}).get("url", "")
+        if image_url.startswith("data:image"):
+            user_images.append(image_url.split(",")[1])
+    ollama_messages.append({
+        "role": "user",
+        "content": chosen_user_prompt,
+        "images": user_images,
+    })
 
-    # ADR-040 D3: Ollama OpenAI-compatible endpoint มี bug — การส่ง param ใดๆ ใน payload
-    # จะทำให้ Ollama reset Modelfile params อื่นๆ (เช่น top_p, num_ctx) เป็น Ollama defaults
-    # แทนที่จะใช้ค่าจาก Modelfile ส่งผลให้ model อ่าน image ไม่ออกและ echo training prompt
-    # Fix: ไม่ส่ง runtime params ไป Ollama เลย เพื่อให้ Modelfile defaults ทำงาน
+    # ไม่ส่ง runtime params ไป Ollama เพื่อให้ Modelfile defaults ทำงาน
     # Modelfile มีค่าที่ถูกต้องสำหรับ np-dms-ocr: temperature=0.1, top_p=0.6,
     # repeat_penalty=1.1, num_predict=4096, num_ctx=16384
-    # Admin Console สามารถเปลี่ยน params ได้ผ่านการ update Modelfile โดยตรง
     payload = {
         "model": model_name,
-        "messages": messages,
+        "messages": ollama_messages,
         "stream": False,
         "keep_alive": residency.keep_alive_seconds,
+        "format": "json",
     }
 
-    # T044: ใช้ shared AsyncClient (ollama_client) แทน httpx.Client แบบ sync
-    # ถ้า ollama_client ยังไม่ถูกสร้าง (เช่น unit test ที่เรียกตรง) ให้สร้างชั่วคราว
-    client = ollama_client
-    if client is None:
-        client = httpx.AsyncClient(timeout=OCR_TIMEOUT)
-    try:
-        response = await client.post(
-            f"{OLLAMA_API_URL}/v1/chat/completions",
-            json=payload,
-            headers={"Authorization": "Bearer ollama"},
-        )
-        response.raise_for_status()
-    except Exception as e:
-        # T018: Edge case — Ollama ล่มหรือรีสตาร์ทระหว่างประมวลผล
-        # ล้าง Redis hash เพื่อบังคับ first-request behavior ใน retry ถัดไป
-        if redis_client is not None:
-            await clear_prompt_hash(redis_client, model_name)
-        logger.warning(
-            f"Ollama inference failed — cleared prompt hash for retry. "
-            f"model={model_name} error={e}"
-        )
-        raise
-    data = response.json()
-    raw_text = str(data.get("choices", [{}])[0].get("message", {}).get("content", "")).strip()
-    # parse JSON output จาก model (format: {"natural_text": "..."})
-    try:
-        result_text = json.loads(raw_text).get("natural_text", raw_text)
-    except (json.JSONDecodeError, AttributeError):
-        result_text = raw_text
-    if not result_text:
-        logger.warning(
-            f"Ollama returned empty response — model={model_name} keys={list(data.keys())}"
-        )
     # ADR-040 D3: Prompt leakage detection — model อาจ echo training prompt format
     # เมื่ออ่าน image ไม่ออก (เช่น scanned PDF คุณภาพต่ำ, ภาพหมุน, หน้าว่าง)
-    # ตรวจจับ instruction markers ที่ไม่ควรปรากฏใน OCR output ของเอกสารจริง
     _LEAKAGE_MARKERS = (
         "Extract all text from the image",
         "Only return the clean Markdown",
         "Do not include any explanation or extra text",
         "You must include all information on the page",
     )
+
+    async def _call_ollama() -> str:
+        """ส่ง payload ไป Ollama native /api/chat แล้ว parse response"""
+        client = ollama_client
+        if client is None:
+            client = httpx.AsyncClient(timeout=OCR_TIMEOUT)
+        try:
+            response = await client.post(
+                f"{OLLAMA_API_URL}/api/chat",
+                json=payload,
+            )
+            response.raise_for_status()
+        except Exception as e:
+            if redis_client is not None:
+                await clear_prompt_hash(redis_client, model_name)
+            logger.warning(
+                f"Ollama inference failed — cleared prompt hash for retry. "
+                f"model={model_name} error={e}"
+            )
+            raise
+        finally:
+            if ollama_client is None:
+                await client.aclose()
+        data = response.json()
+        # Native /api/chat คืน response ในรูปแบบ {message: {content: "..."}}
+        # (ไม่ใช่ {choices: [{message: {content: "..."}}]} แบบ OpenAI-compatible)
+        raw_text = str(data.get("message", {}).get("content", "")).strip()
+        try:
+            result_text = json.loads(raw_text).get("natural_text", raw_text)
+        except (json.JSONDecodeError, AttributeError):
+            result_text = raw_text
+        if not result_text:
+            logger.warning(
+                f"Ollama returned empty response — model={model_name} keys={list(data.keys())}"
+            )
+        return result_text
+
+    result_text = await _call_ollama()
     _leakage_found = [m for m in _LEAKAGE_MARKERS if m.lower() in result_text.lower()]
     if _leakage_found:
+        # ADR-040 D3: Model echo training prompt format เมื่ออ่าน image ไม่ออก
+        # (เช่น scanned PDF คุณภาพต่ำ, ภาพหมุน, หน้าว่าง, หน้าที่ model ไม่สามารถ parse ได้)
+        # คืน empty text เพื่อป้องกัน prompt ถูก persist เป็น OCR content
+        # ไม่ retry เพราะเป็น model limitation ไม่ใช่ stale KV cache
         logger.warning(
-            f"[DIAG] Prompt leakage detected — model echoed training prompt format. "
-            f"markers={_leakage_found} textLen={len(result_text)} "
-            f"(returning empty text to prevent leakage in OCR output)"
+            f"Prompt leakage detected — model echoed training prompt format (page unreadable). "
+            f"markers={_leakage_found} textLen={len(result_text)} page={page_num} "
+            f"(returning empty text — model could not read this page)"
         )
         result_text = ""
-    # ปิด temporary client ถ้าสร้างชั่วคราว
-    if ollama_client is None:
-        await client.aclose()
     return result_text
 
 @app.post("/ocr", response_model=OcrResponse)

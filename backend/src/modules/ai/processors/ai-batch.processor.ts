@@ -2236,6 +2236,10 @@ export class AiBatchProcessor extends WorkerHost {
               {
                 timeoutMs: this.ollamaService.getBatchTimeoutMs(),
                 format: 'json',
+                ollamaOptions: {
+                  num_ctx: 16384,
+                  num_predict: 4096,
+                },
               }
             );
             parsed = llmResponse.extractedMetadata;

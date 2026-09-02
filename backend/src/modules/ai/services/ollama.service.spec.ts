@@ -62,6 +62,30 @@ describe('OllamaService (ADR-034)', () => {
         expect.anything()
       );
     });
+    it('ควรส่ง keep_alive เป็น duration string (เช่น "120s") เพื่อรองรับ Ollama 0.30+', async () => {
+      // Regression: Ollama 0.30+ ต้องการ keep_alive เป็น duration string
+      // ถ้าส่งเป็น number จะ fail ด้วย "time: missing unit in duration"
+      mockedAxios.post = jest
+        .fn()
+        .mockResolvedValueOnce({ data: { response: 'ok' } });
+      await service.generate('test prompt');
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        expect.stringContaining('/api/generate'),
+        expect.objectContaining({ keep_alive: '120s' }),
+        expect.anything()
+      );
+    });
+    it('ควรส่ง keep_alive เป็น duration string เมื่อ caller ระบุ keepAlive เป็น number', async () => {
+      mockedAxios.post = jest
+        .fn()
+        .mockResolvedValueOnce({ data: { response: 'ok' } });
+      await service.generate('test prompt', { keepAlive: 60 });
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        expect.stringContaining('/api/generate'),
+        expect.objectContaining({ keep_alive: '60s' }),
+        expect.anything()
+      );
+    });
     it('ควรส่ง format=json เมื่อ caller ต้องการ structured output', async () => {
       mockedAxios.post = jest
         .fn()
