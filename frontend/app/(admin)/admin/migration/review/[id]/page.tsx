@@ -1,5 +1,9 @@
 // File: app/(admin)/admin/migration/review/[id]/page.tsx
 // Change Log:
+// - 2026-09-02: เพิ่ม dark: variants สำหรับ OCR Quality, Metadata Confidence, Tag Suggestions
+//   และ warning sections (reviewReason, unresolvedFields, correspondenceTypeError) —
+//   แก้ปัญหาพื้นหลังสีอ่อน (bg-*-50/50) กับตัวอักษรสีเข้ม (text-*-700) อ่านไม่ออกใน dark mode
+//   (app defaultTheme="dark" แต่ hardcoded colors ไม่มี dark: variants)
 // - 2026-08-31: T041-T045 — เพิ่ม tag accept/reject UI (US3): tag chips พร้อม isNew badge,
 //   evidence tooltip, accept/reject buttons, tagDecisions ใน commit payload (FR-006, ADR-050)
 // - 2026-08-31: T037-T040 — เพิ่ม ocrQuality section, metadata.confidence badges, acknowledge controls,
@@ -101,11 +105,11 @@ const getTagSuggestions = (details: MigrationReviewQueueItem['details']): Migrat
 /** แปลง confidence 0-1 เป็น percentage string */
 const formatConfidence = (confidence: number): string => `${(confidence * 100).toFixed(1)}%`;
 
-/** สีตามระดับ confidence */
+/** สีตามระดับ confidence (รองรับ dark mode — ใช้โทนสว่างขึ้นใน dark theme) */
 const getConfidenceColor = (confidence: number): string => {
-  if (confidence < 0.5) return 'text-red-600';
-  if (confidence < 0.75) return 'text-yellow-600';
-  return 'text-green-600';
+  if (confidence < 0.5) return 'text-red-600 dark:text-red-400';
+  if (confidence < 0.75) return 'text-yellow-600 dark:text-yellow-400';
+  return 'text-green-600 dark:text-green-400';
 };
 
 interface MigrationAiIssues {
@@ -482,7 +486,7 @@ export default function MigrationReviewPage() {
           <div className="p-4 border-b bg-muted/30">
             <h2 className="font-semibold text-lg flex items-center gap-2">Extracted Information</h2>
             {item.reviewReason && (
-              <p className="text-sm text-red-500 mt-1 font-medium bg-red-50 p-2 rounded border border-red-100">
+              <p className="text-sm text-red-500 mt-1 font-medium bg-red-50 p-2 rounded border border-red-100 dark:bg-red-950/40 dark:border-red-900">
                 Reason: {item.reviewReason}
               </p>
             )}
@@ -663,9 +667,9 @@ export default function MigrationReviewPage() {
                 {commitError?.unresolvedFields && commitError.unresolvedFields.length > 0 && (
                   <div
                     data-testid="unresolved-fields-warning"
-                    className="mt-4 p-3 rounded-md border border-red-300 bg-red-50 text-sm"
+                    className="mt-4 p-3 rounded-md border border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950/40 text-sm"
                   >
-                    <div className="flex items-center gap-2 font-semibold text-red-700">
+                    <div className="flex items-center gap-2 font-semibold text-red-700 dark:text-red-300">
                       <AlertTriangleIcon className="h-4 w-4" />
                       {migrationReviewT('commit_unresolved_fields_error').replace(
                         '{{fields}}',
@@ -680,10 +684,10 @@ export default function MigrationReviewPage() {
                 {ocrQuality && (
                   <div
                     data-testid="ocr-quality-section"
-                    className="mt-4 p-3 rounded-md border border-blue-200 bg-blue-50/50 space-y-2"
+                    className="mt-4 p-3 rounded-md border border-blue-200 bg-blue-50/50 dark:border-blue-900 dark:bg-blue-950/40 space-y-2"
                   >
                     <div className="flex items-center justify-between">
-                      <h3 className="font-semibold text-sm flex items-center gap-1.5 text-blue-700">
+                      <h3 className="font-semibold text-sm flex items-center gap-1.5 text-blue-700 dark:text-blue-300">
                         <ShieldAlertIcon className="h-4 w-4" />
                         {migrationReviewT('ocr_quality_title')}
                       </h3>
@@ -697,8 +701,8 @@ export default function MigrationReviewPage() {
                           {migrationReviewT('ocr_quality_issues')}
                         </p>
                         {ocrQuality.issues.map((issue, idx) => (
-                          <div key={idx} className="text-xs space-y-0.5 pl-2 border-l-2 border-blue-200">
-                            <p className="font-medium text-blue-800">{issue.type}</p>
+                          <div key={idx} className="text-xs space-y-0.5 pl-2 border-l-2 border-blue-200 dark:border-blue-800">
+                            <p className="font-medium text-blue-800 dark:text-blue-200">{issue.type}</p>
                             <p className="text-muted-foreground">{issue.message}</p>
                             {issue.evidence && (
                               <p className="text-muted-foreground/70 italic">"{issue.evidence}"</p>
@@ -726,9 +730,9 @@ export default function MigrationReviewPage() {
                 {metadataConfidence && (
                   <div
                     data-testid="metadata-confidence-section"
-                    className="mt-4 p-3 rounded-md border border-amber-200 bg-amber-50/50 space-y-2"
+                    className="mt-4 p-3 rounded-md border border-amber-200 bg-amber-50/50 dark:border-amber-900 dark:bg-amber-950/40 space-y-2"
                   >
-                    <h3 className="font-semibold text-sm text-amber-700">{migrationReviewT('metadata_confidence_title')}</h3>
+                    <h3 className="font-semibold text-sm text-amber-700 dark:text-amber-300">{migrationReviewT('metadata_confidence_title')}</h3>
                     <div className="flex flex-wrap gap-2">
                       <Badge variant="outline" className="text-xs">
                         Summary: <span className={`ml-1 font-mono font-semibold ${getConfidenceColor(metadataConfidence.summary)}`}>
@@ -792,7 +796,7 @@ export default function MigrationReviewPage() {
                 {commitError?.correspondenceTypeError && (
                   <div
                     data-testid="correspondenceType-error-warning"
-                    className="mt-2 p-2 rounded-md border border-red-300 bg-red-50 text-xs text-red-700"
+                    className="mt-2 p-2 rounded-md border border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950/40 text-xs text-red-700 dark:text-red-300"
                   >
                     <div className="flex items-center gap-1.5">
                       <AlertTriangleIcon className="h-3.5 w-3.5" />
@@ -807,9 +811,9 @@ export default function MigrationReviewPage() {
                 {tagSuggestions.length > 0 && (
                   <div
                     data-testid="tag-suggestions-section"
-                    className="mt-4 p-3 rounded-md border border-purple-200 bg-purple-50/50 space-y-2"
+                    className="mt-4 p-3 rounded-md border border-purple-200 bg-purple-50/50 dark:border-purple-900 dark:bg-purple-950/40 space-y-2"
                   >
-                    <h3 className="font-semibold text-sm text-purple-700">
+                    <h3 className="font-semibold text-sm text-purple-700 dark:text-purple-300">
                       {migrationReviewT('tag_suggestions_title')}
                     </h3>
                     <div className="space-y-2">
@@ -820,14 +824,14 @@ export default function MigrationReviewPage() {
                             key={tag.name}
                             data-testid={`tag-chip-${tag.name}`}
                             title={tag.evidence}
-                            className="flex items-center gap-2 p-2 rounded-md border border-purple-200 bg-white"
+                            className="flex items-center gap-2 p-2 rounded-md border border-purple-200 bg-white dark:border-purple-800 dark:bg-purple-950/30"
                           >
                             <span className="text-sm font-medium flex-1">{tag.name}</span>
                             {tag.isNew && (
                               <Badge
                                 data-testid={`tag-is-new-badge-${tag.name}`}
                                 variant="secondary"
-                                className="text-xs bg-purple-100 text-purple-700"
+                                className="text-xs bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-200"
                               >
                                 {migrationReviewT('tag_is_new_badge')}
                               </Badge>
