@@ -1,13 +1,26 @@
 # 04.1 Infrastructure Setup & Docker Compose
 
 **Project:** LCBP3-DMS
-**Version:** 1.9.0
+**Version:** 1.9.17
 **Status:** Active
 **Owner:** Nattanin Peancharoen (System Architect / Release Manager / Product Owner)
-**Last Updated:** 2026-05-16
+**Last Updated:** 2026-09-02
 
-> 📍 **Primary Server:** QNAP TS-473A (Application & Database)
-> 💾 **Backup Server:** ASUSTOR AS5403T (Infrastructure & Backup)
+> 📍 **Primary Host:** np-dms-lcbp3 (192.168.10.11) — Application, Database & Platform (post-ADR-041)
+> 📊 **Monitoring Host:** ASUSTOR AS5403T (192.168.10.9) — Prometheus, Grafana, Gitea Runner, Registry
+> 💾 **NAS/Backup:** QNAP TS-473A (192.168.10.8) — NAS/backup only (decommissioned as Docker host)
+
+> ⚠️ **Post-ADR-041 (Server Consolidation, 2026-06-20):**
+> All Docker services have been consolidated onto a single host `np-dms-lcbp3` (192.168.10.11).
+> QNAP TS-473A is no longer a Docker host (NAS/backup only); Desk-5439 is decommissioned.
+> The edge proxy changed from Nginx Proxy Manager (NPM) on QNAP to **Cloudflare Tunnel** on np-dms-lcbp3.
+> Ollama runs as a **host systemd service** (not a Docker container) — see ADR-040/043.
+>
+> 📂 **Current live Docker stacks** live at `/opt/np-dms/<layer>/` and are mirrored in the repo at
+> [`04-00-docker-compose/np-dms-lcbp3/`](./04-00-docker-compose/np-dms-lcbp3/) (4-layer stack:
+> `00-basic`, `01-infrastructure`, `02-platform`, `03-application`, `04-ai`).
+> The QNAP-specific sections below (Appendix A, Volume/Storage Architecture, etc.) are preserved as
+> **⚠️ Archived (pre-ADR-041)** for historical reference.
 
 ---
 
@@ -17,45 +30,68 @@ This document serves as the authoritative guide for the environment setup, Docke
 
 ---
 
+## 🔁 Live Edit Protocol (post-ADR-041)
+
+> **Edit live, sync back to repo.** Do not edit compose files only in the repo and expect them to be live.
+
+1. **Edit live on the host** at `/opt/np-dms/<layer>/` (e.g. `/opt/np-dms/01-infrastructure/docker-compose.yml`).
+2. **Sync back to the repo** by copying the live file into
+   `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/<layer>/`.
+3. **Start / restart stacks** using the helper scripts — never invoke `docker compose` without the env file:
+   - `/opt/np-dms/dockerup.sh` — start all layers (brings the full stack up in dependency order)
+   - `/opt/np-dms/dockerstart.sh` — start stopped containers (does not recreate)
+4. **All `docker compose` commands MUST use `--env-file`:**
+   - Layers under `/opt/np-dms/<layer>/`: `docker compose --env-file ../.env ...`
+   - OCR sidecar under `/opt/np-dms/04-ai/ocr-sidecar/`: `docker compose --env-file ../../.env ...`
+5. **Ollama is a host systemd service** (not a Docker container) — manage with `systemctl`, not `docker compose`.
+
+---
+
 # Infrastructure Distribution
 
-> 📍 **Multi-Server Architecture:** LCBP3-DMS ใช้ distributed infrastructure แบ่งการทำงานระหว่าง 2 เครื่องหลัก
+> 📍 **Single-Host Architecture (post-ADR-041):** LCBP3-DMS รัน Docker services ทั้งหมดบน host เดียว `np-dms-lcbp3` (192.168.10.11) โดย ASUSTOR AS5403T ทำหน้าที่ monitoring/registry/runner เท่านั้น
 
 ## Server Roles
 
-| Server | IP Address | Role | Services |
-|--------|------------|------|----------|
-| **QNAP TS-473A** | 192.168.10.8 | Primary Application & Database Server | Backend, Frontend, MariaDB, Redis (cache), Elasticsearch (search), Qdrant, ClamAV, Monitoring Exporters |
-| **ASUSTOR AS5403T** | 192.168.10.9 | Infrastructure & Backup Server | Prometheus, Grafana, Gitea Runner |
+| Host | IP Address | Role | Services |
+|------|------------|------|----------|
+| **np-dms-lcbp3** | 192.168.10.11 | Primary Host (Application, Database, Platform, AI) | Portainer, MariaDB, phpMyAdmin, Redis, Elasticsearch, Qdrant, ClamAV, Backend, Frontend, Gitea, n8n, Exporters, OCR Sidecar, Cloudflare Tunnel |
+| **ASUSTOR AS5403T** | 192.168.10.9 | Monitoring & Registry Host | Prometheus, Grafana, Gitea Runner, Container Registry |
+| **QNAP TS-473A** | 192.168.10.8 | NAS / Backup only (no Docker) | Network storage, snapshot backups (decommissioned as Docker host per ADR-041) |
 
 ## Service Distribution
 
-### QNAP (192.168.10.8)
+### np-dms-lcbp3 (192.168.10.11) — 4-Layer Docker Stack
 
-**Application Stack** (`/share/np-dms/app/docker-compose-app.yml`):
+> 📂 Base path: `/opt/np-dms/` · All `docker compose` commands use `--env-file ../.env` (or `../../.env` for ocr-sidecar)
+
+**00-basic** (`/opt/np-dms/00-basic/`):
+- `portainer` - Container Management UI
+
+**01-infrastructure** (`/opt/np-dms/01-infrastructure/`):
+- `mariadb` - MariaDB Database
+- `pma` - phpMyAdmin
+- `cache` - Redis (Caching + Distributed Lock + BullMQ queues)
+- `search` - Elasticsearch (Full-text Search)
+- `qdrant` - Vector Database (ADR-023A)
+- `node-exporter` / `cadvisor` / `mysqld-exporter` - Monitoring Exporters
+
+**02-platform** (`/opt/np-dms/02-platform/`):
+- `gitea` - Git Repository
+- `n8n` - Workflow Automation
+
+**03-application** (`/opt/np-dms/03-application/`):
+- `clamav` - Antivirus Scanner (ADR-016)
 - `backend` - NestJS API
 - `frontend` - Next.js Web App
-- `qdrant` - Vector Database (ADR-023A)
-- `clamav` - Antivirus Scanner (ADR-016)
 
-**Infrastructure Services** (`/share/np-dms/services/docker-compose.yml`):
-- `cache` - Redis (Caching + Distributed Lock + BullMQ queues)
-- `search` - Elasticsearch (Full-text Search)\n- `qdrant` - Vector Database for RAG (ADR-023A)\n- `clamav` - Antivirus Scanner (ADR-016)
+**04-ai** (`/opt/np-dms/04-ai/`):
+- `ocr-sidecar` - FastAPI OCR Sidecar (`/opt/np-dms/04-ai/ocr-sidecar/`)
+- `ollama-metrics` - Ollama metrics exporter
+- `nvidia-gpu-exporter` - GPU metrics exporter
+- **Ollama** runs as host systemd service (not a container) — ADR-040/043
 
-**Database Stack** (`/share/np-dms/mariadb/docker-compose.yml`):
-- `mariadb` - MariaDB Database
-- `pma` - phpMyAdmin (via NPM proxy only)\n\n**MariaDB Configuration:**\n- Config file location: `/share/np-dms/mariadb/my.cnf` (mount to `/etc/mysql/conf.d/my.cnf:ro`)\n- Backup directory: `/share/dms-data/mariadb/backup`
-
-**Monitoring Exporters** (`/share/np-dms/monitoring/docker-compose.yml`):
-- `node-exporter` - System metrics
-- `cadvisor` - Container metrics
-- `mysqld-exporter` - Database metrics
-
-**Supporting Services**:
-- NPM (Nginx Proxy Manager) - Reverse Proxy & SSL
-- Gitea - Git Repository
-- n8n - Workflow Automation
-- RocketChat - Team Communication
+**Edge Proxy:** Cloudflare Tunnel (on np-dms-lcbp3) — replaces NPM on QNAP
 
 ### ASUSTOR (192.168.10.9)
 
@@ -63,27 +99,28 @@ This document serves as the authoritative guide for the environment setup, Docke
 - `prometheus` - Metrics Collection & Alerting
 - `grafana` - Visualization & Dashboards
 - Gitea Runner - CI/CD Pipeline Execution
+- Container Registry
 
 ## Network Architecture
 
 **Docker Network:** `lcbp3` (external bridge network)
 
-- ทุก service บน QNAP เชื่อมต่อผ่าน network `lcbp3` เดียวกัน
+- ทุก service บน np-dms-lcbp3 เชื่อมต่อผ่าน network `lcbp3` เดียวกัน
 - Services สื่อสารกันด้วย DNS names (เช่น `backend:3000`, `cache:6379`)
-- ASUSTOR scrape metrics ผ่าน QNAP exporters ผ่าน network DNS
+- ASUSTOR scrape metrics ผ่าน np-dms-lcbp3 exporters ผ่าน network DNS
 
 **Network Security:**
 - Elasticsearch และ Redis ไม่ publish ports ออก LAN (ใช้ `expose` เฉพาะภายใน network)
 - MariaDB publish port 3306 แต่ bind เฉพาะ loopback (127.0.0.1:3306) สำหรับ backup/migration
-- Public access ผ่าน NPM reverse proxy เท่านั้น
+- Public access ผ่าน Cloudflare Tunnel เท่านั้น (replaces NPM reverse proxy per ADR-041)
 
 ---
 
 # Environment Setup & Configuration
 
 **Project:** LCBP3-DMS
-**Version:** 1.9.0
-**Last Updated:** 2026-05-16
+**Version:** 1.9.17
+**Last Updated:** 2026-09-02
 
 ---
 
@@ -193,42 +230,60 @@ NEXT_PUBLIC_ENABLE_LINE_NOTIFY=true
 
 ## 🐳 Docker Compose Configuration
 
-> **⚠️ สำคัญ:** LCBP3-DMS ใช้ **Split Files Architecture** ไม่ใช่ monolithic docker-compose.yml เดียว
+> **⚠️ สำคัญ:** LCBP3-DMS ใช้ **4-Layer Stack Architecture** (post-ADR-041) ไม่ใช่ monolithic docker-compose.yml เดียว
 >
-> ดูรายละเอียดและไฟล์จริงได้ที่: [Appendix A - Live QNAP Production Configs](#appendix-a--live-qnap-production-configs)
+> ดูไฟล์จริงปัจจุบันได้ที่: [`04-00-docker-compose/np-dms-lcbp3/`](./04-00-docker-compose/np-dms-lcbp3/)
+> (Appendix A ด้านล่างเป็น ⚠️ Archived (pre-ADR-041) — QNAP configs ที่เก็บไว้เป็นประวัติ)
 
-### Split Files Structure
+### Split Files Structure (post-ADR-041)
 
 ```
-/share/np-dms/
-├── app/docker-compose-app.yml          # Application Stack (backend, frontend)
-├── mariadb/docker-compose.yml          # Database Stack (mariadb, pma)
-├── services/docker-compose.yml         # Infrastructure Services (cache/redis, search/elasticsearch, qdrant, clamav)
-├── monitoring/docker-compose.yml       # Monitoring Exporters (node-exporter, cadvisor, mysqld-exporter)
-├── npm/docker-compose.yml              # Nginx Proxy Manager
-├── git/docker-compose.yml              # Gitea
-└── n8n/docker-compose.yml              # n8n Automation
+/opt/np-dms/
+├── .env                              # Shared env file (all layers use --env-file ../.env)
+├── dockerup.sh                       # Start all layers (dependency order)
+├── dockerstart.sh                    # Start stopped containers
+├── 00-basic/docker-compose.yml       # Portainer
+├── 01-infrastructure/docker-compose.yml  # MariaDB, phpMyAdmin, Redis, Elasticsearch, Qdrant, Exporters
+├── 02-platform/docker-compose.yml    # Gitea, n8n
+├── 03-application/docker-compose.yml # ClamAV, Backend, Frontend
+└── 04-ai/
+    ├── docker-compose.yml            # ollama-metrics, nvidia-gpu-exporter
+    └── ocr-sidecar/docker-compose.yml # FastAPI OCR Sidecar (--env-file ../../.env)
 ```
+
+> **Note:** Ollama runs as a host systemd service (not in `04-ai/docker-compose.yml`) — ADR-040/043.
 
 ### Production Configuration Overview
 
-**Application Stack** (`app/docker-compose-app.yml`):
+**00-basic** (`00-basic/docker-compose.yml`):
+- `portainer` - Container Management UI
+
+**01-infrastructure** (`01-infrastructure/docker-compose.yml`):
+- `mariadb` - MariaDB 11.8
+- `pma` - phpMyAdmin
+- `cache` - Redis 7-alpine (Caching + Distributed Lock + BullMQ)
+- `search` - Elasticsearch 8.11.1 (Full-text Search)
+- `qdrant` - Vector Database for RAG (ADR-023A)
+- `node-exporter` / `cadvisor` / `mysqld-exporter` - Monitoring Exporters
+
+**02-platform** (`02-platform/docker-compose.yml`):
+- `gitea` - Git Repository
+- `n8n` - Workflow Automation
+
+**03-application** (`03-application/docker-compose.yml`):
+- `clamav` - Antivirus Scanner (ADR-016)
 - `backend` - NestJS API (port 3000 internal)
 - `frontend` - Next.js Web App (port 3000 internal)
-- `qdrant` - Vector Database for RAG (ADR-023A)
-- `clamav` - Antivirus Scanner (ADR-016)
 
-**Infrastructure Services** (`services/docker-compose.yml`):
-- `cache` - Redis 7-alpine (Caching + Distributed Lock + BullMQ)
-- `search` - Elasticsearch 8.11.1 (Full-text Search)\n- `qdrant` - Vector Database for RAG (ADR-023A)\n- `clamav` - Antivirus Scanner (ADR-016)
-
-**Database Stack** (`mariadb/docker-compose.yml`):
-- `mariadb` - MariaDB 11.8
-- `pma` - phpMyAdmin (via NPM proxy only)\n\n**MariaDB Configuration:**\n- Config file location: `/share/np-dms/mariadb/my.cnf` (mount to `/etc/mysql/conf.d/my.cnf:ro`)\n- Backup directory: `/share/dms-data/mariadb/backup`
+**04-ai** (`04-ai/docker-compose.yml` + `04-ai/ocr-sidecar/docker-compose.yml`):
+- `ocr-sidecar` - FastAPI OCR Sidecar (BGE-M3 + BGE-Reranker)
+- `ollama-metrics` - Ollama metrics exporter
+- `nvidia-gpu-exporter` - GPU metrics exporter
+- **Ollama** - host systemd service (ADR-040/043)
 
 **Network:** ทุก stack ใช้ external network `lcbp3` เดียวกัน
 
-> **ดู configuration ทั้งหมดได้ที่:** [Appendix A](#appendix-a--live-qnap-production-configs)
+> **ดู configuration ทั้งหมดได้ที่:** [`04-00-docker-compose/np-dms-lcbp3/`](./04-00-docker-compose/np-dms-lcbp3/)
 
 ### Legacy Monolithic Example (Deprecated)
 
@@ -370,7 +425,10 @@ services:
 
 ## � Volume/Storage Architecture (QNAP-Specific)
 
-> **QNAP NAS Storage:** LCBP3-DMS ใช้ QNAP absolute paths แทน Docker named volumes เพื่อประโยชน์จาก NAS storage management
+> ⚠️ **Archived (pre-ADR-041):** Section นี้อ้างอิง QNAP paths (`/share/np-dms/...`) ซึ่งเป็น config เดิมก่อนย้ายไป np-dms-lcbp3
+> Post-ADR-041 storage paths อยู่ที่ `/opt/np-dms/<layer>/` — ดู [`04-00-docker-compose/np-dms-lcbp3/`](./04-00-docker-compose/np-dms-lcbp3/) สำหรับ live configs
+>
+> **QNAP NAS Storage (historical):** LCBP3-DMS เคยใช้ QNAP absolute paths แทน Docker named volumes เพื่อประโยชน์จาก NAS storage management
 
 ### Storage Paths on QNAP
 
@@ -624,17 +682,17 @@ docker exec lcbp3-backend env | grep NODE_ENV
 
 ---
 
-**Version:** 1.9.0
-**Last Review:** 2026-05-16
-**Next Review:** 2026-08-16
+**Version:** 1.9.17
+**Last Review:** 2026-09-02
+**Next Review:** 2026-12-02
 
 ---
 
 # Infrastructure Setup
 
-> 📍 **Document Version:** v1.9.0
-> 🖥️ **Primary Server:** QNAP TS-473A (Application & Database)
-> 💾 **Backup Server:** ASUSTOR AS5403T (Infrastructure & Backup)
+> 📍 **Document Version:** v1.9.17
+> 🖥️ **Primary Host:** np-dms-lcbp3 (192.168.10.11) — Application, Database & Platform (post-ADR-041)
+> � **Monitoring Host:** ASUSTOR AS5403T (192.168.10.9) — Monitoring & Registry
 
 ---
 
@@ -1565,9 +1623,12 @@ FROM document_numbering
 
 # Appendix A — Live QNAP Production Configs
 
-> 🖥️ **Server:** QNAP TS-473A · Path: `/share/np-dms/`
-> These are the **actual running Docker Compose configurations** on QNAP Container Station (v1.8.0).
-> They differ from the generic Blue-Green templates above in that they use the real `lcbp3` Docker external network.
+> ⚠️ **Archived (pre-ADR-041):** Appendix นี้เป็น QNAP Container Station configs ที่เก็บไว้เป็นประวัติศาสตร์
+> Post-ADR-041 live configs อยู่ที่ [`04-00-docker-compose/np-dms-lcbp3/`](./04-00-docker-compose/np-dms-lcbp3/)
+>
+> 🖥️ **Server (historical):** QNAP TS-473A · Path: `/share/np-dms/`
+> These were the **actual running Docker Compose configurations** on QNAP Container Station (v1.8.0).
+> They differed from the generic Blue-Green templates above in that they used the real `lcbp3` Docker external network.
 
 ---
 
@@ -1807,7 +1868,10 @@ services:
 
 ## A.3 Nginx Proxy Manager (`lcbp3-npm`)
 
-> **Path:** `/share/np-dms/npm/docker-compose.yml`
+> ⚠️ **Archived (pre-ADR-041):** NPM ถูกแทนที่ด้วย **Cloudflare Tunnel** บน np-dms-lcbp3 แล้ว (ADR-041)
+> Section นี้เก็บไว้เป็นประวัติศาสตร์เท่านั้น — ห้ามใช้ใน production ปัจจุบัน
+
+> **Path (historical):** `/share/np-dms/npm/docker-compose.yml`
 > **Application name:** `lcbp3-npm` — Services: `npm`, `landing`
 
 ### NPM Proxy Host Config Reference

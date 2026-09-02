@@ -3,8 +3,8 @@
 ---
 
 **Project:** LCBP3-DMS (Laem Chabang Port Phase 3 - Document Management System)
-**Version:** 1.8.4
-**Last Updated:** 2026-03-24
+**Version:** 1.9.17
+**Last Updated:** 2026-09-02
 **Owner:** Operations Team
 **Status:** Active
 
@@ -12,15 +12,19 @@
 
 ## 📋 Overview
 
-This guide provides step-by-step instructions for deploying the LCBP3-DMS system on QNAP Container Station using Docker Compose.
+This guide provides step-by-step instructions for deploying the LCBP3-DMS system on `np-dms-lcbp3` (192.168.10.11) running Docker Compose V2 on Ubuntu/Debian.
+
+> 📌 **Post-ADR-041 (Server Consolidation, 2026-06-20):** All services have been consolidated onto a single host `np-dms-lcbp3`. The QNAP TS-473A is decommissioned as a Docker host (now NAS/backup only). The ASUSTOR AS5403T (192.168.10.9) still runs monitoring/registry/gitea-runner. Pre-ADR-041 QNAP-specific content is preserved in the appendices, marked **⚠️ Archived (pre-ADR-041)**.
 
 ### Deployment Strategy
 
-- **Platform:** QNAP TS-473A with Container Station
-- **Orchestration:** Docker Compose
+- **Platform:** np-dms-lcbp3 (Ubuntu/Debian, Docker Compose V2)
+- **Host IP:** 192.168.10.11
+- **Orchestration:** Docker Compose V2 (4-layer stack at `/opt/np-dms/`)
 - **Deployment Method:** Direct deploy with `--force-recreate` (replaces previous blue-green approach)
-- **Automation:** Gitea Actions → `appleboy/ssh-action` → `scripts/deploy.sh`
-- **Rollback:** Re-trigger previous commit via Gitea Actions
+- **Automation:** Gitea Actions → `appleboy/ssh-action` → `scripts/deploy.sh` (build + tag SHA + health check + auto-rollback per ADR-015)
+- **Image Tagging:** `lcbp3-backend:${SHA}` + `lcbp3-backend:latest` (ADR-015)
+- **Rollback:** Re-trigger previous commit via Gitea Actions (auto-rollback per ADR-015)
 
 ---
 
@@ -34,20 +38,19 @@ This guide provides step-by-step instructions for deploying the LCBP3-DMS system
 | RAM        | 16 GB                      |
 | Storage    | 500 GB SSD (System + Data) |
 | Network    | 1 Gbps Ethernet            |
-| QNAP Model | TS-473A or equivalent      |
+| Host       | np-dms-lcbp3 (192.168.10.11) or equivalent |
 
 ### Software Requirements
 
-| Software          | Version | Purpose                  |
-| ----------------- | ------- | ------------------------ |
-| QNAP QTS          | 5.x+    | Operating System         |
-| Container Station | 3.x+    | Docker Management        |
-| Docker            | 20.10+  | Container Runtime        |
-| Docker Compose    | 2.x+    | Multi-container Orchestr |
+| Software        | Version | Purpose                  |
+| --------------- | ------- | ------------------------ |
+| Ubuntu/Debian   | 22.04+  | Operating System         |
+| Docker          | 24.x+   | Container Runtime        |
+| Docker Compose  | V2      | Multi-container Orchestr |
 
 ### Network Requirements
 
-- Static IP address for QNAP server
+- Static IP address for np-dms-lcbp3 (192.168.10.11)
 - Domain name (e.g., `lcbp3-dms.example.com`)
 - SSL certificate (Let's Encrypt or commercial)
 - Firewall rules:
@@ -61,59 +64,77 @@ This guide provides step-by-step instructions for deploying the LCBP3-DMS system
 
 ### 1. Directory Structure
 
-Create the following directory structure on QNAP:
+Create the following directory structure on `np-dms-lcbp3`:
 
 ```bash
-# SSH into QNAP
-ssh admin@qnap-ip
+# SSH into np-dms-lcbp3
+ssh admin@192.168.10.11
 
-# Create base directories
-mkdir -p /share/np-dms/app/logs
-mkdir -p /share/np-dms/app/uploads
+# Create base directories (4-layer Docker stack)
+mkdir -p /opt/np-dms/00-basic
+mkdir -p /opt/np-dms/01-infrastructure
+mkdir -p /opt/np-dms/02-platform
+mkdir -p /opt/np-dms/03-application
+mkdir -p /opt/np-dms/04-ai/ocr-sidecar
 
 # Clone source repository (first time only)
-mkdir -p /share/np-dms/app/source
-cd /share/np-dms/app/source
-git clone https://git.np-dms.work/np-dms/lcbp3.git
+mkdir -p /opt/np-dms-lcbp3
+cd /opt/np-dms-lcbp3
+git clone https://git.np-dms.work/np-dms/lcbp3.git .
 
 # Create persistent volumes
-mkdir -p /volume1/lcbp3/volumes/mariadb-data
-mkdir -p /volume1/lcbp3/volumes/redis-data
-mkdir -p /volume1/lcbp3/volumes/elastic-data
+mkdir -p /opt/np-dms/volumes/mariadb-data
+mkdir -p /opt/np-dms/volumes/redis-data
+mkdir -p /opt/np-dms/volumes/elastic-data
 
 # Create NGINX proxy directory
-mkdir -p /volume1/lcbp3/nginx-proxy
+mkdir -p /opt/np-dms/nginx-proxy
 
 # Set permissions
-chmod -R 755 /volume1/lcbp3
-chown -R admin:administrators /volume1/lcbp3
+chmod -R 755 /opt/np-dms
+chown -R admin:admin /opt/np-dms
 ```
 
-**Directory Structure:**
+**Directory Structure (post-ADR-041):**
 
 ```
-/share/np-dms/app/
-├── source/
-│   └── lcbp3/               # Git repository (auto-synced by CI)
-│       ├── backend/
-│       ├── frontend/
-│       ├── scripts/
-│       │   ├── deploy.sh    # Deployment script v2.0
-│       │   └── rollback.sh
-│       └── specs/04-Infrastructure-OPS/04-00-docker-compose/
-│           └── docker-compose-app.yml  # Compose file used for deployment
-│
-├── .env                     # Single environment config file
-├── logs/                    # Deployment logs
-└── uploads/                 # Persistent file uploads
+/opt/np-dms/                        # 4-layer Docker stack
+├── .env                            # Single environment config file (shared by all layers)
+├── 00-basic/
+│   └── docker-compose.yml          # portainer
+├── 01-infrastructure/
+│   └── docker-compose.yml          # mariadb, pma, redis, elasticsearch, qdrant, exporters
+├── 02-platform/
+│   └── docker-compose.yml          # gitea, n8n
+├── 03-application/
+│   └── docker-compose.yml          # clamav, backend, frontend
+├── 04-ai/
+│   ├── docker-compose.yml          # ollama-metrics, nvidia-gpu-exporter
+│   └── ocr-sidecar/
+│       └── docker-compose.yml      # FastAPI OCR sidecar (BGE-M3 + BGE-Reranker)
+├── dockerup.sh                     # Start all layers after reboot
+├── dockerstart.sh                  # Start stopped containers (no recreate)
+└── volumes/                        # Persistent volumes
+    ├── mariadb-data/
+    ├── redis-data/
+    └── elastic-data/
+
+/opt/np-dms-lcbp3/                  # Source repository (auto-synced by CI)
+├── backend/
+├── frontend/
+├── scripts/
+│   ├── deploy.sh                   # Deployment script (build + tag SHA + health check)
+│   └── rollback.sh
+└── specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/
+    └── <layer>/                    # Compose files synced from live /opt/np-dms/<layer>/
 ```
 
 ### 2. SSL Certificate Setup
 
 ```bash
 # Option 1: Let's Encrypt (Recommended)
-# Install certbot on QNAP
-opkg install certbot
+# Install certbot on np-dms-lcbp3
+sudo apt install certbot
 
 # Generate certificate
 certbot certonly --standalone \
@@ -123,12 +144,12 @@ certbot certonly --standalone \
 
 # Copy to nginx-proxy
 cp /etc/letsencrypt/live/lcbp3-dms.example.com/fullchain.pem \
-   /volume1/lcbp3/nginx-proxy/ssl/cert.pem
+   /opt/np-dms/nginx-proxy/ssl/cert.pem
 cp /etc/letsencrypt/live/lcbp3-dms.example.com/privkey.pem \
-   /volume1/lcbp3/nginx-proxy/ssl/key.pem
+   /opt/np-dms/nginx-proxy/ssl/key.pem
 
 # Option 2: Commercial Certificate
-# Upload cert.pem and key.pem to /volume1/lcbp3/nginx-proxy/ssl/
+# Upload cert.pem and key.pem to /opt/np-dms/nginx-proxy/ssl/
 ```
 
 ---
@@ -137,10 +158,10 @@ cp /etc/letsencrypt/live/lcbp3-dms.example.com/privkey.pem \
 
 ### 1. Environment Variables (.env.production)
 
-Create `.env` at `/share/np-dms/app/.env`:
+Create `.env` at `/opt/np-dms/.env`:
 
 ```bash
-# File: /share/np-dms/app/.env
+# File: /opt/np-dms/.env
 # DO NOT commit this file to Git!
 
 # Application
@@ -199,6 +220,8 @@ CLAMAV_PORT=3310
 ```
 
 ### 2. Docker Compose - Blue Environment
+
+> ⚠️ **Archived (pre-ADR-041):** The blue-green deployment approach has been replaced by direct deploy with `--force-recreate` on the single-host 4-layer stack at `/opt/np-dms/`. This config is preserved for historical reference. Active compose files live at `/opt/np-dms/<layer>/docker-compose.yml` (synced to repo `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/<layer>/`).
 
 ```yaml
 # File: /volume1/lcbp3/blue/docker-compose.yml
@@ -315,6 +338,8 @@ networks:
 
 ### 3. Docker Compose - NGINX Proxy
 
+> ⚠️ **Archived (pre-ADR-041):** Historical NGINX proxy config preserved for reference. Post-ADR-041, NGINX/reverse-proxy is managed within the 4-layer stack.
+
 ```yaml
 # File: /volume1/lcbp3/nginx-proxy/docker-compose.yml
 version: '3.8'
@@ -348,6 +373,8 @@ networks:
 ```
 
 ### 4. NGINX Configuration
+
+> ⚠️ **Archived (pre-ADR-041):** Historical NGINX configuration preserved for reference.
 
 ```nginx
 # File: /volume1/lcbp3/nginx-proxy/nginx.conf
@@ -471,7 +498,98 @@ http {
 
 ---
 
+## ✏️ Live Edit Protocol
+
+> 📌 **Post-ADR-041 workflow** for editing Docker Compose files on the consolidated host `np-dms-lcbp3`.
+
+### Edit Workflow
+
+1. **Edit live first** — make changes directly on the host at `/opt/np-dms/<layer>/docker-compose.yml`.
+2. **Apply the change** — recreate the affected layer using `docker compose` with the shared env file.
+3. **Sync back to repo** — copy the verified live compose file back into the repository at `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/<layer>/docker-compose.yml` and commit.
+4. **Never edit the repo copy first** — the live file on the host is the source of truth; the repo is the backup/audit copy.
+
+### Layer Mapping
+
+| Layer | Live Path | Repo Sync Path |
+| ----- | --------- | -------------- |
+| 00-basic | `/opt/np-dms/00-basic/docker-compose.yml` | `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/00-basic/` |
+| 01-infrastructure | `/opt/np-dms/01-infrastructure/docker-compose.yml` | `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/01-infrastructure/` |
+| 02-platform | `/opt/np-dms/02-platform/docker-compose.yml` | `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/02-platform/` |
+| 03-application | `/opt/np-dms/03-application/docker-compose.yml` | `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/03-application/` |
+| 04-ai | `/opt/np-dms/04-ai/docker-compose.yml` | `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/` |
+| 04-ai/ocr-sidecar | `/opt/np-dms/04-ai/ocr-sidecar/docker-compose.yml` | `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/04-ai/ocr-sidecar/` |
+
+### Applying a Single Layer Change
+
+> ⚠️ **All `docker compose` commands must use `--env-file ../.env`** (or `--env-file ../../.env` for `ocr-sidecar`, which is nested one level deeper).
+
+```bash
+# Example: apply a change to the 01-infrastructure layer
+cd /opt/np-dms/01-infrastructure
+sudo docker compose --env-file ../.env up -d --force-recreate
+
+# Example: apply a change to the ocr-sidecar (nested layer)
+cd /opt/np-dms/04-ai/ocr-sidecar
+sudo docker compose --env-file ../../.env up -d --force-recreate
+```
+
+### Helper Scripts
+
+Two helper scripts live at `/opt/np-dms/` for starting the full stack.
+
+#### `dockerup.sh` — Start all layers after reboot (creates/recreates containers)
+
+```bash
+# File: /opt/np-dms/dockerup.sh
+cd /opt/np-dms/00-basic && sudo docker compose --env-file ../.env up -d
+cd /opt/np-dms/01-infrastructure && sudo docker compose --env-file ../.env up -d
+cd /opt/np-dms/02-platform && sudo docker compose --env-file ../.env up -d
+cd /opt/np-dms/03-application && sudo docker compose --env-file ../.env up -d
+cd /opt/np-dms/04-ai && sudo docker compose --env-file ../.env up -d
+cd /opt/np-dms/04-ai/ocr-sidecar && sudo docker compose --env-file ../../.env up -d
+```
+
+#### `dockerstart.sh` — Start stopped containers (no recreate, preserves existing containers)
+
+```bash
+# File: /opt/np-dms/dockerstart.sh
+cd /opt/np-dms/00-basic && sudo docker compose --env-file ../.env start
+cd /opt/np-dms/01-infrastructure && sudo docker compose --env-file ../.env start
+cd /opt/np-dms/02-platform && sudo docker compose --env-file ../.env start
+cd /opt/np-dms/04-ai && sudo docker compose --env-file ../.env start
+cd /opt/np-dms/04-ai/ocr-sidecar && sudo docker compose --env-file ../../.env start
+cd /opt/np-dms/03-application && sudo docker compose --env-file ../.env start
+```
+
+> 📝 **Note:** `dockerstart.sh` starts `03-application` **last** (after infrastructure, platform, and AI layers are up) to ensure dependencies are ready. `dockerup.sh` starts `03-application` before `04-ai` because `up -d` waits on `depends_on` healthchecks.
+
+### Backend Image Build
+
+The backend image is built from the **repository root** (`/opt/np-dms-lcbp3/`), not from inside the `backend/` directory:
+
+```bash
+cd /opt/np-dms-lcbp3
+docker build -f backend/Dockerfile -t lcbp3-backend:latest .
+
+# CI/CD also tags with the commit SHA (ADR-015):
+#   lcbp3-backend:${SHA}  +  lcbp3-backend:latest
+```
+
+### Ollama (Host systemd, not Docker)
+
+Per ADR-040/043, Ollama runs as a **host systemd service** on `np-dms-lcbp3`, not as a Docker container. The `04-ai` layer only contains `ollama-metrics` and `nvidia-gpu-exporter` (monitoring), plus the `ocr-sidecar` FastAPI service.
+
+```bash
+# Check Ollama host service
+sudo systemctl status ollama
+```
+
+---
+
 ## 🚀 Initial Deployment
+
+> ⚠️ **Archived (pre-ADR-041):** The steps below reflect the original QNAP-based initial deployment (tarball transfer, blue-green). Post-ADR-041, initial deployment uses the 4-layer stack at `/opt/np-dms/` started via `dockerup.sh` (see [Live Edit Protocol](#-live-edit-protocol) below). Preserved for historical reference.
 
 ### Step 1: Prepare Docker Images
 
@@ -584,6 +702,8 @@ docker-compose -f /volume1/lcbp3/blue/docker-compose.yml logs --tail=100
 ---
 
 ## 🔄 Blue-Green Deployment Process
+
+> ⚠️ **Archived (pre-ADR-041):** The blue-green deployment process has been superseded by direct deploy with `--force-recreate` and CI/CD via Gitea Actions → `scripts/deploy.sh` (build + tag SHA + health check + auto-rollback per ADR-015). Scripts preserved for historical reference.
 
 ### Deployment Script
 
@@ -873,7 +993,7 @@ docker ps --filter "name=lcbp3" --format "table {{.Names}}\t{{.Status}}\t{{.Port
 docker stats --no-stream
 
 # Disk usage
-df -h /volume1/lcbp3
+df -h /opt/np-dms
 
 # Database size
 docker exec lcbp3-mariadb mysql -u root -p -e "
@@ -906,18 +1026,22 @@ docker exec lcbp3-mariadb mysql -u root -p -e "
 - [Monitoring & Alerting](./04-03-monitoring.md)
 - [Maintenance Procedures](04-05-maintenance-procedures.md)
 - [ADR-015: Deployment Infrastructure](../06-Decision-Records/ADR-015-deployment-infrastructure.md)
+- [ADR-041: Server Consolidation](../06-Decision-Records/ADR-041-server-consolidation.md)
+- [ADR-040/043: Ollama Host systemd (not Docker)](../06-Decision-Records/ADR-040-ocr-sidecar-refactor.md)
 
 ---
 
-**Version:** 1.8.0
-**Last Updated:** 2025-12-02
-**Next Review:** 2026-06-01
+**Version:** 1.9.17
+**Last Updated:** 2026-09-02
+**Next Review:** 2026-12-01
 
 ---
 
 # Appendix A — QNAP Container Station Deployment
 
-> 🖥️ **Platform:** QNAP TS-473A · Container Station · Docker Compose App path: `/share/np-dms/app/`
+> ⚠️ **Archived (pre-ADR-041):** The QNAP TS-473A has been decommissioned as a Docker host (now NAS/backup only). All services have been consolidated onto `np-dms-lcbp3` (192.168.10.11). This appendix is preserved for historical reference only — do not use for active deployments.
+
+> 🖥️ **Platform (historical):** QNAP TS-473A · Container Station · Docker Compose App path: `/share/np-dms/app/`
 
 ## A.1 Prerequisites Checklist
 
@@ -979,19 +1103,19 @@ curl -I https://backend.np-dms.work/api
 
 Gitea → Repository → Settings → Actions → Secrets → **Add New Secret**:
 
-| Secret Name | Value          | Description                   |
-| ----------- | -------------- | ----------------------------- |
-| `HOST`      | `192.168.10.8` | QNAP IP (VLAN 10)             |
-| `PORT`      | `22`           | SSH Port                      |
-| `USERNAME`  | `admin`        | SSH user with Docker access   |
-| `PASSWORD`  | `***`          | SSH password (or use SSH Key) |
+| Secret Name | Value           | Description                   |
+| ----------- | --------------- | ----------------------------- |
+| `HOST`      | `192.168.10.11` | np-dms-lcbp3 IP (VLAN 10)     |
+| `PORT`      | `22`            | SSH Port                      |
+| `USERNAME`  | `admin`         | SSH user with Docker access   |
+| `PASSWORD`  | `***`           | SSH password (or use SSH Key) |
 
 ## B.2 Pipeline Flow
 
 ```mermaid
 graph TD
     A[Push to main] --> B[Gitea Runner picks up job]
-    B --> C[SSH to QNAP]
+    B --> C[SSH to np-dms-lcbp3]
     C --> D[git pull latest code]
     D --> E[Build Backend Image]
     E --> F[Build Frontend Image]
@@ -1011,16 +1135,16 @@ graph TD
 | Error                                          | Cause                           | Fix                                           |
 | ---------------------------------------------- | ------------------------------- | --------------------------------------------- |
 | `No matching runner with label: ubuntu-latest` | Runner not registered / offline | Register act_runner per Appendix C            |
-| `SSH Timeout`                                  | QNAP firewall / ACL             | Check VLAN 10 ACL allows runner IP on port 22 |
-| `Disk Full`                                    | Old images accumulate           | `docker image prune -a` on QNAP               |
+| `SSH Timeout`                                  | np-dms-lcbp3 firewall / ACL     | Check VLAN 10 ACL allows runner IP on port 22 |
+| `Disk Full`                                    | Old images accumulate           | `docker image prune -a` on np-dms-lcbp3       |
 | `Build failed: ENOENT .bin/ts-script`          | pnpm deploy symlink error       | Use `--shamefully-hoist` flag in Dockerfile   |
 
 ---
 
 # Appendix C — Gitea Runner (act_runner) on ASUSTOR
 
-> **Platform:** ASUSTOR AS5403T · Path: `/volume1/np-dms/gitea-runner/`
-> **Note:** Gitea is on QNAP, Runner is on ASUSTOR (per Server Role Separation)
+> **Platform:** ASUSTOR AS5403T (192.168.10.9) · Path: `/volume1/np-dms/gitea-runner/`
+> **Note (post-ADR-041):** Gitea is now on `np-dms-lcbp3` (02-platform layer); the Runner remains on ASUSTOR (per Server Role Separation — monitoring/registry/gitea-runner).
 
 ## C.1 Get Registration Token
 
@@ -1067,5 +1191,5 @@ Gitea → **Settings** → **Actions** → **Runners** — should show **Total: 
 ```bash
 # Cleanup old build images periodically
 docker image prune -a    # on ASUSTOR (runner images)
-ssh qnap "docker image prune -a"  # on QNAP (app images)
+ssh admin@192.168.10.11 "docker image prune -a"  # on np-dms-lcbp3 (app images)
 ```

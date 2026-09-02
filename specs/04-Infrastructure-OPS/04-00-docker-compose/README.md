@@ -41,6 +41,54 @@ chmod 600 .env
 docker compose --env-file .env -f docker-compose.yml up -d
 ```
 
+## 🐳 Live Edit Protocol (post-ADR-041)
+
+> [!IMPORTANT]
+> **แก้ docker-compose.yml ผิดที่ → container รัน config เก่า แก้ไม่ติด**
+
+### แก้ที่ไหน (ตามลำดับ)
+
+| ขั้นตอน | Path | หน้าที่ |
+| --- | --- | --- |
+| **1. Live edit** | `/opt/np-dms/{00-basic,01-infrastructure,02-platform,03-application,04-ai,04-ai/ocr-sidecar}/docker-compose.yml` | แก้ที่นี่ก่อน — container รันจากที่นี่ |
+| **2. Sync to repo** | `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/<layer>/docker-compose.yml` | `cp` กลับเข้า repo เพื่อ commit |
+| **3. Commit + push** | repo `np-dms-lcbp3` | commit พร้อม message อธิบาย |
+
+### คำสั่งที่ใช้ (ตาม `dockerup.sh` / `dockerstart.sh`)
+
+> [!CAUTION]
+> **ห้าม `docker compose up -d` โดยไม่ระบุ `--env-file`** — env vars หาย ทำให้ container fail
+
+```bash
+# Start ทุก layer (หลัง reboot) — ตาม dockerup.sh
+cd /opt/np-dms/00-basic && sudo docker compose --env-file ../.env up -d
+cd /opt/np-dms/01-infrastructure && sudo docker compose --env-file ../.env up -d
+cd /opt/np-dms/02-platform && sudo docker compose --env-file ../.env up -d
+cd /opt/np-dms/03-application && sudo docker compose --env-file ../.env up -d
+cd /opt/np-dms/04-ai && sudo docker compose --env-file ../.env up -d
+cd /opt/np-dms/04-ai/ocr-sidecar && sudo docker compose --env-file ../../.env up -d
+
+# Start container ที่หยุดไว้ (เร็วกว่า) — ตาม dockerstart.sh
+cd /opt/np-dms/00-basic && sudo docker compose --env-file ../.env start
+# ... (ลำดับเดียวกัน แต่ใช้ start แทน up -d)
+
+# Rebuild + recreate container เดียว (เช่น ocr-sidecar)
+cd /opt/np-dms/04-ai/ocr-sidecar && docker compose --env-file ../../.env build ocr-sidecar
+cd /opt/np-dms/04-ai/ocr-sidecar && docker compose --env-file ../../.env up -d ocr-sidecar
+
+# Rebuild + recreate backend (มี Dockerfile, context = repo root)
+cd /opt/np-dms-lcbp3 && docker build -f backend/Dockerfile -t lcbp3-backend:latest .
+cd /opt/np-dms/03-application && sudo docker compose --env-file ../.env up -d backend
+```
+
+### กฎสำคัญ
+
+- **ห้ามแก้ repo ก่อนแล้วค่อย copy ไป live** — จะทำให้ live กับ repo ไม่ตรง
+- **หลังแก้ live ต้อง sync กลับ repo ทันที** — `cp /opt/np-dms/<layer>/docker-compose.yml /opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/<layer>/`
+- **`up -d` สร้าง container ใหม่, `start` ใช้ container เดิม** — ใช้ให้ถูกต้อง
+- **`/opt/np-dms/.env`** เป็น env file กลาง — ทุก layer อ้างผ่าน `../.env` หรือ `../../.env`
+- **Backend image build จาก repo root** — Dockerfile context = workspace root ไม่ใช่ `backend/`
+
 ## Security (Non-Negotiable — see `SECURITY-MIGRATION-v1.8.6.md`)
 
 - **Tier-1:** No secrets in compose files; `.env` is gitignored; `JWT_SECRET` ≠ `AUTH_SECRET`

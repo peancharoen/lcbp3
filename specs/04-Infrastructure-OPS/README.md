@@ -1,8 +1,8 @@
 # Infrastructure & Operations (OPS) Guide
 
 **Project:** LCBP3-DMS
-**Version:** 1.9.13 (post-ADR-041 Server Consolidation)
-**Last Updated:** 2026-08-03
+**Version:** 1.9.17 (post-ADR-041 Server Consolidation + Live Edit Protocol)
+**Last Updated:** 2026-09-02
 
 ---
 
@@ -41,11 +41,12 @@ It consolidates what was previously split across multiple operations and specifi
 
 | Stack | File | Path on host |
 | ----- | ---- | ----------- |
-| **Basic** (portainer) | `np-dms-lcbp3/00-basic/docker-compose.yml` | `/opt/stacks/00-basic/` |
-| **Infrastructure** (mariadb, pma, redis, elasticsearch, qdrant, exporters) | `np-dms-lcbp3/01-infrastructure/docker-compose.yml` | `/opt/stacks/01-infrastructure/` |
-| **Platform** (gitea, n8n) | `np-dms-lcbp3/02-platform/docker-compose.yml` | `/opt/stacks/02-platform/` |
-| **Application** (clamav, backend, frontend) | `np-dms-lcbp3/03-application/docker-compose.yml` | `/opt/stacks/03-application/` |
-| **AI** (ocr-sidecar, ollama, ollama-metrics — ADR-040/043) | `np-dms-lcbp3/04-ai/docker-compose.yml` | `/opt/stacks/04-ai/` |
+| **Basic** (portainer) | `np-dms-lcbp3/00-basic/docker-compose.yml` | `/opt/np-dms/00-basic/` |
+| **Infrastructure** (mariadb, pma, redis, elasticsearch, qdrant, exporters) | `np-dms-lcbp3/01-infrastructure/docker-compose.yml` | `/opt/np-dms/01-infrastructure/` |
+| **Platform** (gitea, n8n) | `np-dms-lcbp3/02-platform/docker-compose.yml` | `/opt/np-dms/02-platform/` |
+| **Application** (clamav, backend, frontend) | `np-dms-lcbp3/03-application/docker-compose.yml` | `/opt/np-dms/03-application/` |
+| **AI** (ocr-sidecar, ollama, ollama-metrics — ADR-040/043) | `np-dms-lcbp3/04-ai/docker-compose.yml` | `/opt/np-dms/04-ai/` |
+| **OCR Sidecar** (FastAPI — ADR-040) | `np-dms-lcbp3/04-ai/ocr-sidecar/docker-compose.yml` | `/opt/np-dms/04-ai/ocr-sidecar/` |
 | **Registry** (registry + registry-ui, htpasswd auth) | `ASUSTOR/registry/docker-compose.yml` | `/volume1/np-dms/registry/` |
 | **Gitea Runner** (act_runner) | `ASUSTOR/gitea-runner/docker-compose.yml` | `/volume1/np-dms/gitea-runner/` |
 | **Monitoring Stack** (prometheus + grafana + loki + promtail + uptime-kuma) | `ASUSTOR/monitoring/docker-compose.yml` | `/volume1/np-dms/monitoring/` |
