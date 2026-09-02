@@ -36,11 +36,14 @@ jobs:
       - name: 📦 Install deps
         run: pnpm install --frozen-lockfile
 
+      - name: 🧹 Clean stale ESLint cache
+        run: rm -rf backend/.eslintcache backend/node_modules/.cache
+
       - name: 🧹 Lint
         run: pnpm --filter backend lint:ci
         working-directory: .
         env:
-          NODE_OPTIONS: "--max-old-space-size=4096"
+          NODE_OPTIONS: "--max-old-space-size=3072"
 
       - name: 🔍 Security & quality checks
         run: |
