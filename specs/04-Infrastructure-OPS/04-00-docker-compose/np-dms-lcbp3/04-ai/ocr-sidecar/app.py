@@ -403,7 +403,7 @@ async def _process_ocr_impl(
 
     # ไม่ส่ง runtime params ไป Ollama เพื่อให้ Modelfile defaults ทำงาน
     # Modelfile มีค่าที่ถูกต้องสำหรับ np-dms-ocr: temperature=0.1, top_p=0.6,
-    # repeat_penalty=1.1, num_predict=4096, num_ctx=16384
+    # repeat_penalty=1.1, num_predict=4096, num_ctx=8192 (ADR-040 D11 — ลดเพื่อป้องกัน VRAM OOM บน RTX 5060 Ti 16GB)
     payload = {
         "model": model_name,
         "messages": ollama_messages,

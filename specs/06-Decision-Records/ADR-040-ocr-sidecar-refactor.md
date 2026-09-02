@@ -169,6 +169,16 @@ Sidecar ทำหน้าที่เป็น compute worker เท่าน�
 - Backend ต้องสั่ง `OcrService.unloadBgeModels()` ก่อน OCR job (`ai-batch.processor.ts`) และหลัง rerank ก่อน LLM generate (`AiRagService`) เพื่อป้องกัน VRAM contention
 - ยืนยัน **Sidecar GPU Management** เป็น peer ของ **Ollama VRAM Management** ภายใต้ **GPU Coordination** ใน `CONTEXT.md` — ทั้งสอง engine ไม่ถือ VRAM ซ้อนกันในช่วง OCR/LLM
 
+### D11: Ollama Single-Slot + Reduced num_ctx for VRAM Safety (2026-09-02)
+
+> **Incident:** `CHEC-LCP-C2-O-24-0004` (456-page scan PDF, 14.5MB) failed OCR with `cudaMalloc failed: out of memory` (needs ~10.9GB) on RTX 5060 Ti 16GB. Root cause: `OLLAMA_NUM_PARALLEL=2` (default) created 2 slots × `num_ctx=16384` KV cache on VRAM; CLIP `clip_image_batch_encode` for the second concurrent image triggered OOM → `ggml_abort` (core dump) → HTTP 500 → `OCR_FAILED` in migration queue.
+
+- **`OLLAMA_NUM_PARALLEL=1`** — บังคับ Ollama สร้าง 1 slot เท่านั้น ป้องกัน VRAM contention ระหว่าง slots (BullMQ `concurrency=1` อยู่แล้ว จึงไม่กระทบ throughput)
+- **`np-dms-ocr` `num_ctx` 16384 → 8192** — ลด KV cache ต่อ slot ลงครึ่งหนึ่ง (prompt จริง ~4058 tokens ต่อหน้า จึงเพียงพอ)
+- **`OLLAMA_HOST=0.0.0.0:11434`** — ตั้งใน systemd override เพื่อให้ container เข้าถึงได้จาก `192.168.10.11:11434`
+- กำหนดค่าผ่าน `/etc/systemd/system/ollama.service.d/override.conf` + `ollama create` rebuild Modelfile
+- ดูรายละเอียดการ apply ใน `04-04-deployment-guide.md` § "VRAM Tuning (RTX 5060 Ti 16GB)"
+
 ---
 
 ## 📋 Implementation Tasks

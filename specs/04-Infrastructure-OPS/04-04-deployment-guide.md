@@ -585,6 +585,43 @@ Per ADR-040/043, Ollama runs as a **host systemd service** on `np-dms-lcbp3`, no
 sudo systemctl status ollama
 ```
 
+#### VRAM Tuning (RTX 5060 Ti 16GB)
+
+> ⚠️ **Critical for OCR stability:** The default `OLLAMA_NUM_PARALLEL=2` creates 2 slots × `num_ctx` KV cache on VRAM. On a 16GB GPU with a vision model (`np-dms-ocr`), CLIP image batch encoding for the second concurrent request triggers `cudaMalloc failed: out of memory` (needs ~10.9GB) → Ollama `ggml_abort` (core dump) → HTTP 500 to sidecar → OCR_FAILED in migration queue.
+> **Symptom:** Large/scan PDFs (e.g. 456-page CHEC-LCP-C2-O-24-0004, 14.5MB) fail OCR while small PDFs (e.g. QC-0001, 8.9MB) succeed.
+> **Fix (2026-09-02):** Set `OLLAMA_NUM_PARALLEL=1` and reduce `np-dms-ocr` `num_ctx` from 16384 → 8192.
+
+**systemd override** (`/etc/systemd/system/ollama.service.d/override.conf`):
+
+```ini
+[Service]
+Environment="OLLAMA_NUM_PARALLEL=1"
+Environment="OLLAMA_KEEP_ALIVE=10m"
+Environment="OLLAMA_FLASH_ATTENTION=0"
+Environment="OLLAMA_HOST=0.0.0.0:11434"
+Environment="OLLAMA_MODELS=/opt/ollama/models"
+```
+
+**`np-dms-ocr` Modelfile** (rebuild with `ollama create np-dms-ocr:latest -f Modelfile`):
+
+```text
+FROM np-dms-ocr:latest
+PARAMETER num_ctx 8192
+PARAMETER num_predict 4096
+PARAMETER repeat_penalty 1.1
+PARAMETER temperature 0.1
+PARAMETER top_p 0.6
+```
+
+```bash
+# Apply
+sudo systemctl daemon-reload
+sudo systemctl restart ollama
+ollama create np-dms-ocr:latest -f /tmp/np-dms-ocr-modelfile
+```
+
+> 📌 **BullMQ concurrency=1** (ADR-023A) already serializes OCR jobs, so `OLLAMA_NUM_PARALLEL=1` does not reduce throughput — it only prevents the second slot from competing for VRAM.
+
 ---
 
 ## 🚀 Initial Deployment
