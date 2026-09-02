@@ -114,7 +114,8 @@ describe('OllamaService (ADR-034)', () => {
     });
   });
   describe('loadModel()', () => {
-    it('ควรส่ง finite keep_alive จาก config เมื่อไม่ระบุ keepAlive', async () => {
+    it('ควรส่ง finite keep_alive เป็น duration string จาก config เมื่อไม่ระบุ keepAlive', async () => {
+      // Ollama 0.30+ ต้องการ keep_alive เป็น duration string (เช่น "120s")
       mockedAxios.get = jest.fn().mockResolvedValueOnce({
         data: {
           models: [
@@ -129,11 +130,11 @@ describe('OllamaService (ADR-034)', () => {
       await service.loadModel('np-dms-ai:latest');
       expect(mockedAxios.post).toHaveBeenCalledWith(
         expect.stringContaining('/api/generate'),
-        expect.objectContaining({ keep_alive: 120 }),
+        expect.objectContaining({ keep_alive: '120s' }),
         expect.anything()
       );
     });
-    it('ควรส่ง keep_alive: 0 เมื่อ keepAlive=0 (OCR model switching, ADR-034)', async () => {
+    it('ควรส่ง keep_alive: "0s" เมื่อ keepAlive=0 (OCR model switching, ADR-034)', async () => {
       mockedAxios.get = jest.fn().mockResolvedValueOnce({
         data: {
           models: [
@@ -148,7 +149,45 @@ describe('OllamaService (ADR-034)', () => {
       await service.loadModel('np-dms-ocr:latest', 0);
       expect(mockedAxios.post).toHaveBeenCalledWith(
         expect.stringContaining('/api/generate'),
-        expect.objectContaining({ keep_alive: 0 }),
+        expect.objectContaining({ keep_alive: '0s' }),
+        expect.anything()
+      );
+    });
+    it('ควรส่ง keep_alive เป็น duration string เมื่อ caller ระบุ keepAlive เป็น number', async () => {
+      mockedAxios.get = jest.fn().mockResolvedValueOnce({
+        data: {
+          models: [
+            {
+              name: 'np-dms-ai:latest',
+              model: 'np-dms-ai:latest',
+            },
+          ],
+        },
+      });
+      mockedAxios.post = jest.fn().mockResolvedValueOnce({ data: {} });
+      await service.loadModel('np-dms-ai:latest', 60);
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        expect.stringContaining('/api/generate'),
+        expect.objectContaining({ keep_alive: '60s' }),
+        expect.anything()
+      );
+    });
+    it('ควรส่ง keep_alive เป็น string ตรงๆ เมื่อ caller ระบุ keepAlive เป็น string', async () => {
+      mockedAxios.get = jest.fn().mockResolvedValueOnce({
+        data: {
+          models: [
+            {
+              name: 'np-dms-ai:latest',
+              model: 'np-dms-ai:latest',
+            },
+          ],
+        },
+      });
+      mockedAxios.post = jest.fn().mockResolvedValueOnce({ data: {} });
+      await service.loadModel('np-dms-ai:latest', '30m');
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        expect.stringContaining('/api/generate'),
+        expect.objectContaining({ keep_alive: '30m' }),
         expect.anything()
       );
     });
@@ -205,34 +244,50 @@ describe('OllamaService (ADR-034)', () => {
     });
   });
   describe('checkHealth()', () => {
-    it('ควรคืน HEALTHY พร้อมโมเดลที่โหลดอยู่จาก /api/ps เมื่อ Ollama ตอบกลับสำเร็จ', async () => {
+    it('ควรคืน HEALTHY พร้อมโมเดลที่โหลดอยู่และ version จาก /api/version', async () => {
       mockedAxios.get = jest
         .fn()
         .mockResolvedValueOnce({ data: {} }) // /api/tags
         .mockResolvedValueOnce({
           data: { models: [{ name: 'np-dms-ai:latest' }] },
-        }); // /api/ps
+        }) // /api/ps
+        .mockResolvedValueOnce({ data: { version: '0.30.10' } }); // /api/version
       const result = await service.checkHealth();
       expect(result.status).toBe('HEALTHY');
       expect(result.models).toContain('np-dms-ai:latest');
       expect(result.latencyMs).toBeGreaterThanOrEqual(0);
+      expect(result.version).toBe('0.30.10');
     });
     it('ควรคืน HEALTHY พร้อม fallback models เมื่อ /api/ps ไม่มีข้อมูล', async () => {
       mockedAxios.get = jest
         .fn()
         .mockResolvedValueOnce({ data: {} }) // /api/tags OK
-        .mockResolvedValueOnce({ data: { models: [] } }); // /api/ps empty
+        .mockResolvedValueOnce({ data: { models: [] } }) // /api/ps empty
+        .mockResolvedValueOnce({ data: { version: '0.30.10' } }); // /api/version
       const result = await service.checkHealth();
       expect(result.status).toBe('HEALTHY');
       expect(result.models).toContain('np-dms-ai:latest'); // fallback
+      expect(result.version).toBe('0.30.10');
     });
     it('ควรคืน HEALTHY แม้ /api/ps throw error (graceful degradation)', async () => {
       mockedAxios.get = jest
         .fn()
         .mockResolvedValueOnce({ data: {} }) // /api/tags OK
-        .mockRejectedValueOnce(new Error('ps endpoint error')); // /api/ps fails
+        .mockRejectedValueOnce(new Error('ps endpoint error')) // /api/ps fails
+        .mockResolvedValueOnce({ data: { version: '0.30.10' } }); // /api/version
       const result = await service.checkHealth();
       expect(result.status).toBe('HEALTHY');
+      expect(result.version).toBe('0.30.10');
+    });
+    it('ควรคืน HEALTHY แม้ /api/version throw error (version undefined)', async () => {
+      mockedAxios.get = jest
+        .fn()
+        .mockResolvedValueOnce({ data: {} }) // /api/tags OK
+        .mockResolvedValueOnce({ data: { models: [] } }) // /api/ps empty
+        .mockRejectedValueOnce(new Error('version endpoint error')); // /api/version fails
+      const result = await service.checkHealth();
+      expect(result.status).toBe('HEALTHY');
+      expect(result.version).toBeUndefined();
     });
     it('ควรคืน DEGRADED เมื่อ /api/tags timeout', async () => {
       mockedAxios.get = jest
@@ -387,7 +442,8 @@ describe('OllamaService (ADR-034)', () => {
       mockedAxios.get = jest
         .fn()
         .mockResolvedValueOnce({ data: {} })
-        .mockResolvedValueOnce({ data: { models: [] } });
+        .mockResolvedValueOnce({ data: { models: [] } })
+        .mockResolvedValueOnce({ data: { version: '0.30.10' } });
       const result = await svc.checkHealth();
       expect(result.status).toBe('HEALTHY');
       expect(result.models).toEqual(['np-dms-ai:latest']);
@@ -426,7 +482,8 @@ describe('OllamaService (ADR-034)', () => {
       mockedAxios.get = jest
         .fn()
         .mockResolvedValueOnce({ data: {} })
-        .mockRejectedValueOnce('string error' as unknown as Error);
+        .mockRejectedValueOnce('string error' as unknown as Error)
+        .mockResolvedValueOnce({ data: { version: '0.30.10' } });
       const result = await service.checkHealth();
       expect(result.status).toBe('HEALTHY');
     });

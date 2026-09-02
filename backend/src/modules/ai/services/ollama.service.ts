@@ -157,11 +157,14 @@ export class OllamaService {
     return this.mainKeepAliveSeconds;
   }
 
-  /** ตรวจสอบสุขภาพและความเร็ว (Latency) ของระบบ Ollama */
+  /** ตรวจสอบสุขภาพและความเร็ว (Latency) ของระบบ Ollama
+   *  รวมถึงดึง Ollama version จาก /api/version เพื่อตรวจจับ breaking changes
+   *  (เช่น Ollama 0.30+ ที่ต้องการ keep_alive เป็น duration string แทน number) */
   async checkHealth(): Promise<{
     status: 'HEALTHY' | 'DEGRADED' | 'DOWN';
     latencyMs: number;
     models: string[];
+    version?: string;
     error?: string;
   }> {
     const startTime = Date.now();
@@ -169,6 +172,7 @@ export class OllamaService {
       await axios.get(`${this.ollamaUrl}/api/tags`, { timeout: 5000 });
       const latencyMs = Date.now() - startTime;
       let loadedModels: string[] = [];
+      let version: string | undefined;
       try {
         const psResponse = await axios.get<{
           models?: Array<{ name: string }>;
@@ -181,6 +185,18 @@ export class OllamaService {
           `Failed to fetch loaded models from /api/ps: ${psErr instanceof Error ? psErr.message : String(psErr)}`
         );
       }
+      // ดึง Ollama version เพื่อตรวจจับ breaking changes (เช่น keep_alive format)
+      try {
+        const versionResponse = await axios.get<{ version?: string }>(
+          `${this.ollamaUrl}/api/version`,
+          { timeout: 3000 }
+        );
+        version = versionResponse.data?.version;
+      } catch (versionErr) {
+        this.logger.warn(
+          `Failed to fetch Ollama version from /api/version: ${versionErr instanceof Error ? versionErr.message : String(versionErr)}`
+        );
+      }
       if (loadedModels.length === 0) {
         loadedModels = this.embedModel
           ? [this.mainModel, this.embedModel]
@@ -190,6 +206,7 @@ export class OllamaService {
         status: 'HEALTHY',
         latencyMs,
         models: loadedModels,
+        version,
       };
     } catch (err: unknown) {
       const latencyMs = Date.now() - startTime;
@@ -211,7 +228,7 @@ export class OllamaService {
   }
 
   /** โหลดโมเดลเข้า VRAM — ใช้สำหรับ preload และ model switching (ADR-033, ADR-034)
-   * @param keepAlive ค่า keep_alive; ถ้าไม่ระบุจะใช้ finite residency จาก config
+   * @param keepAlive ค่า keep_alive (seconds); ถ้าไม่ระบุจะใช้ finite residency จาก config
    */
   async loadModel(
     modelName: string,
@@ -232,8 +249,14 @@ export class OllamaService {
         this.logger.warn(`Model ${modelName} is not installed in Ollama`);
         return false;
       }
+      // Ollama 0.30+ ต้องการ keep_alive เป็น duration string (เช่น "120s")
+      // รองรับทั้ง number แลง string input — แปลง number เป็น "${n}s"
+      const keepAliveValue =
+        typeof keepAlive === 'string'
+          ? keepAlive
+          : `${keepAlive ?? this.mainKeepAliveSeconds}s`;
       this.logger.log(
-        `Synchronously pre-loading model ${modelName} into GPU memory (keep_alive=${String(keepAlive ?? this.mainKeepAliveSeconds)})...`
+        `Synchronously pre-loading model ${modelName} into GPU memory (keep_alive=${keepAliveValue})...`
       );
       await axios.post(
         `${this.ollamaUrl}/api/generate`,
@@ -241,7 +264,7 @@ export class OllamaService {
           model: modelName,
           prompt: '',
           stream: false,
-          keep_alive: keepAlive ?? this.mainKeepAliveSeconds,
+          keep_alive: keepAliveValue,
         },
         { timeout: 60000 }
       );
