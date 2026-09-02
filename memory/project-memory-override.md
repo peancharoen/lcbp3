@@ -1279,3 +1279,77 @@ QDRANT_URL
 - TDD evidence ต้องบันทึก RED/GREEN/REFACTOR ในขณะทำงาน; ห้าม retroactive
 - Cross-session/high-risk/Tier 3 งานต้องสร้าง/อัปเดต durable assurance ledger
 - Protected boundaries ห้าม cross ถ้า ledger ยัง open/blocked
+
+## Docker Compose Live Edit Protocol
+
+> [!IMPORTANT]
+> **กฎเกี่ยวกับการแก้ไข docker-compose.yml แบบ live — ทำผิดที่จะทำให้ container รัน code เก่า**
+
+### แก้ที่ไหน (Source of Truth)
+
+| ขั้นตอน              | Path                                                                                                                                                                         | หน้าที่                                                          |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| **1. Live edit**     | `/opt/np-dms/00-basic/`, `/opt/np-dms/01-infrastructure/`, `/opt/np-dms/02-platform/`, `/opt/np-dms/03-application/`, `/opt/np-dms/04-ai/`, `/opt/np-dms/04-ai/ocr-sidecar/` | แก้ docker-compose.yml ที่นี่ก่อน — เป็นที่ที่ container รันจริง |
+| **2. Sync to repo**  | `/opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/`                                                                                           | copy ไฟล์ที่แก้กลับเข้า repo เพื่อ commit                        |
+| **3. Commit + push** | repo `np-dms-lcbp3`                                                                                                                                                          | commit พร้อม message อธิบายการเปลี่ยนแปลง                        |
+
+### คำสั่งที่ใช้ (ตาม `dockerup.sh` / `dockerstart.sh`)
+
+> [!CAUTION]
+> **ห้ามใช้ `docker compose up -d` โดยไม่ระบุ `--env-file`** — env vars จะหาย ทำให้ container fail หรือใช้ค่าผิด
+
+**เริ่ม stack ทั้งหมด (หลัง reboot หรือครั้งแรก):**
+
+```bash
+cd /opt/np-dms/00-basic && sudo docker compose --env-file ../.env up -d
+cd /opt/np-dms/01-infrastructure && sudo docker compose --env-file ../.env up -d
+cd /opt/np-dms/02-platform && sudo docker compose --env-file ../.env up -d
+cd /opt/np-dms/03-application && sudo docker compose --env-file ../.env up -d
+cd /opt/np-dms/04-ai && sudo docker compose --env-file ../.env up -d
+cd /opt/np-dms/04-ai/ocr-sidecar && sudo docker compose --env-file ../../.env up -d
+```
+
+**เริ่ม container ที่หยุดไว้ (ไม่สร้างใหม่ — เร็วกว่า):**
+
+```bash
+cd /opt/np-dms/00-basic && sudo docker compose --env-file ../.env start
+cd /opt/np-dms/01-infrastructure && sudo docker compose --env-file ../.env start
+cd /opt/np-dms/02-platform && sudo docker compose --env-file ../.env start
+cd /opt/np-dms/04-ai && sudo docker compose --env-file ../.env start
+cd /opt/np-dms/04-ai/ocr-sidecar && sudo docker compose --env-file ../../.env start
+cd /opt/np-dms/03-application && sudo docker compose --env-file ../.env start
+```
+
+**rebuild + recreate container เดียว (เช่น ocr-sidecar):**
+
+```bash
+cd /opt/np-dms/04-ai/ocr-sidecar && docker compose --env-file ../../.env build ocr-sidecar
+cd /opt/np-dms/04-ai/ocr-sidecar && docker compose --env-file ../../.env up -d ocr-sidecar
+```
+
+**rebuild + recreate backend (มี Dockerfile):**
+
+```bash
+cd /opt/np-dms-lcbp3 && docker build -f backend/Dockerfile -t lcbp3-backend:latest .
+cd /opt/np-dms/03-application && sudo docker compose --env-file ../.env up -d backend
+```
+
+### ลำดับการ start (สำคัญ — service ที่ถูกพึ่งพาต้องขึ้นก่อน)
+
+1. `00-basic` (Portainer)
+2. `01-infrastructure` (MariaDB, Redis, Elasticsearch, exporters)
+3. `02-platform` (Nginx Proxy Manager, Grafana, Loki, Prometheus)
+4. `03-application` (backend, frontend, clamav) — _หรือขึ้นหลัง 04-ai ใน dockerstart.sh_
+5. `04-ai` (ollama-metrics, nvidia-gpu-exporter)
+6. `04-ai/ocr-sidecar` (OCR sidecar)
+
+> `dockerup.sh` ใช้ลำดับ 00→01→02→03→04→ocr-sidecar
+> `dockerstart.sh` ใช้ลำดับ 00→01→02→04→ocr-sidecar→03 (application ทีหลังเพราะ start ไม่ใช่ up -d)
+
+### สิ่งที่ต้องจำ
+
+- **`/opt/np-dms/.env`** เป็น env file กลาง — ทุก layer อ้างผ่าน `../.env` หรือ `../../.env`
+- **ห้ามแก้ docker-compose.yml ใน repo ก่อนแล้วค่อย copy ไป live** — จะทำให้ live กับ repo ไม่ตรงและ container รัน config เก่า
+- **หลังแก้ live ต้อง sync กลับ repo ทันที** — `cp /opt/np-dms/<layer>/docker-compose.yml /opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/<layer>/`
+- **หลัง rebuild image ต้อง `up -d` ไม่ใช่ `start`** — `start` ใช้ container เดิม, `up -d` สร้างใหม่จาก image ใหม่
+- **Backend image build จาก repo root** — `cd /opt/np-dms-lcbp3 && docker build -f backend/Dockerfile -t lcbp3-backend:latest .` (Dockerfile context = workspace root)

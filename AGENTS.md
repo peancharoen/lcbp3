@@ -1,7 +1,7 @@
 # NAP-DMS Project Context & Rules
 
 - For: Windsurf Cascade (and compatible: Codex CLI, opencode, Amp, Antigravity, AGENTS.md tools)
-- Version: 1.9.16 | Last synced from repo: 2026-08-31
+- Version: 1.9.17 | Last synced from repo: 2026-09-02
 - Repo: [https://git.np-dms.work/np-dms/lcbp3](https://git.np-dms.work/np-dms/lcbp3)
 - Skill pack: `.agents/skills/` ↔ `.devin/skills/` (v1.9.0, 35 skills) — see [`skills/README.md`](./.agents/skills/README.md) + [`skills/_LCBP3-CONTEXT.md`](./.agents/skills/_LCBP3-CONTEXT.md)
 
@@ -299,7 +299,59 @@ CI รันตามลำดับ: `pnpm install` → `pnpm --filter backend 
 
 ---
 
-## 🛠️ Final Checklists
+## � Docker Compose Live Edit Protocol
+
+> [!IMPORTANT]
+> **แก้ docker-compose.yml ผิดที่ → container รัน code เก่า แก้ไม่ติด**
+
+→ Full details: [`memory/project-memory-override.md` § Docker Compose Live Edit Protocol](./memory/project-memory-override.md)
+
+### แก้ที่ไหน (ตามลำดับ)
+
+| ขั้นตอน              | Path                                                                                                             | หน้าที่                                |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| **1. Live edit**     | `/opt/np-dms/{00-basic,01-infrastructure,02-platform,03-application,04-ai,04-ai/ocr-sidecar}/docker-compose.yml` | แก้ที่นี่ก่อน — container รันจากที่นี่ |
+| **2. Sync to repo**  | `/opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/<layer>/docker-compose.yml`     | `cp` กลับเข้า repo เพื่อ commit        |
+| **3. Commit + push** | repo `np-dms-lcbp3`                                                                                              | commit พร้อม message อธิบาย            |
+
+### คำสั่งที่ใช้ (ตาม `dockerup.sh` / `dockerstart.sh`)
+
+> [!CAUTION]
+> **ห้าม `docker compose up -d` โดยไม่ระบุ `--env-file`** — env vars หาย ทำให้ container fail
+
+```bash
+# Start ทุก layer (หลัง reboot) — ตาม dockerup.sh
+cd /opt/np-dms/00-basic && sudo docker compose --env-file ../.env up -d
+cd /opt/np-dms/01-infrastructure && sudo docker compose --env-file ../.env up -d
+cd /opt/np-dms/02-platform && sudo docker compose --env-file ../.env up -d
+cd /opt/np-dms/03-application && sudo docker compose --env-file ../.env up -d
+cd /opt/np-dms/04-ai && sudo docker compose --env-file ../.env up -d
+cd /opt/np-dms/04-ai/ocr-sidecar && sudo docker compose --env-file ../../.env up -d
+
+# Start container ที่หยุดไว้ (เร็วกว่า) — ตาม dockerstart.sh
+cd /opt/np-dms/00-basic && sudo docker compose --env-file ../.env start
+# ... (ลำดับเดียวกัน แต่ใช้ start แทน up -d)
+
+# Rebuild + recreate container เดียว (เช่น ocr-sidecar)
+cd /opt/np-dms/04-ai/ocr-sidecar && docker compose --env-file ../../.env build ocr-sidecar
+cd /opt/np-dms/04-ai/ocr-sidecar && docker compose --env-file ../../.env up -d ocr-sidecar
+
+# Rebuild + recreate backend (มี Dockerfile, context = repo root)
+cd /opt/np-dms-lcbp3 && docker build -f backend/Dockerfile -t lcbp3-backend:latest .
+cd /opt/np-dms/03-application && sudo docker compose --env-file ../.env up -d backend
+```
+
+### กฎสำคัญ
+
+- **ห้ามแก้ repo ก่อนแล้วค่อย copy ไป live** — จะทำให้ live กับ repo ไม่ตรง
+- **หลังแก้ live ต้อง sync กลับ repo ทันที** — `cp /opt/np-dms/<layer>/docker-compose.yml /opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/<layer>/`
+- **`up -d` สร้าง container ใหม่, `start` ใช้ container เดิม** — ใช้ให้ถูกต้อง
+- **`/opt/np-dms/.env`** เป็น env file กลาง — ทุก layer อ้างผ่าน `../.env` หรือ `../../.env`
+- **Backend image build จาก repo root** — Dockerfile context = workspace root ไม่ใช่ `backend/`
+
+---
+
+## �🛠️ Final Checklists
 
 → Full details: [`.agents/rules/09-commit-checklist.md`](./.agents/rules/09-commit-checklist.md)
 
@@ -314,13 +366,13 @@ Tier 4 (guidelines): Prettier, comments.
 
 > คำสั่งเหล่านี้ขึ้นกับ IDE/Agent platform ที่กำลังใช้งาน อย่าใช้ชื่อ Devin เป็นคำสั่งหลักให้กับ IDE อื่น โดยไม่ระบุ mapping
 
-| Platform                            | คำสั่งหลัก                                      | ฟังก์ชัน                                                    |
-| ----------------------------------- | ----------------------------------------------- | ----------------------------------------------------------- |
-| Devin / Windsurf                    | `run_subagent` / `read_subagent`                | เปิด/อ่านผล subagent (ใช้ได้เมื่อ `subagents_enabled=true`) |
-| Codex CLI                           | `codex --task` หรือคำสั่ง multi-agent ของ Codex | รัน task ย่อยใน session แยก                                 |
+| Platform                            | คำสั่งหลัก                                      | ฟังก์ชัน                                                                                                                                                                                  |
+| ----------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Devin / Windsurf                    | `run_subagent` / `read_subagent`                | เปิด/อ่านผล subagent (ใช้ได้เมื่อ `subagents_enabled=true`)                                                                                                                               |
+| Codex CLI                           | `codex --task` หรือคำสั่ง multi-agent ของ Codex | รัน task ย่อยใน session แยก                                                                                                                                                               |
 | Claude Code                         | `Agent` tool (`subagent_type`) / `/<command>`   | รัน subagent ที่นิยามใน `.claude/agents/` หรือ slash command ที่นิยามใน `.claude/commands/`; skill ที่ mirror ไว้ที่ `.claude/skills/` ถูกเรียกอัตโนมัติผ่าน `Skill` tool ตาม description |
-| opencode                            | `opencode agents` / `opencode tasks`            | รัน agent/task ย่อย                                         |
-| Amp / Antigravity / AGENTS.md tools | ตามเอกสารของเครื่องมือนั้น ๆ                    | fallback เป็น inline ถ้าไม่มี multi-agent                   |
+| opencode                            | `opencode agents` / `opencode tasks`            | รัน agent/task ย่อย                                                                                                                                                                       |
+| Amp / Antigravity / AGENTS.md tools | ตามเอกสารของเครื่องมือนั้น ๆ                    | fallback เป็น inline ถ้าไม่มี multi-agent                                                                                                                                                 |
 
 หลักการ:
 
@@ -365,7 +417,8 @@ This file is a **quick reference**. For detailed information:
 
 | Version | Date       | Changes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Updated By     |
 | ------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
-| 1.9.16  | 2026-08-31 | Added Claude Code row to Collaboration & Sub-agents Commands table — maps `Agent` tool (`subagent_type`) + `/<command>` to `.claude/agents/` and `.claude/commands/`; new `.claude/` setup: `skills/` mirrored from `.agents/skills/` (35 skills), `settings.json` permissions allowlist from Commands & Verification table, `agents/` (`security-review`, `schema-change`, `spec-researcher` thin subagents), `commands/` (`/deploy`, `/schema-change`, `/security-review`, `/bugfix`, `/save-memory`)                                                                                                                       | Claude         |
+| 1.9.17  | 2026-09-02 | Added Docker Compose Live Edit Protocol section — live edit at `/opt/np-dms/<layer>/`, sync to repo `specs/04-Infrastructure-OPS/`, use `dockerup.sh`/`dockerstart.sh` commands with `--env-file`; added same protocol to `memory/project-memory-override.md`                                                                                                                                                                                                                                                                                                                                                                     | Devin          |
+| 1.9.16  | 2026-08-31 | Added Claude Code row to Collaboration & Sub-agents Commands table — maps `Agent` tool (`subagent_type`) + `/<command>` to `.claude/agents/` and `.claude/commands/`; new `.claude/` setup: `skills/` mirrored from `.agents/skills/` (35 skills), `settings.json` permissions allowlist from Commands & Verification table, `agents/` (`security-review`, `schema-change`, `spec-researcher` thin subagents), `commands/` (`/deploy`, `/schema-change`, `/security-review`, `/bugfix`, `/save-memory`)                                                                                                                           | Claude         |
 | 1.9.15  | 2026-08-28 | Added Collaboration & Sub-agents Commands section with platform-specific command mapping; clarifies Devin `run_subagent`/`read_subagent` vs other IDE equivalents and forbids treating them as universal.                                                                                                                                                                                                                                                                                                                                                                                                                         | Devin          |
 | 1.9.14  | 2026-08-26 | **Diagnose & Fix 5 issues:** (1) Added Commands & Verification section with build/test/lint commands — flagged frontend `pnpm test` = vitest watch mode (hangs); (2) Added ESLint blanket ban note — `no-restricted-syntax` bans ALL `parseInt()` + unary `+` (broader than CI grep gate `parseInt(.*uuid`); use `Number()` for pagination; (3) Fixed stale "Admin Desktop" → `np-dms-lcbp3` (ADR-041 decommissioned Desk-5439); (4) Fixed skill count 21 → 35 (D81 confirmed); (5) Added ADR-047 (Native Backend Legacy Ingestion) to Tier 3 Migration Pipeline + context triggers; synced to `.agents/rules/` + `.devin/rules/` | Devin          |
 | 1.9.13  | 2026-08-03 | **MCP Rules Sync:** Added 6 new MCP rule files (17-22) covering Redis, Qdrant, Gitea, Fetch, StitchMCP, Playwright servers; fixed MariaDB rule (15) tool name prefixes `mcp1_*` → `mysql_*` and Memory rule (16) verified (no `mcp3_*` prefix); synced rules 17-22 from `.devin/rules/` → `.agents/rules/`; updated `.agents/README.md` architecture tree + MCP servers table; AGENTS.md MCP sections expanded from 2 → 8 servers                                                                                                                                                                                                 | Devin          |
