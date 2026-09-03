@@ -354,4 +354,73 @@ describe('AiQdrantService', () => {
       expect(mockCreatePayloadIndex).toHaveBeenCalled();
     });
   });
+
+  describe('scrollByProject', () => {
+    it('ควร throw error ถ้า projectPublicId ว่าง', async () => {
+      await expect(service.scrollByProject('', 100)).rejects.toThrow(
+        'AI_QDRANT_PROJECT_SCOPE_REQUIRED'
+      );
+    });
+
+    it('ควรเรียก scroll API พร้อม filter project_public_id', async () => {
+      const mockScroll = jest.fn().mockResolvedValue({
+        points: [
+          { id: 'p1', payload: { doc_public_id: 'doc-1' } },
+          { id: 'p2', payload: { doc_public_id: 'doc-2' } },
+        ],
+        next_page_offset: 'next-1',
+      });
+      getClientMock().scroll = mockScroll;
+
+      const result = await service.scrollByProject('proj-uuid-1', 50);
+
+      expect(mockScroll).toHaveBeenCalledWith('lcbp3_vectors', {
+        limit: 50,
+        with_payload: true,
+        filter: {
+          must: [{ key: 'project_public_id', match: { value: 'proj-uuid-1' } }],
+        },
+      });
+      expect(result.points).toHaveLength(2);
+      expect(result.nextOffset).toBe('next-1');
+    });
+
+    it('ควรส่ง offset เมื่อระบุ offsetPoint', async () => {
+      const mockScroll = jest.fn().mockResolvedValue({
+        points: [],
+        next_page_offset: null,
+      });
+      getClientMock().scroll = mockScroll;
+
+      await service.scrollByProject('proj-uuid-1', 100, 'offset-2');
+
+      expect(mockScroll).toHaveBeenCalledWith(
+        'lcbp3_vectors',
+        expect.objectContaining({ offset: 'offset-2' })
+      );
+    });
+  });
+
+  describe('deleteByPointIds', () => {
+    it('ควร no-op เมื่อ pointIds ว่าง', async () => {
+      const mockDelete = jest.fn();
+      getClientMock().delete = mockDelete;
+
+      await service.deleteByPointIds([]);
+
+      expect(mockDelete).not.toHaveBeenCalled();
+    });
+
+    it('ควรเรียก delete API ด้วย points array', async () => {
+      const mockDelete = jest.fn().mockResolvedValue(undefined);
+      getClientMock().delete = mockDelete;
+
+      await service.deleteByPointIds(['p1', 'p2', 'p3']);
+
+      expect(mockDelete).toHaveBeenCalledWith('lcbp3_vectors', {
+        wait: true,
+        points: ['p1', 'p2', 'p3'],
+      });
+    });
+  });
 });

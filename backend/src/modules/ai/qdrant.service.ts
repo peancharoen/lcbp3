@@ -365,4 +365,62 @@ export class AiQdrantService implements OnModuleInit {
       };
     }
   }
+
+  /**
+   * Scroll ผ่าน points ใน collection แบบ batch เพื่อใช้ใน orphan scan
+   * กรองด้วย projectPublicId เสมอ (ADR-023A multi-tenant isolation)
+   * @param projectPublicId รหัสโครงการ (บังคับ)
+   * @param batchSize ขนาด batch (default 100)
+   * @param offsetPoint point ID เริ่มต้นสำหรับ scroll หน้าถัดไป (undefined = เริ่มต้น)
+   * @returns points ใน batch ปัจจุบัน + nextOffset สำหรับ batch ถัดไป (null = หมดแล้ว)
+   */
+  async scrollByProject(
+    projectPublicId: string,
+    batchSize = 100,
+    offsetPoint?: string | number
+  ): Promise<{
+    points: AiVectorSearchResult[];
+    nextOffset: string | number | null;
+  }> {
+    if (!projectPublicId) {
+      throw new ServiceUnavailableException('AI_QDRANT_PROJECT_SCOPE_REQUIRED');
+    }
+
+    const scrollParams: Record<string, unknown> = {
+      limit: batchSize,
+      with_payload: true,
+      filter: {
+        must: [{ key: 'project_public_id', match: { value: projectPublicId } }],
+      },
+    };
+
+    if (offsetPoint !== undefined) {
+      scrollParams.offset = offsetPoint;
+    }
+
+    const response = await this.client.scroll(AI_COLLECTION_NAME, scrollParams);
+
+    return {
+      points: (response.points ?? []).map((point) => ({
+        pointId: point.id,
+        score: 0,
+        payload: point.payload ?? {},
+      })),
+      nextOffset: (response.next_page_offset as string | number | null) ?? null,
+    };
+  }
+
+  /**
+   * ลบ points หลายจุดพร้อมกันด้วย point IDs (ใช้ใน orphan scan cleanup)
+   * ไม่ต้องกรอง projectPublicId เพราะ point IDs ถูกเลือกจาก scroll ที่กรองแล้ว
+   * @param pointIds รายการ point IDs ที่จะลบ
+   */
+  async deleteByPointIds(pointIds: Array<string | number>): Promise<void> {
+    if (pointIds.length === 0) return;
+
+    await this.client.delete(AI_COLLECTION_NAME, {
+      wait: true,
+      points: pointIds,
+    });
+  }
 }

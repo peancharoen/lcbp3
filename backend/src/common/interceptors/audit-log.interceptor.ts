@@ -29,6 +29,7 @@ interface CreateAuditLogPayload {
   ipAddress?: string;
   userAgent?: string;
   severity: string;
+  detailsJson?: Record<string, unknown>;
 }
 
 @Injectable()
@@ -85,6 +86,7 @@ export class AuditLogInterceptor implements NestInterceptor {
   ): Promise<void> {
     try {
       let entityId: string | undefined;
+      let detailsJson: Record<string, unknown> | undefined;
 
       if (data !== null && typeof data === 'object') {
         const dataRecord = data as Record<string, unknown>;
@@ -95,10 +97,22 @@ export class AuditLogInterceptor implements NestInterceptor {
         } else if ('user_id' in dataRecord) {
           entityId = String(dataRecord['user_id']);
         }
+
+        // เก็บ response summary ลง detailsJson สำหรับ audit trail ที่ละเอียด
+        // เฉพาะ response ที่เป็น plain object และมี keys น้อย (<= 10) เพื่อไม่ให้ใหญ่เกินไป
+        const keys = Object.keys(dataRecord);
+        if (keys.length > 0 && keys.length <= 10) {
+          detailsJson = { ...dataRecord };
+        }
       }
 
       if (!entityId && request.params['id']) {
         entityId = String(request.params['id']);
+      }
+
+      // ใช้ uuid param ถ้าไม่มี id ใน response (เช่น hardDelete คืน boolean)
+      if (!entityId && request.params['uuid']) {
+        entityId = String(request.params['uuid']);
       }
 
       const payload: CreateAuditLogPayload = {
@@ -109,6 +123,7 @@ export class AuditLogInterceptor implements NestInterceptor {
         ipAddress: ip,
         userAgent,
         severity: 'INFO',
+        detailsJson,
       };
 
       const auditLog = this.auditLogRepo.create(payload as Partial<AuditLog>);

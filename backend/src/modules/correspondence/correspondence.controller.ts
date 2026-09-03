@@ -322,7 +322,7 @@ export class CorrespondenceController {
   ): Promise<{
     deletedCorrespondence: boolean;
     deletedAttachmentCount: number;
-    vectorDeletionJobsEnqueued: number;
+    vectorDeletionStatus: 'COMPLETED' | 'PENDING_RETRY' | 'SKIPPED';
   }> {
     return this.correspondenceService.hardDelete(uuid, req.user);
   }

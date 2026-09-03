@@ -475,7 +475,7 @@ describe('CorrespondenceController', () => {
       const mockResult = {
         deletedCorrespondence: true,
         deletedAttachmentCount: 3,
-        vectorDeletionJobsEnqueued: 1,
+        vectorDeletionStatus: 'COMPLETED' as const,
       };
       (mockCorrespondenceService.hardDelete as jest.Mock).mockResolvedValue(
         mockResult

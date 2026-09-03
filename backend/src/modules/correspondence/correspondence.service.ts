@@ -51,8 +51,11 @@ import { CirculationService } from '../circulation/circulation.service';
 import { Circulation } from '../circulation/entities/circulation.entity';
 import { CirculationRouting } from '../circulation/entities/circulation-routing.entity';
 import { AiQueueService } from '../ai/ai-queue.service';
+import { AiQdrantService } from '../ai/qdrant.service';
+import { PendingVectorDeletion } from '../ai/entities/pending-vector-deletion.entity';
 import { Attachment } from '../../common/file-storage/entities/attachment.entity';
 import * as fs from 'fs-extra';
+import { randomUUID } from 'crypto';
 
 /**
  * CorrespondenceService - Document management (CRUD)
@@ -151,7 +154,10 @@ export class CorrespondenceService {
     private revAttachRepo: Repository<CorrespondenceRevisionAttachment>,
     @Inject(forwardRef(() => CirculationService))
     private circulationService: CirculationService,
-    private readonly aiQueueService: AiQueueService
+    private readonly aiQueueService: AiQueueService,
+    private readonly aiQdrantService: AiQdrantService,
+    @InjectRepository(PendingVectorDeletion)
+    private readonly pendingVectorDeletionRepo: Repository<PendingVectorDeletion>
   ) {}
 
   /**
@@ -1315,15 +1321,15 @@ export class CorrespondenceService {
 
   /**
    * Hard-delete correspondence แบบถาวร — Superadmin เท่านั้น (system.manage_all)
-   * ลบลำดับ: physical files → Qdrant vectors → DB rows (cascade)
+   * ลบลำดับ: physical files → Qdrant vectors (sync) → DB rows (cascade)
    * - เก็บ attachment file paths ก่อนลบ DB
    * - ลบ physical files จาก disk (log warning ไม่ throw ถ้า fail)
-   * - Enqueue vector deletion ผ่าน BullMQ ai-vector-deletion queue
+   * - ลบ Qdrant vectors แบบ sync await (wait: true) — ถ้า fail เก็บลง pending_vector_deletions
    * - ลบ attachments records (cascade ไป junction table)
    * - ลบ correspondence record (cascade ไป revisions, recipients, tags, references, circulations)
    * @param publicId UUID ของ correspondence (ADR-019)
    * @param user ผู้ใช้ที่สั่งลบ (ต้องมี system.manage_all)
-   * @returns สรุปจำนวนที่ลบ
+   * @returns สรุปจำนวนที่ลบ + vector deletion status
    */
   async hardDelete(
     publicId: string,
@@ -1331,7 +1337,7 @@ export class CorrespondenceService {
   ): Promise<{
     deletedCorrespondence: boolean;
     deletedAttachmentCount: number;
-    vectorDeletionJobsEnqueued: number;
+    vectorDeletionStatus: 'COMPLETED' | 'PENDING_RETRY' | 'SKIPPED';
   }> {
     // 1. Permission check — Superadmin เท่านั้น
     const canManageAll = await this.hasSystemManageAllPermission(user.user_id);
@@ -1376,20 +1382,50 @@ export class CorrespondenceService {
       }
     }
 
-    // 5. Enqueue vector deletion ผ่าน BullMQ (ลบ Qdrant vectors)
-    let vectorDeletionJobsEnqueued = 0;
-    try {
-      await this.aiQueueService.enqueueVectorDeletion({
-        documentPublicId: publicId,
-        projectPublicId,
-        requestedByUserPublicId: `user-${user.user_id}`,
-      });
-      vectorDeletionJobsEnqueued = 1;
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      this.logger.warn(
-        `hardDelete: Failed to enqueue vector deletion for doc=${publicId}: ${msg}`
-      );
+    // 5. ลบ Qdrant vectors แบบ sync await (wait: true)
+    //    ถ้า fail → เก็บลง pending_vector_deletions เพื่อ periodic cleanup job retry
+    let vectorDeletionStatus: 'COMPLETED' | 'PENDING_RETRY' | 'SKIPPED' =
+      'SKIPPED';
+
+    if (projectPublicId) {
+      try {
+        await this.aiQdrantService.deleteByDocumentPublicId(
+          projectPublicId,
+          publicId
+        );
+        vectorDeletionStatus = 'COMPLETED';
+        this.logger.log(
+          `hardDelete: Qdrant vectors deleted synchronously for doc=${publicId}`
+        );
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        this.logger.warn(
+          `hardDelete: Qdrant sync deletion failed for doc=${publicId}: ${msg} — storing in pending_vector_deletions for retry`
+        );
+
+        // เก็บลง pending table เพื่อให้ VectorCleanupService retry ภายหลัง
+        try {
+          const pending = this.pendingVectorDeletionRepo.create({
+            publicId: randomUUID(),
+            documentPublicId: publicId,
+            projectPublicId,
+            requestedByUserId: user.user_id,
+            lastError: msg,
+          });
+          await this.pendingVectorDeletionRepo.save(pending);
+          vectorDeletionStatus = 'PENDING_RETRY';
+        } catch (pendingErr: unknown) {
+          const pendingMsg =
+            pendingErr instanceof Error
+              ? pendingErr.message
+              : String(pendingErr);
+          this.logger.error(
+            `hardDelete: Failed to store pending vector deletion for doc=${publicId}: ${pendingMsg}`
+          );
+          // ยังคงดำเนินการลบ DB rows — vectors จะถูกกวาดโดย orphan scan
+          vectorDeletionStatus = 'PENDING_RETRY';
+        }
+      }
     }
 
     // 6. ลบ DB rows ใน transaction
@@ -1421,7 +1457,7 @@ export class CorrespondenceService {
       await queryRunner.commitTransaction();
       this.logger.log(
         `hardDelete: Successfully deleted correspondence=${publicId}, ` +
-          `attachments=${deletedAttachmentCount}, vectorJobs=${vectorDeletionJobsEnqueued}`
+          `attachments=${deletedAttachmentCount}, vectorStatus=${vectorDeletionStatus}`
       );
     } catch (err: unknown) {
       await queryRunner.rollbackTransaction();
@@ -1437,7 +1473,7 @@ export class CorrespondenceService {
     return {
       deletedCorrespondence: true,
       deletedAttachmentCount,
-      vectorDeletionJobsEnqueued,
+      vectorDeletionStatus,
     };
   }
 }

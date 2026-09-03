@@ -26,6 +26,8 @@ import { UuidResolverService } from '../../common/services/uuid-resolver.service
 import { NotificationService } from '../notification/notification.service';
 import { CirculationService } from '../circulation/circulation.service';
 import { AiQueueService } from '../ai/ai-queue.service';
+import { AiQdrantService } from '../ai/qdrant.service';
+import { PendingVectorDeletion } from '../ai/entities/pending-vector-deletion.entity';
 import { UpdateCorrespondenceDto } from './dto/update-correspondence.dto';
 import { CreateCorrespondenceDto } from './dto/create-correspondence.dto';
 import { User } from '../user/entities/user.entity';
@@ -191,6 +193,16 @@ describe('CorrespondenceService', () => {
           useValue: {
             enqueueVectorDeletion: jest.fn().mockResolvedValue('job-id'),
           },
+        },
+        {
+          provide: AiQdrantService,
+          useValue: {
+            deleteByDocumentPublicId: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: getRepositoryToken(PendingVectorDeletion),
+          useValue: createMockRepository(),
         },
       ],
     }).compile();
@@ -954,18 +966,18 @@ describe('CorrespondenceService', () => {
       expect(result.deletedCorrespondence).toBe(true);
     });
 
-    it('ควร enqueue vector deletion ด้วย publicId ของเอกสารและ project', async () => {
+    it('ควร sync delete Qdrant vectors ด้วย publicId ของเอกสารและ project', async () => {
       setupHardDeleteMocks();
-      const aiQueueService = testingModule.get<AiQueueService>(AiQueueService);
+      const aiQdrantService =
+        testingModule.get<AiQdrantService>(AiQdrantService);
 
       const result = await service.hardDelete('corr-uuid-hard', superadmin);
 
-      expect(aiQueueService.enqueueVectorDeletion).toHaveBeenCalledWith({
-        documentPublicId: 'corr-uuid-hard',
-        projectPublicId: 'proj-uuid-hard',
-        requestedByUserPublicId: 'user-99',
-      });
-      expect(result.vectorDeletionJobsEnqueued).toBe(1);
+      expect(aiQdrantService.deleteByDocumentPublicId).toHaveBeenCalledWith(
+        'proj-uuid-hard',
+        'corr-uuid-hard'
+      );
+      expect(result.vectorDeletionStatus).toBe('COMPLETED');
     });
 
     it('ควรปฏิเสธเมื่อผู้ใช้ไม่มีสิทธิ์ system.manage_all', async () => {

@@ -51,7 +51,7 @@ export const correspondenceService = {
     return response.data as {
       deletedCorrespondence: boolean;
       deletedAttachmentCount: number;
-      vectorDeletionJobsEnqueued: number;
+      vectorDeletionStatus: 'COMPLETED' | 'PENDING_RETRY' | 'SKIPPED';
     };
   },
 

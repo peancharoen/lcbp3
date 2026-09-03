@@ -15,6 +15,7 @@ import { CorrespondenceRecipient } from './entities/correspondence-recipient.ent
 import { CorrespondenceTag } from '../tags/entities/correspondence-tag.entity';
 import { CorrespondenceRevisionAttachment } from './entities/correspondence-revision-attachment.entity';
 import { Organization } from '../organization/entities/organization.entity';
+import { PendingVectorDeletion } from '../ai/entities/pending-vector-deletion.entity';
 
 // Dependent Modules
 import { DocumentNumberingModule } from '../document-numbering/document-numbering.module';
@@ -45,6 +46,7 @@ import { AiModule } from '../ai/ai.module';
       CorrespondenceTag,
       CorrespondenceRevisionAttachment,
       Organization,
+      PendingVectorDeletion,
     ]),
     DocumentNumberingModule,
     JsonSchemaModule,

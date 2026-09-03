@@ -82,6 +82,8 @@ import {
   QUEUE_NP_DMS_AI,
 } from './processors/np-dms-ai.processor';
 import { NodeMetricsService } from './services/node-metrics.service';
+import { VectorCleanupService } from './services/vector-cleanup.service';
+import { PendingVectorDeletion } from './entities/pending-vector-deletion.entity';
 
 @Module({
   imports: [
@@ -102,6 +104,7 @@ import { NodeMetricsService } from './services/node-metrics.service';
       AiPrompt,
       AiExecutionProfile,
       AiSandboxProfile,
+      PendingVectorDeletion,
     ]),
 
     BullModule.registerQueue(
@@ -202,6 +205,8 @@ import { NodeMetricsService } from './services/node-metrics.service';
     CleanupTempFilesWorker,
     // ADR-048: AI Engine Control Center — Host-level telemetry poller
     NodeMetricsService,
+    // 2026-09-03: Periodic cleanup สำหรับ Qdrant vectors (pending retry + orphan scan)
+    VectorCleanupService,
   ],
   exports: [
     AiService,
