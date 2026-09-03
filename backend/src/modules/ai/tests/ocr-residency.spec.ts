@@ -10,6 +10,7 @@ import { OcrService } from '../services/ocr.service';
 import { VramMonitorService } from '../services/vram-monitor.service';
 import { AiPolicyService } from '../services/ai-policy.service';
 import { OcrCacheService } from '../services/ocr-cache.service';
+import { OllamaService } from '../services/ollama.service';
 import { SystemSetting } from '../entities/system-setting.entity';
 import { AiAuditLog } from '../entities/ai-audit-log.entity';
 import { AiExecutionProfile } from '../entities/ai-execution-profile.entity';
@@ -61,6 +62,12 @@ describe('OcrService Adaptive Residency (US2)', () => {
     hasVramCapacity: jest.fn().mockResolvedValue(true),
   };
   const mockAiPolicyService = {};
+  const mockOllamaService = {
+    getMainModelName: jest.fn().mockReturnValue('np-dms-ai:latest'),
+    getMainKeepAliveSeconds: jest.fn().mockReturnValue(120),
+    unloadModel: jest.fn().mockResolvedValue(true),
+    loadModel: jest.fn().mockResolvedValue(true),
+  };
   const mockRedis = {
     get: jest.fn().mockResolvedValue(null),
     set: jest.fn().mockResolvedValue('OK'),
@@ -88,6 +95,7 @@ describe('OcrService Adaptive Residency (US2)', () => {
         { provide: OcrCacheService, useValue: mockOcrCacheService },
         { provide: VramMonitorService, useValue: mockVramMonitorService },
         { provide: AiPolicyService, useValue: mockAiPolicyService },
+        { provide: OllamaService, useValue: mockOllamaService },
         {
           provide: 'default_IORedisModuleConnectionToken',
           useValue: mockRedis,

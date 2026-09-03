@@ -2158,8 +2158,8 @@ export class AiBatchProcessor extends WorkerHost {
     });
 
     try {
-      // 0. Unload BGE models ก่อน OCR — คืน GPU memory ให้ Ollama (coordination logic)
-      await this.ocrService.unloadBgeModels();
+      // BGE + main model unload ก่อน OCR ถูก centralize ไว้ใน OcrService.detectAndExtract()
+      // แล้ว (session 2026-09-03, exclusive GPU access) — ไม่ต้องเรียกซ้ำที่นี่
 
       // 1. OCR 3 หน้าแรก (ADR-034/040 classification ใช้ 3 หน้าแรก; timeout 600s สำหรับ image PDF)
       let ocrText = '';

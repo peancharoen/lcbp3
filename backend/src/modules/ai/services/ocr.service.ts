@@ -49,6 +49,7 @@ import { AiAuditLog, AiAuditStatus } from '../entities/ai-audit-log.entity';
 import { OcrCacheService } from './ocr-cache.service';
 import { VramMonitorService } from './vram-monitor.service';
 import { AiPolicyService } from './ai-policy.service';
+import { OllamaService } from './ollama.service';
 import { ExecutionProfile } from '../interfaces/execution-policy.interface';
 import { OcrResidencyDecision } from '../interfaces/ocr-residency.interface';
 
@@ -154,6 +155,7 @@ export class OcrService {
     private readonly ocrCacheService: OcrCacheService,
     private readonly vramMonitorService: VramMonitorService,
     private readonly aiPolicyService: AiPolicyService,
+    private readonly ollamaService: OllamaService,
     @InjectRedis() private readonly redis: Redis
   ) {
     this.threshold = this.configService.get<number>('OCR_CHAR_THRESHOLD', 100);
@@ -341,6 +343,14 @@ export class OcrService {
    * สกัดข้อความจาก PDF — ใช้ np-dms-ocr เป็น engine หลัก (ADR-040 D1)
    * ถ้ามี text layer เพียงพอ (extractedChars > threshold) จะข้าม OCR
    * ถ้า VRAM ไม่เพียงพอ จะ fallback ไป auto engine (PyMuPDF บน CPU ก่อน → np-dms-ocr)
+   *
+   * Exclusive GPU access (session 2026-09-03, incident: BGE stuck on GPU → np-dms-ocr
+   * vision encoder cudaMalloc OOM): np-dms-ocr's vision encoder ต้องการ compute buffer
+   * ชั่วคราวสูงถึง ~9.3GB ระหว่าง active inference — ไม่พอจะแชร์ GPU กับ BGE หรือ main
+   * LLM (np-dms-ai/np-dms-ai-30b) พร้อมกัน จึง unload ทั้งคู่ก่อนเสมอ แล้ว reload main
+   * กลับหลังเสร็จ ยอมรับ cold-start latency (5-15s) ต่อครั้งเพื่อความปลอดภัย 100%
+   * (เลือกทางนี้แทน proactive-check เฉพาะจังหวะ spike เพราะ implement ง่ายกว่าและ
+   * รับประกันผลลัพธ์แน่นอนกว่า — ไม่ต้องพึ่ง VRAM headroom query ที่อาจ query ล้มเหลวได้)
    */
   async detectAndExtract(
     input: OcrDetectionInput
@@ -357,8 +367,20 @@ export class OcrService {
       return { text: extractedText, ocrUsed: false };
     }
 
-    // ADR-040 D1: engine เดียว np-dms-ocr — ไม่มี engine selection แล้ว
-    return this.processWithNpDmsOcr(input);
+    // Exclusive GPU access: คืน VRAM ทั้งหมดให้ np-dms-ocr ก่อนเรียกจริง
+    await this.unloadBgeModels();
+    const mainModel = this.ollamaService.getMainModelName();
+    await this.ollamaService.unloadModel(mainModel);
+
+    try {
+      // ADR-040 D1: engine เดียว np-dms-ocr — ไม่มี engine selection แล้ว
+      return await this.processWithNpDmsOcr(input);
+    } finally {
+      await this.ollamaService.loadModel(
+        mainModel,
+        this.ollamaService.getMainKeepAliveSeconds()
+      );
+    }
   }
 
   /**

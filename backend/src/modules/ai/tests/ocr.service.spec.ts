@@ -10,6 +10,7 @@ import { OcrService } from '../services/ocr.service';
 import { VramMonitorService } from '../services/vram-monitor.service';
 import { AiPolicyService } from '../services/ai-policy.service';
 import { OcrCacheService } from '../services/ocr-cache.service';
+import { OllamaService } from '../services/ollama.service';
 import { SystemSetting } from '../entities/system-setting.entity';
 import { AiAuditLog } from '../entities/ai-audit-log.entity';
 import { AiExecutionProfile } from '../entities/ai-execution-profile.entity';
@@ -81,6 +82,13 @@ describe('OcrService Parameter Wiring (T066)', () => {
 
   const mockAiPolicyService = {};
 
+  const mockOllamaService = {
+    getMainModelName: jest.fn().mockReturnValue('np-dms-ai:latest'),
+    getMainKeepAliveSeconds: jest.fn().mockReturnValue(120),
+    unloadModel: jest.fn().mockResolvedValue(true),
+    loadModel: jest.fn().mockResolvedValue(true),
+  };
+
   const mockRedis = {
     get: jest.fn().mockResolvedValue(null),
     set: jest.fn().mockResolvedValue('OK'),
@@ -108,6 +116,7 @@ describe('OcrService Parameter Wiring (T066)', () => {
         { provide: OcrCacheService, useValue: mockOcrCacheService },
         { provide: VramMonitorService, useValue: mockVramMonitorService },
         { provide: AiPolicyService, useValue: mockAiPolicyService },
+        { provide: OllamaService, useValue: mockOllamaService },
         {
           provide: 'default_IORedisModuleConnectionToken',
           useValue: mockRedis,
@@ -136,7 +145,14 @@ describe('OcrService Parameter Wiring (T066)', () => {
       Promise<unknown>,
       [string, FormData, unknown]
     >;
-    const postCallArgs = mockPost.mock.calls[0];
+    // Exclusive GPU access (session 2026-09-03) เรียก unloadBgeModels() → POST /bge/unload
+    // ก่อน /ocr-upload เสมอ — หา call ที่ตรงกับ /ocr-upload แทนการ assume index 0
+    const postCallArgs = mockPost.mock.calls.find(
+      (call) => call[0] === 'http://localhost:8765/ocr-upload'
+    );
+    if (!postCallArgs) {
+      throw new Error('Expected a POST call to /ocr-upload but none was found');
+    }
     const url = postCallArgs[0];
     const formData = postCallArgs[1];
     expect(url).toBe('http://localhost:8765/ocr-upload');
