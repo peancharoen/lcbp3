@@ -362,7 +362,7 @@ _Avoid_: Network isolation (generic), VLAN isolation (เป็น layer อื�
 ### AI GPU Coordination (resolved)
 
 **GPU Coordination**:
-Umbrella resource policy ที่บังคับให้ Ollama model และ Sidecar BGE ไม่ถือ VRAM ซ้อนกันในช่วง OCR หรือ LLM generate โดย unload BGE ก่อนงานเหล่านั้น และ auto-evict Ollama model เมื่อ headroom ไม่พอ.
+Umbrella resource policy ที่บังคับให้ Ollama model และ Sidecar BGE ไม่ถือ VRAM ซ้อนกันในช่วง OCR หรือ LLM generate โดย unload BGE ก่อนงานเหล่านั้น และ auto-evict Ollama model เมื่อ headroom ไม่พอ ตั้งแต่ D261 (2026-09-03) ครอบคลุมเพิ่มถึง **main LLM (`np-dms-ai`/`np-dms-ai-30b`) ↔ `np-dms-ocr`** ด้วย — `OcrService.detectAndExtract()` unload ทั้ง BGE และ main model ก่อนเรียก OCR sidecar เสมอ แล้ว reload main กลับหลังเสร็จ (exclusive access, ยอมรับ cold-start latency แลกความปลอดภัย 100% แทนการเช็ค VRAM headroom เฉพาะจังหวะ spike)
 _Avoid_: GPU scheduling, VRAM management (ambiguous), flat shared GPU pool
 
 **Ollama VRAM Management**:
@@ -377,6 +377,7 @@ _Avoid_: BGE service, embed service, always-resident BGE
 
 - **Ollama VRAM Management** and **Sidecar GPU Management** are peer policies governed by **GPU Coordination**.
 - **GPU Coordination** requires BGE release before **Ollama VRAM Management** loads a model for OCR or LLM generation.
+- **GPU Coordination** (D261) requires the main LLM to be released before `np-dms-ocr` runs, and reloaded after — enforced at the single choke point `OcrService.detectAndExtract()`.
 
 ## System readiness summary (resolved)
 
