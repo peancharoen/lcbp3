@@ -1,7 +1,7 @@
 # Project Memory Override
 
 > **Project:** NAP-DMS (LCBP3) — Laem Chabang Port Phase 3 Document Management System
-> **Version:** 1.9.16 (Last Synced: 2026-09-01 Ollama/OCR residency + runtime sync)
+> **Version:** 1.9.17 (Last Synced: 2026-09-03 OCR OOM root cause + BGE restore + exclusive GPU access)
 > **Stack:** NestJS 11 + Next.js 16 + TypeScript + MariaDB 11.8 + Redis + BullMQ + Elasticsearch + Ollama (on-prem AI)
 
 > [!IMPORTANT]
@@ -235,6 +235,8 @@
 | D257  | **AuditLogInterceptor เก็บ response data ลง `detailsJson`** สำหรับ audit trail ที่ละเอียด (limit 10 keys) + fallback `entityId` จาก `request.params['uuid']` สำหรับ endpoints ที่คืน boolean ไม่มี id                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Session 2026-09-03                                                                                                                                                                                                                                                                                                                   |
 | D258  | **CANCELLED ≠ DELETE** — CANCELLED เก็บ vectors ไว้ (เอกสารยังอยู่ อาจถูกอ้างถึงในการค้นหา/สอบถาม), DELETE (hardDelete) ลบ vectors ด้วย; originator ขึ้นไปมีสิทธิ CANCELLED, admin ขึ้นไปมีสิทธิ DELETE                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Session 2026-09-03                                                                                                                                                                                                                                                                                                                   |
 | D259  | **`copy-env.sh` เป็น one-way sync canonical→runtime เท่านั้น (`specs/.../ocr-sidecar` → `/opt/np-dms/04-ai/ocr-sidecar`)** — ห้าม hotfix ฝั่ง Python sidecar (`app.py`, `services/*.py`) ที่ runtime โดยไม่ commit กลับเข้า canonical spec ก่อนเสมอ ไม่งั้นการรัน `copy-env.sh` ครั้งถัดไปจะทับ hotfix ทิ้งแบบเงียบๆ (ไม่มี warning/conflict เพราะ git ไม่รู้จักไฟล์ runtime เลย) **Incident:** commit `90e147fe` (D171 BGE lazy-load, 2026-08-26) แก้แค่ backend TypeScript (`ocr.service.ts` เรียก `/bge/unload`) แต่ฝั่ง sidecar Python (`/bge/load`\|`unload`\|`status` endpoints + lazy-load functions) ถูกแก้ตรงที่ runtime เท่านั้น ไม่เคย commit — พอมีคน commit งาน D2/D3 (prompt hot-load) เข้า canonical แล้วรัน `copy-env.sh` ภายหลัง จึงทับ D171 หายไปทั้งหมด ทำให้ BGE ค้าง GPU ตลอดจน OCR OOM (กู้คืนแล้ว, session 2026-09-03) | copy-env.sh / Session 2026-09-03 |
+| D260  | **ADR-051 ratify pause/resume ที่มีอยู่แล้ว** — `ai-realtime.processor.ts` `onActive()`/`onCompleted()`/`onFailed()` (มีตั้งแต่ 2026-05-16, ไม่เคย formalize) **คือ** official automatic queue-aware model scheduling policy แล้ว ไม่ต้องออกแบบ mechanism ใหม่; residual mid-flight race (ocr-extract unload main ระหว่างที่ realtime job เข้ามาพอดี) ยอมรับความเสี่ยง — mitigate ด้วย UX loading message แทน cross-process lock (ยังไม่ implement UX ส่วนนี้) | ADR-051 / Session 2026-09-03 |
+| D261  | **Exclusive GPU access: `{main LLM, BGE}` ↔ `np-dms-ocr`** — `OcrService.detectAndExtract()` (single choke point ของทุก caller: migrate-document, rag-prepare, legacy-enrichment, ai-suggest) unload BGE + main model (`np-dms-ai`/`np-dms-ai-30b`) **ก่อน**เรียก sidecar OCR เสมอ, reload main กลับใน `finally` เสมอ — ยอมรับ cold-start latency 5-15s ต่อครั้ง แลกความปลอดภัย 100% (user ตัดสินใจ ไม่ทำ proactive-VRAM-check เฉพาะจังหวะ spike) แก้ incident: `np-dms-ai-30b` (17.7GB) ใหญ่กว่า GPU ทั้งใบ (16.3GB) ไม่มี guard กันโหลดชน OCR active inference (compute buffer 9.3GB) มาก่อน | Session 2026-09-03 |
 
 ## Environment & Services
 
@@ -274,6 +276,21 @@ QDRANT_URL
 ```
 
 ## Next Session Focus
+
+### OCR OOM Root Cause + BGE Restore + Exclusive GPU Access (Session 2026-09-03) ✅ Complete (pending browser verify)
+
+- [x] พบ+กู้คืน D171 (BGE lazy-load) ที่หายจาก `app.py` ทั้ง canonical spec + runtime
+- [x] Rebuild + restart `ocr-sidecar` — `/bge/status`+`/bge/unload` ตอบ 200, GPU ว่างสนิท
+- [x] Hardened `copy-env.sh` — diff-warning ก่อนทับไฟล์ runtime ที่ต่างจาก canonical
+- [x] Implement exclusive GPU access ใน `OcrService.detectAndExtract()` (D261)
+- [x] Backend 616/616 AI tests, tsc, eslint ผ่าน
+- [x] Commit `e420980d` push ผ่าน CI/CD auto-deploy
+- [ ] **ยืนยันผ่าน browser จริง** — ลอง extract ที่ `/admin/migration` อีกครั้งหลัง CI/CD deploy เสร็จ
+- [ ] ตรวจสอบ CI/CD run ล่าสุด (`.gitea/workflows/ci-deploy.yml`) ว่า pass/fail
+- [ ] Implement UX loading message สำหรับ cold-start (ADR-051 D2) — ยังไม่ได้ทำ
+- [ ] ตรวจสอบ `ai-ingest`/`veto-notifications` queue ไม่มี `@Processor` consumer จริงไหม (ADR-051 Known Issues) — dead code candidate หรือ missing consumer?
+- [ ] พิจารณา `np-dms-ai-30b` (17.7GB > GPU 16.3GB) — ต้องมี partial GPU offload config หรือเลิกใช้บน GPU ขนาดนี้
+- [ ] **พบเครื่องนี้รัน Devin/Claude/Codex agent พร้อมกันบน `/opt/np-dms-lcbp3` เดียวกันไม่มี worktree แยก** — สงสัยเป็นสาเหตุที่ไฟล์ที่แก้ไข (ไม่ใช่ไฟล์สร้างใหม่) ถูก revert เงียบๆ 3 ครั้งใน session เดียว (`bullmq-coordination.md`, `bullmq.config.ts`, `CONTEXT.md`+`memory/project-memory-override.md`) — ยังไม่ได้ยืนยัน root cause 100% แต่ควรพิจารณา worktree isolation ต่อ agent
 
 ### RAG Vector Deletion Fix (Session 2026-09-03) ✅ Complete (pending deploy)
 
