@@ -250,11 +250,17 @@ export class OllamaService {
         return false;
       }
       // Ollama 0.30+ ต้องการ keep_alive เป็น duration string (เช่น "120s")
-      // รองรับทั้ง number แลง string input — แปลง number เป็น "${n}s"
-      const keepAliveValue =
-        typeof keepAlive === 'string'
-          ? keepAlive
-          : `${keepAlive ?? this.mainKeepAliveSeconds}s`;
+      // รองรับทั้ง number และ string input — แปลงเป็น "${n}s" เฉพาะเมื่อเป็นตัวเลขล้วน
+      // (bug 2026-09-03: ConfigService.get<number>() ไม่ cast ค่าจริง — env var เป็น string เสมอ
+      //  ทำให้ `typeof keepAlive === 'string'` เข้าใจผิดว่า "120" เป็น duration ที่ format แล้ว
+      //  ส่ง keep_alive: "120" (ไม่มี unit) ไป Ollama แล้วโดน 400 Bad Request)
+      const rawKeepAlive = keepAlive ?? this.mainKeepAliveSeconds;
+      const isNumericOnly =
+        typeof rawKeepAlive === 'number' ||
+        /^-?\d+$/.test(String(rawKeepAlive));
+      const keepAliveValue = isNumericOnly
+        ? `${rawKeepAlive}s`
+        : String(rawKeepAlive);
       this.logger.log(
         `Synchronously pre-loading model ${modelName} into GPU memory (keep_alive=${keepAliveValue})...`
       );

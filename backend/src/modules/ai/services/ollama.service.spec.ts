@@ -191,6 +191,34 @@ describe('OllamaService (ADR-034)', () => {
         expect.anything()
       );
     });
+    it('ควรเติม "s" suffix เมื่อ mainKeepAliveSeconds เป็น numeric string จาก ConfigService (regression 2026-09-03)', async () => {
+      // Bug: ConfigService.get<number>() ไม่ cast ค่าจริง — env var เป็น string เสมอ (process.env)
+      // typeof check เดิมเข้าใจผิดว่า "120" เป็น duration ที่ format แล้ว ส่ง keep_alive: "120"
+      // (ไม่มี unit) ไป Ollama แล้วโดน 400 Bad Request — ต้องเช็คว่าเป็นตัวเลขล้วนก่อนเสมอ
+      configValues['OLLAMA_MAIN_KEEP_ALIVE_SECONDS'] = '120';
+      const moduleWithStringConfig: TestingModule =
+        await Test.createTestingModule({
+          providers: [
+            OllamaService,
+            { provide: ConfigService, useValue: mockConfigService },
+          ],
+        }).compile();
+      const serviceWithStringConfig =
+        moduleWithStringConfig.get<OllamaService>(OllamaService);
+      mockedAxios.get = jest.fn().mockResolvedValueOnce({
+        data: {
+          models: [{ name: 'np-dms-ai:latest', model: 'np-dms-ai:latest' }],
+        },
+      });
+      mockedAxios.post = jest.fn().mockResolvedValueOnce({ data: {} });
+      await serviceWithStringConfig.loadModel('np-dms-ai:latest');
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        expect.stringContaining('/api/generate'),
+        expect.objectContaining({ keep_alive: '120s' }),
+        expect.anything()
+      );
+      configValues['OLLAMA_MAIN_KEEP_ALIVE_SECONDS'] = 120;
+    });
     it('ควรคืน false เมื่อ model ไม่ได้ติดตั้งใน Ollama', async () => {
       mockedAxios.get = jest.fn().mockResolvedValueOnce({
         data: { models: [{ name: 'other-model', model: 'other-model' }] },
