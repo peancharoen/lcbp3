@@ -101,8 +101,24 @@ export type AiBatchJobType =
   | 'rag-prepare'
   | 'ai-suggest'
   | 'legacy-ai-enrichment'
+  | 'legacy-ocr-batch-phase'
+  | 'legacy-ai-metadata-only'
   | 'rag-query'
   | 'clear-failed-jobs';
+
+/**
+ * เอกสารเดี่ยวใน `legacy-ocr-batch-phase` orchestrator job (two-phase batch OCR/AI, D267) —
+ * ค่าเดียวกับที่ startExtractQueueItem ส่งให้ legacy-ai-enrichment เดิม แต่ห่อเป็น array
+ * เพราะ orchestrator job เดียวรับผิดชอบทั้ง batch ไม่ใช่ทีละเอกสาร
+ */
+interface LegacyBatchItem {
+  queueId: number;
+  queuePublicId: string;
+  documentNumber: string;
+  pdfPath?: string;
+  projectId: number | null;
+  projectPublicId: string;
+}
 
 /** รายการ job types ที่ต้องใช้ np-dms-ocr model — จะ trigger model switching (ADR-034) */
 export const OCR_JOB_TYPES: ReadonlyArray<AiBatchJobType> = [
@@ -331,7 +347,10 @@ export class AiBatchProcessor extends WorkerHost {
       job.data.jobType === 'sandbox-rag-prep';
     // ADR-047: legacy-ai-enrichment ทำงานกับ migration_review_queue ไม่ใช่ attachment
     // จึงไม่ต้องอัปเดตสถานะการประมวลผลของ attachment
-    const isLegacy = job.data.jobType === 'legacy-ai-enrichment';
+    const isLegacy =
+      job.data.jobType === 'legacy-ai-enrichment' ||
+      job.data.jobType === 'legacy-ocr-batch-phase' ||
+      job.data.jobType === 'legacy-ai-metadata-only';
     if (!isSandbox && !isLegacy) {
       await this.setAiProcessingStatus(job.data.documentPublicId, 'PROCESSING');
     }
@@ -425,6 +444,22 @@ export class AiBatchProcessor extends WorkerHost {
             `Legacy AI Enrichment job processing — jobId=${String(job.id)}`
           );
           await this.processLegacyAiEnrichment(
+            job.data as unknown as Record<string, unknown>
+          );
+          return;
+        case 'legacy-ocr-batch-phase':
+          this.logger.log(
+            `Legacy OCR batch phase job processing — jobId=${String(job.id)}`
+          );
+          await this.processLegacyOcrBatchPhase(
+            job.data as unknown as Record<string, unknown>
+          );
+          return;
+        case 'legacy-ai-metadata-only':
+          this.logger.log(
+            `Legacy AI metadata-only job processing — jobId=${String(job.id)}`
+          );
+          await this.processLegacyAiMetadataOnly(
             job.data as unknown as Record<string, unknown>
           );
           return;
@@ -2119,6 +2154,184 @@ export class AiBatchProcessor extends WorkerHost {
     };
   }
 
+  /**
+   * ADR-050 T008/T009 (extracted 2026-09-04 for two-phase batch OCR/AI, D267) — เรียก Active
+   * Prompt (ocr_extraction) + LLM + validate output ตาม schema ใช้ร่วมกันทั้ง
+   * `processLegacyAiEnrichment` (single-doc path เดิม) และ `processLegacyAiMetadataOnly`
+   * (phase 2 ของ batch orchestrator ใหม่) — ไม่ duplicate logic
+   */
+  private async runLegacyMetadataExtraction(params: {
+    ocrText: string;
+    documentNumber: string;
+    projectId: number | null;
+    projectPublicId: string | undefined;
+  }): Promise<{
+    extraction: MigrationAiExtractionDetails | null;
+    aiFailed: boolean;
+    aiFailureReason: 'SCHEMA_VALIDATION_FAILED' | 'LLM_CALL_FAILED' | undefined;
+  }> {
+    const { ocrText, documentNumber, projectId, projectPublicId } = params;
+    let extraction: MigrationAiExtractionDetails | null = null;
+    let aiFailed = false;
+    let aiFailureReason:
+      | 'SCHEMA_VALIDATION_FAILED'
+      | 'LLM_CALL_FAILED'
+      | undefined;
+
+    try {
+      const activePrompt =
+        await this.aiPromptsService.getActive('ocr_extraction');
+      if (!activePrompt) {
+        throw new SystemException(
+          'No active ocr_extraction prompt version found'
+        );
+      }
+      // ADR-050 Decision 2: allowed_correspondence_types มาจาก correspondence_types.typeCode
+      const allowedCorrespondenceTypes =
+        await this.migrationService.getAllowedCategoryCodes();
+      // ADR-050 §9: existing_tags ช่วยให้ LLM ตัดสิน tags[].isNew ได้แม่นขึ้น
+      const existingTags = await this.tagsService.findByProject(projectId);
+      const masterDataContext = await this.aiPromptsService.resolveContext(
+        activePrompt,
+        projectPublicId,
+        undefined
+      );
+      const truncatedOcr = ocrText.slice(0, MAX_OCR_TEXT_CHARS);
+      const PLACEHOLDERS: Record<string, string> = {
+        '{{ocr_text}}': truncatedOcr,
+        '{{allowed_correspondence_types}}':
+          allowedCorrespondenceTypes.join(', '),
+        '{{existing_tags}}': existingTags.map((t) => t.tagName).join(', '),
+        '{{master_data_context}}': JSON.stringify(masterDataContext),
+      };
+      const resolvedPrompt = activePrompt.template.replace(
+        /\{\{ocr_text\}\}|\{\{allowed_correspondence_types\}\}|\{\{existing_tags\}\}|\{\{master_data_context\}\}/g,
+        (match) => PLACEHOLDERS[match] ?? match
+      );
+
+      let parsed: Record<string, unknown> = {};
+      try {
+        const llmResponse = await this.generateStructuredJson(resolvedPrompt, {
+          timeoutMs: this.ollamaService.getBatchTimeoutMs(),
+          format: 'json',
+          ollamaOptions: {
+            num_ctx: 16384,
+            num_predict: 4096,
+          },
+        });
+        parsed = llmResponse.extractedMetadata;
+      } catch (llmErr: unknown) {
+        aiFailed = true;
+        aiFailureReason = 'LLM_CALL_FAILED';
+        this.logger.warn(
+          `LLM metadata extraction failed for [${documentNumber}]: ${String(llmErr)}`
+        );
+      }
+
+      if (!aiFailed) {
+        const validated = this.validateExtractionOutput(
+          parsed,
+          allowedCorrespondenceTypes
+        );
+        if (!validated) {
+          aiFailed = true;
+          aiFailureReason = 'SCHEMA_VALIDATION_FAILED';
+          this.logger.warn(
+            `LLM output failed schema validation for [${documentNumber}]`
+          );
+        } else {
+          extraction = validated;
+        }
+      }
+    } catch (setupErr: unknown) {
+      // ครอบคลุมกรณี getActive คืน null/prompt-context resolution ล้มเหลว — ถือเป็น
+      // "เรียกใช้ AI ไม่สำเร็จ" (ไม่ใช่ schema-invalid เพราะยังไม่ได้เรียก LLM เลย)
+      aiFailed = true;
+      aiFailureReason = 'LLM_CALL_FAILED';
+      this.logger.warn(
+        `runLegacyMetadataExtraction: prompt/context resolution failed for [${documentNumber}]: ${String(setupErr)}`
+      );
+    }
+
+    return { extraction, aiFailed, aiFailureReason };
+  }
+
+  /**
+   * ADR-050 T010/T011/T012 (extracted 2026-09-04, D267) — บันทึกผลลัพธ์สุดท้ายกลับสู่
+   * `migration_review_queue` ใช้ร่วมกันทั้ง single-doc path เดิม (`processLegacyAiEnrichment`)
+   * และ batch phase 2 (`processLegacyAiMetadataOnly`) — จุดเดียวที่ตัดสิน isHardFailure/
+   * aiStatus สุดท้าย ไม่ duplicate logic ระหว่างสอง path
+   */
+  private async persistLegacyEnrichmentResult(params: {
+    queueId: number;
+    documentNumber: string;
+    hasPdf: boolean;
+    ocrFailed: boolean;
+    ocrText: string;
+    extraction: MigrationAiExtractionDetails | null;
+    aiFailed: boolean;
+    aiFailureReason: 'SCHEMA_VALIDATION_FAILED' | 'LLM_CALL_FAILED' | undefined;
+  }): Promise<void> {
+    const {
+      queueId,
+      documentNumber,
+      hasPdf,
+      ocrFailed,
+      ocrText,
+      extraction,
+      aiFailed,
+      aiFailureReason,
+    } = params;
+
+    // spec.md Edge Cases: ไม่มีข้อความอ่านได้ (no PDF / OCR ล้มเหลว) → ต้อง flag
+    // requiresHumanReview=true โดย default เพราะไม่มี confidence ให้คำนวณได้จริง
+    const isHardFailure = !hasPdf || ocrFailed || aiFailed;
+    const extractedTags: Record<string, string>[] = extraction
+      ? extraction.metadata.tags.map((t) => ({ name: t.name }))
+      : [];
+
+    // ADR-050 T010/T011/T012: ส่งเฉพาะ confidence values ผ่าน details ให้ MigrationService
+    // คำนวณ requiresHumanReview/ocrQualityConfidence/ai_confidence(alias) เอง (ไม่เชื่อค่าที่
+    // LLM ส่งมาตรงๆ เพราะ MigrationAiExtractionDetails ไม่มี field นี้อยู่แล้ว)
+    await this.migrationService.updateQueueEnrichment(queueId, {
+      ocrText,
+      aiSummary: extraction ? extraction.metadata.summary : undefined,
+      aiSuggestedCorrespondenceType:
+        extraction && !isHardFailure
+          ? extraction.metadata.correspondenceType
+          : undefined,
+      extractedTags: extractedTags.length > 0 ? extractedTags : undefined,
+      aiConfidence: isHardFailure ? 0 : undefined,
+      aiIssues: hasPdf
+        ? ocrFailed
+          ? [
+              {
+                type: 'OCR_FAILED',
+                message:
+                  'OCR ไม่สามารถสกัดข้อความได้ (timeout หรือเนื้อหาเปล่า) — กรุณาตรวจสอบไฟล์ PDF แล้วกด Extract ใหม่หรือแก้ไข OCR text เอง',
+              },
+            ]
+          : undefined
+        : [{ type: 'NO_PDF', message: 'ไม่พบไฟล์ PDF สำหรับทำ OCR' }],
+      aiFailed: isHardFailure,
+      requiresHumanReview: isHardFailure ? true : undefined,
+      ocrQualityConfidence: isHardFailure ? 0 : undefined,
+      details: extraction
+        ? { ocrQuality: extraction.ocrQuality, metadata: extraction.metadata }
+        : aiFailureReason
+          ? ({ aiFailureReason } as unknown as Record<string, unknown>)
+          : undefined,
+      aiStatus: isHardFailure
+        ? MigrationAiStatus.FAILED
+        : MigrationAiStatus.DONE,
+      status: MigrationReviewStatus.PENDING_REVIEW,
+    });
+
+    this.logger.log(
+      `persistLegacyEnrichmentResult: ${isHardFailure ? 'failed (' + (aiFailureReason ?? (ocrFailed ? 'OCR_FAILED' : 'NO_PDF')) + ')' : 'successfully enriched'} queue item [${queueId}] (${documentNumber})`
+    );
+  }
+
   private async processLegacyAiEnrichment(
     data: Record<string, unknown>
   ): Promise<void> {
@@ -2160,6 +2373,8 @@ export class AiBatchProcessor extends WorkerHost {
     try {
       // BGE + main model unload ก่อน OCR ถูก centralize ไว้ใน OcrService.detectAndExtract()
       // แล้ว (session 2026-09-03, exclusive GPU access) — ไม่ต้องเรียกซ้ำที่นี่
+      // (single-doc path — ไม่ผ่าน two-phase batch orchestrator ใหม่ (D267) เพราะไม่มีปัญหา
+      // model-swap ซ้ำที่ orchestrator แก้ อยู่แล้วเมื่อมีแค่ 1 เอกสาร)
 
       // 1. OCR 3 หน้าแรก (ADR-034/040 classification ใช้ 3 หน้าแรก; timeout 600s สำหรับ image PDF)
       let ocrText = '';
@@ -2198,83 +2413,15 @@ export class AiBatchProcessor extends WorkerHost {
         | undefined;
 
       if (ocrText && ocrText.trim().length > 0) {
-        try {
-          const activePrompt =
-            await this.aiPromptsService.getActive('ocr_extraction');
-          if (!activePrompt) {
-            throw new SystemException(
-              'No active ocr_extraction prompt version found'
-            );
-          }
-          // ADR-050 Decision 2: allowed_correspondence_types มาจาก correspondence_types.typeCode
-          const allowedCorrespondenceTypes =
-            await this.migrationService.getAllowedCategoryCodes();
-          // ADR-050 §9: existing_tags ช่วยให้ LLM ตัดสิน tags[].isNew ได้แม่นขึ้น
-          const existingTags = await this.tagsService.findByProject(projectId);
-          const masterDataContext = await this.aiPromptsService.resolveContext(
-            activePrompt,
-            projectPublicId,
-            undefined
-          );
-          const truncatedOcr = ocrText.slice(0, MAX_OCR_TEXT_CHARS);
-          const PLACEHOLDERS: Record<string, string> = {
-            '{{ocr_text}}': truncatedOcr,
-            '{{allowed_correspondence_types}}':
-              allowedCorrespondenceTypes.join(', '),
-            '{{existing_tags}}': existingTags.map((t) => t.tagName).join(', '),
-            '{{master_data_context}}': JSON.stringify(masterDataContext),
-          };
-          const resolvedPrompt = activePrompt.template.replace(
-            /\{\{ocr_text\}\}|\{\{allowed_correspondence_types\}\}|\{\{existing_tags\}\}|\{\{master_data_context\}\}/g,
-            (match) => PLACEHOLDERS[match] ?? match
-          );
-
-          let parsed: Record<string, unknown> = {};
-          try {
-            const llmResponse = await this.generateStructuredJson(
-              resolvedPrompt,
-              {
-                timeoutMs: this.ollamaService.getBatchTimeoutMs(),
-                format: 'json',
-                ollamaOptions: {
-                  num_ctx: 16384,
-                  num_predict: 4096,
-                },
-              }
-            );
-            parsed = llmResponse.extractedMetadata;
-          } catch (llmErr: unknown) {
-            aiFailed = true;
-            aiFailureReason = 'LLM_CALL_FAILED';
-            this.logger.warn(
-              `LLM metadata extraction failed for [${documentNumber}]: ${String(llmErr)}`
-            );
-          }
-
-          if (!aiFailed) {
-            const validated = this.validateExtractionOutput(
-              parsed,
-              allowedCorrespondenceTypes
-            );
-            if (!validated) {
-              aiFailed = true;
-              aiFailureReason = 'SCHEMA_VALIDATION_FAILED';
-              this.logger.warn(
-                `LLM output failed schema validation for [${documentNumber}]`
-              );
-            } else {
-              extraction = validated;
-            }
-          }
-        } catch (setupErr: unknown) {
-          // ครอบคลุมกรณี getActive คืน null/prompt-context resolution ล้มเหลว — ถือเป็น
-          // "เรียกใช้ AI ไม่สำเร็จ" (ไม่ใช่ schema-invalid เพราะยังไม่ได้เรียก LLM เลย)
-          aiFailed = true;
-          aiFailureReason = 'LLM_CALL_FAILED';
-          this.logger.warn(
-            `processLegacyAiEnrichment: prompt/context resolution failed for [${documentNumber}]: ${String(setupErr)}`
-          );
-        }
+        const res = await this.runLegacyMetadataExtraction({
+          ocrText,
+          documentNumber,
+          projectId,
+          projectPublicId,
+        });
+        extraction = res.extraction;
+        aiFailed = res.aiFailed;
+        aiFailureReason = res.aiFailureReason;
       }
 
       // Fallback: ไม่มี PDF ให้บันทึกข้อความใน ocr_text
@@ -2282,54 +2429,16 @@ export class AiBatchProcessor extends WorkerHost {
         ocrText = 'ไม่มี ไฟล์ PDF (ยกเลิก/ถอน)';
       }
 
-      // spec.md Edge Cases: ไม่มีข้อความอ่านได้ (no PDF / OCR ล้มเหลว) → ต้อง flag
-      // requiresHumanReview=true โดย default เพราะไม่มี confidence ให้คำนวณได้จริง
-      const isHardFailure = !hasPdf || ocrFailed || aiFailed;
-      const extractedTags: Record<string, string>[] = extraction
-        ? extraction.metadata.tags.map((t) => ({ name: t.name }))
-        : [];
-
-      // 3. บันทึกผลลัพธ์กลับสู่ migration_review_queue — ADR-050 T010/T011/T012: ส่งเฉพาะ
-      // confidence values ผ่าน details ให้ MigrationService คำนวณ requiresHumanReview/
-      // ocrQualityConfidence/ai_confidence(alias) เอง (ไม่เชื่อ requiresHumanReview จาก LLM เลย
-      // เพราะ MigrationAiExtractionDetails ไม่มี field นี้อยู่แล้ว)
-      await this.migrationService.updateQueueEnrichment(queueId, {
+      await this.persistLegacyEnrichmentResult({
+        queueId,
+        documentNumber,
+        hasPdf: !!hasPdf,
+        ocrFailed,
         ocrText,
-        aiSummary: extraction ? extraction.metadata.summary : undefined,
-        aiSuggestedCorrespondenceType:
-          extraction && !isHardFailure
-            ? extraction.metadata.correspondenceType
-            : undefined,
-        extractedTags: extractedTags.length > 0 ? extractedTags : undefined,
-        aiConfidence: isHardFailure ? 0 : undefined,
-        aiIssues: hasPdf
-          ? ocrFailed
-            ? [
-                {
-                  type: 'OCR_FAILED',
-                  message:
-                    'OCR ไม่สามารถสกัดข้อความได้ (timeout หรือเนื้อหาเปล่า) — กรุณาตรวจสอบไฟล์ PDF แล้วกด Extract ใหม่หรือแก้ไข OCR text เอง',
-                },
-              ]
-            : undefined
-          : [{ type: 'NO_PDF', message: 'ไม่พบไฟล์ PDF สำหรับทำ OCR' }],
-        aiFailed: isHardFailure,
-        requiresHumanReview: isHardFailure ? true : undefined,
-        ocrQualityConfidence: isHardFailure ? 0 : undefined,
-        details: extraction
-          ? { ocrQuality: extraction.ocrQuality, metadata: extraction.metadata }
-          : aiFailureReason
-            ? ({ aiFailureReason } as unknown as Record<string, unknown>)
-            : undefined,
-        aiStatus: isHardFailure
-          ? MigrationAiStatus.FAILED
-          : MigrationAiStatus.DONE,
-        status: MigrationReviewStatus.PENDING_REVIEW,
+        extraction,
+        aiFailed,
+        aiFailureReason,
       });
-
-      this.logger.log(
-        `processLegacyAiEnrichment: ${isHardFailure ? 'failed (' + (aiFailureReason ?? (ocrFailed ? 'OCR_FAILED' : 'NO_PDF')) + ')' : 'successfully enriched'} queue item [${queueId}]`
-      );
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
       this.logger.error(
@@ -2340,6 +2449,214 @@ export class AiBatchProcessor extends WorkerHost {
       try {
         await this.migrationService.updateQueueEnrichment(queueId, {
           ocrText: 'ไม่มี ไฟล์ PDF (ยกเลิก/ถอน)',
+          aiFailed: true,
+          aiIssues: [{ type: 'AI_ENRICHMENT_FAILED', message: errMsg }],
+          aiStatus: MigrationAiStatus.FAILED,
+          status: MigrationReviewStatus.PENDING_REVIEW,
+        });
+      } catch (markErr: unknown) {
+        this.logger.error(
+          `Failed to mark ai_failed for queue item [${queueId}]: ${String(markErr)}`
+        );
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Two-phase batch OCR/AI extraction, phase 1 (D267) — orchestrator job เดียวต่อการกด
+   * "Start Extract" ทั้ง batch (ไม่ใช่ 1 job/เอกสารแบบเดิม) ที่ unload BGE+main model
+   * **ครั้งเดียว**, วน OCR ทุกเอกสารในชุดผ่าน `OcrService.extractTextOnly()` (ไม่
+   * unload/reload เอง), แล้ว reload main model **ครั้งเดียว** หลังจบ loop — ลด Ollama model
+   * swap จาก 2N เหลือ 2 ครั้งต่อ batch (N = จำนวนเอกสาร)
+   *
+   * ระหว่าง phase นี้ทั้ง batch ถือ `ai:ocr-batch:active` lock (heartbeat ทุก loop iteration)
+   * ทำให้ `AiQueueService.checkAiUnavailableLocks()` block คำขอ AI Chat/RAG realtime ใหม่ทุก
+   * ตัวด้วย 503 `AI_FEATURES_UNAVAILABLE` (frontend แสดง dialog รอ/ยกเลิก) — เป็น tradeoff ที่
+   * user ยอมรับเอง เพราะ main model ไม่พร้อมใช้งานจริงระหว่างนี้
+   */
+  private async processLegacyOcrBatchPhase(
+    data: Record<string, unknown>
+  ): Promise<void> {
+    const items = Array.isArray(data.items)
+      ? (data.items as LegacyBatchItem[])
+      : [];
+    if (items.length === 0) {
+      this.logger.warn('processLegacyOcrBatchPhase: empty items, skipping');
+      return;
+    }
+
+    const lockToken = await this.aiQueueService.acquireOcrBatchLock();
+    if (!lockToken) {
+      // อีก batch หนึ่งกำลังถือ lock อยู่แล้ว (ควรเกิดยากมากเพราะ processor concurrency=1
+      // อยู่แล้ว) — ปล่อยให้ BullMQ retry ตาม attempts/backoff แทนการ silent-drop เอกสารทั้งชุด
+      throw new Error(
+        'processLegacyOcrBatchPhase: another OCR batch phase is already running (ai:ocr-batch:active held)'
+      );
+    }
+
+    // Heartbeat ต่ออายุ lock เป็นระยะระหว่างรัน — TTL 30s (AiQueueService) แต่ loop OCR ทั้ง
+    // batch อาจยาวเป็นนาที จึงต่ออายุทุก 10s แทนการพึ่ง TTL เดียว
+    const heartbeatIntervalId = setInterval(() => {
+      this.aiQueueService
+        .heartbeatOcrBatchLock(lockToken)
+        .catch((err: unknown) => {
+          this.logger.warn(
+            `processLegacyOcrBatchPhase: heartbeat failed: ${String(err)}`
+          );
+        });
+    }, 10_000);
+
+    const ocrResults = new Map<
+      number,
+      { ocrText: string; ocrFailed: boolean; hasPdf: boolean }
+    >();
+
+    try {
+      await this.ocrService.unloadBgeModels();
+      const mainModel = this.ollamaService.getMainModelName();
+      await this.ollamaService.unloadModel(mainModel);
+
+      try {
+        for (const item of items) {
+          await this.migrationService.updateQueueEnrichment(item.queueId, {
+            aiStatus: MigrationAiStatus.RUNNING,
+            status: MigrationReviewStatus.PENDING,
+          });
+
+          const hasPdf = !!item.pdfPath && item.pdfPath.trim().length > 0;
+          let ocrText = '';
+          let ocrFailed = false;
+          if (hasPdf) {
+            try {
+              const ocrResult = await this.ocrService.extractTextOnly({
+                pdfPath: item.pdfPath,
+                maxPages: 3,
+                timeoutMs: 600_000,
+              });
+              ocrText = ocrResult.text || '';
+              if (ocrText.trim().length === 0) {
+                this.logger.warn(
+                  `processLegacyOcrBatchPhase: OCR returned empty text for [${item.documentNumber}]`
+                );
+                ocrFailed = true;
+              }
+            } catch (ocrErr: unknown) {
+              ocrFailed = true;
+              this.logger.warn(
+                `processLegacyOcrBatchPhase: OCR failed for [${item.documentNumber}]: ${String(ocrErr)}`
+              );
+            }
+          } else {
+            ocrText = 'ไม่มี ไฟล์ PDF (ยกเลิก/ถอน)';
+          }
+          ocrResults.set(item.queueId, { ocrText, ocrFailed, hasPdf });
+
+          // aiStatus=WAITING repurposed เป็น "OCR เสร็จแล้ว รอ phase 2 (LLM metadata)" — ทั้ง
+          // ความหมายเดิม ("รอ BullMQ เริ่มงาน") และความหมายใหม่นี้คือ "ยังไม่เสร็จ รอขั้นต่อไป"
+          // เข้ากันได้ ไม่กระทบ final state (DONE/FAILED) หรือ query ที่กรองด้วย aiStatus
+          await this.migrationService.updateQueueEnrichment(item.queueId, {
+            ocrText,
+            aiStatus: MigrationAiStatus.WAITING,
+          });
+        }
+      } finally {
+        await this.ollamaService.loadModel(
+          mainModel,
+          this.ollamaService.getMainKeepAliveSeconds()
+        );
+      }
+    } finally {
+      clearInterval(heartbeatIntervalId);
+      await this.aiQueueService.releaseOcrBatchLock(lockToken);
+    }
+
+    // Phase 2: main model กลับมาแล้ว ปลอดภัยที่จะ enqueue LLM-only metadata extraction ต่อ
+    // เอกสาร — jobs เหล่านี้ interleave กับ realtime AI Chat/RAG ได้ตามปกติ (pause/resume
+    // mechanism เดิมของ ai-realtime.processor.ts, D260)
+    for (const item of items) {
+      const ocr = ocrResults.get(item.queueId);
+      try {
+        await this.migrationService.enqueueLegacyAiMetadataOnly(item, {
+          ocrText: ocr?.ocrText ?? '',
+          ocrFailed: ocr?.ocrFailed ?? true,
+          hasPdf: ocr?.hasPdf ?? false,
+        });
+      } catch (enqueueErr: unknown) {
+        this.logger.error(
+          `processLegacyOcrBatchPhase: failed to enqueue phase-2 job for queue item [${item.queueId}]: ${String(enqueueErr)}`
+        );
+      }
+    }
+  }
+
+  /**
+   * Two-phase batch OCR/AI extraction, phase 2 (D267) — 1 job ต่อเอกสาร รับ ocrText ที่
+   * phase 1 (`processLegacyOcrBatchPhase`) สกัดไว้แล้วมาทำ LLM metadata extraction ต่อ ไม่
+   * แตะ OCR/model loading เลย (main model ถูก reload กลับไปแล้วตั้งแต่จบ phase 1)
+   */
+  private async processLegacyAiMetadataOnly(
+    data: Record<string, unknown>
+  ): Promise<void> {
+    const queueId = Number(data.queueId);
+    if (!queueId) {
+      this.logger.warn('processLegacyAiMetadataOnly: missing queueId');
+      return;
+    }
+    const documentNumberRaw = data.documentNumber;
+    const documentNumber =
+      typeof documentNumberRaw === 'string'
+        ? documentNumberRaw
+        : documentNumberRaw == null
+          ? ''
+          : JSON.stringify(documentNumberRaw);
+    const projectId =
+      typeof data.projectId === 'number' ? data.projectId : null;
+    const projectPublicId =
+      typeof data.projectPublicId === 'string'
+        ? data.projectPublicId
+        : undefined;
+    const ocrText = typeof data.ocrText === 'string' ? data.ocrText : '';
+    const ocrFailed = data.ocrFailed === true;
+    const hasPdf = data.hasPdf === true;
+
+    try {
+      let extraction: MigrationAiExtractionDetails | null = null;
+      let aiFailed = false;
+      let aiFailureReason:
+        | 'SCHEMA_VALIDATION_FAILED'
+        | 'LLM_CALL_FAILED'
+        | undefined;
+
+      if (ocrText && ocrText.trim().length > 0) {
+        const res = await this.runLegacyMetadataExtraction({
+          ocrText,
+          documentNumber,
+          projectId,
+          projectPublicId,
+        });
+        extraction = res.extraction;
+        aiFailed = res.aiFailed;
+        aiFailureReason = res.aiFailureReason;
+      }
+
+      await this.persistLegacyEnrichmentResult({
+        queueId,
+        documentNumber,
+        hasPdf,
+        ocrFailed,
+        ocrText,
+        extraction,
+        aiFailed,
+        aiFailureReason,
+      });
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      this.logger.error(
+        `processLegacyAiMetadataOnly failed for queue item [${queueId}]: ${errMsg}`
+      );
+      try {
+        await this.migrationService.updateQueueEnrichment(queueId, {
           aiFailed: true,
           aiIssues: [{ type: 'AI_ENRICHMENT_FAILED', message: errMsg }],
           aiStatus: MigrationAiStatus.FAILED,

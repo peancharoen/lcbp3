@@ -10,6 +10,7 @@ import { X, Trash2, Bot, Sparkles } from 'lucide-react';
 import { useAiChat } from '@/hooks/use-ai-chat';
 import { AiChatMessages } from '@/components/ai/ai-chat-messages';
 import { AiChatInput } from '@/components/ai/ai-chat-input';
+import { AiUnavailableWaitDialog } from '@/components/ai/ai-unavailable-wait-dialog';
 import { Button } from '@/components/ui/button';
 import { ChatContext } from '@/types/ai-chat';
 
@@ -26,6 +27,11 @@ export function AiChatPanel({ context, isOpen, onClose, onToggle }: AiChatPanelP
     sendMessage,
     clearHistory,
     isLoading,
+    isAiUnavailableDialogOpen,
+    isAiUnavailableRetrying,
+    aiUnavailableElapsedSeconds,
+    waitAiUnavailableRetry,
+    cancelAiUnavailableWait,
   } = useAiChat(context);
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -91,6 +97,13 @@ export function AiChatPanel({ context, isOpen, onClose, onToggle }: AiChatPanelP
         onSuggestedActionClick={handleSuggestedAction}
       />
       <AiChatInput onSend={sendMessage} isLoading={isLoading} />
+      <AiUnavailableWaitDialog
+        open={isAiUnavailableDialogOpen}
+        isRetrying={isAiUnavailableRetrying}
+        elapsedSeconds={aiUnavailableElapsedSeconds}
+        onWait={waitAiUnavailableRetry}
+        onCancel={cancelAiUnavailableWait}
+      />
     </div>
   );
 }

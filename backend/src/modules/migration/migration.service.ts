@@ -1029,6 +1029,46 @@ export class MigrationService {
   }
 
   /**
+   * Two-phase batch OCR/AI extraction, phase 2 enqueue (D267) — เรียกโดย
+   * `AiBatchProcessor.processLegacyOcrBatchPhase()` หลังจบ OCR phase ของทั้ง batch (main
+   * model reload กลับแล้ว) เพื่อส่ง 1 job/เอกสารทำ LLM metadata extraction ต่อ ส่ง ocrText ที่
+   * สกัดไว้แล้วไปพร้อม job data เลย (ไม่ต้องอ่านกลับจาก DB) เพื่อลด round-trip
+   */
+  async enqueueLegacyAiMetadataOnly(
+    item: {
+      queueId: number;
+      queuePublicId: string;
+      documentNumber: string;
+      projectId: number | null;
+      projectPublicId: string;
+    },
+    ocrResult: { ocrText: string; ocrFailed: boolean; hasPdf: boolean }
+  ): Promise<string> {
+    const job = await this.aiBatchQueue.add(
+      'legacy-ai-metadata-only',
+      {
+        jobType: 'legacy-ai-metadata-only',
+        documentPublicId: item.queuePublicId,
+        queueId: item.queueId,
+        documentNumber: item.documentNumber,
+        projectId: item.projectId,
+        projectPublicId: item.projectPublicId,
+        ocrText: ocrResult.ocrText,
+        ocrFailed: ocrResult.ocrFailed,
+        hasPdf: ocrResult.hasPdf,
+      },
+      {
+        jobId: `legacy-metadata-${item.queuePublicId}-${Date.now()}`,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 5000 },
+        removeOnComplete: 1000,
+        removeOnFail: 5000,
+      }
+    );
+    return String(job.id);
+  }
+
+  /**
    * ADR-047: re-extract queue item ก่อน Execute Import
    * ล้างผลลัพธ์เก่า ลบ BullMQ job เดิม (best-effort) แล้ว enqueue `legacy-ai-enrichment` ใหม่
    */
@@ -1098,21 +1138,129 @@ export class MigrationService {
     idempotencyKey: string,
     userId: number
   ) {
-    const results = [];
-    for (let i = 0; i < publicIds.length; i++) {
+    // 0-1 เอกสาร: ใช้ path เดิม (ไม่มีปัญหา model-swap ซ้ำที่ two-phase orchestrator แก้ อยู่แล้ว
+    // เมื่อมีแค่เอกสารเดียว — ไม่ผ่าน legacy-ocr-batch-phase, พฤติกรรม/contract เดิมไม่เปลี่ยน)
+    if (publicIds.length <= 1) {
+      const results = [];
+      for (let i = 0; i < publicIds.length; i++) {
+        try {
+          const subKey = `${idempotencyKey}-${i}`;
+          const result = await this.startExtractQueueItem(
+            publicIds[i],
+            subKey,
+            userId
+          );
+          results.push({ publicId: publicIds[i], ...result });
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          results.push({ publicId: publicIds[i], error: msg });
+        }
+      }
+      return { results };
+    }
+
+    // D267: หลายเอกสาร (N>1) → enqueue orchestrator job เดียว (`legacy-ocr-batch-phase`) แทน
+    // การ enqueue N `legacy-ai-enrichment` jobs แยก เพื่อลด Ollama model swap จาก 2N เหลือ 2
+    // ครั้งต่อ batch — validate ทุก publicId ก่อน (guard เดียวกับ startExtractQueueItem) แล้ว
+    // รวมเฉพาะรายการที่ผ่านเป็น items[] ให้ orchestrator job เดียว
+    const results: Array<{
+      publicId: string;
+      message?: string;
+      jobId?: string | null;
+      error?: string;
+    }> = [];
+    const items: Array<{
+      queueId: number;
+      queuePublicId: string;
+      documentNumber: string;
+      pdfPath?: string;
+      projectId: number | null;
+      projectPublicId: string;
+    }> = [];
+
+    for (const publicId of publicIds) {
       try {
-        const subKey = `${idempotencyKey}-${i}`;
-        const result = await this.startExtractQueueItem(
-          publicIds[i],
-          subKey,
-          userId
-        );
-        results.push({ publicId: publicIds[i], ...result });
+        const queueItem = await this.fetchQueueItemByPublicId(publicId);
+        if (queueItem.status !== MigrationReviewStatus.PENDING) {
+          results.push({
+            publicId,
+            error: `Queue item ${publicId} is ${queueItem.status}`,
+          });
+          continue;
+        }
+        if (
+          queueItem.aiStatus === MigrationAiStatus.RUNNING ||
+          (queueItem.aiJobId != null &&
+            queueItem.aiStatus !== MigrationAiStatus.FAILED)
+        ) {
+          results.push({
+            publicId,
+            message: 'AI extraction already running or queued',
+            jobId: queueItem.aiJobId,
+          });
+          continue;
+        }
+        const details = queueItem.details ?? {};
+        const pdfPath =
+          typeof details.source_file_path === 'string'
+            ? details.source_file_path
+            : undefined;
+        const projectPublicId = queueItem.projectId
+          ? ((
+              await this.projectRepo.findOne({
+                where: { id: queueItem.projectId },
+              })
+            )?.publicId ?? '00000000-0000-0000-0000-000000000000')
+          : '00000000-0000-0000-0000-000000000000';
+        items.push({
+          queueId: queueItem.id,
+          queuePublicId: queueItem.publicId,
+          documentNumber: queueItem.documentNumber,
+          pdfPath,
+          projectId: queueItem.projectId ?? null,
+          projectPublicId,
+        });
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        results.push({ publicId: publicIds[i], error: msg });
+        results.push({ publicId, error: msg });
       }
     }
+
+    if (items.length === 0) {
+      return { results };
+    }
+
+    const job = await this.aiBatchQueue.add(
+      'legacy-ocr-batch-phase',
+      {
+        jobType: 'legacy-ocr-batch-phase',
+        documentPublicId: '00000000-0000-0000-0000-000000000000',
+        items,
+      },
+      {
+        jobId: `legacy-ocr-batch-${idempotencyKey}`,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 10000 },
+        removeOnComplete: 100,
+        removeOnFail: 500,
+      }
+    );
+
+    for (const item of items) {
+      await this.reviewQueueRepo.update(item.queueId, {
+        aiStatus: MigrationAiStatus.WAITING,
+        aiJobId: String(job.id),
+      });
+      this.logger.log(
+        `User ${userId} started batch AI extraction for queue ${item.queuePublicId}, orchestrator jobId ${String(job.id)}`
+      );
+      results.push({
+        publicId: item.queuePublicId,
+        message: 'AI extraction batch started',
+        jobId: String(job.id),
+      });
+    }
+
     return { results };
   }
 

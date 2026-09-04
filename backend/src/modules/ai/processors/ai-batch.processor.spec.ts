@@ -58,6 +58,10 @@ describe('AiBatchProcessor', () => {
     detectAndExtract: jest
       .fn()
       .mockResolvedValue({ text: 'OCR text LCBP3-CIV-001 Civil' }),
+    extractTextOnly: jest.fn().mockResolvedValue({
+      text: 'OCR text LCBP3-CIV-001 Civil',
+      ocrUsed: true,
+    }),
     unloadBgeModels: jest.fn().mockResolvedValue(undefined),
     processWithAutoDetect: jest.fn().mockResolvedValue({
       text: 'extracted ocr text from document that is long enough to bypass character length check',
@@ -156,6 +160,10 @@ describe('AiBatchProcessor', () => {
     getAllowedCategoryCodes: jest
       .fn()
       .mockResolvedValue(['LETTER', 'RFA', 'OTHER']),
+    // D267: two-phase batch OCR/AI extraction, phase 2 enqueue
+    enqueueLegacyAiMetadataOnly: jest
+      .fn()
+      .mockResolvedValue('job-legacy-metadata-123'),
   };
   const mockAiPromptsService = {
     getActive: jest.fn().mockImplementation((promptType: string) => {
@@ -210,6 +218,10 @@ describe('AiBatchProcessor', () => {
     enqueueRagPrepare: jest.fn().mockResolvedValue('job-rag-prepare-123'),
     getFailedJobsForCleanup: jest.fn().mockResolvedValue([]),
     countFailedJobs: jest.fn().mockResolvedValue(0),
+    // D267: two-phase batch OCR/AI extraction lock (ai:ocr-batch:active)
+    acquireOcrBatchLock: jest.fn().mockResolvedValue('lock-token-abc'),
+    heartbeatOcrBatchLock: jest.fn().mockResolvedValue(undefined),
+    releaseOcrBatchLock: jest.fn().mockResolvedValue(undefined),
   };
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -890,6 +902,300 @@ describe('AiBatchProcessor', () => {
           details: expect.objectContaining({
             aiFailureReason: 'LLM_CALL_FAILED',
           }),
+        })
+      );
+    });
+  });
+
+  // ── D267: Two-Phase Batch OCR/AI Extraction (~/.claude/plans/velvet-hatching-whistle.md) ──
+  describe('legacy-ocr-batch-phase + legacy-ai-metadata-only (D267)', () => {
+    beforeEach(() => {
+      mockAiPromptsService.getActive.mockImplementation(
+        (promptType: string) => {
+          if (promptType === 'ocr_extraction') {
+            return Promise.resolve({
+              id: 1,
+              promptType: 'ocr_extraction',
+              versionNumber: 2,
+              template:
+                'OCR: {{ocr_text}} | Categories: {{allowed_correspondence_types}}',
+              isActive: true,
+              contextConfig: { filter: {} },
+            });
+          }
+          return Promise.resolve(null);
+        }
+      );
+      mockOllamaService.generate.mockResolvedValue(
+        JSON.stringify({
+          ocrQuality: { confidence: 0.9, issues: [] },
+          metadata: {
+            summary: 'สรุปเอกสาร',
+            correspondenceType: 'LETTER',
+            tags: [{ name: 'civil', isNew: false, evidence: 'Civil' }],
+            confidence: { summary: 0.9, correspondenceType: 0.85, tags: 0.8 },
+          },
+        })
+      );
+    });
+
+    afterEach(() => {
+      // คืนค่า default mock กลับ — mockImplementation แทนที่ implementation แบบถาวรจนกว่าจะถูก
+      // override อีกที (เหมือน describe block ADR-050 ด้านบน) ไม่ใช่แค่ jest.clearAllMocks()
+      mockAiPromptsService.getActive.mockImplementation(
+        (promptType: string) => {
+          if (promptType === 'migration_compare') {
+            return Promise.resolve({
+              id: 2,
+              promptType: 'migration_compare',
+              versionNumber: 1,
+              template:
+                'Compare OCR text {{ocr_text}} with register {{excel_metadata}} truncated {{ocr_truncated}}',
+              isActive: true,
+              contextConfig: { filter: {} },
+            });
+          }
+          return Promise.resolve({
+            id: 1,
+            promptType: 'ocr_extraction',
+            versionNumber: 2,
+            template:
+              'Resolved test prompt with OCR text {{ocr_text}} and context {{master_data_context}}',
+            isActive: true,
+            contextConfig: { filter: {} },
+          });
+        }
+      );
+      // คืนค่า mockOllamaService.generate กลับเป็น default (Feature 242 compare-result format)
+      // เพราะ beforeEach ด้านบนเปลี่ยนเป็น legacy metadata-extraction format แบบถาวร
+      mockOllamaService.generate.mockResolvedValue(
+        JSON.stringify({
+          fieldResults: [
+            {
+              field: 'documentNumber',
+              excelValue: 'LCBP3-CIV-001',
+              ocrValue: 'LCBP3-CIV-001',
+              match: true,
+              foundInDocument: true,
+            },
+            {
+              field: 'subject',
+              excelValue: 'Foundation Inspection Report',
+              ocrValue: 'Foundation Inspection Report',
+              match: true,
+              foundInDocument: true,
+            },
+          ],
+          mismatches: [],
+          confidence: 0.95,
+        })
+      );
+    });
+
+    it('phase 1: unload BGE+main model ครั้งเดียว, OCR ทุกเอกสารผ่าน extractTextOnly (ไม่ใช่ detectAndExtract), reload ครั้งเดียว, แล้ว enqueue phase 2 ต่อเอกสาร', async () => {
+      ocrService.extractTextOnly
+        .mockResolvedValueOnce({ text: 'OCR text doc A', ocrUsed: true })
+        .mockResolvedValueOnce({ text: 'OCR text doc B', ocrUsed: true });
+      const job = {
+        id: 'job-batch-phase-1',
+        data: {
+          jobType: 'legacy-ocr-batch-phase',
+          items: [
+            {
+              queueId: 4001,
+              queuePublicId: 'queue-uuid-4001',
+              documentNumber: 'DOC-A',
+              pdfPath: '/files/doc-a.pdf',
+              projectId: 2,
+              projectPublicId: 'proj-uuid-456',
+            },
+            {
+              queueId: 4002,
+              queuePublicId: 'queue-uuid-4002',
+              documentNumber: 'DOC-B',
+              pdfPath: '/files/doc-b.pdf',
+              projectId: 2,
+              projectPublicId: 'proj-uuid-456',
+            },
+          ],
+        },
+      } as unknown as Job<AiBatchJobData>;
+
+      await processor.process(job);
+
+      expect(mockAiQueueService.acquireOcrBatchLock).toHaveBeenCalledTimes(1);
+      expect(ocrService.unloadBgeModels).toHaveBeenCalledTimes(1);
+      expect(mockOllamaService.unloadModel).toHaveBeenCalledTimes(1);
+      expect(mockOllamaService.unloadModel).toHaveBeenCalledWith(
+        'np-dms-ai:latest'
+      );
+      expect(ocrService.extractTextOnly).toHaveBeenCalledTimes(2);
+      expect(ocrService.detectAndExtract).not.toHaveBeenCalled();
+      expect(mockOllamaService.loadModel).toHaveBeenCalledTimes(1);
+      expect(mockOllamaService.loadModel).toHaveBeenCalledWith(
+        'np-dms-ai:latest',
+        120
+      );
+      expect(mockAiQueueService.releaseOcrBatchLock).toHaveBeenCalledWith(
+        'lock-token-abc'
+      );
+      expect(mockMigrationService.updateQueueEnrichment).toHaveBeenCalledWith(
+        4001,
+        expect.objectContaining({
+          ocrText: 'OCR text doc A',
+          aiStatus: 'WAITING',
+        })
+      );
+      expect(mockMigrationService.updateQueueEnrichment).toHaveBeenCalledWith(
+        4002,
+        expect.objectContaining({
+          ocrText: 'OCR text doc B',
+          aiStatus: 'WAITING',
+        })
+      );
+      expect(
+        mockMigrationService.enqueueLegacyAiMetadataOnly
+      ).toHaveBeenCalledTimes(2);
+      expect(
+        mockMigrationService.enqueueLegacyAiMetadataOnly
+      ).toHaveBeenCalledWith(expect.objectContaining({ queueId: 4001 }), {
+        ocrText: 'OCR text doc A',
+        ocrFailed: false,
+        hasPdf: true,
+      });
+      expect(
+        mockMigrationService.enqueueLegacyAiMetadataOnly
+      ).toHaveBeenCalledWith(expect.objectContaining({ queueId: 4002 }), {
+        ocrText: 'OCR text doc B',
+        ocrFailed: false,
+        hasPdf: true,
+      });
+      // reload ต้องเกิดก่อนปล่อย lock เสมอ (main model ต้องพร้อมก่อน AI Chat จะถูกปลดบล็อก)
+      const loadOrder = mockOllamaService.loadModel.mock.invocationCallOrder[0];
+      const releaseOrder =
+        mockAiQueueService.releaseOcrBatchLock.mock.invocationCallOrder[0];
+      expect(loadOrder).toBeLessThan(releaseOrder);
+    });
+
+    it('phase 1: throws เมื่อ lock ai:ocr-batch:active ถูกถืออยู่แล้ว (อีก batch กำลังรัน) — ไม่แตะ OCR/model เลย', async () => {
+      mockAiQueueService.acquireOcrBatchLock.mockResolvedValueOnce(null);
+      const job = {
+        id: 'job-batch-phase-locked',
+        data: {
+          jobType: 'legacy-ocr-batch-phase',
+          items: [
+            {
+              queueId: 4003,
+              queuePublicId: 'queue-uuid-4003',
+              documentNumber: 'DOC-C',
+              pdfPath: '/files/doc-c.pdf',
+              projectId: 2,
+              projectPublicId: 'proj-uuid-456',
+            },
+          ],
+        },
+      } as unknown as Job<AiBatchJobData>;
+
+      await expect(processor.process(job)).rejects.toThrow();
+      expect(mockOllamaService.unloadModel).not.toHaveBeenCalled();
+      expect(ocrService.extractTextOnly).not.toHaveBeenCalled();
+    });
+
+    it('phase 1: OCR ล้มเหลวสำหรับเอกสารหนึ่ง ไม่กระทบเอกสารอื่นในชุด — reload/release ยังเกิดตามปกติ', async () => {
+      ocrService.extractTextOnly.mockRejectedValueOnce(
+        new Error('OCR sidecar timeout')
+      );
+      const job = {
+        id: 'job-batch-phase-partial-fail',
+        data: {
+          jobType: 'legacy-ocr-batch-phase',
+          items: [
+            {
+              queueId: 4004,
+              queuePublicId: 'queue-uuid-4004',
+              documentNumber: 'DOC-FAIL',
+              pdfPath: '/files/doc-fail.pdf',
+              projectId: 2,
+              projectPublicId: 'proj-uuid-456',
+            },
+          ],
+        },
+      } as unknown as Job<AiBatchJobData>;
+
+      await processor.process(job);
+
+      expect(
+        mockMigrationService.enqueueLegacyAiMetadataOnly
+      ).toHaveBeenCalledWith(expect.objectContaining({ queueId: 4004 }), {
+        ocrText: '',
+        ocrFailed: true,
+        hasPdf: true,
+      });
+      expect(mockOllamaService.loadModel).toHaveBeenCalledTimes(1);
+      expect(mockAiQueueService.releaseOcrBatchLock).toHaveBeenCalledTimes(1);
+    });
+
+    it('phase 2: ทำ LLM metadata extraction จาก ocrText ที่ phase 1 ส่งมา ไม่แตะ OCR/model loading เลย', async () => {
+      const job = {
+        id: 'job-metadata-only',
+        data: {
+          jobType: 'legacy-ai-metadata-only',
+          queueId: 4005,
+          documentNumber: 'DOC-META',
+          projectId: 2,
+          projectPublicId: 'proj-uuid-456',
+          ocrText: 'OCR text from phase 1',
+          ocrFailed: false,
+          hasPdf: true,
+        },
+      } as unknown as Job<AiBatchJobData>;
+
+      await processor.process(job);
+
+      expect(ocrService.extractTextOnly).not.toHaveBeenCalled();
+      expect(ocrService.detectAndExtract).not.toHaveBeenCalled();
+      expect(mockOllamaService.unloadModel).not.toHaveBeenCalled();
+      expect(mockOllamaService.loadModel).not.toHaveBeenCalled();
+      expect(mockAiPromptsService.getActive).toHaveBeenCalledWith(
+        'ocr_extraction'
+      );
+      expect(mockMigrationService.updateQueueEnrichment).toHaveBeenCalledWith(
+        4005,
+        expect.objectContaining({
+          aiStatus: 'DONE',
+          aiSuggestedCorrespondenceType: 'LETTER',
+        })
+      );
+    });
+
+    it('phase 2: ถ้า ocrFailed=true จาก phase 1 ต้อง mark aiStatus=FAILED ทันทีโดยไม่เรียก LLM เลย', async () => {
+      const job = {
+        id: 'job-metadata-only-ocr-failed',
+        data: {
+          jobType: 'legacy-ai-metadata-only',
+          queueId: 4006,
+          documentNumber: 'DOC-META-FAIL',
+          projectId: 2,
+          projectPublicId: 'proj-uuid-456',
+          ocrText: '',
+          ocrFailed: true,
+          hasPdf: true,
+        },
+      } as unknown as Job<AiBatchJobData>;
+
+      await processor.process(job);
+
+      expect(mockAiPromptsService.getActive).not.toHaveBeenCalledWith(
+        'ocr_extraction'
+      );
+      expect(mockMigrationService.updateQueueEnrichment).toHaveBeenCalledWith(
+        4006,
+        expect.objectContaining({
+          aiStatus: 'FAILED',
+          aiFailed: true,
+          aiIssues: expect.arrayContaining([
+            expect.objectContaining({ type: 'OCR_FAILED' }),
+          ]),
         })
       );
     });

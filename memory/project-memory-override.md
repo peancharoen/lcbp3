@@ -240,6 +240,9 @@
 | D262  | **`OllamaService.loadModel()` ต้องเช็คว่าเป็นตัวเลขล้วนก่อนเติม `"s"` suffix** — ห้ามใช้ `typeof keepAlive === 'string'` เป็นตัวตัดสินว่า "format แล้ว" เพราะ `ConfigService.get<number>()` **ไม่ cast ค่าจริง** — env var เป็น string เสมอ (`process.env`) ทำให้ `OLLAMA_MAIN_KEEP_ALIVE_SECONDS` ที่ TypeScript เชื่อว่าเป็น `number` จริงๆ เป็น string `"120"` ตอน runtime ส่ง `keep_alive: "120"` (ไม่มี unit) ไป Ollama 0.30+ โดน 400 Bad Request เสมอ ต้องเช็คด้วย regex ตัวเลขล้วนแทน (`/^-?\d+$/`) ไม่ว่า input จะเป็น JS number หรือ numeric string | Session 2026-09-03 |
 | D263  | **`rclone` OAuth token หมดอายุไม่แจ้งเตือนจนกว่าจะมีคนสังเกต** — cron job 2 ตัว (`0 0,12 * * *` backup repo เต็ม, `0 3,7,11,15,19,23 * * *` sync specs) ใช้ remote `gdrive:` (type=drive, OAuth ผู้ใช้ ไม่ใช่ service account) token หมดอายุตั้งแต่ 2026-08-30 ล้มเหลวเงียบๆ ทุกรอบ (`invalid_grant`) นาน 4 วันโดยไม่มีใครรู้ (uptime-kuma push ควรจะจับได้แต่ไม่มีใครเช็ค) แก้ด้วย `rclone authorize "drive" "<client-id-secret-b64>"` ให้ user รันเอง (ต้อง browser จริง ทำแทนไม่ได้) ได้ token JSON กลับมา แล้วใช้ `rclone config update gdrive token "<decoded-inner-json>"` (**ไม่ใช่** `gdrive:` มี colon — `config update` รับแค่ชื่อ remote เปล่า) เซ็ตตรงแทนการ paste เข้า interactive `config reconnect` (paste ยาวๆ เข้า prompt ไม่เสถียรในบางเทอร์มินัล ขึ้น "Couldn't decode response" ซ้ำๆ) | copy-env.sh cron / Session 2026-09-03 |
 | D264  | **Commit ทันทีหลังแก้ไข/อัปเดตงานแต่ละจุดเสร็จ — ห้ามปล่อยเป็น uncommitted ค้างไว้ (local `git commit` เท่านั้น ไม่ใช่ push)** — เกิดจากเหตุการณ์จริง: แก้ `ability.factory.ts`/`transform.interceptor.ts`/`SKILL.md`/memory file เสร็จแล้วไม่ commit ทันที ปล่อยค้างหลายไฟล์ระหว่างคุยงานต่อ ผลคือไฟล์ `SKILL.md` (3 ที่) + memory file หายกลับไปเป็นเนื้อหาเดิม (สาเหตุไม่ทราบแน่ชัด แต่ uncommitted working-tree change คือจุดเสี่ยงที่ป้องกันได้ด้วยการ commit ทันที) กติกาใหม่: (1) หลังแก้ไฟล์เสร็จ 1 งาน (แม้ระหว่าง session เดียวกัน ยังไม่ต้องรอ user สั่ง) ให้ `git commit` local ทันทีด้วย conventional message ปกติ (2) **ห้าม push เองเด็ดขาด** — push ทำผ่าน `2git.sh` ที่ user เป็นคนสั่งเท่านั้น (ตาม hard limit ห้าม push `main` โดยไม่มี explicit authorization ต่อครั้ง) (3) `2git.sh` เองมี squash logic อยู่แล้ว (`git reset --soft origin/main` แล้ว commit ใหม่ทับด้วย message ที่ user ใส่ตอนเรียก พร้อมเก็บ commit ย่อยเดิมไว้ใน body เป็น audit trail) ดังนั้น commit ย่อยหลายอันระหว่างทางจะถูกรวมเป็น 1 commit อัตโนมัติตอน push — ไม่ต้องกังวลเรื่อง commit history รก | Session 2026-09-04 |
+| D265  | **`ai:model:transitioning` (ADR-048, TTL คงที่ 15s) กับ `ai:ocr-batch:active` (heartbeat, สำหรับ phase ยาวเป็นนาที) เป็น Redis lock คนละดวง ห้ามรวมกัน** — `ai:model:transitioning` ออกแบบมาสำหรับสลับโมเดลสั้นๆ เท่านั้น ใช้กับ phase OCR ทั้ง batch (ยาวเป็นนาที) ไม่ได้เพราะ TTL 15s จะหมดอายุกลางคัน `checkAiUnavailableLocks()` (`ai-queue.service.ts`, เดิมชื่อ `checkModelTransitioningLock`) เป็นจุดเดียวที่เช็คทั้งสอง lock (OR) ก่อน enqueue — ใช้กับ two-phase batch OCR/AI extraction (D267, ยังทำไม่เสร็จ) | Session 2026-09-04 |
+| D266  | **503 error ที่ต้องการให้ frontend อ่าน `error.code` เฉพาะเจาะจงได้ (เช่น `AI_FEATURES_UNAVAILABLE`) ต้อง throw ผ่าน `BaseException` subclass เท่านั้น (เช่น `ServiceUnavailableException`) ห้าม throw raw `HttpException` พร้อมใส่ custom `code` field เอง** — `GlobalExceptionFilter` (`global-exception.filter.ts`) เช็ค `instanceof BaseException` ก่อนเสมอ ถ้าไม่ใช่จะ fall through ไป branch ที่ overwrite `code` เป็น `'HTTP_ERROR'` แบบไม่มีทางอ่าน custom code เดิมได้เลย — บั๊กนี้ทำให้ `checkModelTransitioningLock()` เดิม (ADR-048) ไม่เคยทำให้ frontend's `AI_FEATURES_UNAVAILABLE_EVENT` fire จริงตั้งแต่แรก (ค้นพบตอนแก้ D265) | Session 2026-09-04 |
+| D267  | **Two-Phase Batch OCR/AI Extraction (feature complete, 5/5 parts)** — batch "Start Extract" (N>1 เอกสาร) enqueue orchestrator job เดียว `legacy-ocr-batch-phase` (`ai-batch.processor.ts`) แทน N `legacy-ai-enrichment` jobs แยก: acquire `ai:ocr-batch:active` lock (D265) → unload BGE+main model **ครั้งเดียว** → loop `OcrService.extractTextOnly()` (ไม่ unload/reload เอง) ทุกเอกสาร heartbeat lock ทุก 10s → reload **ครั้งเดียว** → release lock → enqueue `legacy-ai-metadata-only` (LLM-only) 1 job/เอกสารสำหรับ phase 2 — ลด Ollama model swap จาก 2N เหลือ 2 ครั้งต่อ batch; `startExtractBatch()` route เฉพาะ N>1 ผ่าน orchestrator, N<=1 ใช้ `startExtractQueueItem` เดิมไม่เปลี่ยน (ไม่มีปัญหา swap ซ้ำที่ต้องแก้เมื่อมีแค่ 1 เอกสาร); **ตัดสินใจไม่เพิ่ม schema column ใหม่** (ที่แผนเสนอเป็นตัวเลือก) — reuse `MigrationAiStatus.WAITING` เดิม repurposed เป็น "OCR phase เสร็จแล้ว รอ phase 2" แทนที่จะทำ ADR-044 SQL delta เพิ่มคอลัมน์ (follow-up ถ้า UI ต้องแยกแสดงสถานะนี้ชัดเจนกว่านี้ในอนาคต); frontend: `AiUnavailableWaitDialog` + `useAiUnavailableRetry` hook (retry ทุก 8s จนสำเร็จหรือ cancel, ไม่มี server cap) wire เข้า `use-ai-chat.ts` + `rag-playground/page.tsx` แทน error bubble/toast คงที่เดิม — commits local (ยังไม่ push): Part 2 `c32341b8`, Part 3 `def44a77`, Part 4 `72032838`, Part 5 `1486b92c`; ยังไม่ได้ E2E manual verify (ต้องมี browser/live system) | Session 2026-09-04 |
 
 ## Environment & Services
 
@@ -279,6 +282,30 @@ QDRANT_URL
 ```
 
 ## Next Session Focus
+
+### ✅ Two-Phase Batch OCR/AI Extraction (Session 2026-09-04) — 5/5 parts complete, pending push + E2E
+
+**อ่านรายละเอียดเต็มที่:** (1) แผนต้นฉบับ `~/.claude/plans/velvet-hatching-whistle.md` (2)
+session logs `specs/88-logs/session-2026-09-04-two-phase-batch-ocr-ai-part1.md` +
+`specs/88-logs/session-2026-09-04-two-phase-batch-ocr-ai-part2-5.md` (3) D265/D266/D267 ด้านบน
+
+- [x] **Part 1** — Redis lock `ai:ocr-batch:active` + `checkAiUnavailableLocks()` +
+      `ServiceUnavailableException` bugfix ใน `ai-queue.service.ts` — commit local `0f874744`
+- [x] **Part 2** — `OcrService.extractTextOnly()` แยกจาก `detectAndExtract()` — commit `c32341b8`
+- [x] **Part 3** — orchestrator jobs `legacy-ocr-batch-phase` + `legacy-ai-metadata-only` ใน
+      `ai-batch.processor.ts` — commit `def44a77`
+- [x] **Part 4** — `migration.service.ts` `startExtractBatch()` route N>1 ผ่าน orchestrator
+      (schema change ถูกข้าม — reuse `aiStatus` enum เดิมแทน ดู D267) — commit `72032838`
+- [x] **Part 5** — `AiUnavailableWaitDialog` + `useAiUnavailableRetry` wire เข้า
+      `use-ai-chat.ts` + `rag-playground/page.tsx` — commit `1486b92c`
+- [ ] **ยังไม่ push** — 4 commits ค้างเป็น local เท่านั้น (D264: push ผ่าน `2git.sh` ที่ user
+      สั่งเองเท่านั้น)
+- [ ] **E2E manual verify ยังไม่ได้ทำ** (ต้องมี browser/live system access ที่ session นี้ไม่มี)
+      — รัน "Start Extract" batch หลายเอกสารพร้อมส่ง AI Chat จาก session อื่น ยืนยันว่า dialog
+      รอ/ยกเลิกโผล่จริง ไม่ใช่ error เงียบๆ หรือ cold-start ช้าๆ
+
+ทุก part verify แล้วด้วย unit tests + tsc + eslint (backend 952/952, frontend 997/997
+รวม `pnpm build` ผ่าน) — ไม่มีงาน backend/frontend เหลือ นอกจาก E2E ด้านบน
 
 ### OCR OOM Root Cause + BGE Restore + Exclusive GPU Access (Session 2026-09-03) ✅ Complete (pending browser verify)
 

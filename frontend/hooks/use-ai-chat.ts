@@ -1,15 +1,34 @@
 // File: frontend/hooks/use-ai-chat.ts
 // Change Log:
 // - 2026-05-19: พัฒนา Hook useAiChat สำหรับระบบแชท AI ในหน้าเอกสาร
+// - 2026-09-04: Two-Phase Batch OCR/AI Extraction (D267) — เมื่อเจอ 503 AI_FEATURES_UNAVAILABLE
+//   (main model ถูก unload ระหว่าง legacy batch OCR phase) แสดง dialog รอ/ยกเลิกแทนการ append
+//   error bubble คงที่ทันที — ใช้ useAiUnavailableRetry (backoff retry ทุก 8s จนสำเร็จหรือ cancel)
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import { ChatMessage, ChatContext, ChatResponseDto } from '@/types/ai-chat';
+import { useAiUnavailableRetry } from './use-ai-unavailable-retry';
+
+function isAiFeaturesUnavailableError(err: unknown): boolean {
+  if (!axios.isAxiosError(err) || err.response?.status !== 503) return false;
+  const data = err.response.data as { error?: { code?: string } } | undefined;
+  return data?.error?.code === 'AI_FEATURES_UNAVAILABLE';
+}
 
 export function useAiChat(context: ChatContext) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isOpen, setIsOpen] = useState<boolean>(false);
+  const pendingMessageIdRef = useRef<string | null>(null);
+  const {
+    isDialogOpen: isAiUnavailableDialogOpen,
+    isRetrying: isAiUnavailableRetrying,
+    elapsedSeconds: aiUnavailableElapsedSeconds,
+    trigger: triggerAiUnavailableRetry,
+    wait: waitAiUnavailableRetry,
+    cancel: cancelAiUnavailableRetry,
+  } = useAiUnavailableRetry();
   const storageKey = `ai_chat_session_${context.type}_${context.publicId}`;
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -57,9 +76,9 @@ export function useAiChat(context: ChatContext) {
       timestamp: new Date().toISOString(),
       isStreaming: true,
     };
+    pendingMessageIdRef.current = systemLoadingMsg.id;
     setMessages([...currentMsgs, systemLoadingMsg]);
-    try {
-      const result = await chatMutation.mutateAsync(queryText);
+    const applyAssistantResult = (result: ChatResponseDto) => {
       const assistantMsg: ChatMessage = {
         id: result.messageId || crypto.randomUUID(),
         role: 'assistant',
@@ -67,8 +86,23 @@ export function useAiChat(context: ChatContext) {
         timestamp: new Date().toISOString(),
         suggestedActions: result.suggestedActions,
       };
+      pendingMessageIdRef.current = null;
       saveMessages([...currentMsgs, assistantMsg]);
-    } catch (_err) {
+    };
+    try {
+      const result = await chatMutation.mutateAsync(queryText);
+      applyAssistantResult(result);
+    } catch (err: unknown) {
+      // D267: main model ถูก unload ระหว่าง legacy batch OCR phase — แสดง dialog รอ/ยกเลิก
+      // แทนการ append error bubble คงที่ทันที (ผู้ใช้เลือกเองว่าจะรอหรือยกเลิก)
+      if (isAiFeaturesUnavailableError(err)) {
+        triggerAiUnavailableRetry(async () => {
+          const result = await chatMutation.mutateAsync(queryText);
+          applyAssistantResult(result);
+        });
+        return;
+      }
+      pendingMessageIdRef.current = null;
       const errorMsg: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
@@ -77,7 +111,29 @@ export function useAiChat(context: ChatContext) {
       };
       saveMessages([...currentMsgs, errorMsg]);
     }
-  }, [messages, saveMessages, chatMutation]);
+  }, [messages, saveMessages, chatMutation, triggerAiUnavailableRetry]);
+  const cancelAiUnavailableWait = useCallback(() => {
+    cancelAiUnavailableRetry();
+    const pendingId = pendingMessageIdRef.current;
+    if (pendingId) {
+      setMessages((prev) => {
+        const updated = prev.map((m) =>
+          m.id === pendingId
+            ? {
+                ...m,
+                isStreaming: false,
+                content: 'ผู้ใช้ยกเลิกการส่งข้อความ',
+              }
+            : m
+        );
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem(storageKey, JSON.stringify(updated));
+        }
+        return updated;
+      });
+      pendingMessageIdRef.current = null;
+    }
+  }, [cancelAiUnavailableRetry, storageKey]);
   const clearHistory = useCallback(() => {
     saveMessages([]);
   }, [saveMessages]);
@@ -89,6 +145,11 @@ export function useAiChat(context: ChatContext) {
     sendMessage,
     clearHistory,
     isLoading: chatMutation.isPending,
+    isAiUnavailableDialogOpen,
+    isAiUnavailableRetrying,
+    aiUnavailableElapsedSeconds,
+    waitAiUnavailableRetry,
+    cancelAiUnavailableWait,
     isOpen,
     setIsOpen,
     toggleOpen,

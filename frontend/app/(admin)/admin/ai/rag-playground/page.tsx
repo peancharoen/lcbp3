@@ -1,6 +1,10 @@
 // File: frontend/app/(admin)/admin/ai/rag-playground/page.tsx
 // Change Log:
 // - 2026-08-02: แยก RAG Playground ออกจาก AI Console page หลัก
+// - 2026-09-04: Two-Phase Batch OCR/AI Extraction (D267) — เมื่อ submit เจอ 503
+//   AI_FEATURES_UNAVAILABLE (main model ถูก unload ระหว่าง legacy batch OCR phase) แสดง
+//   dialog รอ/ยกเลิกแทน toast error ทันที เฉพาะตอน submit เริ่มต้นเท่านั้น (pollSandboxJob
+//   ที่ poll ทุก 5s อยู่แล้วไม่ต้องเปลี่ยน — 503 ตรงนี้คือคนละ endpoint)
 
 'use client';
 
@@ -24,6 +28,13 @@ import { projectService } from '@/lib/services/project.service';
 import { adminAiService, AiSandboxJobResult, AiRagCitation } from '@/lib/services/admin-ai.service';
 import { toast } from 'sonner';
 import { ensureArray } from '@/components/admin/ai/ai-constants';
+import { useAiUnavailableRetry } from '@/hooks/use-ai-unavailable-retry';
+import { AiUnavailableWaitDialog } from '@/components/ai/ai-unavailable-wait-dialog';
+
+function isAiFeaturesUnavailableError(err: unknown): boolean {
+  const data = err as { error?: { code?: string } } | undefined;
+  return data?.error?.code === 'AI_FEATURES_UNAVAILABLE';
+}
 
 interface SandboxProject {
   publicId: string;
@@ -42,6 +53,14 @@ export default function RagPlaygroundPage() {
   const [isSandboxPolling, setIsSandboxPolling] = useState<boolean>(false);
   const [sandboxProgress, setSandboxProgress] = useState<number>(0);
   const [sandboxStatusText, setSandboxStatusText] = useState<string>('');
+  const {
+    isDialogOpen: isAiUnavailableDialogOpen,
+    isRetrying: isAiUnavailableRetrying,
+    elapsedSeconds: aiUnavailableElapsedSeconds,
+    trigger: triggerAiUnavailableRetry,
+    wait: waitAiUnavailableRetry,
+    cancel: cancelAiUnavailableWait,
+  } = useAiUnavailableRetry();
 
   const { data: projects = [], isLoading: isProjectsLoading } = useQuery<SandboxProject[]>({
     queryKey: ['admin-sandbox-projects'],
@@ -73,6 +92,17 @@ export default function RagPlaygroundPage() {
       setIsSandboxPolling(true);
       toast.success('ส่งคำถามเข้าสู่คิว sandbox สำเร็จ');
     } catch (err) {
+      // D267: main model ถูก unload ระหว่าง legacy batch OCR phase — แสดง dialog รอ/ยกเลิก
+      // แทนการ toast error ทันที (เฉพาะ submit เริ่มต้นเท่านั้น ไม่ใช่ pollSandboxJob)
+      if (isAiFeaturesUnavailableError(err)) {
+        triggerAiUnavailableRetry(async () => {
+          const response = await adminAiService.submitSandboxRag(selectedProject, question);
+          setSandboxJobId(response.requestPublicId);
+          setIsSandboxPolling(true);
+          toast.success('ส่งคำถามเข้าสู่คิว sandbox สำเร็จ');
+        });
+        return;
+      }
       const error = err as { response?: { data?: { message?: string } } };
       toast.error(error.response?.data?.message || 'เกิดข้อผิดพลาดในการส่งคำถาม RAG');
       setSandboxProgress(0);
@@ -314,6 +344,13 @@ export default function RagPlaygroundPage() {
           )}
         </div>
       )}
+      <AiUnavailableWaitDialog
+        open={isAiUnavailableDialogOpen}
+        isRetrying={isAiUnavailableRetrying}
+        elapsedSeconds={aiUnavailableElapsedSeconds}
+        onWait={waitAiUnavailableRetry}
+        onCancel={cancelAiUnavailableWait}
+      />
     </div>
   );
 }

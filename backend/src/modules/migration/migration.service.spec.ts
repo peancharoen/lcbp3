@@ -93,6 +93,7 @@ describe('MigrationService', () => {
     save: jest.fn(),
     find: jest.fn(),
     delete: jest.fn(),
+    update: jest.fn(),
     findAndCount: jest.fn(),
     createQueryBuilder: jest.fn(),
   };
@@ -1592,7 +1593,31 @@ describe('MigrationService', () => {
 
   // ── startExtractBatch ─────────────────────────────────────────────────────────
   describe('startExtractBatch', () => {
-    it('processes multiple items and returns results', async () => {
+    it('0-1 publicId ยังใช้ startExtractQueueItem เดิม (single-doc path ไม่เปลี่ยน)', async () => {
+      mockReviewQueueRepo.findOne.mockResolvedValueOnce({
+        id: 1,
+        publicId: 'uuid-1',
+        status: MigrationReviewStatus.PENDING,
+        aiStatus: null,
+        aiJobId: null,
+        projectId: null,
+        documentNumber: 'DOC-1',
+        details: {},
+      });
+      mockAiBatchQueue.add.mockResolvedValue({ id: 'job-single' });
+      mockReviewQueueRepo.save.mockResolvedValue({});
+
+      const result = await service.startExtractBatch(['uuid-1'], 'idem-1', 1);
+      expect(result.results).toHaveLength(1);
+      expect(result.results[0].publicId).toBe('uuid-1');
+      expect(mockAiBatchQueue.add).toHaveBeenCalledWith(
+        'legacy-ai-enrichment',
+        expect.anything(),
+        expect.anything()
+      );
+    });
+
+    it('D267: N>1 publicIds → enqueue orchestrator job เดียว (legacy-ocr-batch-phase) พร้อม items[] ของทุกเอกสารที่ผ่าน guard, ข้ามรายการที่ไม่ผ่านโดยไม่กระทบรายการอื่น', async () => {
       mockReviewQueueRepo.findOne
         .mockResolvedValueOnce({
           id: 1,
@@ -1614,8 +1639,8 @@ describe('MigrationService', () => {
           documentNumber: 'DOC-2',
           details: {},
         });
-      mockAiBatchQueue.add.mockResolvedValue({ id: 'job-1' });
-      mockReviewQueueRepo.save.mockResolvedValue({});
+      mockAiBatchQueue.add.mockResolvedValue({ id: 'job-batch-1' });
+      mockReviewQueueRepo.update.mockResolvedValue({ affected: 1 });
 
       const result = await service.startExtractBatch(
         ['uuid-1', 'uuid-2'],
@@ -1623,9 +1648,54 @@ describe('MigrationService', () => {
         1
       );
       expect(result.results).toHaveLength(2);
-      expect(result.results[0].publicId).toBe('uuid-1');
-      expect(result.results[1].publicId).toBe('uuid-2');
-      expect(result.results[1].error).toBeDefined();
+      const okResult = result.results.find((r) => r.publicId === 'uuid-1');
+      const errResult = result.results.find((r) => r.publicId === 'uuid-2');
+      expect(okResult).toMatchObject({
+        message: 'AI extraction batch started',
+        jobId: 'job-batch-1',
+      });
+      expect(errResult?.error).toBeDefined();
+      expect(mockAiBatchQueue.add).toHaveBeenCalledTimes(1);
+      expect(mockAiBatchQueue.add).toHaveBeenCalledWith(
+        'legacy-ocr-batch-phase',
+        expect.objectContaining({
+          jobType: 'legacy-ocr-batch-phase',
+          items: [
+            expect.objectContaining({ queueId: 1, queuePublicId: 'uuid-1' }),
+          ],
+        }),
+        expect.anything()
+      );
+      expect(mockReviewQueueRepo.update).toHaveBeenCalledWith(1, {
+        aiStatus: MigrationAiStatus.WAITING,
+        aiJobId: 'job-batch-1',
+      });
+    });
+
+    it('D267: ไม่มีรายการใดผ่าน guard → ไม่ enqueue orchestrator job เลย', async () => {
+      mockReviewQueueRepo.findOne
+        .mockResolvedValueOnce({
+          id: 3,
+          publicId: 'uuid-3',
+          status: MigrationReviewStatus.IMPORTED,
+          aiStatus: null,
+          aiJobId: null,
+        })
+        .mockResolvedValueOnce({
+          id: 4,
+          publicId: 'uuid-4',
+          status: MigrationReviewStatus.RUNNING,
+          aiStatus: MigrationAiStatus.RUNNING,
+          aiJobId: 'existing-job',
+        });
+
+      const result = await service.startExtractBatch(
+        ['uuid-3', 'uuid-4'],
+        'idem-batch-empty',
+        1
+      );
+      expect(result.results).toHaveLength(2);
+      expect(mockAiBatchQueue.add).not.toHaveBeenCalled();
     });
   });
 

@@ -162,4 +162,47 @@ describe('OcrService Parameter Wiring (T066)', () => {
     expect(formData.get('topP')).toBe('0.65');
     expect(formData.get('repeatPenalty')).toBe('1.15');
   });
+
+  it('detectAndExtract ต้อง unload BGE + main model ก่อนเรียก sidecar แล้ว reload กลับใน finally', async () => {
+    await service.detectAndExtract({ pdfPath: '/path/to/test.pdf' });
+    expect(mockOllamaService.unloadModel).toHaveBeenCalledWith(
+      'np-dms-ai:latest'
+    );
+    expect(mockOllamaService.loadModel).toHaveBeenCalledWith(
+      'np-dms-ai:latest',
+      120
+    );
+  });
+
+  it('extractTextOnly ต้องไม่ unload/reload model เอง (caller — batch orchestrator — รับผิดชอบเอง)', async () => {
+    const result = await service.extractTextOnly({
+      pdfPath: '/path/to/test.pdf',
+      documentPublicId: 'doc-batch-1',
+    });
+    expect(result).toEqual({ text: 'OCR Result Text', ocrUsed: true });
+    expect(mockOllamaService.unloadModel).not.toHaveBeenCalled();
+    expect(mockOllamaService.loadModel).not.toHaveBeenCalled();
+    expect(axios.post).toHaveBeenCalledWith(
+      'http://localhost:8765/ocr-upload',
+      expect.any(FormData),
+      expect.objectContaining({ timeout: expect.any(Number) })
+    );
+  });
+
+  it('extractTextOnly ต้องข้าม OCR ถ้า extractedChars เกิน threshold (เหมือน detectAndExtract)', async () => {
+    const result = await service.extractTextOnly({
+      extractedText: 'a'.repeat(200),
+      extractedChars: 200,
+    });
+    expect(result).toEqual({ text: 'a'.repeat(200), ocrUsed: false });
+    expect(axios.post).not.toHaveBeenCalled();
+  });
+
+  it('extractTextOnly ต้องคืน extractedText เดิมถ้าไม่มี pdfPath', async () => {
+    const result = await service.extractTextOnly({
+      extractedText: 'short',
+    });
+    expect(result).toEqual({ text: 'short', ocrUsed: false });
+    expect(axios.post).not.toHaveBeenCalled();
+  });
 });

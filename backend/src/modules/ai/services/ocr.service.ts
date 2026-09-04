@@ -373,14 +373,38 @@ export class OcrService {
     await this.ollamaService.unloadModel(mainModel);
 
     try {
-      // ADR-040 D1: engine เดียว np-dms-ocr — ไม่มี engine selection แล้ว
-      return await this.processWithNpDmsOcr(input);
+      return await this.extractTextOnly(input);
     } finally {
       await this.ollamaService.loadModel(
         mainModel,
         this.ollamaService.getMainKeepAliveSeconds()
       );
     }
+  }
+
+  /**
+   * เหมือน `detectAndExtract()` ทุกประการ ยกเว้น**ไม่ unload/reload model เอง** —
+   * ใช้โดย two-phase batch OCR/AI orchestrator (`legacy-ocr-batch-phase`) ที่ unload
+   * BGE+main model ครั้งเดียวก่อนวน loop เอกสารทั้ง batch แล้ว reload ครั้งเดียวหลังจบ
+   * loop (ลด Ollama model swap จาก 2N เหลือ 2 ครั้งต่อ batch, D267) — caller ต้อง
+   * รับผิดชอบ unload ก่อนเรียกและ reload กลับเองเสมอ ห้ามเรียกตรงจาก path อื่นที่ไม่มี
+   * unload มาก่อน (VRAM จะถูกแย่งจาก BGE/main LLM ตามปกติ ไม่ปลอดภัย)
+   */
+  async extractTextOnly(input: OcrDetectionInput): Promise<OcrDetectionResult> {
+    const extractedText = input.extractedText ?? '';
+    const extractedChars = input.extractedChars ?? extractedText.length;
+
+    if (extractedChars > this.threshold) {
+      return { text: extractedText, ocrUsed: false };
+    }
+
+    if (!input.pdfPath) {
+      this.logger.warn('OCR slow path skipped because pdfPath is missing');
+      return { text: extractedText, ocrUsed: false };
+    }
+
+    // ADR-040 D1: engine เดียว np-dms-ocr — ไม่มี engine selection แล้ว
+    return this.processWithNpDmsOcr(input);
   }
 
   /**

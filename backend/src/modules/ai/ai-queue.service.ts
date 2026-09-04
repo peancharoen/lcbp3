@@ -8,6 +8,17 @@
 // - 2026-08-24: ADR-048 T003 — เพิ่ม single choke-point mutex lock check ในทุก enqueue* method
 //   ตรวจสอบ Redis key ai:model:transitioning (TTL 15s) ก่อน queue.add()
 //   ถ้า lock สับ throw SystemException (503) ตาม ADR-007
+// - 2026-09-04: เพิ่ม lock ที่สอง ai:ocr-batch:active (heartbeat แทน fixed TTL สั้น) สำหรับ
+//   two-phase batch OCR/AI extraction — ระหว่าง phase OCR ทั้ง batch main model ถูก unload
+//   ค้างไว้นานกว่า 15s ปกติมาก จึงแยก lock คนละดวงจาก ai:model:transitioning (ADR-048 เดิม
+//   ออกแบบมาสำหรับการสลับโมเดลสั้นๆ เท่านั้น) — เปลี่ยนชื่อ checkModelTransitioningLock →
+//   checkAiUnavailableLocks ให้เช็คทั้งสอง key (OR) โดย enqueue* call sites เดิมไม่ต้องแก้ไข
+//   Bugfix ที่พบระหว่างทาง: เดิม throw raw HttpException พร้อม custom `code` field เอง แต่
+//   GlobalExceptionFilter (global-exception.filter.ts) เช็ค `instanceof BaseException` ก่อน
+//   — raw HttpException ที่ไม่ใช่ BaseException จะถูก overwrite `code` เป็น 'HTTP_ERROR' เสมอ
+//   (ดู mapStatusToErrorType/ไม่มีการอ่าน custom code เลย) ทำให้ frontend interceptor
+//   (`code === 'AI_FEATURES_UNAVAILABLE'`) ไม่เคย match มาตั้งแต่แรก แก้โดยเปลี่ยนไปใช้
+//   ServiceUnavailableException (BaseException subclass, เหมือน ai-enabled.guard.ts) แทน
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { InjectRedis } from '@nestjs-modules/ioredis';
@@ -22,9 +33,19 @@ import {
   QUEUE_AI_REALTIME,
 } from '../common/constants/queue.constants';
 import { QueueJobItemDto } from './dto/queue-jobs.dto';
+import { ServiceUnavailableException } from '../../common/exceptions';
 
 /** Redis key สำหรับ mutex lock ระหว่าง Ollama model Load/Unload (ADR-048) */
 const REDIS_KEY_MODEL_TRANSITIONING = 'ai:model:transitioning';
+
+/**
+ * Redis key สำหรับ lock "กำลังรัน OCR phase ของทั้ง batch อยู่" — คนละดวงกับ
+ * REDIS_KEY_MODEL_TRANSITIONING เพราะ phase นี้ยาวเป็นนาที (loop หลายเอกสาร) ไม่ใช่การสลับ
+ * โมเดลสั้นๆ แบบ ADR-048 เดิม จึงใช้ heartbeat (ต่ออายุ TTL เป็นระยะ) แทน fixed TTL 15s
+ */
+const REDIS_KEY_OCR_BATCH_ACTIVE = 'ai:ocr-batch:active';
+/** TTL ของ ai:ocr-batch:active — เป็น crash safety net เท่านั้น ต้อง heartbeat ต่ออายุก่อนหมด */
+const OCR_BATCH_LOCK_TTL_SECONDS = 30;
 
 /** Payload สำหรับงาน ingest เอกสารเก่าเข้า AI Pipeline */
 export interface AiIngestJobPayload {
@@ -88,23 +109,72 @@ export class AiQueueService {
   ) {}
 
   /**
-   * ตรวจสอบว่า Ollama กำลังอยู่ระหว่างเปลี่ยน model หรือไม่ (TOCTOU guard)
-   * ถ้ามี lock สับแสดงว่า load/unload กำลังดำเนินการอยู่ — throw 503 เพื่อให้ client retry
-   * @throws HttpException (503) ถ้ามี Redis key ai:model:transitioning อยู่
+   * ตรวจสอบว่า Ollama กำลังอยู่ระหว่างเปลี่ยน model หรือกำลังรัน OCR batch phase อยู่หรือไม่
+   * (TOCTOU guard) — ถ้ามี lock ใดสับ แสดงว่า main model ไม่พร้อมใช้งานชั่วคราว throw 503
+   * เพื่อให้ frontend แสดง dialog รอ/ยกเลิกแล้วให้ client retry เอง
+   * @throws HttpException (503, code AI_FEATURES_UNAVAILABLE) ถ้ามี lock ใดสับอยู่
    */
-  private async checkModelTransitioningLock(): Promise<void> {
-    const locked = await this.redis.get(REDIS_KEY_MODEL_TRANSITIONING);
-    if (locked) {
-      throw new HttpException(
-        {
-          statusCode: HttpStatus.SERVICE_UNAVAILABLE,
-          message: 'Service Unavailable',
-          userMessage:
-            'ระบบ AI กำลังอยู่ระหว่างเปลี่ยนโมเดล กรุณาลองอีกครั้งในอีกไม่กี่วินาที',
-          recoveryAction: 'รอประมาณ 15 วินาทีแล้วลองใหม่',
-        },
-        HttpStatus.SERVICE_UNAVAILABLE
+  private async checkAiUnavailableLocks(): Promise<void> {
+    const [modelTransitioning, ocrBatchActive] = await Promise.all([
+      this.redis.get(REDIS_KEY_MODEL_TRANSITIONING),
+      this.redis.get(REDIS_KEY_OCR_BATCH_ACTIVE),
+    ]);
+    if (modelTransitioning || ocrBatchActive) {
+      throw new ServiceUnavailableException(
+        'AI_FEATURES_UNAVAILABLE',
+        ocrBatchActive
+          ? 'OCR batch phase is running — main model is unloaded'
+          : 'Ollama model is transitioning (load/unload in progress)',
+        ocrBatchActive
+          ? 'ระบบกำลังประมวลผล OCR แบบชุด (batch) อยู่ กรุณารอสักครู่แล้วลองใหม่'
+          : 'ระบบ AI กำลังอยู่ระหว่างเปลี่ยนโมเดล กรุณาลองอีกครั้งในอีกไม่กี่วินาที',
+        ocrBatchActive
+          ? ['รอจนกว่า batch OCR จะเสร็จแล้วลองใหม่']
+          : ['รอประมาณ 15 วินาทีแล้วลองใหม่']
       );
+    }
+  }
+
+  /**
+   * ADR-050 (two-phase batch OCR/AI) — acquire lock "OCR batch phase active" ด้วย atomic
+   * SET NX EX + ownership token (pattern เดียวกับ vram-monitor.service.ts ADR-048 FR-009)
+   * ผู้เรียกต้อง heartbeat ต่ออายุเป็นระยะระหว่างรัน batch แล้วเรียก release เมื่อจบ phase
+   * @returns ownership token ถ้า acquire สำเร็จ, null ถ้ามี batch อื่นกำลังรันอยู่แล้ว
+   */
+  async acquireOcrBatchLock(): Promise<string | null> {
+    const lockToken = `ocr-batch-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const acquired = await this.redis.set(
+      REDIS_KEY_OCR_BATCH_ACTIVE,
+      lockToken,
+      'EX',
+      OCR_BATCH_LOCK_TTL_SECONDS,
+      'NX'
+    );
+    return acquired ? lockToken : null;
+  }
+
+  /**
+   * ต่ออายุ lock "OCR batch phase active" — เรียกเป็นระยะ (เช่นทุกเอกสารใน loop) ระหว่างรัน
+   * batch เพื่อไม่ให้ TTL หมดอายุก่อน phase เสร็จจริง เช็ค ownership token ก่อนต่ออายุเสมอ
+   */
+  async heartbeatOcrBatchLock(lockToken: string): Promise<void> {
+    const currentToken = await this.redis.get(REDIS_KEY_OCR_BATCH_ACTIVE);
+    if (currentToken === lockToken) {
+      await this.redis.expire(
+        REDIS_KEY_OCR_BATCH_ACTIVE,
+        OCR_BATCH_LOCK_TTL_SECONDS
+      );
+    }
+  }
+
+  /**
+   * ปล่อย lock "OCR batch phase active" เฉพาะเมื่อ ownership token ตรงกัน (ป้องกันการลบ lock
+   * ของ batch อื่นที่อาจ acquire ได้หลังจาก TTL ของเราหมดอายุไปแล้ว)
+   */
+  async releaseOcrBatchLock(lockToken: string): Promise<void> {
+    const currentToken = await this.redis.get(REDIS_KEY_OCR_BATCH_ACTIVE);
+    if (currentToken === lockToken) {
+      await this.redis.del(REDIS_KEY_OCR_BATCH_ACTIVE);
     }
   }
 
@@ -113,7 +183,7 @@ export class AiQueueService {
    * @idempotency `jobId = batchId:source` — การส่ง batch เดิมซ้ำจะคืน job ID เดิม ไม่สร้างงานใหม่
    */
   async enqueueIngest(payload: AiIngestJobPayload): Promise<string> {
-    await this.checkModelTransitioningLock();
+    await this.checkAiUnavailableLocks();
     const job = await this.ingestQueue.add('legacy-migration-ingest', payload, {
       ...this.defaultOptions,
       jobId: `${payload.batchId}:${payload.source}`,
@@ -126,7 +196,7 @@ export class AiQueueService {
    * @idempotency `jobId = requestPublicId` — ถ้า request เดิม (UUID เดียวกัน) ถูก submit ซ้ำ BullMQ จะไม่สร้างงานใหม่
    */
   async enqueueRagQuery(payload: AiRagJobPayload): Promise<string> {
-    await this.checkModelTransitioningLock();
+    await this.checkAiUnavailableLocks();
     const job = await this.ragQueue.add('rag-query', payload, {
       ...this.defaultOptions,
       jobId: payload.requestPublicId,
@@ -141,7 +211,7 @@ export class AiQueueService {
   async enqueueVectorDeletion(
     payload: AiVectorDeletionJobPayload
   ): Promise<string> {
-    await this.checkModelTransitioningLock();
+    await this.checkAiUnavailableLocks();
     const job = await this.vectorDeletionQueue.add(
       'delete-document-vectors',
       payload,
@@ -181,7 +251,7 @@ export class AiQueueService {
       extraPayload?: Record<string, unknown>;
     }
   ): Promise<string> {
-    await this.checkModelTransitioningLock();
+    await this.checkAiUnavailableLocks();
     const job = await this.batchQueue.add(
       jobType,
       {
@@ -256,7 +326,7 @@ export class AiQueueService {
    * @idempotency `jobId = rag-prepare:${documentPublicId}:${revisionNumber}` — ป้องกันการรันซ้ำสำหรับ revision เดียวกัน
    */
   async enqueueRagPrepare(payload: RagPrepareJobPayload): Promise<string> {
-    await this.checkModelTransitioningLock();
+    await this.checkAiUnavailableLocks();
     const job = await this.batchQueue.add(
       'rag-prepare',
       {
@@ -288,7 +358,7 @@ export class AiQueueService {
     extractedText: string;
     pdfPath?: string;
   }): Promise<string> {
-    await this.checkModelTransitioningLock();
+    await this.checkAiUnavailableLocks();
     const job = await this.batchQueue.add(
       'embed-document',
       {
@@ -428,7 +498,7 @@ export class AiQueueService {
     queueName: string,
     requestedByUserPublicId: string
   ): Promise<string> {
-    await this.checkModelTransitioningLock();
+    await this.checkAiUnavailableLocks();
     const trackingId = `cf-${queueName}-${uuidv7()}`;
     const statusKey = `ai:clear_failed:job:${trackingId}`;
 

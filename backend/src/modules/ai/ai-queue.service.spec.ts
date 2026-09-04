@@ -49,9 +49,14 @@ describe('AiQueueService', () => {
 
   const mockRedis = {
     get: jest.fn((key: string) => Promise.resolve(store.get(key) ?? null)),
-    set: jest.fn((key: string, value: string, mode?: string, _ttl?: number) => {
-      // Atomic SET NX EX — only succeeds if key doesn't exist
-      if (mode === 'NX' && store.has(key)) {
+    // Bugfix: real ioredis call shape is `set(key, value, 'EX', ttl, 'NX')` — 'NX' is the
+    // 5th positional arg, not the 3rd (which is always the literal string 'EX'). เดิมเช็ค
+    // เฉพาะ arg ตัวที่ 3 (`mode === 'NX'`) จึงไม่เคย true เลย — NX semantics ไม่เคยถูกจำลองจริง
+    // ในเทสไฟล์นี้ (ไม่มีใครสังเกตเพราะไม่มี test เดิมที่พึ่งพา NX ผ่าน mock ตัวนี้โดยตรง)
+    set: jest.fn((...args: unknown[]) => {
+      const [key, value] = args as [string, string];
+      const isNx = args.includes('NX');
+      if (isNx && store.has(key)) {
         return Promise.resolve(null);
       }
       store.set(key, value);
@@ -65,10 +70,7 @@ describe('AiQueueService', () => {
       store.delete(key);
       return Promise.resolve(1);
     }),
-    del: jest.fn((key: string) => {
-      store.delete(key);
-      return Promise.resolve(1);
-    }),
+    expire: jest.fn((_key: string, _ttl: number) => Promise.resolve(1)),
     eval: jest.fn().mockResolvedValue(1),
   };
 
@@ -226,6 +228,82 @@ describe('AiQueueService', () => {
         query: 'test',
       });
       expect(jobId).toBe('new-job');
+    });
+
+    // Bugfix: ยืนยันว่า error ที่ throw จริงมี code = 'AI_FEATURES_UNAVAILABLE' ในตัว response
+    // payload — เดิมใช้ raw HttpException ซึ่ง GlobalExceptionFilter overwrite code เป็น
+    // 'HTTP_ERROR' เสมอ (ไม่มีทางอ่าน custom code ได้เลย) ทำให้ frontend interceptor ที่เช็ค
+    // `code === 'AI_FEATURES_UNAVAILABLE'` ไม่เคย match — ต้องใช้ ServiceUnavailableException
+    // (BaseException subclass) response ถึงจะมี error.code ที่ถูกต้องจริงๆ
+    it('ควร throw ServiceUnavailableException ที่มี error.code = AI_FEATURES_UNAVAILABLE จริง', async () => {
+      store.set('ai:model:transitioning', 'locked');
+      let caught: unknown;
+      try {
+        await service.enqueueRagQuery({
+          requestPublicId: 'req-2',
+          userPublicId: 'u-1',
+          projectPublicId: 'p-1',
+          query: 'test',
+        });
+      } catch (err) {
+        caught = err;
+      }
+      const response = (
+        caught as { getResponse: () => { error: { code: string } } }
+      ).getResponse();
+      expect(response.error.code).toBe('AI_FEATURES_UNAVAILABLE');
+    });
+
+    it('ควร throw Service Unavailable เมื่อมี ocr-batch-active lock (แม้ไม่มี model-transitioning lock)', async () => {
+      store.set('ai:ocr-batch:active', 'ocr-batch-token-1');
+      await expect(
+        service.enqueueRagQuery({
+          requestPublicId: 'req-3',
+          userPublicId: 'u-1',
+          projectPublicId: 'p-1',
+          query: 'test',
+        })
+      ).rejects.toThrow('Service Unavailable');
+      expect(queues[QUEUE_AI_RAG].add).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('OCR batch phase lock (acquireOcrBatchLock/heartbeatOcrBatchLock/releaseOcrBatchLock)', () => {
+    it('ควร acquire lock สำเร็จและคืน ownership token เมื่อยังไม่มีใคร lock', async () => {
+      const token = await service.acquireOcrBatchLock();
+      expect(token).not.toBeNull();
+      expect(store.get('ai:ocr-batch:active')).toBe(token);
+    });
+
+    it('ควร acquire ไม่สำเร็จ (คืน null) เมื่อมี batch อื่น lock ไว้อยู่แล้ว', async () => {
+      const first = await service.acquireOcrBatchLock();
+      expect(first).not.toBeNull();
+      const second = await service.acquireOcrBatchLock();
+      expect(second).toBeNull();
+    });
+
+    it('ควร heartbeat ต่ออายุ lock เฉพาะเมื่อ ownership token ตรงกัน', async () => {
+      const token = await service.acquireOcrBatchLock();
+      await service.heartbeatOcrBatchLock(token as string);
+      expect(mockRedis.expire).toHaveBeenCalledWith('ai:ocr-batch:active', 30);
+    });
+
+    it('ควรไม่ heartbeat (ไม่เรียก expire) ถ้า token ไม่ตรงกับเจ้าของ lock ปัจจุบัน', async () => {
+      await service.acquireOcrBatchLock();
+      await service.heartbeatOcrBatchLock('some-other-stale-token');
+      expect(mockRedis.expire).not.toHaveBeenCalled();
+    });
+
+    it('ควร release lock (ลบ key) เมื่อ ownership token ตรงกัน', async () => {
+      const token = await service.acquireOcrBatchLock();
+      await service.releaseOcrBatchLock(token as string);
+      expect(store.has('ai:ocr-batch:active')).toBe(false);
+    });
+
+    it('ควรไม่ release lock ถ้า token ไม่ตรงกับเจ้าของ lock ปัจจุบัน (ป้องกันลบ lock ของ batch อื่น)', async () => {
+      await service.acquireOcrBatchLock();
+      await service.releaseOcrBatchLock('some-other-stale-token');
+      expect(store.has('ai:ocr-batch:active')).toBe(true);
     });
   });
 

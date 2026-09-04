@@ -75,4 +75,87 @@ describe('useAiChat hook', () => {
     });
     expect(result.current.messages).toEqual([]);
   });
+
+  // ── D267: Two-Phase Batch OCR/AI Extraction — AI_FEATURES_UNAVAILABLE (503) ─────
+  describe('AI_FEATURES_UNAVAILABLE (D267)', () => {
+    function makeUnavailableError() {
+      return {
+        isAxiosError: true,
+        response: {
+          status: 503,
+          data: { error: { code: 'AI_FEATURES_UNAVAILABLE' } },
+        },
+      };
+    }
+
+    beforeEach(() => {
+      vi.mocked(axios.isAxiosError).mockImplementation(
+        (err: unknown): err is import('axios').AxiosError =>
+          !!(err as { isAxiosError?: boolean })?.isAxiosError
+      );
+    });
+
+    it('เปิด dialog แทน append error bubble ทันที เมื่อเจอ 503 AI_FEATURES_UNAVAILABLE', async () => {
+      vi.mocked(axios.post).mockRejectedValueOnce(makeUnavailableError());
+      const { wrapper } = createTestQueryClient();
+      const { result } = renderHook(() => useAiChat(mockContext), { wrapper });
+      await act(async () => {
+        void result.current.sendMessage('สวัสดี');
+      });
+      await waitFor(() => {
+        expect(result.current.isAiUnavailableDialogOpen).toBe(true);
+      });
+      // ข้อความ assistant ยังเป็น placeholder ที่กำลัง stream อยู่ ไม่ใช่ error bubble คงที่
+      expect(result.current.messages[1].isStreaming).toBe(true);
+      expect(result.current.messages[1].content).not.toContain(
+        'ไม่สามารถเชื่อมต่อ AI ได้'
+      );
+    });
+
+    it('กด "รอ" แล้ว retry สำเร็จ → ปิด dialog และแสดงคำตอบจริง', async () => {
+      vi.useFakeTimers();
+      vi.mocked(axios.post)
+        .mockRejectedValueOnce(makeUnavailableError())
+        .mockResolvedValueOnce({
+          data: { content: 'คำตอบหลัง batch OCR เสร็จ', messageId: 'assistant-retry' },
+        });
+      const { wrapper } = createTestQueryClient();
+      const { result } = renderHook(() => useAiChat(mockContext), { wrapper });
+      await act(async () => {
+        void result.current.sendMessage('สวัสดี');
+      });
+      expect(result.current.isAiUnavailableDialogOpen).toBe(true);
+
+      act(() => {
+        result.current.waitAiUnavailableRetry();
+      });
+      expect(result.current.isAiUnavailableRetrying).toBe(true);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(8000);
+      });
+
+      expect(result.current.isAiUnavailableDialogOpen).toBe(false);
+      expect(result.current.messages[1].content).toBe('คำตอบหลัง batch OCR เสร็จ');
+      vi.useRealTimers();
+    });
+
+    it('กด "ยกเลิก" → ปิด dialog และ mark ข้อความ pending เป็นยกเลิกแทน error bubble', async () => {
+      vi.mocked(axios.post).mockRejectedValueOnce(makeUnavailableError());
+      const { wrapper } = createTestQueryClient();
+      const { result } = renderHook(() => useAiChat(mockContext), { wrapper });
+      await act(async () => {
+        void result.current.sendMessage('สวัสดี');
+      });
+      expect(result.current.isAiUnavailableDialogOpen).toBe(true);
+
+      act(() => {
+        result.current.cancelAiUnavailableWait();
+      });
+
+      expect(result.current.isAiUnavailableDialogOpen).toBe(false);
+      expect(result.current.messages[1].isStreaming).toBe(false);
+      expect(result.current.messages[1].content).toBe('ผู้ใช้ยกเลิกการส่งข้อความ');
+    });
+  });
 });
