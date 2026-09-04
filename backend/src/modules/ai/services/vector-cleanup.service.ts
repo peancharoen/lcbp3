@@ -159,12 +159,21 @@ export class VectorCleanupService {
             continue;
           }
 
-          // เช็คกับ DB — หา doc_public_ids ที่ยังมีอยู่ใน correspondences
+          // เช็คกับ DB — หา doc_public_ids ที่ยังมีอยู่ใน correspondences "จริง"
+          // ต้องมีทั้ง (1) correspondence ไม่ถูก soft-delete (deleted_at IS NULL) และ
+          // (2) มี revision อยู่จริงอย่างน้อย 1 รายการ — เดิมเช็คแค่ correspondence row
+          // ยังอยู่ไหม ทำให้เคสที่ revision ถูกลบไปแล้วแต่ correspondence shell ยังอยู่
+          // (เช่น ลบ revision ตรงๆ นอกช่องทาง app หรือ manual DB cleanup) ไม่ถูกจับว่า
+          // orphan เลยแม้ Qdrant จะยังมี vector ของเนื้อหาที่หายไปแล้วอยู่ก็ตาม
           const existingDocs = await this.dataSource.query<
             Array<{ public_id: string }>
-          >('SELECT public_id FROM correspondences WHERE public_id IN (?...)', [
-            docPublicIds,
-          ]);
+          >(
+            `SELECT DISTINCT c.public_id AS public_id
+             FROM correspondences c
+             INNER JOIN correspondence_revisions cr ON cr.correspondence_id = c.id
+             WHERE c.deleted_at IS NULL AND c.public_id IN (?...)`,
+            [docPublicIds]
+          );
 
           const existingSet = new Set(existingDocs.map((d) => d.public_id));
 

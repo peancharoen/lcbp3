@@ -172,6 +172,38 @@ describe('VectorCleanupService', () => {
       expect(qdrantService.deleteByPointIds).toHaveBeenCalledWith(['point-2']);
     });
 
+    it('ควรถือว่า vector เป็น orphan ถ้า correspondence ยังอยู่แต่ไม่มี revision เหลืออยู่เลย (D255/D256 gap fix)', async () => {
+      // Bugfix: เดิม query เช็คแค่ correspondence row ยังอยู่ไหม ไม่ join ตรวจ
+      // correspondence_revisions ทำให้เคสที่ revision ถูกลบไปแล้วแต่ correspondence
+      // shell ยังอยู่ (เช่น manual DB cleanup) ไม่ถูกจับว่า orphan เลย — mock ที่นี่จำลอง
+      // DB คืนค่าว่างเปล่า (เสมือน INNER JOIN ไม่พบ revision) แม้ correspondence จะมีอยู่จริง
+      dataSource.query
+        .mockResolvedValueOnce([{ public_id: 'proj-uuid-1' }])
+        .mockResolvedValueOnce([]); // ไม่มี doc ไหนผ่าน join กับ correspondence_revisions
+
+      qdrantService.scrollByProject.mockResolvedValueOnce({
+        points: [
+          {
+            pointId: 'point-orphan-no-revision',
+            score: 0,
+            payload: { doc_public_id: 'doc-with-no-revision-uuid' },
+          },
+        ],
+        nextOffset: null,
+      });
+
+      await service.orphanScan();
+
+      expect(qdrantService.deleteByPointIds).toHaveBeenCalledWith([
+        'point-orphan-no-revision',
+      ]);
+      const existingDocsQueryCall = (
+        dataSource.query.mock.calls[1] as [string, unknown[]]
+      )[0];
+      expect(existingDocsQueryCall).toMatch(/correspondence_revisions/);
+      expect(existingDocsQueryCall).toMatch(/deleted_at IS NULL/);
+    });
+
     it('ควร scroll batch ต่อเมื่อ nextOffset ไม่ใช่ null', async () => {
       dataSource.query.mockResolvedValue([{ public_id: 'proj-uuid-1' }]);
       dataSource.query.mockResolvedValueOnce([{ public_id: 'proj-uuid-1' }]);
