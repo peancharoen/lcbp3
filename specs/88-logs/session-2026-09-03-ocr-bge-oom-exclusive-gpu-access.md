@@ -35,5 +35,15 @@ User รายงาน `/admin/migration` extract ใช้งานไม่�
 - [x] Backend: `tsc --noEmit` ผ่าน, `eslint` ผ่าน, targeted tests 6/6 ผ่าน, full AI module suite 616/616 ผ่าน
 - [x] Commit + push ไป `origin main` ผ่าน `2git.sh` — squashed เป็น `e420980d`
 - [x] CI/CD pipeline (`.gitea/workflows/ci-deploy.yml`) trigger อัตโนมัติจาก push — build+test+deploy (SSH → `git reset --hard origin/main` → `scripts/deploy.sh`) โดยไม่ต้อง manual rebuild
-- [ ] **ยังไม่ยืนยันผ่าน browser จริง** — ต้องลอง extract ที่ `/admin/migration` อีกครั้งหลัง CI/CD deploy เสร็จ
 - [ ] ตรวจสอบ CI/CD run ล่าสุดว่า pass/fail (user ขอให้รอเฉยๆ ไม่ต้องเช็คตอนนี้)
+
+## Follow-up: loadModel() keep_alive bug พบระหว่าง verify จริง
+
+หลัง deploy user ทดสอบแล้วรายงานว่า np-dms-ocr กับ np-dms-ai ยังโหลดพร้อมกันอยู่ — ตรวจ log พบว่า exclusive-GPU sequence (unload BGE → unload main → OCR → reload main) **ทำงานถูกต้องทุกขั้นตอนจริง** แต่ step สุดท้าย (reload main) ล้มเหลวด้วย `AxiosError 400` ทุกครั้ง
+
+**Root cause:** `ConfigService.get<number>('OLLAMA_MAIN_KEEP_ALIVE_SECONDS', 120)` ไม่ cast ค่าจริง — env var เป็น string เสมอ (`process.env`) ทำให้ `this.mainKeepAliveSeconds` เป็น string `"120"` ตอน runtime ทั้งที่ TypeScript เชื่อว่าเป็น `number`; `loadModel()` ใช้ `typeof keepAlive === 'string'` ตัดสินว่า "format แล้ว" จึงส่ง `keep_alive: "120"` (ไม่มี unit) ไป Ollama 0.30+ โดน 400 — บั๊กนี้มีอยู่เดิม แต่ path นี้ไม่เคยถูกเรียกถี่ขนาดนี้มาก่อน (exclusive-GPU fix เรียก reload ทุกครั้งที่มี OCR)
+
+**Fix:** เปลี่ยนเป็นเช็คว่าเป็นตัวเลขล้วนก่อน (`/^-?\d+$/`) ไม่ว่าจะเป็น JS number หรือ numeric string — commit `3c814acd` (D262), เพิ่ม regression test จำลอง ConfigService numeric-string, 617/617 tests ผ่าน
+
+- [x] แก้ + verify + push `3c814acd`
+- [ ] **ยังไม่ยืนยันผ่าน browser จริงหลัง fix รอบนี้** — ต้องลอง extract อีกครั้งหลัง CI/CD deploy commit ล่าสุดเสร็จ
