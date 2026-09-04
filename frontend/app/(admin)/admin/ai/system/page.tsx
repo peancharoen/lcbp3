@@ -1,6 +1,9 @@
 // File: frontend/app/(admin)/admin/ai/system/page.tsx
 // Change Log:
 // - 2026-08-02: แยก System Toggle ออกจาก AI Console page หลัก
+// - 2026-09-04: relabel "Active Models" → "Configured Models" — health.activeModels คือชื่อ
+//   model ที่ config ไว้ (env) ไม่ใช่สถานะโหลดจริงใน GPU ขณะนี้ (ดู CombinedOllamaEngineCard
+//   สำหรับสถานะจริงจาก vramStatus.loadedModels)
 
 'use client';
 
@@ -44,7 +47,7 @@ export default function SystemTogglePage() {
                 Superadmin ยังสามารถเข้าถึงส่วนทดสอบและดูแลระบบได้ตามสิทธิ์
               </div>
               <div className="text-xs text-muted-foreground flex items-center gap-1.5 pt-1 flex-wrap">
-                <span>Active Models:</span>
+                <span>Configured Models:</span>
                 <Badge
                   variant="outline"
                   className="text-[10px] py-0 px-1.5 border-primary/20 text-primary bg-primary/5 font-semibold"

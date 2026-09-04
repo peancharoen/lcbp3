@@ -2,6 +2,15 @@
 // Change Log:
 // - 2026-08-24: ADR-048 T012/T013 — สร้าง CombinedOllamaEngineCard รวม Ollama status + VRAM table
 //   พร้อม Confirmation Dialog สำหรับ VRAM Unload (cold-start warning)
+// - 2026-09-04: แก้ display bugs ที่ทำให้เข้าใจผิดว่า np-dms-ocr + np-dms-ai โหลดพร้อมกันเกิน VRAM:
+//   (1) เปลี่ยน label "Active models" → "Configured models" (ค่านี้คือชื่อ model ที่ config ไว้
+//       จาก env ไม่ใช่สถานะโหลดจริงใน GPU — health.activeModels มาจาก
+//       ollamaService.getMainModelName()/getOcrModelName() เสมอ ไม่เช็ค /api/ps เลย)
+//   (2) "Loaded on Ollama" badges เปลี่ยนจากอ่าน health.ollama.models (poll 30s) เป็นอ่าน
+//       vramStatus.loadedModels (poll 15s) แหล่งเดียวกับตาราง catalog — กัน snapshot ไม่ตรงกัน
+//       ระหว่าง 2 query ที่ independent poll คนละรอบเวลา
+//   (3) เพิ่มแสดง "อัปเดตล่าสุด" จาก vramStatus.lastUpdated
+//   (4) รวม header badge "X% VRAM" เข้ากับตัวเลข used/total ในบอดี้การ์ดเป็นชุดเดียว
 
 'use client';
 
@@ -35,7 +44,6 @@ import {
   MAIN_MODEL_30B_NAME,
   OCR_MODEL_NAME,
   BGE_MODEL_NAME,
-  ensureArray,
   toCanonicalModel,
 } from './ai-constants';
 
@@ -140,19 +148,13 @@ export function CombinedOllamaEngineCard({
   const queryClient = useQueryClient();
   const [pendingUnloadModel, setPendingUnloadModel] = useState<string | null>(null);
 
-  const rawHealthOllamaModels = ensureArray<string>(health?.ollama?.models);
-  const healthOllamaModels = Array.from(
-    new Set(
-      rawHealthOllamaModels.map((m) => {
-        const name = m.toLowerCase();
-        if (name.includes(OCR_MODEL_NAME)) return OCR_MODEL_NAME;
-        if (name.includes(MAIN_MODEL_30B_NAME)) return MAIN_MODEL_30B_NAME;
-        if (name.includes(MAIN_MODEL_NAME)) return MAIN_MODEL_NAME;
-        return m;
-      })
-    )
-  );
   const vramLoadedModels = normalizeLoadedModels(vramStatus?.loadedModels);
+  // "Loaded on Ollama" badges: อ่านจาก vramStatus (แหล่งเดียวกับตาราง catalog ด้านล่าง) แทน
+  // health.ollama.models — สอง query นี้ poll คนละรอบเวลา (health 30s, vramStatus 15s) ถ้าอ่าน
+  // คนละแหล่งจะโชว์ snapshot ไม่ตรงกันได้ระหว่างโมเดลกำลังสลับ (เช่น batch OCR phase)
+  const loadedModelNames = Array.from(
+    new Set(vramLoadedModels.map((m) => toCanonicalModel(m.modelName)))
+  );
 
   // FR-005: Canonical model catalog — แสดงทั้ง loaded และ unloaded models พร้อม residency status
   const canonicalCatalog = [MAIN_MODEL_NAME, MAIN_MODEL_30B_NAME, OCR_MODEL_NAME];
@@ -254,11 +256,6 @@ export function CombinedOllamaEngineCard({
           ) : (
             renderStatusBadge(health?.ollama?.status)
           )}
-          {vramStatus && (
-            <Badge variant={vramStatus.usagePercent > 85 ? 'destructive' : 'secondary'} className="text-[10px]">
-              {vramStatus.usagePercent}% VRAM
-            </Badge>
-          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -272,12 +269,14 @@ export function CombinedOllamaEngineCard({
               </span>
             </div>
             <div className="space-y-1">
-              <span className="text-[10px] text-muted-foreground">Active models:</span>
+              {/* ชื่อ model ที่ config ไว้ (env) — "ตั้งค่าไว้" ไม่ใช่สถานะโหลดจริงใน GPU ขณะนี้
+                  (ดู "Loaded on Ollama" ด้านขวา หรือตาราง catalog ด้านล่างสำหรับสถานะจริง) */}
+              <span className="text-[10px] text-muted-foreground">Configured models:</span>
               <div className="flex flex-wrap gap-1">
-                <Badge variant="secondary" className="text-[10px] py-0 px-1 bg-primary/10 text-primary border-none">
+                <Badge variant="outline" className="text-[10px] py-0 px-1 text-muted-foreground border-none">
                   Main: {health?.activeModels?.main ?? '-'}
                 </Badge>
-                <Badge variant="secondary" className="text-[10px] py-0 px-1 bg-primary/10 text-primary border-none">
+                <Badge variant="outline" className="text-[10px] py-0 px-1 text-muted-foreground border-none">
                   OCR: {health?.activeModels?.ocr ?? '-'}
                 </Badge>
               </div>
@@ -287,11 +286,14 @@ export function CombinedOllamaEngineCard({
             )}
           </div>
           <div className="space-y-1.5">
-            <span className="text-[10px] text-muted-foreground">Loaded on Ollama:</span>
+            <span className="text-[10px] text-muted-foreground">Loaded on Ollama (live):</span>
             <div className="flex flex-wrap gap-1">
-              {healthOllamaModels.length > 0 ? (
-                healthOllamaModels.map((m) => (
-                  <Badge key={m} variant="secondary" className="text-[10px] py-0 px-1">
+              {loadedModelNames.length > 0 ? (
+                loadedModelNames.map((m) => (
+                  <Badge
+                    key={m}
+                    className="text-[10px] py-0 px-1 border-emerald-500/20 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
+                  >
                     {m}
                   </Badge>
                 ))
@@ -318,7 +320,10 @@ export function CombinedOllamaEngineCard({
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">GPU VRAM Usage</span>
                 <span className="font-semibold text-foreground">
-                  {vramStatus.usedVRAMMB} MB / {vramStatus.totalVRAMMB} MB
+                  {vramStatus.usedVRAMMB} MB / {vramStatus.totalVRAMMB} MB{' '}
+                  <span className={vramStatus.usagePercent > 85 ? 'text-destructive' : 'text-muted-foreground'}>
+                    ({vramStatus.usagePercent}%)
+                  </span>
                 </span>
               </div>
               <Progress value={vramStatus.usagePercent} className="h-2" />
@@ -327,6 +332,10 @@ export function CombinedOllamaEngineCard({
                 <span className="font-semibold text-emerald-500">
                   {vramStatus.totalVRAMMB - vramStatus.usedVRAMMB} MB
                 </span>
+              </div>
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                <span>อัปเดตล่าสุด</span>
+                <span>{new Date(vramStatus.lastUpdated).toLocaleTimeString('th-TH')}</span>
               </div>
             </div>
 

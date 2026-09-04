@@ -51,7 +51,6 @@ import { VramMonitorService } from './vram-monitor.service';
 import { AiPolicyService } from './ai-policy.service';
 import { OllamaService } from './ollama.service';
 import { ExecutionProfile } from '../interfaces/execution-policy.interface';
-import { OcrResidencyDecision } from '../interfaces/ocr-residency.interface';
 
 export interface OcrDetectionInput {
   extractedText?: string;
@@ -140,9 +139,6 @@ export class OcrService {
   private readonly logger = new Logger(OcrService.name);
   private readonly threshold: number;
   private readonly ocrApiUrl: string;
-  private readonly vramHeadroomThresholdMb: number;
-  private readonly ocrResidencyWindowSeconds: number;
-  private readonly mainModelPressureThresholdMb: number;
   constructor(
     private readonly configService: ConfigService,
     @InjectRepository(SystemSetting)
@@ -163,82 +159,6 @@ export class OcrService {
       'OCR_API_URL',
       'http://localhost:8765'
     );
-    this.vramHeadroomThresholdMb = this.configService.get<number>(
-      'VRAM_HEADROOM_THRESHOLD_MB',
-      this.configService.get<number>('AI_VRAM_HEADROOM_THRESHOLD_MB', 3000)
-    );
-    this.ocrResidencyWindowSeconds = this.configService.get<number>(
-      'OCR_RESIDENCY_WINDOW_SECONDS',
-      this.configService.get<number>('AI_OCR_RESIDENCY_WINDOW_SECONDS', 120)
-    );
-    this.mainModelPressureThresholdMb = this.configService.get<number>(
-      'GPU_MAIN_MODEL_PRESSURE_THRESHOLD_MB',
-      this.configService.get<number>(
-        'AI_GPU_MAIN_MODEL_PRESSURE_THRESHOLD_MB',
-        12000
-      )
-    );
-  }
-
-  /**
-   * คำนวณ keep_alive สำหรับ OCR ตามความจุ VRAM และประวัติการรัน
-   */
-  async calculateOcrResidency(
-    activeProfile?: ExecutionProfile | null
-  ): Promise<OcrResidencyDecision> {
-    try {
-      const headroom = await this.vramMonitorService.getVramHeadroom();
-      if (!headroom.querySuccess) {
-        return {
-          keepAliveSeconds: 0,
-          vramHeadroomMb: 0,
-          activeProfile: activeProfile ?? null,
-          reason: 'query-failed',
-        };
-      }
-      if (activeProfile === 'deep-analysis') {
-        this.logger.log(`OCR Residency: deep-analysis active, keep_alive = 0`);
-        return {
-          keepAliveSeconds: 0,
-          vramHeadroomMb: headroom.availableMb,
-          activeProfile,
-          reason: 'deep-analysis-active',
-        };
-      }
-      const isHighPressure =
-        (headroom.mainModelVramMb ?? 0) > this.mainModelPressureThresholdMb ||
-        headroom.availableMb < this.vramHeadroomThresholdMb;
-      if (isHighPressure) {
-        this.logger.log(
-          `OCR Residency: VRAM pressure is high (main: ${headroom.mainModelVramMb}MB, avail: ${headroom.availableMb}MB), keep_alive = 0`
-        );
-        return {
-          keepAliveSeconds: 0,
-          vramHeadroomMb: headroom.availableMb,
-          activeProfile: activeProfile ?? null,
-          reason: 'high-pressure',
-        };
-      }
-      this.logger.log(
-        `OCR Residency: VRAM headroom sufficient (${headroom.availableMb} MB), keep_alive = ${this.ocrResidencyWindowSeconds}`
-      );
-      return {
-        keepAliveSeconds: this.ocrResidencyWindowSeconds,
-        vramHeadroomMb: headroom.availableMb,
-        activeProfile: activeProfile ?? null,
-        reason: 'headroom-sufficient',
-      };
-    } catch (err: unknown) {
-      this.logger.warn(
-        `Failed to calculate OCR residency: ${err instanceof Error ? err.message : String(err)}`
-      );
-      return {
-        keepAliveSeconds: 0,
-        vramHeadroomMb: 0,
-        activeProfile: activeProfile ?? null,
-        reason: 'query-failed',
-      };
-    }
   }
 
   /** ดึงรายการ OCR Engines ทั้งหมด พร้อมตรวจสอบตัวที่กำลัง Active */
@@ -486,7 +406,6 @@ export class OcrService {
         );
         return this.processWithAutoFallback(input);
       }
-      await this.calculateOcrResidency(input.activeProfile);
 
       // Resolve runtime parameters from DB (ocr-extract profile)
       const profile = await this.profileRepo.findOne({
