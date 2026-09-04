@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ExecutionContext, CallHandler } from '@nestjs/common';
+import { ExecutionContext, CallHandler, StreamableFile } from '@nestjs/common';
 import { TransformInterceptor, ApiResponse } from './transform.interceptor';
 import { of, lastValueFrom } from 'rxjs';
 
@@ -91,6 +91,25 @@ describe('TransformInterceptor', () => {
         message: 'Success',
         data,
       });
+    });
+  });
+
+  // ==========================================================
+  // StreamableFile bypass (GET /files/preview/:publicId, /files/:id/download)
+  // instanceToPlain() on a StreamableFile crashes inside StreamableFile.handleError
+  // ("Cannot read properties of undefined (reading 'destroyed')") — must pass through untouched
+  // ==========================================================
+  describe('StreamableFile bypass', () => {
+    it('should return the StreamableFile instance unchanged instead of wrapping/serializing it', async () => {
+      const file = new StreamableFile(Buffer.from('pdf-bytes'));
+      const context = createMockExecutionContext(200, '/api/files/preview/abc');
+      const callHandler = createMockCallHandler(file);
+
+      const result = await lastValueFrom(
+        interceptor.intercept(context, callHandler)
+      );
+
+      expect(result).toBe(file);
     });
   });
 

@@ -1,3 +1,10 @@
+// File: backend/src/common/auth/casl/ability.factory.ts
+// Change Log:
+// - 2026-09-04: parsePermission() รองรับ permission แบบ 3 segment "master_data.<resource>.manage"
+//   (namespace.resource.action) ตาม seed-permissions.sql — เดิม throw Error สำหรับทุก permission
+//   ที่ไม่ใช่ 2 segment ทำให้ PermissionsGuard.canActivate() ล้มทั้ง request สำหรับ user ที่มี role
+//   ถือ permission กลุ่มนี้ (พังทุก RBAC-guarded endpoint ไม่ใช่แค่ master data)
+
 import { Injectable } from '@nestjs/common';
 import { Ability, AbilityBuilder, AbilityClass } from '@casl/ability';
 import { User } from '../../../modules/user/entities/user.entity';
@@ -133,6 +140,16 @@ export class AbilityFactory {
     const parts = permissionName.split('.');
     if (parts.length === 2) {
       const [subject, action] = parts;
+      return [action, subject];
+    }
+
+    // seed-permissions.sql มี master_data.<resource>.manage (3 segments) เช่น
+    // "master_data.correspondence_type.manage" — namespace.resource.action แทนที่จะเป็น
+    // subject.action ธรรมดา ใช้ segment สุดท้ายเป็น action และรวมส่วนที่เหลือเป็น subject
+    // เพื่อไม่ให้ throw ทำให้ createForUser() ล้มทั้ง request สำหรับ user ที่มี permission นี้
+    if (parts.length === 3 && parts[0] === 'master_data') {
+      const action = parts[parts.length - 1];
+      const subject = parts.slice(0, -1).join('.');
       return [action, subject];
     }
 

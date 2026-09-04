@@ -1,13 +1,18 @@
-// File: src/common/interceptors/transform.interceptor.ts
-// Fix #1: แก้ไข `any` type ให้ถูกต้องตาม nestjs-best-practices (TypeScript Strict Mode)
-// Fix #2: Bypass /metrics endpoint — Prometheus ต้องการ raw text exposition format,
-//         ห้าม wrap ด้วย ApiResponse envelope (ทำให้ Prometheus parse ไม่ได้)
+// File: backend/src/common/interceptors/transform.interceptor.ts
+// Change Log:
+// - Fix #1: แก้ไข `any` type ให้ถูกต้องตาม nestjs-best-practices (TypeScript Strict Mode)
+// - Fix #2: Bypass /metrics endpoint — Prometheus ต้องการ raw text exposition format,
+//   ห้าม wrap ด้วย ApiResponse envelope (ทำให้ Prometheus parse ไม่ได้)
+// - 2026-09-04: Bypass StreamableFile — instanceToPlain() crash เมื่อเจอ StreamableFile
+//   ("Cannot read properties of undefined (reading 'destroyed')") ทำให้ GET /files/preview/:publicId
+//   และ /files/:id/download พังทุกครั้ง
 
 import {
   Injectable,
   NestInterceptor,
   ExecutionContext,
   CallHandler,
+  StreamableFile,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -63,6 +68,13 @@ export class TransformInterceptor<T>
 
     return next.handle().pipe(
       map((data: T) => {
+        // Bypass: StreamableFile (file download/preview) ต้องส่ง stream ดิบออกไป
+        // instanceToPlain() จะเดินเข้าไปใน internal stream ของ StreamableFile และ crash
+        // ("Cannot read properties of undefined (reading 'destroyed')") เพราะมันไม่ใช่ DTO ธรรมดา
+        if (data instanceof StreamableFile) {
+          return data;
+        }
+
         const response = context
           .switchToHttp()
           .getResponse<{ statusCode: number }>();

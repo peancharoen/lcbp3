@@ -38,6 +38,44 @@ describe('AbilityFactory', () => {
     });
   });
 
+  describe('master_data.* namespaced permissions (3-segment)', () => {
+    it('should not throw and should grant permission for master_data.<resource>.manage', () => {
+      const user = createMockUser({
+        assignments: [
+          createMockAssignment({
+            organizationId: undefined,
+            projectId: undefined,
+            contractId: undefined,
+            permissionNames: ['master_data.correspondence_type.manage'],
+          }),
+        ],
+      });
+
+      expect(() => factory.createForUser(user, {})).not.toThrow();
+      const ability = factory.createForUser(user, {});
+      expect(ability.can('manage', 'master_data.correspondence_type')).toBe(
+        true
+      );
+    });
+
+    it('should still throw for a genuinely malformed permission (non master_data 3-segment)', () => {
+      const user = createMockUser({
+        assignments: [
+          createMockAssignment({
+            organizationId: undefined,
+            projectId: undefined,
+            contractId: undefined,
+            permissionNames: ['foo.bar.baz'],
+          }),
+        ],
+      });
+
+      expect(() => factory.createForUser(user, {})).toThrow(
+        'Invalid permission format: foo.bar.baz'
+      );
+    });
+  });
+
   describe('Organization Level', () => {
     it('should grant permissions for matching organization', () => {
       const user = createMockUser({
