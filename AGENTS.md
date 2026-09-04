@@ -360,6 +360,10 @@ Tier 2 (code review): File headers, JSDoc, test coverage, cache invalidation, i1
 Tier 3 (specialized): Workflow, AI integration, performance.
 Tier 4 (guidelines): Prettier, comments.
 
+> **Commit Discipline (D264):** commit local ทันทีหลังแก้ไข/อัปเดตงานแต่ละจุดเสร็จ — ห้ามปล่อยเป็น uncommitted ค้างไว้
+> (uncommitted change เป็นจุดเสี่ยงที่เคยทำให้งานหาย — ดู `memory/project-memory-override.md` D264)
+> Push ไป `origin main` ทำผ่าน `2git.sh` เท่านั้น และต้องมี explicit authorization จาก user ต่อครั้งเสมอ — ห้าม push เอง
+
 ---
 
 ## Collaboration & Sub-agents Commands

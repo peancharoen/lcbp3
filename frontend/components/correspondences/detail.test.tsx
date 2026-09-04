@@ -3,16 +3,21 @@
 // - 2026-06-13: Initial creation - test coverage for CorrespondenceDetail component
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { CorrespondenceDetail } from './detail';
 import { useSubmitCorrespondence, useProcessWorkflow, useCancelCorrespondence } from '@/hooks/use-correspondence';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { Correspondence } from '@/types/correspondence';
+import apiClient from '@/lib/api/client';
 
 vi.mock('@/hooks/use-correspondence', () => ({
   useSubmitCorrespondence: vi.fn(),
   useProcessWorkflow: vi.fn(),
   useCancelCorrespondence: vi.fn(),
+}));
+
+vi.mock('@/lib/api/client', () => ({
+  default: { get: vi.fn() },
 }));
 
 vi.mock('@/lib/stores/auth-store', () => ({
@@ -162,6 +167,24 @@ describe('CorrespondenceDetail Component', () => {
     expect(screen.getByText('Recipient Org')).toBeInTheDocument();
     expect(screen.getByText('ORG-CC')).toBeInTheDocument();
     expect(screen.getByText('test-file.pdf')).toBeInTheDocument();
+  });
+
+  it('ควรดาวน์โหลดไฟล์แนบผ่าน apiClient (/files/preview/:publicId) แทนการ navigate ไป file.filePath ตรงๆ (bugfix: 404 จาก internal container path)', async () => {
+    const mockBlob = new Blob(['pdf-bytes'], { type: 'application/pdf' });
+    vi.mocked(apiClient.get).mockResolvedValue({ data: mockBlob });
+    global.URL.createObjectURL = vi.fn().mockReturnValue('blob:mock-url');
+    global.URL.revokeObjectURL = vi.fn();
+
+    render(<CorrespondenceDetail data={mockCorrespondence} />);
+    const downloadBtn = screen.getByRole('button', { name: 'Download test-file.pdf' });
+    fireEvent.click(downloadBtn);
+
+    await waitFor(() => {
+      expect(apiClient.get).toHaveBeenCalledWith(
+        '/files/preview/019505a1-7c3e-7000-8000-file1111111',
+        { responseType: 'blob' }
+      );
+    });
   });
 
   it('ควรแสดงปุ่มและส่งคำขอเมื่อกด Submit for Review ในกรณีที่เป็น DRAFT', () => {

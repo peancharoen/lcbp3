@@ -23,6 +23,8 @@ import { FilePreviewModal } from '@/components/common/file-preview-modal';
 import type { WorkflowAttachmentSummary } from '@/types/workflow';
 import { correspondenceService } from '@/lib/services/correspondence.service';
 import { useRouter } from 'next/navigation';
+import apiClient from '@/lib/api/client';
+import { toast } from 'sonner';
 
 interface CorrespondenceDetailProps {
   data: Correspondence;
@@ -80,6 +82,30 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
 
   const toRecipients = data.recipients?.filter((r) => normalizeRecipientType(r.recipientType) === 'TO') || [];
   const ccRecipients = data.recipients?.filter((r) => normalizeRecipientType(r.recipientType) === 'CC') || [];
+
+  // Bugfix: ปุ่ม Download เดิมใช้ `<a href={file.filePath}>` ซึ่งเป็น path ภายใน container
+  // ของ backend (เช่น /app/uploads/permanent/...) — ไม่ใช่ URL ที่ frontend เข้าถึงได้ ทำให้ 404
+  // เสมอ นอกจากนี้ raw <a href> navigation ก็ไม่แนบ JWT Authorization header ด้วย (เหตุผลเดียวกับ
+  // FilePreviewModal) จึงต้องดึงผ่าน apiClient (แนบ JWT อัตโนมัติ) แล้วแปลงเป็น BlobURL ก่อน trigger
+  // ดาวน์โหลดจริง เหมือน pattern ใน file-preview-modal.tsx
+  const handleDownloadAttachment = async (file: WorkflowAttachmentSummary) => {
+    if (!file.publicId) return;
+    try {
+      const res = await apiClient.get(`/files/preview/${file.publicId}`, {
+        responseType: 'blob',
+      });
+      const blobUrl = URL.createObjectURL(res.data as Blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = file.originalFilename ?? 'download';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      toast.error('ไม่สามารถดาวน์โหลดไฟล์ได้ กรุณาลองใหม่');
+    }
+  };
 
   const handleSubmit = () => {
     if (confirm('Are you sure you want to submit this correspondence?')) {
@@ -336,13 +362,16 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
               {description && description !== '-' && (
                 <div>
                   <h3 className="font-semibold mb-2">Description</h3>
-                  <p className="text-gray-700 whitespace-pre-wrap">{description}</p>
+                  <p className="whitespace-pre-wrap">{description}</p>
                 </div>
               )}
               {(currentRevision?.body || currentRevision?.remarks) && (
                 <div>
                   <h3 className="font-semibold mb-2">Content</h3>
-                  <div className="text-gray-700 whitespace-pre-wrap p-3 bg-muted/10 rounded-md border max-h-[60vh] overflow-y-auto custom-scrollbar">
+                  {/* หน้านี้เป็น read-only display ทั้งหมด (ไม่มี field ไหนแก้ไขได้ในหน้านี้) —
+                      ข้อความ (value) ต้องใช้สีข้อความปกติเสมอเพื่อความคมชัด/อ่านง่าย เหมือนกับ
+                      ฝั่ง Information sidebar (ด้านล่าง) ที่ mute เฉพาะ label ไม่ mute ค่าตัวเนื้อหา */}
+                  <div className="whitespace-pre-wrap p-3 bg-muted/10 rounded-md border max-h-[60vh] overflow-y-auto custom-scrollbar">
                     {currentRevision?.body && (
                       <div className="whitespace-pre-wrap">
                         {currentRevision.body}
@@ -351,7 +380,7 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
                     {currentRevision?.remarks && (
                       <div className={`${currentRevision?.body ? 'mt-4 pt-3 border-t border-muted' : ''}`}>
                         <h4 className="font-semibold text-sm text-muted-foreground mb-1">Remarks</h4>
-                        <p className="text-gray-600 italic whitespace-pre-wrap">{currentRevision.remarks}</p>
+                        <p className="italic whitespace-pre-wrap">{currentRevision.remarks}</p>
                       </div>
                     )}
                   </div>
@@ -389,15 +418,13 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm" asChild>
-                            <a
-                              href={file.filePath}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              aria-label={`Download ${file.originalFilename}`}
-                            >
-                              <Download className="h-4 w-4" />
-                            </a>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDownloadAttachment(file)}
+                            aria-label={`Download ${file.originalFilename}`}
+                          >
+                            <Download className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
@@ -486,7 +513,7 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
                   <hr />
                   <div>
                     <p className="font-medium text-muted-foreground">Remarks</p>
-                    <p className="mt-1 text-sm text-gray-600 italic whitespace-pre-wrap">
+                    <p className="mt-1 text-sm italic whitespace-pre-wrap">
                       {currentRevision.remarks}
                     </p>
                   </div>
