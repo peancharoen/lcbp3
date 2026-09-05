@@ -249,6 +249,7 @@
 | D271  | **แม้แต่ local commit ที่สร้างเสร็จแล้ว (ไม่ใช่แค่ uncommitted change แบบ D264) ก็หายจาก branch ได้บนเครื่องนี้ — พบหลักฐานจาก `git reflog` จริง ไม่ใช่แค่สงสัย** — commit `af1694d7` (docs-only, สร้างสำเร็จ ยืนยันด้วย `git show af1694d7` ได้ผลจริง) หายไปจาก branch history ระหว่างช่วงที่ทำงานต่อ (`git log --oneline af1694d7..9f110fc9` แสดงว่า commit ถัดไปไม่มี af1694d7 เป็น parent, แปลว่ามี `git reset --soft origin/main` เกิดขึ้นแทรกกลางระหว่างสอง commit โดยที่ไม่ใช่ฝีมือของ session นี้เอง) `git reflog` ยัง trace เจอ (`HEAD@{6}`) ก็เลยกู้เนื้อหากลับมาใส่ใหม่ได้ทัน แต่ยืนยันว่าความเสี่ยง "หลายเครื่องมือ (Devin/Claude/Codex) รันพร้อมกันบน `/opt/np-dms-lcbp3` เดียวกันไม่มี worktree แยก" (บันทึกไว้ก่อนหน้าใน "พบเครื่องนี้รัน...พร้อมกัน" ด้านล่าง) ใหญ่กว่าที่ D264 ระบุไว้เดิม (ที่พูดถึงแค่ uncommitted change) — **ถ้าทำ commit สำคัญแล้วจะ push, ให้ `git log --oneline -3` + `git show <hash> --stat` ยืนยันซ้ำก่อนเชื่อว่า commit นั้นยังอยู่จริง อย่าเชื่อแค่ output ตอน commit สำเร็จ** โด                                                                                                                                                                                                                                                                                                                   |
 | D272  | **Two-Phase Batch OCR/AI Extraction E2E verify ผ่านบน production (Session 2026-09-05)** — ใช้ MCP Playwright browser ทดสอบจริง: ingest Excel (5 items) → "Start Extract (5)" → BullMQ batch queue 1 active → ส่ง RAG Sandbox query ระหว่าง OCR batch → ได้ 503 AI_FEATURES_UNAVAILABLE → **AiUnavailableWaitDialog โผล่จริง** พร้อมปุ่ม "รอ"/"ยกเลิก" (ไม่ใช่ error เงียบๆ หรือ cold-start ช้าๆ) → คลิก "ยกเลิก" → dialog ปิด, form re-enabled, toast แจ้ง; VRAM Management display ทำงาน (np-dms-ocr loaded 7283 MB, np-dms-ai notLoaded); UUID publicId ใน URL เป็น UUIDv7 ทั้งหมด; responsive 375px + 1280px ผ่าน; cleanup 5 test items ออกจาก queue แล้ว                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Session 2026-09-05                                                                                                                                                                                                                                                                                                                   |
 | D273  | **`react-i18next` ติดตั้งไว้ใน `frontend/package.json` แต่ไม่ได้ init ด้วย `initReactI18next` — โปรเจกต์ใช้ custom `useTranslations` hook จาก `@/hooks/use-translations` แทน** — `HostMetricsCard.tsx` + `CombinedOllamaEngineCard.tsx` import `useTranslation` จาก `react-i18next` โดยตรงทำให้เกิด warning `NO_I18NEXT_INSTANCE` และแสดง raw keys เช่น `ai.hostMetrics.title` บน AI Console — แก้เปลี่ยนเป็น `useTranslations` จาก `@/hooks/use-translations` (return `t` function โดยตรง ไม่ใช่ `{ t }` destructuring); ต้อง deploy frontend ใหม่เพื่อให้ผลลัพธ์เห็นบน production; **ควรพิจารณา remove `react-i18next` + `i18next` + `i18next-browser-languagedetector` ออกจาก `package.json` ถ้าไม่มี component อื่นใช้**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Session 2026-09-05                                                                                                                                                                                                                                                                                                                   | ยเฉพาะถ้ามีช่วงเวลาห่างระหว่าง commit กับ push/verify ครั้งถัดไป                                       | Session 2026-09-04 |
+| D274  | **CI/CD Run #653 (commit `1a95b07c`) Failed — frontend test timeout บน ASUSTOR runner (Session 2026-09-05)** — 4 tests ล้มเหลวด้วย "Test timed out in 30000ms": `user-nav.test.tsx:38`, `template-editor.test.tsx:67`, `SandboxTabs.test.tsx:78`, `ocr-engine-selector.test.tsx:53`; ทั้ง 4 tests ใช้เวลา ~31s (เกิน default 30s timeout); มี `[vitest-pool]: Timeout terminating forks worker` + `[vitest-pool-runner]: Timeout waiting for worker to respond` — เป็น **resource starvation บน runner ไม่ใช่ code bug** (run #652/#651 ก่อนหน้าผ่านด้วยชุด test เดียวกัน); **แก้: เพิ่ม `testTimeout` ใน `vitest.config.ts` หรือ retrigger CI**; Run #654 (commit `cdbbee57`) ยัง Running อาจจะเจอปัญหาเดียวกัน; **deploy ยังไม่เกิดเพราะ build fail → deploy blocked** | Session 2026-09-05 |
 
 ## Environment & Services
 
@@ -335,7 +336,11 @@ D265-D271 ด้านบน
 - [x] ตรวจสอบ `ai-ingest`/`veto-notifications` queue ไม่มี `@Processor` consumer จริง (Session 2026-09-05) —
       **ยืนยันแล้ว: ไม่มี consumer** — grep `@Processor(` ทั้ง backend พบ 10 processors แต่ไม่มี ai-ingest หรือ
       veto-notifications — dead code candidate (queue constants ประกาศไว้แต่ไม่มี consumer)
-- [ ] พิจารณา `np-dms-ai-30b` (17.7GB > GPU 16.3GB) — ต้องมี partial GPU offload config หรือเลิกใช้บน GPU ขนาดนี้
+- [x] พิจารณา `np-dms-ai-30b` (17.7GB > GPU 16.3GB) — **ตรวจแล้ว (Session 2026-09-05)**:
+      โมเดล 30.5B Q4_K_M (qwen3moe family) ~17.7GB; ไม่มี explicit `num_gpu` config ใน Modelfile →
+      Ollama จะทำ partial GPU offload อัตโนมัติ (บาง layers ใน GPU, ที่เหลือใน CPU RAM);
+      แนะนำ: เก็บเป็น optional variant ใน VRAM catalog (admin โหลดได้เพื่อทดสอบ) แต่ใช้ `np-dms-ai` (8b)
+      เป็น main model เพราะ 30b ช้ากว่าจาก CPU fallback
 - [ ] **พบเครื่องนี้รัน Devin/Claude/Codex agent พร้อมกันบน `/opt/np-dms-lcbp3` เดียวกันไม่มี worktree แยก** — สงสัยเป็นสาเหตุที่ไฟล์ที่แก้ไข (ไม่ใช่ไฟล์สร้างใหม่) ถูก revert เงียบๆ ซ้ำหลายครั้งใน session เดียว (`bullmq-coordination.md` [เกิดซ้ำ 2 รอบ], `bullmq.config.ts`, `CONTEXT.md`+`memory/project-memory-override.md` [รอบแรก]) — ยังไม่ได้ยืนยัน root cause 100% แต่ควรพิจารณา worktree isolation ต่อ agent
 - [x] ตรวจสอบ uptime-kuma push monitor ของ rclone cron (Session 2026-09-05) —
       **crontab ใช้ `&&`/`||` structure ที่ถูกต้อง** (rclone success → push up, rclone fail → push down);
@@ -359,7 +364,9 @@ D265-D271 ด้านบน
       (Session 2026-09-05 ตรวจด้วย MCP MariaDB: `SHOW TABLES LIKE 'pending_vector_deletions'` พบ;
       `SHOW CREATE TABLE` ยืนยัน structure ตรงกับ SQL delta ทุก column/index/comment)
 - [ ] **E2E test**: สร้าง/index Correspondence → ยืนยัน Qdrant มี vectors → hardDelete → ยืนยัน Qdrant ล้าง
-- [ ] **ตรวจสอบ cron jobs** รันจริงหลัง deploy (ดู logs ของ VectorCleanupService)
+- [x] **ตรวจสอบ cron jobs** รันจริงหลัง deploy — **ยืนยันแล้ว (Session 2026-09-05)**:
+      `docker logs backend` พบ `VectorCleanupService retryPendingDeletions: processed=0, completed=0, failed=0`
+      เวลา 09:30:00 — cron รันจริงทุก 15 นาทีตาม schedule
 - [x] **Commit + push** ไป Gitea — **already pushed** ใน commit `643c3d73` (21 files, 1809 insertions)
 
 ### OCR Leakage Root Cause + Tag.public_id Consolidation (Session 2026-09-01) ✅ Complete (pending Re-Extract E2E)
@@ -375,8 +382,8 @@ D265-D271 ด้านบน
 - [x] Backend build/lint/2254 tests pass
 - [x] Commits `5858e3a2` + `ed17d049`
 - [ ] **Re-Extract E2E ผ่าน browser** — ยังคืน OCR_FAILED บางหน้า (leakage ยังเกิดบาง page แม้ direct test สะอาด)
-- [ ] **เพิ่ม retry/unload-on-leakage logic ใน sidecar** — เมื่อ leakage detected ให้ unload model + retry ครั้งเดียว
-- [ ] **Push commits ไป Gitea** — `5858e3a2` + `ed17d049` ยังไม่ได้ push
+- [ ] **เพิ่ม retry/unload-on-leakage logic ใน sidecar** — เมื่อ leakage detected ให้ unload model + retry ครั้งเดียว (deferred — user เลือกเก็บไว้ทำทีหลัง Session 2026-09-05)
+- [x] **Push commits ไป Gitea** — `5858e3a2` + `ed17d049` **already pushed** (verified Session 2026-09-05: ทั้งสอง commit อยู่ใน `origin/main`)
 
 ### OCR Prompt Leakage + Re Extract UI (Session 2026-09-01) ✅ Complete
 
@@ -388,10 +395,10 @@ D265-D271 ด้านบน
 - [x] รักษา preview metadata ด้วย `details` merge แทน replace
 - [x] Verification: backend build/lint, frontend build/test, sidecar tests
 - [x] Commit `d70eb697` + pre-commit hooks ผ่าน
-- [ ] Restart backend container เพื่อใช้ `OcrService` ใหม่
-- [ ] Deploy frontend ผ่าน Gitea Actions
+- [ ] Restart backend container เพื่อใช้ `OcrService` ใหม่ — รอ CI/CD #653/#654 deploy อัตโนมัติ
+- [ ] Deploy frontend ผ่าน Gitea Actions — รอ CI/CD #653/#654 (Running 09:32, ~12-13m)
 - [ ] ทดสอบ Re Extract กับ QC-0001/QC-0002 จริง
-- [ ] สร้าง `ocr_user` prompt type ใน AI Admin Console ถ้าต้องการปรับ user prompt
+- [x] สร้าง `ocr_user` prompt type ใน AI Admin Console — **มีอยู่แล้วใน DB** (verified Session 2026-09-05: `is_active=1`, `display_name="OCR User Prompt"`)
 
 ### Feature 251 Prompt Types Domain Rename (Session 2026-09-01) ✅ Complete
 
