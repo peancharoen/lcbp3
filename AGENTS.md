@@ -363,6 +363,7 @@ Tier 4 (guidelines): Prettier, comments.
 > **Commit Discipline (D264):** commit local ทันทีหลังแก้ไข/อัปเดตงานแต่ละจุดเสร็จ — ห้ามปล่อยเป็น uncommitted ค้างไว้
 > (uncommitted change เป็นจุดเสี่ยงที่เคยทำให้งานหาย — ดู `memory/project-memory-override.md` D264)
 > Push ไป `origin main` ทำผ่าน `2git.sh` เท่านั้น และต้องมี explicit authorization จาก user ต่อครั้งเสมอ — ห้าม push เอง
+> **หลาย conversation พร้อมกัน:** ใช้ branch แยกตาม conversation และอ่าน `memory/branch-workflow.md` สำหรับ naming convention + workflow
 
 ---
 
