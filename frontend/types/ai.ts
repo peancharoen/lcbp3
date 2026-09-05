@@ -3,16 +3,7 @@
 // Change Log:
 // - 2026-08-25: D161 — ลบ dead types (AiMigrationLogStatus, AiMigrationLog, ExtractDocumentDto, AiMigrationUpdateDto, AiPaginatedResult) ที่เกี่ยวข้องกับ migration_logs (ADR-020 era)
 //   สงวน ExtractionResult ไว้ชั่วคราวเพราะ DocumentComparisonView ยังอ้างอิงอยู่ (dead component — จะ clean up ใน D162)
-
-// ผลลัพธ์จาก AI Extraction (ใช้โดย DocumentComparisonView — dead component ที่ยังไม่ได้ clean up)
-export interface ExtractionResult {
-  migrationLogPublicId: string;
-  status: 'processing' | 'completed' | 'failed';
-  extractedMetadata?: Record<string, unknown>;
-  confidenceScore?: number;
-  action?: string;
-  processingTimeMs?: number;
-}
+// - 2026-09-05: D162 follow-up — ลบ ExtractionResult แล้ว (DocumentComparisonView ถูกลบ — dead component ไม่มี caller)
 
 // Feedback สำหรับปรับปรุงความแม่นยำ AI
 export interface AiFeedbackDto {

@@ -197,10 +197,12 @@ export class AiQdrantService implements OnModuleInit {
       actualSparseVector = sparseVectorOrTopK;
     }
 
-    // Fallback: หากไม่มี sparse vector ให้ประมวลผลผ่าน client.search สำหรับการทดสอบและ compatibility
+    // Fallback: หากไม่มี sparse vector ให้ใช้ dense-only query ผ่าน named vector bge_dense
+    // (client.search ถูกลบออกใน @qdrant/js-client-rest 1.19 — ใช้ query API แทน)
     if (actualSparseVector.indices.length === 0) {
-      const results = await this.client.search(AI_COLLECTION_NAME, {
-        vector: denseVector,
+      const results = await this.client.query(AI_COLLECTION_NAME, {
+        query: denseVector,
+        using: 'bge_dense',
         limit: actualTopK,
         filter: {
           must: [
@@ -210,11 +212,17 @@ export class AiQdrantService implements OnModuleInit {
         with_payload: true,
       });
 
-      return results.map((result) => ({
-        pointId: result.id,
-        score: result.score ?? 0,
-        payload: result.payload ?? {},
-      }));
+      return results.points.map(
+        (result: {
+          id: string | number;
+          score: number;
+          payload?: Record<string, unknown> | null;
+        }) => ({
+          pointId: result.id,
+          score: result.score ?? 0,
+          payload: result.payload ?? {},
+        })
+      );
     }
 
     const results = await this.client.query(AI_COLLECTION_NAME, {

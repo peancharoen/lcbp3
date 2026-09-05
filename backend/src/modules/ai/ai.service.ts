@@ -25,7 +25,6 @@ import {
   ConflictException,
 } from '../../common/exceptions';
 import { AiAuditLog, AiAuditStatus } from './entities/ai-audit-log.entity';
-import { AiValidationService } from './ai-validation.service';
 import { CreateAiJobDto } from './dto/create-ai-job.dto';
 import { SubmitAiJobDto } from './dto/submit-ai-job.dto';
 import { AiJobResponseDto } from './dto/ai-job-response.dto';
@@ -137,7 +136,6 @@ export class AiService {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly aiValidationService: AiValidationService,
     private readonly aiPolicyService: AiPolicyService,
     @InjectRepository(AiAuditLog)
     private readonly aiAuditLogRepo: Repository<AiAuditLog>,

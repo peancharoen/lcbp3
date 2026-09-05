@@ -2055,7 +2055,7 @@ services:
       TZ: 'Asia/Bangkok'
       NODE_ENV: 'production'
       N8N_PUBLIC_URL: 'https://n8n.np-dms.work/'
-      WEBHOOK_URL: 'https://n8n.np-dms.work/'
+      N8N_WEBHOOK_URL: 'https://n8n.np-dms.work/'
       N8N_HOST: 'n8n.np-dms.work'
       N8N_PORT: 5678
       N8N_PROTOCOL: 'https'

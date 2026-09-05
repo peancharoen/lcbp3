@@ -27,6 +27,7 @@ export function AiChatPanel({ context, isOpen, onClose, onToggle }: AiChatPanelP
     sendMessage,
     clearHistory,
     isLoading,
+    isColdStartLikely,
     isAiUnavailableDialogOpen,
     isAiUnavailableRetrying,
     aiUnavailableElapsedSeconds,
@@ -95,6 +96,7 @@ export function AiChatPanel({ context, isOpen, onClose, onToggle }: AiChatPanelP
         messages={messages}
         isLoading={isLoading}
         onSuggestedActionClick={handleSuggestedAction}
+        isColdStartLikely={isColdStartLikely}
       />
       <AiChatInput onSend={sendMessage} isLoading={isLoading} />
       <AiUnavailableWaitDialog

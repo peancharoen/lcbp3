@@ -89,13 +89,11 @@ describe('AiQdrantService', () => {
       ).rejects.toThrow('AI_QDRANT_PROJECT_SCOPE_REQUIRED');
     });
 
-    it('ควรเรียก client.search เมื่อไม่มี sparse vector (dense-only fallback)', async () => {
-      const mockSearch = jest
-        .fn()
-        .mockResolvedValue([
-          { id: 'point-1', score: 0.95, payload: { doc_type: 'RFA' } },
-        ]);
-      getClientMock().search = mockSearch;
+    it('ควรเรียก client.query ด้วย bge_dense เมื่อไม่มี sparse vector (dense-only fallback)', async () => {
+      const mockQuery = jest.fn().mockResolvedValue({
+        points: [{ id: 'point-1', score: 0.95, payload: { doc_type: 'RFA' } }],
+      });
+      getClientMock().query = mockQuery;
 
       const results = await service.search(
         'proj-uuid',
@@ -104,10 +102,11 @@ describe('AiQdrantService', () => {
         5
       );
 
-      expect(mockSearch).toHaveBeenCalledWith(
+      expect(mockQuery).toHaveBeenCalledWith(
         'lcbp3_vectors',
         expect.objectContaining({
-          vector: [0.1, 0.2],
+          query: [0.1, 0.2],
+          using: 'bge_dense',
           limit: 5,
           filter: {
             must: [{ key: 'project_public_id', match: { value: 'proj-uuid' } }],
@@ -121,12 +120,12 @@ describe('AiQdrantService', () => {
     });
 
     it('ควรใช้ topK จากตัวเลขแทน sparseVector เมื่อส่ง number มา', async () => {
-      const mockSearch = jest.fn().mockResolvedValue([]);
-      getClientMock().search = mockSearch;
+      const mockQuery = jest.fn().mockResolvedValue({ points: [] });
+      getClientMock().query = mockQuery;
 
       await service.search('proj-uuid', [0.1], 10);
 
-      expect(mockSearch).toHaveBeenCalledWith(
+      expect(mockQuery).toHaveBeenCalledWith(
         'lcbp3_vectors',
         expect.objectContaining({ limit: 10 })
       );
@@ -160,10 +159,10 @@ describe('AiQdrantService', () => {
     });
 
     it('ควร map score เป็น 0 เมื่อ result.score เป็น null/undefined', async () => {
-      const mockSearch = jest
-        .fn()
-        .mockResolvedValue([{ id: 'point-1', score: null, payload: {} }]);
-      getClientMock().search = mockSearch;
+      const mockQuery = jest.fn().mockResolvedValue({
+        points: [{ id: 'point-1', score: null, payload: {} }],
+      });
+      getClientMock().query = mockQuery;
 
       const results = await service.search('proj-uuid', [0.1], undefined, 5);
 
@@ -171,10 +170,10 @@ describe('AiQdrantService', () => {
     });
 
     it('ควร map payload เป็น empty object เมื่อ result.payload เป็น null/undefined', async () => {
-      const mockSearch = jest
-        .fn()
-        .mockResolvedValue([{ id: 'point-1', score: 0.5, payload: null }]);
-      getClientMock().search = mockSearch;
+      const mockQuery = jest.fn().mockResolvedValue({
+        points: [{ id: 'point-1', score: 0.5, payload: null }],
+      });
+      getClientMock().query = mockQuery;
 
       const results = await service.search('proj-uuid', [0.1], undefined, 5);
 

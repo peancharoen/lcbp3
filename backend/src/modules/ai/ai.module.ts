@@ -25,7 +25,6 @@ import { AiSettingsService } from './ai-settings.service';
 import { AiIngestService } from './ai-ingest.service';
 import { AiQueueService } from './ai-queue.service';
 import { AiQdrantService } from './qdrant.service';
-import { AiValidationService } from './ai-validation.service';
 import { AiRagService } from './ai-rag.service';
 import { AiRagProcessor } from './processors/rag.processor';
 import { AiRealtimeProcessor } from './processors/ai-realtime.processor';
@@ -179,7 +178,6 @@ import { PendingVectorDeletion } from './entities/pending-vector-deletion.entity
     AiMigrationCheckpointService,
     AiQueueService,
     AiQdrantService,
-    AiValidationService,
     OllamaService,
     OcrService,
     SandboxOcrEngineService,
@@ -216,7 +214,6 @@ import { PendingVectorDeletion } from './entities/pending-vector-deletion.entity
     AiMigrationCheckpointService,
     AiQueueService,
     AiQdrantService,
-    AiValidationService,
     OllamaService,
     OcrService,
     SandboxOcrEngineService,

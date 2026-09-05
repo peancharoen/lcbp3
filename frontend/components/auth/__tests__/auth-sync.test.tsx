@@ -2,13 +2,14 @@
 // Change Log:
 // - 2026-06-13: Initial creation - test coverage for AuthSync component
 // - 2026-06-13: Refactor to use static ESM imports instead of CommonJS require() to resolve Vitest module path errors
+// - 2026-09-05: อัปเดตตาม getAuthToken refactor — ไม่มี clearAuthTokenCache แล้ว
+//   (token อยู่ใน auth store ที่ component นี้ sync ผ่าน setAuth/logout เท่านั้น)
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, renderHook } from '@testing-library/react';
 import { AuthSync } from '../auth-sync';
 import { useSession, signOut } from 'next-auth/react';
 import { useAuthStore } from '@/lib/stores/auth-store';
-import { clearAuthTokenCache } from '@/lib/api/client';
 
 // Mock next-auth
 vi.mock('next-auth/react', () => ({
@@ -19,11 +20,6 @@ vi.mock('next-auth/react', () => ({
 // Mock auth-store
 vi.mock('@/lib/stores/auth-store', () => ({
   useAuthStore: vi.fn(),
-}));
-
-// Mock clearAuthTokenCache
-vi.mock('@/lib/api/client', () => ({
-  clearAuthTokenCache: vi.fn(),
 }));
 
 describe('AuthSync', () => {
@@ -114,7 +110,7 @@ describe('AuthSync', () => {
     );
   });
 
-  it('should clear auth cache and logout on unauthenticated', () => {
+  it('should logout on unauthenticated', () => {
     const mockSetAuth = vi.fn();
     const mockLogout = vi.fn();
     vi.mocked(useSession).mockReturnValue({
@@ -126,11 +122,10 @@ describe('AuthSync', () => {
       logout: mockLogout,
     } as any);
     render(<AuthSync />);
-    expect(clearAuthTokenCache).toHaveBeenCalled();
     expect(mockLogout).toHaveBeenCalled();
   });
 
-  it('should clear auth cache and sign out on RefreshAccessTokenError', () => {
+  it('should sign out on RefreshAccessTokenError', () => {
     const mockSetAuth = vi.fn();
     const mockLogout = vi.fn();
     vi.mocked(useSession).mockReturnValue({
@@ -144,7 +139,6 @@ describe('AuthSync', () => {
       logout: mockLogout,
     } as any);
     render(<AuthSync />);
-    expect(clearAuthTokenCache).toHaveBeenCalled();
     expect(signOut).toHaveBeenCalledWith({ callbackUrl: '/login' });
   });
 

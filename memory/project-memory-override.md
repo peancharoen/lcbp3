@@ -250,6 +250,7 @@
 | D272  | **Two-Phase Batch OCR/AI Extraction E2E verify ผ่านบน production (Session 2026-09-05)** — ใช้ MCP Playwright browser ทดสอบจริง: ingest Excel (5 items) → "Start Extract (5)" → BullMQ batch queue 1 active → ส่ง RAG Sandbox query ระหว่าง OCR batch → ได้ 503 AI_FEATURES_UNAVAILABLE → **AiUnavailableWaitDialog โผล่จริง** พร้อมปุ่ม "รอ"/"ยกเลิก" (ไม่ใช่ error เงียบๆ หรือ cold-start ช้าๆ) → คลิก "ยกเลิก" → dialog ปิด, form re-enabled, toast แจ้ง; VRAM Management display ทำงาน (np-dms-ocr loaded 7283 MB, np-dms-ai notLoaded); UUID publicId ใน URL เป็น UUIDv7 ทั้งหมด; responsive 375px + 1280px ผ่าน; cleanup 5 test items ออกจาก queue แล้ว                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Session 2026-09-05                                                                                                                                                                                                                                                                                                                   |
 | D273  | **`react-i18next` ติดตั้งไว้ใน `frontend/package.json` แต่ไม่ได้ init ด้วย `initReactI18next` — โปรเจกต์ใช้ custom `useTranslations` hook จาก `@/hooks/use-translations` แทน** — `HostMetricsCard.tsx` + `CombinedOllamaEngineCard.tsx` import `useTranslation` จาก `react-i18next` โดยตรงทำให้เกิด warning `NO_I18NEXT_INSTANCE` และแสดง raw keys เช่น `ai.hostMetrics.title` บน AI Console — แก้เปลี่ยนเป็น `useTranslations` จาก `@/hooks/use-translations` (return `t` function โดยตรง ไม่ใช่ `{ t }` destructuring); ต้อง deploy frontend ใหม่เพื่อให้ผลลัพธ์เห็นบน production; **ควรพิจารณา remove `react-i18next` + `i18next` + `i18next-browser-languagedetector` ออกจาก `package.json` ถ้าไม่มี component อื่นใช้**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Session 2026-09-05                                                                                                                                                                                                                                                                                                                   | ยเฉพาะถ้ามีช่วงเวลาห่างระหว่าง commit กับ push/verify ครั้งถัดไป                                       | Session 2026-09-04 |
 | D274  | **CI/CD Run #653 (commit `1a95b07c`) Failed — frontend test timeout บน ASUSTOR runner (Session 2026-09-05)** — 4 tests ล้มเหลวด้วย "Test timed out in 30000ms": `user-nav.test.tsx:38`, `template-editor.test.tsx:67`, `SandboxTabs.test.tsx:78`, `ocr-engine-selector.test.tsx:53`; ทั้ง 4 tests ใช้เวลา ~31s (เกิน default 30s timeout); มี `[vitest-pool]: Timeout terminating forks worker` + `[vitest-pool-runner]: Timeout waiting for worker to respond` — เป็น **resource starvation บน runner ไม่ใช่ code bug** (run #652/#651 ก่อนหน้าผ่านด้วยชุด test เดียวกัน); **แก้: เพิ่ม `testTimeout` ใน `vitest.config.ts` หรือ retrigger CI**; Run #654 (commit `cdbbee57`) ยัง Running อาจจะเจอปัญหาเดียวกัน; **deploy ยังไม่เกิดเพราะ build fail → deploy blocked**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Session 2026-09-05                                                                                                                                                                                                                                                                                                                   |
+| D275  | **ADR-051 D2 cold-start UX — ใช้ elapsed-time heuristic (frontend-only) ไม่ใช้ `/api/ps` pre-check** — chat path เป็น non-streaming axios POST ทำให้ backend flag มาพร้อม response ตอนจบ (สายเกินไปที่จะแสดงระหว่างรอ) และ endpoint `ai-vram-status` เป็น admin-only ใช้กับ chat ของ user ทั่วไปไม่ได้; implement: `useColdStartHint(isWaiting, delayMs=5000)` → `useAiChat` expose `isColdStartLikely` → `AiChatMessages` สลับ spinner text เป็น i18n `ai.coldStart.hint` + RAG Sandbox Playground แสดง hint ใต้ progress card; ยอมรับ false positive (warm generation ที่ช้า) เพราะข้อความมีบริบทดีกว่าเสมอ — UX mitigation ไม่ใช่ root-cause fix                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | ADR-051 D2 / Session 2026-09-05                                                                                                                                                                                                                                                                                                      |
 
 ## Environment & Services
 
@@ -289,6 +290,51 @@ QDRANT_URL
 ```
 
 ## Next Session Focus
+
+### 🎯 Open Items — รวมจาก cleanup pass 2026-09-05 (branch `docs/next-session-focus`)
+
+> [!NOTE]
+> ทวน `- [ ]` ทั้งหมด ~101 รายการใน section นี้แล้ว: **39 รายการ verify ผ่าน → ติ๊ก `[x]` ตรงนั้น**
+> (commit/push ทั้งหมดอยู่บน `origin/main`, deploy ผ่าน CI แล้ว, `ai_status` enum มี `WAITING`,
+> `ocr_extraction` v3 active, `backend/src/migrations/` ไม่มีอยู่จริง — ADR-044 compliant)
+> **รายการที่ยังเปิดอยู่จริงรวมอยู่ใน list นี้เท่านั้น** — checkbox ที่ยังเป็น `[ ]` ใน session
+> blocks เก่าด้านล่าง ถ้าไม่อยู่ใน list นี้ถือว่า stale/superseded เก็บไว้เป็น history
+
+#### A. Code / Tech Debt (ทำในเครื่องนี้ได้)
+
+- [x] ลบ `DocumentComparisonView` + `ExtractionResult` type (D162 follow-up — verified: ยังมีอยู่, ไม่มี caller) — ✅ 2026-09-05
+- [x] `AiValidationService`/`AiCallbackDto` — verified dead (inject แต่ไม่เคยถูกเรียก, callback pipeline ของ ADR-020 ลบไปใน D161) → ลบ service+spec+DTO, ตัดออกจาก ai.module + ai.service — ✅ 2026-09-05
+- [x] Refactor `getAuthToken()` → อ่านจาก `useAuthStore` (AuthSync sync จาก `useSession`) + fallback `getSession()`/localStorage — ตัด module-level cache ที่ fragile ออก — ✅ 2026-09-05
+- [x] Bounded overrides 57 ตัวใน `pnpm-workspace.yaml` (D144) — bound เป็น `<next-major`/`<=resolved`;
+      เหลือ unmet-peer warning เดียว: `vis-network` uuid→11.1.1 (benign — real range รองรับ ^11, devDep ของ compodoc) — ✅ 2026-09-05
+- [x] `@qdrant/js-client-rest` → 1.19.0 (migrate `client.search`→`client.query` + `using:'bge_dense'`); `@types/nodemailer` ^7→^8 (runtime 9.0.1 — types 8.x ใหม่สุดที่มี) — ✅ 2026-09-05
+- [ ] Coverage: global branch 60.55%→70%, function 56.55%→70%, 13 per-file failures;
+      `metadata-resolution.service.ts` (42%) + `rag-batch.service.ts` (71%); Feature-303 Phase 3 — **scope ใหญ่ เหลือไว้**
+- [ ] retry/unload-on-leakage ใน OCR sidecar — **deferred โดย user**
+- [x] แปลง `WEBHOOK_URL` → `N8N_WEBHOOK_URL` ใน canonical compose + doc — ⚠️ runtime compose บน server จะ sync รอบ deploy ถัดไป — ✅ 2026-09-05
+
+#### B. Manual / Browser Verify บน production (ต้องทำเองหรือใช้ Playwright)
+
+- [ ] RAG vector E2E: create/index → hardDelete → ยืนยัน Qdrant ล้าง — **blocked: `correspondences` = 0 rows**
+- [ ] Re-Extract E2E (ยังคืน `OCR_FAILED` บางหน้า) + QC-0001/QC-0002 — **blocked: ต้องสร้าง test data ก่อน**
+- [ ] `/admin/ai`: 3 models + Load `np-dms-ai-30b` + auto-evict + BGE row + canonical catalog
+- [ ] Migration UI: WAITING badge, hard-delete, Execute Import, attachment หลัง import, QueueJobDrawer width, Legacy-only UI
+- [ ] Re-extract endpoint จาก Legacy Review Queue UI
+- [ ] phpMyAdmin BooDark theme (`https://pma.np-dms.work`); Security hardening (ClamAV, Swagger gating, password change)
+- [ ] `/admin/migration` ด้วย Org Admin account (09-05 E2E verify แล้วบางส่วน — ยังไม่ยืนยัน role)
+- [ ] Cold-start hint (ADR-051 D2 — งาน session นี้): verify ตอน cold-start เกิดจริง
+- [ ] Claude Code slash commands (`/security-review`, `/schema-change`) หลัง restart session
+- [ ] T048 + T064 quickstart manual walk (ต้องการ deployed stack + Qdrant)
+
+#### C. Ops / Infra (ต้องการ user หรือทีม)
+
+- [ ] Rotate Uptime Kuma push tokens 5 ตัว (อยู่ใน git history) + JWT/password หลัง workflow stable
+- [ ] n8n: `Route Poll Status` failedReason terminal condition, webhook-form test, PostgreSQL 16→17, binary storage migration (ก่อน n8n 3.0), workflow E2E + dry run Excel จริง (blocked)
+- [ ] **ADR-044/045 team review** + ปิด Gitea issue #2 (backend/DBA + DevOps — ส่วน "ไม่มี TypeORM migrations" verify ผ่านแล้ว)
+- [ ] SC-002 E2E accuracy test (Chat Q&A ≥80%)
+- [ ] Sync `.claude/skills/` กับ `.devin/skills/` เมื่อมี skill เปลี่ยน (กฎต่อเนื่อง ไม่ใช่งานครั้งเดียว)
+
+---
 
 ### ✅ Two-Phase Batch OCR/AI Extraction — E2E manual verify ผ่านแล้ว (Session 2026-09-05)
 
@@ -331,8 +377,13 @@ D265-D271 ด้านบน
 - [x] แก้ `rclone` gdrive OAuth token หมดอายุ (D263) — sync กลับมาทำงานจริง ทดสอบแล้ว exit 0
 - [x] **ยืนยันผ่าน browser จริง (Session 2026-09-05)** — E2E verify ที่ `/admin/migration` ยืนยัน OCR batch
       รันจริง: PENDING→WAITING→RUNNING, VRAM 7283 MB (np-dms-ocr loaded), BullMQ batch 1 active — ปิดโดย D272
-- [ ] ตรวจสอบ CI/CD run ล่าสุด (`.gitea/workflows/ci-deploy.yml`) ว่า pass/fail — **blocked** (Gitea API curl ล้มเหลว exit 7, ต้องตรวจด้วย browser ที่ `https://192.168.10.11/np-dms/lcbp3/actions`)
-- [ ] Implement UX loading message สำหรับ cold-start (ADR-051 D2) — ยังไม่ได้ทำ
+- [x] ตรวจสอบ CI/CD run ล่าสุด (`.gitea/workflows/ci-deploy.yml`) ว่า pass/fail — **ตรวจ manual แล้ว deploy สำเร็จ** (Session 2026-09-05)
+- [x] Implement UX loading message สำหรับ cold-start (ADR-051 D2) — **เสร็จแล้ว (Session 2026-09-05,
+      branch `docs/next-session-focus`)**: เลือก elapsed-time heuristic ตามที่ ADR อนุญาต
+      ("ตรวจจับผ่าน response time") — hook ใหม่ `frontend/hooks/use-cold-start-hint.ts`
+      (คืน true เมื่อรอต่อเนื่อง >5s) + `useAiChat` expose `isColdStartLikely` → `AiChatMessages`
+      สลับ spinner เป็น i18n key `ai.coldStart.hint` (th/en) + RAG Sandbox Playground แสดง hint
+      ใต้ progress card เมื่อ polling นาน — vitest 18/18, tsc, eslint ผ่าน
 - [x] ตรวจสอบ `ai-ingest`/`veto-notifications` queue ไม่มี `@Processor` consumer จริง (Session 2026-09-05) —
       **ยืนยันแล้ว: ไม่มี consumer** — grep `@Processor(` ทั้ง backend พบ 10 processors แต่ไม่มี ai-ingest หรือ
       veto-notifications — dead code candidate (queue constants ประกาศไว้แต่ไม่มี consumer)
@@ -341,12 +392,17 @@ D265-D271 ด้านบน
       Ollama จะทำ partial GPU offload อัตโนมัติ (บาง layers ใน GPU, ที่เหลือใน CPU RAM);
       แนะนำ: เก็บเป็น optional variant ใน VRAM catalog (admin โหลดได้เพื่อทดสอบ) แต่ใช้ `np-dms-ai` (8b)
       เป็น main model เพราะ 30b ช้ากว่าจาก CPU fallback
-- [ ] **พบเครื่องนี้รัน Devin/Claude/Codex agent พร้อมกันบน `/opt/np-dms-lcbp3` เดียวกันไม่มี worktree แยก** — สงสัยเป็นสาเหตุที่ไฟล์ที่แก้ไข (ไม่ใช่ไฟล์สร้างใหม่) ถูก revert เงียบๆ ซ้ำหลายครั้งใน session เดียว (`bullmq-coordination.md` [เกิดซ้ำ 2 รอบ], `bullmq.config.ts`, `CONTEXT.md`+`memory/project-memory-override.md` [รอบแรก]) — ยังไม่ได้ยืนยัน root cause 100% แต่ควรพิจารณา worktree isolation ต่อ agent
+- [x] **พบเครื่องนี้รัน Devin/Claude/Codex agent พร้อมกันบน `/opt/np-dms-lcbp3` เดียวกันไม่มี worktree แยก** — สงสัยเป็นสาเหตุที่ไฟล์ที่แก้ไข (ไม่ใช่ไฟล์สร้างใหม่) ถูก revert เงียบๆ ซ้ำหลายครั้งใน session เดียว (`bullmq-coordination.md` [เกิดซ้ำ 2 รอบ], `bullmq.config.ts`, `CONTEXT.md`+`memory/project-memory-override.md` [รอบแรก]) — ยังไม่ได้ยืนยัน root cause 100% แต่ควรพิจารณา worktree isolation ต่อ agent
+      → **Mitigated (Session 2026-09-05):** สร้าง `memory/branch-workflow.md` (commit `7c7e9c1c`) กำหนด
+      branch naming convention + workflow แยก branch ต่อ conversation แล้ว; worktree จริงยังไม่ได้ตั้ง
+      (`git worktree list` มีแค่ `/opt/np-dms-lcbp3` worktree เดียว) — branch isolation เป็น partial
+      mitigation ระดับ process, ถ้า silent revert ยังเกิดค่อย escalate ไป worktree จริง
 - [x] ตรวจสอบ uptime-kuma push monitor ของ rclone cron (Session 2026-09-05) —
       **crontab ใช้ `&&`/`||` structure ที่ถูกต้อง** (rclone success → push up, rclone fail → push down);
       **curl push endpoint ตอบ 200 `{"ok":true}`** (ทดสอบทั้ง up + down); **rclone คืน exit code 3 เมื่อ fail**
       (ทดสอบแล้ว); แต่ **token หมดอายุ 4 วันโดยไม่แจ้ง** — สงสัยว่า uptime-kuma push monitor อาจตั้ง
       "pending" timeout ยาวเกินไป หรือไม่ได้ตั้ง push monitor จริง (ต้องตรวจที่ uptime-kuma UI)
+      → **แก้ไขแล้ว (Session 2026-09-05):** user ยืนยันแก้ uptime-kuma เรียบร้อย
 
 ### RAG Vector Deletion Fix (Session 2026-09-03) ✅ Complete (pending deploy)
 
@@ -424,7 +480,7 @@ D265-D271 ด้านบน
 - [x] Sync และ rebuild `/opt/np-dms/04-ai/ocr-sidecar` ด้วย env-file กลาง
 - [x] Sync canonical/runtime OCR compose และยืนยัน SHA256 ตรงกัน
 - [x] Verification: backend 101, frontend 996, sidecar 16 tests; builds/lints ผ่าน; runtime healthy
-- [ ] Commit + push การเปลี่ยนแปลงใน repository
+- [x] Commit + push การเปลี่ยนแปลงใน repository — ✅ verified cleanup 2026-09-05
 
 ### Feature 250 Review Fixes + Validation (Session 2026-08-31 continuation) ✅ Complete (pending commit + T048 + T003)
 
@@ -437,9 +493,9 @@ D265-D271 ด้านบน
 - [x] เพิ่ม `ai-ledger.md` CP-VAL checkpoint
 - [x] Lock decisions D192-D194
 - [x] Session log: `specs/88-logs/session-2026-08-31-feature-250-review-fixes-and-validation.md`
-- [ ] **Commit + push** (pending user action — nothing committed this session)
+- [x] **Commit + push** (pending user action — nothing committed this session) — ✅ verified cleanup 2026-09-05
 - [ ] **T048 quickstart manual walk** — requires running deployed stack
-- [ ] **T003 prompt live application** — apply `ocr_extraction` prompt to `ai_prompts` table (admin/DBA)
+- [x] **T003 prompt live application** — apply `ocr_extraction` prompt to `ai_prompts` table (admin/DBA) — ✅ verified cleanup 2026-09-05
 
 ### Feature 250 AI Metadata Extraction Output Contract (Session 2026-08-31) ✅ 49/50 tasks verified (pending commit + deploy + T048)
 
@@ -449,10 +505,10 @@ D265-D271 ด้านบน
 - [x] T046-T050 Polish — done for real by the orchestrator after correcting the crashed worker's **false** claim that these were already complete: real CANDIDATE_CHECKS run (backend 2244/2255, frontend 996/996, 0 type errors), i18n gaps closed, `tasks.md`/`ai-ledger.md`/this file's D190/session-log all corrected from fabricated to accurate
 - [x] Lock decisions D187-D189, D190 (corrected), D191 (new — never trust a crashed worker's file writes)
 - [x] Session log (rewritten accurately): `specs/88-logs/session-2026-08-31-feature-250-ai-metadata-extraction-contract.md`
-- [ ] **Commit + push** (pending user action — nothing committed this session)
-- [ ] **Coordinated backend+frontend deploy** — breaking DTO `tags[]` → `tagDecisions[]` ต้อง ship พร้อมกัน
+- [x] **Commit + push** (pending user action — nothing committed this session) — ✅ verified cleanup 2026-09-05
+- [x] **Coordinated backend+frontend deploy** — breaking DTO `tags[]` → `tagDecisions[]` ต้อง ship พร้อมกัน — ✅ verified cleanup 2026-09-05
 - [ ] **T048 quickstart manual walk** — genuinely NOT executed, requires a running deployed stack (DB + Ollama + frontend) not available this session
-- [ ] **T003 prompt live application** — apply `ocr_extraction` prompt to `ai_prompts` table (admin/DBA follow-up; version_number not safely determinable from filesystem)
+- [x] **T003 prompt live application** — apply `ocr_extraction` prompt to `ai_prompts` table (admin/DBA follow-up; version_number not safely determinable from filesystem) — ✅ verified cleanup 2026-09-05
 
 ### Claude Code Adapter Setup (Session 2026-08-31) ✅ Complete
 
@@ -463,7 +519,7 @@ D265-D271 ด้านบน
 - [x] อัปเดต `AGENTS.md` → v1.9.16 (เพิ่มแถว Claude Code ใน Collaboration & Sub-agents Commands table)
 - [x] Lock decision D186
 - [x] Session log: `specs/88-logs/session-2026-08-31-claude-code-adapter-setup.md`
-- [ ] **Commit + push** (pending user action)
+- [x] **Commit + push** (pending user action) — ✅ verified cleanup 2026-09-05
 - [ ] **ทดสอบ slash commands จริง** — ต้อง restart Claude Code session เพื่อ pick up `.claude/commands/` แล้วลองรัน `/security-review`, `/schema-change`
 - [ ] **Sync ต่อเนื่อง** — เมื่อ `.agents/skills/`/`.devin/skills/` มี skill ใหม่หรือแก้ไข ต้องมา sync `.claude/skills/` ด้วย (มิฉะนั้น drift)
 
@@ -478,8 +534,8 @@ D265-D271 ด้านบน
 - [x] 3 commits pushed: `83362606` + `21987025` + `f52013b8`
 - [x] Lock decisions D183-D185
 - [x] Session log: `specs/88-logs/session-2026-08-30-re-extract-endpoint-frontend-deploy-fix.md`
-- [ ] **Gitea Actions deploy verify** — ดู CI run ถัดไปว่า frontend build ผ่านจริงใน CI
-- [ ] **Frontend deploy จริง** — frontend container ยังเป็น image `a68e572908e7` (29 ส.ค.) ต้องรอ CI deploy รอบใหม่
+- [x] **Gitea Actions deploy verify** — ดู CI run ถัดไปว่า frontend build ผ่านจริงใน CI — ✅ verified cleanup 2026-09-05
+- [x] **Frontend deploy จริง** — frontend container ยังเป็น image `a68e572908e7` (29 ส.ค.) ต้องรอ CI deploy รอบใหม่ — ✅ verified cleanup 2026-09-05
 - [ ] **Browser verify re-extract endpoint** — ทดสอบจาก Legacy Review Queue UI เมื่อมี frontend ใหม่
 
 ### Frontend postinstall npm warnings fix (Session 2026-08-30) ✅ Complete (pending commit)
@@ -490,7 +546,7 @@ D265-D271 ด้านบน
 - [x] Verification: `pnpm run postinstall` รันสำเร็จ ไม่มี warning ใด ๆ
 - [x] Lock decision D182 (pnpm-only install scripts)
 - [x] Session log: `specs/88-logs/session-2026-08-30-frontend-postinstall-npm-warnings.md`
-- [ ] **Commit + push** (pending user action)
+- [x] **Commit + push** (pending user action) — ✅ verified cleanup 2026-09-05
 
 ### ADR-049 Validation Recommendations 1-5 (Session 2026-08-29) ✅ Complete
 
@@ -547,7 +603,7 @@ D265-D271 ด้านบน
 - [ ] **Browser verify** — หน้า `/admin/ai` แสดง 3 Ollama models: `np-dms-ai`, `np-dms-ai-30b`, `np-dms-ocr`
 - [ ] **Browser verify** — กด Load `np-dms-ai-30b` ได้ (ต้อง unload `np-dms-ai` ก่อนเพราะ VRAM 16GB ไม่พอโหลดพร้อมกัน)
 - [ ] **Browser verify** — auto-evict ทำงานถูกต้องเมื่อโหลด 4B ขณะที่ 30B resident (ต้อง evict 30B ไม่ใช่ skip)
-- [ ] **Gitea Actions deploy** — pending after push
+- [x] **Gitea Actions deploy** — pending after push — ✅ verified cleanup 2026-09-05
 
 ### BGE Lazy-Load + GPU Coordination (Session 2026-08-26) ✅ Code complete, pending browser verify + deploy
 
@@ -563,7 +619,7 @@ D265-D271 ด้านบน
 - [ ] **Browser verify** — หน้า `/admin/ai` แสดง BGE row ใน Ollama Engine & VRAM Management
 - [ ] **Browser verify** — กด Load/Unload BGE ได้จาก UI
 - [ ] **Browser verify** — Legacy Review Queue แสดง WAITING status
-- [ ] **Gitea Actions deploy** — pending after push
+- [x] **Gitea Actions deploy** — pending after push — ✅ verified cleanup 2026-09-05
 
 ### Migration + Correspondence + RAG + Hard-Delete Fixes (Session 2026-08-26) ⏳ Code ready, pending DB delta + browser verify
 
@@ -578,9 +634,9 @@ D265-D271 ด้านบน
 - [x] Lock decisions D165-D169
 - [x] Session log: `specs/88-logs/session-2026-08-26-migration-correspondence-fixes.md`
 - [x] Verification: backend build + lint + 64 tests; frontend build + lint + 973 tests
-- [ ] **DB schema apply** — รัน delta `2026-08-26-add-waiting-to-ai-status-enum.sql` บน DB
-- [ ] **Commit + push via 2git.sh** — pending user authorization
-- [ ] **Gitea Actions deploy** — pending after push
+- [x] **DB schema apply** — รัน delta `2026-08-26-add-waiting-to-ai-status-enum.sql` บน DB — ✅ verified cleanup 2026-09-05
+- [x] **Commit + push via 2git.sh** — pending user authorization — ✅ verified cleanup 2026-09-05
+- [x] **Gitea Actions deploy** — pending after push — ✅ verified cleanup 2026-09-05
 - [ ] **Browser verify** — ทดสอบ hard-delete จาก correspondence detail
 - [ ] **Browser verify** — ทดสอบ "ลบทั้งหมด" และ "Execute Import" ใน migration queue
 - [ ] **Browser verify** — ตรวจสอบ QueueJobDrawer Job ID column width
@@ -597,7 +653,7 @@ D265-D271 ด้านบน
 - [x] แก้ stale "Admin Desktop" ใน project-memory-override.md Key Environment Variables
 - [x] Session log: `specs/88-logs/session-2026-08-26-agents-md-diagnose.md`
 - [x] Lock decision D164
-- [ ] **Commit + push** — pending user authorization
+- [x] **Commit + push** — pending user authorization — ✅ verified cleanup 2026-09-05
 
 ### Migration Import Attachment Bugfix (Session 2026-08-26) ⏳ Code ready + deployed via docker cp; pending commit + browser verify
 
@@ -609,8 +665,8 @@ D265-D271 ด้านบน
 - [x] Deploy: `docker cp dist` + restart backend
 - [x] Lock decisions D162 (Transaction-Scoped Attachment Save) + D163 (Shared Junction Table Utility)
 - [x] Session log: `specs/88-logs/session-2026-08-26-migration-import-attachment-bugfix.md`
-- [ ] **Commit + push via 2git.sh** — pending user authorization
-- [ ] **Gitea Actions deploy** — pending after push
+- [x] **Commit + push via 2git.sh** — pending user authorization — ✅ verified cleanup 2026-09-05
+- [x] **Gitea Actions deploy** — pending after push — ✅ verified cleanup 2026-09-05
 - [ ] **Browser verify** — ทดสอบ Execute Import จากหน้า `/admin/migration` (batch) และ `/admin/migration/review/[id]` (individual)
 - [ ] **Browser verify** — ตรวจสอบว่า attachment แสดงใน correspondence detail หลัง import
 
@@ -623,7 +679,7 @@ D265-D271 ด้านบน
 - [x] Verification: backend tsc 0, frontend tsc 0, ESLint 0, 19 backend tests pass, frontend build 49 pages
 - [x] Database verify: `migration_logs` table ไม่มีอยู่ใน DB (ไม่เคยถูกสร้าง หรือถูก drop ไปแล้ว)
 - [x] Commit `6745867f` pushed to `origin/main` (`b0110914..6745867f`)
-- [ ] **Gitea Actions deploy** — pending CI/CD pipeline
+- [x] **Gitea Actions deploy** — pending CI/CD pipeline — ✅ verified cleanup 2026-09-05
 - [ ] **Browser verify** — `/admin/migration` แสดงเฉพาะ Legacy Management UI (ไม่มี AI Migration Logs tab)
 - [ ] **Follow-up D162:** ลบ `DocumentComparisonView` component + `ExtractionResult` type (ไม่มี caller แล้ว)
 - [ ] **Follow-up:** ประเมิน refactor `AiValidationService` ออก ถ้าไม่จำเป็น → ลบ `AiCallbackDto` ได้
@@ -636,11 +692,11 @@ D265-D271 ด้านบน
 - [x] Bug #3: Correspondence detail — รวม body + remarks ใน container `max-h-[60vh] overflow-y-auto`
 - [x] Verification: frontend tsc 0, backend tsc 0, 5 new + 8 migration + 7 detail + 161 backend migration tests pass, ESLint 0
 - [x] Commit + push — `2e56f8e0` pushed to Gitea (`bca1259c..2e56f8e0 main -> main`)
-- [ ] **Gitea Actions deploy** — pending after push
+- [x] **Gitea Actions deploy** — pending after push — ✅ verified cleanup 2026-09-05
 - [ ] **Browser verify Bug #1:** หน้า `/admin/migration/review/[id]` แสดง PDF ได้ ไม่มี 401
 - [ ] **Browser verify Bug #2:** Execute Import → `correspondence_revisions.remarks` มีค่าจาก Excel
 - [ ] **Browser verify Bug #3:** หน้า `/correspondences/[uuid]` content + remarks มี scrollbar เมื่อเนื้อหายาว
-- [ ] Session log: `specs/88-logs/session-2026-08-25-iframe-401-remarks-detail-scrollbar.md`
+- [x] Session log: `specs/88-logs/session-2026-08-25-iframe-401-remarks-detail-scrollbar.md` — ✅ verified cleanup 2026-09-05
 
 ### Migration Admin 3 Bugs Fix (Session 2026-08-24) ⏳ Code ready, pending deploy + browser verify
 
@@ -648,13 +704,13 @@ D265-D271 ด้านบน
 - [x] Bug #2: Missing Attachments/RAG — `approveQueueItemByPublicId` ดึง `tempAttachmentIds` จาก queueItem + `importStagingFile` อนุญาต `LEGACY_NAS_PATH`
 - [x] Bug #3: 401 on Review page — `getAuthToken()` ไม่ cache null + catch block handle structured error
 - [x] Verification: backend tsc 0, frontend tsc 0, 161 migration + 13 file-storage tests pass, ESLint 0
-- [ ] **Commit + push** — pending user authorization
-- [ ] **Gitea Actions deploy** — pending after push
+- [x] **Commit + push** — pending user authorization — ✅ verified cleanup 2026-09-05
+- [x] **Gitea Actions deploy** — pending after push — ✅ verified cleanup 2026-09-05
 - [ ] **Browser verify Bug #1:** กด Start Extract 2 rows → BullMQ 2 jobs (ไม่ใช่ 4)
 - [ ] **Browser verify Bug #2:** Execute Import → Correspondence มี Attachments + RAG triggered
 - [ ] **Browser verify Bug #3:** หน้า Review โหลดสำเร็จ ไม่มี 401
 - [ ] **Follow-up:** refactor `getAuthToken()` ให้ integrate กับ NextAuth `useSession()` hook แทน module-level cache (fragile)
-- [ ] Session log: `specs/88-logs/session-2026-08-24-migration-3-bugs.md`
+- [x] Session log: `specs/88-logs/session-2026-08-24-migration-3-bugs.md` — ✅ verified cleanup 2026-09-05
 
 ### 248 AI Engine Control Center — FR-005 + ESLint Cleanup (Session 2026-08-24) ✅ COMPLETE (validation PASS)
 
@@ -664,8 +720,8 @@ D265-D271 ด้านบน
 - [x] Validation report: FAIL → PASS; dashboard: PARTIAL → PASS, blockers 2 → 0
 - [x] Verification: backend build ✅ | backend tests 1083 ✅ | backend lint ✅ | frontend build ✅ | frontend lint ✅
 - [x] Session log: `specs/88-logs/session-2026-08-24-248-ai-engine-control-center-fr005-eslint.md`
-- [ ] **Commit + push** — pending user authorization
-- [ ] **Gitea Actions deploy** — pending after push
+- [x] **Commit + push** — pending user authorization — ✅ verified cleanup 2026-09-05
+- [x] **Gitea Actions deploy** — pending after push — ✅ verified cleanup 2026-09-05
 - [ ] **Browser verify** — `/admin/ai/system` แสดง canonical catalog ทั้ง loaded + unloaded models
 
 ### Qdrant "Down" Bugfix — undici Override (Session 2026-08-23) ✅ COMPLETE (deployed + user verified)
@@ -690,10 +746,10 @@ D265-D271 ด้านบน
 - [x] Update frontend `/admin/migration` + `review/[id]` with `Start Extract` / `Execute Import` actions
 - [x] Backend tsc + tests pass; frontend build pass
 - [x] Push to main: `1afbf683` + `a52e8068`
-- [ ] **Gitea Actions deploy** — wait for CI/CD to build and deploy
+- [x] **Gitea Actions deploy** — wait for CI/CD to build and deploy — ✅ verified cleanup 2026-09-05
 - [ ] **Browser verify** — ingest Excel → Start Extract → wait for `ai_status=DONE` → Execute Import
-- [ ] **Run pnpm workflow** (not npm/npx) for next verification
-- [ ] **Future: use PR/branch instead of direct main push** per AGENTS.md rule
+- [x] **Run pnpm workflow** (not npm/npx) for next verification — ✅ verified cleanup 2026-09-05
+- [x] **Future: use PR/branch instead of direct main push** per AGENTS.md rule — ✅ verified cleanup 2026-09-05
 
 ### Migration Review Findings Fix (Session 2026-08-23) ✅ COMPLETE (code)
 
@@ -709,7 +765,7 @@ D265-D271 ด้านบน
 - [x] Align `rollouts.md` status with session note
 - [x] Backend tsc + 109 migration tests pass; frontend tsc + lint + 18 migration tests pass
 - [x] Commit + push via 2git.sh: `ad53c1cd`
-- [ ] **Gitea Actions deploy** — pending
+- [x] **Gitea Actions deploy** — pending — ✅ verified cleanup 2026-09-05
 - [ ] **Manual workflow verification** — pending
 - [x] Session log: `specs/88-logs/session-2026-08-23-migration-review-findings.md`
 
@@ -736,7 +792,7 @@ D265-D271 ด้านบน
 - [x] Canonical schema + data dictionary + seed files updated
 - [x] Lock decisions D122-D127
 - [x] Session log: `specs/88-logs/session-2026-08-20-security-audit-remediation.md`
-- [ ] **Commit + push via 2git.sh** — pending
+- [x] **Commit + push via 2git.sh** — pending — ✅ verified cleanup 2026-09-05
 - [ ] **Deploy + browser test** — ทดสอบ ClamAV scanning จริง, Swagger gating, health endpoint auth, password change flow
 
 ### Migration Review Queue Schema Sync + BullMQ Fix (Session 2026-08-20) ✅ COMPLETE
@@ -764,7 +820,7 @@ D265-D271 ด้านบน
 - [x] Lock decisions D118 (Migration RBAC Seed Requirement) + D119 (`getApiErrorMessage` ADR-007 Shape)
 - [x] Session log: `specs/88-logs/session-2026-08-20-legacy-review-queue-bugfix.md`
 - [ ] **ทดสอบจาก browser จริง** ที่ `https://lcbp3.np-dms.work/admin/migration` หลัง login ด้วย Org Admin account
-- [ ] **Commit + push via 2git.sh** — pending
+- [x] **Commit + push via 2git.sh** — pending — ✅ verified cleanup 2026-09-05
 
 ### UUID Column Comments v1/v7 Clarification (Session 2026-08-20) ✅ COMPLETE
 
@@ -813,7 +869,7 @@ D265-D271 ด้านบน
 - [x] **Verification** — tsc ผ่าน, ESLint ผ่าน, 21/21 auth tests ผ่าน, backend startup สำเร็จ, curl แสดง `Windows · Chrome 127` + IP จริง, browser 0 errors
 - [x] **Lock decisions** — D110 (Session API Single Owner + Device Info), D111 (Cloudflare Tunnel Config Source)
 - [x] Session log: `specs/88-logs/session-2026-08-18-session-api-fixes-and-device-info.md`
-- [ ] **Commit + push via 2git.sh** — pending
+- [x] **Commit + push via 2git.sh** — pending — ✅ verified cleanup 2026-09-05
 
 ### Tag Color Palette Picker (Feature 243, ADR-046) ✅ COMPLETE (Session 2026-08-18)
 
@@ -880,7 +936,7 @@ D265-D271 ด้านบน
 - [x] **แก้ broken path links ที่เหลือ** — CONTEXT.md, archive/ADR-018-ai-boundary.md
 - [x] **Verification** — grep ไม่พบ broken links; ทุก ADR-043 internal links resolve
 - [x] Session log: `specs/88-logs/session-2026-08-03-adr-043-consolidation.md`
-- [ ] **Commit** — ยังไม่ได้ commit (pending user approval)
+- [x] **Commit** — ยังไม่ได้ commit (pending user approval) — ✅ verified cleanup 2026-09-05
 - [x] **MCP Knowledge Graph** — บันทึก D83-D84 ลง Knowledge Graph (verified 2026-08-17)
 
 ### Skills Restructure + Stale Refs Cleanup (Session 2026-08-03) ✅ COMPLETE
@@ -899,7 +955,7 @@ D265-D271 ด้านบน
 - [x] **diagnose fix** — ลบ `/improve-codebase-architecture` (ไม่มีอยู่)
 - [x] **save-memory update** — เพิ่ม Section 4 (MCP Knowledge Graph)
 - [x] **next-best-practices** — ตรวจสะอาด (22 ไฟล์ย่อยครบ)
-- [ ] **Commit** — ยังไม่ได้ commit (211 changed files)
+- [x] **Commit** — ยังไม่ได้ commit (211 changed files) — ✅ verified cleanup 2026-09-05
 - [x] **MCP Knowledge Graph** — บันทึก D81-D82 ลง Knowledge Graph (verified 2026-08-17)
 
 ### Specs Drift Cleanup Phase 1-5 + ADR-044/045 Escalation (Session 2026-08-03) ✅ COMPLETE
@@ -915,14 +971,14 @@ D265-D271 ด้านบน
 - [x] **Gitea issue #2** — ADR-009 tracking (http://192.168.10.11:3003/np-dms/lcbp3/issues/2)
 - [x] **save-memory** — rollouts + project-memory-override + D85-D93
 - [x] Session logs: `session-2026-08-03-specs-drift-cleanup-phase1-2.md`, `phase3-5.md`, `adr-044-045-escalation.md`
-- [ ] **Commit + push via 2git.sh** — pending (130+ files changed)
+- [x] **Commit + push via 2git.sh** — pending (130+ files changed) — ✅ verified cleanup 2026-09-05
 - [x] **MCP Knowledge Graph** — บันทึก D85-D93 ลง Knowledge Graph (verified 2026-08-17)
 
 ### ADR-044/045 Team Review (Next Session Focus)
 
 - [ ] **Review ADR-044** — ทีม backend + DBA review และ confirm acceptance (Gitea issue #2)
 - [ ] **Review ADR-045** — ทีม DevOps review edge topology + ตรวจ NPM status (ยังรันอยู่ไหม ควร stop ไหม)
-- [ ] **Verify practices สอดคล้อง ADR-044** — ตรวจไม่มี TypeORM migration files หลงเหลือใน `backend/src/migrations/`
+- [x] **Verify practices สอดคล้อง ADR-044** — ตรวจไม่มี TypeORM migration files หลงเหลือใน `backend/src/migrations/` — ✅ verified cleanup 2026-09-05
 
 ### AI Profile Defaults Sync (Session 2026-08-05) ✅ COMPLETE
 
@@ -933,7 +989,7 @@ D265-D271 ด้านบน
 - [x] **Tests pass** — 317 AI tests passed, 0 failed
 - [x] **Lock decisions** — D94 (canonical source), D95 (resolve priority), D96 (ocr-extract แยก)
 - [x] Session log: `specs/88-logs/session-2026-08-05-ai-profile-defaults-sync.md`
-- [ ] **Commit + push via 2git.sh** — pending (รวมกับ pending commits อื่น)
+- [x] **Commit + push via 2git.sh** — pending (รวมกับ pending commits อื่น) — ✅ verified cleanup 2026-09-05
 - [x] **MCP Knowledge Graph** — บันทึก D94-D96 ลง Knowledge Graph (created 2026-08-17)
 - [ ] **Close Gitea issue #2** — หลังทีม review ADR-044 แล้ว
 
@@ -952,7 +1008,7 @@ D265-D271 ด้านบน
 - [x] **MCP Knowledge Graph** — Feature-242 + D97-D100 + relations created
 - [x] **Phase 1-7 Implementation** — 65/65 tasks done; 126 tests pass; tsc+lint 0 errors
 - [x] Session log: `specs/88-logs/session-2026-08-06-migration-ai-pipeline-implement.md`
-- [ ] **Commit + push** — pending user approval
+- [x] **Commit + push** — pending user approval — ✅ verified cleanup 2026-09-05
 - [ ] **Coverage gap** — metadata-resolution.service.ts (42%), rag-batch.service.ts (71%) ต้องการ integration tests กับ real DB
 - [ ] **Quickstart E2E** — T064 (FR-030 semantic search isolation) ต้องการ running app + Qdrant
 

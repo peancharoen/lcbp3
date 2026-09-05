@@ -1,71 +1,43 @@
 // File: lib/api/client.ts
 // Change Log:
 // - 2026-06-13: Export getAuthToken for unit testing
+// - 2026-09-05: Refactor getAuthToken — ตัด module-level cache ที่ fragile ออก
+//   อ่านจาก useAuthStore แทน (AuthSync sync token จาก useSession ทุกครั้งที่ session
+//   เปลี่ยน + persist ลง localStorage 'auth-storage') ทำให้ token สดเสมอและไม่ stale
 import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosError } from 'axios';
 import { v4 as uuidv4 } from 'uuid';
+import { useAuthStore } from '@/lib/stores/auth-store';
 
 // อ่านค่า Base URL จาก Environment Variable
 const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
-// Token cache for API calls outside React components
-let cachedToken: string | null = null;
-let tokenPromise: Promise<string | null> | null = null;
-
-// Async function to get token
+// ดึง auth token — อ่านจาก useAuthStore (single source ที่ AuthSync/useSession อัปเดตให้)
+// ไม่มี module-level cache อีกต่อไป เพราะ token อาจ stale หลัง refresh/logout
 export async function getAuthToken(): Promise<string | null> {
-  // ถ้ามี cached token ที่ไม่ใช่ null ให้ใช้เลย
-  if (cachedToken) return cachedToken;
-
-  // ถ้ามี tokenPromise ที่ยังไม่ resolve ให้รอผลลัพธ์
-  // แต่ถ้า promise ถูก clear แล้ว (โดย clearAuthTokenCache) ให้สร้างใหม่
-  if (tokenPromise) return tokenPromise;
-
-  tokenPromise = (async () => {
-    try {
-      if (typeof window !== 'undefined') {
-        const { getSession } = await import('next-auth/react');
-        const session = await getSession();
-        const token = session?.accessToken || null;
-        // เก็บ token ใน cache เฉพาะเมื่อได้ค่าจริง — ถ้าได้ null ไม่เก็บ
-        // เพื่อให้ครั้งถัดไปสามารถ re-fetch ได้ (ป้องกัน stale null cache)
-        if (token) {
-          cachedToken = token;
-        } else {
-          // ไม่ cache null — clear tokenPromise เพื่อให้ครั้งถัดไปลองใหม่
-          tokenPromise = null;
-        }
-        return token;
-      }
-    } catch (_error) {
-      // Fallback to localStorage
-      try {
-        const authStorage = localStorage.getItem('auth-storage');
-        if (authStorage) {
-          const parsed = JSON.parse(authStorage);
-          const token = parsed?.state?.token || null;
-          if (token) {
-            cachedToken = token;
-          } else {
-            tokenPromise = null;
-          }
-          return token;
-        }
-      } catch (__error) {
-        // All methods failed
-      }
+  if (typeof window === 'undefined') return null;
+  // แหล่งหลัก: auth store (persist อยู่ใน localStorage 'auth-storage' ผ่าน zustand persist)
+  const storeToken = useAuthStore.getState().token;
+  if (storeToken) return storeToken;
+  // Fallback 1: NextAuth session โดยตรง (กรณี AuthSync ยังไม่ได้ sync เช่นเพิ่ง login จบ)
+  try {
+    const { getSession } = await import('next-auth/react');
+    const session = await getSession();
+    if (session?.accessToken) return session.accessToken;
+  } catch (_error) {
+    // ดำเนินการต่อไปยัง fallback ถัดไป
+  }
+  // Fallback 2: อ่าน localStorage โดยตรง (กรณี store ยังไม่ hydrate)
+  try {
+    const authStorage = localStorage.getItem('auth-storage');
+    if (authStorage) {
+      const parsed = JSON.parse(authStorage);
+      const token = parsed?.state?.token || null;
+      if (token) return token;
     }
-    // ไม่ cache null — clear tokenPromise เพื่อให้ครั้งถัดไปลองใหม่
-    tokenPromise = null;
-    return null;
-  })();
-
-  return tokenPromise;
-}
-
-// Function to clear token cache (call on logout)
-export function clearAuthTokenCache(): void {
-  cachedToken = null;
-  tokenPromise = null;
+  } catch (__error) {
+    // ไม่มี token ให้ใช้
+  }
+  return null;
 }
 
 // สร้าง Axios Instance หลัก
@@ -200,8 +172,8 @@ apiClient.interceptors.response.use(
 
       // กรณี Token หมดอายุ หรือ ไม่มีสิทธิ์
       if (status === 401) {
-        // Clear cached token and redirect to login
-        clearAuthTokenCache();
+        // ล้าง auth state ใน store แล้ว redirect ไป login
+        useAuthStore.getState().logout();
         if (typeof window !== 'undefined') {
           window.location.href = '/login';
         }

@@ -9,7 +9,6 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { getQueueToken } from '@nestjs/bullmq';
 import { ConfigService } from '@nestjs/config';
 import { AiService } from './ai.service';
-import { AiValidationService } from './ai-validation.service';
 import { AiAuditLog } from './entities/ai-audit-log.entity';
 import {
   BusinessException,
@@ -159,16 +158,6 @@ describe('AiService', () => {
     }),
   };
 
-  // Mock AiValidationService
-
-  const mockValidationService = {
-    validateAiOutput: jest.fn(),
-    buildAuditSummary: jest
-      .fn()
-      .mockReturnValue('model=gemma4, confidence=0.90, valid=true'),
-    getConfidenceAction: jest.fn().mockReturnValue('low_priority_review'),
-  };
-
   beforeEach(async () => {
     jest.clearAllMocks();
     mockAuditLogRepo.create.mockReturnValue({});
@@ -190,7 +179,6 @@ describe('AiService', () => {
         { provide: getQueueToken(QUEUE_AI_REALTIME), useValue: mockQueue },
         { provide: getQueueToken(QUEUE_AI_BATCH), useValue: mockQueue },
         { provide: ConfigService, useValue: mockConfigService },
-        { provide: AiValidationService, useValue: mockValidationService },
         { provide: OllamaService, useValue: mockOllamaService },
         { provide: AiQdrantService, useValue: mockQdrantService },
         { provide: AiSettingsService, useValue: mockAiSettingsService },

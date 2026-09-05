@@ -39,6 +39,7 @@
   "ai.unavailable.retrying": "Retrying... ({{seconds}}s)",
   "ai.unavailable.wait": "Wait",
   "ai.unavailable.cancel": "Cancel",
+  "ai.coldStart.hint": "The system is preparing the AI model, please wait (this may take 5-15 seconds)",
   "ai.status.offlineTitle": "AI unavailable",
   "ai.status.offlineDescription": "AI staging is temporarily unavailable. Manual document operations remain available.",
   "ai.status.disabledDescription": "AI is temporarily unavailable. Please enter the information manually.",

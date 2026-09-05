@@ -1,6 +1,8 @@
 // File: frontend/components/ai/ai-chat-messages.tsx
 // Change Log:
 // - 2026-05-19: สร้างคอมโพเนนต์แสดงผลประวัติการสนทนาและการตอบสนองของ AI
+// - 2026-09-05: ADR-051 D2 — รับ prop isColdStartLikely เพื่อสลับข้อความ loading
+//   เป็น "ระบบกำลังเตรียมโมเดล AI" เมื่อ request ช้าผิดปกติ (response-time heuristic)
 
 'use client';
 
@@ -8,14 +10,18 @@ import { useRef, useEffect } from 'react';
 import { Bot, User, AlertCircle, Loader2, Sparkles } from 'lucide-react';
 import { ChatMessage } from '@/types/ai-chat';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useTranslations } from '@/hooks/use-translations';
 
 interface AiChatMessagesProps {
   messages: ChatMessage[];
   isLoading: boolean;
   onSuggestedActionClick: (query: string) => void;
+  /** ADR-051 D2: true เมื่อ request รอนานผิดปกติ — น่าจะ Ollama cold-start จาก mid-flight race */
+  isColdStartLikely?: boolean;
 }
 
-export function AiChatMessages({ messages, isLoading, onSuggestedActionClick }: AiChatMessagesProps) {
+export function AiChatMessages({ messages, isLoading, onSuggestedActionClick, isColdStartLikely = false }: AiChatMessagesProps) {
+  const t = useTranslations();
   const bottomRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -128,7 +134,9 @@ export function AiChatMessages({ messages, isLoading, onSuggestedActionClick }: 
                   {message.isStreaming ? (
                     <div className="flex items-center gap-2 text-muted-foreground select-none py-1">
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      <span className="text-xs">AI กำลังอ่านวิเคราะห์ข้อมูลเอกสาร...</span>
+                      <span className="text-xs">
+                        {isColdStartLikely ? t('ai.coldStart.hint') : 'AI กำลังอ่านวิเคราะห์ข้อมูลเอกสาร...'}
+                      </span>
                     </div>
                   ) : isUser ? (
                     <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
@@ -165,7 +173,9 @@ export function AiChatMessages({ messages, isLoading, onSuggestedActionClick }: 
             </div>
             <div className="rounded-2xl px-4 py-2.5 shadow-sm bg-card border text-card-foreground rounded-tl-none flex items-center gap-2">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              <span className="text-xs">AI กำลังประมวลผลคำตอบ...</span>
+              <span className="text-xs">
+                {isColdStartLikely ? t('ai.coldStart.hint') : 'AI กำลังประมวลผลคำตอบ...'}
+              </span>
             </div>
           </div>
         )}

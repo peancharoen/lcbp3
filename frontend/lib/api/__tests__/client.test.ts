@@ -5,14 +5,14 @@
 // - 2026-06-13: Invoke actual response interceptor handlers for event and redirect assertions
 // - 2026-06-13: Capture rejectedHandler at module scope before beforeEach clears mock history
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
-  clearAuthTokenCache,
   parseApiError,
   AI_FEATURES_UNAVAILABLE_EVENT,
   getAuthToken,
 } from '../client';
 import { getSession } from 'next-auth/react';
+import { useAuthStore } from '@/lib/stores/auth-store';
 import apiClient from '@/lib/api/client';
 
 // Unmock the api client so we test the actual implementation
@@ -51,22 +51,26 @@ const rejectedHandler = (apiClient.interceptors.response.use as any).mock.calls[
 describe('apiClient', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    clearAuthTokenCache();
+    // รีเซ็ต auth store ก่อนทุก test — getAuthToken อ่านจาก store เป็นแหล่งหลัก
+    useAuthStore.setState({ user: null, token: null, isAuthenticated: false });
   });
 
-  afterEach(() => {
-    clearAuthTokenCache();
-  });
+  describe('Token Resolution (store-first, no module cache)', () => {
+    it('should prefer token from auth store without calling getSession', async () => {
+      useAuthStore.setState({ token: 'store-token', isAuthenticated: true });
+      const token = await getAuthToken();
+      expect(token).toBe('store-token');
+      expect(getSession).not.toHaveBeenCalled();
+    });
 
-  describe('Token Caching', () => {
-    it('should cache token from getSession', async () => {
+    it('should fallback to getSession when store has no token', async () => {
       (getSession as any).mockResolvedValue({ accessToken: 'test-token' });
       const token = await getAuthToken();
       expect(token).toBe('test-token');
       expect(getSession).toHaveBeenCalled();
     });
 
-    it('should fallback to localStorage if getSession fails', async () => {
+    it('should fallback to localStorage if store empty and getSession fails', async () => {
       (getSession as any).mockRejectedValue(new Error('Session error'));
       const mockLocalStorage = {
         getItem: vi.fn(() => JSON.stringify({ state: { token: 'local-token' } })),
@@ -90,24 +94,6 @@ describe('apiClient', () => {
       });
       const token = await getAuthToken();
       expect(token).toBeNull();
-    });
-
-    it('should use cached token on subsequent calls', async () => {
-      (getSession as any).mockResolvedValue({ accessToken: 'test-token' });
-      await getAuthToken();
-      const token2 = await getAuthToken();
-      expect(getSession).toHaveBeenCalledTimes(1);
-      expect(token2).toBe('test-token');
-    });
-  });
-
-  describe('clearAuthTokenCache', () => {
-    it('should clear cached token', async () => {
-      (getSession as any).mockResolvedValue({ accessToken: 'test-token' });
-      await getAuthToken();
-      clearAuthTokenCache();
-      await getAuthToken();
-      expect(getSession).toHaveBeenCalledTimes(2);
     });
   });
 

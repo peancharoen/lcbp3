@@ -4,12 +4,16 @@
 // - 2026-09-04: Two-Phase Batch OCR/AI Extraction (D267) — เมื่อเจอ 503 AI_FEATURES_UNAVAILABLE
 //   (main model ถูก unload ระหว่าง legacy batch OCR phase) แสดง dialog รอ/ยกเลิกแทนการ append
 //   error bubble คงที่ทันที — ใช้ useAiUnavailableRetry (backoff retry ทุก 8s จนสำเร็จหรือ cancel)
+// - 2026-09-05: ADR-051 D2 — expose isColdStartLikely (response-time heuristic ผ่าน
+//   useColdStartHint) ให้ UI เปลี่ยน spinner เป็นข้อความ "กำลังเตรียมโมเดล AI" เมื่อ request
+//   ช้าผิดปกติจาก residual mid-flight race ระหว่าง OCR batch unload→reload main model
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import { ChatMessage, ChatContext, ChatResponseDto } from '@/types/ai-chat';
 import { useAiUnavailableRetry } from './use-ai-unavailable-retry';
+import { useColdStartHint } from './use-cold-start-hint';
 
 function isAiFeaturesUnavailableError(err: unknown): boolean {
   if (!axios.isAxiosError(err) || err.response?.status !== 503) return false;
@@ -59,6 +63,9 @@ export function useAiChat(context: ChatContext) {
       return response.data;
     },
   });
+  // ADR-051 D2: ถ้า request รอนานเกิน threshold ให้ถือว่าน่าจะ cold-start (main model
+  // ถูก unload โดย mid-flight ocr-extract race) — UI จะสลับข้อความ loading ให้มีบริบท
+  const isColdStartLikely = useColdStartHint(chatMutation.isPending);
   const sendMessage = useCallback(async (queryText: string) => {
     if (!queryText.trim()) return;
     const userMsg: ChatMessage = {
@@ -145,6 +152,7 @@ export function useAiChat(context: ChatContext) {
     sendMessage,
     clearHistory,
     isLoading: chatMutation.isPending,
+    isColdStartLikely,
     isAiUnavailableDialogOpen,
     isAiUnavailableRetrying,
     aiUnavailableElapsedSeconds,

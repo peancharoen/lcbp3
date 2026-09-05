@@ -5,6 +5,8 @@
 //   AI_FEATURES_UNAVAILABLE (main model ถูก unload ระหว่าง legacy batch OCR phase) แสดง
 //   dialog รอ/ยกเลิกแทน toast error ทันที เฉพาะตอน submit เริ่มต้นเท่านั้น (pollSandboxJob
 //   ที่ poll ทุก 5s อยู่แล้วไม่ต้องเปลี่ยน — 503 ตรงนี้คือคนละ endpoint)
+// - 2026-09-05: ADR-051 D2 — แสดงข้อความ cold-start hint ใต้ progress card เมื่อ sandbox
+//   job รอนานเกิน threshold (response-time heuristic ผ่าน useColdStartHint)
 
 'use client';
 
@@ -29,6 +31,8 @@ import { adminAiService, AiSandboxJobResult, AiRagCitation } from '@/lib/service
 import { toast } from 'sonner';
 import { ensureArray } from '@/components/admin/ai/ai-constants';
 import { useAiUnavailableRetry } from '@/hooks/use-ai-unavailable-retry';
+import { useColdStartHint } from '@/hooks/use-cold-start-hint';
+import { useTranslations } from '@/hooks/use-translations';
 import { AiUnavailableWaitDialog } from '@/components/ai/ai-unavailable-wait-dialog';
 
 function isAiFeaturesUnavailableError(err: unknown): boolean {
@@ -61,6 +65,9 @@ export default function RagPlaygroundPage() {
     wait: waitAiUnavailableRetry,
     cancel: cancelAiUnavailableWait,
   } = useAiUnavailableRetry();
+  const t = useTranslations();
+  // ADR-051 D2: sandbox job รอนานเกิน threshold → น่าจะ main model cold-start
+  const isColdStartLikely = useColdStartHint(isSandboxPolling);
 
   const { data: projects = [], isLoading: isProjectsLoading } = useQuery<SandboxProject[]>({
     queryKey: ['admin-sandbox-projects'],
@@ -242,6 +249,12 @@ export default function RagPlaygroundPage() {
               </div>
               <span className="text-xs text-muted-foreground">{sandboxProgress}%</span>
             </div>
+            {isColdStartLikely && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                <Info className="h-3 w-3 shrink-0" />
+                {t('ai.coldStart.hint')}
+              </p>
+            )}
             <Progress value={sandboxProgress} className="h-2" />
             <div className="rounded bg-background/50 p-2 text-[11px] text-muted-foreground font-mono flex items-center gap-2">
               <Info className="h-3 w-3" />
