@@ -18,20 +18,19 @@
         "name": "next"
       }
     ],
-    "baseUrl": "./",
     "paths": {
       "@/*": ["./*"],
-      "@components": ["components/*"],
-      "@config": ["config/*"],
-      "@lib": ["lib/*"],
-      "@providers": ["providers/*"],
-      "@public": ["public/*"],
-      "@styles": ["styles/*"],
-      "@types": ["types/*"],
-      "@api": ["app/api/*"],
+      "@components": ["./components/*"],
+      "@config": ["./config/*"],
+      "@lib": ["./lib/*"],
+      "@providers": ["./providers/*"],
+      "@public": ["./public/*"],
+      "@styles": ["./styles/*"],
+      "@types": ["./types/*"],
+      "@api": ["./app/api/*"],
       // เพิ่มส่วนที่ขาดไปเพื่อให้ตรงกับ Workspace
-      "@hooks/*": ["hooks/*"],
-      "@utils/*": ["utils/*"]
+      "@hooks/*": ["./hooks/*"],
+      "@utils/*": ["./utils/*"]
     },
     "target": "ES2017"
   },
