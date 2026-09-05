@@ -5,7 +5,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from '@/hooks/use-translations';
 import { Cpu, MemoryStick, Thermometer, Loader2, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -114,7 +114,7 @@ export function HostMetricsCard({
   onTogglePause,
   onManualRefresh,
 }: HostMetricsCardProps) {
-  const { t } = useTranslation('common');
+  const t = useTranslations();
   const sparkData = useMemo(() => extractHistoryValues(data?.history), [data?.history]);
 
   return (

@@ -15,7 +15,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from '@/hooks/use-translations';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Cpu, Loader2, Power, PowerOff, AlertTriangle, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -144,7 +144,7 @@ export function CombinedOllamaEngineCard({
   isVramLoading,
   isVramError,
 }: CombinedOllamaEngineCardProps) {
-  const { t } = useTranslation('common');
+  const t = useTranslations();
   const queryClient = useQueryClient();
   const [pendingUnloadModel, setPendingUnloadModel] = useState<string | null>(null);
 
