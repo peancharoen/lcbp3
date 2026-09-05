@@ -318,7 +318,7 @@ D265-D271 ด้านบน
 > (Devin/Claude/Codex) รันพร้อมกันบน `/opt/np-dms-lcbp3` เดียวกันไม่มี worktree แยก ก่อน push
 > commit สำคัญ ให้ `git log --oneline -3` + `git show <hash> --stat` ยืนยันซ้ำเสมอ
 
-### OCR OOM Root Cause + BGE Restore + Exclusive GPU Access (Session 2026-09-03) ✅ Complete (pending browser verify)
+### OCR OOM Root Cause + BGE Restore + Exclusive GPU Access (Session 2026-09-03) ✅ Complete (browser verified Session 2026-09-05)
 
 - [x] พบ+กู้คืน D171 (BGE lazy-load) ที่หายจาก `app.py` ทั้ง canonical spec + runtime
 - [x] Rebuild + restart `ocr-sidecar` — `/bge/status`+`/bge/unload` ตอบ 200, GPU ว่างสนิท
@@ -328,13 +328,20 @@ D265-D271 ด้านบน
 - [x] Commit `e420980d` push ผ่าน CI/CD auto-deploy
 - [x] แก้ `OllamaService.loadModel()` keep_alive numeric-string bug (D262) — commit `3c814acd`, 617/617 tests ผ่าน
 - [x] แก้ `rclone` gdrive OAuth token หมดอายุ (D263) — sync กลับมาทำงานจริง ทดสอบแล้ว exit 0
-- [ ] **ยืนยันผ่าน browser จริง** — ลอง extract ที่ `/admin/migration` อีกครั้งหลัง CI/CD deploy รอบล่าสุดเสร็จ
-- [ ] ตรวจสอบ CI/CD run ล่าสุด (`.gitea/workflows/ci-deploy.yml`) ว่า pass/fail
+- [x] **ยืนยันผ่าน browser จริง (Session 2026-09-05)** — E2E verify ที่ `/admin/migration` ยืนยัน OCR batch
+      รันจริง: PENDING→WAITING→RUNNING, VRAM 7283 MB (np-dms-ocr loaded), BullMQ batch 1 active — ปิดโดย D272
+- [ ] ตรวจสอบ CI/CD run ล่าสุด (`.gitea/workflows/ci-deploy.yml`) ว่า pass/fail — **blocked** (Gitea API curl ล้มเหลว exit 7, ต้องตรวจด้วย browser ที่ `https://192.168.10.11/np-dms/lcbp3/actions`)
 - [ ] Implement UX loading message สำหรับ cold-start (ADR-051 D2) — ยังไม่ได้ทำ
-- [ ] ตรวจสอบ `ai-ingest`/`veto-notifications` queue ไม่มี `@Processor` consumer จริงไหม (ADR-051 Known Issues) — dead code candidate หรือ missing consumer?
+- [x] ตรวจสอบ `ai-ingest`/`veto-notifications` queue ไม่มี `@Processor` consumer จริง (Session 2026-09-05) —
+      **ยืนยันแล้ว: ไม่มี consumer** — grep `@Processor(` ทั้ง backend พบ 10 processors แต่ไม่มี ai-ingest หรือ
+      veto-notifications — dead code candidate (queue constants ประกาศไว้แต่ไม่มี consumer)
 - [ ] พิจารณา `np-dms-ai-30b` (17.7GB > GPU 16.3GB) — ต้องมี partial GPU offload config หรือเลิกใช้บน GPU ขนาดนี้
 - [ ] **พบเครื่องนี้รัน Devin/Claude/Codex agent พร้อมกันบน `/opt/np-dms-lcbp3` เดียวกันไม่มี worktree แยก** — สงสัยเป็นสาเหตุที่ไฟล์ที่แก้ไข (ไม่ใช่ไฟล์สร้างใหม่) ถูก revert เงียบๆ ซ้ำหลายครั้งใน session เดียว (`bullmq-coordination.md` [เกิดซ้ำ 2 รอบ], `bullmq.config.ts`, `CONTEXT.md`+`memory/project-memory-override.md` [รอบแรก]) — ยังไม่ได้ยืนยัน root cause 100% แต่ควรพิจารณา worktree isolation ต่อ agent
-- [ ] ตรวจสอบ uptime-kuma push monitor ของ rclone cron ทำไมไม่แจ้งเตือนตอน token หมดอายุ 4 วัน (D263) — ควรจะ alert แต่เงียบ
+- [x] ตรวจสอบ uptime-kuma push monitor ของ rclone cron (Session 2026-09-05) —
+      **crontab ใช้ `&&`/`||` structure ที่ถูกต้อง** (rclone success → push up, rclone fail → push down);
+      **curl push endpoint ตอบ 200 `{"ok":true}`** (ทดสอบทั้ง up + down); **rclone คืน exit code 3 เมื่อ fail**
+      (ทดสอบแล้ว); แต่ **token หมดอายุ 4 วันโดยไม่แจ้ง** — สงสัยว่า uptime-kuma push monitor อาจตั้ง
+      "pending" timeout ยาวเกินไป หรือไม่ได้ตั้ง push monitor จริง (ต้องตรวจที่ uptime-kuma UI)
 
 ### RAG Vector Deletion Fix (Session 2026-09-03) ✅ Complete (pending deploy)
 
@@ -348,10 +355,12 @@ D265-D271 ด้านบน
 - [x] 89 unit tests ผ่าน (ai-qdrant + vector-cleanup + correspondence.service/controller + audit-log.interceptor)
 - [x] Backend build + lint:ci ผ่าน
 - [x] Frontend build ผ่าน
-- [ ] **รัน SQL delta** `2026-09-03-pending-vector-deletions.sql` บน database ก่อน deploy
+- [x] **รัน SQL delta** `2026-09-03-pending-vector-deletions.sql` บน database — **table มีอยู่แล้ว**
+      (Session 2026-09-05 ตรวจด้วย MCP MariaDB: `SHOW TABLES LIKE 'pending_vector_deletions'` พบ;
+      `SHOW CREATE TABLE` ยืนยัน structure ตรงกับ SQL delta ทุก column/index/comment)
 - [ ] **E2E test**: สร้าง/index Correspondence → ยืนยัน Qdrant มี vectors → hardDelete → ยืนยัน Qdrant ล้าง
 - [ ] **ตรวจสอบ cron jobs** รันจริงหลัง deploy (ดู logs ของ VectorCleanupService)
-- [ ] **Commit + push** ไป Gitea
+- [x] **Commit + push** ไป Gitea — **already pushed** ใน commit `643c3d73` (21 files, 1809 insertions)
 
 ### OCR Leakage Root Cause + Tag.public_id Consolidation (Session 2026-09-01) ✅ Complete (pending Re-Extract E2E)
 
