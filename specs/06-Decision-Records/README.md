@@ -122,6 +122,10 @@ Architecture Decision Records (ADRs) เป็นเอกสารที่บ�
 | [ADR-046](./ADR-046-tag-color-palette-key.md) | Tag Color Palette Key — `tags.color_code` เป็น Palette Key Enum | ✅ Accepted | 2026-08-18 | เปลี่ยน `tags.color_code` จาก free-form string เป็น 14 palette key enum; frontend = source of truth (`TAG_PALETTE`), backend mirror สำหรับ `@IsIn` validation; SQL delta normalize legacy values → `'default'`; related ADR-019/030/044 |
 | [ADR-047](./ADR-047-native-backend-legacy-ingestion.md) | Native Backend Legacy Ingestion & OCR Persistence | 📋 Proposed | 2026-08-20 | ย้าย Legacy Ingestion จาก n8n สู่ NestJS Module (Streaming Excel + BullMQ ai-batch + OCR Persistence + Review Queue UI + CLI); amends ADR-028/042, supersedes 03-04 §3 |
 | [ADR-048](./ADR-048-ai-engine-control-center.md) | AI Engine Control Center — จาก Read-Only Monitoring สู่ Active Control | 📋 Proposed | 2026-08-24 | ขยาย `/admin/ai/system`: เพิ่ม `node-exporter` (host CPU/temp), รวม VRAM card เข้า Ollama card พร้อม Load/Unload จริง (guard ด้วย active-job check), เพิ่ม batch job detail viewer + Clear Failed Jobs ต่อ queue; related ADR-033/041/007/016 |
+| [ADR-049](./ADR-049-workflow-state-machine-consolidation.md) | Workflow State Machine Consolidation | ✅ Accepted | 2026-08-29 | รวมศูนย์ State Machine ของ Workflow; related ADR-001/021 |
+| [ADR-050](./ADR-050-ai-metadata-extraction-output-contract.md) | AI Metadata Extraction Output Contract | ✅ Accepted | 2026-09-01 | กำหนด JSON Contract ของ AI Metadata Extraction; related ADR-023A/034 |
+| [ADR-051](./ADR-051-automatic-queue-aware-model-scheduling.md) | Automatic Queue-Aware Model Scheduling | ✅ Accepted | 2026-09-02 | จัดคิวสลับโมเดล Ollama อัตโนมัติตาม BullMQ queue priority; related ADR-023A/033/048 |
+| [ADR-052](./ADR-052-excel-data-review-pipeline.md) | 4-Layer Excel Data Review & AI Suggestion Pipeline for Correspondence Ingestion | ✅ Accepted | 2026-09-05 | นำเข้า Data Review 4 ชั้นจาก CDMS ปรับใช้กับ Legacy Migration และ Routine Import ด้วย Excel (.xlsx) + Multi-tier AI Reviewer (Local/Gemini/Claude) + Annotated Excel Output; amends ADR-028/047 |
 
 ---
 

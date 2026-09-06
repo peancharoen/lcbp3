@@ -13,6 +13,7 @@ import {
   Column,
   PrimaryGeneratedColumn,
   CreateDateColumn,
+  Index,
 } from 'typeorm';
 import { Exclude } from 'class-transformer';
 
@@ -48,6 +49,7 @@ export class MigrationReviewQueue extends UuidBaseEntity {
   @Exclude()
   id!: number;
 
+  @Index('idx_migration_review_batch')
   @Column({ name: 'batch_id', length: 100, nullable: true })
   batchId?: string;
 

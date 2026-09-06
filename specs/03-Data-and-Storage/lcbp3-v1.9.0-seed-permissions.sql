@@ -1282,3 +1282,42 @@ FROM roles r,
   permissions p
 WHERE r.role_name IN ('ADMIN', 'Org Admin', 'DC', 'Document Control')
   AND p.permission_name = 'user.manage_assignments';
+
+-- ==========================================================
+-- 21. Correspondence Import Review Permission (ID 221) — ADR-052
+-- Added: 2026-09-06 (Feature 252 — Excel Data Review Pipeline)
+-- ==========================================================
+-- สิทธิ์สำหรับการอัปโหลด Excel/ZIP เข้า 4-Layer Review Pipeline
+-- (POST /api/v1/correspondence/import-review/check)
+-- - Superadmin (role 1): ได้ทุก permission อัตโนมัติผ่าน SELECT-all pattern
+-- - Org Admin (role 2): ใช้ได้ทั้ง MIGRATION_STAGING และ DIRECT_IMPORT
+-- - Document Control (role 3): ใช้ DIRECT_IMPORT + LOCAL_OLLAMA เท่านั้น
+--   (MIGRATION_STAGING และ External AI ถูกจำกัดเพิ่มเติมใน controller — FR-018, D7, D2)
+INSERT INTO permissions (
+    permission_id,
+    permission_name,
+    description,
+    module,
+    is_active
+  )
+VALUES (
+    221,
+    'correspondence.import_review',
+    'อัปโหลด Excel/ZIP เข้า 4-Layer Review Pipeline (ADR-052)',
+    'correspondence',
+    1
+  ) ON DUPLICATE KEY
+UPDATE description =
+VALUES(description),
+  module =
+VALUES(module),
+  is_active =
+VALUES(is_active);
+
+-- Role 2: Org Admin — correspondence.import_review
+INSERT IGNORE INTO role_permissions (role_id, permission_id)
+VALUES (2, 221);
+
+-- Role 3: Document Control — correspondence.import_review
+INSERT IGNORE INTO role_permissions (role_id, permission_id)
+VALUES (3, 221);

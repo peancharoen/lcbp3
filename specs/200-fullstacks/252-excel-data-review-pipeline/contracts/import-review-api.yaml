@@ -1,0 +1,157 @@
+openapi: 3.0.3
+info:
+  title: Excel Data Review & Import API
+  version: 1.0.0
+  description: 4-Layer Excel Data Review and Suggestion Pipeline (ADR-052)
+paths:
+  /api/v1/correspondence/import-review/check:
+    post:
+      summary: Upload and run 4-layer validation on Excel or ZIP bundle
+      consumes:
+        - multipart/form-data
+      parameters:
+        - name: projectPublicId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: targetMode
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [MIGRATION_STAGING, DIRECT_IMPORT]
+        - name: aiProvider
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [LOCAL_OLLAMA, GEMINI, CLAUDE]
+            default: LOCAL_OLLAMA
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: .xlsx file or .zip bundle containing register.xlsx and pdfs
+      responses:
+        '200':
+          description: Validation completed and session created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckReviewResponse'
+
+  /api/v1/correspondence/import-review/{sessionId}/download-annotated:
+    get:
+      summary: Download the AI-annotated Excel (.xlsx) file
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Binary .xlsx file with cell comments and color highlights
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+
+  /api/v1/correspondence/import-review/confirm:
+    post:
+      summary: Re-validate and commit the reviewed session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reviewSessionPublicId]
+              properties:
+                reviewSessionPublicId:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Commit successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  batchId:
+                    type: string
+                  importedCount:
+                    type: integer
+                  quarantineCount:
+                    type: integer
+
+  /api/v1/correspondence/import-review/cancel:
+    post:
+      summary: Cancel review session and clean up stash directory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reviewSessionPublicId]
+              properties:
+                reviewSessionPublicId:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Session cancelled and stash cleaned up
+
+components:
+  schemas:
+    CheckReviewResponse:
+      type: object
+      properties:
+        reviewSessionPublicId:
+          type: string
+          format: uuid
+        targetMode:
+          type: string
+        totalRows:
+          type: integer
+        passCount:
+          type: integer
+        warnCount:
+          type: integer
+        blockCount:
+          type: integer
+        aiSuggestCount:
+          type: integer
+        canConfirm:
+          type: boolean
+        downloadAnnotatedUrl:
+          type: string
+        findings:
+          type: array
+          items:
+            type: object
+            properties:
+              row:
+                type: integer
+              column:
+                type: string
+              level:
+                type: string
+                enum: [BLOCK, WARN, AI_SUGGEST]
+              message:
+                type: string
+              suggestedValue:
+                type: string
