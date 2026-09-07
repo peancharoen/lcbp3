@@ -308,7 +308,7 @@ QDRANT_URL
 
 #### A. Code / Tech Debt (ทำในเครื่องนี้ได้)
 
-- [x] Feature 253 — BullMQ bulk store + Maintenance Vector Sync harden (`bulk-operations` queue + `BulkOperationsProcessor`, `VectorSyncService` Qdrant/DB, `preFilterCancelled` SQL fix) — backend 166/166 suites 2566 tests, tsc/lint:ci ผ่าน; frontend tsc/lint ผ่าน; 2 local commits (`178680ce`, `fe74b6e3`) — ✅ 2026-09-08
+- [x] Feature 253 — BullMQ bulk store + Maintenance Vector Sync harden (`bulk-operations` queue + `BulkOperationsProcessor`, `VectorSyncService` Qdrant/DB, `preFilterCancelled` SQL fix) — backend 166/166 suites 2566 tests, tsc/lint:ci ผ่าน; frontend tsc/lint ผ่าน; squashed + pushed via `2git.sh` เป็น `077705c5` — ✅ 2026-09-08
 - [x] ลบ `DocumentComparisonView` + `ExtractionResult` type (D162 follow-up — verified: ยังมีอยู่, ไม่มี caller) — ✅ 2026-09-05
 - [x] `AiValidationService`/`AiCallbackDto` — verified dead (inject แต่ไม่เคยถูกเรียก, callback pipeline ของ ADR-020 ลบไปใน D161) → ลบ service+spec+DTO, ตัดออกจาก ai.module + ai.service — ✅ 2026-09-05
 - [x] Refactor `getAuthToken()` → อ่านจาก `useAuthStore` (AuthSync sync จาก `useSession`) + fallback `getSession()`/localStorage — ตัด module-level cache ที่ fragile ออก — ✅ 2026-09-05
