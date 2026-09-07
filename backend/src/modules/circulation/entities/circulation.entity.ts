@@ -7,6 +7,7 @@ import {
   ManyToOne,
   JoinColumn,
   OneToMany,
+  VersionColumn,
 } from 'typeorm';
 import { Correspondence } from '../../correspondence/entities/correspondence.entity';
 import { Organization } from '../../organization/entities/organization.entity';
@@ -54,6 +55,17 @@ export class Circulation extends UuidBaseEntity {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt!: Date;
+
+  @VersionColumn({ name: 'version', default: 0 })
+  version!: number;
+
+  @Column({
+    name: 'force_close_reason',
+    type: 'varchar',
+    length: 500,
+    nullable: true,
+  })
+  forceCloseReason?: string;
 
   // Relations
   @ManyToOne(() => Correspondence)

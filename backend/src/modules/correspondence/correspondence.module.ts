@@ -4,6 +4,8 @@ import { CorrespondenceController } from './correspondence.controller';
 import { CorrespondenceService } from './correspondence.service';
 import { CorrespondenceWorkflowService } from './correspondence-workflow.service';
 import { DueDateReminderService } from './due-date-reminder.service';
+import { CorrespondenceActionStrategy } from './strategies/correspondence-action.strategy';
+import { AuditLog } from '../../common/entities/audit-log.entity';
 
 // Entities
 import { Correspondence } from './entities/correspondence.entity';
@@ -47,6 +49,7 @@ import { AiModule } from '../ai/ai.module';
       CorrespondenceRevisionAttachment,
       Organization,
       PendingVectorDeletion,
+      AuditLog,
     ]),
     DocumentNumberingModule,
     JsonSchemaModule,
@@ -63,7 +66,12 @@ import { AiModule } from '../ai/ai.module';
     CorrespondenceService,
     CorrespondenceWorkflowService,
     DueDateReminderService,
+    CorrespondenceActionStrategy,
   ],
-  exports: [CorrespondenceService, CorrespondenceWorkflowService],
+  exports: [
+    CorrespondenceService,
+    CorrespondenceWorkflowService,
+    CorrespondenceActionStrategy,
+  ],
 })
 export class CorrespondenceModule {}

@@ -9,12 +9,20 @@ import { Eye, Edit } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { DocumentRowActions } from '@/components/documents/document-row-actions';
+import { getDocumentActionConfig } from '@/components/documents/document-action-strategy';
 
 interface CorrespondenceListProps {
   data: CorrespondenceRevision[];
+  rowSelection?: Record<string, boolean>;
+  onRowSelectionChange?: (value: Record<string, boolean>) => void;
 }
 
-export function CorrespondenceList({ data }: CorrespondenceListProps) {
+export function CorrespondenceList({
+  data,
+  rowSelection,
+  onRowSelectionChange,
+}: CorrespondenceListProps) {
   const { user, hasPermission } = useAuthStore();
   const privilegedEditableStatuses = ['SUBCSC', 'SUBOWN', 'IN_REVIEW_CSC'];
 
@@ -126,6 +134,12 @@ export function CorrespondenceList({ data }: CorrespondenceListProps) {
                 </Button>
               </Link>
             )}
+            <DocumentRowActions
+              config={getDocumentActionConfig('CORRESPONDENCE')}
+              onCancel={() => {/* TODO: open cancel dialog */}}
+              onHardDelete={() => {/* TODO: open hard-delete dialog */}}
+              onMetadataEdit={() => {/* TODO: open metadata edit dialog */}}
+            />
           </div>
         );
       },
@@ -134,7 +148,14 @@ export function CorrespondenceList({ data }: CorrespondenceListProps) {
 
   return (
     <div>
-      <DataTable columns={columns} data={data || []} />
+      <DataTable
+        columns={columns}
+        data={data || []}
+        enableRowSelection
+        rowSelection={rowSelection}
+        onRowSelectionChange={onRowSelectionChange}
+        getRowId={(row) => row.correspondence?.publicId ?? row.publicId}
+      />
     </div>
   );
 }

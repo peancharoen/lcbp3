@@ -21,6 +21,7 @@ import { UpdateContractDrawingDto } from './dto/update-contract-drawing.dto';
 // Services
 import { FileStorageService } from '../../common/file-storage/file-storage.service';
 import { UuidResolverService } from '../../common/services/uuid-resolver.service';
+import { ValidationException } from '../../common/exceptions/base.exception';
 
 @Injectable()
 export class ContractDrawingService {
@@ -278,13 +279,91 @@ export class ContractDrawingService {
   /**
    * ลบแบบสัญญา (Soft Delete)
    */
-  async remove(id: number, user: User) {
+  async remove(id: number, user: User, deleteReason?: string) {
     const drawing = await this.findOne(id);
 
-    // บันทึกว่าใครเป็นคนลบก่อน Soft Delete (Optional)
+    // บันทึกว่าใครเป็นคนลบก่อน Soft Delete + เหตุผล
     drawing.updatedBy = user.user_id;
+    if (deleteReason) {
+      drawing.deleteReason = deleteReason;
+    }
     await this.drawingRepo.save(drawing);
 
     return this.drawingRepo.softRemove(drawing);
+  }
+
+  /**
+   * Metadata Patch — แก้ไข metadata fields บน Contract Drawing (Feature 253 — T059)
+   * Tier 1: title, description | Tier 2: mainCategoryId, subCategoryId | Tier 3: drawingNumber
+   */
+  async patchMetadata(
+    publicId: string,
+    patch: Record<string, string | number | boolean | null>,
+    expectedVersion: number,
+    _user: User
+  ) {
+    const drawing = await this.findOneByUuid(publicId);
+
+    if (drawing.version !== expectedVersion) {
+      throw new ValidationException(
+        `Version mismatch — expected ${expectedVersion}, got ${drawing.version}`
+      );
+    }
+
+    const tier1Fields = ['title', 'description'];
+    const tier2Fields = ['mapCatId', 'volumeId'];
+    const tier3Fields = ['contractDrawingNo'];
+
+    const invalidFields = Object.keys(patch).filter(
+      (key) =>
+        !tier1Fields.includes(key) &&
+        !tier2Fields.includes(key) &&
+        !tier3Fields.includes(key)
+    );
+    if (invalidFields.length > 0) {
+      throw new ValidationException(
+        `Invalid fields: ${invalidFields.join(', ')}`
+      );
+    }
+    const tier3Changes = tier3Fields.filter((f) => patch[f] !== undefined);
+    if (tier3Changes.length > 0) {
+      throw new ValidationException(
+        `Cannot modify restricted fields: ${tier3Changes.join(', ')}`
+      );
+    }
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const tier1Patch: Record<string, string | number | boolean | null> = {};
+      for (const key of tier1Fields) {
+        if (patch[key] !== undefined) tier1Patch[key] = patch[key];
+      }
+      if (Object.keys(tier1Patch).length > 0) {
+        await queryRunner.manager.update(
+          ContractDrawing,
+          drawing.id,
+          tier1Patch
+        );
+      }
+      await queryRunner.manager.increment(
+        ContractDrawing,
+        { id: drawing.id },
+        'version',
+        1
+      );
+      await queryRunner.commitTransaction();
+      return {
+        message: 'Metadata updated successfully',
+        newVersion: expectedVersion + 1,
+      };
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
   }
 }

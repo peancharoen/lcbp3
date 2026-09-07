@@ -7,6 +7,7 @@ import {
   ManyToOne,
   PrimaryColumn,
   OneToOne,
+  VersionColumn,
 } from 'typeorm';
 
 import { User } from '../../user/entities/user.entity';
@@ -30,6 +31,9 @@ export class Rfa {
 
   @Column({ name: 'created_by', nullable: true })
   createdBy?: number;
+
+  @VersionColumn({ name: 'version', default: 0 })
+  version!: number;
 
   @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt?: Date;

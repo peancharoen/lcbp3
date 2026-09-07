@@ -68,6 +68,8 @@ export interface Correspondence {
   disciplineId?: number;
   isInternal: boolean;
   createdAt: string;
+  version?: number; // Feature 253: optimistic locking
+  cancelledAt?: string | null; // Feature 253: cancel timestamp
 
   // Relations
   originator?: Organization;

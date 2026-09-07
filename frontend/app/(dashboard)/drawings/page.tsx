@@ -1,6 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+// File: app/(dashboard)/drawings/page.tsx
+// Change Log:
+// - 2026-09-07: Add bulk action bar + selection support for drawings (Feature 253 T086)
+
+import { useMemo, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DrawingList } from '@/components/drawings/list';
 import { Button } from '@/components/ui/button';
@@ -8,6 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Upload, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useProjects } from '@/hooks/use-master-data';
+import { BulkActionBar } from '@/components/documents/bulk-action-bar';
+import { useBulkActions } from '@/hooks/use-bulk-actions';
+import { DocumentCancelDialog } from '@/components/documents/document-cancel-dialog';
+import { BulkTagDialog } from '@/components/documents/bulk-tag-dialog';
+import { getDocumentActionConfig } from '@/components/documents/document-action-strategy';
 
 export default function DrawingsPage() {
   const [selectedProjectUuid, setSelectedProjectUuid] = useState<string | undefined>(undefined);
@@ -28,7 +37,6 @@ export default function DrawingsPage() {
         </Link>
       </div>
 
-      {/* Project Selector */}
       <div className="flex items-center gap-4">
         <span className="text-sm font-medium">Project:</span>
         <Select value={selectedProjectUuid ?? ''} onValueChange={(v) => setSelectedProjectUuid(v || undefined)}>
@@ -62,10 +70,40 @@ export default function DrawingsPage() {
 
 function DrawingTabs({ projectUuid }: { projectUuid: string }) {
   const [search, setSearch] = useState('');
-  // We can add more specific filters here (e.g. category) later
+  const [activeType, setActiveType] = useState<'CONTRACT' | 'SHOP' | 'AS_BUILT'>('CONTRACT');
+  const [selectionByType, setSelectionByType] = useState<Record<string, string[]>>({
+    CONTRACT: [],
+    SHOP: [],
+    AS_BUILT: [],
+  });
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showTagDialog, setShowTagDialog] = useState(false);
+
+  const selectedIds = useMemo(
+    () => selectionByType[activeType] || [],
+    [selectionByType, activeType]
+  );
+
+  const { bulkCancel, bulkTag, bulkExport, isBulkCancelling } = useBulkActions({
+    documentType: 'DRAWING',
+    onComplete: () =>
+      setSelectionByType((prev) => ({ ...prev, [activeType]: [] })),
+  });
+
+  const handleSelectionChange = (type: 'CONTRACT' | 'SHOP' | 'AS_BUILT') => (ids: string[]) => {
+    setSelectionByType((prev) => ({ ...prev, [type]: ids }));
+  };
+
+  const handleClear = () => {
+    setSelectionByType((prev) => ({ ...prev, [activeType]: [] }));
+  };
 
   return (
-    <Tabs defaultValue="contract" className="w-full">
+    <Tabs
+      defaultValue="contract"
+      className="w-full"
+      onValueChange={(value) => setActiveType(value as typeof activeType)}
+    >
       <div className="flex justify-between items-center mb-6">
         <TabsList className="grid w-full grid-cols-3 max-w-[400px]">
           <TabsTrigger value="contract">Contract</TabsTrigger>
@@ -87,16 +125,67 @@ function DrawingTabs({ projectUuid }: { projectUuid: string }) {
       </div>
 
       <TabsContent value="contract" className="mt-0">
-        <DrawingList type="CONTRACT" projectUuid={projectUuid} filters={{ search }} />
+        <DrawingList
+          type="CONTRACT"
+          projectUuid={projectUuid}
+          filters={{ search }}
+          onSelectionChange={handleSelectionChange('CONTRACT')}
+        />
       </TabsContent>
 
       <TabsContent value="shop" className="mt-0">
-        <DrawingList type="SHOP" projectUuid={projectUuid} filters={{ search }} />
+        <DrawingList
+          type="SHOP"
+          projectUuid={projectUuid}
+          filters={{ search }}
+          onSelectionChange={handleSelectionChange('SHOP')}
+        />
       </TabsContent>
 
       <TabsContent value="asbuilt" className="mt-0">
-        <DrawingList type="AS_BUILT" projectUuid={projectUuid} filters={{ search }} />
+        <DrawingList
+          type="AS_BUILT"
+          projectUuid={projectUuid}
+          filters={{ search }}
+          onSelectionChange={handleSelectionChange('AS_BUILT')}
+        />
       </TabsContent>
+
+      <BulkActionBar
+        selectedCount={selectedIds.length}
+        onBulkCancel={() => setShowCancelDialog(true)}
+        onBulkTag={() => setShowTagDialog(true)}
+        onBulkExport={() =>
+          bulkExport({
+            publicIds: selectedIds,
+            format: 'CSV',
+            columns: ['publicId', 'drawingNumber', 'title'],
+          })
+        }
+        onClear={handleClear}
+        isLoading={isBulkCancelling}
+      />
+
+      <DocumentCancelDialog
+        open={showCancelDialog}
+        onOpenChange={setShowCancelDialog}
+        config={getDocumentActionConfig('DRAWING')}
+        documentLabel={`${selectedIds.length} drawing(s)`}
+        isLoading={isBulkCancelling}
+        onConfirm={(reason) => {
+          bulkCancel({ publicIds: selectedIds, reason });
+          setShowCancelDialog(false);
+        }}
+      />
+
+      <BulkTagDialog
+        open={showTagDialog}
+        onOpenChange={setShowTagDialog}
+        selectedCount={selectedIds.length}
+        onConfirm={(addTags, removeTags) => {
+          bulkTag({ publicIds: selectedIds, addTags, removeTags });
+        }}
+      />
     </Tabs>
   );
 }

@@ -401,4 +401,160 @@ export class TransmittalService {
       },
     };
   }
+
+  /**
+   * Cancel Transmittal — set status to CANCELLED + cancel metadata
+   * Feature 253: Unified document cancel (T042)
+   */
+  async cancel(publicId: string, reason: string, user: User) {
+    const correspondence = await this.dataSource.manager.findOne(
+      Correspondence,
+      {
+        where: { publicId },
+        select: ['id', 'correspondenceNumber'],
+      }
+    );
+    if (!correspondence)
+      throw new NotFoundException(`Transmittal publicId ${publicId}`);
+
+    const transmittal = await this.transmittalRepo.findOne({
+      where: { correspondenceId: correspondence.id },
+    });
+    if (!transmittal) throw new NotFoundException('Transmittal', publicId);
+
+    // Check if already cancelled
+    const cancelledStatus = await this.statusRepo.findOne({
+      where: { statusCode: 'CANCELLED' },
+    });
+    if (!cancelledStatus)
+      throw new NotFoundException('CANCELLED status not found');
+
+    if (transmittal.statusId === cancelledStatus.id) {
+      return { message: 'Transmittal already cancelled' };
+    }
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // Update transmittal status + cancel metadata
+      await queryRunner.manager.update(
+        Transmittal,
+        transmittal.correspondenceId,
+        {
+          statusId: cancelledStatus.id,
+
+          cancelReason: reason,
+          cancelledAt: new Date(),
+          cancelledBy: user.user_id,
+        }
+      );
+
+      // Terminate workflow instance if exists
+      const instance = await this.workflowEngine.getInstanceByEntity(
+        'transmittal',
+        correspondence.id.toString()
+      );
+      if (instance) {
+        await this.workflowEngine.terminateInstance(
+          instance.id,
+          `Transmittal cancelled: ${reason}`
+        );
+      }
+
+      await queryRunner.commitTransaction();
+      return { message: 'Transmittal cancelled successfully' };
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  /**
+   * Metadata Patch — แก้ไข metadata fields บน Transmittal (Feature 253 — T058)
+   * Tier 1: remarks | Tier 2: purpose | Tier 3: transmittalNumber (from correspondence)
+   */
+  async patchMetadata(
+    publicId: string,
+    patch: Record<string, string | number | boolean | null>,
+    expectedVersion: number,
+    _user: User
+  ) {
+    const correspondence = await this.dataSource.manager.findOne(
+      Correspondence,
+      { where: { publicId }, select: ['id', 'correspondenceNumber'] }
+    );
+    if (!correspondence)
+      throw new NotFoundException(`Transmittal publicId ${publicId}`);
+
+    const transmittal = await this.transmittalRepo.findOne({
+      where: { correspondenceId: correspondence.id },
+    });
+    if (!transmittal) throw new NotFoundException('Transmittal', publicId);
+
+    if (transmittal.version !== expectedVersion) {
+      throw new ValidationException(
+        `Version mismatch — expected ${expectedVersion}, got ${transmittal.version}`
+      );
+    }
+
+    const tier1Fields = ['remarks'];
+    const tier2Fields = ['purpose'];
+    const tier3Fields = ['transmittalNumber'];
+
+    const invalidFields = Object.keys(patch).filter(
+      (key) =>
+        !tier1Fields.includes(key) &&
+        !tier2Fields.includes(key) &&
+        !tier3Fields.includes(key)
+    );
+    if (invalidFields.length > 0) {
+      throw new ValidationException(
+        `Invalid fields: ${invalidFields.join(', ')}`
+      );
+    }
+    const tier3Changes = tier3Fields.filter((f) => patch[f] !== undefined);
+    if (tier3Changes.length > 0) {
+      throw new ValidationException(
+        `Cannot modify restricted fields: ${tier3Changes.join(', ')}`
+      );
+    }
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const tier1Patch: Record<string, string | number | boolean | null> = {};
+      for (const key of tier1Fields) {
+        if (patch[key] !== undefined) tier1Patch[key] = patch[key];
+      }
+      if (Object.keys(tier1Patch).length > 0) {
+        await queryRunner.manager.update(
+          Transmittal,
+          transmittal.correspondenceId,
+          tier1Patch
+        );
+      }
+      await queryRunner.manager.increment(
+        Transmittal,
+        { correspondenceId: transmittal.correspondenceId },
+        'version',
+        1
+      );
+      await queryRunner.commitTransaction();
+      return {
+        message: 'Metadata updated successfully',
+        newVersion: expectedVersion + 1,
+      };
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
+  }
 }

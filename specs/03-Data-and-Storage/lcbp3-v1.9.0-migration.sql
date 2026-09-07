@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS migration_review_queue (
   received_date DATE NULL COMMENT 'วันที่รับเอกสาร',
   issued_date DATE NULL COMMENT 'วันที่ออกเอกสาร',
   remarks TEXT COMMENT 'หมายเหตุจากหน้างาน (response)',
-  ai_suggested_category VARCHAR(50),
+  ai_suggested_correspondence_type VARCHAR(50),
   ai_confidence DECIMAL(4, 3),
   ai_issues JSON,
   ai_summary TEXT COMMENT 'สรุปเนื้อหาจาก AI (4-5 บรรทัด)',

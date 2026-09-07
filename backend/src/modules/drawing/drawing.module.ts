@@ -27,6 +27,7 @@ import { ShopDrawingService } from './shop-drawing.service';
 import { ContractDrawingService } from './contract-drawing.service';
 import { AsBuiltDrawingService } from './asbuilt-drawing.service';
 import { DrawingMasterDataService } from './drawing-master-data.service';
+import { DrawingActionStrategy } from './strategies/drawing-action.strategy';
 
 // Controllers
 import { ShopDrawingController } from './shop-drawing.controller';
@@ -70,6 +71,7 @@ import { ProjectModule } from '../project/project.module';
     ContractDrawingService,
     AsBuiltDrawingService,
     DrawingMasterDataService,
+    DrawingActionStrategy,
   ],
   controllers: [
     ShopDrawingController,
@@ -77,6 +79,11 @@ import { ProjectModule } from '../project/project.module';
     AsBuiltDrawingController,
     DrawingMasterDataController,
   ],
-  exports: [ShopDrawingService, ContractDrawingService, AsBuiltDrawingService],
+  exports: [
+    ShopDrawingService,
+    ContractDrawingService,
+    AsBuiltDrawingService,
+    DrawingActionStrategy,
+  ],
 })
 export class DrawingModule {}

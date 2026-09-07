@@ -1,11 +1,18 @@
 // File: backend/src/modules/correspondence/correspondence.service.spec.ts
 // Change Log:
 // - 2026-08-26: เพิ่ม regression tests สำหรับ hardDelete — attachments.uuid และ vector deletion payload
+// - 2026-09-07: ปรับ hardDelete ให้ใช้ system.manage_all และ mock Redis/Redlock
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { getRedisConnectionToken } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
 import { DataSource, Repository } from 'typeorm';
-import { PermissionException } from '../../common/exceptions';
+import {
+  BusinessException,
+  PermissionException,
+  ValidationException,
+} from '../../common/exceptions';
 import { CorrespondenceService } from './correspondence.service';
 import { Correspondence } from './entities/correspondence.entity';
 import { CorrespondenceRevision } from './entities/correspondence-revision.entity';
@@ -28,6 +35,8 @@ import { CirculationService } from '../circulation/circulation.service';
 import { AiQueueService } from '../ai/ai-queue.service';
 import { AiQdrantService } from '../ai/qdrant.service';
 import { PendingVectorDeletion } from '../ai/entities/pending-vector-deletion.entity';
+import { AuditLog } from '../../common/entities/audit-log.entity';
+import { DocumentSideEffectsService } from '../../common/services/document-side-effects.service';
 import { UpdateCorrespondenceDto } from './dto/update-correspondence.dto';
 import { CreateCorrespondenceDto } from './dto/create-correspondence.dto';
 import { User } from '../user/entities/user.entity';
@@ -67,8 +76,17 @@ describe('CorrespondenceService', () => {
   });
 
   const mockManager = {
-    create: jest.fn(),
-    save: jest.fn(),
+    create: jest
+      .fn()
+      .mockImplementation((_entity: unknown, data: unknown) => data),
+    save: jest
+      .fn()
+      .mockImplementation(
+        (_entity: unknown, data: Record<string, unknown>) => ({
+          ...data,
+          auditId: 'audit-123',
+        })
+      ),
     findOne: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
@@ -204,6 +222,20 @@ describe('CorrespondenceService', () => {
           provide: getRepositoryToken(PendingVectorDeletion),
           useValue: createMockRepository(),
         },
+        {
+          provide: getRepositoryToken(AuditLog),
+          useValue: createMockRepository(),
+        },
+        {
+          provide: DocumentSideEffectsService,
+          useValue: {
+            executeNonCritical: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: getRedisConnectionToken(),
+          useValue: {} as Redis,
+        },
       ],
     }).compile();
 
@@ -218,6 +250,13 @@ describe('CorrespondenceService', () => {
       getRepositoryToken(CorrespondenceRevision)
     );
     _dataSource = testingModule.get<DataSource>(DataSource);
+
+    // Mock Redlock acquire/release สำหรับ hardDelete
+    const redlock = (service as unknown as { redlock: { acquire: jest.Mock } })
+      .redlock;
+    redlock.acquire = jest.fn().mockResolvedValue({
+      release: jest.fn().mockResolvedValue(undefined),
+    });
   });
 
   it('should be defined', () => {
@@ -225,7 +264,7 @@ describe('CorrespondenceService', () => {
   });
 
   describe('update', () => {
-    it('should allow non-draft update for org-admin+ permissions', async () => {
+    it('should allow DRAFT content update for regular editors (T104)', async () => {
       const mockUser = {
         user_id: 1,
         primaryOrganizationId: 10,
@@ -257,12 +296,12 @@ describe('CorrespondenceService', () => {
       );
       (statusRepo.findOne as jest.Mock).mockResolvedValue({
         id: 23,
-        statusCode: 'SUBOWN',
+        statusCode: 'DRAFT',
       });
 
       const userService = testingModule.get<UserService>(UserService);
       (userService.getUserPermissions as jest.Mock).mockResolvedValue([
-        'correspondence.cancel',
+        'correspondence.edit',
       ]);
 
       jest.spyOn(correspondenceRepo, 'findOne').mockResolvedValue({
@@ -307,6 +346,95 @@ describe('CorrespondenceService', () => {
       await expect(
         service.update(2, { subject: 'Should Fail' }, mockUser)
       ).rejects.toThrow(PermissionException);
+    });
+
+    it('should reject non-DRAFT content edits even with cancel permission (T104)', async () => {
+      const mockUser = {
+        user_id: 1,
+        primaryOrganizationId: 10,
+      } as unknown as User;
+
+      const mockRevision = {
+        id: 101,
+        correspondenceId: 2,
+        isCurrent: true,
+        statusId: 23,
+        correspondence: { id: 2, recipients: [] },
+      };
+
+      jest
+        .spyOn(revisionRepo, 'findOne')
+        .mockResolvedValue(mockRevision as unknown as CorrespondenceRevision);
+
+      const statusRepo = testingModule.get<Repository<CorrespondenceStatus>>(
+        getRepositoryToken(CorrespondenceStatus)
+      );
+      (statusRepo.findOne as jest.Mock).mockResolvedValue({
+        id: 23,
+        statusCode: 'IN_REVIEW',
+      });
+
+      const userService = testingModule.get<UserService>(UserService);
+      (userService.getUserPermissions as jest.Mock).mockResolvedValue([
+        'correspondence.cancel',
+      ]);
+
+      await expect(
+        service.update(2, { subject: 'Should Fail' }, mockUser)
+      ).rejects.toThrow(BusinessException);
+    });
+
+    it('should allow non-DRAFT metadata-only edits via update (T104)', async () => {
+      const mockUser = {
+        user_id: 1,
+        primaryOrganizationId: 10,
+      } as unknown as User;
+
+      const mockCorr = {
+        id: 1,
+        projectId: 1,
+        correspondenceTypeId: 2,
+        disciplineId: 3,
+        originatorId: 10,
+        correspondenceNumber: 'OLD-NUM',
+        recipients: [],
+      };
+      const mockRevision = {
+        id: 100,
+        correspondenceId: 1,
+        isCurrent: true,
+        statusId: 5,
+        correspondence: mockCorr,
+      };
+
+      jest
+        .spyOn(revisionRepo, 'findOne')
+        .mockResolvedValue(mockRevision as unknown as CorrespondenceRevision);
+
+      jest
+        .spyOn(correspondenceRepo, 'findOne')
+        .mockResolvedValue(mockCorr as unknown as Correspondence);
+
+      const statusRepo = testingModule.get<Repository<CorrespondenceStatus>>(
+        getRepositoryToken(CorrespondenceStatus)
+      );
+      (statusRepo.findOne as jest.Mock).mockResolvedValue({
+        id: 5,
+        statusCode: 'IN_REVIEW',
+      });
+
+      const userService = testingModule.get<UserService>(UserService);
+      (userService.getUserPermissions as jest.Mock).mockResolvedValue([
+        'correspondence.cancel',
+      ]);
+
+      const updateDto: UpdateCorrespondenceDto = {
+        disciplineId: 4,
+      };
+
+      await expect(
+        service.update(1, updateDto, mockUser)
+      ).resolves.toBeDefined();
     });
 
     it('should NOT regenerate number if critical fields unchanged', async () => {
@@ -983,6 +1111,19 @@ describe('CorrespondenceService', () => {
     it('ควรปฏิเสธเมื่อผู้ใช้ไม่มีสิทธิ์ system.manage_all', async () => {
       const userService = testingModule.get<UserService>(UserService);
       (userService.getUserPermissions as jest.Mock).mockResolvedValue([
+        'correspondence.view',
+      ]);
+
+      await expect(
+        service.hardDelete('corr-uuid-hard', {
+          user_id: 100,
+        } as unknown as User)
+      ).rejects.toThrow(PermissionException);
+    });
+
+    it('ควรปฏิเสธเมื่อผู้ใช้มีแค่ correspondence.delete แต่ไม่มี system.manage_all', async () => {
+      const userService = testingModule.get<UserService>(UserService);
+      (userService.getUserPermissions as jest.Mock).mockResolvedValue([
         'correspondence.delete',
       ]);
 
@@ -1610,6 +1751,169 @@ describe('CorrespondenceService', () => {
 
       expect(typeof result).toBe('string');
       expect(result).toContain('Document No.');
+    });
+  });
+
+  describe('patchMetadata (Feature 253 — T050)', () => {
+    const mockUser = { user_id: 1 } as unknown as User;
+
+    const setupPatchMocks = (version = 3, statusCode = 'DRAFT') => {
+      jest.spyOn(service, 'findOneByUuid').mockResolvedValue({
+        id: 1,
+        publicId: 'corr-uuid-1',
+        version,
+        originatorId: 10,
+        disciplineId: 5,
+      } as unknown as Awaited<ReturnType<typeof service.findOneByUuid>>);
+
+      const revisionRepoLocal = testingModule.get<
+        Repository<CorrespondenceRevision>
+      >(getRepositoryToken(CorrespondenceRevision));
+      (revisionRepoLocal.findOne as jest.Mock).mockResolvedValue({
+        id: 100,
+        isCurrent: true,
+        subject: 'Old Subject',
+        description: 'Old Description',
+        remarks: 'Old Remarks',
+        dueDate: new Date('2026-01-01'),
+        status: { statusCode },
+      });
+
+      const queryRunner = {
+        connect: jest.fn(),
+        startTransaction: jest.fn(),
+        commitTransaction: jest.fn(),
+        rollbackTransaction: jest.fn(),
+        release: jest.fn(),
+        manager: {
+          create: jest
+            .fn()
+            .mockImplementation((_entity: unknown, data: unknown) => data),
+          save: jest
+            .fn()
+            .mockImplementation(
+              (_entity: unknown, data: Record<string, unknown>) => ({
+                ...data,
+                auditId: 'audit-123',
+              })
+            ),
+          update: jest.fn().mockResolvedValue({ affected: 1 }),
+          increment: jest.fn().mockResolvedValue(undefined),
+        },
+      };
+      (mockDataSource.createQueryRunner as jest.Mock).mockReturnValue(
+        queryRunner
+      );
+      return { queryRunner };
+    };
+
+    it('should patch tier1 fields and increment version', async () => {
+      const { queryRunner } = setupPatchMocks(3);
+
+      const result = await service.patchMetadata(
+        'corr-uuid-1',
+        { subject: 'New Subject', remarks: 'updated' },
+        3,
+        mockUser
+      );
+
+      expect(queryRunner.manager.update).toHaveBeenCalledWith(
+        CorrespondenceRevision,
+        100,
+        { subject: 'New Subject', remarks: 'updated' }
+      );
+      expect(queryRunner.manager.increment).toHaveBeenCalledWith(
+        Correspondence,
+        { id: 1 },
+        'version',
+        1
+      );
+      expect(result.newVersion).toBe(4);
+    });
+
+    it('should throw on version mismatch (optimistic lock)', async () => {
+      setupPatchMocks(5);
+
+      await expect(
+        service.patchMetadata('corr-uuid-1', { subject: 'x' }, 3, mockUser)
+      ).rejects.toThrow(ValidationException);
+    });
+
+    it('should reject tier3 restricted fields (correspondenceNumber)', async () => {
+      setupPatchMocks(3);
+
+      await expect(
+        service.patchMetadata(
+          'corr-uuid-1',
+          { correspondenceNumber: 'HACK-001' },
+          3,
+          mockUser
+        )
+      ).rejects.toThrow(ValidationException);
+    });
+
+    it('should reject unknown fields', async () => {
+      setupPatchMocks(3);
+
+      await expect(
+        service.patchMetadata(
+          'corr-uuid-1',
+          { nonExistentField: 'x' },
+          3,
+          mockUser
+        )
+      ).rejects.toThrow(ValidationException);
+    });
+
+    it('should commit without update when patch has no tier1 fields', async () => {
+      const { queryRunner } = setupPatchMocks(3);
+
+      const result = await service.patchMetadata(
+        'corr-uuid-1',
+        {},
+        3,
+        mockUser
+      );
+
+      expect(queryRunner.manager.update).not.toHaveBeenCalled();
+      expect(queryRunner.manager.increment).not.toHaveBeenCalled();
+      expect(result.newVersion).toBe(3);
+      expect(result.message).toBe('No changes detected');
+    });
+
+    it('should record before/after diff in audit log', async () => {
+      const { queryRunner } = setupPatchMocks(3);
+
+      const result = await service.patchMetadata(
+        'corr-uuid-1',
+        { subject: 'New Subject' },
+        3,
+        mockUser
+      );
+
+      expect(queryRunner.manager.save).toHaveBeenCalled();
+      const savedAudit = (
+        queryRunner.manager.save.mock.calls[0] as unknown[]
+      )[1] as {
+        detailsJson: Record<string, unknown>;
+      };
+      const details = savedAudit.detailsJson as {
+        before: Record<string, unknown>;
+        after: Record<string, unknown>;
+        changedFields: string[];
+      };
+      expect(details.before.subject).toBe('Old Subject');
+      expect(details.after.subject).toBe('New Subject');
+      expect(details.changedFields).toContain('subject');
+      expect(result.auditId).toBe('audit-123');
+    });
+
+    it('should reject tier2 fields when status is not DRAFT/IN_REVIEW', async () => {
+      setupPatchMocks(3, 'APPROVED');
+
+      await expect(
+        service.patchMetadata('corr-uuid-1', { originatorId: 20 }, 3, mockUser)
+      ).rejects.toThrow(ValidationException);
     });
   });
 });

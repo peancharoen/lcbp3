@@ -1153,4 +1153,79 @@ describe('RfaService ADR-049 statusProjection + consent reason', () => {
       expect(result).toBeDefined();
     });
   });
+
+  describe('patchMetadata (Feature 253 — T051)', () => {
+    const setupPatch = (version = 2) => {
+      jest.spyOn(service, 'findOneByUuidRaw').mockResolvedValue({
+        id: 7,
+        version,
+      } as unknown as Rfa);
+
+      const queryRunner = {
+        connect: jest.fn(),
+        startTransaction: jest.fn(),
+        commitTransaction: jest.fn(),
+        rollbackTransaction: jest.fn(),
+        release: jest.fn(),
+        manager: {
+          update: jest.fn().mockResolvedValue({ affected: 1 }),
+          increment: jest.fn().mockResolvedValue(undefined),
+        },
+      };
+      Object.assign(service as unknown as Record<string, unknown>, {
+        dataSource: {
+          createQueryRunner: jest.fn().mockReturnValue(queryRunner),
+        },
+      });
+      return { queryRunner };
+    };
+
+    it('should patch tier1 fields and increment version', async () => {
+      const { queryRunner } = setupPatch(2);
+
+      const result = await service.patchMetadata(
+        'rfa-uuid-1',
+        { subject: 'Updated subject' },
+        2,
+        baseUser
+      );
+
+      expect(queryRunner.manager.update).toHaveBeenCalledWith(
+        expect.any(Function),
+        7,
+        { subject: 'Updated subject' }
+      );
+      expect(queryRunner.manager.increment).toHaveBeenCalled();
+      expect(result.newVersion).toBe(3);
+    });
+
+    it('should throw on version mismatch', async () => {
+      setupPatch(9);
+
+      await expect(
+        service.patchMetadata('rfa-uuid-1', { subject: 'x' }, 2, baseUser)
+      ).rejects.toThrow();
+    });
+
+    it('should reject tier3 field rfaNumber', async () => {
+      setupPatch(2);
+
+      await expect(
+        service.patchMetadata(
+          'rfa-uuid-1',
+          { rfaNumber: 'RFA-HACK' },
+          2,
+          baseUser
+        )
+      ).rejects.toThrow();
+    });
+
+    it('should reject unknown fields', async () => {
+      setupPatch(2);
+
+      await expect(
+        service.patchMetadata('rfa-uuid-1', { bogus: 1 }, 2, baseUser)
+      ).rejects.toThrow();
+    });
+  });
 });

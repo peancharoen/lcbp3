@@ -1321,3 +1321,196 @@ VALUES (2, 221);
 -- Role 3: Document Control — correspondence.import_review
 INSERT IGNORE INTO role_permissions (role_id, permission_id)
 VALUES (3, 221);
+
+-- ==========================================================
+-- 22. Unified Document CRUD Permissions (ID 222-237) — Feature 253
+-- Added: 2026-09-06 (253-unified-doc-crud)
+-- ==========================================================
+-- สิทธิ์ granular สำหรับ Cancel, Metadata Patch, Bulk Operations, Maintenance
+-- Hard-Delete ยังใช้ *.delete permissions เดิม แต่จำกัดเฉพาะ Superadmin (system.manage_all)
+INSERT INTO permissions (
+    permission_id,
+    permission_name,
+    description,
+    module,
+    is_active
+  )
+VALUES (
+    222,
+    'correspondence.cancel',
+    'ยกเลิกเอกสาร Correspondence (soft-cancel)',
+    'correspondence',
+    1
+  ),
+  (
+    223,
+    'rfa.cancel',
+    'ยกเลิกเอกสาร RFA (soft-cancel)',
+    'rfa',
+    1
+  ),
+  (
+    224,
+    'transmittal.cancel',
+    'ยกเลิกเอกสาร Transmittal (soft-cancel)',
+    'transmittal',
+    1
+  ),
+  (
+    225,
+    'drawing.cancel',
+    'ยกเลิก/Soft-delete Drawing (deletedAt)',
+    'drawing',
+    1
+  ),
+  (
+    226,
+    'correspondence.edit_metadata',
+    'แก้ไขข้อมูลกำกับ Correspondence',
+    'correspondence',
+    1
+  ),
+  (
+    227,
+    'rfa.edit_metadata',
+    'แก้ไขข้อมูลกำกับ RFA',
+    'rfa',
+    1
+  ),
+  (
+    228,
+    'transmittal.edit_metadata',
+    'แก้ไขข้อมูลกำกับ Transmittal',
+    'transmittal',
+    1
+  ),
+  (
+    229,
+    'drawing.edit_metadata',
+    'แก้ไขข้อมูลกำกับ Drawing',
+    'drawing',
+    1
+  ),
+  (
+    230,
+    'circulation.edit_routing',
+    'แก้ไขเส้นทาง Circulation',
+    'circulation',
+    1
+  ),
+  (
+    231,
+    'document.bulk_cancel',
+    'ยกเลิกเอกสารเป็นชุด (max 100 รายการ)',
+    'document',
+    1
+  ),
+  (
+    232,
+    'document.bulk_tag',
+    'เพิ่ม/ลบแท็กเอกสารเป็นชุด',
+    'document',
+    1
+  ),
+  (
+    233,
+    'document.bulk_export',
+    'ส่งออก metadata เอกสารเป็นชุด (CSV/XLSX/JSON)',
+    'document',
+    1
+  ),
+  (
+    234,
+    'system.numbering_override',
+    'แก้ไขเลขที่เอกสาร (Maintenance Console)',
+    'system',
+    1
+  ),
+  (
+    235,
+    'system.orphan_cleanup',
+    'ล้างไฟล์ขยะใน Storage (Maintenance Console)',
+    'system',
+    1
+  ),
+  (
+    236,
+    'system.vector_sync',
+    'ซิงค์เวกเตอร์ค้นหา Qdrant (Maintenance Console)',
+    'system',
+    1
+  ),
+  (
+    237,
+    'system.emergency_unlock',
+    'ปลดล็อกเอกสารฉุกเฉิน (Maintenance Console)',
+    'system',
+    1
+  ) ON DUPLICATE KEY
+UPDATE description =
+VALUES(description),
+  module =
+VALUES(module),
+  is_active =
+VALUES(is_active);
+
+-- ==========================================================
+-- 23. Unified Document CRUD — Role Assignments (Feature 253)
+-- ==========================================================
+-- DC (role 3): Cancel + Metadata Patch + Bulk Operations
+-- หมายเหตุ: DC ไม่ได้รับ Hard-Delete permissions (system.manage_all เท่านั้น)
+INSERT IGNORE INTO role_permissions (role_id, permission_id)
+VALUES (3, 222),
+  -- correspondence.cancel
+  (3, 223),
+  -- rfa.cancel
+  (3, 224),
+  -- transmittal.cancel
+  (3, 225),
+  -- drawing.cancel (soft-delete)
+  (3, 226),
+  -- correspondence.edit_metadata
+  (3, 227),
+  -- rfa.edit_metadata
+  (3, 228),
+  -- transmittal.edit_metadata
+  (3, 229),
+  -- drawing.edit_metadata
+  (3, 230),
+  -- circulation.edit_routing
+  (3, 231),
+  -- document.bulk_cancel
+  (3, 232),
+  -- document.bulk_tag
+  (3, 233);
+
+-- document.bulk_export
+-- Org Admin (role 2): Cancel + Metadata Patch (ไม่ให้ bulk ops — เป็นเครื่องมือ DC เฉพาะ)
+INSERT IGNORE INTO role_permissions (role_id, permission_id)
+VALUES (2, 222),
+  (2, 223),
+  (2, 224),
+  (2, 225),
+  (2, 226),
+  (2, 227),
+  (2, 228),
+  (2, 229),
+  (2, 230);
+
+-- Superadmin (role 1): Maintenance Console permissions (system.manage_all ครอบคลุมอยู่แล้ว แต่ระบุไว้ชัดเจน)
+INSERT IGNORE INTO role_permissions (role_id, permission_id)
+VALUES (1, 234),
+  (1, 235),
+  (1, 236),
+  (1, 237);
+
+-- ==========================================================
+-- 24. Unified Document CRUD — Remove Hard-Delete from DC (Feature 253)
+-- ==========================================================
+-- DC ไม่ควรมีสิทธิ์ Hard-Delete — ลบ *.delete permissions ออกจาก role 3
+-- circulation.close (105) ไม่ถูกลบเพราะใช้สำหรับ Force Close ไม่ใช่ Hard-Delete
+DELETE FROM role_permissions
+WHERE role_id = 3
+  AND permission_id IN (74, 84, 93, 114);
+
+-- 74=correspondence.delete, 84=rfa.delete, 93=drawing.delete, 114=transmittal.delete

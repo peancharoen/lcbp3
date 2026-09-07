@@ -1,25 +1,52 @@
 'use client';
 
 import { useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useTransmittal } from '@/hooks/use-transmittal';
 import { useWorkflowHistory } from '@/hooks/use-workflow-history';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, RefreshCw, Printer } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Printer, Pencil } from 'lucide-react';
+import {
+  DocumentMetadataEditDialog,
+  type MetadataField,
+} from '@/components/documents/document-metadata-edit-dialog';
+import { DocumentHardDeleteDialog } from '@/components/documents/document-hard-delete-dialog';
+import { DocumentCancelDialog } from '@/components/documents/document-cancel-dialog';
+import { getDocumentActionConfig } from '@/components/documents/document-action-strategy';
+import { useDocumentActions } from '@/hooks/use-document-actions';
+import { useAuthStore } from '@/lib/stores/auth-store';
 import { IntegratedBanner } from '@/components/workflow/integrated-banner';
 import { WorkflowLifecycle } from '@/components/workflow/workflow-lifecycle';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { useTranslations } from '@/hooks/use-translations';
 
 export default function TransmittalDetailPage() {
   const params = useParams();
   const uuid = params.uuid as string;
   const [pendingAttachmentIds, setPendingAttachmentIds] = useState<string[]>([]);
+  // Feature 253 T063: Metadata Edit Dialog
+  const [showMetaEdit, setShowMetaEdit] = useState(false);
+  const [showCancel, setShowCancel] = useState(false);
+  const t = useTranslations();
+  const hasPermission = useAuthStore((s) => s.hasPermission);
+  const transmittalActionConfig = getDocumentActionConfig('TRANSMITTAL');
+  const router = useRouter();
+  const { metadataPatch, isPatching, hardDelete, isHardDeleting, cancel, isCancelling } = useDocumentActions({
+    config: transmittalActionConfig,
+    onSuccess: (action) => {
+      if (action === 'hardDelete') router.push('/transmittals');
+    },
+  });
+  // Feature 253 T073: Hard-Delete Dialog (Superadmin / transmittal.delete)
+  const [showHardDelete, setShowHardDelete] = useState(false);
+  const canHardDelete = hasPermission('system.manage_all') || hasPermission('transmittal.delete');
+  const canCancel = hasPermission('transmittal.cancel') || hasPermission('document.cancel') || hasPermission('system.manage_all');
 
   const { transmittal, isLoading, error } = useTransmittal(uuid);
 
@@ -64,6 +91,13 @@ export default function TransmittalDetailPage() {
     ? (transmittal.workflowState ?? 'SUBMITTED')
     : 'DRAFT';
 
+  // Feature 253: metadata fields สำหรับ Edit Dialog
+  const canEditMetadata = hasPermission('transmittal.edit') && !transmittal.cancelledAt;
+  const metaFields: MetadataField[] = [
+    { key: 'remarks', label: 'Remarks', value: transmittal.remarks ?? '', tier: 1 },
+    { key: 'purpose', label: 'Purpose', value: transmittal.purpose ?? '', tier: 2 },
+  ];
+
   return (
     <section className="space-y-4">
       {/* ADR-021: Integrated Banner — wired with live workflow data (v1.8.7) */}
@@ -83,13 +117,35 @@ export default function TransmittalDetailPage() {
         <Link href="/transmittals">
           <Button variant="ghost" size="sm">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            กลับ
+            {t('common.back')}
           </Button>
         </Link>
-        <Button variant="outline" size="sm" onClick={handlePrint}>
-          <Printer className="h-4 w-4 mr-2" />
-          Export PDF
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handlePrint}>
+            <Printer className="h-4 w-4 mr-2" />
+            {t('document.action.exportPdf')}
+          </Button>
+          {canCancel && (
+            <Button variant="outline" size="sm" onClick={() => setShowCancel(true)}>
+              {t('document.action.cancel')}
+            </Button>
+          )}
+          {canEditMetadata && (
+            <Button variant="outline" size="sm" onClick={() => setShowMetaEdit(true)}>
+              <Pencil className="h-4 w-4 mr-2" />
+              {t('document.action.editMetadata')}
+            </Button>
+          )}
+          {canHardDelete && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setShowHardDelete(true)}
+            >
+              {t('document.action.hardDelete')}
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Tabs — Details / Workflow */}
@@ -185,6 +241,40 @@ export default function TransmittalDetailPage() {
           />
         </TabsContent>
       </Tabs>
+
+      {/* Feature 253 T073: Hard-Delete Dialog */}
+      <DocumentHardDeleteDialog
+        open={showHardDelete}
+        onOpenChange={setShowHardDelete}
+        config={transmittalActionConfig}
+        documentLabel={transmittalDocNo}
+        isLoading={isHardDeleting}
+        onConfirm={() => hardDelete({ publicId: uuid })}
+      />
+
+      {/* Feature 253 T115: Cancel Dialog */}
+      <DocumentCancelDialog
+        open={showCancel}
+        onOpenChange={setShowCancel}
+        config={transmittalActionConfig}
+        documentLabel={transmittalDocNo}
+        isLoading={isCancelling}
+        onConfirm={(reason) => cancel({ publicId: uuid, reason })}
+      />
+
+      {/* Feature 253 T063: Metadata Edit Dialog */}
+      <DocumentMetadataEditDialog
+        open={showMetaEdit}
+        onOpenChange={setShowMetaEdit}
+        config={transmittalActionConfig}
+        documentLabel={transmittalDocNo}
+        currentVersion={transmittal.version ?? 0}
+        fields={metaFields}
+        isLoading={isPatching}
+        onConfirm={(patch, version) =>
+          metadataPatch({ publicId: uuid, patch, version })
+        }
+      />
     </section>
   );
 }

@@ -6,10 +6,21 @@ import { IntegratedBanner } from '@/components/workflow/integrated-banner';
 import { WorkflowLifecycle } from '@/components/workflow/workflow-lifecycle';
 import { FilePreviewModal } from '@/components/common/file-preview-modal';
 import { WorkflowErrorBoundary } from '@/components/common/workflow-error-boundary';
-import { notFound, useParams } from 'next/navigation';
+import { notFound, useParams, useRouter } from 'next/navigation';
 import { useRFA, useWorkflowHistory } from '@/hooks/use-rfa';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Pencil } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import {
+  DocumentMetadataEditDialog,
+  type MetadataField,
+} from '@/components/documents/document-metadata-edit-dialog';
+import { DocumentHardDeleteDialog } from '@/components/documents/document-hard-delete-dialog';
+import { DocumentCancelDialog } from '@/components/documents/document-cancel-dialog';
+import { getDocumentActionConfig } from '@/components/documents/document-action-strategy';
+import { useDocumentActions } from '@/hooks/use-document-actions';
+import { useAuthStore } from '@/lib/stores/auth-store';
+import { useTranslations } from '@/hooks/use-translations';
 import type { RFA } from '@/types/rfa';
 import type { WorkflowAttachmentSummary } from '@/types/workflow';
 import { AiChatToggle } from '@/components/ai/ai-chat-toggle';
@@ -38,6 +49,24 @@ export default function RFADetailPage() {
   const handleUnavailable = (publicId: string) =>
     setUnavailableIds((prev) => [...new Set([...prev, publicId])]);
 
+  // Feature 253 T062: Metadata Edit Dialog
+  const [showMetaEdit, setShowMetaEdit] = useState(false);
+  const [showCancel, setShowCancel] = useState(false);
+  const t = useTranslations();
+  const hasPermission = useAuthStore((s) => s.hasPermission);
+  const rfaActionConfig = getDocumentActionConfig('RFA');
+  const router = useRouter();
+  const { metadataPatch, isPatching, hardDelete, isHardDeleting, cancel, isCancelling } = useDocumentActions({
+    config: rfaActionConfig,
+    onSuccess: (action) => {
+      if (action === 'hardDelete') router.push('/rfas');
+    },
+  });
+  // Feature 253 T073: Hard-Delete Dialog (Superadmin / rfa.delete)
+  const [showHardDelete, setShowHardDelete] = useState(false);
+  const canHardDelete = hasPermission('system.manage_all') || hasPermission('rfa.delete');
+  const canCancel = hasPermission('rfa.cancel') || hasPermission('document.cancel') || hasPermission('system.manage_all');
+
   if (!uuid) notFound();
 
   if (isLoading) {
@@ -58,6 +87,14 @@ export default function RFADetailPage() {
   const subject = currentRevision?.subject ?? '';
   const status = currentRevision?.statusCode?.statusCode ?? '';
 
+  // Feature 253: metadata fields สำหรับ Edit Dialog
+  const canEditMetadata = hasPermission('rfa.edit') && status !== 'CC';
+  const metaFields: MetadataField[] = [
+    { key: 'subject', label: 'Subject', value: currentRevision?.subject ?? '', tier: 1 },
+    { key: 'description', label: 'Description', value: currentRevision?.description ?? '', tier: 1 },
+    { key: 'remarks', label: 'Remarks', value: currentRevision?.remarks ?? '', tier: 1 },
+  ];
+
   return (
     <div className={`relative transition-all duration-300 ${isChatOpen ? 'lg:pr-[400px]' : ''}`}>
       <div className="space-y-4">
@@ -72,6 +109,32 @@ export default function RFADetailPage() {
         instanceId={rfaData.workflowInstanceId}
         pendingAttachmentIds={pendingAttachmentIds}
       />
+
+      {/* Feature 253: Cancel + Edit Metadata + Hard-Delete actions (permission-gated) */}
+      {(canEditMetadata || canHardDelete || canCancel) && (
+        <div className="flex justify-end gap-2">
+          {canCancel && (
+            <Button variant="outline" size="sm" onClick={() => setShowCancel(true)}>
+              {t('document.action.cancel')}
+            </Button>
+          )}
+          {canEditMetadata && (
+            <Button variant="outline" size="sm" onClick={() => setShowMetaEdit(true)}>
+              <Pencil className="mr-2 h-4 w-4" />
+              {t('document.action.editMetadata')}
+            </Button>
+          )}
+          {canHardDelete && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setShowHardDelete(true)}
+            >
+              {t('document.action.hardDelete')}
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Tabs — Details / Workflow (WorkflowLifecycle ถูกเพิ่มใน T019) */}
       <Tabs defaultValue="details">
@@ -96,6 +159,40 @@ export default function RFADetailPage() {
           </WorkflowErrorBoundary>
         </TabsContent>
       </Tabs>
+
+      {/* Feature 253 T073: Hard-Delete Dialog */}
+      <DocumentHardDeleteDialog
+        open={showHardDelete}
+        onOpenChange={setShowHardDelete}
+        config={rfaActionConfig}
+        documentLabel={docNo}
+        isLoading={isHardDeleting}
+        onConfirm={() => hardDelete({ publicId: uuidStr })}
+      />
+
+      {/* Feature 253 T115: Cancel Dialog */}
+      <DocumentCancelDialog
+        open={showCancel}
+        onOpenChange={setShowCancel}
+        config={rfaActionConfig}
+        documentLabel={docNo}
+        isLoading={isCancelling}
+        onConfirm={(reason) => cancel({ publicId: uuidStr, reason })}
+      />
+
+      {/* Feature 253 T062: Metadata Edit Dialog */}
+      <DocumentMetadataEditDialog
+        open={showMetaEdit}
+        onOpenChange={setShowMetaEdit}
+        config={rfaActionConfig}
+        documentLabel={docNo}
+        currentVersion={rfaData.version ?? 0}
+        fields={metaFields}
+        isLoading={isPatching}
+        onConfirm={(patch, version) =>
+          metadataPatch({ publicId: uuidStr, patch, version })
+        }
+      />
 
       {/* ADR-021 US4: File Preview Modal */}
       <WorkflowErrorBoundary fallback={null}>

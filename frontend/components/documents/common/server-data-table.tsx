@@ -1,5 +1,9 @@
 'use client';
 
+// File: components/documents/common/server-data-table.tsx
+// Change Log:
+// - 2026-09-07: Add controlled row selection support for bulk actions (Feature 253 T086)
+
 import * as React from 'react';
 import {
   ColumnDef,
@@ -9,11 +13,14 @@ import {
   PaginationState,
   SortingState,
   OnChangeFn,
+  RowSelectionState,
 } from '@tanstack/react-table';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { useTranslations } from '@/hooks/use-translations';
 
 interface ServerDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -24,6 +31,10 @@ interface ServerDataTableProps<TData, TValue> {
   sorting: SortingState;
   onSortingChange: OnChangeFn<SortingState>;
   isLoading?: boolean;
+  enableRowSelection?: boolean;
+  rowSelection?: Record<string, boolean>;
+  onRowSelectionChange?: (value: Record<string, boolean>) => void;
+  getRowId?: (row: TData) => string;
 }
 
 export function ServerDataTable<TData, TValue>({
@@ -35,17 +46,65 @@ export function ServerDataTable<TData, TValue>({
   sorting,
   onSortingChange,
   isLoading,
+  enableRowSelection,
+  rowSelection: controlledRowSelection,
+  onRowSelectionChange,
+  getRowId,
 }: ServerDataTableProps<TData, TValue>) {
+  const t = useTranslations();
+  const [internalRowSelection, setInternalRowSelection] = React.useState<RowSelectionState>({});
+
+  const rowSelection = controlledRowSelection ?? internalRowSelection;
+  const setRowSelection = (updater: ((old: RowSelectionState) => RowSelectionState) | RowSelectionState) => {
+    const newValue = typeof updater === 'function' ? updater(rowSelection) : updater;
+    onRowSelectionChange?.(newValue);
+    if (!controlledRowSelection) {
+      setInternalRowSelection(newValue);
+    }
+  };
+
+  const selectColumn: ColumnDef<TData, TValue> | undefined = enableRowSelection
+    ? {
+        id: 'select',
+        header: ({ table }) => (
+          <Checkbox
+            checked={
+              table.getIsAllPageRowsSelected()
+                ? true
+                : table.getIsSomePageRowsSelected()
+                  ? 'indeterminate'
+                  : false
+            }
+            onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+            aria-label={t('common.selectAll')}
+          />
+        ),
+        cell: ({ row }) => (
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={(value) => row.toggleSelected(!!value)}
+            aria-label={t('common.selectRow')}
+          />
+        ),
+      }
+    : undefined;
+
+  const tableColumns = selectColumn ? [selectColumn, ...columns] : columns;
+
   const table = useReactTable({
     data,
-    columns,
+    columns: tableColumns,
     pageCount,
     state: {
       pagination,
       sorting,
+      rowSelection,
     },
     onPaginationChange,
     onSortingChange,
+    onRowSelectionChange: setRowSelection,
+    enableRowSelection,
+    getRowId: getRowId ?? ((row) => (row as unknown as { publicId?: string }).publicId ?? ''),
     getCoreRowModel: getCoreRowModel(),
     manualPagination: true,
     manualSorting: true,
@@ -71,8 +130,8 @@ export function ServerDataTable<TData, TValue>({
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  Loading...
+                <TableCell colSpan={tableColumns.length} className="h-24 text-center">
+                  {t('common.table.loading')}
                 </TableCell>
               </TableRow>
             ) : table.getRowModel().rows?.length ? (
@@ -85,8 +144,8 @@ export function ServerDataTable<TData, TValue>({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  No results.
+                <TableCell colSpan={tableColumns.length} className="h-24 text-center">
+                  {t('common.table.noResults')}
                 </TableCell>
               </TableRow>
             )}
@@ -98,14 +157,16 @@ export function ServerDataTable<TData, TValue>({
         <div className="flex-1 text-sm text-muted-foreground">
           {table.getFilteredSelectedRowModel && table.getFilteredSelectedRowModel().rows.length > 0 && (
             <>
-              {table.getFilteredSelectedRowModel().rows.length} of {table.getFilteredRowModel().rows.length} row(s)
-              selected.
+              {t('common.table.selectedRows', {
+                selected: table.getFilteredSelectedRowModel().rows.length,
+                total: table.getFilteredRowModel().rows.length,
+              })}
             </>
           )}
         </div>
         <div className="flex items-center space-x-6 lg:space-x-8">
           <div className="flex items-center space-x-2">
-            <p className="text-sm font-medium">Rows per page</p>
+            <p className="text-sm font-medium">{t('common.table.rowsPerPage')}</p>
             <Select
               value={`${table.getState().pagination.pageSize}`}
               onValueChange={(value) => {
@@ -125,7 +186,10 @@ export function ServerDataTable<TData, TValue>({
             </Select>
           </div>
           <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-            Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+            {t('common.table.pageOf', {
+              page: table.getState().pagination.pageIndex + 1,
+              total: table.getPageCount(),
+            })}
           </div>
           <div className="flex items-center space-x-2">
             <Button
@@ -134,7 +198,7 @@ export function ServerDataTable<TData, TValue>({
               onClick={() => table.setPageIndex(0)}
               disabled={!table.getCanPreviousPage()}
             >
-              <span className="sr-only">Go to first page</span>
+              <span className="sr-only">{t('common.table.firstPage')}</span>
               <ChevronsLeft className="h-4 w-4" />
             </Button>
             <Button
@@ -143,7 +207,7 @@ export function ServerDataTable<TData, TValue>({
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
             >
-              <span className="sr-only">Go to previous page</span>
+              <span className="sr-only">{t('common.table.previousPage')}</span>
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <Button
@@ -152,16 +216,16 @@ export function ServerDataTable<TData, TValue>({
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
             >
-              <span className="sr-only">Go to next page</span>
+              <span className="sr-only">{t('common.table.nextPage')}</span>
               <ChevronRight className="h-4 w-4" />
             </Button>
             <Button
               variant="outline"
               className="hidden h-8 w-8 p-0 lg:flex"
               onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-              disabled={!table.getCanNextPage()}
+              disabled={!table.getCanPreviousPage()}
             >
-              <span className="sr-only">Go to last page</span>
+              <span className="sr-only">{t('common.table.lastPage')}</span>
               <ChevronsRight className="h-4 w-4" />
             </Button>
           </div>

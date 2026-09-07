@@ -1,5 +1,8 @@
 # Schema Deltas
 
+> **Note (2026-09-07):** deltas ช่วง `2026-07-27` → `2026-08-31` ถูก verify + apply ครบกับ DB จริงแล้ว
+> ย้ายไปเก็บที่ `specs/99-archives/deltas/` — ที่นี่เหลือเฉพาะ deltas ที่ยัง pending/ล่าสุด
+
 Incremental SQL scripts applied to existing environments **after** the canonical schema
 (`../lcbp3-v1.9.0-schema-02-tables.sql`) has been updated.
 

@@ -138,7 +138,7 @@ erDiagram
     - - Purpose **: MASTER TABLE FOR ALL projects IN the system | COLUMN Name | Data TYPE | Constraints | Description | | ------------ | ------------ | --------------------------- | ----------------------------- |
         | id | INT | PRIMARY KEY,
         AUTO_INCREMENT | UNIQUE identifier FOR project | | uuid | UUID | NOT NULL, UNIQUE, DEFAULT UUID() | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) | | project_code | VARCHAR(50) | NOT NULL,
-        UNIQUE | Project code (e.g., 'LCBP3') | | project_name | VARCHAR(255) | NOT NULL | FULL project name | | is_active | TINYINT(1) | DEFAULT 1 | Active STATUS |
+        UNIQUE | Project code (e.g., 'LCBP3') | | project_name | VARCHAR(255) | NOT NULL | FULL project name | | is_sandbox | TINYINT(1) | NOT NULL, DEFAULT 0 | [ADR-042] Flag ระบุว่าเป็นโครงการทดสอบ (SANDBOX project สำหรับ AI Full Pipeline Testing) | | is_active | TINYINT(1) | DEFAULT 1 | Active STATUS |
         | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation timestamp |
         | updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp |
         | deleted_at | DATETIME | NULL | Soft delete timestamp |
@@ -283,6 +283,10 @@ erDiagram
 | token_hash        | VARCHAR(255) | NOT NULL                  | Hash ของ Refresh Token (Security)                          |
 | expires_at        | DATETIME     | NOT NULL                  | วันหมดอายุของ Token                                        |
 | is_revoked        | BOOLEAN      | DEFAULT FALSE             | สถานะถูกยกเลิก (True = ใช้งานไม่ได้)                       |
+| device_name       | VARCHAR(255) | NULL                      | ชื่อ device ที่ parse จาก user-agent (เช่น Windows · Chrome) |
+| ip_address        | VARCHAR(45)  | NULL                      | IP address จริงของ client (จาก CF-Connecting-IP หรือ X-Forwarded-For) รองรับ IPv4/IPv6 |
+| user_agent        | VARCHAR(512) | NULL                      | Raw User-Agent string สำหรับ security forensics            |
+| last_active_at    | DATETIME     | NULL                      | เวลาใช้งานล่าสุด (update ตอน refresh token rotation)       |
 | created_at        | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP | เวลาที่สร้าง                                               |
 | updated_at        | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP | เวลาที่แก้ไขล่าสุด (ใช้ตรวจสอบ Grace Period ขณะหมุน Token) |
 | replaced_by_token | VARCHAR(255) | NULL                      | Token ใหม่ที่มาแทนที่ (กรณี Token Rotation)                |
@@ -619,7 +623,7 @@ erDiagram
 | ----------- | ------------ | --------------------------- | ----------------------------------------------------------- |
 | id          | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique identifier                                           |
 | public_id   | CHAR(36)     | NOT NULL, UNIQUE            | ADR-019: UUIDv7 สำหรับ API response                         |
-| code        | VARCHAR(20)  | NOT NULL, UNIQUE            | Consent reason code (NO_OBJECTION, COMMENTS_PROVIDED, etc.) |
+| code        | VARCHAR(50)  | NOT NULL, UNIQUE            | Consent reason code (NO_OBJECTION, COMMENTS_PROVIDED, AGREED_WITH_CONDITIONS ฯลฯ — widened จาก VARCHAR(20) 2026-09-07) |
 | description | VARCHAR(200) | NOT NULL                    | Consent reason description                                  |
 | sort_order  | INT          | DEFAULT 0                   | Display order                                               |
 | is_active   | TINYINT(1)   | DEFAULT 1                   | Active status                                               |
@@ -1426,6 +1430,7 @@ erDiagram
 | reference_date       | DATE         | NULL                        | Date used for folder structure (e.g. Issue Date) to prevent broken paths                                                   |
 | workflow_history_id  | VARCHAR(36)  | NULL, FK                    | **[ADR-021]** อ้างอิง workflow_histories.publicId — NULL = ไฟล์แนบหลักของเอกสาร; NOT NULL = ไฟล์หลักฐานประจำ Workflow Step |
 | ai_processing_status | ENUM         | NOT NULL, DEFAULT 'PENDING' | **[ADR-023A]** สถานะ AI job ของไฟล์เอกสาร: PENDING / PROCESSING / DONE / FAILED                                            |
+| ocr_text             | LONGTEXT     | NULL                        | **[ADR-042]** OCR text ที่สกัดได้ก่อน semantic chunking/embedding                                                         |
 
 **Indexes**:
 
@@ -2163,7 +2168,7 @@ _หมายเหตุ: เมื่อตรวจสอบผ่านแ�
 | document_number       | VARCHAR(100) | NOT NULL, UNIQUE            | เลขที่เอกสาร (จาก OCR)                     |
 | title                 | TEXT         |                             | ชื่อเรื่อง                                 |
 | original_title        | TEXT         |                             | ชื่อเรื่องต้นฉบับก่อนตรวจสอบ               |
-| ai_suggested_category | VARCHAR(50)  |                             | หมวดหมู่ที่ AI แนะนำ                       |
+| ai_suggested_correspondence_type | VARCHAR(50) |                  | Correspondence Type ที่ AI แนะนำ           |
 | ai_confidence         | DECIMAL(4,3) |                             | ค่าความมั่นใจของ AI (0.000 - 1.000)        |
 | ai_issues             | JSON         |                             | รายละเอียดปัญหาที่ AI พบ                   |
 | review_reason         | VARCHAR(255) |                             | เหตุผลที่ต้องตรวจสอบ (เช่น Confidence ต่ำ) |
@@ -2358,8 +2363,10 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 | `idempotency_key`            | VARCHAR(200)       | YES      | Idempotency-Key สำหรับป้องกัน queue ซ้ำ (nullable — entity เก่าไม่ได้ใช้)       |
 | `original_filename`          | VARCHAR(500)       | YES      | ชื่อไฟล์ต้นฉบับจาก legacy source (nullable — entity เก่าไม่ได้ใช้)              |
 | `storage_temp_path`          | VARCHAR(1000)      | YES      | temp storage path ก่อน import (nullable — entity เก่าไม่ได้ใช้)                 |
-| `ai_job_id`                  | VARCHAR(36)        | YES      | BullMQ Job ID สำหรับงานประมวลผล AI                                              |
-| `ai_metadata_json`           | JSON               | NO       | AI suggestion payload เต็มสำหรับ human review                                   |
+| `ai_job_id`                  | VARCHAR(150)       | YES      | BullMQ Job ID (custom jobId เช่น `legacy-enrich-<publicId>-<idempotencyKey>` — widened จาก VARCHAR(36) ตาม ADR-047 bugfix 2026-08-23) |
+| `ai_status`                  | ENUM               | YES      | สถานะ BullMQ AI job (ADR-047): PENDING / WAITING / RUNNING / DONE / FAILED — WAITING = enqueue แล้วรอ worker |
+| `ai_failed`                  | TINYINT(1)         | NO       | Edge Case 4: AI enrichment failed after retries (ADR-047, default 0)            |
+| `ai_metadata_json`           | JSON               | YES      | AI suggestion payload เต็มสำหรับ human review (compareResult, capturedThresholds, attachments[] — FR-005/007/010c) |
 | `confidence_score`           | DECIMAL(5,4)       | YES      | AI confidence score 0.0000-1.0000 (nullable — entity เก่าไม่ได้ใช้)             |
 | `ocr_used`                   | TINYINT(1)         | NO       | ระบุว่าใช้ OCR path หรือไม่ (default: 0)                                        |
 | `status`                     | ENUM               | NO       | สถานะ: PENDING / PENDING_REVIEW / IMPORTED / REJECTED                           |
@@ -2375,7 +2382,7 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 | `subject`                    | TEXT               | YES      | หัวข้อเรื่อง (ตรงกับ correspondence_revisions.subject)                          |
 | `original_subject`           | TEXT               | YES      | หัวข้อเดิมจาก Excel (ก่อน AI แก้ไข)                                             |
 | `body`                       | TEXT               | YES      | เนื้อความสรุปจาก AI                                                             |
-| `ai_suggested_category`      | VARCHAR(50)        | YES      | หมวดหมู่ที่ AI แนะนำ                                                            |
+| `ai_suggested_correspondence_type` | VARCHAR(50) | YES      | Correspondence Type ที่ AI แนะนำ (correspondence_types.type_code)               |
 | `ai_confidence`              | DECIMAL(4,3)       | YES      | ค่าความมั่นใจของ AI (0.000 - 1.000)                                             |
 | `ai_issues`                  | JSON               | YES      | รายละเอียดปัญหาที่ AI พบ                                                        |
 | `review_reason`              | VARCHAR(255)       | YES      | เหตุผลที่ต้องตรวจสอบ (เช่น Confidence ต่ำ)                                      |
@@ -2387,6 +2394,9 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 | `remarks`                    | TEXT               | YES      | หมายเหตุจากหน้างาน                                                              |
 | `ai_summary`                 | TEXT               | YES      | สรุปเนื้อหาจาก AI (4-5 บรรทัด)                                                  |
 | `extracted_tags`             | JSON               | YES      | Tag ที่ AI นำเสนอหรือจับคู่ได้                                                  |
+| `ocr_text`                   | LONGTEXT           | YES      | ข้อความ OCR 3 หน้าแรก (ADR-042/047) — แก้ไขได้โดย Admin                        |
+| `requires_human_review`      | TINYINT(1)         | NO       | ADR-050: server-computed จาก min(confidence ทั้งหมด) < threshold — ไม่เชื่อค่าที่ LLM ส่งมา (default 0) |
+| `ocr_quality_confidence`     | DECIMAL(4,3)       | YES      | ADR-050: promote จาก details.ocrQuality.confidence (0.000-1.000) สำหรับ sort/filter |
 | `created_at`                 | DATETIME           | NO       | วันที่สร้าง                                                                     |
 | `updated_at`                 | DATETIME           | NO       | วันที่แก้ไขล่าสุด                                                               |
 
@@ -2399,6 +2409,7 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 - KEY idx_migration_review_status_created (status, created_at)
 - KEY idx_migration_review_batch (batch_id)
 - KEY idx_migration_review_reviewed_by (reviewed_by)
+- KEY idx_migration_review_compare_status (compare_status, status, created_at) — FR-012d
 - CONSTRAINT fk_migration_review_reviewed_by FOREIGN KEY (reviewed_by) REFERENCES users (user_id) ON DELETE SET NULL
 
 #### Business Rules
@@ -2406,7 +2417,9 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 1. **Staging Area** — ข้อมูลที่ประมวลผลผ่าน n8n จะถูกส่งเข้าตารางนี้เสมอ
 2. **Record Lifecycle** — Record ไม่ถูกลบหลัง Import — เปลี่ยน status เป็น IMPORTED เก็บไว้ตลอดเพื่อ Debug
 3. **Status Transitions** — PENDING → IMPORTED หรือ PENDING → REJECTED
-4. **Confidence Threshold** — กำหนดผ่าน .env (AI_THRESHOLD_HIGH=0.85, AI_THRESHOLD_MID=0.60)
+4. **Confidence Threshold** — กำหนดผ่าน `system_settings` (MIGRATION_MIN_CONFIDENCE=0.6, MIGRATION_MAX_MISMATCH_FIELDS=3, MIGRATION_RESOLVE_BATCH_TIMEOUT_MS=30000 — FR-010)
+5. **AI Compare** — ใช้ prompt `migration_compare` จาก `ai_prompts` (ADR-029) เพื่อเปรียบเทียบทะเบียนกับเอกสารจริง
+6. **Sandbox Testing** — ใช้ projects.is_sandbox=1 (project_code='SANDBOX') สำหรับ Full Pipeline Testing (ADR-042)
 
 ---
 
@@ -3002,13 +3015,14 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 | idempotency_key   | VARCHAR(200)  | NULL                                | Idempotency-Key สำหรับป้องกัน queue ซ้ำ                       |
 | original_filename | VARCHAR(500)  | NULL                                | ชื่อไฟล์ต้นฉบับจาก legacy source                              |
 | storage_temp_path | VARCHAR(1000) | NULL                                | temp storage path ก่อน import                                 |
-| ai_job_id         | VARCHAR(36)   | NULL                                | BullMQ Job ID สำหรับงานประมวลผล AI                            |
+| ai_job_id         | VARCHAR(150)  | NULL                                | BullMQ Job ID สำหรับงานประมวลผล AI (widened 2026-08-23)      |
+| ai_status         | ENUM          | NULL, DEFAULT 'PENDING'             | PENDING / WAITING / RUNNING / DONE / FAILED (ADR-047)         |
 | ai_failed         | TINYINT(1)    | NOT NULL, DEFAULT 0                 | Edge Case 4: AI enrichment failed after retries (ADR-047)     |
-| ai_metadata_json  | LONGTEXT      | NOT NULL, CHECK(json_valid)         | AI suggestion payload เต็มสำหรับ human review                 |
+| ai_metadata_json  | LONGTEXT      | NULL, CHECK(json_valid)             | AI suggestion payload เต็มสำหรับ human review                 |
 | confidence_score  | DECIMAL(5,4)  | NULL                                | AI confidence score 0.0000-1.0000                             |
 | extracted_tags    | JSON          | NULL                                | Tag ที่ AI นำเสนอหรือจับคู่ได้                                |
 | ocr_text          | LONGTEXT      | NULL                                | ข้อความ OCR 3 หน้าแรก (ADR-042/047)                           |
-| status            | VARCHAR(50)   | NOT NULL, DEFAULT 'PENDING_REVIEW'  | PENDING_REVIEW, APPROVED, REJECTED, COMMITTED                 |
+| status            | ENUM          | NULL, DEFAULT 'PENDING'             | PENDING / PENDING_REVIEW / IMPORTED / REJECTED (ADR-047)      |
 | reviewed_by       | VARCHAR(50)   | NULL                                | ผู้ review (userId)                                           |
 | reviewed_at       | DATETIME      | NULL                                | วันที่ review                                                 |
 | rejection_reason  | TEXT          | NULL                                | เหตุผลการ reject                                              |

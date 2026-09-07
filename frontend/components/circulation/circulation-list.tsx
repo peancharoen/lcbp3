@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Circulation, CirculationListResponse } from '@/types/circulation';
 import { DataTable } from '@/components/common/data-table';
 import { ColumnDef } from '@tanstack/react-table';
@@ -8,6 +10,14 @@ import { Eye } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { DocumentRowActions } from '@/components/documents/document-row-actions';
+import { getDocumentActionConfig } from '@/components/documents/document-action-strategy';
+import { ForceCloseDialog } from '@/components/circulation/force-close-dialog';
+import { circulationService } from '@/lib/services/circulation.service';
+import { useTranslations } from '@/hooks/use-translations';
+import { parseApiError } from '@/lib/api/client';
+import { AxiosError } from 'axios';
+import { toast } from 'sonner';
 
 interface CirculationListProps {
   data: CirculationListResponse;
@@ -41,6 +51,26 @@ function getStatusVariant(statusCode: string): 'default' | 'secondary' | 'destru
 }
 
 export function CirculationList({ data }: CirculationListProps) {
+  const t = useTranslations();
+  const queryClient = useQueryClient();
+  const [forceCloseItem, setForceCloseItem] = useState<Circulation | null>(null);
+  const [showForceClose, setShowForceClose] = useState(false);
+
+  const forceCloseMutation = useMutation({
+    mutationFn: ({ publicId, reason }: { publicId: string; reason: string }) =>
+      circulationService.forceClose(publicId, reason),
+    onSuccess: () => {
+      toast.success(t('circulation.forceClose.success'));
+      setShowForceClose(false);
+      setForceCloseItem(null);
+      void queryClient.invalidateQueries({ queryKey: ['circulations'] });
+    },
+    onError: (error: Error) => {
+      const apiError = parseApiError(error as AxiosError);
+      toast.error(t('circulation.forceClose.failed'), { description: apiError.error.message });
+    },
+  });
+
   if (!data) return null;
 
   const columns: ColumnDef<Circulation>[] = [
@@ -109,6 +139,15 @@ export function CirculationList({ data }: CirculationListProps) {
                 <Eye className="h-4 w-4" />
               </Button>
             </Link>
+            <DocumentRowActions
+              config={getDocumentActionConfig('CIRCULATION')}
+              onCancel={() => {
+                setForceCloseItem(item);
+                setShowForceClose(true);
+              }}
+              onHardDelete={() => {/* TODO: open hard-delete dialog */}}
+              onMetadataEdit={() => {/* TODO: open metadata edit dialog */}}
+            />
           </div>
         );
       },
@@ -123,6 +162,21 @@ export function CirculationList({ data }: CirculationListProps) {
           Showing {data.data?.length || 0} of {data.meta.total} circulations
         </div>
       )}
+
+      <ForceCloseDialog
+        open={showForceClose}
+        onOpenChange={(open) => {
+          setShowForceClose(open);
+          if (!open) setForceCloseItem(null);
+        }}
+        documentLabel={forceCloseItem?.circulationNo}
+        isLoading={forceCloseMutation.isPending}
+        onConfirm={(reason) => {
+          if (forceCloseItem) {
+            forceCloseMutation.mutate({ publicId: forceCloseItem.publicId, reason });
+          }
+        }}
+      />
     </div>
   );
 }

@@ -18,6 +18,11 @@ import { toast } from 'sonner';
 import { IntegratedBanner } from '@/components/workflow/integrated-banner';
 import { WorkflowLifecycle } from '@/components/workflow/workflow-lifecycle';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAuthStore } from '@/lib/stores/auth-store';
+import { useTranslations } from '@/hooks/use-translations';
+import { parseApiError } from '@/lib/api/client';
+import { AxiosError } from 'axios';
+import { ForceCloseDialog } from '@/components/circulation/force-close-dialog';
 
 /**
  * EC-CIRC-003: ตรวจสอบว่า deadline เลยกำหนดแล้วหรือไม่ (overdue = วันถัดไปหลัง deadline + 1 วัน)
@@ -58,7 +63,26 @@ export default function CirculationDetailPage() {
   const params = useParams();
   const queryClient = useQueryClient();
   const uuid = params.uuid as string;
+  const t = useTranslations();
+  const hasPermission = useAuthStore((s) => s.hasPermission);
   const [pendingAttachmentIds, setPendingAttachmentIds] = useState<string[]>([]);
+  const [showForceClose, setShowForceClose] = useState(false);
+
+  const canForceClose = hasPermission('circulation.manage') || hasPermission('system.manage_all');
+
+  const forceCloseMutation = useMutation({
+    mutationFn: ({ publicId, reason }: { publicId: string; reason: string }) =>
+      circulationService.forceClose(publicId, reason),
+    onSuccess: () => {
+      toast.success(t('circulation.forceClose.success'));
+      setShowForceClose(false);
+      void queryClient.invalidateQueries({ queryKey: circulationKeys.detail(uuid) });
+    },
+    onError: (error: Error) => {
+      const apiError = parseApiError(error as AxiosError);
+      toast.error(t('circulation.forceClose.failed'), { description: apiError.error.message });
+    },
+  });
 
   const { circulation, isLoading, error } = useCirculation(uuid);
 
@@ -125,14 +149,19 @@ export default function CirculationDetailPage() {
         isLoading={isLoading}
       />
 
-      {/* Navigation Header */}
+      {/* Navigation Header + Force Close (T114) */}
       <div className="flex items-center justify-between">
         <Link href="/circulation">
           <Button variant="ghost" size="sm">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            กลับ
+            {t('common.back')}
           </Button>
         </Link>
+        {canForceClose && (
+          <Button variant="destructive" size="sm" onClick={() => setShowForceClose(true)}>
+            {t('circulation.forceClose.title')}
+          </Button>
+        )}
       </div>
 
       {/* Tabs — Details / Workflow */}
@@ -256,6 +285,14 @@ export default function CirculationDetailPage() {
           />
         </TabsContent>
       </Tabs>
+
+      <ForceCloseDialog
+        open={showForceClose}
+        onOpenChange={setShowForceClose}
+        documentLabel={circulation?.circulationNo}
+        isLoading={forceCloseMutation.isPending}
+        onConfirm={(reason) => forceCloseMutation.mutate({ publicId: uuid, reason })}
+      />
     </section>
   );
 }

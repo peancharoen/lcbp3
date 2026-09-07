@@ -13,6 +13,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { DocumentRowActions } from '@/components/documents/document-row-actions';
+import { getDocumentActionConfig } from '@/components/documents/document-action-strategy';
 
 export const columns: ColumnDef<Drawing>[] = [
   {
@@ -54,36 +56,44 @@ export const columns: ColumnDef<Drawing>[] = [
       const drawing = row.original;
 
       return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => navigator.clipboard.writeText(drawing.drawingNumber)}>
-              Copy Drawing No.
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href={`/drawings/${drawing.publicId}`}>View Details</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href={`/drawings/${drawing.publicId}?edit=true`}>
-                <Pencil className="mr-2 h-4 w-4" />
-                Edit Detail
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href={`/drawings/${drawing.publicId}?upload=true`}>
-                <Upload className="mr-2 h-4 w-4" />
-                Upload Revision
-              </Link>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex gap-1">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => navigator.clipboard.writeText(drawing.drawingNumber)}>
+                Copy Drawing No.
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href={`/drawings/${drawing.publicId}`}>View Details</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href={`/drawings/${drawing.publicId}?edit=true`}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Edit Detail
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href={`/drawings/${drawing.publicId}?upload=true`}>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload Revision
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <DocumentRowActions
+            config={getDocumentActionConfig('DRAWING')}
+            onCancel={() => {/* TODO: open cancel dialog */}}
+            onHardDelete={() => {/* TODO: open hard-delete dialog */}}
+            onMetadataEdit={() => {/* TODO: open metadata edit dialog */}}
+          />
+        </div>
       );
     },
   },

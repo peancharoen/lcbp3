@@ -116,6 +116,10 @@ CREATE TABLE refresh_tokens (
   token_hash VARCHAR(255) NOT NULL COMMENT 'Hash ของ Refresh Token',
   expires_at DATETIME NOT NULL COMMENT 'วันหมดอายุ',
   is_revoked TINYINT(1) DEFAULT 0 COMMENT 'สถานะยกเลิก (1=Revoked)',
+  device_name VARCHAR(255) NULL COMMENT 'ชื่อ device ที่ parse จาก user-agent (เช่น Windows · Chrome)',
+  ip_address VARCHAR(45) NULL COMMENT 'IP address จริงของ client (จาก CF-Connecting-IP หรือ X-Forwarded-For)',
+  user_agent VARCHAR(512) NULL COMMENT 'Raw User-Agent string สำหรับ security forensics',
+  last_active_at DATETIME NULL COMMENT 'เวลาใช้งานล่าสุด (update ตอน refresh token rotation)',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
   replaced_by_token VARCHAR(255) NULL COMMENT 'Token ใหม่ที่มาแทนที่ (Rotation)',
@@ -484,7 +488,7 @@ CREATE TABLE rfa_approve_codes (
 CREATE TABLE rfa_consent_reasons (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
   public_id CHAR(36) NOT NULL UNIQUE COMMENT 'ADR-019: UUIDv7 สำหรับ API response',
-  code VARCHAR(20) NOT NULL UNIQUE COMMENT 'รหัส consent reason (เช่น NO_OBJECTION, COMMENTS_PROVIDED)',
+  code VARCHAR(50) NOT NULL UNIQUE COMMENT 'รหัส consent reason (เช่น NO_OBJECTION, COMMENTS_PROVIDED) — VARCHAR(50) เพราะ AGREED_WITH_CONDITIONS ยาว 22 ตัวอักษร (fix 2026-09-07)',
   description VARCHAR(200) NOT NULL COMMENT 'คำอธิบาย consent reason',
   sort_order INT DEFAULT 0 COMMENT 'ลำดับการแสดงผล',
   is_active TINYINT(1) DEFAULT 1 COMMENT 'สถานะการใช้งาน',
@@ -1506,7 +1510,7 @@ CREATE TABLE migration_review_queue (
     'DONE',
     'FAILED'
   ) NULL DEFAULT 'PENDING' COMMENT 'สถานะ BullMQ AI job (ADR-047) — WAITING = enqueue แล้วรอ worker',
-  ai_metadata_json LONGTEXT NOT NULL COMMENT 'AI suggestion payload เต็มสำหรับ human review' CHECK (json_valid(`ai_metadata_json`)),
+  ai_metadata_json LONGTEXT NULL COMMENT 'AI suggestion payload เต็มสำหรับ human review (JSON payload)' CHECK (json_valid(`ai_metadata_json`)),
   confidence_score DECIMAL(5, 4) NULL COMMENT 'AI confidence score 0.0000-1.0000 (nullable — entity เก่าไม่ได้ใช้)',
   ocr_used TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'ระบุว่าใช้ OCR path หรือไม่',
   STATUS ENUM(
@@ -2011,6 +2015,50 @@ CREATE TABLE IF NOT EXISTS `distribution_recipients` (
   KEY `idx_dr_type_recipient` (`recipient_type`, `recipient_public_id`),
   CONSTRAINT `fk_dr_matrix` FOREIGN KEY (`matrix_id`) REFERENCES `distribution_matrices` (`id`) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Polymorphic recipients — no FK on recipient_public_id (by design). ROLE type uses roles.uuid (ADR-019)';
+
+-- =============================================================================
+-- 21. Unified Document CRUD — ALTER TABLE statements (Feature 253)
+-- Added: 2026-09-06 — Optimistic locking + Cancel/Delete support
+-- =============================================================================
+-- 21.1 correspondences — optimistic lock for metadata patch
+ALTER TABLE `correspondences`
+ADD COLUMN `version` INT NOT NULL DEFAULT 0 COMMENT 'Optimistic lock version (TypeORM @VersionColumn)';
+
+-- 21.2 rfas — optimistic lock for metadata patch
+ALTER TABLE `rfas`
+ADD COLUMN `version` INT NOT NULL DEFAULT 0 COMMENT 'Optimistic lock version';
+
+-- 21.3 transmittals — optimistic lock + cancel support
+ALTER TABLE `transmittals`
+ADD COLUMN `version` INT NOT NULL DEFAULT 0 COMMENT 'Optimistic lock version',
+  ADD COLUMN `status_id` INT NULL COMMENT 'FK to correspondence_status — DRAFT/SUBMITTED/CANCELLED',
+  ADD COLUMN `cancel_reason` VARCHAR(500) NULL COMMENT 'เหตุผลการยกเลิก',
+  ADD COLUMN `cancelled_at` DATETIME NULL COMMENT 'วันที่ยกเลิก',
+  ADD COLUMN `cancelled_by` INT NULL COMMENT 'ผู้ยกเลิก (FK to users)',
+  ADD CONSTRAINT `fk_transmittals_status` FOREIGN KEY (`status_id`) REFERENCES `correspondence_status` (`id`) ON DELETE
+SET NULL,
+  ADD CONSTRAINT `fk_transmittals_cancelled_by` FOREIGN KEY (`cancelled_by`) REFERENCES `users` (`id`) ON DELETE
+SET NULL;
+
+-- 21.4 contract_drawings — optimistic lock + soft-delete tracking
+ALTER TABLE `contract_drawings`
+ADD COLUMN `version` INT NOT NULL DEFAULT 0 COMMENT 'Optimistic lock version',
+  ADD COLUMN `delete_reason` VARCHAR(500) NULL COMMENT 'เหตุผลการลบ (soft-delete)';
+
+-- 21.5 shop_drawings — optimistic lock + soft-delete tracking
+ALTER TABLE `shop_drawings`
+ADD COLUMN `version` INT NOT NULL DEFAULT 0 COMMENT 'Optimistic lock version',
+  ADD COLUMN `delete_reason` VARCHAR(500) NULL COMMENT 'เหตุผลการลบ (soft-delete)';
+
+-- 21.6 asbuilt_drawings — optimistic lock + soft-delete tracking
+ALTER TABLE `asbuilt_drawings`
+ADD COLUMN `version` INT NOT NULL DEFAULT 0 COMMENT 'Optimistic lock version',
+  ADD COLUMN `delete_reason` VARCHAR(500) NULL COMMENT 'เหตุผลการลบ (soft-delete)';
+
+-- 21.7 circulations — optimistic lock + force-close tracking
+ALTER TABLE `circulations`
+ADD COLUMN `version` INT NOT NULL DEFAULT 0 COMMENT 'Optimistic lock version',
+  ADD COLUMN `force_close_reason` VARCHAR(500) NULL COMMENT 'เหตุผล Force Close';
 
 -- =============================================================================
 -- END OF SCHEMA v1.9.0

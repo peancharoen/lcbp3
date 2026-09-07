@@ -2858,3 +2858,229 @@ VALUES (
     NOW(),
     NOW()
   );
+
+-- ==========================================================
+-- Migration AI seeds — sync กลับจาก deltas (2026-07-27, 2026-08-06)
+-- เพื่อให้ fresh install ได้ข้อมูลครบเหมือน environment ที่ apply delta แล้ว
+-- ==========================================================
+
+-- 1. SANDBOX project สำหรับ AI Full Pipeline Testing (ADR-042)
+INSERT INTO projects (
+    project_code,
+    project_name,
+    is_active,
+    is_sandbox
+  )
+SELECT 'SANDBOX',
+  'AI Sandbox Testing (Internal)',
+  1,
+  1
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM projects
+    WHERE project_code = 'SANDBOX'
+  );
+
+-- 2. Migration review thresholds (FR-010)
+INSERT INTO system_settings (
+    setting_key,
+    setting_value,
+    data_type,
+    category,
+    description,
+    is_public
+  )
+VALUES (
+    'MIGRATION_MAX_MISMATCH_FIELDS',
+    '3',
+    'number',
+    'migration',
+    'จำนวนช่องที่ไม่ตรงกันสูงสุดที่ยอมให้ยืนยันได้โดยไม่ต้องตรวจสอบด้วยมือ (FR-010b)',
+    0
+  ) ON DUPLICATE KEY
+UPDATE setting_key = setting_key;
+
+INSERT INTO system_settings (
+    setting_key,
+    setting_value,
+    data_type,
+    category,
+    description,
+    is_public
+  )
+VALUES (
+    'MIGRATION_MIN_CONFIDENCE',
+    '0.6',
+    'number',
+    'migration',
+    'ค่าความมั่นใจขั้นต่ำของการเปรียบเทียบ ถ้าต่ำกว่านี้ต้องตรวจสอบด้วยมือ (FR-010b)',
+    0
+  ) ON DUPLICATE KEY
+UPDATE setting_key = setting_key;
+
+INSERT INTO system_settings (
+    setting_key,
+    setting_value,
+    data_type,
+    category,
+    description,
+    is_public
+  )
+VALUES (
+    'MIGRATION_RESOLVE_BATCH_TIMEOUT_MS',
+    '30000',
+    'number',
+    'migration',
+    'ระยะเวลาสูงสุด (ms) สำหรับ resolve-batch ก่อนแนะนำให้ย้ายไป ai-batch queue',
+    0
+  ) ON DUPLICATE KEY
+UPDATE setting_key = setting_key;
+
+-- 3. ai_prompt_types + ai_prompts สำหรับ migration_compare (ADR-029, FR-006~008)
+INSERT INTO ai_prompt_types (public_id, prompt_type, display_name, description, is_system_managed, is_active)
+SELECT UUID(),
+  'migration_compare',
+  'Migration Compare',
+  'เปรียบเทียบข้อมูลทะเบียนเอกสารกับ OCR text จากเอกสารจริง (Feature 242)',
+  1,
+  1
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM ai_prompt_types
+    WHERE prompt_type = 'migration_compare'
+  );
+
+INSERT INTO ai_prompts (
+    public_id,
+    prompt_type,
+    version_number,
+    template,
+    field_schema,
+    context_config,
+    is_active,
+    created_by,
+    created_at,
+    activated_at
+  )
+SELECT UUID(),
+  'migration_compare',
+  1,
+  'คุณคือผู้ตรวจสอบความถูกต้องของทะเบียนเอกสาร หน้าที่ของคุณคือเปรียบเทียบข้อมูลในทะเบียนเอกสาร
+กับข้อความที่อ่านได้จากไฟล์เอกสารจริง แล้วรายงานว่าแต่ละช่องตรงกันหรือไม่
+
+ข้อกำหนดสำคัญ:
+1. ทะเบียนเอกสารเป็นข้อมูลอ้างอิงหลัก — ห้ามเสนอค่าใหม่มาแทน
+2. รายงานเฉพาะผลการเปรียบเทียบ ห้ามสกัดข้อมูลขึ้นมาใหม่จากเอกสาร
+3. หากหาค่าของช่องใดในเอกสารไม่พบ ให้ตั้ง foundInDocument = false และ ocrValue = null
+   โดยตั้ง match = false — ห้ามเดาค่า
+4. ถ้า ocr_truncated = true หมายความว่าข้อความจากเอกสารไม่ครบทั้งฉบับ
+   ช่องที่หาไม่พบอาจอยู่ในส่วนที่ถูกตัดออก ให้ตั้ง foundInDocument = false
+   แทนการรายงานว่าไม่ตรงกัน
+5. การเปรียบเทียบต้องยืดหยุ่นตามรูปแบบ:
+   - วันที่: 14/03/2019, 14 มี.ค. 2562, และ 2019-03-14 ถือว่าตรงกัน (พ.ศ. = ค.ศ. + 543)
+   - หน่วยงาน: ตัวย่อกับชื่อเต็มที่หมายถึงหน่วยงานเดียวกันถือว่าตรงกัน
+   - เลขที่เอกสาร: ต่างกันแค่ตัวคั่นหรือช่องว่างถือว่าตรงกัน
+   - หัวเรื่อง: ต่างกันแค่เครื่องหมายวรรคตอนหรือช่องว่างถือว่าตรงกัน
+     แต่ถ้าเนื้อความต่างกันถือว่าไม่ตรงกัน
+6. ตอบเป็น JSON เท่านั้น ห้ามมีข้อความอื่นนอก JSON
+
+ข้อความที่ถูกตัดทอน: {{ocr_truncated}}
+
+ข้อมูลจากทะเบียนเอกสาร:
+{{excel_metadata}}
+
+ข้อความที่อ่านได้จากไฟล์เอกสาร:
+{{ocr_text}}
+
+ตอบตามโครงสร้าง JSON นี้:
+{
+  "fieldResults": [
+    {
+      "field": "<ชื่อช่อง>",
+      "excelValue": "<ค่าจากทะเบียน หรือ null>",
+      "ocrValue": "<ค่าที่พบในเอกสาร หรือ null>",
+      "match": <true|false>,
+      "foundInDocument": <true|false>
+    }
+  ],
+  "mismatches": ["<ชื่อช่องที่ไม่ตรงกัน>"],
+  "confidence": <0.0-1.0>
+}',
+  JSON_OBJECT(
+    'type',
+    'object',
+    'required',
+    JSON_ARRAY('fieldResults', 'mismatches', 'confidence'),
+    'properties',
+    JSON_OBJECT(
+      'fieldResults',
+      JSON_OBJECT(
+        'type',
+        'array',
+        'items',
+        JSON_OBJECT(
+          'type',
+          'object',
+          'required',
+          JSON_ARRAY(
+            'field',
+            'excelValue',
+            'ocrValue',
+            'match',
+            'foundInDocument'
+          ),
+          'properties',
+          JSON_OBJECT(
+            'field',
+            JSON_OBJECT(
+              'type',
+              'string',
+              'enum',
+              JSON_ARRAY(
+                'documentNumber',
+                'subject',
+                'documentDate',
+                'fromOrganization',
+                'toOrganization',
+                'correspondenceType',
+                'discipline',
+                'project',
+                'revision'
+              )
+            ),
+            'excelValue',
+            JSON_OBJECT('type', JSON_ARRAY('string', 'null')),
+            'ocrValue',
+            JSON_OBJECT('type', JSON_ARRAY('string', 'null')),
+            'match',
+            JSON_OBJECT('type', 'boolean'),
+            'foundInDocument',
+            JSON_OBJECT('type', 'boolean')
+          )
+        )
+      ),
+      'mismatches',
+      JSON_OBJECT(
+        'type',
+        'array',
+        'items',
+        JSON_OBJECT('type', 'string')
+      ),
+      'confidence',
+      JSON_OBJECT('type', 'number', 'minimum', 0, 'maximum', 1)
+    )
+  ),
+  NULL,
+  1,
+  1,
+  NOW(),
+  NOW()
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM ai_prompts
+    WHERE prompt_type = 'migration_compare'
+      AND version_number = 1
+  );

@@ -34,6 +34,7 @@ describe('CorrespondenceController', () => {
       bulkCancel: jest.fn(),
       exportCsv: jest.fn(),
       cancel: jest.fn(),
+      patchMetadata: jest.fn(),
       hardDelete: jest.fn(),
       previewDocumentNumber: jest.fn(),
     };
@@ -464,9 +465,99 @@ describe('CorrespondenceController', () => {
       expect(mockCorrespondenceService.cancel).toHaveBeenCalledWith(
         'uuid-123',
         'No longer needed',
-        mockReq.user
+        mockReq.user,
+        undefined
       );
       expect(result).toEqual(mockResult);
+    });
+  });
+
+  describe('cancelUnified (Feature 253 — T030)', () => {
+    it('should return DocumentActionResponse after cancelling', async () => {
+      (mockCorrespondenceService.cancel as jest.Mock).mockResolvedValue({
+        success: true,
+      });
+
+      const mockReq = { user: { user_id: 1 } };
+      const dto = { reason: 'No longer needed' };
+
+      const result = await controller.cancelUnified(
+        'uuid-123',
+        dto,
+        mockReq as Parameters<typeof controller.cancelUnified>[2]
+      );
+
+      expect(mockCorrespondenceService.cancel).toHaveBeenCalledWith(
+        'uuid-123',
+        'No longer needed',
+        mockReq.user,
+        undefined
+      );
+      expect(result.success).toBe(true);
+      expect(result.publicId).toBe('uuid-123');
+      expect(result.action).toBe('CANCEL');
+      expect(result.sideEffects).toBeDefined();
+      expect(result.failedSideEffects).toEqual([]);
+    });
+
+    it('should propagate error when cancel fails', async () => {
+      (mockCorrespondenceService.cancel as jest.Mock).mockRejectedValue(
+        new Error('Cannot cancel')
+      );
+
+      const mockReq = { user: { user_id: 1 } };
+
+      await expect(
+        controller.cancelUnified(
+          'uuid-123',
+          { reason: 'x' },
+          mockReq as Parameters<typeof controller.cancelUnified>[2]
+        )
+      ).rejects.toThrow('Cannot cancel');
+    });
+  });
+
+  describe('patchMetadata (Feature 253 — T056)', () => {
+    it('should call service.patchMetadata and return DocumentActionResponse', async () => {
+      (mockCorrespondenceService.patchMetadata as jest.Mock).mockResolvedValue({
+        message: 'Metadata updated successfully',
+        newVersion: 4,
+      });
+
+      const mockReq = { user: { user_id: 1 } };
+      const dto = { patch: { subject: 'New Subject' }, version: 3 };
+
+      const result = await controller.patchMetadata(
+        'uuid-123',
+        dto,
+        mockReq as Parameters<typeof controller.patchMetadata>[2]
+      );
+
+      expect(mockCorrespondenceService.patchMetadata).toHaveBeenCalledWith(
+        'uuid-123',
+        { subject: 'New Subject' },
+        3,
+        mockReq.user
+      );
+      expect(result.success).toBe(true);
+      expect(result.action).toBe('METADATA_PATCH');
+      expect(result.newVersion).toBe(4);
+    });
+
+    it('should propagate version mismatch error', async () => {
+      (mockCorrespondenceService.patchMetadata as jest.Mock).mockRejectedValue(
+        new ValidationException('Version mismatch')
+      );
+
+      const mockReq = { user: { user_id: 1 } };
+
+      await expect(
+        controller.patchMetadata(
+          'uuid-123',
+          { patch: { subject: 'x' }, version: 0 },
+          mockReq as Parameters<typeof controller.patchMetadata>[2]
+        )
+      ).rejects.toThrow(ValidationException);
     });
   });
 

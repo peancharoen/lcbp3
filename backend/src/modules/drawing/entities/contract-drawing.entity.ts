@@ -9,6 +9,7 @@ import {
   JoinColumn,
   ManyToMany,
   JoinTable,
+  VersionColumn,
 } from 'typeorm';
 import { Project } from '../../project/entities/project.entity';
 import { User } from '../../user/entities/user.entity';
@@ -48,8 +49,19 @@ export class ContractDrawing extends UuidBaseEntity {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt!: Date; // ! ห้ามว่าง
 
+  @VersionColumn({ name: 'version', default: 0 })
+  version!: number;
+
   @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt?: Date; // ? ว่างได้ (Nullable)
+
+  @Column({
+    name: 'delete_reason',
+    type: 'varchar',
+    length: 500,
+    nullable: true,
+  })
+  deleteReason?: string;
 
   @Column({ name: 'updated_by', nullable: true })
   updatedBy?: number; // ? ว่างได้ (Nullable)

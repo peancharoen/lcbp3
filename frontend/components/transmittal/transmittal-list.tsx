@@ -8,12 +8,20 @@ import { Eye } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { DocumentRowActions } from '@/components/documents/document-row-actions';
+import { getDocumentActionConfig } from '@/components/documents/document-action-strategy';
 
 interface TransmittalListProps {
   data: Transmittal[];
+  rowSelection?: Record<string, boolean>;
+  onRowSelectionChange?: (value: Record<string, boolean>) => void;
 }
 
-export function TransmittalList({ data }: TransmittalListProps) {
+export function TransmittalList({
+  data,
+  rowSelection,
+  onRowSelectionChange,
+}: TransmittalListProps) {
   if (!data) return null;
 
   const columns: ColumnDef<Transmittal>[] = [
@@ -65,15 +73,32 @@ export function TransmittalList({ data }: TransmittalListProps) {
       cell: ({ row }) => {
         const item = row.original;
         return (
-          <Link href={`/transmittals/${item.publicId}`}>
-            <Button variant="ghost" size="icon" title="View Details">
-              <Eye className="h-4 w-4" />
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            <Link href={`/transmittals/${item.publicId}`}>
+              <Button variant="ghost" size="icon" title="View Details">
+                <Eye className="h-4 w-4" />
+              </Button>
+            </Link>
+            <DocumentRowActions
+              config={getDocumentActionConfig('TRANSMITTAL')}
+              onCancel={() => {/* TODO: open cancel dialog */}}
+              onHardDelete={() => {/* TODO: open hard-delete dialog */}}
+              onMetadataEdit={() => {/* TODO: open metadata edit dialog */}}
+            />
+          </div>
         );
       },
     },
   ];
 
-  return <DataTable columns={columns} data={data} />;
+  return (
+    <DataTable
+      columns={columns}
+      data={data}
+      enableRowSelection
+      rowSelection={rowSelection}
+      onRowSelectionChange={onRowSelectionChange}
+      getRowId={(row) => row.publicId}
+    />
+  );
 }

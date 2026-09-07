@@ -1,19 +1,14 @@
 // File: backend/tests/integration/cross-spec/qdrant-isolation.spec.ts
 // Change Log:
+// - 2026-09-07: อัปเดต mock ให้ใช้ query API แทน search (client v1.19+ เปลี่ยน API)
 // - 2026-05-22: อัปเดต IP Address ของ Qdrant จาก 192.168.10.100 เป็น 192.168.10.8 ตามความต้องการของผู้ใช้
 // - 2026-05-21: แก้ไข Type Casting ของ AiQdrantService ด้วย unknown
 // - 2026-05-16: Cross-spec integration test for QdrantService projectPublicId isolation
 // - 2026-05-16: Fixed mocking strategy to use factory pattern with proper method exposure
 
-// Define types for Qdrant mock responses
-interface QdrantSearchResult {
-  id: string;
-  payload: Record<string, unknown>;
-  score: number;
-}
-
 // Create mock functions that can be spied on
-const mockSearch = jest.fn();
+// Note: @qdrant/js-client-rest 1.19+ ใช้ query API แทน search
+const mockQuery = jest.fn();
 const mockGetCollections = jest.fn().mockResolvedValue({ collections: [] });
 const mockCreateCollection = jest.fn().mockResolvedValue(true);
 const mockCreatePayloadIndex = jest.fn().mockResolvedValue(true);
@@ -24,7 +19,7 @@ jest.mock('@qdrant/js-client-rest', () => ({
     getCollections: mockGetCollections,
     createCollection: mockCreateCollection,
     createPayloadIndex: mockCreatePayloadIndex,
-    search: mockSearch,
+    query: mockQuery,
     delete: jest.fn().mockResolvedValue(true),
     upsert: jest.fn().mockResolvedValue(true),
   })),
@@ -39,7 +34,7 @@ describe('Cross-Spec: QdrantService Isolation', () => {
 
   beforeEach(async () => {
     // Reset mocks before each test
-    mockSearch.mockReset();
+    mockQuery.mockReset();
     mockGetCollections.mockResolvedValue({ collections: [] });
 
     const module: TestingModule = await Test.createTestingModule({
@@ -82,12 +77,12 @@ describe('Cross-Spec: QdrantService Isolation', () => {
       },
     ];
 
-    mockSearch.mockResolvedValue(mockResponse as QdrantSearchResult[]);
+    mockQuery.mockResolvedValue({ points: mockResponse });
 
     await service.search('proj-a', [0.1, 0.2, 0.3], 5);
 
     // Assert: Qdrant client call includes project_public_id filter
-    expect(mockSearch).toHaveBeenCalledWith(
+    expect(mockQuery).toHaveBeenCalledWith(
       'lcbp3_vectors',
       expect.objectContaining({
         filter: {
@@ -109,11 +104,11 @@ describe('Cross-Spec: QdrantService Isolation', () => {
     ];
 
     // Act: Query Project A
-    mockSearch.mockResolvedValueOnce(projectAResponse as QdrantSearchResult[]);
+    mockQuery.mockResolvedValueOnce({ points: projectAResponse });
     const resultA = await service.search('proj-a', [0.1, 0.2], 5);
 
     // Act: Query Project B
-    mockSearch.mockResolvedValueOnce(projectBResponse as QdrantSearchResult[]);
+    mockQuery.mockResolvedValueOnce({ points: projectBResponse });
     const resultB = await service.search('proj-b', [0.1, 0.2], 5);
 
     // Assert: Results are isolated by project
@@ -125,8 +120,8 @@ describe('Cross-Spec: QdrantService Isolation', () => {
     );
 
     // Assert: Different filters used for each project
-    const call1 = mockSearch.mock.calls[0] as unknown[];
-    const call2 = mockSearch.mock.calls[1] as unknown[];
+    const call1 = mockQuery.mock.calls[0] as unknown[];
+    const call2 = mockQuery.mock.calls[1] as unknown[];
     type FilterArg = { filter: { must: Array<{ match: { value: string } }> } };
     expect((call1[1] as FilterArg).filter.must[0].match.value).toBe('proj-a');
     expect((call2[1] as FilterArg).filter.must[0].match.value).toBe('proj-b');
@@ -155,7 +150,7 @@ describe('Cross-Spec: QdrantService Isolation', () => {
       },
     ];
 
-    mockSearch.mockResolvedValue(mockResponse as QdrantSearchResult[]);
+    mockQuery.mockResolvedValue({ points: mockResponse });
 
     // RFA feature queries for related documents
     const result = await service.search('shared-proj', mockEmbedding, 5);
@@ -164,7 +159,7 @@ describe('Cross-Spec: QdrantService Isolation', () => {
     expect(result[0].payload.project_public_id).toBe('shared-proj');
 
     // Assert: Filter was applied
-    expect(mockSearch).toHaveBeenCalledWith(
+    expect(mockQuery).toHaveBeenCalledWith(
       'lcbp3_vectors',
       expect.objectContaining({
         filter: {

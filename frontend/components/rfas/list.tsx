@@ -9,6 +9,8 @@ import { Eye, Edit, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { DocumentRowActions } from '@/components/documents/document-row-actions';
+import { getDocumentActionConfig } from '@/components/documents/document-action-strategy';
 
 interface RFAListProps {
   data: RFA[];
@@ -105,6 +107,12 @@ export function RFAList({ data }: RFAListProps) {
                 <Edit className="h-4 w-4" />
               </Button>
             </Link>
+            <DocumentRowActions
+              config={getDocumentActionConfig('RFA')}
+              onCancel={() => {/* TODO: open cancel dialog */}}
+              onHardDelete={() => {/* TODO: open hard-delete dialog */}}
+              onMetadataEdit={() => {/* TODO: open metadata edit dialog */}}
+            />
           </div>
         );
       },

@@ -1254,4 +1254,70 @@ export class RfaService {
       await queryRunner.release();
     }
   }
+
+  /**
+   * Metadata Patch — แก้ไข metadata fields บน RFA (Feature 253 — T057)
+   * Tier 1: subject, description, remarks | Tier 2: rfaTypeId | Tier 3: rfaNumber
+   */
+  async patchMetadata(
+    publicId: string,
+    patch: Record<string, string | number | boolean | null>,
+    expectedVersion: number,
+    _user: User
+  ) {
+    const rfa = await this.findOneByUuidRaw(publicId);
+
+    if (rfa.version !== expectedVersion) {
+      throw new ValidationException(
+        `Version mismatch — expected ${expectedVersion}, got ${rfa.version}`
+      );
+    }
+
+    const tier1Fields = ['subject', 'description', 'remarks'];
+    const tier2Fields = ['rfaTypeId'];
+    const tier3Fields = ['rfaNumber'];
+
+    const invalidFields = Object.keys(patch).filter(
+      (key) =>
+        !tier1Fields.includes(key) &&
+        !tier2Fields.includes(key) &&
+        !tier3Fields.includes(key)
+    );
+    if (invalidFields.length > 0) {
+      throw new ValidationException(
+        `Invalid fields: ${invalidFields.join(', ')}`
+      );
+    }
+    const tier3Changes = tier3Fields.filter((f) => patch[f] !== undefined);
+    if (tier3Changes.length > 0) {
+      throw new ValidationException(
+        `Cannot modify restricted fields: ${tier3Changes.join(', ')}`
+      );
+    }
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const tier1Patch: Record<string, string | number | boolean | null> = {};
+      for (const key of tier1Fields) {
+        if (patch[key] !== undefined) tier1Patch[key] = patch[key];
+      }
+      if (Object.keys(tier1Patch).length > 0) {
+        await queryRunner.manager.update(Rfa, rfa.id, tier1Patch);
+      }
+      await queryRunner.manager.increment(Rfa, { id: rfa.id }, 'version', 1);
+      await queryRunner.commitTransaction();
+      return {
+        message: 'Metadata updated successfully',
+        newVersion: expectedVersion + 1,
+      };
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
+  }
 }

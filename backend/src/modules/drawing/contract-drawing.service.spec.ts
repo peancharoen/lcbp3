@@ -6,6 +6,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { DataSource, Brackets } from 'typeorm';
 import { NotFoundException, ConflictException } from '@nestjs/common';
+import { ValidationException } from '../../common/exceptions';
 import { ContractDrawingService } from './contract-drawing.service';
 import { ContractDrawing } from './entities/contract-drawing.entity';
 import { Attachment } from '../../common/file-storage/entities/attachment.entity';
@@ -360,6 +361,87 @@ describe('ContractDrawingService', () => {
         expect.objectContaining({ updatedBy: 42 })
       );
       expect(mockDrawingRepo.softRemove).toHaveBeenCalledWith(drawing);
+    });
+
+    // Feature 253 — T034: soft-delete ต้องเก็บ deleteReason
+    it('ควรบันทึก deleteReason ก่อน soft remove (Feature 253)', async () => {
+      const drawing = { id: 1, updatedBy: 0 };
+      mockDrawingRepo.findOne.mockResolvedValue(drawing);
+      mockDrawingRepo.save.mockResolvedValue(drawing);
+      mockDrawingRepo.softRemove.mockResolvedValue(drawing);
+
+      await service.remove(1, mockUser as User, 'Superseded by new revision');
+
+      expect(mockDrawingRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          updatedBy: 42,
+          deleteReason: 'Superseded by new revision',
+        })
+      );
+      expect(mockDrawingRepo.softRemove).toHaveBeenCalledWith(drawing);
+    });
+  });
+
+  describe('patchMetadata (Feature 253 — T053)', () => {
+    const setupPatch = (version = 0) => {
+      mockDrawingRepo.findOne.mockResolvedValue({
+        id: 5,
+        publicId: 'dwg-uuid-1',
+        version,
+      });
+      mockManager.update = jest.fn().mockResolvedValue({ affected: 1 });
+      mockManager.increment = jest.fn().mockResolvedValue(undefined);
+    };
+
+    it('ควร patch tier1 fields (title) และ increment version', async () => {
+      setupPatch(0);
+
+      const result = await service.patchMetadata(
+        'dwg-uuid-1',
+        { title: 'New Title' },
+        0,
+        mockUser as User
+      );
+
+      expect(mockManager.update).toHaveBeenCalledWith(ContractDrawing, 5, {
+        title: 'New Title',
+      });
+      expect(mockManager.increment).toHaveBeenCalledWith(
+        ContractDrawing,
+        { id: 5 },
+        'version',
+        1
+      );
+      expect(result.newVersion).toBe(1);
+    });
+
+    it('ควร throw เมื่อ version mismatch (optimistic lock)', async () => {
+      setupPatch(7);
+
+      await expect(
+        service.patchMetadata('dwg-uuid-1', { title: 'x' }, 0, mockUser as User)
+      ).rejects.toThrow(ValidationException);
+    });
+
+    it('ควร reject tier3 field contractDrawingNo', async () => {
+      setupPatch(0);
+
+      await expect(
+        service.patchMetadata(
+          'dwg-uuid-1',
+          { contractDrawingNo: 'HACK-001' },
+          0,
+          mockUser as User
+        )
+      ).rejects.toThrow();
+    });
+
+    it('ควร reject unknown fields', async () => {
+      setupPatch(0);
+
+      await expect(
+        service.patchMetadata('dwg-uuid-1', { bogus: 'x' }, 0, mockUser as User)
+      ).rejects.toThrow();
     });
   });
 });

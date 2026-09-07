@@ -48,7 +48,7 @@ describe('ServerDataTable', () => {
         isLoading={true}
       />
     );
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    expect(screen.getByText('กำลังโหลด...')).toBeInTheDocument();
   });
 
   it('renders empty state', () => {
@@ -64,7 +64,7 @@ describe('ServerDataTable', () => {
         isLoading={false}
       />
     );
-    expect(screen.getByText('No results.')).toBeInTheDocument();
+    expect(screen.getByText('ไม่พบข้อมูล')).toBeInTheDocument();
   });
 
   it('renders data rows', () => {
@@ -80,10 +80,10 @@ describe('ServerDataTable', () => {
         isLoading={false}
       />
     );
-    
+
     expect(screen.getByText('Item 1')).toBeInTheDocument();
     expect(screen.getByText('Item 2')).toBeInTheDocument();
-    expect(screen.getByText('Page 1 of 1')).toBeInTheDocument();
+    expect(screen.getByText('หน้า 1 จาก 1')).toBeInTheDocument();
   });
 
   it('handles pagination controls', async () => {
@@ -101,12 +101,12 @@ describe('ServerDataTable', () => {
       />
     );
 
-    expect(screen.getByText('Page 2 of 3')).toBeInTheDocument();
+    expect(screen.getByText('หน้า 2 จาก 3')).toBeInTheDocument();
 
-    const nextButton = screen.getByRole('button', { name: /Go to next page/i });
-    const prevButton = screen.getByRole('button', { name: /Go to previous page/i });
-    const firstButton = screen.getByRole('button', { name: /Go to first page/i });
-    const lastButton = screen.getByRole('button', { name: /Go to last page/i });
+    const nextButton = screen.getByRole('button', { name: /ไปหน้าถัดไป/i });
+    const prevButton = screen.getByRole('button', { name: /ไปหน้าก่อนหน้า/i });
+    const firstButton = screen.getByRole('button', { name: /ไปหน้าแรก/i });
+    const lastButton = screen.getByRole('button', { name: /ไปหน้าสุดท้าย/i });
 
     expect(nextButton).not.toBeDisabled();
     expect(prevButton).not.toBeDisabled();
@@ -116,7 +116,7 @@ describe('ServerDataTable', () => {
 
     await user.click(prevButton);
     expect(onPaginationChange).toHaveBeenCalledTimes(2);
-    
+
     await user.click(firstButton);
     expect(onPaginationChange).toHaveBeenCalledTimes(3);
 
@@ -142,7 +142,7 @@ describe('ServerDataTable', () => {
     // The SelectTrigger for page size has placeholder or value. We can find it by role 'combobox'
     const selectTrigger = screen.getByRole('combobox');
     await user.click(selectTrigger);
-    
+
     // Select option 20
     const option20 = screen.getByRole('option', { name: '20' });
     await user.click(option20);

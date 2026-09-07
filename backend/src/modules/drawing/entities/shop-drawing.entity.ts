@@ -8,6 +8,7 @@ import {
   OneToMany,
   ManyToOne,
   JoinColumn,
+  VersionColumn,
 } from 'typeorm';
 import { ShopDrawingRevision } from './shop-drawing-revision.entity';
 import { Project } from '../../project/entities/project.entity';
@@ -40,8 +41,19 @@ export class ShopDrawing extends UuidBaseEntity {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt!: Date; // เติม !
 
+  @VersionColumn({ name: 'version', default: 0 })
+  version!: number;
+
   @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt?: Date; // nullable
+
+  @Column({
+    name: 'delete_reason',
+    type: 'varchar',
+    length: 500,
+    nullable: true,
+  })
+  deleteReason?: string;
 
   @Column({ name: 'updated_by', nullable: true })
   updatedBy?: number; // nullable

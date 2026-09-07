@@ -1,3 +1,7 @@
+// File: src/modules/correspondence/correspondence.controller.ts
+// Change Log:
+// - 2026-09-07: FR-007 hard-delete ใช้ได้เฉพาะ Superadmin (system.manage_all)
+
 import {
   Controller,
   Get,
@@ -10,9 +14,11 @@ import {
   Query,
   Delete,
   Put,
+  Patch,
   ParseIntPipe,
   Res,
   HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import {
@@ -20,6 +26,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiParam,
 } from '@nestjs/swagger';
 import { CorrespondenceService } from './correspondence.service';
 import { CorrespondenceWorkflowService } from './correspondence-workflow.service';
@@ -31,6 +38,8 @@ import { AddReferenceDto } from './dto/add-reference.dto';
 import { SearchCorrespondenceDto } from './dto/search-correspondence.dto';
 import { CancelCorrespondenceDto } from './dto/cancel-correspondence.dto';
 import { BulkCancelDto } from './dto/bulk-cancel.dto';
+import { DocumentActionResponseDto } from '../../common/dto/document-action-response.dto';
+import { MetadataPatchRequestDto } from '../../common/dto/metadata-patch.dto';
 
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../common/guards/rbac.guard';
@@ -291,11 +300,110 @@ export class CorrespondenceController {
     @Body() cancelDto: CancelCorrespondenceDto,
     @Request() req: RequestWithUser
   ) {
-    return this.correspondenceService.cancel(uuid, cancelDto.reason, req.user);
+    return this.correspondenceService.cancel(
+      uuid,
+      cancelDto.reason,
+      req.user,
+      cancelDto.expectedVersion
+    );
   }
 
   /**
-   * Hard-delete correspondence แบบถาวร — Superadmin เท่านั้น
+   * POST /correspondences/:uuid/cancel — Unified cancel endpoint (Feature 253)
+   * Returns DocumentActionResponse with side-effects info
+   */
+  @Post(':uuid/cancel')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Cancel correspondence (Unified CRUD — Feature 253)',
+  })
+  @ApiParam({ name: 'uuid', description: 'Correspondence publicId' })
+  @ApiResponse({
+    status: 200,
+    description: 'Correspondence cancelled',
+    type: DocumentActionResponseDto,
+  })
+  @RequirePermission('correspondence.cancel')
+  @Audit('correspondence.cancel', 'correspondence')
+  @UseInterceptors(IdempotencyInterceptor)
+  async cancelUnified(
+    @Param('uuid', ParseUuidPipe) uuid: string,
+    @Body() cancelDto: CancelCorrespondenceDto,
+    @Request() req: RequestWithUser
+  ): Promise<DocumentActionResponseDto> {
+    await this.correspondenceService.cancel(
+      uuid,
+      cancelDto.reason,
+      req.user,
+      cancelDto.expectedVersion
+    );
+    return {
+      success: true,
+      publicId: uuid,
+      action: 'CANCEL',
+      sideEffects: {
+        searchReindexed: false,
+        notificationsSent: 0,
+        workflowTerminated: false,
+        circulationsClosed: 0,
+        vectorsDeleted: 'SKIPPED',
+        filesDeleted: 0,
+      },
+      failedSideEffects: [],
+      // auditId: AuditLogInterceptor สร้าง audit entry แบบ async (post-response tap)
+      // ไม่สามารถ inject auditId กลับเข้า response ได้ในรอบนี้ — ใช้ @Audit() decorator เป็นหลัก
+      auditId: undefined,
+    };
+  }
+
+  /**
+   * PATCH /correspondences/:uuid/metadata — Unified metadata patch (Feature 253)
+   * Tier 1/2/3 field validation + optimistic lock + before/after diff
+   */
+  @Patch(':uuid/metadata')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Patch metadata (Unified CRUD — Feature 253)' })
+  @ApiParam({ name: 'uuid', description: 'Correspondence publicId' })
+  @ApiResponse({
+    status: 200,
+    description: 'Metadata updated',
+    type: DocumentActionResponseDto,
+  })
+  @RequirePermission('correspondence.edit')
+  @Audit('correspondence.metadata_patch', 'correspondence')
+  @UseInterceptors(IdempotencyInterceptor)
+  async patchMetadata(
+    @Param('uuid', ParseUuidPipe) uuid: string,
+    @Body() dto: MetadataPatchRequestDto,
+    @Request() req: RequestWithUser
+  ): Promise<DocumentActionResponseDto> {
+    const result = await this.correspondenceService.patchMetadata(
+      uuid,
+      dto.patch,
+      dto.version,
+      req.user
+    );
+    return {
+      success: true,
+      publicId: uuid,
+      action: 'METADATA_PATCH',
+      newVersion: result.newVersion,
+      sideEffects: {
+        searchReindexed: false,
+        notificationsSent: 0,
+        workflowTerminated: false,
+        circulationsClosed: 0,
+        vectorsDeleted: 'SKIPPED',
+        filesDeleted: 0,
+      },
+      failedSideEffects: [],
+      // auditId จาก audit log ที่ service สร้างพร้อม before/after diff
+      auditId: result.auditId,
+    };
+  }
+
+  /**
+   * Hard-delete แบบถาวร — Superadmin เท่านั้น
    * ลบ physical files + DB records + Qdrant vectors (full cascade)
    * ใช้สำหรับ cleanup test/migrated data ที่ไม่สามารถ cancel ได้
    */

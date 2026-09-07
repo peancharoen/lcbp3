@@ -7,6 +7,7 @@ import { CorrespondenceType } from '../correspondence/entities/correspondence-ty
 import { CorrespondenceStatus } from '../correspondence/entities/correspondence-status.entity';
 import { CorrespondenceRevision } from '../correspondence/entities/correspondence-revision.entity';
 import { TransmittalService } from './transmittal.service';
+import { TransmittalActionStrategy } from './strategies/transmittal-action.strategy';
 import { TransmittalController } from './transmittal.controller';
 import { DocumentNumberingModule } from '../document-numbering/document-numbering.module';
 import { ProjectModule } from '../project/project.module';
@@ -31,7 +32,7 @@ import { WorkflowEngineModule } from '../workflow-engine/workflow-engine.module'
     WorkflowEngineModule,
   ],
   controllers: [TransmittalController],
-  providers: [TransmittalService],
-  exports: [TransmittalService],
+  providers: [TransmittalService, TransmittalActionStrategy],
+  exports: [TransmittalService, TransmittalActionStrategy],
 })
 export class TransmittalModule {}

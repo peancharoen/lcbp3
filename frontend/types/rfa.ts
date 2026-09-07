@@ -32,6 +32,7 @@ export interface RFA {
   rfaTypeId: number;
   createdBy: number;
   disciplineId?: number;
+  version?: number; // Feature 253: optimistic locking
   revisions: {
     id: number;
     revisionNumber: number;

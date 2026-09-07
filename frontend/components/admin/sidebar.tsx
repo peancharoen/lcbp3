@@ -84,6 +84,7 @@ export const menuItems: MenuItem[] = [
       { href: '/admin/monitoring/sessions', label: 'เซสชันที่ใช้งาน' },
       { href: '/admin/migration', label: 'คิวนำเข้าข้อมูล' },
       { href: '/admin/migration/errors', label: 'บันทึกข้อผิดพลาด' },
+      { href: '/admin/doc-control/maintenance', label: 'บำรุงรักษาระบบ' },
     ],
   },
   {

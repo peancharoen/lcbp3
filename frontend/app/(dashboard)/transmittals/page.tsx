@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { TransmittalList } from '@/components/transmittal/transmittal-list';
 import { transmittalService } from '@/lib/services/transmittal.service';
@@ -11,6 +11,11 @@ import { Plus, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { TransmittalListResponse } from '@/types/transmittal';
 import { TransmittalPurpose } from '@/types/dto/transmittal/transmittal.dto';
+import { BulkActionBar } from '@/components/documents/bulk-action-bar';
+import { useBulkActions } from '@/hooks/use-bulk-actions';
+import { DocumentCancelDialog } from '@/components/documents/document-cancel-dialog';
+import { BulkTagDialog } from '@/components/documents/bulk-tag-dialog';
+import { getDocumentActionConfig } from '@/components/documents/document-action-strategy';
 
 const PURPOSE_OPTIONS: { value: TransmittalPurpose | ''; label: string }[] = [
   { value: '', label: 'All Purposes' },
@@ -24,6 +29,9 @@ export default function TransmittalPage() {
   // ADR-019: Dynamic project selection via UUID
   const [selectedProjectUuid, setSelectedProjectUuid] = useState<string>('');
   const [selectedPurpose, setSelectedPurpose] = useState<TransmittalPurpose | ''>('');
+  const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showTagDialog, setShowTagDialog] = useState(false);
 
   const { data: projectsData } = useQuery({
     queryKey: ['projects-for-transmittals'],
@@ -39,6 +47,16 @@ export default function TransmittalPage() {
         ...(selectedPurpose ? { purpose: selectedPurpose } : {}),
       }),
     enabled: !!selectedProjectUuid,
+  });
+
+  const selectedIds = useMemo(
+    () => Object.keys(rowSelection).filter((key) => rowSelection[key]),
+    [rowSelection]
+  );
+
+  const { bulkCancel, bulkTag, bulkExport, isBulkCancelling } = useBulkActions({
+    documentType: 'TRANSMITTAL',
+    onComplete: () => setRowSelection({}),
   });
 
   return (
@@ -106,8 +124,48 @@ export default function TransmittalPage() {
           <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <TransmittalList data={data?.data || []} />
+        <TransmittalList
+          data={data?.data || []}
+          rowSelection={rowSelection}
+          onRowSelectionChange={setRowSelection}
+        />
       )}
+
+      <BulkActionBar
+        selectedCount={selectedIds.length}
+        onBulkCancel={() => setShowCancelDialog(true)}
+        onBulkTag={() => setShowTagDialog(true)}
+        onBulkExport={() =>
+          bulkExport({
+            publicIds: selectedIds,
+            format: 'CSV',
+            columns: ['publicId', 'transmittalNo', 'purpose'],
+          })
+        }
+        onClear={() => setRowSelection({})}
+        isLoading={isBulkCancelling}
+      />
+
+      <DocumentCancelDialog
+        open={showCancelDialog}
+        onOpenChange={setShowCancelDialog}
+        config={getDocumentActionConfig('TRANSMITTAL')}
+        documentLabel={`${selectedIds.length} transmittal(s)`}
+        isLoading={isBulkCancelling}
+        onConfirm={(reason) => {
+          bulkCancel({ publicIds: selectedIds, reason });
+          setShowCancelDialog(false);
+        }}
+      />
+
+      <BulkTagDialog
+        open={showTagDialog}
+        onOpenChange={setShowTagDialog}
+        selectedCount={selectedIds.length}
+        onConfirm={(addTags, removeTags) => {
+          bulkTag({ publicIds: selectedIds, addTags, removeTags });
+        }}
+      />
     </section>
   );
 }

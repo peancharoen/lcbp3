@@ -16,14 +16,24 @@ interface DrawingListProps {
   type: 'CONTRACT' | 'SHOP' | 'AS_BUILT';
   projectUuid: string;
   filters?: Partial<DrawingSearchParams>;
+  onSelectionChange?: (selectedIds: string[]) => void;
 }
 
-export function DrawingList({ type, projectUuid, filters }: DrawingListProps) {
+export function DrawingList({ type, projectUuid, filters, onSelectionChange }: DrawingListProps) {
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 20,
   });
   const [sorting, setSorting] = useState<SortingState>([]);
+  const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
+
+  const handleRowSelectionChange = (value: Record<string, boolean>) => {
+    setRowSelection(value);
+    if (onSelectionChange) {
+      const selected = Object.keys(value).filter((k) => value[k]);
+      onSelectionChange(selected);
+    }
+  };
 
   const {
     data: response,
@@ -66,6 +76,10 @@ export function DrawingList({ type, projectUuid, filters }: DrawingListProps) {
         sorting={sorting}
         onSortingChange={setSorting}
         isLoading={isLoading}
+        enableRowSelection
+        rowSelection={rowSelection}
+        onRowSelectionChange={handleRowSelectionChange}
+        getRowId={(row) => row.publicId ?? ''}
       />
     </div>
   );

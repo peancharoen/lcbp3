@@ -7,10 +7,16 @@ import { useCorrespondences } from '@/hooks/use-correspondence';
 import { useCorrespondenceTypes } from '@/hooks/use-master-data';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Loader2, Search, X, Download } from 'lucide-react';
+import { BulkActionBar } from '@/components/documents/bulk-action-bar';
+import { useBulkActions } from '@/hooks/use-bulk-actions';
+import { DocumentCancelDialog } from '@/components/documents/document-cancel-dialog';
+import { BulkTagDialog } from '@/components/documents/bulk-tag-dialog';
+import { BulkResultDialog } from '@/components/documents/bulk-result-dialog';
+import { getDocumentActionConfig } from '@/components/documents/document-action-strategy';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import apiClient from '@/lib/api/client';
 import { CorrespondenceType } from '@/types/master-data';
 
@@ -52,6 +58,15 @@ export function CorrespondencesContent() {
 
   const [searchInput, setSearchInput] = useState(search || '');
   const [exporting, setExporting] = useState(false);
+  const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showTagDialog, setShowTagDialog] = useState(false);
+  const [bulkResult, setBulkResult] = useState<{ open: boolean; total: number; success: number; failed: number; failedItems?: string[] }>({
+    open: false,
+    total: 0,
+    success: 0,
+    failed: 0,
+  });
 
   const { data: correspondenceTypesData, isLoading: isLoadingTypeOptions } =
     useCorrespondenceTypes();
@@ -100,6 +115,25 @@ export function CorrespondencesContent() {
     limit: 10,
   }, {
     enabled: !shouldWaitForTypeResolution,
+  });
+
+  const selectedIds = useMemo(
+    () => Object.keys(rowSelection).filter((key) => rowSelection[key]),
+    [rowSelection]
+  );
+
+  const { bulkCancel, bulkTag, bulkExport, isBulkCancelling } = useBulkActions({
+    documentType: 'CORRESPONDENCE',
+    onComplete: (_bulkId, results) => {
+      setRowSelection({});
+      setBulkResult({
+        open: true,
+        total: results.total,
+        success: results.completed,
+        failed: results.failed,
+        failedItems: results.failedItems,
+      });
+    },
   });
 
   const buildUrl = useCallback((updates: Record<string, string>) => {
@@ -240,7 +274,11 @@ export function CorrespondencesContent() {
         <CorrespondenceUxFlowDialog />
       </div>
 
-      <CorrespondenceList data={data?.data || []} />
+      <CorrespondenceList
+        data={data?.data || []}
+        rowSelection={rowSelection}
+        onRowSelectionChange={setRowSelection}
+      />
       <div className="mt-4">
         <Pagination
           currentPage={data?.meta?.page || 1}
@@ -248,6 +286,52 @@ export function CorrespondencesContent() {
           total={data?.meta?.total || 0}
         />
       </div>
+
+      <BulkActionBar
+        selectedCount={selectedIds.length}
+        onBulkCancel={() => setShowCancelDialog(true)}
+        onBulkTag={() => setShowTagDialog(true)}
+        onBulkExport={() =>
+          bulkExport({
+            publicIds: selectedIds,
+            format: 'CSV',
+            columns: ['publicId', 'correspondenceNumber', 'subject'],
+          })
+        }
+        onClear={() => setRowSelection({})}
+        isLoading={isBulkCancelling}
+      />
+
+      <DocumentCancelDialog
+        open={showCancelDialog}
+        onOpenChange={setShowCancelDialog}
+        config={getDocumentActionConfig('CORRESPONDENCE')}
+        documentLabel={`${selectedIds.length} document(s)`}
+        isLoading={isBulkCancelling}
+        onConfirm={(reason) => {
+          bulkCancel({ publicIds: selectedIds, reason });
+          setShowCancelDialog(false);
+        }}
+      />
+
+      <BulkTagDialog
+        open={showTagDialog}
+        onOpenChange={setShowTagDialog}
+        selectedCount={selectedIds.length}
+        isLoading={false}
+        onConfirm={(addTags, removeTags) => {
+          bulkTag({ publicIds: selectedIds, addTags, removeTags });
+        }}
+      />
+
+      <BulkResultDialog
+        open={bulkResult.open}
+        onOpenChange={(open) => setBulkResult((prev) => ({ ...prev, open }))}
+        total={bulkResult.total}
+        success={bulkResult.success}
+        failed={bulkResult.failed}
+        failedItems={bulkResult.failedItems}
+      />
     </>
   );
 }

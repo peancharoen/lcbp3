@@ -7,9 +7,21 @@ import { WorkflowLifecycle } from '@/components/workflow/workflow-lifecycle';
 import { FilePreviewModal } from '@/components/common/file-preview-modal';
 import { WorkflowErrorBoundary } from '@/components/common/workflow-error-boundary';
 import { useCorrespondence, useWorkflowHistory } from '@/hooks/use-correspondence';
-import { Loader2 } from 'lucide-react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { Loader2, Pencil, FileEdit } from 'lucide-react';
+import Link from 'next/link';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import {
+  DocumentMetadataEditDialog,
+  type MetadataField,
+} from '@/components/documents/document-metadata-edit-dialog';
+import { DocumentHardDeleteDialog } from '@/components/documents/document-hard-delete-dialog';
+import { DocumentCancelDialog } from '@/components/documents/document-cancel-dialog';
+import { getDocumentActionConfig } from '@/components/documents/document-action-strategy';
+import { useDocumentActions } from '@/hooks/use-document-actions';
+import { useAuthStore } from '@/lib/stores/auth-store';
+import { useTranslations } from '@/hooks/use-translations';
 import type { Correspondence } from '@/types/correspondence';
 import type { WorkflowAttachmentSummary } from '@/types/workflow';
 
@@ -36,6 +48,24 @@ export default function CorrespondenceDetailPage() {
   const [unavailableIds, setUnavailableIds] = useState<string[]>([]);
   const handleUnavailable = (publicId: string) =>
     setUnavailableIds((prev) => [...new Set([...prev, publicId])]);
+
+  // Feature 253 T061: Metadata Edit Dialog (DC edit metadata after submit)
+  const [showMetaEdit, setShowMetaEdit] = useState(false);
+  const [showCancel, setShowCancel] = useState(false);
+  const t = useTranslations();
+  const router = useRouter();
+  const hasPermission = useAuthStore((s) => s.hasPermission);
+  const corrActionConfig = getDocumentActionConfig('CORRESPONDENCE');
+  const { metadataPatch, isPatching, hardDelete, isHardDeleting, cancel, isCancelling } = useDocumentActions({
+    config: corrActionConfig,
+    onSuccess: (action) => {
+      if (action === 'hardDelete') router.push('/correspondences');
+    },
+  });
+  // Feature 253 T073: Hard-Delete Dialog (Superadmin only)
+  const [showHardDelete, setShowHardDelete] = useState(false);
+  const canHardDelete = hasPermission('system.manage_all') || hasPermission('correspondence.delete');
+  const canCancel = hasPermission('correspondence.cancel') || hasPermission('document.cancel') || hasPermission('system.manage_all');
 
   if (!uuid) {
     return (
@@ -68,6 +98,15 @@ export default function CorrespondenceDetailPage() {
   const subject = currentRevision?.subject ?? '';
   const status = currentRevision?.status?.statusCode ?? '';
 
+  // Feature 253: metadata fields สำหรับ Edit Dialog (Tier 1 แก้ได้ทันที)
+  const canEditMetadata = hasPermission('correspondence.edit') && status !== 'CANCELLED';
+  const canEditContent = hasPermission('correspondence.edit') && status === 'DRAFT';
+  const metaFields: MetadataField[] = [
+    { key: 'subject', label: 'Subject', value: currentRevision?.subject ?? '', tier: 1 },
+    { key: 'description', label: 'Description', value: currentRevision?.description ?? '', tier: 1 },
+    { key: 'remarks', label: 'Remarks', value: currentRevision?.remarks ?? '', tier: 1 },
+  ];
+
   return (
     <div className="space-y-4">
       {/* ADR-021: Integrated Banner — เลขเอกสาร + สถานะ + ปุ่ม Action */}
@@ -81,6 +120,40 @@ export default function CorrespondenceDetailPage() {
         instanceId={corrData!.workflowInstanceId}
         pendingAttachmentIds={pendingAttachmentIds}
       />
+
+      {/* Feature 253: Edit Content (DRAFT) / Edit Metadata (DC, non-CANCELLED) + Cancel + Hard-Delete */}
+      {(canEditContent || canEditMetadata || canHardDelete || canCancel) && (
+        <div className="flex justify-end gap-2">
+          {canCancel && (
+            <Button variant="outline" size="sm" onClick={() => setShowCancel(true)}>
+              {t('document.action.cancel')}
+            </Button>
+          )}
+          {canEditContent && (
+            <Link href={`/correspondences/${uuid}/edit?revId=${currentRevision?.publicId ?? ''}`}>
+              <Button variant="outline" size="sm">
+                <FileEdit className="mr-2 h-4 w-4" />
+                {t('document.action.editContent')}
+              </Button>
+            </Link>
+          )}
+          {canEditMetadata && (
+            <Button variant="outline" size="sm" onClick={() => setShowMetaEdit(true)}>
+              <Pencil className="mr-2 h-4 w-4" />
+              {t('document.action.editMetadata')}
+            </Button>
+          )}
+          {canHardDelete && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setShowHardDelete(true)}
+            >
+              {t('document.action.hardDelete')}
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Tabs — Details / Workflow (WorkflowLifecycle ถูกเพิ่มใน T020) */}
       <Tabs defaultValue="details">
@@ -105,6 +178,40 @@ export default function CorrespondenceDetailPage() {
           </WorkflowErrorBoundary>
         </TabsContent>
       </Tabs>
+
+      {/* Feature 253 T073: Hard-Delete Dialog */}
+      <DocumentHardDeleteDialog
+        open={showHardDelete}
+        onOpenChange={setShowHardDelete}
+        config={corrActionConfig}
+        documentLabel={docNo}
+        isLoading={isHardDeleting}
+        onConfirm={() => hardDelete({ publicId: uuid })}
+      />
+
+      {/* Feature 253 T115: Cancel Dialog */}
+      <DocumentCancelDialog
+        open={showCancel}
+        onOpenChange={setShowCancel}
+        config={corrActionConfig}
+        documentLabel={docNo}
+        isLoading={isCancelling}
+        onConfirm={(reason) => cancel({ publicId: uuid, reason })}
+      />
+
+      {/* Feature 253 T061: Metadata Edit Dialog */}
+      <DocumentMetadataEditDialog
+        open={showMetaEdit}
+        onOpenChange={setShowMetaEdit}
+        config={corrActionConfig}
+        documentLabel={docNo}
+        currentVersion={corrData!.version ?? 0}
+        fields={metaFields}
+        isLoading={isPatching}
+        onConfirm={(patch, version) =>
+          metadataPatch({ publicId: uuid, patch, version })
+        }
+      />
 
       {/* ADR-021 US4: File Preview Modal */}
       <WorkflowErrorBoundary fallback={null}>

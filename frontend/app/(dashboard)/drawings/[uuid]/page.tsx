@@ -18,8 +18,17 @@ import { contractDrawingService } from '@/lib/services/contract-drawing.service'
 import { shopDrawingService } from '@/lib/services/shop-drawing.service';
 import { asBuiltDrawingService } from '@/lib/services/asbuilt-drawing.service';
 import { useUpdateContractDrawing, useUploadRevision } from '@/hooks/use-drawing';
+import { useTranslations } from '@/hooks/use-translations';
 import { AiChatToggle } from '@/components/ai/ai-chat-toggle';
 import { AiChatPanel } from '@/components/ai/ai-chat-panel';
+import {
+  DocumentMetadataEditDialog,
+  type MetadataField,
+} from '@/components/documents/document-metadata-edit-dialog';
+import { DocumentHardDeleteDialog } from '@/components/documents/document-hard-delete-dialog';
+import { getDocumentActionConfig } from '@/components/documents/document-action-strategy';
+import { useDocumentActions } from '@/hooks/use-document-actions';
+import { useAuthStore } from '@/lib/stores/auth-store';
 
 type DrawingType = 'CONTRACT' | 'SHOP' | 'AS_BUILT';
 
@@ -29,9 +38,11 @@ interface FetchedDrawing {
   contractDrawingNo?: string;
   drawingNumber?: string;
   title?: string;
+  description?: string; // Feature 253: metadata patch field
   volumePage?: number;
   createdAt?: string;
   updatedAt?: string;
+  version?: number; // Feature 253: optimistic locking
   currentRevision?: { title?: string; revisionNumber?: string; legacyDrawingNumber?: string };
   revisions?: {
     revisionId?: number;
@@ -81,6 +92,19 @@ export default function DrawingDetailPage({ params }: { params: Promise<{ uuid: 
   const isEditMode = searchParams.get('edit') === 'true';
   const isUploadMode = searchParams.get('upload') === 'true';
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const t = useTranslations();
+  // Feature 253 T064: Metadata Edit Dialog (Contract Drawing only — endpoint อยู่ที่ drawings/contract)
+  const [showMetaEdit, setShowMetaEdit] = useState(false);
+  const hasPermission = useAuthStore((s) => s.hasPermission);
+  const drawingActionConfig = getDocumentActionConfig('DRAWING');
+  const { metadataPatch, isPatching, hardDelete, isHardDeleting } = useDocumentActions({
+    config: drawingActionConfig,
+    onSuccess: (action) => {
+      if (action === 'hardDelete') router.push('/drawings');
+    },
+  });
+  // Feature 253 T073: Hard-Delete Dialog (Superadmin / drawing.delete — Contract Drawing only)
+  const [showHardDelete, setShowHardDelete] = useState(false);
 
   const { data: drawing, isLoading } = useQuery({
     queryKey: ['drawing-detail', uuid],
@@ -122,6 +146,16 @@ export default function DrawingDetailPage({ params }: { params: Promise<{ uuid: 
   const title = drawing.title || drawing.currentRevision?.title || 'Untitled';
   const revisions = drawing.revisions || [];
 
+  // Feature 253: metadata fields — Contract Drawing เท่านั้นที่มี endpoint
+  const canEditMetadata = hasPermission('drawing.edit') && drawing._type === 'CONTRACT';
+  const canHardDelete =
+    (hasPermission('system.manage_all') || hasPermission('drawing.delete')) &&
+    drawing._type === 'CONTRACT';
+  const metaFields: MetadataField[] = [
+    { key: 'title', label: 'Title', value: drawing.title ?? '', tier: 1 },
+    { key: 'description', label: 'Description', value: drawing.description ?? '', tier: 1 },
+  ];
+
   return (
     <div className={`relative transition-all duration-300 ${isChatOpen ? 'lg:pr-[400px]' : ''}`}>
       <div className="space-y-6">
@@ -145,20 +179,31 @@ export default function DrawingDetailPage({ params }: { params: Promise<{ uuid: 
               <Button variant="outline" asChild>
                 <Link href={`/drawings/${uuid}?edit=true`}>
                   <Pencil className="mr-2 h-4 w-4" />
-                  Edit Detail
+                  {t('document.action.editContent')}
                 </Link>
               </Button>
               {drawing._type !== 'CONTRACT' && (
                 <Button variant="outline" asChild>
                   <Link href={`/drawings/${uuid}?upload=true`}>
                     <Upload className="mr-2 h-4 w-4" />
-                    Upload Revision
+                    {t('drawing.action.uploadRevision')}
                   </Link>
+                </Button>
+              )}
+              {canEditMetadata && (
+                <Button variant="outline" onClick={() => setShowMetaEdit(true)}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  {t('document.action.editMetadata')}
+                </Button>
+              )}
+              {canHardDelete && (
+                <Button variant="destructive" onClick={() => setShowHardDelete(true)}>
+                  {t('document.action.hardDelete')}
                 </Button>
               )}
               <Button variant="outline">
                 <Download className="mr-2 h-4 w-4" />
-                Download Current
+                {t('drawing.action.downloadCurrent')}
               </Button>
             </>
           )}
@@ -166,7 +211,7 @@ export default function DrawingDetailPage({ params }: { params: Promise<{ uuid: 
             <Button variant="ghost" asChild>
               <Link href={`/drawings/${uuid}`}>
                 <X className="mr-2 h-4 w-4" />
-                Cancel
+                {t('common.cancel')}
               </Link>
             </Button>
           )}
@@ -237,6 +282,29 @@ export default function DrawingDetailPage({ params }: { params: Promise<{ uuid: 
         </div>
       )}
       </div>
+      {/* Feature 253 T073: Hard-Delete Dialog */}
+      <DocumentHardDeleteDialog
+        open={showHardDelete}
+        onOpenChange={setShowHardDelete}
+        config={drawingActionConfig}
+        documentLabel={drawingNumber}
+        isLoading={isHardDeleting}
+        onConfirm={() => hardDelete({ publicId: uuid })}
+      />
+
+      {/* Feature 253 T064: Metadata Edit Dialog (Contract Drawing เท่านั้น) */}
+      <DocumentMetadataEditDialog
+        open={showMetaEdit}
+        onOpenChange={setShowMetaEdit}
+        config={drawingActionConfig}
+        documentLabel={drawingNumber}
+        currentVersion={drawing.version ?? 0}
+        fields={metaFields}
+        isLoading={isPatching}
+        onConfirm={(patch, version) =>
+          metadataPatch({ publicId: uuid, patch, version })
+        }
+      />
       <AiChatToggle isOpen={isChatOpen} onClick={() => setIsChatOpen(!isChatOpen)} />
       <AiChatPanel
         context={{ type: 'drawing', publicId: uuid }}

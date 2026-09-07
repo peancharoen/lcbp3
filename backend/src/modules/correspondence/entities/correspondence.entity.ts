@@ -7,6 +7,7 @@ import {
   OneToMany,
   DeleteDateColumn,
   CreateDateColumn,
+  VersionColumn,
 } from 'typeorm';
 import { Project } from '../../project/entities/project.entity';
 import { Organization } from '../../organization/entities/organization.entity';
@@ -51,6 +52,9 @@ export class Correspondence extends UuidBaseEntity {
 
   @Column({ name: 'created_by', nullable: true })
   createdBy?: number;
+
+  @VersionColumn({ name: 'version', default: 0 })
+  version!: number;
 
   @DeleteDateColumn({ name: 'deleted_at', select: false })
   deletedAt?: Date;

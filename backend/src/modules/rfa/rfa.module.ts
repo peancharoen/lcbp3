@@ -26,6 +26,7 @@ import { RfaWorkflow } from './entities/rfa-workflow.entity';
 // Services & Controllers
 import { RfaController } from './rfa.controller';
 import { RfaService } from './rfa.service';
+import { RfaActionStrategy } from './strategies/rfa-action.strategy';
 
 // External Modules
 import { DocumentNumberingModule } from '../document-numbering/document-numbering.module';
@@ -65,8 +66,8 @@ import { WorkflowEngineModule } from '../workflow-engine/workflow-engine.module'
     WorkflowEngineModule,
     NotificationModule,
   ],
-  providers: [RfaService],
+  providers: [RfaService, RfaActionStrategy],
   controllers: [RfaController],
-  exports: [RfaService],
+  exports: [RfaService, RfaActionStrategy],
 })
 export class RfaModule {}

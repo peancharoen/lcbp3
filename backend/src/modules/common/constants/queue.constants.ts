@@ -31,3 +31,6 @@ export const QUEUE_AI_RAG = 'ai-rag-query';
 
 /** Queue สำหรับลบ vector ใน Qdrant แบบ asynchronous (ADR-023 FR-008) */
 export const QUEUE_AI_VECTOR_DELETION = 'ai-vector-deletion';
+
+/** Queue สำหรับ bulk operations (cancel/tag/export) แบบ durable (Feature 253) */
+export const QUEUE_BULK_OPERATIONS = 'bulk-operations';

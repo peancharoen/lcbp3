@@ -5,6 +5,8 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { createTestQueryClient } from '@/lib/test-utils';
 import { CirculationList } from '../circulation-list';
 import { Circulation, CirculationListResponse } from '@/types/circulation';
 import { ColumnDef } from '@tanstack/react-table';
@@ -90,19 +92,24 @@ const mockResponse: CirculationListResponse = {
   meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
 };
 
+const { wrapper: QueryClientWrapper, queryClient } = createTestQueryClient();
+
+const renderWithClient = (ui: React.ReactNode) =>
+  render(<QueryClientWrapper>{ui}</QueryClientWrapper>);
+
 describe('CirculationList', () => {
   it('ควรเรนเดอร์ DataTable ได้ถูกต้อง', () => {
-    render(<CirculationList data={mockResponse} />);
+    renderWithClient(<CirculationList data={mockResponse} />);
     expect(screen.getByTestId('data-table')).toBeInTheDocument();
   });
 
   it('ควรแสดงจำนวน rows ถูกต้อง', () => {
-    render(<CirculationList data={mockResponse} />);
+    renderWithClient(<CirculationList data={mockResponse} />);
     expect(screen.getByTestId('row-count')).toHaveTextContent('1 rows');
   });
 
   it('ควรแสดงข้อมูล column cells หลักได้ถูกต้อง', () => {
-    render(<CirculationList data={mockResponse} />);
+    renderWithClient(<CirculationList data={mockResponse} />);
     expect(screen.getByText('CIR-2026-001')).toBeInTheDocument();
     expect(screen.getByText('Test Circulation')).toBeInTheDocument();
     expect(screen.getByText('Test Org')).toBeInTheDocument();
@@ -131,7 +138,7 @@ describe('CirculationList', () => {
       ],
       meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
     };
-    render(<CirculationList data={response} />);
+    renderWithClient(<CirculationList data={response} />);
     expect(screen.getByText('DRAFT')).toBeInTheDocument();
     expect(screen.getAllByText('-')).toHaveLength(2);
   });
@@ -163,25 +170,25 @@ describe('CirculationList', () => {
       ],
       meta: { total: 2, page: 1, limit: 20, totalPages: 1 },
     };
-    render(<CirculationList data={response} />);
+    renderWithClient(<CirculationList data={response} />);
     expect(screen.getByText('COMPLETED')).toBeInTheDocument();
     expect(screen.getByText('ARCHIVED')).toBeInTheDocument();
     expect(screen.getByText('1/1')).toBeInTheDocument();
   });
 
   it('ควรแสดง meta total ที่ด้านล่างเมื่อมี meta', () => {
-    render(<CirculationList data={mockResponse} />);
+    renderWithClient(<CirculationList data={mockResponse} />);
     expect(screen.getByText(/Showing 1 of 1 circulations/)).toBeInTheDocument();
   });
 
   it('ควรไม่แสดง meta เมื่อไม่มี meta', () => {
     const noMeta = { data: [] } as CirculationListResponse;
-    render(<CirculationList data={noMeta} />);
+    renderWithClient(<CirculationList data={noMeta} />);
     expect(screen.queryByText(/Showing/)).not.toBeInTheDocument();
   });
 
   it('ควร return null เมื่อ data เป็น null/undefined', () => {
-    const { container } = render(<CirculationList data={null as unknown as CirculationListResponse} />);
+    const { container } = renderWithClient(<CirculationList data={null as unknown as CirculationListResponse} />);
     expect(container).toBeEmptyDOMElement();
   });
 
@@ -190,7 +197,7 @@ describe('CirculationList', () => {
       data: [],
       meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
     };
-    render(<CirculationList data={emptyResponse} />);
+    renderWithClient(<CirculationList data={emptyResponse} />);
     expect(screen.getByTestId('row-count')).toHaveTextContent('0 rows');
     expect(screen.getByText(/Showing 0 of 0 circulations/)).toBeInTheDocument();
   });

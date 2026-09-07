@@ -289,6 +289,25 @@ export class AiQdrantService implements OnModuleInit {
   }
 
   /** ลบเวกเตอร์ของเอกสารด้วย projectPublicId และ documentPublicId */
+  async countByDocumentPublicId(
+    projectPublicId: string,
+    documentPublicId: string
+  ): Promise<number> {
+    if (!projectPublicId) {
+      throw new ServiceUnavailableException('AI_QDRANT_PROJECT_SCOPE_REQUIRED');
+    }
+    const result = await this.client.count(AI_COLLECTION_NAME, {
+      filter: {
+        must: [
+          { key: 'project_public_id', match: { value: projectPublicId } },
+          { key: 'doc_public_id', match: { value: documentPublicId } },
+        ],
+      },
+    });
+    return (result as { count?: number }).count ?? 0;
+  }
+
+  /** ลบเวกเตอรืของเอกสารด้วย projectPublicId และ documentPublicId */
   async deleteByDocumentPublicId(
     projectPublicId: string,
     documentPublicId: string

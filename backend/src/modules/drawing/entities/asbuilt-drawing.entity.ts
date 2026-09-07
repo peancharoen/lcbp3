@@ -8,6 +8,7 @@ import {
   ManyToOne,
   OneToMany,
   JoinColumn,
+  VersionColumn,
 } from 'typeorm';
 import { Project } from '../../project/entities/project.entity';
 import { AsBuiltDrawingRevision } from './asbuilt-drawing-revision.entity';
@@ -41,8 +42,19 @@ export class AsBuiltDrawing extends UuidBaseEntity {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt!: Date;
 
+  @VersionColumn({ name: 'version', default: 0 })
+  version!: number;
+
   @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt?: Date;
+
+  @Column({
+    name: 'delete_reason',
+    type: 'varchar',
+    length: 500,
+    nullable: true,
+  })
+  deleteReason?: string;
 
   @Column({ name: 'updated_by', nullable: true })
   updatedBy?: number;

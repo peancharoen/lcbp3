@@ -3,6 +3,8 @@
 -- Related ADR: ADR-023A (AI Migration), ADR-044 (direct SQL schema changes)
 -- Related Spec: specs/03-Data-and-Storage/03-01-data-dictionary.md
 -- Applied in: v1.9.13 → v1.9.14
+-- NOTE (2026-09-07): column `ai_suggested_category` ถูก apply ลง DB จริงในชื่อ
+--   `ai_suggested_correspondence_type` (ตาม schema-02 line ~1533) — ใช้ชื่อหลังเป็นตัว canonical
 --
 -- เพิ่ม columns ที่ entity MigrationReviewQueue (src/modules/migration/entities/) คาดหวัง
 -- แต่ไม่มีใน DB เนื่องจาก schema drift ระหว่างการ refactor entity

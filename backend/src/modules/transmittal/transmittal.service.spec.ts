@@ -61,7 +61,11 @@ describe('TransmittalService', () => {
     commitTransaction: jest.fn(),
     rollbackTransaction: jest.fn(),
     release: jest.fn(),
-    manager: { save: jest.fn() },
+    manager: {
+      save: jest.fn(),
+      update: jest.fn().mockResolvedValue({ affected: 1 }),
+      increment: jest.fn().mockResolvedValue(undefined),
+    },
   };
 
   beforeEach(async () => {
@@ -78,6 +82,7 @@ describe('TransmittalService', () => {
     };
     workflowEngine = {
       getInstanceByEntity: jest.fn(),
+      terminateInstance: jest.fn(),
       createInstance: jest.fn(),
       processTransition: jest.fn(),
     };
@@ -256,6 +261,131 @@ describe('TransmittalService', () => {
       expect(result.workflowInstanceId).toBeUndefined();
       expect(result.workflowState).toBeUndefined();
       expect(result.availableActions).toEqual([]);
+    });
+  });
+
+  describe('cancel() (Feature 253 — T033)', () => {
+    const uuid = '019abc01-0000-7000-8000-0000000000aa';
+    const mockUser = { user_id: 42 } as never;
+
+    it('should cancel transmittal: set status CANCELLED + metadata + terminate workflow', async () => {
+      dataSource.manager.findOne.mockResolvedValue({
+        id: 99,
+        correspondenceNumber: 'TRN-001',
+      });
+      transmittalRepo.findOne.mockResolvedValue({ correspondenceId: 99 });
+      statusRepo.findOne.mockResolvedValue({ id: 7, statusCode: 'CANCELLED' });
+      workflowEngine.getInstanceByEntity.mockResolvedValue({ id: 'wf-1' });
+
+      const result = await service.cancel(uuid, 'No longer needed', mockUser);
+
+      expect(result.message).toBe('Transmittal cancelled successfully');
+      expect(mockQueryRunner.manager.update).toHaveBeenCalledWith(
+        Transmittal,
+        99,
+        expect.objectContaining({
+          statusId: 7,
+          cancelReason: 'No longer needed',
+          cancelledBy: 42,
+        })
+      );
+      expect(workflowEngine.terminateInstance).toHaveBeenCalledWith(
+        'wf-1',
+        expect.stringContaining('No longer needed')
+      );
+      expect(mockQueryRunner.commitTransaction).toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException when correspondence not found', async () => {
+      dataSource.manager.findOne.mockResolvedValue(null);
+
+      await expect(service.cancel(uuid, 'reason', mockUser)).rejects.toThrow(
+        NotFoundException
+      );
+    });
+
+    it('should throw NotFoundException when transmittal not found', async () => {
+      dataSource.manager.findOne.mockResolvedValue({ id: 99 });
+      transmittalRepo.findOne.mockResolvedValue(null);
+
+      await expect(service.cancel(uuid, 'reason', mockUser)).rejects.toThrow(
+        NotFoundException
+      );
+    });
+
+    it('should not terminate workflow when no instance exists', async () => {
+      dataSource.manager.findOne.mockResolvedValue({ id: 99 });
+      transmittalRepo.findOne.mockResolvedValue({ correspondenceId: 99 });
+      statusRepo.findOne.mockResolvedValue({ id: 7, statusCode: 'CANCELLED' });
+      workflowEngine.getInstanceByEntity.mockResolvedValue(null);
+
+      await service.cancel(uuid, 'reason', mockUser);
+
+      expect(workflowEngine.terminateInstance).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('patchMetadata() (Feature 253 — T052)', () => {
+    const uuid = '019abc01-0000-7000-8000-0000000000bb';
+    const mockUser = { user_id: 42 } as never;
+
+    const setupPatch = (version = 1) => {
+      dataSource.manager.findOne.mockResolvedValue({
+        id: 99,
+        correspondenceNumber: 'TRN-001',
+      });
+      transmittalRepo.findOne.mockResolvedValue({
+        correspondenceId: 99,
+        version,
+      });
+    };
+
+    it('should patch tier1 remarks and increment version', async () => {
+      setupPatch(1);
+
+      const result = await service.patchMetadata(
+        uuid,
+        { remarks: 'Updated remarks' },
+        1,
+        mockUser
+      );
+
+      expect(mockQueryRunner.manager.update).toHaveBeenCalledWith(
+        Transmittal,
+        99,
+        { remarks: 'Updated remarks' }
+      );
+      expect(mockQueryRunner.manager.increment).toHaveBeenCalledWith(
+        Transmittal,
+        { correspondenceId: 99 },
+        'version',
+        1
+      );
+      expect(result.newVersion).toBe(2);
+    });
+
+    it('should throw on version mismatch', async () => {
+      setupPatch(5);
+
+      await expect(
+        service.patchMetadata(uuid, { remarks: 'x' }, 1, mockUser)
+      ).rejects.toThrow();
+    });
+
+    it('should reject tier3 field transmittalNumber', async () => {
+      setupPatch(1);
+
+      await expect(
+        service.patchMetadata(uuid, { transmittalNumber: 'HACK' }, 1, mockUser)
+      ).rejects.toThrow();
+    });
+
+    it('should reject unknown fields', async () => {
+      setupPatch(1);
+
+      await expect(
+        service.patchMetadata(uuid, { bogus: 'x' }, 1, mockUser)
+      ).rejects.toThrow();
     });
   });
 });

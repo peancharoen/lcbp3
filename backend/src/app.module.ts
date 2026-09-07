@@ -58,6 +58,8 @@ import { DelegationModule } from './modules/delegation/delegation.module';
 import { ReminderModule } from './modules/reminder/reminder.module';
 import { DistributionModule } from './modules/distribution/distribution.module';
 import { TagsModule } from './modules/tags/tags.module';
+import { DocumentModule } from './modules/document/document.module';
+import { MaintenanceModule } from './modules/maintenance/maintenance.module';
 
 @Module({
   imports: [
@@ -199,6 +201,8 @@ import { TagsModule } from './modules/tags/tags.module';
     ReminderModule,
     DistributionModule,
     TagsModule,
+    DocumentModule, // Feature 253 T087: cross-type bulk operations
+    MaintenanceModule, // Feature 253 T092: Maintenance Console
   ],
   controllers: [AppController],
   providers: [

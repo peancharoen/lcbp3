@@ -6,6 +6,11 @@
 //             extract type code constants; fix exportCsv type safety
 // 2026-08-26 | Add hardDelete() method — Superadmin-only full cascade delete
 //             (physical files + Qdrant vectors + DB rows) แก้ปัญหา orphaned attachments
+// 2026-09-07 | FR-004: terminate workflow instance on cancel
+//             FR-002: idempotent already-CANCELLED guard on cancel
+//             FR-013/FR-036/EC-5: before/after diff + no-op detection + audit log in patchMetadata
+// 2026-09-07 | FR-007: restrict hardDelete to system.manage_all only
+//             FR-010: add Redis Redlock around hardDelete
 
 import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import {
@@ -17,6 +22,9 @@ import {
 } from '../../common/exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
+import Redlock, { Lock } from 'redlock';
 
 // Entities
 import { Correspondence } from './entities/correspondence.entity';
@@ -31,6 +39,7 @@ import { User } from '../user/entities/user.entity';
 import { Organization } from '../organization/entities/organization.entity';
 import { Project } from '../project/entities/project.entity';
 import { CorrespondenceRevisionAttachment } from './entities/correspondence-revision-attachment.entity';
+import { AuditLog } from '../../common/entities/audit-log.entity';
 
 // DTOs
 import { CreateCorrespondenceDto } from './dto/create-correspondence.dto';
@@ -46,6 +55,7 @@ import { UserService } from '../user/user.service';
 import { SearchService } from '../search/search.service';
 import { FileStorageService } from '../../common/file-storage/file-storage.service';
 import { UuidResolverService } from '../../common/services/uuid-resolver.service';
+import { DocumentSideEffectsService } from '../../common/services/document-side-effects.service';
 import { NotificationService } from '../notification/notification.service';
 import { CirculationService } from '../circulation/circulation.service';
 import { Circulation } from '../circulation/entities/circulation.entity';
@@ -67,6 +77,7 @@ interface ResolvedRecipient {
 @Injectable()
 export class CorrespondenceService {
   private readonly logger = new Logger(CorrespondenceService.name);
+  private readonly redlock: Redlock;
 
   private async hasSystemManageAllPermission(userId: number): Promise<boolean> {
     const permissions = await this.getCachedPermissions(userId);
@@ -157,8 +168,19 @@ export class CorrespondenceService {
     private readonly aiQueueService: AiQueueService,
     private readonly aiQdrantService: AiQdrantService,
     @InjectRepository(PendingVectorDeletion)
-    private readonly pendingVectorDeletionRepo: Repository<PendingVectorDeletion>
-  ) {}
+    private readonly pendingVectorDeletionRepo: Repository<PendingVectorDeletion>,
+    @InjectRepository(AuditLog)
+    private readonly auditLogRepo: Repository<AuditLog>,
+    private readonly documentSideEffectsService: DocumentSideEffectsService,
+    @InjectRedis() private readonly redis: Redis
+  ) {
+    this.redlock = new Redlock([this.redis], {
+      driftFactor: 0.01,
+      retryCount: 5,
+      retryDelay: 100,
+      retryJitter: 50,
+    });
+  }
 
   /**
    * Business Rule Validation: EC-CORR-003 - Correspondence to Self
@@ -772,7 +794,7 @@ export class CorrespondenceService {
       throw new NotFoundException('Current revision', `correspondence:${id}`);
     }
 
-    // 2. Check Permission
+    // 2. Check Permission + 2-Tier Edit Enforcement (Feature 253 T106)
     if (revision.statusId) {
       const status = await this.statusRepo.findOne({
         where: { id: revision.statusId },
@@ -786,6 +808,23 @@ export class CorrespondenceService {
 
         if (!canEditSubmittedOrLater) {
           throw new PermissionException('correspondence', 'edit non-draft');
+        }
+
+        // non-DRAFT: ห้ามแก้ไข content fields (subject/body/description/details) ต้องใช้ metadata patch
+        const hasContentChanges =
+          updateDto.subject !== undefined ||
+          updateDto.body !== undefined ||
+          updateDto.description !== undefined ||
+          updateDto.details !== undefined;
+        if (hasContentChanges) {
+          throw new BusinessException(
+            'CONTENT_EDIT_AFTER_SUBMIT',
+            'Content fields cannot be edited after DRAFT status',
+            'เอกสารที่ไม่อยู่ในสถานะ DRAFT ไม่สามารถแก้ไขเนื้อหาได้',
+            [
+              'ใช้ PATCH /correspondences/:uuid/metadata สำหรับการแก้ไข metadata',
+            ]
+          );
         }
       }
     }
@@ -1069,7 +1108,12 @@ export class CorrespondenceService {
    * Business Rule Implementation: EC-CORR-001 - Cancel Correspondence with Downstream Circulation
    * Cancel correspondence and handle related circulations
    */
-  async cancel(publicId: string, reason: string, user: User) {
+  async cancel(
+    publicId: string,
+    reason: string,
+    user: User,
+    expectedVersion?: number
+  ) {
     const correspondence = await this.findOneByUuid(publicId);
 
     // Check if user has permission to cancel (Org Admin or Superadmin only)
@@ -1117,11 +1161,52 @@ export class CorrespondenceService {
       throw new SystemException('CANCELLED status not found in Master Data');
     }
 
+    // FR-002: Idempotent guard — already cancelled
+    if (currentRevision.statusId === cancelledStatus.id) {
+      return {
+        success: true,
+        message: 'Correspondence already cancelled',
+        activeCirculationsCount: 0,
+      };
+    }
+
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
+      // FR-040: Optimistic lock check using current DB version inside transaction
+      if (expectedVersion !== undefined) {
+        const current = await queryRunner.manager.findOne(Correspondence, {
+          where: { id: correspondence.id },
+          select: ['id', 'version'],
+        });
+        if (current && current.version !== expectedVersion) {
+          throw new ValidationException(
+            `Version mismatch — expected ${expectedVersion}, got ${current.version}. Correspondence may have been modified by another user.`
+          );
+        }
+      }
+
+      // FR-004: Terminate active workflow instance before cancelling
+      if (correspondence.workflowInstanceId) {
+        try {
+          await this.workflowEngine.terminateInstance(
+            correspondence.workflowInstanceId,
+            `Correspondence cancelled: ${reason}`
+          );
+        } catch (wfErr: unknown) {
+          const msg = wfErr instanceof Error ? wfErr.message : String(wfErr);
+          this.logger.error(
+            `Failed to terminate workflow ${correspondence.workflowInstanceId} for ${publicId}: ${msg}`
+          );
+          // Workflow termination failure is critical — rollback
+          throw new SystemException(
+            `Workflow termination failed during cancel: ${msg}`
+          );
+        }
+      }
+
       // Update correspondence revision status to CANCELLED
       await queryRunner.manager.update(
         CorrespondenceRevision,
@@ -1339,9 +1424,9 @@ export class CorrespondenceService {
     deletedAttachmentCount: number;
     vectorDeletionStatus: 'COMPLETED' | 'PENDING_RETRY' | 'SKIPPED';
   }> {
-    // 1. Permission check — Superadmin เท่านั้น
-    const canManageAll = await this.hasSystemManageAllPermission(user.user_id);
-    if (!canManageAll) {
+    // 1. Permission check — hard-delete ใช้ได้เฉพาะ Superadmin (system.manage_all) (FR-007)
+    const permissions = await this.getCachedPermissions(user.user_id);
+    if (!permissions.includes('system.manage_all')) {
       throw new PermissionException('correspondence', 'hard-delete');
     }
 
@@ -1366,114 +1451,348 @@ export class CorrespondenceService {
       `hardDelete: correspondence=${publicId}, attachments=${attachmentRows.length}, project=${projectPublicId}`
     );
 
-    // 4. ลบ physical files จาก disk — log warning ไม่ throw ถ้า fail
-    let deletedAttachmentCount = 0;
-    for (const att of attachmentRows) {
-      try {
-        if (await fs.pathExists(att.file_path)) {
-          await fs.remove(att.file_path);
-        }
-        deletedAttachmentCount++;
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err);
-        this.logger.warn(
-          `hardDelete: Failed to delete file id=${att.id} path=${att.file_path}: ${msg}`
-        );
-      }
-    }
+    // 4. Distributed lock ป้องกัน concurrent hard-delete ของเอกสารเดียวกัน (FR-010)
+    const lockKey = `lock:hard-delete:${publicId}`;
+    const lockTtl = 10000;
+    let lock: Lock | null = null;
 
-    // 5. ลบ Qdrant vectors แบบ sync await (wait: true)
-    //    ถ้า fail → เก็บลง pending_vector_deletions เพื่อ periodic cleanup job retry
-    let vectorDeletionStatus: 'COMPLETED' | 'PENDING_RETRY' | 'SKIPPED' =
-      'SKIPPED';
+    try {
+      lock = await this.redlock.acquire([lockKey], lockTtl);
+      this.logger.log(
+        `hardDelete: Acquired Redlock for correspondence=${publicId}`
+      );
 
-    if (projectPublicId) {
-      try {
-        await this.aiQdrantService.deleteByDocumentPublicId(
-          projectPublicId,
-          publicId
-        );
-        vectorDeletionStatus = 'COMPLETED';
-        this.logger.log(
-          `hardDelete: Qdrant vectors deleted synchronously for doc=${publicId}`
-        );
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err);
-        this.logger.warn(
-          `hardDelete: Qdrant sync deletion failed for doc=${publicId}: ${msg} — storing in pending_vector_deletions for retry`
-        );
-
-        // เก็บลง pending table เพื่อให้ VectorCleanupService retry ภายหลัง
+      // 5. ลบ physical files จาก disk — log warning ไม่ throw ถ้า fail
+      let deletedAttachmentCount = 0;
+      for (const att of attachmentRows) {
         try {
-          const pending = this.pendingVectorDeletionRepo.create({
-            publicId: randomUUID(),
-            documentPublicId: publicId,
-            projectPublicId,
-            requestedByUserId: user.user_id,
-            lastError: msg,
-          });
-          await this.pendingVectorDeletionRepo.save(pending);
-          vectorDeletionStatus = 'PENDING_RETRY';
-        } catch (pendingErr: unknown) {
-          const pendingMsg =
-            pendingErr instanceof Error
-              ? pendingErr.message
-              : String(pendingErr);
-          this.logger.error(
-            `hardDelete: Failed to store pending vector deletion for doc=${publicId}: ${pendingMsg}`
+          if (await fs.pathExists(att.file_path)) {
+            await fs.remove(att.file_path);
+          }
+          deletedAttachmentCount++;
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          this.logger.warn(
+            `hardDelete: Failed to delete file id=${att.id} path=${att.file_path}: ${msg}`
           );
-          // ยังคงดำเนินการลบ DB rows — vectors จะถูกกวาดโดย orphan scan
-          vectorDeletionStatus = 'PENDING_RETRY';
+        }
+      }
+
+      // 6. ลบ Qdrant vectors แบบ sync await (wait: true)
+      //    ถ้า fail → เก็บลง pending_vector_deletions เพื่อ periodic cleanup job retry
+      let vectorDeletionStatus: 'COMPLETED' | 'PENDING_RETRY' | 'SKIPPED' =
+        'SKIPPED';
+
+      if (projectPublicId) {
+        try {
+          await this.aiQdrantService.deleteByDocumentPublicId(
+            projectPublicId,
+            publicId
+          );
+          vectorDeletionStatus = 'COMPLETED';
+          this.logger.log(
+            `hardDelete: Qdrant vectors deleted synchronously for doc=${publicId}`
+          );
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          this.logger.warn(
+            `hardDelete: Qdrant sync deletion failed for doc=${publicId}: ${msg} — storing in pending_vector_deletions for retry`
+          );
+
+          // เก็บลง pending table เพื่อให้ VectorCleanupService retry ภายหลัง
+          try {
+            const pending = this.pendingVectorDeletionRepo.create({
+              publicId: randomUUID(),
+              documentPublicId: publicId,
+              projectPublicId,
+              requestedByUserId: user.user_id,
+              lastError: msg,
+            });
+            await this.pendingVectorDeletionRepo.save(pending);
+            vectorDeletionStatus = 'PENDING_RETRY';
+          } catch (pendingErr: unknown) {
+            const pendingMsg =
+              pendingErr instanceof Error
+                ? pendingErr.message
+                : String(pendingErr);
+            this.logger.error(
+              `hardDelete: Failed to store pending vector deletion for doc=${publicId}: ${pendingMsg}`
+            );
+            // ยังคงดำเนินการลบ DB rows — vectors จะถูกกวาดโดย orphan scan
+            vectorDeletionStatus = 'PENDING_RETRY';
+          }
+        }
+      }
+
+      // 7. ลบ DB rows ใน transaction
+      const queryRunner = this.dataSource.createQueryRunner();
+      await queryRunner.connect();
+      await queryRunner.startTransaction();
+
+      try {
+        // ลบ attachments records (cascade ไป junction table)
+        if (attachmentRows.length > 0) {
+          const attachmentIds = attachmentRows.map((a) => a.id);
+          await queryRunner.manager.delete(Attachment, attachmentIds);
+        }
+
+        // ลบ workflow instances (entity_id = publicId)
+        await queryRunner.manager.query(
+          `DELETE FROM workflow_histories WHERE instance_id IN
+           (SELECT id FROM workflow_instances WHERE entity_id = ?)`,
+          [publicId]
+        );
+        await queryRunner.manager.query(
+          'DELETE FROM workflow_instances WHERE entity_id = ?',
+          [publicId]
+        );
+
+        // ลบ circulations (FK ไม่มี cascade — ต้องลบก่อน root)
+        await queryRunner.manager.query(
+          `DELETE cr FROM circulation_routings cr
+           INNER JOIN circulations c ON cr.circulation_id = c.id
+           WHERE c.correspondence_id = ?`,
+          [correspondenceId]
+        );
+        await queryRunner.manager.query(
+          `DELETE ca FROM circulation_attachments ca
+           INNER JOIN circulations c ON ca.circulation_id = c.id
+           WHERE c.correspondence_id = ?`,
+          [correspondenceId]
+        );
+        await queryRunner.manager.query(
+          'DELETE FROM circulations WHERE correspondence_id = ?',
+          [correspondenceId]
+        );
+
+        // ลบ correspondence (cascade: revisions, recipients, tags, references, rfa/transmittal children)
+        await queryRunner.manager.delete(Correspondence, correspondenceId);
+
+        await queryRunner.commitTransaction();
+        this.logger.log(
+          `hardDelete: Successfully deleted correspondence=${publicId}, ` +
+            `attachments=${deletedAttachmentCount}, vectorStatus=${vectorDeletionStatus}`
+        );
+      } catch (err: unknown) {
+        await queryRunner.rollbackTransaction();
+        const msg = err instanceof Error ? err.message : String(err);
+        this.logger.error(
+          `hardDelete: Failed to delete correspondence=${publicId}: ${msg}`
+        );
+        throw new SystemException(
+          `Failed to hard-delete correspondence: ${msg}`
+        );
+      } finally {
+        await queryRunner.release();
+      }
+
+      return {
+        deletedCorrespondence: true,
+        deletedAttachmentCount,
+        vectorDeletionStatus,
+      };
+    } finally {
+      if (lock) {
+        try {
+          await lock.release();
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          this.logger.warn(
+            `hardDelete: Failed to release Redlock for ${publicId}: ${msg}`
+          );
+        }
+      }
+    }
+  }
+
+  /**
+   * Metadata Patch — แก้ไข metadata fields บน current revision (Feature 253 — T055)
+   * Tier 1 fields: subject, description, remarks, dueDate — แก้ไขได้โดยตรง
+   * Tier 2 fields: originatorId, disciplineId — อนุญาตเฉพาะ DRAFT/IN_REVIEW
+   * Tier 3 fields: correspondenceNumber — ห้ามแก้ไข
+   *
+   * FR-013/FR-036/EC-5: บันทึก Before/After diff + ตรวจ no-op + audit log
+   */
+  async patchMetadata(
+    publicId: string,
+    patch: Record<string, string | number | boolean | null>,
+    expectedVersion: number,
+    user: User
+  ): Promise<{ message: string; newVersion: number; auditId?: string }> {
+    const correspondence = await this.findOneByUuid(publicId);
+
+    // Optimistic lock check
+    if (correspondence.version !== expectedVersion) {
+      throw new ValidationException(
+        `Version mismatch — expected ${expectedVersion}, got ${correspondence.version}. Document may have been modified by another user.`
+      );
+    }
+
+    const currentRevision = await this.revisionRepo.findOne({
+      where: { correspondenceId: correspondence.id, isCurrent: true },
+      relations: ['status'],
+    });
+    if (!currentRevision) {
+      throw new NotFoundException('Current revision');
+    }
+
+    // Validate patchable fields
+    const tier1Fields = ['subject', 'description', 'remarks', 'dueDate'];
+    const tier2Fields = ['originatorId', 'disciplineId'];
+    const tier3Fields = ['correspondenceNumber'];
+
+    const invalidFields = Object.keys(patch).filter(
+      (key) =>
+        !tier1Fields.includes(key) &&
+        !tier2Fields.includes(key) &&
+        !tier3Fields.includes(key)
+    );
+    if (invalidFields.length > 0) {
+      throw new ValidationException(
+        `Invalid fields: ${invalidFields.join(', ')}`
+      );
+    }
+
+    // Check tier3 fields — forbidden
+    const tier3Changes = tier3Fields.filter((f) => patch[f] !== undefined);
+    if (tier3Changes.length > 0) {
+      throw new ValidationException(
+        `Cannot modify restricted fields: ${tier3Changes.join(', ')}`
+      );
+    }
+
+    // Tier 2 fields อนุญาตเฉพาะสถานะ DRAFT/IN_REVIEW
+    const statusCode = currentRevision.status?.statusCode;
+    const tier2AllowedStatuses = ['DRAFT', 'IN_REVIEW'];
+    const requestedTier2 = tier2Fields.filter((f) => patch[f] !== undefined);
+    if (
+      requestedTier2.length > 0 &&
+      !tier2AllowedStatuses.includes(statusCode ?? '')
+    ) {
+      throw new ValidationException(
+        `Cannot modify Tier 2 fields when status is ${statusCode}. Allowed statuses: ${tier2AllowedStatuses.join(', ')}`
+      );
+    }
+
+    // คำนวณ Before/After diff และ detect no-op
+    const before: Record<string, unknown> = {};
+    const after: Record<string, unknown> = {};
+    const changedFields: string[] = [];
+    const tier1Patch: Record<string, string | number | boolean | null> = {};
+    const tier2Patch: Record<string, string | number | boolean | null> = {};
+
+    const revisionValues = currentRevision as unknown as Record<
+      string,
+      unknown
+    >;
+    const correspondenceValues = correspondence as unknown as Record<
+      string,
+      unknown
+    >;
+
+    for (const key of tier1Fields) {
+      const patchValue = patch[key];
+      if (patchValue !== undefined) {
+        const oldValue = revisionValues[key];
+        if (oldValue !== patchValue) {
+          before[key] =
+            oldValue instanceof Date ? oldValue.toISOString() : oldValue;
+          after[key] = patchValue;
+          tier1Patch[key] = patchValue;
+          changedFields.push(key);
         }
       }
     }
 
-    // 6. ลบ DB rows ใน transaction
+    for (const key of tier2Fields) {
+      const patchValue = patch[key];
+      if (patchValue !== undefined) {
+        const oldValue = correspondenceValues[key];
+        if (oldValue !== patchValue) {
+          before[key] = oldValue;
+          after[key] = patchValue;
+          tier2Patch[key] = patchValue;
+          changedFields.push(key);
+        }
+      }
+    }
+
+    // EC-5: no-op detection — ไม่มีการเปลี่ยนแปลงให้ return โดยไม่ bump version
+    if (
+      Object.keys(tier1Patch).length === 0 &&
+      Object.keys(tier2Patch).length === 0
+    ) {
+      return {
+        message: 'No changes detected',
+        newVersion: expectedVersion,
+      };
+    }
+
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      // ลบ attachments records (cascade ไป junction table)
-      if (attachmentRows.length > 0) {
-        const attachmentIds = attachmentRows.map((a) => a.id);
-        await queryRunner.manager.delete(Attachment, attachmentIds);
+      if (Object.keys(tier1Patch).length > 0) {
+        await queryRunner.manager.update(
+          CorrespondenceRevision,
+          currentRevision.id,
+          tier1Patch
+        );
       }
 
-      // ลบ workflow instances (entity_id = publicId)
-      await queryRunner.manager.query(
-        `DELETE FROM workflow_histories WHERE instance_id IN
-         (SELECT id FROM workflow_instances WHERE entity_id = ?)`,
-        [publicId]
-      );
-      await queryRunner.manager.query(
-        'DELETE FROM workflow_instances WHERE entity_id = ?',
-        [publicId]
+      if (Object.keys(tier2Patch).length > 0) {
+        await queryRunner.manager.update(
+          Correspondence,
+          { id: correspondence.id },
+          tier2Patch
+        );
+      }
+
+      // Increment version on Correspondence
+      await queryRunner.manager.increment(
+        Correspondence,
+        { id: correspondence.id },
+        'version',
+        1
       );
 
-      // ลบ correspondence (cascade: revisions, recipients, tags, references, circulations)
-      await queryRunner.manager.delete(Correspondence, correspondenceId);
+      // FR-013/FR-036: บันทึก Before/After diff ลง audit log ภายใน transaction
+      const auditLog = queryRunner.manager.create(AuditLog, {
+        userId: user.user_id,
+        action: 'METADATA_PATCH',
+        entityType: 'correspondence',
+        entityId: publicId,
+        severity: 'INFO',
+        detailsJson: {
+          patch,
+          before,
+          after,
+          changedFields,
+        },
+      });
+      const savedAuditLog = await queryRunner.manager.save(AuditLog, auditLog);
 
       await queryRunner.commitTransaction();
-      this.logger.log(
-        `hardDelete: Successfully deleted correspondence=${publicId}, ` +
-          `attachments=${deletedAttachmentCount}, vectorStatus=${vectorDeletionStatus}`
-      );
-    } catch (err: unknown) {
+
+      // FR-015: แจ้ง notification + re-index ผ่าน side-effects queue แบบ non-critical
+      void this.documentSideEffectsService.executeNonCritical({
+        publicId,
+        documentType: 'CORRESPONDENCE',
+        userId: String(user.user_id),
+        auditId: savedAuditLog.auditId,
+      });
+
+      return {
+        message: 'Metadata updated successfully',
+        newVersion: expectedVersion + 1,
+        auditId: savedAuditLog.auditId,
+      };
+    } catch (err) {
       await queryRunner.rollbackTransaction();
-      const msg = err instanceof Error ? err.message : String(err);
-      this.logger.error(
-        `hardDelete: Failed to delete correspondence=${publicId}: ${msg}`
-      );
-      throw new SystemException(`Failed to hard-delete correspondence: ${msg}`);
+      throw err;
     } finally {
       await queryRunner.release();
     }
-
-    return {
-      deletedCorrespondence: true,
-      deletedAttachmentCount,
-      vectorDeletionStatus,
-    };
   }
 }

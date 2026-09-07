@@ -36,6 +36,8 @@ export interface Transmittal {
   purpose?: TransmittalPurpose;
   remarks?: string;
   createdAt: string;
+  version?: number; // Feature 253: optimistic locking
+  cancelledAt?: string | null; // Feature 253: cancel timestamp
   // ADR-021 / v1.8.7: Workflow context fields
   workflowInstanceId?: string; // UUID ของ WorkflowInstance (null = Draft ยังไม่ submit)
   workflowState?: string; // สถานะปัจจุบันใน Workflow เช่น IN_REVIEW, APPROVED

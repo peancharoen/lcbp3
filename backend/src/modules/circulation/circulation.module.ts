@@ -11,6 +11,7 @@ import { DocumentNumberingModule } from '../document-numbering/document-numberin
 import { CirculationWorkflowService } from './circulation-workflow.service';
 import { CirculationController } from './circulation.controller';
 import { CirculationService } from './circulation.service';
+import { CirculationActionStrategy } from './strategies/circulation-action.strategy';
 
 @Module({
   imports: [
@@ -24,7 +25,11 @@ import { CirculationService } from './circulation.service';
     DocumentNumberingModule,
   ],
   controllers: [CirculationController],
-  providers: [CirculationService, CirculationWorkflowService],
-  exports: [CirculationService],
+  providers: [
+    CirculationService,
+    CirculationWorkflowService,
+    CirculationActionStrategy,
+  ],
+  exports: [CirculationService, CirculationActionStrategy],
 })
 export class CirculationModule {}
