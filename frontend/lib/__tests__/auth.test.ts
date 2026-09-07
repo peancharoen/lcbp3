@@ -15,6 +15,20 @@ vi.mock('next-auth', () => ({
   })),
 }));
 
+// Mock NextAuth Credentials provider — real import is heavy and can hang in jsdom worker
+vi.mock('next-auth/providers/credentials', () => ({
+  default: vi.fn(() => ({ id: 'credentials' })),
+}));
+
+// Mock next/headers — server-only module, not available in jsdom
+vi.mock('next/headers', () => ({
+  headers: vi.fn(() =>
+    Promise.resolve({
+      get: vi.fn(() => null),
+    } as unknown as Headers)
+  ),
+}));
+
 describe('auth.ts helper functions', () => {
   describe('getJwtExpiry', () => {
     it('ควรคำนวณ expiry time จาก valid JWT token', () => {
