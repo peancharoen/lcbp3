@@ -2,7 +2,7 @@
 // Change Log
 // - 2026-05-19: สร้าง AiToolModule — submodule สำหรับ AI Tool Layer (ADR-025).
 
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AiToolRegistryService } from './ai-tool-registry.service';
 import { RfaToolService } from './rfa-tool.service';
@@ -30,7 +30,7 @@ import { CommonModule } from '../../../common/common.module';
     // CASL สำหรับ Authorization enforcement ใน Tool Handlers
     CaslModule,
     // CommonModule สำหรับ UuidResolverService
-    CommonModule,
+    forwardRef(() => CommonModule),
   ],
   providers: [
     AiToolRegistryService,

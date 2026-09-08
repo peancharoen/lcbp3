@@ -1,7 +1,7 @@
 // File: src/common/common.module.ts
 // บันทึกการแก้ไข: Module รวม Infrastructure พื้นฐาน (T1.1)
 
-import { Module, Global } from '@nestjs/common';
+import { Module, Global, forwardRef } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
 import { RedisModule } from '@nestjs-modules/ioredis';
@@ -24,7 +24,7 @@ import { TransformInterceptor } from './interceptors/transform.interceptor';
   imports: [
     ConfigModule,
     RedisModule,
-    AiModule,
+    forwardRef(() => AiModule),
     BullModule.registerQueue({ name: DOCUMENT_SIDE_EFFECTS_QUEUE }),
   ],
   providers: [
