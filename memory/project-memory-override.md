@@ -339,6 +339,7 @@ QDRANT_URL
 - [x] ASUSTOR cleanup scripts (`registry-gc.sh` + `runner-cleanup.sh`) — `#!/bin/sh` + `sudo docker` + cron ตั้งแล้ว — ✅ 2026-09-08 (commits `cd42e862` + `eed240a7`)
 - [ ] TLS registry — ตอนนี้ใช้ HTTP + `insecure-registries` ควรอัปเกรดเป็น TLS (self-signed หรือ Cloudflare Tunnel)
 - [ ] Registry GC script ทดสอบรันจริงบน ASUSTOR — สร้าง script แล้ว ตั้ง cron แล้ว แต่ยังไม่ได้ทดสอบรันจริง (จะหยุด registry ~10-30 วินาที)
+- [ ] อัปเกรด Vitest 4.1.9 → 5.x — prerequisites ผ่านแล้ว (Node v24.20.0, Vite 7.3.6); ระวัง breaking changes: `clearMocks` default true, `testNamePattern` format เปลี่ยน, `expect.poll` เข้มงวดขึ้น; อาจแก้ `poolOptions` type definition ให้ลบ `@ts-expect-error` ได้; ทำเป็น task แยก ตรวจ test ที่พึ่ง call history ข้าม test ก่อน
 
 #### B. Manual / Browser Verify บน production (ต้องทำเองหรือใช้ Playwright)
 
