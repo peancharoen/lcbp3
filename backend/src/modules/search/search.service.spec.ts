@@ -5,7 +5,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ElasticsearchService } from '@nestjs/elasticsearch';
 import { ConfigService } from '@nestjs/config';
+import { getRepositoryToken } from '@nestjs/typeorm';
 import { SearchService } from './search.service';
+import { Correspondence } from '../correspondence/entities/correspondence.entity';
+import { Rfa } from '../rfa/entities/rfa.entity';
 
 /** Type สำหรับ mock ElasticsearchService */
 type MockEsService = {
@@ -23,6 +26,8 @@ describe('SearchService', () => {
   let service: SearchService;
   let mockEsService: MockEsService;
   let mockConfigService: Record<string, jest.Mock>;
+  let mockCorrespondenceRepo: { find: jest.Mock };
+  let mockRfaRepo: { find: jest.Mock };
 
   beforeEach(async () => {
     mockEsService = {
@@ -41,12 +46,19 @@ describe('SearchService', () => {
         return undefined;
       }),
     };
+    mockCorrespondenceRepo = { find: jest.fn().mockResolvedValue([]) };
+    mockRfaRepo = { find: jest.fn().mockResolvedValue([]) };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SearchService,
         { provide: ElasticsearchService, useValue: mockEsService },
         { provide: ConfigService, useValue: mockConfigService },
+        {
+          provide: getRepositoryToken(Correspondence),
+          useValue: mockCorrespondenceRepo,
+        },
+        { provide: getRepositoryToken(Rfa), useValue: mockRfaRepo },
       ],
     }).compile();
 
@@ -169,6 +181,129 @@ describe('SearchService', () => {
       });
 
       expect(result).toBeUndefined();
+    });
+  });
+
+  describe('reindexAll', () => {
+    beforeEach(async () => {
+      mockEsService.ping.mockResolvedValue(true);
+      mockEsService.indices.exists.mockResolvedValue(true);
+      await service.onModuleInit();
+    });
+
+    it('should skip and return zero counts when Elasticsearch is unavailable', async () => {
+      mockEsService.ping.mockRejectedValue(new Error('Connection refused'));
+      await service.onModuleInit();
+
+      const result = await service.reindexAll();
+
+      expect(result).toEqual({ indexed: 0, failed: 0 });
+      expect(mockCorrespondenceRepo.find).not.toHaveBeenCalled();
+    });
+
+    it('should index every correspondence, tagging RFA subtype rows as type=rfa', async () => {
+      mockCorrespondenceRepo.find.mockResolvedValue([
+        {
+          id: 1,
+          publicId: 'corr-uuid-1',
+          correspondenceNumber: 'LTR-001',
+          projectId: 10,
+          createdAt: new Date('2026-01-01'),
+          revisions: [
+            {
+              isCurrent: true,
+              subject: 'Subject A',
+              status: { statusCode: 'DRAFT' },
+            },
+          ],
+        },
+        {
+          id: 2,
+          publicId: 'corr-uuid-2',
+          correspondenceNumber: 'RFA-001',
+          projectId: 10,
+          createdAt: new Date('2026-01-02'),
+          revisions: [
+            {
+              isCurrent: true,
+              subject: 'Subject B',
+              status: { statusCode: 'SUBOWN' },
+            },
+          ],
+        },
+      ]);
+      mockRfaRepo.find.mockResolvedValue([{ id: 2 }]);
+      mockEsService.index.mockResolvedValue({ result: 'created' });
+
+      const result = await service.reindexAll();
+
+      expect(result).toEqual({ indexed: 2, failed: 0 });
+      expect(mockEsService.index).toHaveBeenNthCalledWith(1, {
+        index: 'dms_documents',
+        id: 'correspondence_corr-uuid-1',
+        document: expect.objectContaining({
+          type: 'correspondence',
+          docNumber: 'LTR-001',
+        }),
+      });
+      expect(mockEsService.index).toHaveBeenNthCalledWith(2, {
+        index: 'dms_documents',
+        id: 'rfa_corr-uuid-2',
+        document: expect.objectContaining({
+          type: 'rfa',
+          docNumber: 'RFA-001',
+        }),
+      });
+    });
+
+    it('should filter by type when typeFilter is provided', async () => {
+      mockCorrespondenceRepo.find.mockResolvedValue([
+        {
+          id: 1,
+          publicId: 'corr-uuid-1',
+          correspondenceNumber: 'LTR-001',
+          projectId: 10,
+          createdAt: new Date(),
+          revisions: [],
+        },
+        {
+          id: 2,
+          publicId: 'corr-uuid-2',
+          correspondenceNumber: 'RFA-001',
+          projectId: 10,
+          createdAt: new Date(),
+          revisions: [],
+        },
+      ]);
+      mockRfaRepo.find.mockResolvedValue([{ id: 2 }]);
+      mockEsService.index.mockResolvedValue({ result: 'created' });
+
+      const result = await service.reindexAll('rfa');
+
+      expect(result).toEqual({ indexed: 1, failed: 0 });
+      expect(mockEsService.index).toHaveBeenCalledTimes(1);
+      expect(mockEsService.index).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'rfa_corr-uuid-2' })
+      );
+    });
+
+    it('should count failures without throwing when indexing a row errors', async () => {
+      mockCorrespondenceRepo.find.mockResolvedValue([
+        {
+          id: 1,
+          publicId: 'corr-uuid-1',
+          correspondenceNumber: 'LTR-001',
+          projectId: 10,
+          createdAt: new Date(),
+          revisions: [],
+        },
+      ]);
+      mockRfaRepo.find.mockResolvedValue([]);
+      mockEsService.index.mockRejectedValue(new Error('ES down'));
+
+      const result = await service.reindexAll();
+
+      expect(result).toEqual({ indexed: 0, failed: 1 });
     });
   });
 

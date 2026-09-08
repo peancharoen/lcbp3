@@ -61,6 +61,7 @@ import { ExcelAnnotatorService } from './services/excel-annotator.service';
 import { ExcelQuarantineService } from './services/excel-quarantine.service';
 import { RbacGuard } from '../../common/guards/rbac.guard';
 import { AiModule } from '../ai/ai.module';
+import { SearchModule } from '../search/search.module';
 
 @Module({
   imports: [
@@ -89,6 +90,7 @@ import { AiModule } from '../ai/ai.module';
     RedisModule,
     UserModule, // สำหรับ RbacGuard + ExcelImportReviewController (ต้องการ UserService)
     forwardRef(() => AiModule), // สำหรับ OllamaService (Layer 3 AI Reviewer — ADR-023/023A)
+    SearchModule, // สำหรับ index เอกสารเข้า Elasticsearch หลัง migration commit (bugfix 2026-09-08)
   ],
   controllers: [
     MigrationController,

@@ -80,6 +80,7 @@ import {
 } from './constants/migration.constants';
 import { linkAttachmentsToRevision } from './utils/attachment-linking.util';
 import { FileStorageService } from '../../common/file-storage/file-storage.service';
+import { SearchService } from '../search/search.service';
 import * as path from 'path';
 import * as fs from 'fs-extra';
 
@@ -149,7 +150,8 @@ export class MigrationReviewService {
     private readonly ragBatchService: RagBatchService,
     private readonly fileStorageService: FileStorageService,
     private readonly migrationService: MigrationService,
-    private readonly reviewThresholdService: ReviewThresholdService
+    private readonly reviewThresholdService: ReviewThresholdService,
+    private readonly searchService: SearchService
   ) {}
 
   /**
@@ -843,6 +845,26 @@ export class MigrationReviewService {
       queueItem.reviewedAt = new Date();
       await queryRunner.manager.save(queueItem);
       await queryRunner.commitTransaction();
+
+      // Bugfix (2026-09-08): migration commit path ไม่เคย index เอกสารเข้า Elasticsearch
+      // เลย ต่างจาก correspondence.service.ts/rfa.service.ts ปกติที่ index ทุกครั้งที่สร้าง —
+      // ทำให้เอกสารที่เข้าระบบผ่าน migration ค้นหาใน /search ไม่เจอ (fire-and-forget เหมือนเดิม)
+      Promise.resolve(
+        this.searchService.indexDocument({
+          id: correspondence.id,
+          publicId: correspondence.publicId,
+          type: 'correspondence',
+          docNumber: correspondence.correspondenceNumber,
+          title: revision.subject,
+          status: status.statusCode,
+          projectId: project.id,
+          createdAt: new Date(),
+        })
+      ).catch((err: Error) =>
+        this.logger.error(
+          `Search indexing failed for ${correspondence.correspondenceNumber}: ${err.message}`
+        )
+      );
 
       // FR-011: Trigger RAG re-embed หลัง commit เสร็จ (ADR-042/047)
       // ใช้ rag-prepare pipeline เดียวกับเอกสารปกติ โดยส่ง ocrText ผ่าน cachedOcrText

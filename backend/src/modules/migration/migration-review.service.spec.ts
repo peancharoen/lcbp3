@@ -33,6 +33,7 @@ import { RagBatchService } from './services/rag-batch.service';
 import { FileStorageService } from '../../common/file-storage/file-storage.service';
 import { MigrationService } from './migration.service';
 import { ReviewThresholdService } from './services/review-threshold.service';
+import { SearchService } from '../search/search.service';
 import {
   MigrationReviewQueue,
   MigrationReviewStatus,
@@ -293,6 +294,7 @@ describe('MigrationReviewService', () => {
     parseExtractionDetails: jest.Mock;
   };
   let mockReviewThresholdService: { getThresholds: jest.Mock };
+  let mockSearchService: { indexDocument: jest.Mock };
 
   beforeEach(async () => {
     // fs-extra defaults
@@ -341,6 +343,12 @@ describe('MigrationReviewService', () => {
         .mockResolvedValue({ minConfidence: 0.6, maxMismatchFields: 2 }),
     };
 
+    // Bugfix (2026-09-08) — commitRecord now fire-and-forget indexes the committed
+    // correspondence into Elasticsearch; mock so DI resolves and we can assert on it
+    mockSearchService = {
+      indexDocument: jest.fn().mockResolvedValue({ result: 'created' }),
+    };
+
     dataSource = {
       createQueryRunner: jest.fn(),
       getRepository: jest.fn().mockImplementation((entity) => {
@@ -361,6 +369,7 @@ describe('MigrationReviewService', () => {
           provide: ReviewThresholdService,
           useValue: mockReviewThresholdService,
         },
+        { provide: SearchService, useValue: mockSearchService },
       ],
     }).compile();
 
@@ -1514,6 +1523,10 @@ describe('MigrationReviewService', () => {
       expect(qr.commitTransaction).toHaveBeenCalled();
       expect(qr.manager.save).toHaveBeenCalled();
       expect(mockedLinkAttachments).toHaveBeenCalled();
+      // Bugfix (2026-09-08): committed correspondence must be indexed into search
+      expect(mockSearchService.indexDocument).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'correspondence' })
+      );
     });
   });
 

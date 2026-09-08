@@ -122,7 +122,9 @@ export function TransmittalForm() {
 
   const selectedDocId = form.watch('correspondenceId');
   const correspondenceList = correspondences?.data || [];
-  const selectedDoc = correspondenceList.find((c: { uuid: string }) => c.uuid === selectedDocId);
+  const selectedDoc = correspondenceList.find(
+    (c: { correspondence?: { publicId: string } }) => c.correspondence?.publicId === selectedDocId
+  );
 
   return (
     <Form {...form}>
@@ -176,8 +178,8 @@ export function TransmittalForm() {
                       </FormControl>
                       <SelectContent>
                         {(Array.isArray(orgsList) ? orgsList : []).map(
-                          (o: { uuid: string; organizationName?: string; organizationCode?: string }) => (
-                            <SelectItem key={o.uuid} value={o.uuid}>
+                          (o: { publicId: string; organizationName?: string; organizationCode?: string }) => (
+                            <SelectItem key={o.publicId} value={o.publicId}>
                               {o.organizationName || o.organizationCode}
                             </SelectItem>
                           )
@@ -207,7 +209,8 @@ export function TransmittalForm() {
                             className={cn('justify-between', !field.value && 'text-muted-foreground')}
                           >
                             {selectedDoc
-                              ? (selectedDoc as { correspondenceNumber?: string }).correspondenceNumber || 'Selected'
+                              ? (selectedDoc as { correspondence?: { correspondenceNumber?: string } }).correspondence
+                                  ?.correspondenceNumber || 'Selected'
                               : 'Select reference...'}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
@@ -219,24 +222,28 @@ export function TransmittalForm() {
                           <CommandList>
                             <CommandEmpty>No document found.</CommandEmpty>
                             <CommandGroup>
-                              {correspondenceList.map((doc: { uuid: string; correspondenceNumber?: string }) => (
-                                <CommandItem
-                                  key={doc.uuid}
-                                  value={doc.correspondenceNumber || doc.uuid}
-                                  onSelect={() => {
-                                    form.setValue('correspondenceId', doc.uuid);
-                                    setDocOpen(false);
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      'mr-2 h-4 w-4',
-                                      doc.uuid === field.value ? 'opacity-100' : 'opacity-0'
-                                    )}
-                                  />
-                                  {doc.correspondenceNumber || doc.uuid}
-                                </CommandItem>
-                              ))}
+                              {correspondenceList.map(
+                                (doc: { correspondence?: { publicId: string; correspondenceNumber?: string } }) => (
+                                  <CommandItem
+                                    key={doc.correspondence?.publicId}
+                                    value={doc.correspondence?.correspondenceNumber || doc.correspondence?.publicId}
+                                    onSelect={() => {
+                                      if (doc.correspondence?.publicId) {
+                                        form.setValue('correspondenceId', doc.correspondence.publicId);
+                                      }
+                                      setDocOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        'mr-2 h-4 w-4',
+                                        doc.correspondence?.publicId === field.value ? 'opacity-100' : 'opacity-0'
+                                      )}
+                                    />
+                                    {doc.correspondence?.correspondenceNumber || doc.correspondence?.publicId}
+                                  </CommandItem>
+                                )
+                              )}
                             </CommandGroup>
                           </CommandList>
                         </Command>

@@ -1,7 +1,11 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ElasticsearchService } from '@nestjs/elasticsearch';
 import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { SearchQueryDto } from './dto/search-query.dto';
+import { Correspondence } from '../correspondence/entities/correspondence.entity';
+import { Rfa } from '../rfa/entities/rfa.entity';
 
 @Injectable()
 export class SearchService implements OnModuleInit {
@@ -11,7 +15,11 @@ export class SearchService implements OnModuleInit {
 
   constructor(
     private readonly esService: ElasticsearchService,
-    private readonly configService: ConfigService
+    private readonly configService: ConfigService,
+    @InjectRepository(Correspondence)
+    private readonly correspondenceRepo: Repository<Correspondence>,
+    @InjectRepository(Rfa)
+    private readonly rfaRepo: Repository<Rfa>
   ) {}
 
   async onModuleInit() {
@@ -92,6 +100,59 @@ export class SearchService implements OnModuleInit {
         `Failed to index document: ${(error as Error).message}`
       );
     }
+  }
+
+  /**
+   * Backfill index ทั้งหมดจาก DB (Admin only) — ใช้แก้กรณี index ว่าง/ไม่ตรงกับ DB
+   * เช่น เอกสารที่เข้าระบบผ่าน migration commit ก่อนที่จะมีการ wire indexDocument()
+   * เข้า path นั้น (bugfix 2026-09-08) — ครอบคลุมทั้ง correspondence และ rfa
+   * (RFA เป็น CTI subtype ของ correspondences ตาราง id เดียวกัน)
+   */
+  async reindexAll(
+    typeFilter?: string
+  ): Promise<{ indexed: number; failed: number }> {
+    if (!this.isElasticsearchAvailable) {
+      this.logger.warn('Reindex skipped — Elasticsearch not connected');
+      return { indexed: 0, failed: 0 };
+    }
+
+    const [correspondences, rfaRows] = await Promise.all([
+      this.correspondenceRepo.find({
+        relations: ['revisions', 'revisions.status'],
+      }),
+      this.rfaRepo.find({ select: ['id'] }),
+    ]);
+    const rfaIds = new Set(rfaRows.map((r) => r.id));
+
+    let indexed = 0;
+    let failed = 0;
+    for (const corr of correspondences) {
+      const docType = rfaIds.has(corr.id) ? 'rfa' : 'correspondence';
+      if (typeFilter && typeFilter !== docType) continue;
+
+      const currentRevision =
+        corr.revisions?.find((r) => r.isCurrent) ?? corr.revisions?.[0];
+      // indexDocument() ไม่ throw เอง (catch + log ภายในแล้ว return undefined เมื่อ error)
+      // จึงต้องเช็คจาก return value แทน try/catch เพื่อนับ failed ให้ถูกต้อง
+      const result = await this.indexDocument({
+        id: corr.id,
+        publicId: corr.publicId,
+        type: docType,
+        docNumber: corr.correspondenceNumber,
+        title: currentRevision?.subject ?? corr.correspondenceNumber,
+        status: currentRevision?.status?.statusCode ?? 'UNKNOWN',
+        projectId: corr.projectId,
+        createdAt: corr.createdAt,
+      });
+      if (result) {
+        indexed++;
+      } else {
+        failed++;
+      }
+    }
+
+    this.logger.log(`Reindex complete: ${indexed} indexed, ${failed} failed`);
+    return { indexed, failed };
   }
 
   /**

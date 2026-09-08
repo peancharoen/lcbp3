@@ -1,7 +1,8 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { SearchService } from './search.service';
 import { SearchQueryDto } from './dto/search-query.dto';
+import { ReindexSearchDto } from './dto/reindex-search.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../common/guards/rbac.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
@@ -18,5 +19,14 @@ export class SearchController {
   @RequirePermission('search.advanced') // สิทธิ์ ID 48
   search(@Query() queryDto: SearchQueryDto) {
     return this.searchService.search(queryDto);
+  }
+
+  @Post('reindex')
+  @ApiOperation({
+    summary: 'Backfill Elasticsearch index from DB (Admin only)',
+  })
+  @RequirePermission('system.manage_all')
+  reindex(@Body() dto: ReindexSearchDto) {
+    return this.searchService.reindexAll(dto.type);
   }
 }

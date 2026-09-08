@@ -85,7 +85,9 @@ export default function CreateCirculationPage() {
   const selectedAssignees = form.watch('assigneeIds');
   const selectedDocId = form.watch('correspondenceId');
 
-  const selectedDoc = correspondences?.data?.find((c: { publicId: string }) => c.publicId === selectedDocId);
+  const selectedDoc = correspondences?.data?.find(
+    (c: { correspondence?: { publicId: string } }) => c.correspondence?.publicId === selectedDocId
+  );
 
   const toggleAssignee = (userUuid: string) => {
     const current = form.getValues('assigneeIds');
@@ -136,7 +138,7 @@ export default function CreateCirculationPage() {
                             role="combobox"
                             className={cn('justify-between', !field.value && 'text-muted-foreground')}
                           >
-                            {selectedDoc ? selectedDoc.correspondenceNumber : 'Select document...'}
+                            {selectedDoc ? selectedDoc.correspondence?.correspondenceNumber : 'Select document...'}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
                         </FormControl>
@@ -147,24 +149,28 @@ export default function CreateCirculationPage() {
                           <CommandList>
                             <CommandEmpty>No document found.</CommandEmpty>
                             <CommandGroup>
-                              {correspondences?.data?.map((doc: { publicId: string; correspondenceNumber: string }) => (
-                                <CommandItem
-                                  key={doc.publicId}
-                                  value={doc.correspondenceNumber}
-                                  onSelect={() => {
-                                    form.setValue('correspondenceId', doc.publicId);
-                                    setDocOpen(false);
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      'mr-2 h-4 w-4',
-                                      doc.publicId === field.value ? 'opacity-100' : 'opacity-0'
-                                    )}
-                                  />
-                                  {doc.correspondenceNumber}
-                                </CommandItem>
-                              ))}
+                              {correspondences?.data?.map(
+                                (doc: { correspondence?: { publicId: string; correspondenceNumber: string } }) => (
+                                  <CommandItem
+                                    key={doc.correspondence?.publicId}
+                                    value={doc.correspondence?.correspondenceNumber}
+                                    onSelect={() => {
+                                      if (doc.correspondence?.publicId) {
+                                        form.setValue('correspondenceId', doc.correspondence.publicId);
+                                      }
+                                      setDocOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        'mr-2 h-4 w-4',
+                                        doc.correspondence?.publicId === field.value ? 'opacity-100' : 'opacity-0'
+                                      )}
+                                    />
+                                    {doc.correspondence?.correspondenceNumber}
+                                  </CommandItem>
+                                )
+                              )}
                             </CommandGroup>
                           </CommandList>
                         </Command>
