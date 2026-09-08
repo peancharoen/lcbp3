@@ -13,7 +13,7 @@
 // - 2026-08-24: ADR-048 T004 — ลงทะเบียน NodeMetricsService สำหรับ AI Engine Control Center telemetry
 // Module สำหรับ AI Gateway — ลงทะเบียน Services และ Controllers (ADR-023)
 
-import { Logger, Module, OnModuleInit } from '@nestjs/common';
+import { Logger, Module, OnModuleInit, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { BullModule, InjectQueue } from '@nestjs/bullmq';
@@ -157,7 +157,7 @@ import { PendingVectorDeletion } from './entities/pending-vector-deletion.entity
 
     // UserModule สำหรับ RbacGuard (ต้องการ UserService)
     UserModule,
-    MigrationModule,
+    forwardRef(() => MigrationModule),
     TagsModule,
     FileStorageModule,
     AuditLogModule,

@@ -9,7 +9,7 @@
 //   ExcelSchemaValidatorService, ExcelBusinessRulesService, ExcelDataReviewService,
 //   ExcelImportReviewController + Discipline entity
 
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { BullModule } from '@nestjs/bullmq';
@@ -88,7 +88,7 @@ import { AiModule } from '../ai/ai.module';
     CaslModule,
     RedisModule,
     UserModule, // สำหรับ RbacGuard + ExcelImportReviewController (ต้องการ UserService)
-    AiModule, // สำหรับ OllamaService (Layer 3 AI Reviewer — ADR-023/023A)
+    forwardRef(() => AiModule), // สำหรับ OllamaService (Layer 3 AI Reviewer — ADR-023/023A)
   ],
   controllers: [
     MigrationController,
