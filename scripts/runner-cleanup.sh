@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # File: scripts/runner-cleanup.sh
 # Gitea Runner Cleanup — ASUSTOR (192.168.10.9)

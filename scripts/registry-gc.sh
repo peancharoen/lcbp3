@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # File: scripts/registry-gc.sh
 # Registry Garbage Collection — ASUSTOR Private Registry (192.168.10.9:5000)
@@ -12,11 +12,11 @@
 #
 # Usage:
 #   ssh asustor
-#   cd /volume1/np-dms/registry
-#   /opt/np-dms-lcbp3/scripts/registry-gc.sh
+#   source /volume1/np-dms/registry/.env
+#   /volume1/np-dms/scripts/registry-gc.sh
 #
 # Schedule (cron — ทุกวันอาทิตย์ 04:00):
-#   0 4 * * 0 /opt/np-dms-lcbp3/scripts/registry-gc.sh >> /volume1/np-dms/registry/gc.log 2>&1
+#   0 4 * * 0 /volume1/np-dms/scripts/registry-gc.sh >> /volume1/np-dms/registry/gc.log 2>&1
 
 set -e
 
@@ -54,28 +54,23 @@ PRUNED=0
 for REPO in $CATALOG; do
     [ -z "$REPO" ] && continue
 
+    # ดึง tags และนับ
     TAGS=$(curl -sf -u "${REGISTRY_USER}:${REGISTRY_PASS}" \
         "${REGISTRY_URL}/v2/${REPO}/tags/list" 2>/dev/null | \
         sed 's/.*"tags":\[//' | sed 's/\].*//' | tr ',' '\n' | \
         tr -d '"' | sed 's/^ *//' | grep -v '^$')
 
-    TAG_COUNT=0
-    TAG_ARRAY=()
-    for TAG in $TAGS; do
-        TAG_ARRAY+=("$TAG")
-        TAG_COUNT=$((TAG_COUNT + 1))
-    done
+    TAG_COUNT=$(echo "$TAGS" | wc -l)
+    TAG_COUNT=$(echo "$TAG_COUNT" | tr -d ' ')
 
     if [ "$TAG_COUNT" -le "$RETENTION_TAGS" ]; then
         echo "  ${REPO}: ${TAG_COUNT} tags (within retention) — skip"
         continue
     fi
 
-    # ลบ tags ที่เกิน retention (เก็บล่าสุดตามลำดับ — สมมติ tag เรียงตามเวลา)
-    # หมายเหตุ: Registry API ไม่ return ตามลำดับเวลา; ใช้ SHA tag pattern
-    # ถ้าเป็น SHA tag (12 hex) ให้เก็บไว้, ลบ non-SHA ที่เกิน retention
+    # ลบ tags ที่เกิน retention (เก็บ RETENTION_TAGS แรก)
     DELETE_COUNT=0
-    for TAG in "${TAG_ARRAY[@]}"; do
+    for TAG in $TAGS; do
         DELETE_COUNT=$((DELETE_COUNT + 1))
         if [ "$DELETE_COUNT" -le "$RETENTION_TAGS" ]; then
             continue
@@ -108,9 +103,7 @@ echo "[3/4] Running garbage collection..."
 docker run --rm \
     -v "${REGISTRY_DATA_DIR}:/var/lib/registry" \
     registry:2 garbage-collect \
-    /etc/docker/registry/config.yml 2>&1 || {
-        echo "⚠️  GC failed — restarting registry anyway"
-    }
+    /etc/docker/registry/config.yml 2>&1 || echo "⚠️  GC failed — restarting registry anyway"
 
 echo "✓ Garbage collection complete"
 
