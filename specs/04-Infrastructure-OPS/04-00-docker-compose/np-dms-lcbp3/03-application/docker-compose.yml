@@ -7,6 +7,7 @@
 #   Changes:
 #     - volume paths → /opt/np-dms/ (local SSD)
 #     - uploads → CIFS mount from ASUSTOR (Primary NAS — ADR-041 D2)
+#     - images → ASUSTOR Private Registry 192.168.10.9:5000 (ADR-041 artifact separation)
 #     - OCR_API_URL → http://ocr-sidecar:8765 (Docker internal — ADR-040 D5)
 #     - OLLAMA via host IP (native systemd service — D11, ไม่ใช่ Docker)
 #     - QDRANT_HOST → qdrant (Docker internal)
@@ -84,7 +85,7 @@ services:
   # ----------------------------------------------------------------
   backend:
     <<: [*restart_policy, *default_logging]
-    image: lcbp3-backend:${BACKEND_IMAGE_TAG:-latest}
+    image: ${REGISTRY:-192.168.10.9:5000}/lcbp3-backend:${BACKEND_IMAGE_TAG:-latest}
     container_name: backend
     deploy:
       resources:
@@ -173,7 +174,7 @@ services:
   # ----------------------------------------------------------------
   frontend:
     <<: [*restart_policy, *default_logging]
-    image: lcbp3-frontend:${FRONTEND_IMAGE_TAG:-latest}
+    image: ${REGISTRY:-192.168.10.9:5000}/lcbp3-frontend:${FRONTEND_IMAGE_TAG:-latest}
     container_name: frontend
     deploy:
       resources:

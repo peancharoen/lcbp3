@@ -24,6 +24,10 @@ ENV_FILE="/opt/np-dms/.env"
 DEPLOY_HISTORY="/opt/np-dms/.deploy-history"
 IMAGE_RETENTION=3
 
+# ASUSTOR Private Registry (ADR-041 — artifact separation)
+REGISTRY="192.168.10.9:5000"
+export REGISTRY
+
 API_URL="http://192.168.10.11:3000/api"
 AUTH_URL="https://lcbp3.np-dms.work"
 
@@ -87,13 +91,20 @@ echo "✓ Layer 3 compose file synced"
 
 # [2/5] Build images (sequential to reduce resource contention)
 # ADR-015: tag ด้วย git SHA + :latest เพื่อให้ rollback ได้
+# ADR-041: push ไป ASUSTOR Private Registry เพื่อแยก build artifacts จาก production host
 echo "[2/5] Building Docker images (tagged with git SHA: $GIT_SHA)..."
 
 echo "  Building backend..."
 docker build -f backend/Dockerfile \
     -t "lcbp3-backend:${GIT_SHA}" \
     -t "lcbp3-backend:latest" \
+    -t "${REGISTRY}/lcbp3-backend:${GIT_SHA}" \
+    -t "${REGISTRY}/lcbp3-backend:latest" \
     . || { echo "✗ Backend build failed!"; exit 1; }
+
+echo "  Pushing backend to registry..."
+docker push "${REGISTRY}/lcbp3-backend:${GIT_SHA}" || { echo "✗ Backend push failed!"; exit 1; }
+docker push "${REGISTRY}/lcbp3-backend:latest" || { echo "✗ Backend latest push failed!"; exit 1; }
 
 echo "  Building frontend..."
 docker build -f frontend/Dockerfile \
@@ -101,9 +112,15 @@ docker build -f frontend/Dockerfile \
     --build-arg AUTH_URL="$AUTH_URL" \
     -t "lcbp3-frontend:${GIT_SHA}" \
     -t "lcbp3-frontend:latest" \
+    -t "${REGISTRY}/lcbp3-frontend:${GIT_SHA}" \
+    -t "${REGISTRY}/lcbp3-frontend:latest" \
     . || { echo "✗ Frontend build failed!"; exit 1; }
 
-echo "✓ Images built (tags: $GIT_SHA + latest)"
+echo "  Pushing frontend to registry..."
+docker push "${REGISTRY}/lcbp3-frontend:${GIT_SHA}" || { echo "✗ Frontend push failed!"; exit 1; }
+docker push "${REGISTRY}/lcbp3-frontend:latest" || { echo "✗ Frontend latest push failed!"; exit 1; }
+
+echo "✓ Images built and pushed to ${REGISTRY} (tags: $GIT_SHA + latest)"
 
 # [3/5] Restart Layer 3 (application) with new images
 # ใช้ BACKEND_IMAGE_TAG/FRONTEND_IMAGE_TAG env var เพื่อระบุ version ที่จะรัน
@@ -151,11 +168,24 @@ if [ "$HEALTH_OK" = false ]; then
     fi
 
     echo "  Rolling back to: $PREV_SHA"
+    # ตรวจสอบ local image ก่อน; ถ้าไม่มี ให้ pull จาก registry
+    if ! docker image inspect "lcbp3-backend:${PREV_SHA}" > /dev/null 2>&1; then
+        echo "  Local image not found — pulling from ${REGISTRY}..."
+        docker pull "${REGISTRY}/lcbp3-backend:${PREV_SHA}" || true
+        docker tag "${REGISTRY}/lcbp3-backend:${PREV_SHA}" "lcbp3-backend:${PREV_SHA}" 2>/dev/null || true
+    fi
+    if ! docker image inspect "lcbp3-frontend:${PREV_SHA}" > /dev/null 2>&1; then
+        docker pull "${REGISTRY}/lcbp3-frontend:${PREV_SHA}" || true
+        docker tag "${REGISTRY}/lcbp3-frontend:${PREV_SHA}" "lcbp3-frontend:${PREV_SHA}" 2>/dev/null || true
+    fi
+
     if docker image inspect "lcbp3-backend:${PREV_SHA}" > /dev/null 2>&1 && \
        docker image inspect "lcbp3-frontend:${PREV_SHA}" > /dev/null 2>&1; then
-        # Tag previous image เป็น latest แล้ว restart
+        # Tag previous image เป็น latest (local + registry-prefixed) แล้ว restart
         docker tag "lcbp3-backend:${PREV_SHA}" lcbp3-backend:latest
         docker tag "lcbp3-frontend:${PREV_SHA}" lcbp3-frontend:latest
+        docker tag "lcbp3-backend:${PREV_SHA}" "${REGISTRY}/lcbp3-backend:latest"
+        docker tag "lcbp3-frontend:${PREV_SHA}" "${REGISTRY}/lcbp3-frontend:latest"
         export BACKEND_IMAGE_TAG="latest"
         export FRONTEND_IMAGE_TAG="latest"
         docker compose --env-file "$ENV_FILE" -f "$COMPOSE_RUNTIME_DIR/docker-compose.yml" up -d --force-recreate
@@ -184,8 +214,9 @@ echo "✓ Deploy history updated ($DEPLOY_HISTORY)"
 
 # Prune old images — เก็บ $IMAGE_RETENTION versions ล่าสุด
 # หา SHA tags ทั้งหมดของ backend, เรียงตามวันสร้าง, ลบของเก่ากว่า retention
+# รวม local images และ registry-prefixed images
 PRUNE_COUNT=0
-for REPO in lcbp3-backend lcbp3-frontend; do
+for REPO in lcbp3-backend lcbp3-frontend "${REGISTRY}/lcbp3-backend" "${REGISTRY}/lcbp3-frontend"; do
     # หา image tags ที่เป็น SHA (12 hex chars) ไม่ใช่ latest
     # ใช้ awk แทน grep -P เพื่อความ portable (รองรับ busybox/alpine)
     OLD_TAGS=$(docker images --format "{{.Tag}}\t{{.CreatedAt}}" "$REPO" 2>/dev/null \

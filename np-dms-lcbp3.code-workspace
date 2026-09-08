@@ -456,7 +456,7 @@
     // TERMINAL
     // ========================================
 
-    "terminal.integrated.fontSize": 15,
+    "terminal.integrated.fontSize": 14,
     "terminal.integrated.lineHeight": 1.2,
     "terminal.integrated.smoothScrolling": true,
     "terminal.integrated.cursorBlinking": true,
@@ -669,7 +669,7 @@
     // DEBUGGING
     // ========================================
 
-    "debug.console.fontSize": 16,
+    "debug.console.fontSize": 14,
     "debug.console.fontFamily": "Consolas, 'Courier New', monospace",
     "debug.console.lineHeight": 20,
     "debug.console.wordWrap": false,
@@ -730,6 +730,7 @@
     "terminal.integrated.mouseWheelZoom": true,
     "terminal.integrated.tabs.title": "${process}-${cwd}",
     "workbench.editor.sharedViewState": true,
+    "scm.inputFontSize": 14,
   },
   // ========================================
   // LAUNCH CONFIGURATIONS

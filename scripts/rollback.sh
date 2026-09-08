@@ -17,6 +17,10 @@ COMPOSE_RUNTIME_DIR="/opt/np-dms/03-application"
 ENV_FILE="/opt/np-dms/.env"
 DEPLOY_HISTORY="/opt/np-dms/.deploy-history"
 
+# ASUSTOR Private Registry (ADR-041 — artifact separation)
+REGISTRY="192.168.10.9:5000"
+export REGISTRY
+
 API_URL="http://192.168.10.11:3000/api"
 AUTH_URL="https://lcbp3.np-dms.work"
 
@@ -86,15 +90,28 @@ echo "  Current:  $CURRENT_SHA"
 echo "  Rollback: $TARGET_SHA"
 
 # [2/4] ใช้ pre-built image (ถ้ามี) หรือ fallback ไป rebuild
+# ลำดับ: local image → pull จาก registry → rebuild จาก git
 echo "[2/4] Preparing rollback images..."
 USE_PREBUILT=true
 
+# ตรวจสอบ local image; ถ้าไม่มี ให้ pull จาก registry ก่อน fallback rebuild
 if ! docker image inspect "lcbp3-backend:${TARGET_SHA}" > /dev/null 2>&1; then
-    echo "  ⚠️  lcbp3-backend:${TARGET_SHA} not found — fallback to rebuild"
+    echo "  lcbp3-backend:${TARGET_SHA} not found locally — trying registry..."
+    docker pull "${REGISTRY}/lcbp3-backend:${TARGET_SHA}" 2>/dev/null && \
+        docker tag "${REGISTRY}/lcbp3-backend:${TARGET_SHA}" "lcbp3-backend:${TARGET_SHA}" 2>/dev/null || true
+fi
+if ! docker image inspect "lcbp3-frontend:${TARGET_SHA}" > /dev/null 2>&1; then
+    echo "  lcbp3-frontend:${TARGET_SHA} not found locally — trying registry..."
+    docker pull "${REGISTRY}/lcbp3-frontend:${TARGET_SHA}" 2>/dev/null && \
+        docker tag "${REGISTRY}/lcbp3-frontend:${TARGET_SHA}" "lcbp3-frontend:${TARGET_SHA}" 2>/dev/null || true
+fi
+
+if ! docker image inspect "lcbp3-backend:${TARGET_SHA}" > /dev/null 2>&1; then
+    echo "  ⚠️  lcbp3-backend:${TARGET_SHA} not found in local or registry — fallback to rebuild"
     USE_PREBUILT=false
 fi
 if ! docker image inspect "lcbp3-frontend:${TARGET_SHA}" > /dev/null 2>&1; then
-    echo "  ⚠️  lcbp3-frontend:${TARGET_SHA} not found — fallback to rebuild"
+    echo "  ⚠️  lcbp3-frontend:${TARGET_SHA} not found in local or registry — fallback to rebuild"
     USE_PREBUILT=false
 fi
 
@@ -103,6 +120,8 @@ if [ "$USE_PREBUILT" = true ]; then
     echo "  Using pre-built images: $TARGET_SHA"
     docker tag "lcbp3-backend:${TARGET_SHA}" lcbp3-backend:latest
     docker tag "lcbp3-frontend:${TARGET_SHA}" lcbp3-frontend:latest
+    docker tag "lcbp3-backend:${TARGET_SHA}" "${REGISTRY}/lcbp3-backend:latest"
+    docker tag "lcbp3-frontend:${TARGET_SHA}" "${REGISTRY}/lcbp3-frontend:latest"
     echo "✓ Images tagged (:latest → $TARGET_SHA)"
 else
     # Fallback: checkout commit + rebuild (กรณี image ถูก prune ไปแล้ว)
@@ -116,6 +135,7 @@ else
     docker build -f backend/Dockerfile \
         -t "lcbp3-backend:${TARGET_SHA}" \
         -t "lcbp3-backend:latest" \
+        -t "${REGISTRY}/lcbp3-backend:${TARGET_SHA}" \
         . || { echo "✗ Backend build failed!"; exit 1; }
     echo "  Building frontend..."
     docker build -f frontend/Dockerfile \
@@ -123,6 +143,7 @@ else
         --build-arg AUTH_URL="$AUTH_URL" \
         -t "lcbp3-frontend:${TARGET_SHA}" \
         -t "lcbp3-frontend:latest" \
+        -t "${REGISTRY}/lcbp3-frontend:${TARGET_SHA}" \
         . || { echo "✗ Frontend build failed!"; exit 1; }
     echo "✓ Images rebuilt and tagged"
     # กลับไปที่ branch เดิม
