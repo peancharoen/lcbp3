@@ -8,10 +8,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRedis } from '@nestjs-modules/ioredis';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { isUUID } from 'class-validator';
 import Redis from 'ioredis';
 import axios from 'axios';
 import { AiQdrantService } from './qdrant.service';
 import { OcrService } from './services/ocr.service';
+import {
+  RagQueryLog,
+  RagQueryLogStatus,
+} from './entities/rag-query-log.entity';
 
 /** ผลลัพธ์ของ RAG query แต่ละรายการที่ถูก reference ในคำตอบ */
 export interface AiRagCitation {
@@ -53,7 +60,9 @@ export class AiRagService {
     private readonly configService: ConfigService,
     private readonly qdrantService: AiQdrantService,
     private readonly ocrService: OcrService,
-    @InjectRedis() private readonly redis: Redis
+    @InjectRedis() private readonly redis: Redis,
+    @InjectRepository(RagQueryLog)
+    private readonly ragQueryLogRepo: Repository<RagQueryLog>
   ) {
     this.ollamaUrl = this.configService.get<string>(
       'OLLAMA_URL',
@@ -117,6 +126,22 @@ export class AiRagService {
     );
   }
 
+  /**
+   * บันทึก RAG query แบบถาวรลง ai_rag_query_logs — เขียนเฉพาะ terminal state
+   * (completed/failed) ความล้มเหลวของการเขียน log ต้องไม่ทำให้ RAG answer response fail
+   * (pattern เดียวกับ AiBatchProcessor.saveAiAuditLog)
+   */
+  private async persistQueryLog(data: Partial<RagQueryLog>): Promise<void> {
+    try {
+      const row = this.ragQueryLogRepo.create(data);
+      await this.ragQueryLogRepo.save(row);
+    } catch (err: unknown) {
+      this.logger.error(
+        `บันทึก ai_rag_query_logs ล้มเหลว: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
+  }
+
   /** ดึงผลลัพธ์ job จาก Redis */
   async getJobResult(requestPublicId: string): Promise<AiRagJobResult | null> {
     const raw = await this.redis.get(this.resultKey(requestPublicId));
@@ -170,6 +195,10 @@ export class AiRagService {
     signal?: AbortSignal
   ): Promise<void> {
     await this.saveJobResult({ requestPublicId, status: 'processing' });
+    const startTime = Date.now();
+    const normalizedUserPublicId = isUUID(userPublicId)
+      ? userPublicId
+      : undefined;
 
     try {
       // ตรวจสอบว่าถูกยกเลิกก่อนเริ่มทำงาน
@@ -292,6 +321,18 @@ export class AiRagService {
         usedFallbackModel: usedFallback,
         completedAt: new Date().toISOString(),
       });
+      await this.persistQueryLog({
+        publicId: requestPublicId,
+        projectPublicId,
+        userPublicId: normalizedUserPublicId,
+        question: this.sanitizeInput(question),
+        answer,
+        status: RagQueryLogStatus.COMPLETED,
+        confidenceScore: confidence,
+        usedFallbackModel: usedFallback,
+        citationsJson: citations,
+        processingTimeMs: Date.now() - startTime,
+      });
 
       this.logger.log(
         `RAG query completed — requestPublicId=${requestPublicId}, confidence=${confidence.toFixed(3)}`
@@ -306,6 +347,15 @@ export class AiRagService {
         status: 'failed',
         errorMessage: errMsg,
         completedAt: new Date().toISOString(),
+      });
+      await this.persistQueryLog({
+        publicId: requestPublicId,
+        projectPublicId,
+        userPublicId: normalizedUserPublicId,
+        question: this.sanitizeInput(question),
+        status: RagQueryLogStatus.FAILED,
+        errorMessage: errMsg,
+        processingTimeMs: Date.now() - startTime,
       });
     } finally {
       await this.clearActiveJob(userPublicId);

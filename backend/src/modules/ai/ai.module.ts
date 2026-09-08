@@ -83,6 +83,7 @@ import {
 import { NodeMetricsService } from './services/node-metrics.service';
 import { VectorCleanupService } from './services/vector-cleanup.service';
 import { PendingVectorDeletion } from './entities/pending-vector-deletion.entity';
+import { RagQueryLog } from './entities/rag-query-log.entity';
 
 @Module({
   imports: [
@@ -104,6 +105,7 @@ import { PendingVectorDeletion } from './entities/pending-vector-deletion.entity
       AiExecutionProfile,
       AiSandboxProfile,
       PendingVectorDeletion,
+      RagQueryLog,
     ]),
 
     BullModule.registerQueue(

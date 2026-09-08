@@ -2652,6 +2652,42 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 
 ---
 
+### 19.9 `ai_rag_query_logs`
+
+**วัตถุประสงค์:** บันทึกประวัติ RAG query แบบถาวร (question/answer/confidence/citations) — ก่อนหน้านี้ `AiRagService.processQuery()` เก็บผลลัพธ์ใน Redis เท่านั้น (TTL 300 วินาที) ทำให้ไม่มีข้อมูลจริงสำหรับประเมินการเปลี่ยนแปลง retrieval (เช่น Elasticsearch fusion, summary-index granularity routing)
+
+| Column                 | Type               | Nullable | Description                                                                     |
+| ---------------------- | ------------------ | -------- | -------------------------------------------------------------------------------- |
+| `id`                   | INT AUTO_INCREMENT | NO       | Internal PK — ห้าม expose ใน API (ADR-019)                                       |
+| `public_id`            | UUID               | NO       | เก็บค่าเดียวกับ requestPublicId (BullMQ idempotencyKey) — ไม่ generate ใหม่       |
+| `project_public_id`    | UUID               | NO       | project ที่ query นี้ scope อยู่ (ADR-023A isolation)                             |
+| `user_public_id`       | UUID               | YES      | NULL เมื่อเรียกจาก system/internal ไม่ใช่ user login จริง                        |
+| `question`             | TEXT               | NO       | คำถามของผู้ใช้ (ผ่าน sanitizeInput แล้ว)                                          |
+| `answer`               | TEXT               | YES      | คำตอบจาก LLM — NULL เมื่อ status = failed                                        |
+| `status`               | ENUM               | NO       | completed \| failed                                                              |
+| `confidence_score`     | FLOAT              | YES      | top-1 rerank score จาก finalResults[0].score                                     |
+| `used_fallback_model`  | TINYINT(1)         | NO       | 1 = ใช้ fallback message แทนคำตอบจาก LLM                                         |
+| `citations_json`       | JSON               | YES      | AiRagCitation[] — pointId, score, docType, docNumber, snippet                    |
+| `error_message`        | TEXT               | YES      | error message เมื่อ status = failed                                              |
+| `processing_time_ms`   | INT                | YES      | ระยะเวลาประมวลผลทั้ง pipeline (embed → search → rerank → generate)               |
+| `created_at`           | TIMESTAMP          | NO       | วันที่สร้าง                                                                       |
+
+**Indexes**:
+
+- PRIMARY KEY (id)
+- UNIQUE KEY (public_id)
+- KEY idx_rag_query_logs_project (project_public_id)
+- KEY idx_rag_query_logs_status (status)
+- KEY idx_rag_query_logs_created_at (created_at)
+
+**Business Rules**:
+
+1. **Write-only logging** — เขียนเฉพาะตอน terminal state (`completed`/`failed`) ของ `processQuery()`; ไม่ log สถานะ `cancelled` (เป็น user-abort signal ไม่ใช่ retrieval-quality signal)
+2. **Never blocks the response** — การเขียน log ต้องไม่ทำให้ RAG answer response fail (wrap ด้วย try/catch แบบเดียวกับ `saveAiAuditLog`)
+3. **No list API (yet)** — ตารางนี้ยังไม่มี endpoint อ่านทีละแถว ใช้สำหรับเก็บข้อมูลดิบเพื่อวิเคราะห์ก่อนตัดสินใจสถาปัตยกรรม retrieval เท่านั้น
+
+---
+
 ### 19.4 Confidence Scoring Strategy (ADR-020)
 
 | Score Range   | Action                 | Description                               |
