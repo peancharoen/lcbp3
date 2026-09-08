@@ -64,10 +64,20 @@ describe('TransmittalForm', () => {
       data: [{ publicId: '019505a1-7c3e-7000-8000-abc123defc01', projectName: 'LCBP3' }],
     });
     vi.mocked(organizationService.getAll).mockResolvedValue({
-      data: [{ uuid: '019505a1-7c3e-7000-8000-abc123defc02', organizationName: 'TEAM Consulting' }],
+      data: [{ publicId: '019505a1-7c3e-7000-8000-abc123defc02', organizationName: 'TEAM Consulting' }],
     });
+    // GET /correspondences returns CorrespondenceRevision rows with a nested
+    // `correspondence` relation (not a flat uuid/correspondenceNumber) — see
+    // correspondence.service.ts:findAll() (queries revisionRepo, joins corr)
     vi.mocked(correspondenceService.getAll).mockResolvedValue({
-      data: [{ uuid: '019505a1-7c3e-7000-8000-abc123defc03', correspondenceNumber: 'COR-001' }],
+      data: [
+        {
+          correspondence: {
+            publicId: '019505a1-7c3e-7000-8000-abc123defc03',
+            correspondenceNumber: 'COR-001',
+          },
+        },
+      ],
     });
     vi.mocked(transmittalService.create).mockResolvedValue({
       uuid: '019505a1-7c3e-7000-8000-abc123defc04',
