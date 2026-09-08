@@ -9,14 +9,15 @@
 #     แต่ไม่คืนพื้นที่ดิสก์จนกว่าจะรัน garbage collection
 #   - Script นี้รันบน ASUSTOR (เจ้าของ registry container)
 #   - ต้องหยุด registry ชั่วคราว (read-only mode) เพื่อ GC ที่ปลอดภัย
+#   - ใช้ sudo สำหรับ docker commands (ASUSTOR user ไม่มีสิทธิ์ Docker socket)
 #
 # Usage:
 #   ssh asustor
 #   source /volume1/np-dms/registry/.env
-#   /volume1/np-dms/scripts/registry-gc.sh
+#   sudo /volume1/np-dms/scripts/registry-gc.sh
 #
-# Schedule (cron — ทุกวันอาทิตย์ 04:00):
-#   0 4 * * 0 /volume1/np-dms/scripts/registry-gc.sh >> /volume1/np-dms/registry/gc.log 2>&1
+# Schedule (ADM Task Scheduler — ทุกวันอาทิตย์ 04:00):
+#   sudo /volume1/np-dms/scripts/registry-gc.sh
 
 set -e
 
@@ -33,13 +34,13 @@ echo "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 echo "========================================="
 
 # ตรวจสอบว่ารันบน ASUSTOR (มี registry container)
-if ! docker ps --format '{{.Names}}' | grep -q "^${REGISTRY_CONTAINER}$"; then
-    echo "✗ Registry container '${REGISTRY_CONTAINER}' not found — ต้องรันบน ASUSTOR"
+if ! sudo docker ps --format '{{.Names}}' | grep -q "^${REGISTRY_CONTAINER}$"; then
+    echo "ERROR: Registry container '${REGISTRY_CONTAINER}' not found"
     exit 1
 fi
 
 if [ -z "$REGISTRY_PASS" ]; then
-    echo "✗ REGISTRY_ADMIN_PASSWORD not set — source .env first:"
+    echo "ERROR: REGISTRY_ADMIN_PASSWORD not set"
     echo "  source /volume1/np-dms/registry/.env"
     exit 1
 fi
@@ -54,7 +55,6 @@ PRUNED=0
 for REPO in $CATALOG; do
     [ -z "$REPO" ] && continue
 
-    # ดึง tags และนับ
     TAGS=$(curl -sf -u "${REGISTRY_USER}:${REGISTRY_PASS}" \
         "${REGISTRY_URL}/v2/${REPO}/tags/list" 2>/dev/null | \
         sed 's/.*"tags":\[//' | sed 's/\].*//' | tr ',' '\n' | \
@@ -64,11 +64,10 @@ for REPO in $CATALOG; do
     TAG_COUNT=$(echo "$TAG_COUNT" | tr -d ' ')
 
     if [ "$TAG_COUNT" -le "$RETENTION_TAGS" ]; then
-        echo "  ${REPO}: ${TAG_COUNT} tags (within retention) — skip"
+        echo "  ${REPO}: ${TAG_COUNT} tags (within retention) - skip"
         continue
     fi
 
-    # ลบ tags ที่เกิน retention (เก็บ RETENTION_TAGS แรก)
     DELETE_COUNT=0
     for TAG in $TAGS; do
         DELETE_COUNT=$((DELETE_COUNT + 1))
@@ -91,38 +90,38 @@ for REPO in $CATALOG; do
     done
 done
 
-echo "✓ Pruned ${PRUNED} tag(s)"
+echo "  Pruned ${PRUNED} tag(s)"
 
-# ── [2/4] หยุด registry (read-only mode) ──────────────────────
+# ── [2/4] หยุด registry ──────────────────────
 echo "[2/4] Stopping registry for garbage collection..."
-docker stop "$REGISTRY_CONTAINER" > /dev/null
-echo "✓ Registry stopped"
+sudo docker stop "$REGISTRY_CONTAINER" > /dev/null
+echo "  Registry stopped"
 
 # ── [3/4] รัน garbage collection ──────────────────────
 echo "[3/4] Running garbage collection..."
-docker run --rm \
+sudo docker run --rm \
     -v "${REGISTRY_DATA_DIR}:/var/lib/registry" \
     registry:2 garbage-collect \
-    /etc/docker/registry/config.yml 2>&1 || echo "⚠️  GC failed — restarting registry anyway"
+    /etc/docker/registry/config.yml 2>&1 || echo "  WARNING: GC failed - restarting registry anyway"
 
-echo "✓ Garbage collection complete"
+echo "  Garbage collection complete"
 
 # ── [4/4] รัน registry ใหม่ ──────────────────────
 echo "[4/4] Restarting registry..."
-docker start "$REGISTRY_CONTAINER" > /dev/null
+sudo docker start "$REGISTRY_CONTAINER" > /dev/null
 sleep 3
 
-# ตรวจสอบว่า registry กลับมาใช้งานได้
 if curl -sf -u "${REGISTRY_USER}:${REGISTRY_PASS}" -o /dev/null \
     "${REGISTRY_URL}/v2/" 2>/dev/null; then
-    echo "✓ Registry is healthy"
+    echo "  Registry is healthy"
 else
-    echo "✗ Registry health check failed — check logs: docker logs ${REGISTRY_CONTAINER}"
+    echo "  ERROR: Registry health check failed"
+    echo "  Check: sudo docker logs ${REGISTRY_CONTAINER}"
     exit 1
 fi
 
 echo "========================================="
-echo "✓ Registry GC completed"
+echo "Registry GC completed"
 echo "  Pruned: ${PRUNED} tag(s)"
 echo "  $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 echo "========================================="
