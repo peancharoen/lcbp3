@@ -444,7 +444,7 @@ describe('MigrationReviewService', () => {
       expect(qr.rollbackTransaction).toHaveBeenCalled();
     });
 
-    it('throws ConflictException when queue item is not PENDING', async () => {
+    it('throws ConflictException when queue item is IMPORTED or REJECTED', async () => {
       const qr = createMockQueryRunner({
         queueItem: makeQueueItem({ status: MigrationReviewStatus.IMPORTED }),
       });

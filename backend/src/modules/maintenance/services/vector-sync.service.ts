@@ -2,6 +2,7 @@
 // Change Log:
 // - 2026-09-07: Vector Sync skeleton for Maintenance Console (Feature 253 — T096)
 // - 2026-09-08: Implement real Qdrant/DB sync: missing-vector scan, orphan-vector scan, and re-embed enqueue
+// - 2026-09-08: Fix raw SQL — projects table ใช้ column `uuid` ไม่ใช่ `public_id` (ADR-019)
 
 import { Injectable, Logger } from '@nestjs/common';
 import { DataSource } from 'typeorm';
@@ -40,14 +41,14 @@ export class VectorSyncService {
     projectPublicId?: string
   ): Promise<VectorSyncResult[]> {
     let query = `
-      SELECT p.public_id AS projectPublicId, c.uuid AS documentPublicId
+      SELECT p.uuid AS projectPublicId, c.uuid AS documentPublicId
       FROM correspondences c
       INNER JOIN projects p ON c.project_id = p.id
       WHERE c.deleted_at IS NULL
     `;
     const params: string[] = [];
     if (projectPublicId) {
-      query += ' AND p.public_id = ?';
+      query += ' AND p.uuid = ?';
       params.push(projectPublicId);
     }
     query += ' ORDER BY c.id DESC LIMIT 100';
@@ -111,7 +112,7 @@ export class VectorSyncService {
         ct.name AS docType,
         a.uuid AS attachmentPublicId,
         a.ocr_text AS ocrText,
-        p.public_id AS projectPublicIdResult
+        p.uuid AS projectPublicIdResult
       FROM correspondences c
       INNER JOIN projects p ON p.id = c.project_id
       INNER JOIN correspondence_revisions cr ON cr.correspondence_id = c.id AND cr.is_current = true
@@ -119,7 +120,7 @@ export class VectorSyncService {
       INNER JOIN correspondence_types ct ON ct.id = c.correspondence_type_id
       LEFT JOIN correspondence_revision_attachments cra ON cra.correspondence_revision_id = cr.id
       LEFT JOIN attachments a ON a.id = cra.attachment_id
-      WHERE c.uuid = ? AND p.public_id = ?
+      WHERE c.uuid = ? AND p.uuid = ?
       ORDER BY a.id ASC
       LIMIT 1`,
       [documentPublicId, projectPublicId]
@@ -167,7 +168,7 @@ export class VectorSyncService {
       ? [projectPublicId]
       : (
           await this.dataSource.query<Array<{ public_id: string }>>(
-            'SELECT public_id FROM projects WHERE is_active = 1 AND is_sandbox = 0'
+            'SELECT uuid AS public_id FROM projects WHERE is_active = 1 AND is_sandbox = 0'
           )
         ).map((r) => r.public_id);
 

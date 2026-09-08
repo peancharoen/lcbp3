@@ -1,7 +1,7 @@
 # Project Memory Override
 
 > **Project:** NAP-DMS (LCBP3) — Laem Chabang Port Phase 3 Document Management System
-> **Version:** 1.9.19 (Last Synced: 2026-09-08 ASUSTOR Registry-Backed Deployment Flow + Cleanup Scripts + Runner Labels)
+> **Version:** 1.9.20 (Last Synced: 2026-09-08 Schema Drift Bugfix — 8 Admin Console Issues)
 > **Stack:** NestJS 11 + Next.js 16 + TypeScript + MariaDB 11.8 + Redis + BullMQ + Elasticsearch + Ollama (on-prem AI)
 
 > [!IMPORTANT]
@@ -263,6 +263,9 @@
 ||| D283 | **ASUSTOR scripts ต้องใช้ `#!/bin/sh` + `sudo docker`** — ASUSTOR ใช้ busybox ไม่มี `/bin/bash`; user `nattanin` ไม่มีสิทธิ์ Docker socket ต้องใช้ `sudo`; ห้ามใช้ bash arrays (`TAG_ARRAY+=()`, `"${TAG_ARRAY[@]}"`) และ `{ }` block syntax; cron ใช้ `sudo crontab` (ไม่มี `/etc/cron.d/`) | Session 2026-09-08 |
 ||| D284 | **`.env.template` ต้องมีแค่ `CHANGE_ME_*` placeholders — ห้ามมี actual secrets (Tier-1 Security)** — พบ secrets จริง 15+ ตัว (DB password, JWT secret, AUTH secret, n8n encryption key, registry password ฯลฯ) ใน git-tracked `.env.template`; แทนทั้งหมดด้วย `CHANGE_ME_*` pattern; actual secrets อยู่ใน `/opt/np-dms/.env` (gitignored) เท่านั้น | ADR-016 / Session 2026-09-08 |
 ||| D285 | **Memory/docs commits ต้องใช้ `2git.sh --skip-ci` เสมอ** — ถ้า commit มีแค่ docs/memory/specs changes (ไม่มี code) ต้องเพิ่ม `--skip-ci` flag เพื่อ append `[skip CI]` ใน commit message; CI workflow (`ci-deploy.yml`) ตรวจ `[skip CI]` และข้าม build/deploy; ถ้าไม่ skip จะสร้าง load บน ASUSTOR runner โดยไม่จำเป็นและอาจทำให้ deploy ซ้อนทับกัน; ข้อยกเว้น: ถ้า memory commit มาพร้อมกับ code changes ที่ต้อง deploy ให้ push แบบปกติ | Session 2026-09-08 |
+||| D286 | **Schema drift prevention — ทุกครั้งที่เพิ่ม `ALTER TABLE` ใน `schema-02-tables.sql` ต้องสร้าง delta file ใน `specs/03-Data-and-Storage/deltas/` พร้อมกันเสมอ (ADR-044)** — กรณีนี้ Feature 253 เพิ่ม ALTER ลง schema file (lines 2019-2061) แต่ไม่สร้าง delta ทำให้ DB จริงไม่ได้ column `version` และ 7 tables พังหมด (correspondences/rfas/transmittals/contract_drawings/shop_drawings/asbuilt_drawings/circulations); ควรพิจารณา CI check เทียบ entity `@VersionColumn`/`@Column` กับ `information_schema.COLUMNS` | ADR-044 / Session 2026-09-08 |
+||| D287 | **Raw SQL ใน backend ต้องใช้ DB column name `uuid` ไม่ใช่ TypeScript property name `publicId`/`public_id`** — ADR-019 `UuidBaseEntity` maps `publicId` (TS) → `uuid` (DB column); ใช้ alias `uuid AS public_id` ถ้าต้องการ key ชื่อ `public_id` ใน result; bug นี้ทำให้ VectorCleanupService.orphanScan และ VectorSyncService พังทุกครั้งที่รัน (`Unknown column 'public_id' in 'SELECT'`) | ADR-019 / Session 2026-09-08 |
+||| D288 | **`commitRecord` status gate ต้องยอมรับทั้ง `PENDING` และ `PENDING_REVIEW`** — mirror `approveQueueItemByPublicId` (migration.service.ts:1699); `PENDING_REVIEW` คือสถานะที่ถูกต้องหลัง AI extraction (`ai-batch.processor.ts` ตั้งค่านี้); ก่อนหน้านี้ `commitRecord` ยอมรับแค่ `PENDING` ทำให้ user กด Execute Import ไม่ได้จากหน้า review | ADR-050 / Session 2026-09-08 |
 
 ## Environment & Services
 
@@ -331,7 +334,7 @@ QDRANT_URL
 - [ ] Feature 252: `download-failed-rows` endpoint test (file found + not found) — **pending**
 - [ ] Feature 252: Gemini/Claude adapter implementations (FR-008 completeness — Local Ollama is default, external AI is opt-in)
 - [ ] Feature 252: Performance benchmark tests (SC-001: 200 rows <1.5s, SC-002: Annotated Excel <10s)
-- [ ] Verify deltas ค้างตรวจ `2026-09-03-pending-vector-deletions` + `2026-09-06-correspondence-import-review-permission` เทียบ DB จริง แล้ว archive (ชุด 07-27→08-31 archived แล้ว 2026-09-07 — D278)
+- [x] Verify deltas ค้างตรวจ `2026-09-03-pending-vector-deletions` + `2026-09-06-correspondence-import-review-permission` เทียบ DB จริง แล้ว archive (ชุด 07-27→08-31 archived แล้ว 2026-09-07 — D278) — ✅ 2026-09-08 (2026-09-03 table exists, 2026-09-06 permission applied)
 - [ ] Push `origin/main` — main นำ origin 1 commit (`3190aa41`, user defer ไว้ 2026-09-07 — ใช้ `2git.sh` เท่านั้น)
 - [x] ASUSTOR Registry-backed deployment flow — `deploy.sh` push ไป `192.168.10.9:5000`, Compose ใช้ registry-prefixed images, rollback pull จาก registry — ✅ 2026-09-08 (commit `9f61683c`)
 - [x] Sanitize `.env.template` — แทน secrets จริง 15+ ตัวด้วย `CHANGE_ME_*` placeholders — ✅ 2026-09-08 (commit `1cf1a694`)

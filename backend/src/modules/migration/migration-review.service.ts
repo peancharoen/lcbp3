@@ -28,6 +28,9 @@
 //     ชนิดต่างๆ (NotFoundException/ConflictException/ValidationException/BusinessException/
 //     UnresolvedFieldsException) ไม่ propagate ออกไปตาม HTTP status ที่ถูกต้อง (ADR-007) —
 //     แก้ให้ rethrow BaseException ตรงๆ, wrap เฉพาะ error ที่ไม่รู้จักเป็น SystemException
+// - 2026-09-08: Bugfix — commitRecord status gate ปฏิเสธ PENDING_REVIEW ทั้งที่เป็นสถานะ
+//   ที่ถูกต้องหลัง AI extraction (ai-batch.processor.ts ตั้งเป็น PENDING_REVIEW) —
+//   เปลี่ยนเงื่อนไขให้ยอมรับทั้ง PENDING และ PENDING_REVIEW (mirror approveQueueItemByPublicId)
 
 import { Injectable, Logger } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
@@ -412,7 +415,13 @@ export class MigrationReviewService {
           ['สั่ง re-extract รายการนี้ก่อน', 'ตรวจสอบสถานะ AI extraction']
         );
       }
-      if (queueItem.status !== MigrationReviewStatus.PENDING) {
+      // อนุญาตให้ commit ได้จากทั้ง PENDING (ยังไม่ผ่าน AI) และ PENDING_REVIEW (AI extraction เสร็จแล้ว)
+      // — ADR-050 commit path ต้องรองรับทั้งสองสถานะเพื่อให้ตรงกับ approveQueueItemByPublicId
+      //   ซึ่งตรวจสอบ PENDING_REVIEW (migration.service.ts:1699)
+      if (
+        queueItem.status !== MigrationReviewStatus.PENDING &&
+        queueItem.status !== MigrationReviewStatus.PENDING_REVIEW
+      ) {
         throw new ConflictException(
           'MIGRATION_ALREADY_PROCESSING',
           `Staging record is already processed with status: ${queueItem.status}`,

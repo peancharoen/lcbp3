@@ -3,6 +3,8 @@
 // - 2026-09-03: Create VectorCleanupService — periodic cleanup สำหรับ Qdrant vectors
 //   ที่ไม่ได้ถูกลบตอน hardDelete() (sync deletion fail) + orphan scan กวาด vectors
 //   ที่ไม่มี doc_public_id ตรงใน DB
+// - 2026-09-08: Fix orphanScan raw SQL — correspondences ใช้ column `uuid` ไม่ใช่ `public_id`
+//   (ADR-019: UuidBaseEntity maps publicId → uuid column)
 
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -129,7 +131,7 @@ export class VectorCleanupService {
       const projects = await this.dataSource.query<
         Array<{ public_id: string }>
       >(
-        'SELECT public_id FROM projects WHERE is_active = 1 AND is_sandbox = 0'
+        'SELECT uuid AS public_id FROM projects WHERE is_active = 1 AND is_sandbox = 0'
       );
 
       for (const project of projects) {
@@ -168,10 +170,10 @@ export class VectorCleanupService {
           const existingDocs = await this.dataSource.query<
             Array<{ public_id: string }>
           >(
-            `SELECT DISTINCT c.public_id AS public_id
+            `SELECT DISTINCT c.uuid AS public_id
              FROM correspondences c
              INNER JOIN correspondence_revisions cr ON cr.correspondence_id = c.id
-             WHERE c.deleted_at IS NULL AND c.public_id IN (?...)`,
+             WHERE c.deleted_at IS NULL AND c.uuid IN (?...)`,
             [docPublicIds]
           );
 

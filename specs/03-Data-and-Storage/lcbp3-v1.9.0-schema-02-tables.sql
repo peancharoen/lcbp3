@@ -2037,7 +2037,7 @@ ADD COLUMN `version` INT NOT NULL DEFAULT 0 COMMENT 'Optimistic lock version',
   ADD COLUMN `cancelled_by` INT NULL COMMENT 'ผู้ยกเลิก (FK to users)',
   ADD CONSTRAINT `fk_transmittals_status` FOREIGN KEY (`status_id`) REFERENCES `correspondence_status` (`id`) ON DELETE
 SET NULL,
-  ADD CONSTRAINT `fk_transmittals_cancelled_by` FOREIGN KEY (`cancelled_by`) REFERENCES `users` (`id`) ON DELETE
+  ADD CONSTRAINT `fk_transmittals_cancelled_by` FOREIGN KEY (`cancelled_by`) REFERENCES `users` (`user_id`) ON DELETE
 SET NULL;
 
 -- 21.4 contract_drawings — optimistic lock + soft-delete tracking
