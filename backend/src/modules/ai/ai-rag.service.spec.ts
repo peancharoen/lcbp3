@@ -5,10 +5,12 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
+import { getRepositoryToken } from '@nestjs/typeorm';
 import axios from 'axios';
 import { AiRagService } from './ai-rag.service';
 import { AiQdrantService } from './qdrant.service';
 import { OcrService } from './services/ocr.service';
+import { RagQueryLog } from './entities/rag-query-log.entity';
 
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
@@ -48,6 +50,11 @@ describe('AiRagService (US1 — Chat Q&A)', () => {
     unloadBgeModels: jest.fn().mockResolvedValue(undefined),
   };
 
+  const mockRagQueryLogRepo = {
+    create: jest.fn((data: unknown) => data),
+    save: jest.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -56,6 +63,10 @@ describe('AiRagService (US1 — Chat Q&A)', () => {
         { provide: AiQdrantService, useValue: mockQdrantService },
         { provide: OcrService, useValue: mockOcrService },
         { provide: DEFAULT_REDIS_TOKEN, useValue: mockRedis },
+        {
+          provide: getRepositoryToken(RagQueryLog),
+          useValue: mockRagQueryLogRepo,
+        },
       ],
     }).compile();
 
