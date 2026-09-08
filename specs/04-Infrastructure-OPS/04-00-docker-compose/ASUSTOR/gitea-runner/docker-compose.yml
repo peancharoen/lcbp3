@@ -34,9 +34,9 @@ services:
       - GITEA_RUNNER_REGISTRATION_TOKEN=${GITEA_RUNNER_REGISTRATION_TOKEN}
       - GITEA_RUNNER_NAME=${GITEA_RUNNER_NAME:-asustor-runner}
 
-      # Label: ubuntu:22.04 แทน node:18-bullseye
-      #   setup-node จะ install Node version ที่ถูกต้องได้เอง
-      - GITEA_RUNNER_LABELS=ubuntu-latest:docker://ubuntu:22.04,self-hosted:docker://ubuntu:22.04
+      # Label: lcbp3-ci (dedicated for this repo — ไม่ใช้ self-hosted แบบกว้าง)
+      #   ubuntu:22.04 image — setup-node จะ install Node version ที่ถูกต้องได้เอง
+      - GITEA_RUNNER_LABELS=lcbp3-ci:docker://ubuntu:22.04
 
       # pnpm store path — ชี้ไปที่ volume ด้านล่าง
       - PNPM_HOME=/root/.local/share/pnpm

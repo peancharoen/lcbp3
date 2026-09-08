@@ -1208,7 +1208,7 @@ services:
       GITEA_RUNNER_REGISTRATION_TOKEN: <paste-token-here>
       GITEA_RUNNER_NAME: asustor-runner
       # Label must match runs-on in deploy.yaml
-      GITEA_RUNNER_LABELS: ubuntu-latest:docker://node:18-bullseye,self-hosted:docker://node:18-bullseye
+      GITEA_RUNNER_LABELS: lcbp3-ci:docker://ubuntu:22.04
     volumes:
       - /volume1/np-dms/gitea-runner/data:/data
       - /var/run/docker.sock:/var/run/docker.sock
@@ -1233,14 +1233,90 @@ ssh admin@192.168.10.11 "docker image prune -a"  # on np-dms-lcbp3 (app images)
 
 ### Automated Cleanup (cron on ASUSTOR)
 
+#### Step-by-step: Install cleanup scripts on ASUSTOR
+
+> **Prerequisites:** SSH access to ASUSTOR (`ssh admin@192.168.10.9`), Docker working on ASUSTOR
+
+**Step 1 — Clone repo หรือ copy scripts ไป ASUSTOR**
+
 ```bash
-# /etc/cron.d/lcbp3-runner-cleanup
+ssh admin@192.168.10.9
+mkdir -p /volume1/np-dms/scripts
+```
+
+ถ้า ASUSTOR มี git:
+
+```bash
+cd /volume1/np-dms
+git clone ssh://192.168.10.11:2222/np-dms/lcbp3.git lcbp3-repo
+cp lcbp3-repo/scripts/runner-cleanup.sh /volume1/np-dms/scripts/
+cp lcbp3-repo/scripts/registry-gc.sh /volume1/np-dms/scripts/
+chmod +x /volume1/np-dms/scripts/*.sh
+```
+
+ถ้าไม่มี git — copy จาก New Server:
+
+```bash
+# รันบน New Server (192.168.10.11)
+scp /opt/np-dms-lcbp3/scripts/runner-cleanup.sh admin@192.168.10.9:/volume1/np-dms/scripts/
+scp /opt/np-dms-lcbp3/scripts/registry-gc.sh  admin@192.168.10.9:/volume1/np-dms/scripts/
+ssh admin@192.168.10.9 "chmod +x /volume1/np-dms/scripts/*.sh"
+```
+
+**Step 2 — ทดสอบ scripts ทีละตัว**
+
+```bash
+ssh admin@192.168.10.9
+
+# ทดสอบ runner cleanup
+/volume1/np-dms/scripts/runner-cleanup.sh
+
+# ทดสอบ registry GC (จะหยุด registry ชั่วคราว ~10 วินาที)
+source /volume1/np-dms/registry/.env
+/volume1/np-dms/scripts/registry-gc.sh
+```
+
+**Step 3 — ตั้ง cron**
+
+```bash
+ssh admin@192.168.10.9
+sudo tee /etc/cron.d/lcbp3-cleanup << 'EOF'
+# LCBP3-DMS Cleanup Scripts (ADR-041)
 # Runner cache cleanup — daily 03:00
-0 3 * * * root /opt/np-dms-lcbp3/scripts/runner-cleanup.sh >> /volume1/np-dms/gitea-runner/cleanup.log 2>&1
+0 3 * * * root /volume1/np-dms/scripts/runner-cleanup.sh >> /volume1/np-dms/gitea-runner/cleanup.log 2>&1
 
 # Registry garbage collection — weekly Sunday 04:00
-0 4 * * 0 root /opt/np-dms-lcbp3/scripts/registry-gc.sh >> /volume1/np-dms/registry/gc.log 2>&1
+0 4 * * 0 root /volume1/np-dms/scripts/registry-gc.sh >> /volume1/np-dms/registry/gc.log 2>&1
+EOF
+sudo chmod 644 /etc/cron.d/lcbp3-cleanup
 ```
+
+**Step 4 — ตรวจสอบ cron ทำงาน**
+
+```bash
+# รอให้ถึงเวลา cron หรือรัน manual ก่อน
+/volume1/np-dms/scripts/runner-cleanup.sh
+cat /volume1/np-dms/gitea-runner/cleanup.log
+
+# ตรวจสอบ cron รู้จัก
+sudo systemctl status cron
+sudo grep lcbp3 /var/log/syslog 2>/dev/null || sudo grep lcbp3 /var/log/cron 2>/dev/null
+```
+
+**Step 5 — ตรวจสอบ log หลังรันครั้งแรก**
+
+```bash
+# หลัง 03:00 ของวันถัดไป
+cat /volume1/np-dms/gitea-runner/cleanup.log
+
+# หลัง 04:00 ของวันอาทิตย์ถัดไป
+cat /volume1/np-dms/registry/gc.log
+```
+
+**ข้อควรระวัง:**
+- `registry-gc.sh` จะ **หยุด registry ชั่วคราว** ระหว่าง GC (~10-30 วินาที) — อย่าตั้ง cron ตอนที่มี deploy กำลังรัน
+- ถ้า ASUSTOR ใช้ Entware/opkg cron แทน system cron ให้ปรับ path ตามระบบ
+- ตรวจสอบ disk space หลัง GC ระยะแรก: `df -h /volume1`
 
 ## C.6 Private Registry Integration (ADR-041)
 
