@@ -35,13 +35,27 @@ version: 1.9.18
 
 ```bash
 cd /opt/np-dms-lcbp3
+
+# Code changes (trigger CI + deploy)
 bash 2git.sh "type(scope): description"
+
+# Docs/memory changes only (skip CI — ไม่ trigger deploy)
+bash 2git.sh --skip-ci "docs(memory): description"
 ```
 
 - `2git.sh` จะ `git add .`, commit (ถ้ามี), squash ทุก commit ที่นำ `origin/main`, แล้ว push
+- `--skip-ci` จะ append `[skip CI]` ใน commit message → CI workflow จะข้าม (`if: "!contains(github.event.head_commit.message, '[skip CI]')"`)
 - ถ้า push สำเร็จ ให้ update memory:
   - `specs/88-logs/rollouts.md` สถานะเป็น pushed
   - `memory/project-memory-override.md` หรือ session log ตามความเหมาะสม
+
+## When to use --skip-ci
+
+| กรณี                                    | Flag        | เหตุผล                              |
+| --------------------------------------- | ----------- | ----------------------------------- |
+| Code changes (backend/frontend/scripts) | (ไม่ใช้)    | ต้อง trigger CI build + deploy      |
+| Docs/memory/specs only                  | `--skip-ci` | ไม่มี code changes → ไม่ต้อง deploy |
+| Mixed (code + docs)                     | (ไม่ใช้)    | มี code changes → ต้อง deploy       |
 
 ## What NOT to do
 

@@ -1,6 +1,7 @@
 #!/bin/bash
 # File: 2git.sh
 # Change Log:
+# - 2026-09-08: Add --skip-ci flag for docs/memory commits (appends [skip CI] to message)
 # - 2026-09-08: Fix default message typo, support multi-word message, add branch guard, fetch origin/main, show status summary, remove interactive read on error
 # - 2026-08-26: เพิ่ม squash commits ก่อน push — รวม commits ที่นำ origin/main เป็น commit เดียว
 # - 2026-08-20: ตัด push ไป GitHub ออก เนื่องจาก Gitea ตั้งค่า mirror ไป GitHub แล้ว
@@ -8,11 +9,18 @@
 
 set -e
 
+# ตรวจ --skip-ci flag (สำหรับ docs/memory commits — ไม่ trigger CI)
+SKIP_CI=""
+if [ "$1" = "--skip-ci" ]; then
+    SKIP_CI=" [skip CI]"
+    shift
+fi
+
 # รองรับ message หลายคำ ถ้าไม่ใส่ให้ใช้ Update
 MESSAGE="${*:-Update}"
 
 TIMESTAMP=$(date +"%y%m%d:%H%M")
-COMMIT_MSG="$TIMESTAMP $MESSAGE"
+COMMIT_MSG="$TIMESTAMP $MESSAGE$SKIP_CI"
 
 # ตรวจสอบว่าอยู่บน main
 CURRENT_BRANCH=$(git branch --show-current)

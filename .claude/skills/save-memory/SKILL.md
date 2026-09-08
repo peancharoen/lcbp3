@@ -222,6 +222,28 @@ specs/88-logs/
 - **ใช้** MCP Memory Knowledge Graph สำหรับ cross-session context retrieval (entities + relations)
 - **อัปเดต Root Documentation** (ARCHITECTURE.md, CHANGELOG.md, CONTEXT.md, CONTRIBUTING.md, README.md) เฉพาะเมื่อมีการเปลี่ยนแปลงที่ส่งผลต่อ project architecture, version, terminology, workflow หรือ structure
 
+## ⚠️ การ Push หลัง Save Memory (บังคับ)
+
+> **หลังจาก save memory แล้ว การ push ต้องใช้ `--skip-ci` flag เสมอ**
+>
+> memory/docs commits ไม่ต้อง trigger CI pipeline — ถ้าไม่ใช้ flag นี้ CI จะรัน deploy ทุกครั้งที่ push
+
+```bash
+# ✅ ถูกต้อง — ไม่ trigger CI
+2git.sh --skip-ci "docs(memory): save session YYYY-MM-DD ..."
+
+# ❌ ผิด — trigger CI ทุกครั้ง (สร้าง load บน runner โดยไม่จำเป็น)
+2git.sh "docs(memory): save session YYYY-MM-DD ..."
+```
+
+**เหตุผล:**
+
+- CI workflow (`ci-deploy.yml`) ตรวจ `[skip CI]` ใน commit message (`if: "!contains(github.event.head_commit.message, '[skip CI]')"`)
+- memory/docs commits ไม่มี code changes → ไม่ต้อง build/deploy
+- ถ้าไม่ skip CI จะสร้าง load บน ASUSTOR runner โดยไม่จำเป็น และอาจทำให้ deploy ซ้อนทับกัน
+
+**ข้อยกเว้น:** ถ้า memory commit มาพร้อมกับ code changes ที่ต้อง deploy ให้ push แบบปกติ (ไม่ใช้ `--skip-ci`)
+
 ## ตัวอย่างการใช้งาน
 
 ### กรณีที่ 1: ทำงาน session ใหม่
