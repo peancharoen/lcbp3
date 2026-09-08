@@ -1230,3 +1230,60 @@ Gitea → **Settings** → **Actions** → **Runners** — should show **Total: 
 docker image prune -a    # on ASUSTOR (runner images)
 ssh admin@192.168.10.11 "docker image prune -a"  # on np-dms-lcbp3 (app images)
 ```
+
+### Automated Cleanup (cron on ASUSTOR)
+
+```bash
+# /etc/cron.d/lcbp3-runner-cleanup
+# Runner cache cleanup — daily 03:00
+0 3 * * * root /opt/np-dms-lcbp3/scripts/runner-cleanup.sh >> /volume1/np-dms/gitea-runner/cleanup.log 2>&1
+
+# Registry garbage collection — weekly Sunday 04:00
+0 4 * * 0 root /opt/np-dms-lcbp3/scripts/registry-gc.sh >> /volume1/np-dms/registry/gc.log 2>&1
+```
+
+## C.6 Private Registry Integration (ADR-041)
+
+> **Registry:** ASUSTOR Private Registry at `192.168.10.9:5000`
+> **Purpose:** Artifact separation — production images pushed to registry, New Server pulls from registry
+
+### New Server Configuration
+
+New Server (`192.168.10.11`) must allow HTTP registry in `/etc/docker/daemon.json`:
+
+```json
+{
+    "insecure-registries": ["192.168.10.9:5000"]
+}
+```
+
+After editing, restart Docker: `sudo systemctl restart docker`
+
+Login once (credential stored in `~/.docker/config.json`):
+
+```bash
+docker login 192.168.10.9:5000 -u admin
+# password from /volume1/np-dms/registry/.env (REGISTRY_ADMIN_PASSWORD)
+```
+
+### Deploy Flow (post-registry integration)
+
+```text
+deploy.sh
+  ├─ docker build → tag local + registry-prefixed (SHA + latest)
+  ├─ docker push → ASUSTOR Registry
+  ├─ docker compose up → uses registry-prefixed image
+  ├─ health check → auto-rollback if fail (pull from registry if needed)
+  └─ prune → local + registry images older than 3 versions
+```
+
+### ⚠️ Security Note: HTTP Registry (Follow-up)
+
+Current setup uses HTTP (insecure-registries). This is acceptable for isolated VLAN but should be upgraded to TLS:
+
+1. Generate self-signed cert or use Cloudflare Tunnel
+2. Configure registry with TLS certificates
+3. Remove `insecure-registries` from New Server `daemon.json`
+4. Update compose to use `registry.np-dms.work` (HTTPS) instead of `192.168.10.9:5000`
+
+**Priority:** Medium — HTTP is acceptable on isolated VLAN but TLS prevents credential sniffing.
