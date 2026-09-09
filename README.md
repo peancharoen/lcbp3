@@ -145,7 +145,7 @@ LCBP3-DMS เป็นระบบบริหารจัดการเอก�
 ### ข้อกำหนดระบบ
 
 - **Node.js**: v24.15.0 LTS (>=24.0.0) — ดู `.nvmrc`
-- **pnpm**: v10.33.0 หรือสูงกว่า (`corepack enable && corepack use pnpm@10.33.0`)
+- **pnpm**: v12.4.0 หรือสูงกว่า (`curl -fsSL https://get.pnpm.io/install.sh | env PNPM_VERSION=next-12 sh -`)
 - **Docker**: v24.x หรือสูงกว่า (สำหรับรัน MariaDB/Redis ในเครื่อง ถ้ายังไม่มี)
 - **MariaDB**: 11.8
 - **Redis**: 7.x

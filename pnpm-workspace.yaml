@@ -2,17 +2,38 @@ packages:
   - backend
   - frontend
 
-ignoredBuiltDependencies:
-  - "@compodoc/compodoc"
-  - esbuild
-  - unrs-resolver
+# ── pnpm v11 migration: .npmrc settings → pnpm-workspace.yaml ──────────────
+# ย้ายจาก .npmrc (root) — pnpm v11 อ่าน auth/registry อย่างเดียวจาก .npmrc
+shamefullyHoist: true
+publicHoistPattern:
+  - "*typeorm*"
+  - "*ts-node*"
+preferWorkspacePackages: true
 
-onlyBuiltDependencies:
-  - "@nestjs/core"
-  - "@scarf/scarf"
-  - bcrypt
-  - msgpackr-extract
-  - sharp
+# ── pnpm v11 migration: build-dependency settings → allowBuilds ───────────
+# แปลงจาก ignoredBuiltDependencies + onlyBuiltDependencies → allowBuilds map
+allowBuilds:
+  "@compodoc/compodoc": false
+  esbuild: false
+  unrs-resolver: false
+  "@nestjs/core": true
+  "@scarf/scarf": true
+  bcrypt: true
+  msgpackr-extract: true
+  sharp: true
+
+# ── pnpm v11 migration: supply-chain protection ───────────────────────────
+# pnpm v11 เปิด minimumReleaseAge=1440 (1 วัน) default — package ที่ publish
+# ไม่ถึง 24h จะไม่ถูก resolve ปิดเพื่อรักษาพฤติกรรมเดิม (CI ใช้ --frozen-lockfile)
+minimumReleaseAge: 0
+
+# ── pnpm v11 migration: settings จาก backend/.npmrc → root level ──────────
+# pnpm v11 packageConfigs รองรับเฉพาะ fields จำกัด (saveExact, savePrefix, modulesDir)
+# hoisting/nodeLinker/peer settings ต้องตั้งที่ root level
+# nodeLinker: isolated — ใช้สำหรับ backend (frontend ใช้ default hoisted ได้)
+nodeLinker: isolated
+strictPeerDependencies: false
+autoInstallPeers: true
 
 overrides:
   fast-xml-parser: ">=5.5.7 <6.0.0"

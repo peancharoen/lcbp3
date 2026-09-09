@@ -5,7 +5,7 @@
 
 > **LCBP3-DMS — Document Management System**
 > เอกสารนี้ครอบคลุมขั้นตอนการตั้งค่า environment สำหรับการพัฒนาทั้ง Backend และ Frontend
-> 
+>
 > อัปเดตล่าสุด: 2026-05-20
 
 ---
@@ -39,7 +39,7 @@
 | Tool | Minimum Version | Recommended | หมายเหตุ |
 |------|----------------|--------------|-----------|
 | **Node.js** | >=24.0.0 | 24.15.0 LTS | ใช้ LTS version |
-| **pnpm** | >=10.33.0 | 10.33.0 | Package manager |
+| **pnpm** | >=12.0.0 | 12.4.0 | Package manager |
 | **Docker Desktop** | >=24.x | Latest | สำหรับ services stack |
 | **Git** | >=2.x | Latest | Version control |
 
@@ -68,7 +68,7 @@ npm install -g pnpm
 
 # ตรวจสอบ version
 pnpm -v
-# ควรได้: 10.33.0 หรือสูงกว่า
+# ควรได้: 12.4.0 หรือสูงกว่า
 ```
 
 ### 3. ติดตั้ง Docker Desktop
@@ -598,7 +598,7 @@ pnpm run type-check
 ### Prerequisites
 
 - [ ] Node.js >=24.0.0 ติดตั้งแล้ว
-- [ ] pnpm >=10.33.0 ติดตั้งแล้ว
+- [ ] pnpm >=12.0.0 ติดตั้งแล้ว
 - [ ] Docker Desktop ติดตั้งและรันอยู่
 - [ ] Git ติดตั้งแล้ว
 - [ ] Repository clone เรียบร้อย

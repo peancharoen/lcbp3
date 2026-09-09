@@ -13,7 +13,7 @@
 | Tool | Required Version |
 |---|---|
 | **Node.js** | `>=24.0.0` |
-| **pnpm** | `>=10.33.0` |
+| **pnpm** | `>=12.0.0` |
 | **Docker Desktop** | สำหรับ services stack |
 
 ตรวจสอบ version:
@@ -126,7 +126,7 @@ pnpm --filter backend seed
 
 ## Checklist ก่อน run
 
-- [ ] Node.js `>=24` + pnpm `>=10.33.0` ติดตั้งแล้ว
+- [ ] Node.js `>=24` + pnpm `>=12.0.0` ติดตั้งแล้ว
 - [ ] `docker compose up -d` รันใน `backend/` และ services ทุกตัว healthy
 - [ ] `backend/.env` สร้างแล้ว และตั้ง `JWT_SECRET`
 - [ ] `frontend/.env.local` สร้างแล้ว และตั้ง `AUTH_SECRET`
