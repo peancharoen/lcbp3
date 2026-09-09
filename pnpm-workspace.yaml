@@ -2,6 +2,10 @@ packages:
   - backend
   - frontend
 
+# pnpm v12: จำเป็นสำหรับ pnpm deploy แบบไม่ใช้ --legacy
+# (deploy สร้าง dedicated lockfile จาก shared lockfile — ล็อคเวอร์ชันตรง ไม่ re-resolve)
+injectWorkspacePackages: true
+
 # ── pnpm v11 migration: .npmrc settings → pnpm-workspace.yaml ──────────────
 # ย้ายจาก .npmrc (root) — pnpm v11 อ่าน auth/registry อย่างเดียวจาก .npmrc
 shamefullyHoist: true
@@ -36,6 +40,8 @@ strictPeerDependencies: false
 autoInstallPeers: true
 
 overrides:
+  # pin @nestjs/swagger ให้ตรงกับ patch (lockfile ล็อค 11.2.3 แต่ --legacy deploy re-resolve ได้ 11.4.7)
+  "@nestjs/swagger": "11.2.3"
   fast-xml-parser: ">=5.5.7 <6.0.0"
   "@nestjs/terminus": "^11.0.0"
   reflect-metadata: "^0.2.2"

@@ -60,7 +60,7 @@ RUN cd backend && \
 # RUN test -f /app/backend/dist/main.js || (echo "❌ build failed silently" && exit 1)
 
 # Deploy with production deps only (pnpm workspace isolation)
-RUN pnpm --filter backend deploy --prod --legacy --no-optional /app/backend-prod
+RUN pnpm --filter backend deploy --prod --no-optional /app/backend-prod
 
 # Clean up unnecessary files to reduce size
 RUN find /app/backend-prod/node_modules -name "*.md" -delete \
