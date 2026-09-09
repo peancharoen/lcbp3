@@ -15,6 +15,11 @@
 //   5) เพิ่ม GET /:sessionId/download-failed-rows endpoint (MIGRATION_STAGING quarantine)
 //   6) Static import fs แทน dynamic import('fs') ใน downloadAnnotated
 //   7) @ApiBody สำหรับ multipart check endpoint (Swagger documentation)
+// - 2026-09-09: Fix double-prefix bug — @Controller เดิมประกาศ 'api/v1/...'
+//   ซ้ำกับ app.setGlobalPrefix('api') ใน main.ts ทำให้ route จริงกลายเป็น
+//   '/api/api/v1/correspondence/import-review/...' (ใช้งานจริงไม่ได้เลย)
+//   แก้เป็น 'v1/correspondence/import-review' ให้ตรงกับ convention ของ
+//   controller อื่นทั้งหมดในระบบ (พบระหว่างเพิ่ม frontend menu, feature 252)
 
 import {
   Controller,
@@ -90,7 +95,7 @@ interface MulterFile {
  */
 @ApiTags('Excel Import Review')
 @ApiBearerAuth()
-@Controller('api/v1/correspondence/import-review')
+@Controller('v1/correspondence/import-review')
 @UseGuards(JwtAuthGuard, RbacGuard)
 export class ExcelImportReviewController {
   private readonly logger = new Logger(ExcelImportReviewController.name);

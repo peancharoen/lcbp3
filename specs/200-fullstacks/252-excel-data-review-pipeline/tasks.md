@@ -1,6 +1,9 @@
 // File: specs/200-fullstacks/252-excel-data-review-pipeline/tasks.md
 // Change Log:
 // - 2026-09-05: Initial task list for 4-Layer Excel Data Review Pipeline (ADR-052)
+// - 2026-09-09: Added Phase 8 (Frontend) — spec/plan/tasks originally scoped
+//   backend-only (T001-T027), so the feature had no menu entry or UI at all.
+//   Closed the gap with T028-T031.
 
 # Tasks: 4-Layer Excel Data Review & AI Suggestion Pipeline
 
@@ -101,3 +104,21 @@
 - [x] T025 Register all new services and controller in `backend/src/modules/migration/migration.module.ts`
 - [x] T026 [P] Integration test in `backend/tests/integration/excel-import-review.spec.ts`
 - [x] T027 Run build, lint, and typecheck to verify zero `any`, zero `console.log`, and strict compliance
+
+---
+
+## Phase 8: Frontend UI & Navigation (Gap Fill — US1/US2/US4)
+
+**Purpose**: เพิ่มหน้าจอและเมนูที่ขาดหายไป — Phase 1-7 ทำเฉพาะ backend เท่านั้น
+ไม่มี task ใดครอบคลุม frontend มาก่อน ทำให้ผู้ใช้ไม่พบเมนู "ตรวจสอบข้อมูลนำเข้า Excel" เลย
+
+- [x] T028 [P] Fix double API-prefix bug in `backend/src/modules/migration/excel-import-review.controller.ts`
+      (`@Controller('api/v1/...')` ซ้ำกับ `app.setGlobalPrefix('api')` ทำให้ route จริงกลายเป็น
+      `/api/api/v1/...` ใช้งานไม่ได้ — แก้เป็น `@Controller('v1/correspondence/import-review')`)
+- [x] T029 Create frontend types + service + hooks: `frontend/types/import-review.ts`,
+      `frontend/lib/services/import-review.service.ts`, `frontend/hooks/use-import-review.ts`
+- [x] T030 Create review dashboard page `frontend/app/(admin)/admin/import-review/page.tsx`
+      (upload form, findings table, download-annotated, confirm/cancel — CASL-gated
+      `MIGRATION_STAGING` + external AI provider selectors to Admin only per D7/D2)
+- [x] T031 Add sidebar menu entry "ตรวจสอบข้อมูลนำเข้า Excel" → `/admin/import-review`
+      in `frontend/components/admin/sidebar.tsx` (Operations group)

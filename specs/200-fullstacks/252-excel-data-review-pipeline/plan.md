@@ -1,6 +1,8 @@
 // File: specs/200-fullstacks/252-excel-data-review-pipeline/plan.md
 // Change Log:
 // - 2026-09-05: Initial implementation plan for 4-Layer Excel Data Review Pipeline (ADR-052)
+// - 2026-09-09: Added Frontend Source Code Components — original plan was
+//   backend-only, leaving the feature with no menu entry (Phase 8, T028-T031)
 
 # Implementation Plan: 4-Layer Excel Data Review & AI Suggestion Pipeline
 
@@ -82,4 +84,13 @@ backend/src/modules/migration/
 │   └── confirm-review.dto.ts           # Input validation for confirm request
 └── controllers/
     └── excel-import-review.controller.ts # REST API Endpoints
+```
+
+```text
+frontend/
+├── types/import-review.ts                       # Frontend mirror of excel-review.types.ts
+├── lib/services/import-review.service.ts         # API client (check/confirm/cancel/download)
+├── hooks/use-import-review.ts                    # TanStack Query mutations
+└── app/(admin)/admin/import-review/page.tsx      # Review dashboard page
+components/admin/sidebar.tsx                      # + "ตรวจสอบข้อมูลนำเข้า Excel" menu entry
 ```
