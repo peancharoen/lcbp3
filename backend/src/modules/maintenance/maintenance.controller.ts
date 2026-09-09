@@ -4,6 +4,13 @@
 // - 2026-09-07: Replace inline @Body() with class-validator DTOs (Code Review M2)
 // - 2026-09-07: Type idempotencyKey as string|undefined (Code Review L2)
 // - 2026-09-07: Pass real user to bulkHardPurge (Code Review S1)
+// - 2026-09-09: SECURITY FIX — controller had no @UseGuards at all. @RequirePermission
+//   is metadata only; with no JwtAuthGuard/RbacGuard applied, every route (including
+//   emergency-unlock/bulk-hard-purge, a permanent document delete, and
+//   numbering/override) was reachable unauthenticated in production. Also the root
+//   cause of live crashes on @CurrentUser() (undefined — no guard ever populated
+//   request.user), e.g. orphan-cleanup/purge: "Cannot read properties of undefined
+//   (reading 'user_id')" (backend log, 2026-09-09 09:37).
 
 import {
   Body,
@@ -14,12 +21,15 @@ import {
   Post,
   Query,
   Headers,
+  UseGuards,
 } from '@nestjs/common';
 import { ValidationException } from '../../common/exceptions/base.exception';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { MaintenanceService } from './maintenance.service';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RbacGuard } from '../../common/guards/rbac.guard';
 import { User } from '../user/entities/user.entity';
 import {
   SyncCountersDto,
@@ -38,6 +48,8 @@ import {
  * - Emergency Unlock
  */
 @ApiTags('Maintenance')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RbacGuard)
 @Controller('maintenance')
 export class MaintenanceController {
   constructor(private readonly maintenanceService: MaintenanceService) {}
@@ -85,6 +97,7 @@ export class MaintenanceController {
     return this.maintenanceService.overrideNumbering(
       dto.counterKey,
       dto.newLastNumber,
+      dto.reason,
       user
     );
   }

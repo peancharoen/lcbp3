@@ -56,11 +56,12 @@ export const maintenanceService = {
 
   overrideCounter: async (
     counterKey: string,
-    newLastNumber: number
+    newLastNumber: number,
+    reason: string
   ): Promise<{ counterKey: string; previousValue: number; newValue: number }> => {
     const response = await apiClient.post(
       '/maintenance/numbering/override',
-      { counterKey, newLastNumber },
+      { counterKey, newLastNumber, reason },
       { headers: { 'Idempotency-Key': generateIdempotencyKey() } }
     );
     return response.data.data;

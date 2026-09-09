@@ -20,6 +20,7 @@ export function NumberingToolsTab() {
   const [loading, setLoading] = useState(false);
   const [counterKey, setCounterKey] = useState('');
   const [newValue, setNewValue] = useState('');
+  const [reason, setReason] = useState('');
 
   const handleScan = async () => {
     setLoading(true);
@@ -49,10 +50,10 @@ export function NumberingToolsTab() {
   };
 
   const handleOverride = async () => {
-    if (!counterKey || !newValue) return;
+    if (!counterKey || !newValue || !reason.trim()) return;
     setLoading(true);
     try {
-      const result = await maintenanceService.overrideCounter(counterKey, Number(newValue));
+      const result = await maintenanceService.overrideCounter(counterKey, Number(newValue), reason);
       toast.success(
         t('admin.maintenance.toast.overrideComplete', {
           counterKey: result.counterKey,
@@ -60,6 +61,7 @@ export function NumberingToolsTab() {
           newValue: result.newValue,
         })
       );
+      setReason('');
     } catch (err) {
       const apiError = parseApiError(err as AxiosError);
       toast.error(t('admin.maintenance.toast.overrideFailed'), { description: apiError.error.message });
@@ -115,7 +117,13 @@ export function NumberingToolsTab() {
             <Label htmlFor="new-value">{t('admin.maintenance.numbering.newLastNumber')}</Label>
             <Input id="new-value" value={newValue} onChange={(e) => setNewValue(e.target.value)} type="number" />
           </div>
-          <Button onClick={handleOverride} disabled={loading}>{t('admin.maintenance.numbering.overrideAction')}</Button>
+          <div>
+            <Label htmlFor="override-reason">{t('admin.maintenance.numbering.reason')}</Label>
+            <Input id="override-reason" value={reason} onChange={(e) => setReason(e.target.value)} />
+          </div>
+          <Button onClick={handleOverride} disabled={loading || !reason.trim()}>
+            {t('admin.maintenance.numbering.overrideAction')}
+          </Button>
         </CardContent>
       </Card>
     </div>

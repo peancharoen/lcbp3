@@ -5,6 +5,7 @@
 import {
   IsArray,
   IsInt,
+  IsNotEmpty,
   IsOptional,
   IsString,
   IsUUID,
@@ -36,6 +37,15 @@ export class OverrideCounterDto {
   @IsInt()
   @Min(0)
   newLastNumber!: number;
+
+  @ApiProperty({
+    description:
+      'เหตุผลของการ override — บันทึกลง document_number_audit (MANUAL_OVERRIDE)',
+    example: 'Correction due to system error',
+  })
+  @IsString()
+  @IsNotEmpty()
+  reason!: string;
 }
 
 /**

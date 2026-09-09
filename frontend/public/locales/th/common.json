@@ -294,6 +294,7 @@
   "admin.maintenance.numbering.overrideTitle": "แทรกเลขด้วยตนเอง",
   "admin.maintenance.numbering.counterKey": "คีย์เลขที่เอกสาร",
   "admin.maintenance.numbering.newLastNumber": "เลขล่าสุดใหม่",
+  "admin.maintenance.numbering.reason": "เหตุผลในการแก้ไข",
   "admin.maintenance.numbering.overrideAction": "แทรก",
   "admin.maintenance.unlock.purgeTitle": "ลบถาวรกลุ่มเอกสาร",
   "admin.maintenance.unlock.purgeIds": "Public ID ที่ต้องการลบ (คั่นด้วยลูกน้ำ)",

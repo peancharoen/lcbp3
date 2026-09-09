@@ -294,6 +294,7 @@
   "admin.maintenance.numbering.overrideTitle": "Manual Override",
   "admin.maintenance.numbering.counterKey": "Counter Key",
   "admin.maintenance.numbering.newLastNumber": "New Last Number",
+  "admin.maintenance.numbering.reason": "Reason for override",
   "admin.maintenance.numbering.overrideAction": "Override",
   "admin.maintenance.unlock.purgeTitle": "Bulk Hard Purge",
   "admin.maintenance.unlock.purgeIds": "Public IDs (comma separated)",

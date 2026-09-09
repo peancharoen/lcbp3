@@ -33,12 +33,14 @@ export class MaintenanceService {
   async overrideNumbering(
     counterKey: string,
     newLastNumber: number,
+    reason: string,
     user: User
   ) {
     return await this.numberingTools.overrideCounter(
       counterKey,
       newLastNumber,
-      user.user_id
+      user.user_id,
+      reason
     );
   }
 

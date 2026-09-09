@@ -13,6 +13,8 @@ import { EmergencyUnlockService } from './services/emergency-unlock.service';
 import { CommonModule } from '../../common/common.module';
 import { FileStorageModule } from '../../common/file-storage/file-storage.module';
 import { AiModule } from '../ai/ai.module';
+import { DocumentNumberingModule } from '../document-numbering/document-numbering.module';
+import { UserModule } from '../user/user.module';
 
 /**
  * Module สำหรับ System Admin Maintenance Console
@@ -23,6 +25,8 @@ import { AiModule } from '../ai/ai.module';
     CommonModule,
     FileStorageModule,
     AiModule,
+    DocumentNumberingModule,
+    UserModule, // สำหรับ RbacGuard (ต้องการ UserService) — ADR-016/security fix 2026-09-09
   ],
   controllers: [MaintenanceController],
   providers: [

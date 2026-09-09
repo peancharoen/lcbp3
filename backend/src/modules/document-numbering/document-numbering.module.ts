@@ -98,6 +98,7 @@ import { UserModule } from '../user/user.module';
     TemplateService,
     AuditService,
     MetricsService,
+    ManualOverrideService,
   ],
 })
 export class DocumentNumberingModule {}

@@ -71,9 +71,19 @@ describe('MaintenanceService (Feature 253 — T090)', () => {
     });
 
     it('should delegate counter override', async () => {
-      const result = await service.overrideNumbering('TEST', 5, mockUser);
+      const result = await service.overrideNumbering(
+        'TEST',
+        5,
+        'correction',
+        mockUser
+      );
       expect(result.counterKey).toBe('TEST');
-      expect(mockNumbering.overrideCounter).toHaveBeenCalledWith('TEST', 5, 1);
+      expect(mockNumbering.overrideCounter).toHaveBeenCalledWith(
+        'TEST',
+        5,
+        1,
+        'correction'
+      );
     });
   });
 
