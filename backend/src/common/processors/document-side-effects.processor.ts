@@ -67,14 +67,16 @@ export class DocumentSideEffectsProcessor extends WorkerHost {
   }
 
   async process(job: Job): Promise<void> {
-    switch (job.name as SideEffectJobType) {
-      case SideEffectJobType.SEARCH_REINDEX:
+    // job.name จาก BullMQ เป็น string — เปรียบเทียบกับ enum values โดยใช้ String() เพื่อหลีกเลี่ยง
+    // @typescript-eslint/no-unsafe-enum-comparison (string vs enum)
+    switch (job.name) {
+      case String(SideEffectJobType.SEARCH_REINDEX):
         await this.handleSearchReindex(job.data as SearchReindexJobData);
         break;
-      case SideEffectJobType.NOTIFICATION:
+      case String(SideEffectJobType.NOTIFICATION):
         await this.handleNotification(job.data as NotificationJobData);
         break;
-      case SideEffectJobType.VECTOR_DELETE:
+      case String(SideEffectJobType.VECTOR_DELETE):
         await this.handleVectorDelete(job.data as VectorDeleteJobData);
         break;
       default:
