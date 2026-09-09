@@ -12,7 +12,11 @@
 # =========================
 FROM node:24-alpine AS deps
 
-RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
+# pnpm 12 เป็น native binary (Rust) — ติดตั้งด้วย standalone script (npm latest ยังชี้ pnpm 11)
+RUN apk add --no-cache curl && \
+    curl -fsSL https://get.pnpm.io/install.sh | env PNPM_VERSION=12.4.0 SHELL=/bin/sh sh -
+ENV PNPM_HOME="/root/.local/share/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
 
 WORKDIR /app
 
@@ -29,7 +33,10 @@ RUN pnpm install --frozen-lockfile --filter backend...
 # =========================
 FROM node:24-alpine AS build
 
-RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
+RUN apk add --no-cache curl && \
+    curl -fsSL https://get.pnpm.io/install.sh | env PNPM_VERSION=12.4.0 SHELL=/bin/sh sh -
+ENV PNPM_HOME="/root/.local/share/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
 
 WORKDIR /app
 
@@ -54,8 +61,7 @@ RUN cd backend && \
 # RUN test -f /app/backend/dist/main.js || (echo "❌ build failed silently" && exit 1)
 
 # Deploy with production deps only (pnpm workspace isolation)
-RUN PNPM_IGNORE_SCRIPTS=none \
-    pnpm --filter backend deploy --prod --shamefully-hoist --legacy --no-optional /app/backend-prod
+RUN pnpm --filter backend deploy --prod --legacy --no-optional /app/backend-prod
 
 # Clean up unnecessary files to reduce size
 RUN find /app/backend-prod/node_modules -name "*.md" -delete \

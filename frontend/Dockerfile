@@ -17,7 +17,11 @@
 # =========================
 FROM node:24-alpine AS deps
 
-RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
+# pnpm 12 เป็น native binary (Rust) — ติดตั้งด้วย standalone script (npm latest ยังชี้ pnpm 11)
+RUN apk add --no-cache curl && \
+    curl -fsSL https://get.pnpm.io/install.sh | env PNPM_VERSION=12.4.0 SHELL=/bin/sh sh -
+ENV PNPM_HOME="/root/.local/share/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
 
 WORKDIR /w
 
@@ -34,7 +38,10 @@ RUN pnpm install --frozen-lockfile --ignore-scripts --filter lcbp3-frontend...
 # =========================
 FROM node:24-alpine AS build
 
-RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
+RUN apk add --no-cache curl && \
+    curl -fsSL https://get.pnpm.io/install.sh | env PNPM_VERSION=12.4.0 SHELL=/bin/sh sh -
+ENV PNPM_HOME="/root/.local/share/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
 
 # --- Workspace root at /w (holds pnpm manifests + root node_modules) ---
 WORKDIR /w
