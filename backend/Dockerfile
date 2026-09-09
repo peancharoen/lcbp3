@@ -12,11 +12,11 @@
 # =========================
 FROM node:24-alpine AS deps
 
-# pnpm 12 เป็น native binary (Rust) — ติดตั้งด้วย standalone script (npm latest ยังชี้ pnpm 11)
+# pnpm 12 เป็น native binary (Rust) — ดาวน์โหลดโดยตรงจาก GitHub releases
+# (npm latest ยังชี้ pnpm 11, standalone install script ต้องการ shell config ที่ไม่มีใน Docker)
 RUN apk add --no-cache curl && \
-    curl -fsSL https://get.pnpm.io/install.sh | env PNPM_VERSION=12.4.0 SHELL=/bin/sh sh -
-ENV PNPM_HOME="/root/.local/share/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
+    curl -fsSL https://github.com/pnpm/pnpm/releases/download/v12.4.0/pnpm-linux-x64.tar.gz | tar xz -C /usr/local/bin pnpm && \
+    chmod +x /usr/local/bin/pnpm
 
 WORKDIR /app
 
@@ -34,9 +34,8 @@ RUN pnpm install --frozen-lockfile --filter backend...
 FROM node:24-alpine AS build
 
 RUN apk add --no-cache curl && \
-    curl -fsSL https://get.pnpm.io/install.sh | env PNPM_VERSION=12.4.0 SHELL=/bin/sh sh -
-ENV PNPM_HOME="/root/.local/share/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
+    curl -fsSL https://github.com/pnpm/pnpm/releases/download/v12.4.0/pnpm-linux-x64.tar.gz | tar xz -C /usr/local/bin pnpm && \
+    chmod +x /usr/local/bin/pnpm
 
 WORKDIR /app
 
