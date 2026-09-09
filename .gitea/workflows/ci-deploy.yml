@@ -18,18 +18,16 @@ jobs:
       - name: Checkout (HTTPS)
         uses: actions/checkout@v4
 
-      # ── [1] pnpm ต้องมาก่อน setup-node เสมอ ────────────────
-      - name: ⚙️ Install pnpm
-        uses: pnpm/action-setup@v4
-        # version อ่านจาก packageManager field ใน package.json อัตโนมัติ
-
-      - name: ⚙️ Setup Node
-        uses: actions/setup-node@v4
+      # ── [1] pnpm 12 = native binary (Rust) — ใช้ pnpm/setup ไม่ใช่ action-setup ──
+      - name: ⚙️ Install pnpm + Node
+        uses: pnpm/setup@v1
         with:
-          node-version: 24
-          # ลบ cache: "pnpm" ออก — ใช้ volume mount บน runner แทน
+          version: 12.4.0
+          runtime: node@24
+          # version อ่านจาก packageManager field ใน package.json อัตโนมัติ
+          # runtime อ่านจาก devEngines.runtime หรือระบุ explicit (node@24)
 
-          # ── [2] ชี้ store ไปที่ volume ที่ mount ไว้ ─────────────
+      # ── [2] ชี้ store ไปที่ volume ที่ mount ไว้ ─────────────
       - name: 🔧 Set pnpm store path
         run: pnpm config set store-dir /root/.local/share/pnpm
 

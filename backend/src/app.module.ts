@@ -60,6 +60,7 @@ import { DistributionModule } from './modules/distribution/distribution.module';
 import { TagsModule } from './modules/tags/tags.module';
 import { DocumentModule } from './modules/document/document.module';
 import { MaintenanceModule } from './modules/maintenance/maintenance.module';
+import { DocumentSideEffectsProcessorModule } from './common/processors/document-side-effects.module';
 
 @Module({
   imports: [
@@ -203,6 +204,7 @@ import { MaintenanceModule } from './modules/maintenance/maintenance.module';
     TagsModule,
     DocumentModule, // Feature 253 T087: cross-type bulk operations
     MaintenanceModule, // Feature 253 T092: Maintenance Console
+    DocumentSideEffectsProcessorModule, // Feature 253 T010+T011: consume search-reindex/notification/vector-delete jobs (fix 2026-09-09 — queue had zero processor)
   ],
   controllers: [AppController],
   providers: [
