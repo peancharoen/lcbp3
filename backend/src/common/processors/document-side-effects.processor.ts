@@ -67,7 +67,7 @@ export class DocumentSideEffectsProcessor extends WorkerHost {
   }
 
   async process(job: Job): Promise<void> {
-    switch (job.name) {
+    switch (job.name as SideEffectJobType) {
       case SideEffectJobType.SEARCH_REINDEX:
         await this.handleSearchReindex(job.data as SearchReindexJobData);
         break;
