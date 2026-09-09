@@ -11,6 +11,7 @@ import Redlock, { Lock } from 'redlock';
 import { DataSource } from 'typeorm';
 import { FileStorageService } from '../../../common/file-storage/file-storage.service';
 import * as path from 'path';
+import * as fs from 'fs-extra';
 
 export interface OrphanFile {
   path: string;
@@ -61,27 +62,41 @@ export class OrphanCleanupService {
   }
 
   /**
+   * เดินไฟล์แบบ recursive ใน dir — permanentDir เก็บไฟล์ที่ {docType}/{YYYY}/{MM}/filename
+   * (ดู migration-review.service.ts permanentDir path build) ไม่ใช่ flat directory
+   */
+  private async walkFiles(dir: string): Promise<string[]> {
+    const entries = await fs.readdir(dir);
+    const files: string[] = [];
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry);
+      const stat = await fs.stat(fullPath);
+      if (stat.isDirectory()) {
+        files.push(...(await this.walkFiles(fullPath)));
+      } else {
+        files.push(fullPath);
+      }
+    }
+    return files;
+  }
+
+  /**
    * สแกนไฟล์ลูกกร matter ใน permanent + temp storage
    */
   async scanOrphans(): Promise<OrphanFile[]> {
     const orphans: OrphanFile[] = [];
-    const fs = await import('fs-extra');
-    const path = await import('path');
 
     for (const dir of [
       this.fileStorageService.permanentDir,
       this.fileStorageService.tempDir,
     ]) {
       if (!(await fs.pathExists(dir))) continue;
-      const files = await fs.readdir(dir);
-      for (const file of files) {
-        const fullPath = path.join(dir, file);
+      const filePaths = await this.walkFiles(dir);
+      for (const fullPath of filePaths) {
         const stat = await fs.stat(fullPath);
-        if (stat.isDirectory()) continue;
-
         const attachment = await this.dataSource.query<Array<{ id: number }>>(
           'SELECT id FROM attachments WHERE file_path = ? OR uuid = ? LIMIT 1',
-          [fullPath, file]
+          [fullPath, path.basename(fullPath)]
         );
 
         if (attachment.length === 0) {
@@ -107,7 +122,6 @@ export class OrphanCleanupService {
     paths: string[],
     userId: number
   ): Promise<{ deleted: number; failed: string[] }> {
-    const fs = await import('fs-extra');
     let deleted = 0;
     const failed: string[] = [];
     let lock: Lock | null = null;

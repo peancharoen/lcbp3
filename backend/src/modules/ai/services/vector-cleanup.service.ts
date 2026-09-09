@@ -173,7 +173,7 @@ export class VectorCleanupService {
             `SELECT DISTINCT c.uuid AS public_id
              FROM correspondences c
              INNER JOIN correspondence_revisions cr ON cr.correspondence_id = c.id
-             WHERE c.deleted_at IS NULL AND c.uuid IN (?...)`,
+             WHERE c.deleted_at IS NULL AND c.uuid IN (?)`,
             [docPublicIds]
           );
 

@@ -280,6 +280,8 @@ export class MigrationReviewService {
     );
     if (unknown.length > 0) {
       throw new ValidationException(
+        `tagDecisions name mismatch with AI suggestion: ${unknown.map((d) => d.name).join(', ')}`,
+        undefined,
         `tagDecisions มีชื่อ tag ที่ไม่ตรงกับที่ AI เสนอสำหรับรายการนี้: ${unknown
           .map((d) => d.name)
           .join(', ')}`
@@ -445,7 +447,11 @@ export class MigrationReviewService {
       }
       const rawProjectId = dto.projectId ?? queueItem.projectId;
       if (!rawProjectId) {
-        throw new ValidationException('Project ID is required');
+        throw new ValidationException(
+          'Project ID is required',
+          undefined,
+          'กรุณาระบุ Project ก่อน commit'
+        );
       }
       const resolvedProjectId =
         await this.uuidResolverService.resolveProjectId(rawProjectId);
@@ -458,7 +464,11 @@ export class MigrationReviewService {
       const correspondenceType =
         dto.correspondenceType ?? queueItem.aiSuggestedCorrespondenceType;
       if (!correspondenceType) {
-        throw new ValidationException('Correspondence Type is required');
+        throw new ValidationException(
+          'Correspondence Type is required',
+          undefined,
+          'กรุณาระบุประเภทเอกสารก่อน commit'
+        );
       }
       // ADR-050 T017 (FR-005/SC-003): correspondenceType ที่จะ commit ต้องอยู่ใน correspondence_types.typeCode
       // (จริง — ไม่ใช่แค่ prompt-time restriction ที่ T007 ทำไปแล้ว) ป้องกันเขียนหมวดหมู่นอกรายการ
@@ -502,7 +512,9 @@ export class MigrationReviewService {
       }
       if (!typeId) {
         throw new ValidationException(
-          `Correspondence Type "${correspondenceType}" not found in system`
+          `Correspondence Type "${correspondenceType}" not found in system`,
+          undefined,
+          `ไม่พบประเภทเอกสาร "${correspondenceType}" ในระบบ กรุณาตรวจสอบ correspondence_types`
         );
       }
       let status = await queryRunner.manager.findOne(CorrespondenceStatus, {
@@ -591,6 +603,8 @@ export class MigrationReviewService {
       if (attachmentIds.length === 0) {
         // Edge Case: missing attachment — ส่ง 400 พร้อม Thai userMessage
         throw new ValidationException(
+          `No attachment found for migration review record ${queueItem.publicId}`,
+          undefined,
           'ไม่พบไฟล์แนบในรายการรีวิว — กรุณาตรวจสอบว่ามีการอัปโหลดไฟล์ก่อน commit'
         );
       }
@@ -602,6 +616,8 @@ export class MigrationReviewService {
         });
         if (!exists) {
           throw new ValidationException(
+            `Attachment ID ${attId} not found in system`,
+            undefined,
             `ไม่พบไฟล์แนบ ID ${attId} ในระบบ — กรุณาตรวจสอบรายการรีวิว`
           );
         }

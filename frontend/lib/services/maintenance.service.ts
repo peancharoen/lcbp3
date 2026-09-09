@@ -42,7 +42,7 @@ export const maintenanceService = {
     const response = await apiClient.get('/maintenance/numbering/gaps', {
       params: projectId ? { projectId } : undefined,
     });
-    return response.data;
+    return response.data.data;
   },
 
   syncCounters: async (projectId?: string): Promise<{ updated: number }> => {
@@ -51,7 +51,7 @@ export const maintenanceService = {
       { projectId },
       { headers: { 'Idempotency-Key': generateIdempotencyKey() } }
     );
-    return response.data;
+    return response.data.data;
   },
 
   overrideCounter: async (
@@ -63,12 +63,12 @@ export const maintenanceService = {
       { counterKey, newLastNumber },
       { headers: { 'Idempotency-Key': generateIdempotencyKey() } }
     );
-    return response.data;
+    return response.data.data;
   },
 
   scanOrphans: async (): Promise<OrphanFile[]> => {
     const response = await apiClient.get('/maintenance/orphan-cleanup/scan');
-    return response.data;
+    return response.data.data;
   },
 
   purgeOrphans: async (paths: string[]): Promise<{ deleted: number; failed: string[] }> => {
@@ -77,14 +77,14 @@ export const maintenanceService = {
       { paths },
       { headers: { 'Idempotency-Key': generateIdempotencyKey() } }
     );
-    return response.data;
+    return response.data.data;
   },
 
   findMissingVectors: async (projectId?: string): Promise<VectorSyncItem[]> => {
     const response = await apiClient.get('/maintenance/vector-sync/missing', {
       params: projectId ? { projectId } : undefined,
     });
-    return response.data;
+    return response.data.data;
   },
 
   enqueueReEmbed: async (projectPublicId: string, documentPublicId: string): Promise<void> => {
@@ -97,7 +97,7 @@ export const maintenanceService = {
 
   scanStuckLocks: async (): Promise<string[]> => {
     const response = await apiClient.get('/maintenance/emergency-unlock/stuck-locks');
-    return response.data;
+    return response.data.data;
   },
 
   releaseLocks: async (lockKeys: string[]): Promise<ReleasedLock[]> => {
@@ -106,7 +106,7 @@ export const maintenanceService = {
       { lockKeys },
       { headers: { 'Idempotency-Key': generateIdempotencyKey() } }
     );
-    return response.data;
+    return response.data.data;
   },
 
   bulkHardPurge: async (
@@ -118,6 +118,6 @@ export const maintenanceService = {
       { publicIds, documentType },
       { headers: { 'Idempotency-Key': generateIdempotencyKey() } }
     );
-    return response.data;
+    return response.data.data;
   },
 };

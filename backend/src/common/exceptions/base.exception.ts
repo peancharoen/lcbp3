@@ -104,12 +104,23 @@ export abstract class BaseException extends HttpException {
 
 // Validation Errors (400) - ข้อมูล Input ผิดพลาด
 export class ValidationException extends BaseException {
-  constructor(message: string, details?: ValidationErrorDetail[]) {
+  /**
+   * @param message เหตุผลทาง technical (โชว์ผู้ใช้เฉพาะเมื่อไม่ได้ระบุ userMessage และ NODE_ENV !== production)
+   * @param details รายละเอียด validation error ต่อ field (ถ้ามี)
+   * @param userMessage ข้อความที่ต้องการโชว์ผู้ใช้จริง (Thai, actionable) — ถ้าไม่ระบุ
+   *   จะ fallback เป็นข้อความทั่วไป "ข้อมูลที่กรอกไม่ถูกต้อง..." เหมือนเดิม (backward compatible
+   *   กับ call site เดิมที่ message เป็นข้อความ technical ภาษาอังกฤษไม่เหมาะโชว์ผู้ใช้ตรงๆ)
+   */
+  constructor(
+    message: string,
+    details?: ValidationErrorDetail[],
+    userMessage?: string
+  ) {
     super(
       ErrorType.VALIDATION,
       'VALIDATION_ERROR',
       message,
-      'ข้อมูลที่กรอกไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่',
+      userMessage || 'ข้อมูลที่กรอกไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่',
       ErrorSeverity.LOW,
       details,
       ['ตรวจสอบข้อมูลที่กรอก', 'แก้ไขข้อมูลที่ผิดพลาด', 'ลองใหม่อีกครั้ง']
