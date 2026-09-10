@@ -5,26 +5,36 @@
 //   ที่ไม่มี doc_public_id ตรงใน DB
 // - 2026-09-08: Fix orphanScan raw SQL — correspondences ใช้ column `uuid` ไม่ใช่ `public_id`
 //   (ADR-019: UuidBaseEntity maps publicId → uuid column)
+// - 2026-09-11: T051 — เพิ่ม generation-scoped cleanup และ retry records (Feature 254, Phase 5 US3)
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, LessThan } from 'typeorm';
+import { v7 as uuidv7 } from 'uuid';
 import { AiQdrantService } from '../qdrant.service';
 import {
   PendingVectorDeletion,
   PendingVectorDeletionStatus,
 } from '../entities/pending-vector-deletion.entity';
+import { RagAttachmentGeneration } from '../entities/rag-attachment-generation.entity';
+import { RagAttachmentChunk } from '../entities/rag-attachment-chunk.entity';
+import { RagAttachmentPage } from '../entities/rag-attachment-page.entity';
 
 /** ขนาด batch สำหรับ orphan scan (scroll Qdrant) */
 const ORPHAN_SCAN_BATCH_SIZE = 100;
 
+/** Retention threshold สำหรับ RETIRED generation cleanup (24 ชม.) */
+const RETIRED_GENERATION_RETENTION_HOURS = 24;
+
 /**
  * Periodic cleanup service สำหรับ Qdrant vectors
  *
- * 2 ฟังก์ชันหลัก:
+ * ฟังก์ชันหลัก:
  * 1. retryPendingDeletions — retry ลบ vectors ที่เก็บใน pending_vector_deletions
  * 2. orphanScan — scroll Qdrant เทียบกับ DB ลบ vectors ที่ไม่มี doc_public_id ตรง
+ * 3. cleanupRetiredGenerations — generation-scoped cleanup สำหรับ RETIRED generations
+ * 4. recordPendingDeletion — สร้าง retry record สำหรับ compensation pattern
  *
  * รันทุกชั่วโมง (EVERY_HOUR) — ปรับได้ผ่าน env ในอนาคต
  */
@@ -36,7 +46,16 @@ export class VectorCleanupService {
     private readonly qdrantService: AiQdrantService,
     @InjectRepository(PendingVectorDeletion)
     private readonly pendingRepo: Repository<PendingVectorDeletion>,
-    private readonly dataSource: DataSource
+    private readonly dataSource: DataSource,
+    @Optional()
+    @InjectRepository(RagAttachmentGeneration)
+    private readonly generationRepo?: Repository<RagAttachmentGeneration>,
+    @Optional()
+    @InjectRepository(RagAttachmentChunk)
+    private readonly chunkRepo?: Repository<RagAttachmentChunk>,
+    @Optional()
+    @InjectRepository(RagAttachmentPage)
+    private readonly pageRepo?: Repository<RagAttachmentPage>
   ) {}
 
   /**
@@ -212,5 +231,132 @@ export class VectorCleanupService {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.error(`orphanScan: fatal error: ${msg}`);
     }
+  }
+
+  /**
+   * Generation-scoped cleanup สำหรับ RETIRED generations ทุก 6 ชั่วโมง
+   * ลบ Qdrant vectors ของ RETIRED generations ที่เก่ากว่า retention threshold
+   * พร้อมลบ chunks/pages/generation records จาก MariaDB
+   */
+  @Cron('0 0 */6 * * *')
+  async cleanupRetiredGenerations(): Promise<void> {
+    this.logger.log('Starting generation-scoped RETIRED cleanup...');
+
+    if (!this.generationRepo || !this.chunkRepo || !this.pageRepo) {
+      this.logger.warn(
+        'cleanupRetiredGenerations: generation/chunk/page repositories not available — skipping'
+      );
+      return;
+    }
+
+    let cleaned = 0;
+    let failed = 0;
+
+    try {
+      const threshold = new Date(
+        Date.now() - RETIRED_GENERATION_RETENTION_HOURS * 60 * 60 * 1000
+      );
+      const retiredGenerations = await this.generationRepo.find({
+        where: {
+          status: 'RETIRED' as never,
+          retiredAt: LessThan(threshold),
+        },
+        take: 50,
+      });
+
+      if (retiredGenerations.length === 0) {
+        this.logger.log(
+          'cleanupRetiredGenerations: no RETIRED generations to clean'
+        );
+        return;
+      }
+
+      for (const generation of retiredGenerations) {
+        try {
+          await this.cleanupGenerationVectors(generation.generationUuid);
+
+          await this.chunkRepo.delete({
+            generationUuid: generation.generationUuid,
+          });
+          await this.pageRepo.delete({
+            generationUuid: generation.generationUuid,
+          });
+          await this.generationRepo.delete({
+            generationUuid: generation.generationUuid,
+          });
+          cleaned++;
+        } catch (err: unknown) {
+          failed++;
+          this.logger.error(
+            `cleanupRetiredGenerations: failed for generation ${generation.generationUuid}: ${err instanceof Error ? err.message : String(err)}`
+          );
+        }
+      }
+
+      this.logger.log(
+        `cleanupRetiredGenerations: cleaned=${cleaned}, failed=${failed}`
+      );
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`cleanupRetiredGenerations: fatal error: ${msg}`);
+    }
+  }
+
+  /**
+   * ลบ Qdrant vectors ของ generation หนึ่งโดยใช้ chunk public IDs
+   * หาก Qdrant deletion ล้มเหลว จะบันทึก pending deletion record เพื่อ retry ภายหลัง
+   * @param generationUuid UUID ของ generation ที่จะลบ vectors
+   */
+  async cleanupGenerationVectors(generationUuid: string): Promise<void> {
+    if (!this.chunkRepo) {
+      this.logger.warn(
+        `cleanupGenerationVectors: chunk repository not available — skipping`
+      );
+      return;
+    }
+    const chunks = await this.chunkRepo.find({
+      where: { generationUuid },
+      select: ['chunkPublicId'],
+    });
+    if (chunks.length === 0) return;
+
+    const pointIds = chunks.map((c) => c.chunkPublicId);
+    try {
+      await this.qdrantService.deleteByPointIds(pointIds);
+      this.logger.debug(
+        `cleanupGenerationVectors: deleted ${pointIds.length} vectors for generation ${generationUuid}`
+      );
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(
+        `cleanupGenerationVectors: Qdrant deletion failed for generation ${generationUuid}: ${msg} — recording pending deletion`
+      );
+      // บันทึก pending deletion เพื่อ retry ภายหลัง (compensation pattern)
+      await this.recordPendingDeletion({
+        documentPublicId: chunks[0]?.attachmentUuid ?? generationUuid,
+        projectPublicId: chunks[0]?.projectPublicId ?? '',
+      });
+    }
+  }
+
+  /**
+   * สร้าง pending vector deletion record สำหรับ retry ภายหลัง
+   * ใช้ใน compensation pattern เมื่อ Qdrant deletion ล้มเหลว
+   * @param payload ข้อมูล documentPublicId และ projectPublicId
+   */
+  async recordPendingDeletion(payload: {
+    documentPublicId: string;
+    projectPublicId: string;
+  }): Promise<void> {
+    const pendingDeletion = this.pendingRepo.create({
+      publicId: uuidv7(),
+      documentPublicId: payload.documentPublicId,
+      projectPublicId: payload.projectPublicId,
+      status: PendingVectorDeletionStatus.PENDING,
+    });
+    await this.pendingRepo.save(pendingDeletion);
+    this.logger.log(
+      `recordPendingDeletion: created pending deletion for doc=${payload.documentPublicId}`
+    );
   }
 }

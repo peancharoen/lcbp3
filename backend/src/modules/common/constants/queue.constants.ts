@@ -32,5 +32,10 @@ export const QUEUE_AI_RAG = 'ai-rag-query';
 /** Queue สำหรับลบ vector ใน Qdrant แบบ asynchronous (ADR-023 FR-008) */
 export const QUEUE_AI_VECTOR_DELETION = 'ai-vector-deletion';
 
+/** Job names สำหรับ RAG Attachment generation lifecycle */
+export const JOB_RAG_ATTACHMENT_INGEST = 'rag-attachment-ingest';
+export const JOB_RAG_METADATA_SYNC = 'rag-metadata-sync';
+export const JOB_RAG_GENERATION_CLEANUP = 'rag-generation-cleanup';
+
 /** Queue สำหรับ bulk operations (cancel/tag/export) แบบ durable (Feature 253) */
 export const QUEUE_BULK_OPERATIONS = 'bulk-operations';

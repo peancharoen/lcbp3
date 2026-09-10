@@ -369,7 +369,7 @@ export class CorrespondenceController {
     description: 'Metadata updated',
     type: DocumentActionResponseDto,
   })
-  @RequirePermission('correspondence.edit')
+  @RequirePermission('correspondence.edit_metadata')
   @Audit('correspondence.metadata_patch', 'correspondence')
   @UseInterceptors(IdempotencyInterceptor)
   async patchMetadata(

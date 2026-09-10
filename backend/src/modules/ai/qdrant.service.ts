@@ -181,7 +181,10 @@ export class AiQdrantService implements OnModuleInit {
     sparseVectorOrTopK?: { indices: number[]; values: number[] } | number,
     topK = 5
   ): Promise<AiVectorSearchResult[]> {
-    if (!projectPublicId) {
+    // trim ก่อนตรวจ emptiness เพื่อป้องกัน whitespace-only bypass (ADR-023A, T034 TC2c)
+    const scopedProjectPublicId =
+      typeof projectPublicId === 'string' ? projectPublicId.trim() : '';
+    if (!scopedProjectPublicId) {
       throw new ServiceUnavailableException('AI_QDRANT_PROJECT_SCOPE_REQUIRED');
     }
 
@@ -206,7 +209,10 @@ export class AiQdrantService implements OnModuleInit {
         limit: actualTopK,
         filter: {
           must: [
-            { key: 'project_public_id', match: { value: projectPublicId } },
+            {
+              key: 'project_public_id',
+              match: { value: scopedProjectPublicId },
+            },
           ],
         },
         with_payload: true,
@@ -244,7 +250,12 @@ export class AiQdrantService implements OnModuleInit {
       query: { fusion: 'rrf' } as unknown as Record<string, unknown>,
       limit: actualTopK,
       filter: {
-        must: [{ key: 'project_public_id', match: { value: projectPublicId } }],
+        must: [
+          {
+            key: 'project_public_id',
+            match: { value: scopedProjectPublicId },
+          },
+        ],
       },
       with_payload: true,
     });
@@ -449,5 +460,40 @@ export class AiQdrantService implements OnModuleInit {
       wait: true,
       points: pointIds,
     });
+  }
+
+  /**
+   * อัปเดต classification metadata ใน Qdrant payload สำหรับ chunks ทั้งหมดของ Attachment
+   * ใช้ setPayload API เพื่ออัปเดตเฉพาะ field classification โดยไม่ต้อง re-embed
+   * กรองด้วย attachment_public_id เพื่อให้ตรงกับ chunks ของ ACTIVE generation
+   * @param attachmentPublicId UUIDv7 ของ Attachment ที่เปลี่ยน classification
+   * @param newClassification classification ใหม่ที่จะตั้งใน Qdrant payload
+   */
+  async updateClassificationMetadata(
+    attachmentPublicId: string,
+    newClassification: string
+  ): Promise<void> {
+    if (!attachmentPublicId) {
+      throw new ServiceUnavailableException(
+        'AI_QDRANT_ATTACHMENT_SCOPE_REQUIRED'
+      );
+    }
+
+    await this.client.setPayload(AI_COLLECTION_NAME, {
+      payload: { classification: newClassification },
+      filter: {
+        must: [
+          {
+            key: 'attachment_public_id',
+            match: { value: attachmentPublicId },
+          },
+        ],
+      },
+    });
+
+    this.logger.log(
+      `Updated classification metadata in Qdrant — attachment=${attachmentPublicId}, ` +
+        `newClassification=${newClassification}`
+    );
   }
 }

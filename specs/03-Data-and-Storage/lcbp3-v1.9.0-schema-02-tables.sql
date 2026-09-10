@@ -435,6 +435,20 @@ CREATE TABLE correspondence_tags (
     INDEX idx_correspondence_tags_lookup (tag_id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางเชื่อมโยงความสัมพันธ์แบบ M:N ระหว่างเอกสารและแท็ก';
 
+-- ตารางเชื่อมแท็กสำหรับเอกสารประเภทที่ไม่มี correspondence_tags โดยตรง
+CREATE TABLE document_tags (
+  document_type VARCHAR(30) NOT NULL COMMENT 'ประเภทเอกสารตาม domain glossary',
+  document_id INT NOT NULL COMMENT 'INT PK ภายในของเอกสารตาม document_type',
+  tag_id INT NOT NULL COMMENT 'ID ของแท็ก',
+  created_by INT NULL COMMENT 'ผู้เชื่อมโยงแท็ก',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (document_type, document_id, tag_id),
+  FOREIGN KEY (tag_id) REFERENCES tags (id) ON DELETE CASCADE,
+  FOREIGN KEY (created_by) REFERENCES users (user_id) ON DELETE
+  SET NULL,
+    INDEX idx_document_tags_tag (tag_id)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง M:N สำหรับแท็กของ RFA, Transmittal, Drawing และ Circulation';
+
 -- ตารางเชื่อมการอ้างอิงระหว่างเอกสาร (M:N)
 CREATE TABLE correspondence_references (
   src_correspondence_id INT COMMENT 'ID เอกสารต้นทาง',
@@ -933,6 +947,12 @@ CREATE TABLE attachments (
   ai_processing_status ENUM('PENDING', 'PROCESSING', 'DONE', 'FAILED') NOT NULL DEFAULT 'PENDING' COMMENT 'สถานะ AI job ของไฟล์เอกสารตาม ADR-023A',
   rag_status ENUM('PENDING', 'PROCESSING', 'INDEXED', 'FAILED') NOT NULL DEFAULT 'PENDING' COMMENT 'สถานะ RAG ingestion ระดับ file (ADR-022)',
   rag_last_error TEXT NULL COMMENT 'Error message ล่าสุดเมื่อ rag_status = FAILED',
+  classification ENUM('PUBLIC', 'INTERNAL', 'CONFIDENTIAL') NOT NULL DEFAULT 'INTERNAL' COMMENT 'Effective document security classification for RAG retrieval',
+  effective_classification VARCHAR(50) NOT NULL DEFAULT 'INTERNAL' COMMENT 'Resolved classification after inheritance/override (Feature 254, ADR-016)',
+  classification_override VARCHAR(50) NULL COMMENT 'Explicit override value; NULL if inherited (Feature 254, ADR-016)',
+  classification_override_reason TEXT NULL COMMENT 'Audit reason for override (Feature 254, ADR-016)',
+  classification_override_actor_user_public_id VARCHAR(36) NULL COMMENT 'UUIDv7 of the actor who set the override (ADR-019)',
+  classification_overridden_at DATETIME NULL COMMENT 'Timestamp of last override (Feature 254, ADR-016)',
   ocr_text LONGTEXT NULL COMMENT 'OCR text ที่สกัดได้ก่อน semantic chunking/embedding (ADR-042)',
   FOREIGN KEY (uploaded_by_user_id) REFERENCES users (user_id) ON DELETE CASCADE,
   FOREIGN KEY (workflow_history_id) REFERENCES workflow_histories (id) ON DELETE
@@ -941,32 +961,95 @@ CREATE TABLE attachments (
     INDEX idx_att_wfhist_created (workflow_history_id, created_at),
     INDEX idx_attachments_ai_status (ai_processing_status),
     INDEX idx_attachments_rag_status (rag_status),
+    INDEX idx_attachments_effective_classification (effective_classification),
+    INDEX idx_attachments_classification_rag (effective_classification, rag_status),
     UNIQUE INDEX idx_attachments_uuid (uuid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'ตาราง "กลาง" เก็บไฟล์แนบทั้งหมดของระบบ';
 
 -- =====================================================
--- 14. 📄 Document Chunks (ADR-022 RAG)
+-- 14. 🧠 RAG Attachment Chunks (ADR-022/023A)
 -- =====================================================
--- ตารางเก็บ vector metadata สำหรับ RAG ingestion
-CREATE TABLE document_chunks (
-  id CHAR(36) NOT NULL PRIMARY KEY COMMENT 'UUIDv4 = Qdrant point ID (TypeORM @PrimaryGeneratedColumn(''uuid'') สำหรับ ai_document_chunks หรือ UUID ที่ Qdrant assign)',
-  document_id CHAR(36) NOT NULL COMMENT 'FK → attachments.public_id (UUIDv7)',
-  chunk_index INT NOT NULL COMMENT 'ลำดับ chunk ภายใน document',
-  content TEXT NOT NULL COMMENT 'เนื้อหา chunk หลัง PyThaiNLP normalize',
-  doc_type VARCHAR(20) NOT NULL COMMENT 'CORR, RFA, DRAWING, CONTRACT, RPT, TRANS',
-  doc_number VARCHAR(100) NULL COMMENT 'หมายเลขเอกสาร เช่น REF-2026-001',
-  revision VARCHAR(20) NULL COMMENT 'Revision เช่น Rev.A',
-  project_code VARCHAR(50) NOT NULL COMMENT 'รหัสโครงการ (ใช้ filter)',
-  project_public_id CHAR(36) NOT NULL COMMENT 'UUIDv7 ของโครงการ (Qdrant tenant key)',
-  version VARCHAR(20) NULL COMMENT 'เวอร์ชันเอกสาร เช่น 1.0, 2.1 (ถ้ามี)',
-  classification ENUM('PUBLIC', 'INTERNAL', 'CONFIDENTIAL') NOT NULL DEFAULT 'INTERNAL',
-  embedding_model VARCHAR(100) NOT NULL DEFAULT 'nomic-embed-text',
+-- Generation lifecycle สำหรับ Attachment-scoped RAG ingestion
+CREATE TABLE rag_attachment_generations (
+  generation_uuid UUID NOT NULL PRIMARY KEY COMMENT 'UUIDv7 ของ generation การ ingest',
+  attachment_uuid UUID NOT NULL COMMENT 'FK → attachments.uuid',
+  attachment_checksum_snapshot CHAR(64) NOT NULL COMMENT 'SHA-256 ที่อ่านจาก Attachment ตอน enqueue',
+  verified_content_checksum CHAR(64) NULL COMMENT 'SHA-256 ที่ worker ตรวจจากไฟล์จริง',
+  STATUS ENUM('BUILDING', 'ACTIVE', 'RETIRED', 'FAILED') NOT NULL DEFAULT 'BUILDING',
+  embedding_model VARCHAR(100) NOT NULL DEFAULT 'bge-m3',
+  embedding_model_version VARCHAR(100) NULL,
+  embedding_schema JSON NULL COMMENT 'Dense/sparse dimensions and schema',
+  error_code VARCHAR(100) NULL,
+  error_message TEXT NULL,
   created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-  INDEX idx_chunks_document_id (document_id),
-  INDEX idx_chunks_doc_number_rev (doc_number, revision),
-  INDEX idx_chunks_project (project_public_id),
-  FULLTEXT INDEX ft_chunks_content (content)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'ตาราง Document Chunks สำหรับ RAG (ADR-022)';
+  activated_at DATETIME(3) NULL,
+  retired_at DATETIME(3) NULL,
+  failed_at DATETIME(3) NULL,
+  active_generation_marker TINYINT AS (IF(STATUS = 'ACTIVE', 1, NULL)) PERSISTENT,
+  FOREIGN KEY (attachment_uuid) REFERENCES attachments (uuid) ON DELETE CASCADE,
+  UNIQUE KEY uq_rag_active_generation (attachment_uuid, active_generation_marker),
+  INDEX idx_rag_generation_attachment (attachment_uuid),
+  INDEX idx_rag_generation_status (STATUS),
+  INDEX idx_rag_generation_failed (STATUS, failed_at)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Generation lifecycle สำหรับ RAG Attachment ingestion';
+
+-- Canonical normalized text segments used for chunking and citation
+CREATE TABLE rag_attachment_pages (
+  page_uuid UUID NOT NULL PRIMARY KEY COMMENT 'UUIDv7 ของ source segment',
+  generation_uuid UUID NOT NULL,
+  attachment_uuid UUID NOT NULL,
+  segment_type ENUM('PAGE', 'SECTION', 'SHEET', 'WHOLE_DOCUMENT') NOT NULL,
+  segment_number INT NULL,
+  segment_label VARCHAR(255) NULL,
+  source_locator VARCHAR(1000) NULL COMMENT 'Inner ZIP path or source locator',
+  normalized_text LONGTEXT NOT NULL,
+  normalized_start_offset BIGINT NOT NULL DEFAULT 0,
+  normalized_end_offset BIGINT NOT NULL,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  FOREIGN KEY (generation_uuid) REFERENCES rag_attachment_generations (generation_uuid) ON DELETE CASCADE,
+  FOREIGN KEY (attachment_uuid) REFERENCES attachments (uuid) ON DELETE CASCADE,
+  INDEX idx_rag_pages_generation (generation_uuid),
+  INDEX idx_rag_pages_attachment (attachment_uuid),
+  UNIQUE KEY uq_rag_page_segment (
+    generation_uuid,
+    segment_type,
+    segment_number,
+    source_locator(191)
+  )
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Canonical normalized text segments for RAG citation';
+
+-- Ordered retrieval chunks; vector is stored in Qdrant, not MariaDB
+CREATE TABLE rag_attachment_chunks (
+  chunk_public_id UUID NOT NULL PRIMARY KEY COMMENT 'UUIDv7 และ Qdrant point ID',
+  generation_uuid UUID NOT NULL,
+  attachment_uuid UUID NOT NULL COMMENT 'FK → attachments.uuid',
+  chunk_index INT NOT NULL,
+  content TEXT NOT NULL,
+  source_page_uuid UUID NOT NULL,
+  segment_type ENUM('PAGE', 'SECTION', 'SHEET', 'WHOLE_DOCUMENT') NOT NULL,
+  segment_number INT NULL,
+  segment_label VARCHAR(255) NULL,
+  source_locator VARCHAR(1000) NULL,
+  start_offset BIGINT NOT NULL,
+  end_offset BIGINT NOT NULL,
+  doc_type VARCHAR(50) NULL COMMENT 'Canonical domain metadata snapshot',
+  doc_number VARCHAR(100) NULL,
+  revision VARCHAR(50) NULL,
+  owner_type VARCHAR(50) NOT NULL COMMENT 'Canonical domain owner type, not a source table name',
+  owner_public_id UUID NOT NULL,
+  project_public_id UUID NOT NULL COMMENT 'Owning Project tenant key',
+  classification ENUM('PUBLIC', 'INTERNAL', 'CONFIDENTIAL') NOT NULL DEFAULT 'INTERNAL',
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  FOREIGN KEY (generation_uuid) REFERENCES rag_attachment_generations (generation_uuid) ON DELETE CASCADE,
+  FOREIGN KEY (attachment_uuid) REFERENCES attachments (uuid) ON DELETE CASCADE,
+  FOREIGN KEY (source_page_uuid) REFERENCES rag_attachment_pages (page_uuid) ON DELETE CASCADE,
+  UNIQUE KEY uq_rag_chunk_order (generation_uuid, chunk_index),
+  INDEX idx_rag_chunks_attachment (attachment_uuid),
+  INDEX idx_rag_chunks_generation (generation_uuid),
+  INDEX idx_rag_chunks_project (project_public_id),
+  INDEX idx_rag_chunks_owner (owner_type, owner_public_id),
+  FULLTEXT INDEX ft_rag_chunks_content (content)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Attachment-scoped RAG chunks; vectors live in Qdrant';
 
 -- ตารางเชื่อม correspondence_revisions กับ attachments (M:N)
 -- [FIX] FK เปลี่ยนจาก correspondences.id → correspondence_revisions.id

@@ -156,5 +156,34 @@
     "legacy_reextract_badge": "Re-extract Required",
     "legacy_reextract_button": "Re-extract",
     "tag_suggestions_title": "AI-Suggested Tags"
+  },
+  "rag": {
+    "ingestion_status": {
+      "PENDING": "Pending",
+      "PROCESSING": "Processing",
+      "INDEXED": "Indexed",
+      "FAILED": "Failed",
+      "BUILDING": "Building",
+      "ACTIVE": "Active",
+      "RETIRED": "Retired"
+    },
+    "checksum_failure": {
+      "title": "Checksum Verification Failed",
+      "message": "The file checksum does not match the stored value. The file may have been corrupted or modified after upload.",
+      "recovery_action": "Please re-upload the file or contact an administrator."
+    },
+    "stale_fallback": {
+      "message": "Vector index is not yet available. Showing results from full-text search as a fallback.",
+      "recovery_action": "Results may be less accurate. Please try again later when indexing is complete."
+    },
+    "classification_denial": {
+      "title": "Classification Not Allowed",
+      "message": "You do not have permission to change the classification of this document.",
+      "recovery_action": "Please contact a Security/System Administrator if you believe this is an error."
+    },
+    "citation_list": {
+      "title": "References",
+      "empty": "No references available"
+    }
   }
 }

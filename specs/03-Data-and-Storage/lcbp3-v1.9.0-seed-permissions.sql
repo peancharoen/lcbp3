@@ -1455,6 +1455,34 @@ VALUES(module),
 VALUES(is_active);
 
 -- ==========================================================
+-- 22.1 RAG Attachment Classification Override (Feature 254)
+-- ==========================================================
+INSERT INTO permissions (
+    permission_id,
+    permission_name,
+    description,
+    module,
+    is_active
+  )
+VALUES (
+    238,
+    'document.classification_override',
+    'ลดระดับ Document Security Classification สำหรับ RAG Attachment (Superadmin only)',
+    'document',
+    1
+  ) ON DUPLICATE KEY
+UPDATE description =
+VALUES(description),
+  module =
+VALUES(module),
+  is_active =
+VALUES(is_active);
+
+-- Superadmin (role 1) only: classification downgrade is a protected security boundary
+INSERT IGNORE INTO role_permissions (role_id, permission_id)
+VALUES (1, 238);
+
+-- ==========================================================
 -- 23. Unified Document CRUD — Role Assignments (Feature 253)
 -- ==========================================================
 -- DC (role 3): Cancel + Metadata Patch + Bulk Operations

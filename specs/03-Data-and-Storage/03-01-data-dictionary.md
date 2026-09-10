@@ -512,7 +512,28 @@ erDiagram
 
 ---
 
-### 3.8 correspondence_references
+### 3.8 document_tags (Feature 253)
+
+**Purpose**: Polymorphic M:N tag links for RFA, Transmittal, Drawing, and Circulation.
+
+| Column Name | Data Type | Constraints | Description |
+| --- | --- | --- | --- |
+| document_type | VARCHAR(30) | PRIMARY KEY | Domain document type discriminator |
+| document_id | INT | PRIMARY KEY | Internal document PK; never exposed through API |
+| tag_id | INT | PRIMARY KEY, FK | Reference to tags |
+| created_by | INT | NULL, FK | User who created the link |
+| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Link creation timestamp |
+
+**Business Rules**:
+
+- API accepts UUIDv7 `publicId`; backend resolves it to `document_id` internally.
+- `document_type` is limited to RFA, Transmittal, Drawing, and Circulation.
+- Bulk Tag operations are same-type and limited to 100 documents.
+- Mutation logic is implemented in NestJS; no SQL triggers are used.
+
+---
+
+### 3.9 correspondence_references
 
 **Purpose**: Junction table for cross-referencing correspondences (M:N)
 
@@ -1577,6 +1598,79 @@ erDiagram
 **Relationships**:
 
 - Parent: contract_drawings, attachments
+
+---
+
+### 8.6 rag_attachment_generations (Feature 254)
+
+**Purpose**: Checksum-bound lifecycle for Attachment RAG ingestion.
+
+| Column | Data Type | Constraints | Description |
+|---|---|---|---|
+| generation_uuid | UUID | PRIMARY KEY | UUIDv7 generation identity |
+| attachment_uuid | UUID | NOT NULL, FK | References attachments.uuid |
+| attachment_checksum_snapshot | CHAR(64) | NOT NULL | SHA-256 observed at enqueue |
+| verified_content_checksum | CHAR(64) | NULL until verified | SHA-256 calculated from the file |
+| status | ENUM | NOT NULL | BUILDING, ACTIVE, RETIRED, FAILED |
+| embedding_model | VARCHAR(100) | NOT NULL | BGE-M3 model snapshot |
+| embedding_model_version | VARCHAR(100) | NULL | Model revision/config identity |
+| embedding_schema | JSON | NULL | Dense/sparse schema metadata |
+| error_code | VARCHAR(100) | NULL | Technical failure code |
+| error_message | TEXT | NULL | Technical recovery detail |
+
+**Business Rules**:
+
+- Exactly one ACTIVE generation is allowed per Attachment.
+- Redlock plus database transaction protects generation swaps.
+- FAILED retry creates a new generation UUID.
+- RETIRED remains until Qdrant cleanup succeeds; FAILED metadata is retained for 30 days.
+
+---
+
+### 8.7 rag_attachment_pages (Feature 254)
+
+**Purpose**: Canonical normalized TextSegment source for RAG chunking and citation.
+
+| Column | Data Type | Constraints | Description |
+|---|---|---|---|
+| page_uuid | UUID | PRIMARY KEY | UUIDv7 segment identity |
+| generation_uuid | UUID | NOT NULL, FK | Generation owner |
+| attachment_uuid | UUID | NOT NULL, FK | References attachments.uuid |
+| segment_type | ENUM | NOT NULL | PAGE, SECTION, SHEET, WHOLE_DOCUMENT |
+| segment_number | INT | NULL | Page/section/sheet number |
+| segment_label | VARCHAR(255) | NULL | Human-readable source label |
+| source_locator | VARCHAR(1000) | NULL | ZIP inner-file path or source locator |
+| normalized_text | LONGTEXT | NOT NULL | Canonical normalized text |
+| normalized_start_offset | BIGINT | NOT NULL | Normalized source offset |
+| normalized_end_offset | BIGINT | NOT NULL | Normalized source offset |
+
+---
+
+### 8.8 rag_attachment_chunks (Feature 254)
+
+**Purpose**: Ordered Attachment-scoped retrieval spans; vectors are stored in Qdrant.
+
+| Column | Data Type | Constraints | Description |
+|---|---|---|---|
+| chunk_public_id | UUID | PRIMARY KEY | UUIDv7 and Qdrant point ID |
+| generation_uuid | UUID | NOT NULL, FK | Generation owner |
+| attachment_uuid | UUID | NOT NULL, FK | References attachments.uuid |
+| chunk_index | INT | NOT NULL | Ordering within generation |
+| content | TEXT | NOT NULL | Normalized retrieval content |
+| source_page_uuid | UUID | NOT NULL, FK | Source TextSegment |
+| start_offset/end_offset | BIGINT | NOT NULL | Normalized-text citation range |
+| owner_type | VARCHAR(50) | NOT NULL | Canonical domain owner type |
+| owner_public_id | UUID | NOT NULL | Owning document public ID |
+| project_public_id | UUID | NOT NULL | Owning Project tenant key |
+| classification | ENUM | NOT NULL | PUBLIC, INTERNAL, CONFIDENTIAL snapshot |
+| doc_type/doc_number/revision | VARCHAR | NULL | Metadata snapshots |
+
+**Business Rules**:
+
+- `attachment_uuid` references the physical `attachments.uuid` column.
+- `project_public_id` is the owning Project and mandatory for Qdrant filtering.
+- Receiving Projects may view/download distributed content but cannot retrieve it through RAG.
+- `classification` is derived from Document Security Policy; lowering it requires Security/System Admin override and audit.
 
 ---
 

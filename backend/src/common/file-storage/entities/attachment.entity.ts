@@ -59,6 +59,13 @@ export class Attachment extends UuidBaseEntity {
   })
   aiProcessingStatus!: 'PENDING' | 'PROCESSING' | 'DONE' | 'FAILED';
 
+  @Column({
+    type: 'enum',
+    enum: ['PUBLIC', 'INTERNAL', 'CONFIDENTIAL'],
+    default: 'INTERNAL',
+  })
+  classification!: 'PUBLIC' | 'INTERNAL' | 'CONFIDENTIAL';
+
   // ADR-021: FK ไปยัง workflow_histories สำหรับไฟล์แนบประจำ Step
   // NULL = ไฟล์แนบหลัก (Main Document), NOT NULL = ไฟล์ประจำ Workflow Step
   @Column({ name: 'workflow_history_id', nullable: true })

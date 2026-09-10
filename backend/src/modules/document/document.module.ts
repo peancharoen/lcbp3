@@ -15,6 +15,7 @@ import { CirculationModule } from '../circulation/circulation.module';
 import { CommonModule } from '../../common/common.module';
 import { QUEUE_BULK_OPERATIONS } from '../../modules/common/constants/queue.constants';
 import { UserModule } from '../user/user.module';
+import { DocumentTagService } from './document-tag.service';
 
 /**
  * Module สำหรับ cross-type document operations
@@ -32,7 +33,7 @@ import { UserModule } from '../user/user.module';
     UserModule, // สำหรับ RbacGuard (ต้องการ UserService) — security fix 2026-09-09
   ],
   controllers: [DocumentController],
-  providers: [DocumentService, BulkOperationsProcessor],
+  providers: [DocumentService, DocumentTagService, BulkOperationsProcessor],
   exports: [DocumentService],
 })
 export class DocumentModule {}

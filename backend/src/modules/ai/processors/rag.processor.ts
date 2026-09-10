@@ -1,4 +1,4 @@
-// File: src/modules/ai/processors/rag.processor.ts
+// File: backend/src/modules/ai/processors/rag.processor.ts
 // Change Log
 // - 2026-05-14: เพิ่ม BullMQ Processor สำหรับ RAG query ตาม ADR-023 Phase 4 (T018, T022).
 // Processor นี้ใช้ concurrency = 1 เพื่อป้องกัน OOM บน Desk-5439 (FR-009)

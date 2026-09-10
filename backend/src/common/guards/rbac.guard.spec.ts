@@ -301,4 +301,74 @@ describe('RbacGuard', () => {
       ]);
     });
   });
+
+  // ==========================================================
+  // document.classification_override permission (T014)
+  // สิทธิ์ id=238 — Superadmin-only (role_id=1)
+  // ==========================================================
+  describe('document.classification_override permission (T014)', () => {
+    it('should deny non-superadmin user WITHOUT document.classification_override', async () => {
+      jest
+        .spyOn(reflector, 'getAllAndOverride')
+        .mockReturnValue(['document.classification_override']);
+      jest
+        .spyOn(userService, 'getUserPermissions')
+        .mockResolvedValue(['correspondence.read', 'correspondence.create']);
+
+      const context = createMockExecutionContext(createMockUser(2));
+
+      await expect(guard.canActivate(context)).rejects.toThrow(
+        ForbiddenException
+      );
+      await expect(guard.canActivate(context)).rejects.toThrow(
+        'You do not have permission: document.classification_override'
+      );
+    });
+
+    it('should allow non-superadmin user WITH document.classification_override', async () => {
+      jest
+        .spyOn(reflector, 'getAllAndOverride')
+        .mockReturnValue(['document.classification_override']);
+      jest
+        .spyOn(userService, 'getUserPermissions')
+        .mockResolvedValue([
+          'correspondence.read',
+          'document.classification_override',
+        ]);
+
+      const context = createMockExecutionContext(createMockUser(2));
+      const result = await guard.canActivate(context);
+
+      expect(result).toBe(true);
+    });
+
+    it('should allow superadmin (system.manage_all) without explicit document.classification_override', async () => {
+      jest
+        .spyOn(reflector, 'getAllAndOverride')
+        .mockReturnValue(['document.classification_override']);
+      jest
+        .spyOn(userService, 'getUserPermissions')
+        .mockResolvedValue(['system.manage_all']); // Superadmin เท่านั้น
+
+      const context = createMockExecutionContext(createMockUser(1));
+      const result = await guard.canActivate(context);
+
+      expect(result).toBe(true);
+    });
+
+    it('should deny user with neither document.classification_override nor system.manage_all', async () => {
+      jest
+        .spyOn(reflector, 'getAllAndOverride')
+        .mockReturnValue(['document.classification_override']);
+      jest
+        .spyOn(userService, 'getUserPermissions')
+        .mockResolvedValue(['correspondence.read', 'project.view']);
+
+      const context = createMockExecutionContext(createMockUser(3));
+
+      await expect(guard.canActivate(context)).rejects.toThrow(
+        ForbiddenException
+      );
+    });
+  });
 });

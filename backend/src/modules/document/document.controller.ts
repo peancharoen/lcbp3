@@ -115,7 +115,8 @@ export class DocumentController {
       dto.publicIds,
       dto.documentType,
       dto.addTags,
-      dto.removeTags ?? []
+      dto.removeTags ?? [],
+      user
     );
   }
 

@@ -166,7 +166,7 @@ export class ContractDrawingController {
     description: 'Metadata updated',
     type: DocumentActionResponseDto,
   })
-  @RequirePermission('drawing.edit')
+  @RequirePermission('drawing.edit_metadata')
   @Audit('drawing.metadata_patch', 'drawing')
   async patchMetadata(
     @Param('uuid', ParseUuidPipe) uuid: string,

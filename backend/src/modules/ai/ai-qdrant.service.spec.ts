@@ -422,4 +422,193 @@ describe('AiQdrantService', () => {
       });
     });
   });
+
+  // Feature 254 — Phase 4 US2 — T034
+  // ADR-023A: Qdrant search ต้องบังคับ project_public_id filter เสมอ (multi-tenant isolation)
+  // และ payload ต้องมี generation_uuid เพื่อให้ RagRetrievalService ตรวจ ACTIVE generation ได้
+  describe('Feature 254 T034: mandatory project_public_id filter', () => {
+    /**
+     * TC1: search() ต้องแนบ project_public_id ใน Qdrant filter payload เสมอ
+     * ไม่ว่าจะเป็น dense-only หรือ hybrid search
+     */
+    it('TC1: search() ควรแนบ project_public_id ใน Qdrant filter payload (dense-only)', async () => {
+      const mockQuery = jest.fn().mockResolvedValue({ points: [] });
+      getClientMock().query = mockQuery;
+
+      await service.search('proj-uuid-t034', [0.1, 0.2], undefined, 5);
+
+      const callArgs = mockQuery.mock.calls[0] as unknown[];
+      const queryPayload = callArgs[1] as Record<string, unknown>;
+      const filter = queryPayload.filter as {
+        must: Array<{ key: string; match: { value: string } }>;
+      };
+
+      expect(filter).toBeDefined();
+      expect(filter.must).toBeDefined();
+      expect(filter.must).toHaveLength(1);
+      expect(filter.must[0].key).toBe('project_public_id');
+      expect(filter.must[0].match.value).toBe('proj-uuid-t034');
+    });
+
+    it('TC1b: search() ควรแนบ project_public_id ใน Qdrant filter payload (hybrid)', async () => {
+      const mockQuery = jest.fn().mockResolvedValue({ points: [] });
+      getClientMock().query = mockQuery;
+
+      const sparseVec = { indices: [1, 2], values: [0.5, 0.3] };
+      await service.search('proj-uuid-t034', [0.1, 0.2], sparseVec, 5);
+
+      const callArgs = mockQuery.mock.calls[0] as unknown[];
+      const queryPayload = callArgs[1] as Record<string, unknown>;
+      const filter = queryPayload.filter as {
+        must: Array<{ key: string; match: { value: string } }>;
+      };
+
+      expect(filter).toBeDefined();
+      expect(filter.must).toBeDefined();
+      expect(filter.must[0].key).toBe('project_public_id');
+      expect(filter.must[0].match.value).toBe('proj-uuid-t034');
+    });
+
+    /**
+     * TC2: search() ต้อง throw เมื่อ projectPublicId ขาดหรือว่าง
+     * ป้องกัน cross-project data leakage (ADR-023A hard requirement)
+     */
+    it('TC2: search() ควร throw เมื่อ projectPublicId เป็น empty string', async () => {
+      await expect(
+        service.search('', [0.1, 0.2], undefined, 5)
+      ).rejects.toThrow('AI_QDRANT_PROJECT_SCOPE_REQUIRED');
+    });
+
+    it('TC2b: search() ควร throw เมื่อ projectPublicId เป็น undefined', async () => {
+      await expect(
+        service.search(undefined as unknown as string, [0.1, 0.2], undefined, 5)
+      ).rejects.toThrow('AI_QDRANT_PROJECT_SCOPE_REQUIRED');
+    });
+
+    it('TC2c: search() ควร throw เมื่อ projectPublicId เป็น whitespace-only string', async () => {
+      // whitespace-only string ผ่าน !projectPublicId check ไม่ได้ (truthy) —
+      // แต่ ADR-023A บังคับว่า project scope ต้องไม่ว่าง
+      // หาก implementation ปัจจุบันยังไม่ trim จะถือว่าเป็น gap (RED)
+      await expect(
+        service.search('   ', [0.1, 0.2], undefined, 5)
+      ).rejects.toThrow('AI_QDRANT_PROJECT_SCOPE_REQUIRED');
+    });
+
+    /**
+     * TC3: filter ต้องเป็น `must` (mandatory) ไม่ใช่ `should` (optional)
+     * หากเป็น `should` แล้ว Qdrant อาจคืน results จากโครงการอื่นได้
+     */
+    it('TC3: search() ต้องใช้ must filter (ไม่ใช่ should) เพื่อกัน cross-project results', async () => {
+      const mockQuery = jest.fn().mockResolvedValue({ points: [] });
+      getClientMock().query = mockQuery;
+
+      await service.search('proj-uuid-t034', [0.1, 0.2], undefined, 5);
+
+      const callArgs = mockQuery.mock.calls[0] as unknown[];
+      const queryPayload = callArgs[1] as Record<string, unknown>;
+      const filter = queryPayload.filter as Record<string, unknown>;
+
+      // must ต้องมี, should ต้องไม่มี (มิฉะนั้น filter เป็น optional คืน cross-project ได้)
+      expect(filter.must).toBeDefined();
+      expect(filter.should).toBeUndefined();
+      expect(filter.must).toEqual([
+        { key: 'project_public_id', match: { value: 'proj-uuid-t034' } },
+      ]);
+    });
+
+    it('TC3b: search() hybrid ต้องใช้ must filter เช่นกัน', async () => {
+      const mockQuery = jest.fn().mockResolvedValue({ points: [] });
+      getClientMock().query = mockQuery;
+
+      const sparseVec = { indices: [1], values: [0.5] };
+      await service.search('proj-uuid-t034', [0.1], sparseVec, 3);
+
+      const callArgs = mockQuery.mock.calls[0] as unknown[];
+      const queryPayload = callArgs[1] as Record<string, unknown>;
+      const filter = queryPayload.filter as Record<string, unknown>;
+
+      expect(filter.must).toBeDefined();
+      expect(filter.should).toBeUndefined();
+    });
+
+    /**
+     * TC4: upsert/search payload ต้องมี generation_uuid เพื่อให้ RagRetrievalService
+     * ตรวจ ACTIVE generation ได้ (ADR-023A ACTIVE-generation validation)
+     */
+    it('TC4: upsert() ต้อง preserve generation_uuid ใน payload ที่ส่งไป Qdrant', async () => {
+      const mockUpsert = jest.fn().mockResolvedValue(undefined);
+      getClientMock().upsert = mockUpsert;
+
+      const generationUuid = 'gen-uuid-active-t034';
+      const points = [
+        {
+          id: 'point-t034',
+          vector: {
+            bge_dense: [0.1, 0.2],
+            bge_sparse: { indices: [1], values: [0.5] },
+          },
+          payload: {
+            chunk_public_id: 'chunk-t034',
+            generation_uuid: generationUuid,
+            attachment_public_id: 'att-t034',
+            owner_type: 'CORRESPONDENCE',
+            owner_public_id: 'corr-t034',
+            classification: 'INTERNAL',
+          },
+        },
+      ];
+
+      await service.upsert('proj-uuid-t034', points);
+
+      expect(mockUpsert).toHaveBeenCalledWith(
+        'lcbp3_vectors',
+        expect.objectContaining({
+          wait: true,
+          points: expect.arrayContaining([
+            expect.objectContaining({
+              payload: expect.objectContaining({
+                generation_uuid: generationUuid,
+                project_public_id: 'proj-uuid-t034',
+                chunk_public_id: 'chunk-t034',
+              }),
+            }),
+          ]),
+        })
+      );
+    });
+
+    it('TC4b: search() ต้องคืน payload ที่มี generation_uuid (with_payload: true)', async () => {
+      const generationUuid = 'gen-uuid-active-t034';
+      const mockQuery = jest.fn().mockResolvedValue({
+        points: [
+          {
+            id: 'point-t034',
+            score: 0.92,
+            payload: {
+              chunk_public_id: 'chunk-t034',
+              generation_uuid: generationUuid,
+              project_public_id: 'proj-uuid-t034',
+            },
+          },
+        ],
+      });
+      getClientMock().query = mockQuery;
+
+      const results = await service.search(
+        'proj-uuid-t034',
+        [0.1, 0.2],
+        undefined,
+        5
+      );
+
+      // with_payload ต้องเป็น true เพื่อให้ RagRetrievalService อ่าน generation_uuid ได้
+      const callArgs = mockQuery.mock.calls[0] as unknown[];
+      const queryPayload = callArgs[1] as Record<string, unknown>;
+      expect(queryPayload.with_payload).toBe(true);
+
+      // result payload ต้องมี generation_uuid ส่งต่อให้ retrieval layer
+      expect(results).toHaveLength(1);
+      expect(results[0].payload.generation_uuid).toBe(generationUuid);
+    });
+  });
 });

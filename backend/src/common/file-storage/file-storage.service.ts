@@ -8,6 +8,11 @@
 //   caller สามารถส่ง queryRunner.manager เข้าไปได้ ป้องกัน MariaDB error 1020
 //   "Record has changed since last read in table 'attachments'" ที่เกิดจาก
 //   cross-transaction update เมื่อ save() ใช้ default connection (auto-commit)
+// - 2026-09-XX: T031 (Feature 254-rag-attachment-chunks Phase 3 US1) — เพิ่ม post-commit
+//   trigger ส่งงาน RAG Attachment Ingestion ผ่าน AiQueueService.enqueueRagAttachmentIngestion
+//   แบบ fire-and-forget (ADR-008 BullMQ, ADR-007 error swallowing — ถ้า enqueue ล้มเหลว
+//   commit ยังสำเร็จ ผู้ใช้ re-trigger ผ่าน POST /ingest ได้) ใช้ ModuleRef lazy lookup
+//   เพื่อหลีกเลี่ยง circular module dependency (AiModule นำเข้า FileStorageModule อยู่แล้ว)
 import {
   Injectable,
   NotFoundException,
@@ -32,6 +37,8 @@ import {
 } from '../../modules/common/constants/queue.constants';
 import { validateFileType } from './file-magic-bytes.util';
 import { ClamAVService } from '../clamav/clamav.service';
+import { ModuleRef } from '@nestjs/core';
+import { AiQueueService } from '../../modules/ai/ai-queue.service';
 
 /**
  * รายการ MIME types ที่อนุญาตสำหรับ upload (FR-004)
@@ -86,7 +93,9 @@ export class FileStorageService {
     @InjectQueue(QUEUE_AI_BATCH)
     private readonly aiBatchQueue?: Queue,
     @Optional()
-    private readonly clamavService?: ClamAVService
+    private readonly clamavService?: ClamAVService,
+    @Optional()
+    private readonly moduleRef?: ModuleRef
   ) {
     // ใช้ env vars จาก docker-compose สำหรับ Production
     // ถ้าไม่ได้กำหนดจะ fallback เป็น ./uploads/temp และ ./uploads/permanent
@@ -274,6 +283,11 @@ export class FileStorageService {
           const saved = await this.attachmentRepository.save(att);
           committedAttachments.push(saved);
 
+          // T031: post-commit RAG Attachment Ingestion trigger (fire-and-forget)
+          // ส่งงานสร้าง RAG generation ของ Attachment เข้า ai-batch อัตโนมัติ
+          // ครอบเฉพาะ Attachment ที่มี checksum (committed Attachments) — ADR-008/ADR-007
+          await this.enqueueRagAttachmentIngestionTrigger(saved);
+
           if (this.ragOcrQueue && options?.ragMeta) {
             await this.ragOcrQueue
               .add(
@@ -440,6 +454,57 @@ export class FileStorageService {
       await this.attachmentRepository.update(
         { publicId: attachment.publicId },
         { aiProcessingStatus: 'FAILED' }
+      );
+    }
+  }
+
+  /**
+   * T031 (Feature 254-rag-attachment-chunks) — ส่งงาน RAG Attachment Ingestion
+   * หลังจาก commit Attachment สำเร็จ (two-phase upload commit) แบบ fire-and-forget
+   *
+   * ใช้ ModuleRef lazy lookup ขอ AiQueueService ณ รันไทม์ เพื่อหลีกเลี่ยง circular module
+   * dependency (AiModule นำเข้า FileStorageModule อยู่แล้ว — ถ้า FileStorageModule import
+   * AiModule กลับจะเกิด cycle ที่ต้องแก้ forwardRef ทั้งสองฝั่ง ซึ่งอยู่นอก ownership)
+   *
+   * ADR-008: ต้อง enqueue ผ่าน BullMQ ห้ามประมวลผล inline
+   * ADR-007: ถ้า enqueue ล้มเหลว commit ต้องยังสำเร็จ — log warning อย่างเดียว ไม่ throw
+   * ผู้ใช้สามารถ re-trigger ingestion ผ่าน POST /ingest endpoint ได้
+   *
+   * ทำงานเฉพาะ Attachment ที่มี checksum (committed Attachments มี checksum เสมอ)
+   *
+   * @param attachment Attachment ที่ commit แล้ว (isTemporary = false)
+   */
+  private async enqueueRagAttachmentIngestionTrigger(
+    attachment: Attachment
+  ): Promise<void> {
+    // Guard: ทำงานเฉพาะ Attachment ที่มี checksum (committed Attachments)
+    if (!attachment.checksum) {
+      return;
+    }
+    // Guard: ถ้า ModuleRef ไม่พร้อม (เช่น unit test ที่ไม่ลงทะเบียน AiQueueService)
+    // ข้ามการ enqueue โดยไม่ throw
+    if (!this.moduleRef) {
+      return;
+    }
+
+    try {
+      // Lazy lookup AiQueueService ผ่าน ModuleRef (non-strict = ค้นทั้ง app DI tree)
+      const aiQueueService = this.moduleRef.get(AiQueueService, {
+        strict: false,
+      });
+      await aiQueueService.enqueueRagAttachmentIngestion({
+        attachmentPublicId: attachment.publicId,
+        attachmentChecksum: attachment.checksum,
+        force: false,
+      });
+      this.logger.log(
+        `Enqueued RAG attachment ingestion for publicId=${attachment.publicId} checksum=${attachment.checksum}`
+      );
+    } catch (error) {
+      // ADR-007: fire-and-forget — กลืน error ไม่ block commit
+      // ผู้ใช้สามารถ re-trigger ผ่าน POST /ingest ได้
+      this.logger.warn(
+        `Failed to enqueue RAG attachment ingestion for publicId=${attachment.publicId} — commit succeeded, ingestion can be re-triggered via POST /ingest (${error instanceof Error ? error.message : String(error)})`
       );
     }
   }

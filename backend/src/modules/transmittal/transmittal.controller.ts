@@ -164,7 +164,7 @@ export class TransmittalController {
     description: 'Metadata updated',
     type: DocumentActionResponseDto,
   })
-  @RequirePermission('transmittal.edit')
+  @RequirePermission('transmittal.edit_metadata')
   @Audit('transmittal.metadata_patch', 'transmittal')
   async patchMetadata(
     @Param('uuid', ParseUuidPipe) uuid: string,

@@ -105,6 +105,7 @@ describe('DocumentService (Feature 253 — T074)', () => {
     }),
   };
 
+  const documentTagService = { apply: jest.fn().mockResolvedValue(undefined) };
   const mockBulkQueue = { add: jest.fn() };
 
   beforeEach(() => {
@@ -116,6 +117,7 @@ describe('DocumentService (Feature 253 — T074)', () => {
       contractDrawingService as unknown as ContractDrawingService,
       circulationService as unknown as CirculationService,
       uuidResolver as unknown as UuidResolverService,
+      documentTagService as never,
       mockDataSource as unknown as DataSource,
       mockBulkQueue as unknown as Queue,
       mockRedis
@@ -267,7 +269,8 @@ describe('DocumentService (Feature 253 — T074)', () => {
         ['uuid-1'],
         'CORRESPONDENCE',
         [1, 2],
-        [3]
+        [3],
+        mockUser
       );
 
       expect(uuidResolver.resolveCorrespondenceId).toHaveBeenCalledWith(
@@ -279,10 +282,23 @@ describe('DocumentService (Feature 253 — T074)', () => {
       expect(service.getBulkProgress(bulkId).completed).toBe(1);
     });
 
-    it('should fail for unsupported document type', async () => {
-      const { bulkId } = await service.bulkTag(['uuid-1'], 'RFA', [1], []);
+    it('should apply generic tags for RFA', async () => {
+      const { bulkId } = await service.bulkTag(
+        ['uuid-1'],
+        'RFA',
+        [1],
+        [],
+        mockUser
+      );
 
-      expect(service.getBulkProgress(bulkId).failed).toBe(1);
+      expect(documentTagService.apply).toHaveBeenCalledWith(
+        'uuid-1',
+        'RFA',
+        [1],
+        [],
+        42
+      );
+      expect(service.getBulkProgress(bulkId).completed).toBe(1);
     });
   });
 

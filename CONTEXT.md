@@ -145,17 +145,25 @@ _Avoid_: AI Document Controller, AI Agent, Autonomous Agent
 NestJS module ที่เป็นจุดเข้าเดียวของทุกคำขอ AI — enforce CASL + tenant scope ก่อนส่งงานเข้า BullMQ
 _Avoid_: AI Service (generic), Tool Layer
 
-**Document Chunk**:
-Row ใน `ai_document_chunks` (MariaDB) เก็บ chunk text + metadata, ground truth สำหรับ re-embed
-_Avoid_: ai_embeddings, embedding row
+**RAG Attachment Chunk**:
+Row ใน `rag_attachment_chunks` (MariaDB) ที่เกิดจาก Attachment หนึ่งไฟล์หลังมี SHA-256 checksum พร้อม เก็บ chunk text + metadata snapshot และอยู่ใน `generation_uuid` ที่มีสถานะ BUILDING/ACTIVE/RETIRED เป็น ground truth สำหรับ re-embed
+_Avoid_: document_chunks, ai_document_chunks, ai_embeddings, embedding row
 
 **Vector Point**:
-Point ใน Qdrant — เก็บแค่ `chunk_public_id`, vector, และ payload `{ project_public_id, document_public_id, chunk_index }`
+Point ใน Qdrant — เก็บ vector ของ `chunk_public_id` และ payload `{ project_public_id, attachment_public_id, owner_type, owner_public_id, generation_uuid, chunk_index }`
 _Avoid_: Embedding (ambiguous), Vector record
 
 **RAG Query**:
 Pipeline: embed query → `QdrantService.search(projectPublicId, vector)` → ดึง `chunk_text` จาก MariaDB → ส่งเข้า LLM พร้อม context
 _Avoid_: Semantic search (overloaded), Vector search (incomplete)
+
+**RAG Citation**:
+การอ้างอิงผลลัพธ์ด้วย Attachment public ID, owner type/public ID, sourceLocator, segment type/number/label, normalized-text offsets, snippet, score และ chunk public ID; ใช้ PAGE เมื่อ source มีหน้า และไม่ expose generation UUID
+_Avoid_: file citation ที่ไม่มี source segment/offset, raw-byte offset, generation UUID ใน frontend
+
+**RAG Security Classification**:
+ค่า effective `PUBLIC`/`INTERNAL`/`CONFIDENTIAL` ของ Attachment ที่ใช้คุม AI retrieval และ snapshot ลง `rag_attachment_chunks`; การลดระดับต้องใช้ `document.classification_override` ของ Security/System Admin พร้อมเหตุผลและ audit
+_Avoid_: chunk classification ที่ผู้ใช้กรอกเองโดยไม่อ้างอิง policy
 
 **OCR Service**:
 Container สำเร็จรูป (FastAPI Sidecar) ทำหน้าที่ประมวลผล OCR — หลัง ADR-041 co-locate บน np-dms-lcbp3 ใช้ Docker-internal isolation แทน `X-API-Key` (ADR-040 D6); engine เดียว `np-dms-ocr` (ไม่มี Tesseract — ADR-040 D1 แก้ ADR-035); ลบ `/normalize` endpoint แล้ว (ADR-040 D2)
@@ -222,7 +230,11 @@ _Avoid_: OCR Sandbox (สื่อแคบ), Sandbox Project (คนละแ�
 - A **Correspondence** has M:N **Tags** ผ่าน `correspondence_tags`
 - A **Workflow Instance** governs exactly one **Correspondence**; its current state is projected into entity columns (e.g. `rfa_revisions.rfa_status_code_id`) but **`workflow_instances` is the source of truth**
 - A **Prompt Version** lives in `ai_prompts`; exactly one per `prompt_type` has `is_active = 1` — this is the **Active Prompt** consumed by both OCR Sandbox and `processMigrateDocument`; cached in Redis TTL 60s
-- A **Document Chunk** (MariaDB) has a 1:1 **Vector Point** in Qdrant via shared `chunk_public_id` (UUIDv7)
+- An **Attachment** belongs to one owning Correspondence/Revision and one owning Project; cross-project delivery is handled by Distribution/access scope, not by changing document ownership
+- A **RAG Attachment Chunk** (MariaDB) is generated from Attachment content and uses the owning `project_public_id`; receiving Projects may view/download distributed content but cannot use it for RAG retrieval
+- A **RAG Attachment Chunk** and its source `rag_attachment_pages` belong to one `generation_uuid`; pages are canonical normalized page text and chunks copy their retrieval spans; generation lifecycle is BUILDING → ACTIVE → RETIRED or FAILED, with exactly one ACTIVE generation per Attachment; RETIRED remains until Qdrant cleanup succeeds, while FAILED metadata/errors retain for 30 days
+- A RAG Vector Point identifies `attachment_public_id` plus polymorphic domain `owner_type`/`owner_public_id`; canonical owner types are CORRESPONDENCE, RFA, TRANSMITTAL, CIRCULATION, CONTRACT_DRAWING, SHOP_DRAWING, and AS_BUILT_DRAWING; generic `document_public_id` and source table names are forbidden in the payload
+- A RAG retrieval result must resolve to an ACTIVE generation in MariaDB before entering LLM context; stale/missing points are skipped, and zero valid chunks falls back to keyword/full-text retrieval
 - An **AI Document Assistant** suggestion produces an `ai_audit_logs` row; if user accepts, it triggers a normal **Workflow Transition** (AI never writes the transition itself)
 - **Qdrant queries MUST be filtered by `project_public_id`** — enforced at compile time by `QdrantService` signature
 - An **Intent Classifier** receives user query → returns **Server-side Intent** + confidence; Pattern Layer (DB table) checked first, **LLM Fallback** (Ollama sync) used only when pattern miss
@@ -245,29 +257,29 @@ _Avoid_: OCR Sandbox (สื่อแคบ), Sandbox Project (คนละแ�
 | :------------------------------------------------------------------- | :---- | :------------ | :------------------------------------------------------- |
 | 1. Upload → **temp** + return `tempUploadId`                         | Sync  | —             | <1s                                                      |
 | 2. ClamAV scan + MIME whitelist                                      | Sync  | —             | block ก่อน commit (ADR-016)                              |
-| 3. User commit (metadata + ย้าย permanent)                           | Sync  | —             | สร้าง `documents` row, ใช้ `Idempotency-Key`             |
+| 3. User commit (metadata + ย้าย permanent)                           | Sync  | —             | Commit Attachment/owner metadata, ใช้ `Idempotency-Key`  |
 | 4. **Classification/Tagging** (3 pages แรก)                          | Async | `ai-realtime` | suggest metadata; user accept/reject (human-in-the-loop) |
 | 5. **RAG Embedding** (full doc; OCR ถ้า text-layer < 100 chars/page) | Async | `ai-batch`    | trigger AUTO หลัง commit, parallel กับ stage 4           |
-| 6. Qdrant upsert + `ai_document_chunks.embedded_at = NOW()`          | Async | (worker)      | gap = DB full-text fallback                              |
+| 6. Qdrant upsert + `rag_attachment_chunks active generation ready`   | Async | (worker)      | gap = DB full-text fallback                              |
 
 **กฎ:**
 
 - ❌ ห้าม OCR/embed ใน HTTP request handler
-- ✅ BullMQ `jobId = chunk_public_id` (UUIDv7) กัน duplicate
+- ✅ BullMQ generation job uses Attachment/checksum idempotency key
 - ✅ Embed fail → graceful degrade (เอกสารยังใช้งานได้, AI feature ลด)
-- ✅ Revision ใหม่ → chunks เก่า mark `superseded_at`, **ไม่ลบ** vector
+- ✅ New content/checksum → new generation; old generation RETIRED after vector cleanup
 - ✅ Frontend ใช้ `AiStatusBanner` แสดง progress
 
 ## Identifier rules (ADR-019, AI subsystem)
 
-| Boundary                                       | Identifier ที่ใช้                                                         |
-| :--------------------------------------------- | :------------------------------------------------------------------------ |
-| API (FE ↔ AI Gateway)                         | `publicId` (UUIDv7 string) เท่านั้น; INT `id` มี `@Exclude()`             |
-| Server-side Intent payload                     | `*PublicId` strings; service แปลงเป็น INT FK ภายใน                        |
-| LLM context (prompt)                           | `publicId` + business code (`rfa_number`, `drawing_code`) ห้ามเห็น INT    |
-| Qdrant payload                                 | `project_public_id`, `document_public_id`, `chunk_public_id`              |
-| `ai_document_chunks` internals                 | INT FK ใช้ได้ภายใน DB; identity ที่ expose = `chunk_public_id BINARY(16)` |
-| Business codes (e.g. `drawing_code = "A-101"`) | รับเป็น input ได้ แต่ resolve → `publicId` ก่อน query                     |
+| Boundary                                                         | Identifier ที่ใช้                                                                                                  |
+| :--------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------- |
+| API (FE ↔ AI Gateway)                                           | `publicId` (UUIDv7 string) เท่านั้น; INT `id` มี `@Exclude()`                                                      |
+| Server-side Intent payload                                       | `*PublicId` strings; service แปลงเป็น INT FK ภายใน                                                                 |
+| LLM context (prompt)                                             | `publicId` + business code (`rfa_number`, `drawing_code`) ห้ามเห็น INT                                             |
+| Qdrant payload                                                   | `project_public_id`, `attachment_public_id`, `owner_type`, `owner_public_id`, `chunk_public_id`, `generation_uuid` |
+| `rag_attachment_generations` / `rag_attachment_chunks` internals | INT FK ใช้ได้ภายใน DB; identity ที่ expose = `chunk_public_id BINARY(16)`                                          |
+| Business codes (e.g. `drawing_code = "A-101"`)                   | รับเป็น input ได้ แต่ resolve → `publicId` ก่อน query                                                              |
 
 **Forbidden (Tier 1 CI blocker):**
 
@@ -398,7 +410,7 @@ _Avoid_: BGE service, embed service, always-resident BGE
 ## Flagged ambiguities
 
 - **"approval logic"** ในเอกสารเก่าใช้คาบเกี่ยวระหว่าง `rfa_approve_codes` (business outcome เช่น 1A/1B) กับ `workflow_definitions` (state transition rules) — resolved: เป็นคนละสิ่ง
-- **"ai_embeddings"** vs **"ai_document_chunks"** — resolved: ใช้ `ai_document_chunks` (metadata + text) + Qdrant (vector only); ห้ามเก็บ vector ใน MariaDB
+- **"ai_embeddings"** vs **"rag_attachment_chunks"** — resolved: ใช้ `rag_attachment_chunks` (metadata + text) + Qdrant (vector only); ห้ามเก็บ vector ใน MariaDB
 - **"Tool Layer"** ในเอกสาร AI — resolved: ไม่ใช่ LLM-callable tools, เป็น **Server-side Intents** ที่ NestJS controlใน AI Gateway
 - **"AI = Document Controller"** — resolved: ใช้ **AI Document Assistant** (Suggest + Insight) แทน เพื่อกัน scope creep ไปทาง autonomous agent
 - **OpenRAG vs ADR-023A** — resolved: **ADR-043 เป็น Single Source of Truth** (restates ADR-023/023A/035/040) — ใช้ Qdrant (Hybrid Dense+Sparse) + BGE-M3 + BGE-Reranker สำหรับ RAG vector search; Elasticsearch ใช้สำหรับ keyword/full-text เท่านั้น; `specs/03-Data-and-Storage/archive/03-07-OpenRAG.md` ถูก archived (ล้าสมัย — ถูกแทนที่โดย ADR-043 §4)

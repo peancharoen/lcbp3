@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import { concatMap } from 'rxjs/operators';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Request } from 'express';
@@ -61,9 +61,8 @@ export class AuditLogInterceptor implements NestInterceptor {
     const userAgent = request.get('user-agent');
 
     return next.handle().pipe(
-      // Use void for fire-and-forget: tap() does not support async callbacks
-      tap((data: unknown) => {
-        void this.saveAuditLog(
+      concatMap(async (data: unknown) => {
+        const auditLog = await this.saveAuditLog(
           data,
           auditMetadata,
           request,
@@ -71,11 +70,18 @@ export class AuditLogInterceptor implements NestInterceptor {
           ip,
           userAgent
         );
+        return this.attachAuditId(data, auditLog?.auditId);
       })
     );
   }
 
-  /** Extracted async method to aoid "Promise returned in tap" lint warning */
+  private attachAuditId(data: unknown, auditId?: string): unknown {
+    if (!auditId || data === null || typeof data !== 'object') return data;
+    const record = data as Record<string, unknown>;
+    if (!Object.prototype.hasOwnProperty.call(record, 'auditId')) return data;
+    return { ...record, auditId };
+  }
+
   private async saveAuditLog(
     data: unknown,
     auditMetadata: AuditMetadata,
@@ -83,7 +89,7 @@ export class AuditLogInterceptor implements NestInterceptor {
     user: User | undefined,
     ip: string | undefined,
     userAgent: string | undefined
-  ): Promise<void> {
+  ): Promise<AuditLog | undefined> {
     try {
       let entityId: string | undefined;
       let detailsJson: Record<string, unknown> | undefined;
@@ -127,11 +133,12 @@ export class AuditLogInterceptor implements NestInterceptor {
       };
 
       const auditLog = this.auditLogRepo.create(payload as Partial<AuditLog>);
-      await this.auditLogRepo.save(auditLog);
+      return await this.auditLogRepo.save(auditLog);
     } catch (error) {
       this.logger.error(
         `Failed to create audit log for ${auditMetadata.action}: ${(error as Error).message}`
       );
+      return undefined;
     }
   }
 }

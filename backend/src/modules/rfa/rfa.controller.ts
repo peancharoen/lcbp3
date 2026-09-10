@@ -258,7 +258,7 @@ export class RfaController {
     description: 'Metadata updated',
     type: DocumentActionResponseDto,
   })
-  @RequirePermission('rfa.edit')
+  @RequirePermission('rfa.edit_metadata')
   @Audit('rfa.metadata_patch', 'rfa')
   async patchMetadata(
     @Param('uuid', ParseUuidPipe) uuid: string,

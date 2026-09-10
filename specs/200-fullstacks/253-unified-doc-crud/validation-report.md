@@ -6,6 +6,16 @@
 
 ---
 
+## Completion Pass Update (2026-09-09)
+
+- Granular metadata permissions now use `*.edit_metadata` permissions.
+- Audit interceptor now returns the persisted `auditId` when the response contract includes that field.
+- Bulk Tag now supports RFA, Transmittal, Drawing, and Circulation through the new `document_tags` junction table; SQL schema and ADR-044 delta are included.
+- Verification passed: backend build/lint/tests and frontend lint/tests.
+- Feature remains `PARTIAL` because the live SQL delta was not applied in this environment, recipient notification fan-out is not complete, exact numbering-gap enumeration is not implemented, and five E2E tasks remain `[~]`.
+
+---
+
 ## Remediation Update (2026-09-07)
 
 The following 4 MISSING requirements and 6 Must-Fix items from the previous review were implemented and verified:

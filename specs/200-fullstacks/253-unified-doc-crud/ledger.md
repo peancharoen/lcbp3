@@ -65,6 +65,8 @@
 |||||| CP-019 | Back bulk operations with BullMQ: `DocumentModule` registers `bulk-operations` queue; `BulkOperationsProcessor` processes `cancel`/`tag`/`export` jobs; `DocumentService` enqueues jobs and keeps `bulkStore` for progress/download | `pnpm tsc --noEmit` backend ✅ frontend ✅; `pnpm lint:ci` backend ✅; `pnpm lint` frontend ✅; `pnpm test` backend (166/166 suites, 2566 tests) ✅ | `bulkCancel`/`bulkTag`/`bulkExport` enqueue `bulk-operations` job; worker calls `processCancelJob`/`processTagJob`/`processExportJob` | Maintenance service skeletons; Playwright E2E infra unavailable | complete |
 |||||| CP-020 | Harden Maintenance Console Vector Sync: `VectorSyncService` now queries DB, compares with Qdrant `countByDocumentPublicId` for missing vectors, scrolls Qdrant for orphan vectors, and enqueues `rag-prepare` via `AiQueueService` for re-embed | `pnpm tsc --noEmit` backend ✅ frontend ✅; `pnpm lint:ci` backend ✅; `pnpm lint` frontend ✅; `pnpm test` backend (166/166 suites, 2566 tests) ✅ | `findMissingVectors` uses Qdrant count; `findOrphanVectors` uses `scrollByProject` + DB existence check; `enqueueReEmbed` builds payload from current revision + attachment and calls `enqueueRagPrepare`; fixed `document.service.ts` `preFilterCancelled` SQL to use `correspondence_status`/`correspondence_status_id` | Playwright E2E infra unavailable | complete |
 
+| CP-021 | Completion pass: granular metadata permissions, persisted auditId injection, and polymorphic Bulk Tag storage for RFA/Transmittal/Drawing/Circulation; schema + delta added | `pnpm --filter backend build` ✅; `pnpm --filter backend lint:ci` ✅; `pnpm --filter backend test` (169 suites, 2593 passed) ✅; `pnpm --filter lcbp3-frontend lint` ✅; `pnpm --filter lcbp3-frontend test run` (148 files, 1026 passed) ✅ | Live SQL delta application not executed; 5 E2E tasks remain `[~]`; recipient notification fan-out and numbering exact-gap enumeration remain open | checkpoint-ready |
+
 ## Review Attempts
 
 | Attempt | State | Verdict | Reviewer | Notes |
@@ -73,10 +75,10 @@
 
 ## Terminal Status
 
-- FINAL_STATUS: `complete`
+- FINAL_STATUS: `checkpoint-ready`
 - INDEPENDENT_ATTESTATION: `not-applicable`
-- KNOWN_BLOCKERS: none — Zod mismatch resolved (pinned to 4.3.6 across workspace)
-- Residual risks: Playwright E2E infra unavailable; known Qdrant integration test failure is unrelated
+- KNOWN_BLOCKERS: live SQL delta application, five incomplete E2E tasks, recipient notification fan-out, and exact numbering-gap enumeration
+- Residual risks: Feature is not production-complete until the listed blockers are resolved and verified
 
 ## Next Session Entry
 

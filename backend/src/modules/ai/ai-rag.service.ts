@@ -4,6 +4,7 @@
 // - 2026-05-14: แก้ไข corruption ในไฟล์ทั้งหมด — rewrite clean version.
 // - 2026-05-14: ย้าย PROMPT_CONTEXT_LIMIT เป็น instance field ที่อ่านจาก RAG_CONTEXT_LIMIT_CHARS (💡 S1).
 // - 2026-06-05: ปรับปรุงใช้ Hybrid Search + Reranker ผ่าน Sidecar ตาม ADR-035 (T015, T030)
+// - 2026-09-12: T040 — เพิ่ม stale-result skip (ACTIVE generation guard) + full-text fallback + retrievalMode tracking
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -13,12 +14,17 @@ import { Repository } from 'typeorm';
 import { isUUID } from 'class-validator';
 import Redis from 'ioredis';
 import axios from 'axios';
-import { AiQdrantService } from './qdrant.service';
+import { AiQdrantService, AiVectorSearchResult } from './qdrant.service';
 import { OcrService } from './services/ocr.service';
+import { RagRetrievalGuardService } from './services/rag-retrieval-guard.service';
 import {
   RagQueryLog,
   RagQueryLogStatus,
 } from './entities/rag-query-log.entity';
+import { RagAttachmentChunk } from './entities/rag-attachment-chunk.entity';
+
+/** โหมดการ retrieval ที่ใช้ผลิตคำตอบ (T040) — VECTOR | FULL_TEXT | HYBRID */
+export type RagRetrievalMode = 'VECTOR' | 'FULL_TEXT' | 'HYBRID';
 
 /** ผลลัพธ์ของ RAG query แต่ละรายการที่ถูก reference ในคำตอบ */
 export interface AiRagCitation {
@@ -37,6 +43,7 @@ export interface AiRagJobResult {
   citations?: AiRagCitation[];
   confidence?: number;
   usedFallbackModel?: boolean;
+  retrievalMode?: RagRetrievalMode;
   errorMessage?: string;
   completedAt?: string;
 }
@@ -45,6 +52,15 @@ export interface AiRagJobResult {
 const RAG_RESULT_TTL_SECONDS = 300;
 /** TTL สำหรับ Redis active-job key ต่อ user (5 นาที) */
 const RAG_ACTIVE_JOB_TTL_SECONDS = 300;
+/** จำนวนผลลัพธ์สูงสุดที่ขอจาก Qdrant / FULLTEXT (FR-014) */
+const RAG_SEARCH_TOPK = 15;
+/**
+ * จำนวน valid ACTIVE vector chunks ขั้นต่ำที่ถือว่าเพียงพอ — หาก vector คืนน้อยกว่านี้
+ * จะ supplement ด้วย full-text search (HYBRID mode) เพื่อเพิ่ม recall (T040)
+ */
+const RAG_HYBRID_SUPPLEMENT_THRESHOLD = 3;
+/** คะแนนกลางสำหรับ full-text chunks (ไม่มี vector similarity score) */
+const FULLTEXT_NEUTRAL_SCORE = 0.5;
 
 /** บริการหลักสำหรับประมวลผล RAG query ผ่าน Ollama และ Qdrant (ADR-023) */
 @Injectable()
@@ -60,9 +76,12 @@ export class AiRagService {
     private readonly configService: ConfigService,
     private readonly qdrantService: AiQdrantService,
     private readonly ocrService: OcrService,
+    private readonly guardService: RagRetrievalGuardService,
     @InjectRedis() private readonly redis: Redis,
     @InjectRepository(RagQueryLog)
-    private readonly ragQueryLogRepo: Repository<RagQueryLog>
+    private readonly ragQueryLogRepo: Repository<RagQueryLog>,
+    @InjectRepository(RagAttachmentChunk)
+    private readonly chunkRepository: Repository<RagAttachmentChunk>
   ) {
     this.ollamaUrl = this.configService.get<string>(
       'OLLAMA_URL',
@@ -227,7 +246,7 @@ export class AiRagService {
         embedResult.dense,
         embedResult.sparse,
         projectPublicId,
-        15 // topK=15 ตาม FR-014
+        RAG_SEARCH_TOPK // topK=15 ตาม FR-014
       );
 
       // ตรวจสอบ cancel หลัง search
@@ -240,9 +259,38 @@ export class AiRagService {
         return;
       }
 
+      // 2b. Stale-result skip — กรองเฉพาะ chunks จาก ACTIVE generation (T040)
+      //     ข้าม chunks จาก RETIRED/FAILED/BUILDING generations เพื่อไม่ให้คำตอบ
+      //     อ้างอิงเนื้อหาที่ล้าสมัย (delegation ไป RagRetrievalGuardService, T039)
+      const activeVectorResults =
+        await this.guardService.filterActiveChunksFromResults(searchResults);
+
+      // 2c. Full-text fallback / hybrid supplement (T040)
+      //     - กรณี vector ไม่มี valid ACTIVE chunks → fall back สู่ MariaDB FULLTEXT
+      //     - กรณี vector มี valid chunks น้อยกว่า threshold → supplement ด้วย FULLTEXT (HYBRID)
+      const { results: retrievalResults, retrievalMode } =
+        await this.resolveRetrievalResults(
+          projectPublicId,
+          question,
+          activeVectorResults
+        );
+
+      if (retrievalResults.length === 0) {
+        this.logger.warn(
+          `RAG retrieval ไม่พบ valid chunks — requestPublicId=${requestPublicId}, ` +
+            `vector=${searchResults.length}, active=${activeVectorResults.length}, ` +
+            `mode=${retrievalMode}`
+        );
+      } else {
+        this.logger.log(
+          `Retrieval resolved — mode=${retrievalMode}, ` +
+            `chunks=${retrievalResults.length} (vector active=${activeVectorResults.length})`
+        );
+      }
+
       // 3. Rerank ผลลัพธ์การค้นหา
-      let finalResults = searchResults;
-      const rawChunks = searchResults
+      let finalResults = retrievalResults;
+      const rawChunks = retrievalResults
         .map(
           (r) =>
             (r.payload['chunk_text'] as string) ||
@@ -265,12 +313,12 @@ export class AiRagService {
         finalResults = [];
         for (let i = 0; i < topN; i++) {
           const originalIndex = rerankResult.ranked_indices[i];
-          finalResults.push(searchResults[originalIndex]);
+          finalResults.push(retrievalResults[originalIndex]);
         }
 
         // Log รายละเอียดการจัดอันดับ (T030)
         this.logger.log(
-          `Reranking completed: candidates input ${searchResults.length} -> output ${finalResults.length}. ` +
+          `Reranking completed: candidates input ${retrievalResults.length} -> output ${finalResults.length}. ` +
             `Top-1 score: ${rerankResult.scores[rerankResult.ranked_indices[0]]?.toFixed(4) ?? 'N/A'}`
         );
       }
@@ -319,6 +367,7 @@ export class AiRagService {
         citations,
         confidence,
         usedFallbackModel: usedFallback,
+        retrievalMode,
         completedAt: new Date().toISOString(),
       });
       await this.persistQueryLog({
@@ -410,6 +459,120 @@ export class AiRagService {
       context += snippet;
     }
     return context.trim();
+  }
+
+  /**
+   * ตัดสินใจเส้นทาง retrieval ตามจำนวน valid ACTIVE vector chunks (T040)
+   * - vector ≥ threshold → VECTOR (ใช้ vector เพียงอย่างเดียว)
+   * - vector == 0 → FULL_TEXT (fall back สู่ MariaDB FULLTEXT)
+   * - 0 < vector < threshold + full-text มีผล → HYBRID (merge & dedupe)
+   * - 0 < vector < threshold + full-text ว่าง → VECTOR (ใช้ vector ที่มี)
+   */
+  private async resolveRetrievalResults(
+    projectPublicId: string,
+    question: string,
+    activeVectorResults: AiVectorSearchResult[]
+  ): Promise<{
+    results: AiVectorSearchResult[];
+    retrievalMode: RagRetrievalMode;
+  }> {
+    if (activeVectorResults.length >= RAG_HYBRID_SUPPLEMENT_THRESHOLD) {
+      return { results: activeVectorResults, retrievalMode: 'VECTOR' };
+    }
+
+    const fullTextResults = await this.fullTextSearch(
+      projectPublicId,
+      question,
+      RAG_SEARCH_TOPK
+    );
+
+    if (activeVectorResults.length === 0) {
+      return { results: fullTextResults, retrievalMode: 'FULL_TEXT' };
+    }
+
+    if (fullTextResults.length === 0) {
+      return { results: activeVectorResults, retrievalMode: 'VECTOR' };
+    }
+
+    return {
+      results: this.mergeAndDedupe(activeVectorResults, fullTextResults),
+      retrievalMode: 'HYBRID',
+    };
+  }
+
+  /**
+   * ค้นหาด้วย MariaDB FULLTEXT บน rag_attachment_chunks.content (T040)
+   * - กรองด้วย projectPublicId (multi-tenant isolation, ADR-023A)
+   * - กรองเฉพาะ chunks จาก ACTIVE generation (stale skip เช่นเดียวกับ vector path)
+   * - แปลงผลลัพธ์เป็น AiVectorSearchResult เพื่อให้ pipeline (rerank/context/citation)
+   *   ใช้งานได้แบบเดียวกับ vector results
+   */
+  private async fullTextSearch(
+    projectPublicId: string,
+    question: string,
+    limit: number
+  ): Promise<AiVectorSearchResult[]> {
+    const sanitizedQuery = this.sanitizeInput(question);
+    if (!sanitizedQuery.trim()) {
+      return [];
+    }
+
+    const chunks = await this.chunkRepository
+      .createQueryBuilder('chunk')
+      .where('chunk.project_public_id = :projectPublicId', { projectPublicId })
+      .andWhere(
+        'MATCH(chunk.content) AGAINST (:query IN NATURAL LANGUAGE MODE)',
+        { query: sanitizedQuery }
+      )
+      .limit(limit)
+      .getMany();
+
+    if (chunks.length === 0) {
+      return [];
+    }
+
+    // กรองเฉพาะ chunks จาก ACTIVE generation (delegation ไป RagRetrievalGuardService)
+    const generationUuids = Array.from(
+      new Set(chunks.map((c) => c.generationUuid))
+    );
+    const activeGenerations =
+      await this.guardService.filterActiveGenerations(generationUuids);
+    const activeSet = new Set(activeGenerations);
+    const activeChunks = chunks.filter((c) => activeSet.has(c.generationUuid));
+
+    return activeChunks.map((c) => ({
+      pointId: c.chunkPublicId,
+      score: FULLTEXT_NEUTRAL_SCORE,
+      payload: {
+        chunk_public_id: c.chunkPublicId,
+        chunk_text: c.content,
+        doc_type: c.docType,
+        doc_number: c.docNumber,
+        generation_uuid: c.generationUuid,
+        project_public_id: c.projectPublicId,
+      },
+    }));
+  }
+
+  /**
+   * รวม vector และ full-text results โดย dedupe ตาม chunk_public_id (T040)
+   * - vector results มี priority สูงกว่า (อยู่ก่อนในลำดับ)
+   * - full-text results ที่ซ้ำกับ vector จะถูกตัดออก
+   */
+  private mergeAndDedupe(
+    vectorResults: AiVectorSearchResult[],
+    fullTextResults: AiVectorSearchResult[]
+  ): AiVectorSearchResult[] {
+    const seen = new Set<string>();
+    const merged: AiVectorSearchResult[] = [];
+    for (const result of [...vectorResults, ...fullTextResults]) {
+      const chunkId = result.payload['chunk_public_id'] as string | undefined;
+      const key = chunkId ?? String(result.pointId);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push(result);
+    }
+    return merged;
   }
 
   /** สร้าง prompt สำหรับ LLM ตาม RAG pattern ของโครงการ */

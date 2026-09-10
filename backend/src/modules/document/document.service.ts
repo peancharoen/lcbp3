@@ -30,6 +30,7 @@ import { CirculationService } from '../circulation/circulation.service';
 import { UuidResolverService } from '../../common/services/uuid-resolver.service';
 import { AuditLog } from '../../common/entities/audit-log.entity';
 import { ExportFormat } from '../../common/dto/bulk-export.dto';
+import { DocumentTagService } from './document-tag.service';
 
 type BulkOperationStatus = {
   bulkId: string;
@@ -110,6 +111,7 @@ export class DocumentService {
     private readonly contractDrawingService: ContractDrawingService,
     private readonly circulationService: CirculationService,
     private readonly uuidResolver: UuidResolverService,
+    private readonly documentTagService: DocumentTagService,
     private readonly dataSource: DataSource,
     @InjectQueue(QUEUE_BULK_OPERATIONS)
     private readonly bulkQueue: Queue,
@@ -165,7 +167,8 @@ export class DocumentService {
     publicIds: string[],
     documentType: string,
     addTags: number[],
-    removeTags: number[]
+    removeTags: number[],
+    user: User
   ): Promise<{ bulkId: string }> {
     this.validateBulkInput(publicIds, documentType);
 
@@ -177,7 +180,7 @@ export class DocumentService {
       documentType,
       addTags,
       removeTags,
-      userId: 0, // tag ไม่ต้องใช้ user context ในขณะนี้
+      userId: user.user_id,
     };
 
     await this.bulkQueue.add('process', jobData, {
@@ -267,11 +270,12 @@ export class DocumentService {
           }
           return;
         }
-        throw new BusinessException(
-          'BULK_TAG_UNSUPPORTED_TYPE',
-          `Bulk tag not yet implemented for ${jobData.documentType}`,
-          'ยังไม่รองรับการแก้ไขแท็กสำหรับประเภทเอกสารนี้',
-          ['เลือกประเภทเอกสารที่รองรับ', 'ติดต่อผู้ดูแลระบบ']
+        await this.documentTagService.apply(
+          publicId,
+          jobData.documentType,
+          jobData.addTags,
+          jobData.removeTags,
+          jobData.userId
         );
       }
     );

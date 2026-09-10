@@ -25,7 +25,15 @@ export interface EmbeddingResult {
   device?: string;
 }
 
-/** บริการสร้าง embedding สำหรับ full-document RAG (ADR-023A) */
+/**
+ * บริการสร้าง embedding สำหรับ full-document RAG (ADR-023A)
+ *
+ * @deprecated Feature 254 — ใช้ RagAttachmentIngestProcessor + RagTextSegmentService + RagChunkingService แทน
+ * Legacy service นี้ยังใช้กับ ai-batch processor สำหรับเอกสารเก่าที่ยังไม่ migrate
+ * แต่ไม่ควรใช้สำหรับ ingestion ใหม่ — ใช้ POST /ai/rag/attachments/:id/ingest แทน
+ * Qdrant payload ของ legacy ใช้ doc_public_id/doc_type/doc_number ซึ่งขัดกับ
+ * Feature 254 model ที่ใช้ attachment_public_id/owner_type/owner_public_id
+ */
 @Injectable()
 export class EmbeddingService {
   private readonly logger = new Logger(EmbeddingService.name);

@@ -12,6 +12,7 @@ import {
   QUEUE_AI_VECTOR_DELETION,
   QUEUE_AI_BATCH,
   QUEUE_AI_REALTIME,
+  JOB_RAG_ATTACHMENT_INGEST,
 } from '../common/constants/queue.constants';
 
 const mockJob = (overrides: Record<string, unknown> = {}) => ({
@@ -439,6 +440,98 @@ describe('AiQueueService', () => {
       const [, , options] = queues[QUEUE_AI_VECTOR_DELETION].add.mock
         .calls[0] as [string, unknown, { jobId: string }];
       expect(options.jobId).not.toContain(':');
+    });
+  });
+
+  // ─── Feature 254 Phase 3 US1 T023: enqueueRagAttachmentIngestion ───────────
+  // ทดสอบการ enqueue งาน RAG Attachment ingestion เข้า ai-batch ตาม ADR-008/ADR-023
+  // ครอบคลุม 5 พฤติกรรม: jobId, queue ที่ถูกต้อง, idempotency, retry attempts, payload fields
+  describe('Feature 254 T023: enqueueRagAttachmentIngestion', () => {
+    const basePayload = {
+      attachmentPublicId: 'att-uuid-0190',
+      attachmentChecksum: 'sha256:abc123',
+      force: false,
+    };
+
+    it('1. ควรคืน jobId หลัง enqueue สำเร็จ', async () => {
+      const jobId = await service.enqueueRagAttachmentIngestion(basePayload);
+      expect(jobId).toBe('new-job');
+      expect(queues[QUEUE_AI_BATCH].add).toHaveBeenCalledTimes(1);
+    });
+
+    it('2. ควรส่งงานเข้า ai-batch queue (ไม่ใช่ queue อื่น) ตาม ADR-008', async () => {
+      await service.enqueueRagAttachmentIngestion(basePayload);
+      expect(queues[QUEUE_AI_BATCH].add).toHaveBeenCalledWith(
+        JOB_RAG_ATTACHMENT_INGEST,
+        expect.any(Object),
+        expect.any(Object)
+      );
+      // ตรวจสอบว่า queue อื่นไม่ถูกเรียก
+      expect(queues[QUEUE_AI_INGEST].add).not.toHaveBeenCalled();
+      expect(queues[QUEUE_AI_RAG].add).not.toHaveBeenCalled();
+      expect(queues[QUEUE_AI_VECTOR_DELETION].add).not.toHaveBeenCalled();
+      expect(queues[QUEUE_AI_REALTIME].add).not.toHaveBeenCalled();
+    });
+
+    it('3. idempotency — enqueue payload เดิมซ้ำควรส่ง jobId option เดียวกัน (BullMQ dedup)', async () => {
+      await service.enqueueRagAttachmentIngestion(basePayload);
+      await service.enqueueRagAttachmentIngestion(basePayload);
+
+      const expectedJobId = `${JOB_RAG_ATTACHMENT_INGEST}:${basePayload.attachmentPublicId}:${basePayload.attachmentChecksum}`;
+      const calls = queues[QUEUE_AI_BATCH].add.mock.calls as Array<
+        [string, unknown, { jobId: string }]
+      >;
+      expect(calls).toHaveLength(2);
+      expect(calls[0][2].jobId).toBe(expectedJobId);
+      expect(calls[1][2].jobId).toBe(expectedJobId);
+      // jobId เดียวกัน → BullMQ จะ de-duplicate ไม่สร้างงานซ้ำ
+      expect(calls[0][2].jobId).toBe(calls[1][2].jobId);
+    });
+
+    it('idempotency — payload ต่างกัน (checksum เปลี่ยน) ต้องได้ jobId ต่างกัน', async () => {
+      await service.enqueueRagAttachmentIngestion(basePayload);
+      await service.enqueueRagAttachmentIngestion({
+        ...basePayload,
+        attachmentChecksum: 'sha256:changed',
+      });
+      const calls = queues[QUEUE_AI_BATCH].add.mock.calls as Array<
+        [string, unknown, { jobId: string }]
+      >;
+      expect(calls[0][2].jobId).not.toBe(calls[1][2].jobId);
+    });
+
+    it('4. retry behavior — job ต้องมี attempts = 3 ตาม defaultOptions', async () => {
+      await service.enqueueRagAttachmentIngestion(basePayload);
+      const [, , options] = queues[QUEUE_AI_BATCH].add.mock.calls[0] as [
+        string,
+        unknown,
+        { attempts: number },
+      ];
+      expect(options.attempts).toBe(3);
+    });
+
+    it('5. payload ต้องมี required fields (attachmentPublicId, attachmentChecksum, force)', async () => {
+      await service.enqueueRagAttachmentIngestion(basePayload);
+      const [, payload] = queues[QUEUE_AI_BATCH].add.mock.calls[0] as [
+        string,
+        {
+          attachmentPublicId: string;
+          attachmentChecksum: string;
+          force: boolean;
+        },
+        unknown,
+      ];
+      expect(payload.attachmentPublicId).toBe(basePayload.attachmentPublicId);
+      expect(payload.attachmentChecksum).toBe(basePayload.attachmentChecksum);
+      expect(payload.force).toBe(false);
+    });
+
+    it('FR-009: ควร throw 503 เมื่อมี transition lock และเรียก enqueueRagAttachmentIngestion', async () => {
+      store.set('ai:model:transitioning', 'locked');
+      await expect(
+        service.enqueueRagAttachmentIngestion(basePayload)
+      ).rejects.toThrow('Service Unavailable');
+      expect(queues[QUEUE_AI_BATCH].add).not.toHaveBeenCalled();
     });
   });
 });

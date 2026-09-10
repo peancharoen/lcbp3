@@ -20,6 +20,7 @@ import { BullModule, InjectQueue } from '@nestjs/bullmq';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { Queue } from 'bullmq';
 import { AiController } from './ai.controller';
+import { RagAttachmentController } from './rag-attachment.controller';
 import { AiService } from './ai.service';
 import { AiSettingsService } from './ai-settings.service';
 import { AiIngestService } from './ai-ingest.service';
@@ -27,6 +28,7 @@ import { AiQueueService } from './ai-queue.service';
 import { AiQdrantService } from './qdrant.service';
 import { AiRagService } from './ai-rag.service';
 import { AiRagProcessor } from './processors/rag.processor';
+import { RagAttachmentIngestProcessor } from './processors/rag-attachment-ingest.processor';
 import { AiRealtimeProcessor } from './processors/ai-realtime.processor';
 import { AiBatchProcessor } from './processors/ai-batch.processor';
 import { AiVectorDeletionProcessor } from './processors/vector-deletion.processor';
@@ -84,6 +86,29 @@ import { NodeMetricsService } from './services/node-metrics.service';
 import { VectorCleanupService } from './services/vector-cleanup.service';
 import { PendingVectorDeletion } from './entities/pending-vector-deletion.entity';
 import { RagQueryLog } from './entities/rag-query-log.entity';
+import { RagAttachmentGeneration } from './entities/rag-attachment-generation.entity';
+import { RagAttachmentPage } from './entities/rag-attachment-page.entity';
+import { RagAttachmentChunk } from './entities/rag-attachment-chunk.entity';
+import { RagGenerationLockService } from './services/rag-generation-lock.service';
+import { RagErrorService } from './services/rag-error.service';
+import { RagGenerationService } from './services/rag-generation.service';
+import { RagClassificationService } from './services/rag-classification.service';
+import { RagTextSegmentService } from './services/rag-text-segment.service';
+import { RagChunkingService } from './services/rag-chunking.service';
+import { RagAttachmentSourceService } from './services/rag-attachment-source.service';
+import { RagAttachmentIngestionService } from './services/rag-attachment-ingestion.service';
+import { RagEmbeddingService } from './services/rag-embedding.service';
+import { RagRetrievalService } from './services/rag-retrieval.service';
+import { RagRetrievalGuardService } from './services/rag-retrieval-guard.service';
+import { RagCitationService } from './services/rag-citation.service';
+import { RagCleanupService } from './services/rag-cleanup.service';
+import { RagGenerationSwapService } from './services/rag-generation-swap.service';
+import { RagObservabilityService } from './services/rag-observability.service';
+import { RagGenerationCleanupProcessor } from './processors/rag-generation-cleanup.processor';
+import { RagGenerationRetentionProcessor } from './processors/rag-generation-retention.processor';
+import { RagMetadataSyncProcessor } from './processors/rag-metadata-sync.processor';
+import { RagPageService } from './services/rag-page.service';
+import { SecureArchiveService } from '../../common/file-storage/secure-archive.service';
 
 @Module({
   imports: [
@@ -106,6 +131,9 @@ import { RagQueryLog } from './entities/rag-query-log.entity';
       AiSandboxProfile,
       PendingVectorDeletion,
       RagQueryLog,
+      RagAttachmentGeneration,
+      RagAttachmentPage,
+      RagAttachmentChunk,
     ]),
 
     BullModule.registerQueue(
@@ -171,7 +199,7 @@ import { RagQueryLog } from './entities/rag-query-log.entity';
     // ADR-029: Dynamic Prompt Management for OCR Extraction
     AiPromptsModule,
   ],
-  controllers: [AiController],
+  controllers: [AiController, RagAttachmentController],
   providers: [
     AiService,
     AiSettingsService,
@@ -192,6 +220,7 @@ import { RagQueryLog } from './entities/rag-query-log.entity';
     // Phase 4: RAG BullMQ pipeline (ADR-023)
     AiRagService,
     AiRagProcessor,
+    RagAttachmentIngestProcessor,
     // Phase 5: Vector Deletion async processor (ADR-023 FR-008)
     AiVectorDeletionProcessor,
     // ADR-032: np-dms-ocr + np-dms-ai sequential processors (concurrency=1)
@@ -207,6 +236,29 @@ import { RagQueryLog } from './entities/rag-query-log.entity';
     NodeMetricsService,
     // 2026-09-03: Periodic cleanup สำหรับ Qdrant vectors (pending retry + orphan scan)
     VectorCleanupService,
+    RagGenerationLockService,
+    RagErrorService,
+    RagGenerationService,
+    RagClassificationService,
+    RagTextSegmentService,
+    RagChunkingService,
+    RagAttachmentSourceService,
+    RagAttachmentIngestionService,
+    RagEmbeddingService,
+    RagRetrievalService,
+    RagRetrievalGuardService,
+    RagCitationService,
+    RagCleanupService,
+    // Phase 5 US3: Generation swap, cleanup, retention, observability (Feature 254)
+    RagGenerationSwapService,
+    RagObservabilityService,
+    RagGenerationCleanupProcessor,
+    RagGenerationRetentionProcessor,
+    // Phase 7 US5: Async Qdrant classification metadata sync (Feature 254, T070)
+    RagMetadataSyncProcessor,
+    // Phase 6 US4: Secure archive extraction + page persistence (Feature 254)
+    SecureArchiveService,
+    RagPageService,
   ],
   exports: [
     AiService,
@@ -227,6 +279,19 @@ import { RagQueryLog } from './entities/rag-query-log.entity';
     BullModule,
     // ADR-048: Export NodeMetricsService สำหรับ AI Control Center endpoint
     NodeMetricsService,
+    RagGenerationLockService,
+    RagErrorService,
+    RagGenerationService,
+    RagClassificationService,
+    RagTextSegmentService,
+    RagChunkingService,
+    RagAttachmentSourceService,
+    RagAttachmentIngestionService,
+    RagEmbeddingService,
+    RagRetrievalService,
+    RagCleanupService,
+    RagGenerationSwapService,
+    RagObservabilityService,
   ],
 })
 export class AiModule implements OnModuleInit {

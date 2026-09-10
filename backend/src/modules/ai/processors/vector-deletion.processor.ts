@@ -1,4 +1,4 @@
-// File: src/modules/ai/processors/vector-deletion.processor.ts
+// File: backend/src/modules/ai/processors/vector-deletion.processor.ts
 // Change Log
 // - 2026-05-14: เพิ่ม BullMQ Processor สำหรับลบ vector ใน Qdrant แบบ async ตาม ADR-023 FR-008 (T027).
 import { Processor, WorkerHost } from '@nestjs/bullmq';

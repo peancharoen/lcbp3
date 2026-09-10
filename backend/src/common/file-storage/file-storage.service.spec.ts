@@ -3,6 +3,9 @@
 // - 2026-08-01: เพิ่ม unit tests สำหรับ checksum dedup (Tier 2 #9) — ครอบ dedup hit, dedup miss, expired temp, different user.
 // - 2026-08-17: Phase 2.3 — อัปเดต mock buffer ให้มี PDF magic bytes จริง
 //   เพื่อผ่าน magic bytes validation (Issue #3, ADR-016)
+// - 2026-09-XX: T031 (Feature 254) — เพิ่ม test case ยืนยัน post-commit RAG Attachment
+//   Ingestion trigger ส่งงานผ่าน AiQueueService.enqueueRagAttachmentIngestion และ
+//   fire-and-forget (enqueue ล้มเหลวไม่ block commit)
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { FileStorageService } from './file-storage.service';
@@ -16,6 +19,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { Repository } from 'typeorm';
+import { AiQueueService } from '../../modules/ai/ai-queue.service';
 
 // Mock fs-extra
 jest.mock('fs-extra');
@@ -38,6 +42,7 @@ function makePdfBuffer(content: string = 'test-content'): Buffer {
 describe('FileStorageService', () => {
   let service: FileStorageService;
   let attachmentRepo: Repository<Attachment>;
+  let mockAiQueueService: { enqueueRagAttachmentIngestion: jest.Mock };
 
   const mockAttachment = {
     id: 1,
@@ -56,6 +61,10 @@ describe('FileStorageService', () => {
   } as Express.Multer.File;
 
   beforeEach(async () => {
+    mockAiQueueService = {
+      enqueueRagAttachmentIngestion: jest.fn().mockResolvedValue('job-1'),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         FileStorageService,
@@ -84,6 +93,10 @@ describe('FileStorageService', () => {
               return null;
             }),
           },
+        },
+        {
+          provide: AiQueueService,
+          useValue: mockAiQueueService,
         },
       ],
     }).compile();
@@ -242,6 +255,92 @@ describe('FileStorageService', () => {
       await expect(service.commit(['uuid-1'])).rejects.toThrow(
         NotFoundException
       );
+    });
+
+    it('T031: ควร enqueue RAG attachment ingestion หลัง commit สำหรับ Attachment ที่มี checksum', async () => {
+      const tempIds = ['uuid-1'];
+      const committedAttachment = {
+        ...mockAttachment,
+        publicId: '019505a1-7c3e-7000-8000-abc123def456',
+        isTemporary: true,
+        tempId: 'uuid-1',
+        filePath: '/temp/uuid.pdf',
+        checksum: 'abc123sha256hash',
+      };
+      (attachmentRepo.find as jest.Mock).mockResolvedValue([
+        committedAttachment,
+      ]);
+      // save คืน attachment ที่มี checksum (จำลอง committed state)
+      (attachmentRepo.save as jest.Mock).mockResolvedValue({
+        ...committedAttachment,
+        isTemporary: false,
+      });
+
+      await service.commit(tempIds);
+
+      expect(
+        mockAiQueueService.enqueueRagAttachmentIngestion
+      ).toHaveBeenCalledTimes(1);
+      expect(
+        mockAiQueueService.enqueueRagAttachmentIngestion
+      ).toHaveBeenCalledWith({
+        attachmentPublicId: '019505a1-7c3e-7000-8000-abc123def456',
+        attachmentChecksum: 'abc123sha256hash',
+        force: false,
+      });
+    });
+
+    it('T031: ไม่ควร enqueue RAG ingestion เมื่อ Attachment ไม่มี checksum', async () => {
+      const tempIds = ['uuid-1'];
+      const committedAttachment = {
+        ...mockAttachment,
+        publicId: '019505a1-7c3e-7000-8000-abc123def456',
+        isTemporary: true,
+        tempId: 'uuid-1',
+        filePath: '/temp/uuid.pdf',
+        // ไม่มี checksum
+      };
+      (attachmentRepo.find as jest.Mock).mockResolvedValue([
+        committedAttachment,
+      ]);
+      (attachmentRepo.save as jest.Mock).mockResolvedValue({
+        ...committedAttachment,
+        isTemporary: false,
+      });
+
+      await service.commit(tempIds);
+
+      expect(
+        mockAiQueueService.enqueueRagAttachmentIngestion
+      ).not.toHaveBeenCalled();
+    });
+
+    it('T031: commit ต้องสำเร็จแม้ enqueue RAG ingestion ล้มเหลว (fire-and-forget)', async () => {
+      const tempIds = ['uuid-1'];
+      const committedAttachment = {
+        ...mockAttachment,
+        publicId: '019505a1-7c3e-7000-8000-abc123def456',
+        isTemporary: true,
+        tempId: 'uuid-1',
+        filePath: '/temp/uuid.pdf',
+        checksum: 'abc123sha256hash',
+      };
+      (attachmentRepo.find as jest.Mock).mockResolvedValue([
+        committedAttachment,
+      ]);
+      (attachmentRepo.save as jest.Mock).mockResolvedValue({
+        ...committedAttachment,
+        isTemporary: false,
+      });
+      mockAiQueueService.enqueueRagAttachmentIngestion.mockRejectedValueOnce(
+        new Error('queue unavailable')
+      );
+
+      // ไม่ควร throw — commit สำเร็จแม้ enqueue ล้มเหลว
+      const result = await service.commit(tempIds);
+
+      expect(result).toHaveLength(1);
+      expect(fs.move as unknown as jest.Mock).toHaveBeenCalled();
     });
   });
 

@@ -31,6 +31,9 @@ import {
   QUEUE_AI_VECTOR_DELETION,
   QUEUE_AI_BATCH,
   QUEUE_AI_REALTIME,
+  JOB_RAG_ATTACHMENT_INGEST,
+  JOB_RAG_METADATA_SYNC,
+  JOB_RAG_GENERATION_CLEANUP,
 } from '../common/constants/queue.constants';
 import { QueueJobItemDto } from './dto/queue-jobs.dto';
 import { ServiceUnavailableException } from '../../common/exceptions';
@@ -82,6 +85,26 @@ export interface RagPrepareJobPayload {
   cachedOcrText?: string;
   attachmentPath?: string;
   attachmentPublicId?: string;
+}
+
+/** Payload สำหรับการสร้าง RAG generation ใหม่ของ Attachment */
+export interface RagAttachmentIngestJobPayload {
+  attachmentPublicId: string;
+  attachmentChecksum: string;
+  force: boolean;
+}
+
+/** Payload สำหรับ sync metadata ไปยัง Qdrant โดยไม่ re-embed */
+export interface RagMetadataSyncJobPayload {
+  generationUuid: string;
+  attachmentPublicId: string;
+}
+
+/** Payload สำหรับ cleanup generation ที่ RETIRED */
+export interface RagGenerationCleanupJobPayload {
+  generationUuid: string;
+  attachmentPublicId: string;
+  projectPublicId: string;
 }
 
 /** จัดการคิว AI ทั้งหมดให้อยู่หลัง BullMQ ตาม ADR-008/ADR-023 */
@@ -338,6 +361,42 @@ export class AiQueueService {
         jobId: `rag-prepare:${payload.documentPublicId}:${payload.revisionNumber}`,
       }
     );
+    return String(job.id);
+  }
+
+  /** ส่งงานสร้าง RAG generation ของ Attachment เข้า ai-batch แบบ idempotent */
+  async enqueueRagAttachmentIngestion(
+    payload: RagAttachmentIngestJobPayload
+  ): Promise<string> {
+    await this.checkAiUnavailableLocks();
+    const job = await this.batchQueue.add(JOB_RAG_ATTACHMENT_INGEST, payload, {
+      ...this.defaultOptions,
+      jobId: `${JOB_RAG_ATTACHMENT_INGEST}:${payload.attachmentPublicId}:${payload.attachmentChecksum}`,
+    });
+    return String(job.id);
+  }
+
+  /** ส่งงาน sync metadata ไป Qdrant โดยไม่สร้าง embedding ใหม่ */
+  async enqueueRagMetadataSync(
+    payload: RagMetadataSyncJobPayload
+  ): Promise<string> {
+    await this.checkAiUnavailableLocks();
+    const job = await this.batchQueue.add(JOB_RAG_METADATA_SYNC, payload, {
+      ...this.defaultOptions,
+      jobId: `${JOB_RAG_METADATA_SYNC}:${payload.generationUuid}`,
+    });
+    return String(job.id);
+  }
+
+  /** ส่งงาน cleanup generation ที่ RETIRED แบบ retry ได้ */
+  async enqueueRagGenerationCleanup(
+    payload: RagGenerationCleanupJobPayload
+  ): Promise<string> {
+    await this.checkAiUnavailableLocks();
+    const job = await this.batchQueue.add(JOB_RAG_GENERATION_CLEANUP, payload, {
+      ...this.defaultOptions,
+      jobId: `${JOB_RAG_GENERATION_CLEANUP}:${payload.generationUuid}`,
+    });
     return String(job.id);
   }
 
