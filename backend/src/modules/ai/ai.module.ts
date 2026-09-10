@@ -53,6 +53,7 @@ import { UserModule } from '../user/user.module';
 import { MigrationModule } from '../migration/migration.module';
 import { TagsModule } from '../tags/tags.module';
 import { FileStorageModule } from '../../common/file-storage/file-storage.module';
+import { CaslModule } from '../../common/auth/casl/casl.module';
 import { ImportTransaction } from '../migration/entities/import-transaction.entity';
 import { MigrationReviewQueue } from '../migration/entities/migration-review-queue.entity';
 import { AuditLogModule } from '../audit-log/audit-log.module';
@@ -199,6 +200,8 @@ import { SecureArchiveService } from '../../common/file-storage/secure-archive.s
     AiToolModule,
     // ADR-029: Dynamic Prompt Management for OCR Extraction
     AiPromptsModule,
+    // CASL — AbilityFactory สำหรับ RagClassificationService + RagRetrievalGuardService
+    CaslModule,
   ],
   controllers: [AiController, RagAttachmentController],
   providers: [
