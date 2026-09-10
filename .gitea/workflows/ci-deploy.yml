@@ -65,10 +65,15 @@ jobs:
       - name: 🧪 Test backend
         run: pnpm test
         working-directory: backend
+        env:
+          CI: "true"
+          NODE_OPTIONS: "--max-old-space-size=3072"
 
       - name: 🧪 Test frontend
         run: pnpm test run
         working-directory: frontend
+        env:
+          CI: "true"
 
   # ============================================================
   # JOB 2 : Deploy — New Server (np-dms-lcbp3 / 192.168.10.11)

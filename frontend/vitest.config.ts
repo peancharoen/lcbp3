@@ -11,7 +11,7 @@ export default defineConfig({
     setupFiles: ['./vitest.setup.ts'],
     include: ['hooks/**/*.test.{ts,tsx}', 'lib/**/*.test.{ts,tsx}', 'components/**/*.test.{ts,tsx}', 'app/**/*.test.{ts,tsx}'],
     exclude: ['**/node_modules/**', '**/.ignored_node_modules/**', '**/.next/**', '**/dist/**'],
-    testTimeout: 30000,
+    testTimeout: 60000,
     // ASUSTOR runner resource constraints — ใช้ singleFork เพื่อกัน worker starvation
     // (D274: forks worker timeout บน ASUSTOR runner — resource starvation ไม่ใช่ code bug)
     // poolOptions ไม่มีใน InlineConfig type ของ vitest 4.1.9 แต่ runtime รองรับ

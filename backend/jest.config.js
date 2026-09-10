@@ -139,6 +139,11 @@ module.exports = {
   // Restore mock state after each test
   restoreMocks: true,
 
-  // Maximum workers (ใช้ 50% ของ available CPUs)
-  maxWorkers: '50%',
+  // Maximum workers — CI runner (ASUSTOR) มี resource จำกัด
+  // ใช้ 1 worker บน CI เพื่อลด I/O contention (ExcelJS ช้าเมื่อ parallel)
+  // Local ใช้ 50% ของ CPUs เพื่อความเร็ว
+  maxWorkers: process.env.CI === 'true' ? 1 : '50%',
+
+  // Recycle workers ที่ใช้ memory เกิน 512MB (ป้องกัน memory leak จาก ExcelJS)
+  workerIdleMemoryLimit: '512MB',
 };
