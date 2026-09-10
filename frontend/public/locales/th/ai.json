@@ -216,6 +216,156 @@
     "citation_list": {
       "title": "เอกสารอ้างอิง",
       "empty": "ไม่มีเอกสารอ้างอิง"
+    },
+    "admin": {
+      "title": "RAG Admin Console",
+      "tabs": {
+        "dashboard": "แดชบอร์ด",
+        "classification": "การจัดหมวด",
+        "lifecycle": "วงจรการสร้าง",
+        "metrics": "เมตริก",
+        "retry": "รีทราย"
+      },
+      "dashboard": {
+        "title": "แดชบอร์ดสถานะ Ingestion",
+        "refresh": "รีเฟรช",
+        "filter_project": "กรองตามโครงการ",
+        "filter_status": "กรองตามสถานะ",
+        "all_projects": "ทุกโครงการ",
+        "all_statuses": "ทุกสถานะ",
+        "columns": {
+          "attachment": "ไฟล์แนบ",
+          "filename": "ชื่อไฟล์",
+          "mime_type": "ประเภท",
+          "rag_status": "สถานะ RAG",
+          "ai_processing_status": "AI Pipeline",
+          "chunk_count": "จำนวน Chunk",
+          "classification": "การจัดหมวด",
+          "override": "การ Override",
+          "last_updated": "อัปเดตล่าสุด",
+          "error": "ข้อผิดพลาด"
+        },
+        "empty_state": {
+          "no_data": "ไม่พบไฟล์แนบ",
+          "no_match": "ไม่พบไฟล์แนบที่ตรงกับตัวกรอง",
+          "suggestion": "ลองปรับตัวกรองหรือรอให้มีไฟล์ถูกอัปโหลด"
+        }
+      },
+      "classification": {
+        "title": "การ Override การจัดหมวด",
+        "select_attachment": "เลือกไฟล์แนบ",
+        "current_classification": "การจัดหมวดปัจจุบัน",
+        "new_classification": "การจัดหมวดใหม่",
+        "reason": "เหตุผล",
+        "reason_placeholder": "ระบุเหตุผลในการ override การจัดหมวด",
+        "submit": "Override การจัดหมวด",
+        "override_info": {
+          "reason": "เหตุผล",
+          "overridden_by": "Override โดย",
+          "overridden_at": "Override เมื่อ",
+          "no_override": "ยังไม่เคย override"
+        },
+        "empty_state": {
+          "no_data": "ไม่พบไฟล์แนบ"
+        }
+      },
+      "lifecycle": {
+        "title": "วงจรการสร้าง Generation",
+        "select_attachment": "เลือกไฟล์แนบ",
+        "force_reingest": "บังคับ Re-ingest",
+        "confirm_reingest": "คุณแน่ใจหรือไม่ที่จะบังคับ re-ingest ไฟล์แนบนี้?",
+        "columns": {
+          "status": "สถานะ",
+          "chunk_count": "จำนวน Chunk",
+          "created_at": "สร้างเมื่อ",
+          "activated_at": "Active เมื่อ",
+          "retired_at": "Retired เมื่อ",
+          "failed_at": "Failed เมื่อ",
+          "error_code": "รหัสข้อผิดพลาด",
+          "error_message": "ข้อความข้อผิดพลาด"
+        },
+        "empty_state": {
+          "no_generation": "ยังไม่มี generation สำหรับไฟล์แนบนี้",
+          "suggestion": "เริ่ม ingestion ก่อน"
+        },
+        "errors": {
+          "building_in_progress": "กำลัง ingest อยู่ กรุณารอให้เสร็จก่อน"
+        }
+      },
+      "metrics": {
+        "title": "เมตริกการตรวจสอบ",
+        "reset": "รีเซ็ตเมตริก",
+        "confirm_reset": "คุณแน่ใจหรือไม่ที่จะรีเซ็ตเมตริกทั้งหมด? การกระทำนี้ไม่สามารถยกเลิกได้",
+        "reset_success": "รีเซ็ตเมตริกสำเร็จ",
+        "cards": {
+          "ingestion_duration": "ระยะเวลา Ingestion",
+          "chunk_count": "จำนวน Chunk",
+          "vector_latency": "ความหน่วง Vector",
+          "stale_result_rate": "อัตราผลลัพธ์เก่า",
+          "fallback_rate": "อัตรา Fallback",
+          "cleanup_retry_rate": "อัตรา Retry การทำความสะอาด"
+        },
+        "labels": {
+          "count": "จำนวน",
+          "sum_ms": "รวม (ms)",
+          "buckets": "ช่วง",
+          "filtered": "กรองแล้ว",
+          "total": "ทั้งหมด",
+          "full_text_fallbacks": "Full-text Fallback",
+          "total_queries": "คำค้นทั้งหมด",
+          "retries": "การ Retry",
+          "total_chunks": "Chunk ทั้งหมด",
+          "ingestions": "การ Ingest"
+        },
+        "empty_state": {
+          "no_data": "ยังไม่มี RAG activity เมตริกจะเริ่มบันทึกเมื่อมี ingestion"
+        }
+      },
+      "retry": {
+        "title": "การจัดการ Retry Ingestion ที่ล้มเหลว",
+        "rag_failures": "การสร้าง Generation ที่ล้มเหลว",
+        "ai_pipeline_failures": "AI Pipeline ที่ล้มเหลว",
+        "retry_selected": "Retry ที่เลือก",
+        "retry_all": "Retry ทั้งหมด",
+        "confirm_retry": "Retry {{count}} รายการที่ล้มเหลว?",
+        "partial_success": "{{succeeded}} สำเร็จ, {{failed}} ล้มเหลว",
+        "columns": {
+          "attachment": "ไฟล์แนบ",
+          "filename": "ชื่อไฟล์",
+          "status": "สถานะ",
+          "error_code": "รหัสข้อผิดพลาด",
+          "error_message": "ข้อความข้อผิดพลาด",
+          "failed_at": "ล้มเหลวเมื่อ"
+        },
+        "empty_state": {
+          "no_failures": "ไม่มี ingestion ที่ล้มเหลว"
+        }
+      },
+      "status": {
+        "NOT_STARTED": "ยังไม่เริ่ม",
+        "BUILDING": "กำลังสร้าง",
+        "ACTIVE": "ใช้งานได้",
+        "RETIRED": "ปลดเกษียณ",
+        "FAILED": "ล้มเหลว"
+      },
+      "ai_processing_status": {
+        "PENDING": "รอดำเนินการ",
+        "PROCESSING": "กำลังดำเนินการ",
+        "DONE": "เสร็จสิ้น",
+        "FAILED": "ล้มเหลว"
+      },
+      "errors": {
+        "permission_denied": "คุณไม่มีสิทธิ์ในการดำเนินการนี้",
+        "service_unavailable": "AI service ไม่พร้อมใช้งานชั่วคราว กรุณาลองใหม่ภายหลัง",
+        "attachment_not_found": "ไม่พบไฟล์แนบ",
+        "checksum_required": "ต้องมี checksum สำหรับ re-ingest กรุณาตรวจสอบว่าไฟล์ถูกอัปโหลดอย่างถูกต้อง",
+        "batch_too_large": "สามารถ retry ได้สูงสุด 50 ไฟล์แนบในครั้งเดียว",
+        "load_failed": "โหลดข้อมูลไม่สำเร็จ กรุณาลองใหม่"
+      },
+      "common": {
+        "loading": "กำลังโหลด...",
+        "cancel": "ยกเลิก"
+      }
     }
   }
 }

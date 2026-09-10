@@ -27,6 +27,12 @@ const ORPHAN_SCAN_BATCH_SIZE = 100;
 /** Retention threshold สำหรับ RETIRED generation cleanup (24 ชม.) */
 const RETIRED_GENERATION_RETENTION_HOURS = 24;
 
+/** Raw query result สำหรับ orphan scan */
+interface OrphanGenerationRow {
+  generationUuid: string;
+  attachmentUuid: string;
+}
+
 /**
  * Periodic cleanup service สำหรับ Qdrant vectors
  *
@@ -358,5 +364,95 @@ export class VectorCleanupService {
     this.logger.log(
       `recordPendingDeletion: created pending deletion for doc=${payload.documentPublicId}`
     );
+  }
+
+  /**
+   * Orphan scan — ลบ RAG records ของ attachments ที่ถูกลบแล้ว (Feature 255, Q8)
+   * สแกน rag_attachment_generations LEFT JOIN attachments WHERE attachments.id IS NULL
+   * สำหรับแต่ละ orphan: ลบ Qdrant vectors, ลบ chunks, ลบ pages, ลบ generation records
+   * รันทุก 6 ชั่วโมง (matching cleanupRetiredGenerations schedule)
+   */
+  @Cron('0 0 */6 * * *')
+  async orphanScanRagAttachments(): Promise<void> {
+    if (!this.generationRepo || !this.chunkRepo || !this.pageRepo) {
+      this.logger.warn(
+        'orphanScanRagAttachments: generation/chunk/page repositories not available — skipping'
+      );
+      return;
+    }
+
+    this.logger.log('orphanScanRagAttachments: starting orphan scan...');
+
+    try {
+      // หา generations ที่ attachment ไม่มีอยู่แล้ว (orphaned)
+      const orphans = await this.generationRepo
+        .createQueryBuilder('g')
+        .leftJoin('attachments', 'a', 'a.uuid = g.attachment_uuid')
+        .where('a.id IS NULL')
+        .select([
+          'g.generation_uuid AS generationUuid',
+          'g.attachment_uuid AS attachmentUuid',
+        ])
+        .getRawMany<OrphanGenerationRow>();
+
+      if (orphans.length === 0) {
+        this.logger.log('orphanScanRagAttachments: no orphaned records found');
+        return;
+      }
+
+      this.logger.log(
+        `orphanScanRagAttachments: found ${orphans.length} orphaned generation(s)`
+      );
+
+      let cleaned = 0;
+      let failed = 0;
+
+      for (const orphan of orphans) {
+        try {
+          const { generationUuid, attachmentUuid } = orphan;
+
+          // 1. ลบ Qdrant vectors โดยใช้ chunk public IDs (matching cleanupGenerationVectors pattern)
+          try {
+            const chunks = await this.chunkRepo.find({
+              where: { generationUuid },
+              select: ['chunkPublicId'],
+            });
+            if (chunks.length > 0) {
+              await this.qdrantService.deleteByPointIds(
+                chunks.map((c) => c.chunkPublicId)
+              );
+            }
+          } catch (err) {
+            this.logger.warn(
+              `orphanScanRagAttachments: Qdrant deletion failed for attachment ${attachmentUuid}: ${err instanceof Error ? err.message : String(err)} — continuing with DB cleanup`
+            );
+          }
+
+          // 2. ลบ chunks
+          await this.chunkRepo.delete({ generationUuid });
+          // 3. ลบ pages
+          await this.pageRepo.delete({ generationUuid });
+          // 4. ลบ generation record
+          await this.generationRepo.delete({ generationUuid });
+
+          cleaned++;
+          this.logger.log(
+            `orphanScanRagAttachments: cleaned orphan generation ${generationUuid} (attachment ${attachmentUuid})`
+          );
+        } catch (err) {
+          failed++;
+          this.logger.error(
+            `orphanScanRagAttachments: failed for generation ${orphan.generationUuid}: ${err instanceof Error ? err.message : String(err)}`
+          );
+        }
+      }
+
+      this.logger.log(
+        `orphanScanRagAttachments: completed — cleaned=${cleaned}, failed=${failed}`
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`orphanScanRagAttachments: fatal error: ${msg}`);
+    }
   }
 }

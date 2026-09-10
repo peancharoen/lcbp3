@@ -94,6 +94,7 @@ export const menuItems: MenuItem[] = [
     icon: Brain,
     children: [
       { href: '/admin/ai/system', label: 'ระบบ' },
+      { href: '/admin/ai/rag-console', label: 'RAG Admin Console' },
       { href: '/admin/ai/rag-playground', label: 'RAG Playground' },
       { href: '/admin/ai/prompts', label: 'แก้ไข Prompt' },
       { href: '/admin/ai/sandbox', label: 'ทดสอบ Sandbox' },

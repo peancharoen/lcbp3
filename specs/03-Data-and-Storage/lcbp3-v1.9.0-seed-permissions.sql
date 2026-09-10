@@ -1169,10 +1169,24 @@ VALUES (
     'จัดการ RAG ingestion, re-index, ลบ vectors',
     'rag',
     1
+  ),
+  (
+    189,
+    'rag.admin.write',
+    'บังคับ re-ingest และ reset RAG metrics (Superadmin เท่านั้น)',
+    'rag',
+    1
+  ),
+  (
+    190,
+    'rag.retry',
+    'Batch retry failed RAG ingestions (Superadmin + Org Admin)',
+    'rag',
+    1
   );
 
 -- Role 1: Superadmin — ได้รับทุก permission โดยอัตโนมัติผ่าน SELECT-all pattern (บรรทัด 825-829)
--- Role 2: Org Admin — ai.suggest, ai.rag_query, ai.migration_manage, ai.read_analytics, rag.query
+-- Role 2: Org Admin — ai.suggest, ai.rag_query, ai.migration_manage, ai.read_analytics, rag.query, rag.retry
 INSERT IGNORE INTO role_permissions (role_id, permission_id)
 VALUES (2, 181),
   -- ai.suggest
@@ -1183,6 +1197,11 @@ VALUES (2, 181),
   (2, 185),
   -- ai.read_analytics
   (2, 187);
+
+-- rag.query
+-- rag.retry (190) — Feature 255: Org Admin สามารถ batch retry failed ingestions ได้
+INSERT IGNORE INTO role_permissions (role_id, permission_id)
+VALUES (2, 190);
 
 -- rag.query
 -- Role 3: Document Control — ai.suggest, ai.rag_query, ai.migration_manage, ai.read_analytics, rag.query
@@ -1199,6 +1218,8 @@ VALUES (3, 181),
 
 -- rag.query
 -- rag.manage (188) — Superadmin เท่านั้น, ไม่ grant ให้ Role อื่น
+-- rag.admin.write (189) — Superadmin เท่านั้น, ไม่ grant ให้ Role อื่น (Feature 255)
+-- rag.retry (190) — Superadmin + Org Admin (Role 2) (Feature 255)
 -- ai.migration_manage
 -- ai.audit_log_delete (184) — Superadmin เท่านั้น, ไม่ grant ให้ Role อื่น
 -- ==========================================================

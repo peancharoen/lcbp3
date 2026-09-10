@@ -84,6 +84,8 @@ import {
   QUEUE_NP_DMS_AI,
 } from './processors/np-dms-ai.processor';
 import { NodeMetricsService } from './services/node-metrics.service';
+import { RagAdminController } from './rag-admin.controller';
+import { RagAdminService } from './services/rag-admin.service';
 import { VectorCleanupService } from './services/vector-cleanup.service';
 import { PendingVectorDeletion } from './entities/pending-vector-deletion.entity';
 import { RagQueryLog } from './entities/rag-query-log.entity';
@@ -203,7 +205,7 @@ import { SecureArchiveService } from '../../common/file-storage/secure-archive.s
     // CASL — AbilityFactory สำหรับ RagClassificationService + RagRetrievalGuardService
     CaslModule,
   ],
-  controllers: [AiController, RagAttachmentController],
+  controllers: [AiController, RagAttachmentController, RagAdminController],
   providers: [
     AiService,
     AiSettingsService,
@@ -264,6 +266,8 @@ import { SecureArchiveService } from '../../common/file-storage/secure-archive.s
     // Phase 6 US4: Secure archive extraction + page persistence (Feature 254)
     SecureArchiveService,
     RagPageService,
+    // Feature 255: RAG Admin Console
+    RagAdminService,
   ],
   exports: [
     AiService,

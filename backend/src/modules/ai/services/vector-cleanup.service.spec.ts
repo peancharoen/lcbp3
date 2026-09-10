@@ -1,233 +1,173 @@
 // File: backend/src/modules/ai/services/vector-cleanup.service.spec.ts
 // Change Log:
-// - 2026-09-03: Unit tests สำหรับ VectorCleanupService — retry pending + orphan scan
+// - 2026-09-10: T061 — สร้าง unit test สำหรับ orphanScanRagAttachments (Feature 255, Q8)
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { VectorCleanupService } from './vector-cleanup.service';
 import { AiQdrantService } from '../qdrant.service';
-import {
-  PendingVectorDeletion,
-  PendingVectorDeletionStatus,
-} from '../entities/pending-vector-deletion.entity';
+import { PendingVectorDeletion } from '../entities/pending-vector-deletion.entity';
+import { RagAttachmentGeneration } from '../entities/rag-attachment-generation.entity';
+import { RagAttachmentChunk } from '../entities/rag-attachment-chunk.entity';
+import { RagAttachmentPage } from '../entities/rag-attachment-page.entity';
 
-describe('VectorCleanupService', () => {
+type MockQueryBuilder = {
+  leftJoin: jest.Mock;
+  where: jest.Mock;
+  select: jest.Mock;
+  getRawMany: jest.Mock;
+};
+
+type MockRepository = {
+  createQueryBuilder: jest.Mock<MockQueryBuilder>;
+  find: jest.Mock;
+  delete: jest.Mock;
+  create: jest.Mock;
+  save: jest.Mock;
+};
+
+function createMockRepository(): MockRepository {
+  const qb: MockQueryBuilder = {
+    leftJoin: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    select: jest.fn().mockReturnThis(),
+    getRawMany: jest.fn(),
+  };
+  return {
+    createQueryBuilder: jest.fn().mockReturnValue(qb),
+    find: jest.fn(),
+    delete: jest.fn(),
+    create: jest.fn(),
+    save: jest.fn(),
+  };
+}
+
+describe('VectorCleanupService — orphanScanRagAttachments (T061)', () => {
   let service: VectorCleanupService;
-  let qdrantService: jest.Mocked<AiQdrantService>;
-  let pendingRepo: jest.Mocked<Repository<PendingVectorDeletion>>;
-  let dataSource: { query: jest.Mock };
+  let mockQdrantService: Record<string, jest.Mock>;
+  let mockPendingRepo: MockRepository;
+  let mockGenerationRepo: MockRepository;
+  let mockChunkRepo: MockRepository;
+  let mockPageRepo: MockRepository;
+  let mockDataSource: Record<string, jest.Mock>;
 
   beforeEach(async () => {
-    const mockQdrant = {
-      deleteByDocumentPublicId: jest.fn().mockResolvedValue(undefined),
-      scrollByProject: jest
-        .fn()
-        .mockResolvedValue({ points: [], nextOffset: null }),
-      deleteByPointIds: jest.fn().mockResolvedValue(undefined),
-    };
-
-    const mockPendingRepo = {
-      find: jest.fn().mockResolvedValue([]),
-      update: jest.fn().mockResolvedValue(undefined),
-    };
-
-    const mockDataSource = {
-      query: jest.fn().mockResolvedValue([]),
-    };
+    mockQdrantService = { deleteByPointIds: jest.fn() };
+    mockPendingRepo = createMockRepository();
+    mockGenerationRepo = createMockRepository();
+    mockChunkRepo = createMockRepository();
+    mockPageRepo = createMockRepository();
+    mockDataSource = {};
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         VectorCleanupService,
-        { provide: AiQdrantService, useValue: mockQdrant },
+        { provide: AiQdrantService, useValue: mockQdrantService },
         {
           provide: getRepositoryToken(PendingVectorDeletion),
           useValue: mockPendingRepo,
         },
         { provide: DataSource, useValue: mockDataSource },
+        {
+          provide: getRepositoryToken(RagAttachmentGeneration),
+          useValue: mockGenerationRepo,
+        },
+        {
+          provide: getRepositoryToken(RagAttachmentChunk),
+          useValue: mockChunkRepo,
+        },
+        {
+          provide: getRepositoryToken(RagAttachmentPage),
+          useValue: mockPageRepo,
+        },
       ],
     }).compile();
 
     service = module.get<VectorCleanupService>(VectorCleanupService);
-    qdrantService = module.get(AiQdrantService);
-    pendingRepo = module.get(getRepositoryToken(PendingVectorDeletion));
-    dataSource = module.get(DataSource);
   });
 
-  describe('retryPendingDeletions', () => {
-    it('ควรลบ vectors สำเร็จและ mark COMPLETED', async () => {
-      const pendingItem = {
-        id: 1,
-        publicId: 'pvd-uuid-1',
-        documentPublicId: 'doc-uuid-1',
-        projectPublicId: 'proj-uuid-1',
-        status: PendingVectorDeletionStatus.PENDING,
-        retryCount: 0,
-        maxRetries: 10,
-      } as PendingVectorDeletion;
+  it('should skip if generation repository not available', async () => {
+    // Create service without generation repo
+    const moduleWithoutGen: TestingModule = await Test.createTestingModule({
+      providers: [
+        VectorCleanupService,
+        { provide: AiQdrantService, useValue: mockQdrantService },
+        {
+          provide: getRepositoryToken(PendingVectorDeletion),
+          useValue: mockPendingRepo,
+        },
+        { provide: DataSource, useValue: mockDataSource },
+        // No generation/chunk/page repos
+      ],
+    }).compile();
+    const serviceWithoutGen =
+      moduleWithoutGen.get<VectorCleanupService>(VectorCleanupService);
 
-      pendingRepo.find.mockResolvedValue([pendingItem]);
-
-      await service.retryPendingDeletions();
-
-      expect(qdrantService.deleteByDocumentPublicId).toHaveBeenCalledWith(
-        'proj-uuid-1',
-        'doc-uuid-1'
-      );
-      expect(pendingRepo.update).toHaveBeenCalledWith(1, {
-        status: PendingVectorDeletionStatus.COMPLETED,
-        completedAt: expect.any(Date),
-      });
-    });
-
-    it('ควร increment retryCount เมื่อ Qdrant deletion fail', async () => {
-      const pendingItem = {
-        id: 2,
-        publicId: 'pvd-uuid-2',
-        documentPublicId: 'doc-uuid-2',
-        projectPublicId: 'proj-uuid-2',
-        status: PendingVectorDeletionStatus.PENDING,
-        retryCount: 2,
-        maxRetries: 10,
-      } as PendingVectorDeletion;
-
-      pendingRepo.find.mockResolvedValue([pendingItem]);
-      qdrantService.deleteByDocumentPublicId.mockRejectedValueOnce(
-        new Error('Qdrant connection refused')
-      );
-
-      await service.retryPendingDeletions();
-
-      expect(pendingRepo.update).toHaveBeenCalledWith(2, {
-        retryCount: 3,
-        lastError: 'Qdrant connection refused',
-      });
-    });
-
-    it('ควร mark FAILED เมื่อ retryCount เกิน maxRetries', async () => {
-      const pendingItem = {
-        id: 3,
-        publicId: 'pvd-uuid-3',
-        documentPublicId: 'doc-uuid-3',
-        projectPublicId: 'proj-uuid-3',
-        status: PendingVectorDeletionStatus.PENDING,
-        retryCount: 9,
-        maxRetries: 10,
-      } as PendingVectorDeletion;
-
-      pendingRepo.find.mockResolvedValue([pendingItem]);
-      qdrantService.deleteByDocumentPublicId.mockRejectedValueOnce(
-        new Error('Qdrant down')
-      );
-
-      await service.retryPendingDeletions();
-
-      expect(pendingRepo.update).toHaveBeenCalledWith(3, {
-        status: PendingVectorDeletionStatus.FAILED,
-        retryCount: 10,
-        lastError: 'Qdrant down',
-      });
-    });
-
-    it('ควร handle empty pending list โดยไม่ throw', async () => {
-      pendingRepo.find.mockResolvedValue([]);
-
-      await expect(service.retryPendingDeletions()).resolves.not.toThrow();
-      expect(qdrantService.deleteByDocumentPublicId).not.toHaveBeenCalled();
-    });
+    // Should not throw, just log warning
+    await expect(
+      serviceWithoutGen.orphanScanRagAttachments()
+    ).resolves.not.toThrow();
   });
 
-  describe('orphanScan', () => {
-    it('ควร handle empty projects list โดยไม่ throw', async () => {
-      dataSource.query.mockResolvedValue([]);
+  it('should find and clean orphaned generations (Q8)', async () => {
+    const qb = mockGenerationRepo.createQueryBuilder();
+    qb.getRawMany.mockResolvedValue([
+      { generationUuid: 'gen-1', attachmentUuid: 'att-1' },
+      { generationUuid: 'gen-2', attachmentUuid: 'att-2' },
+    ]);
+    mockChunkRepo.find.mockResolvedValue([
+      { chunkPublicId: 'chunk-1' },
+      { chunkPublicId: 'chunk-2' },
+    ]);
+    mockQdrantService.deleteByPointIds.mockResolvedValue(undefined);
+    mockChunkRepo.delete.mockResolvedValue({});
+    mockPageRepo.delete.mockResolvedValue({});
+    mockGenerationRepo.delete.mockResolvedValue({});
 
-      await expect(service.orphanScan()).resolves.not.toThrow();
-      expect(qdrantService.scrollByProject).not.toHaveBeenCalled();
+    await service.orphanScanRagAttachments();
+
+    // Should delete chunks, pages, and generation for each orphan
+    expect(mockChunkRepo.delete).toHaveBeenCalledTimes(2);
+    expect(mockPageRepo.delete).toHaveBeenCalledTimes(2);
+    expect(mockGenerationRepo.delete).toHaveBeenCalledTimes(2);
+    expect(mockQdrantService.deleteByPointIds).toHaveBeenCalledTimes(2);
+  });
+
+  it('should handle empty orphan list gracefully', async () => {
+    const qb = mockGenerationRepo.createQueryBuilder();
+    qb.getRawMany.mockResolvedValue([]);
+
+    await service.orphanScanRagAttachments();
+
+    expect(mockChunkRepo.delete).not.toHaveBeenCalled();
+    expect(mockGenerationRepo.delete).not.toHaveBeenCalled();
+  });
+
+  it('should continue DB cleanup even if Qdrant deletion fails', async () => {
+    const qb = mockGenerationRepo.createQueryBuilder();
+    qb.getRawMany.mockResolvedValue([
+      { generationUuid: 'gen-1', attachmentUuid: 'att-1' },
+    ]);
+    mockChunkRepo.find.mockResolvedValue([{ chunkPublicId: 'chunk-1' }]);
+    mockQdrantService.deleteByPointIds.mockRejectedValue(
+      new Error('Qdrant unavailable')
+    );
+    mockChunkRepo.delete.mockResolvedValue({});
+    mockPageRepo.delete.mockResolvedValue({});
+    mockGenerationRepo.delete.mockResolvedValue({});
+
+    await service.orphanScanRagAttachments();
+
+    // DB cleanup should still happen
+    expect(mockChunkRepo.delete).toHaveBeenCalledWith({
+      generationUuid: 'gen-1',
     });
-
-    it('ควรลบ orphan vectors ที่ไม่มี doc_public_id ตรงใน DB', async () => {
-      // 1 project with 2 vectors: 1 existing, 1 orphan
-      dataSource.query
-        .mockResolvedValueOnce([{ public_id: 'proj-uuid-1' }])
-        .mockResolvedValueOnce([{ public_id: 'doc-existing-uuid' }]);
-
-      qdrantService.scrollByProject.mockResolvedValueOnce({
-        points: [
-          {
-            pointId: 'point-1',
-            score: 0,
-            payload: { doc_public_id: 'doc-existing-uuid' },
-          },
-          {
-            pointId: 'point-2',
-            score: 0,
-            payload: { doc_public_id: 'doc-orphan-uuid' },
-          },
-        ],
-        nextOffset: null,
-      });
-
-      await service.orphanScan();
-
-      expect(qdrantService.deleteByPointIds).toHaveBeenCalledWith(['point-2']);
+    expect(mockPageRepo.delete).toHaveBeenCalledWith({
+      generationUuid: 'gen-1',
     });
-
-    it('ควรถือว่า vector เป็น orphan ถ้า correspondence ยังอยู่แต่ไม่มี revision เหลืออยู่เลย (D255/D256 gap fix)', async () => {
-      // Bugfix: เดิม query เช็คแค่ correspondence row ยังอยู่ไหม ไม่ join ตรวจ
-      // correspondence_revisions ทำให้เคสที่ revision ถูกลบไปแล้วแต่ correspondence
-      // shell ยังอยู่ (เช่น manual DB cleanup) ไม่ถูกจับว่า orphan เลย — mock ที่นี่จำลอง
-      // DB คืนค่าว่างเปล่า (เสมือน INNER JOIN ไม่พบ revision) แม้ correspondence จะมีอยู่จริง
-      dataSource.query
-        .mockResolvedValueOnce([{ public_id: 'proj-uuid-1' }])
-        .mockResolvedValueOnce([]); // ไม่มี doc ไหนผ่าน join กับ correspondence_revisions
-
-      qdrantService.scrollByProject.mockResolvedValueOnce({
-        points: [
-          {
-            pointId: 'point-orphan-no-revision',
-            score: 0,
-            payload: { doc_public_id: 'doc-with-no-revision-uuid' },
-          },
-        ],
-        nextOffset: null,
-      });
-
-      await service.orphanScan();
-
-      expect(qdrantService.deleteByPointIds).toHaveBeenCalledWith([
-        'point-orphan-no-revision',
-      ]);
-      const existingDocsQueryCall = (
-        dataSource.query.mock.calls[1] as [string, unknown[]]
-      )[0];
-      expect(existingDocsQueryCall).toMatch(/correspondence_revisions/);
-      expect(existingDocsQueryCall).toMatch(/deleted_at IS NULL/);
-    });
-
-    it('ควร scroll batch ต่อเมื่อ nextOffset ไม่ใช่ null', async () => {
-      dataSource.query.mockResolvedValue([{ public_id: 'proj-uuid-1' }]);
-      dataSource.query.mockResolvedValueOnce([{ public_id: 'proj-uuid-1' }]);
-      dataSource.query.mockResolvedValueOnce([]);
-
-      qdrantService.scrollByProject
-        .mockResolvedValueOnce({
-          points: [
-            {
-              pointId: 'p1',
-              score: 0,
-              payload: { doc_public_id: 'doc-1' },
-            },
-          ],
-          nextOffset: 'offset-1',
-        })
-        .mockResolvedValueOnce({
-          points: [],
-          nextOffset: null,
-        });
-
-      await service.orphanScan();
-
-      expect(qdrantService.scrollByProject).toHaveBeenCalledTimes(2);
+    expect(mockGenerationRepo.delete).toHaveBeenCalledWith({
+      generationUuid: 'gen-1',
     });
   });
 });

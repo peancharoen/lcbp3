@@ -66,6 +66,35 @@ export class Attachment extends UuidBaseEntity {
   })
   classification!: 'PUBLIC' | 'INTERNAL' | 'CONFIDENTIAL';
 
+  // Feature 254/255: Effective classification after inheritance/override (ADR-016)
+  @Column({ name: 'effective_classification', length: 50, default: 'INTERNAL' })
+  effectiveClassification!: string;
+
+  // Feature 254/255: Classification override columns (ADR-016)
+  @Column({ name: 'classification_override', length: 50, nullable: true })
+  classificationOverride?: string | null;
+
+  @Column({
+    name: 'classification_override_reason',
+    type: 'text',
+    nullable: true,
+  })
+  classificationOverrideReason?: string | null;
+
+  @Column({
+    name: 'classification_override_actor_user_public_id',
+    length: 36,
+    nullable: true,
+  })
+  classificationOverrideActorUserPublicId?: string | null;
+
+  @Column({
+    name: 'classification_overridden_at',
+    type: 'datetime',
+    nullable: true,
+  })
+  classificationOverriddenAt?: Date | null;
+
   // ADR-021: FK ไปยัง workflow_histories สำหรับไฟล์แนบประจำ Step
   // NULL = ไฟล์แนบหลัก (Main Document), NOT NULL = ไฟล์ประจำ Workflow Step
   @Column({ name: 'workflow_history_id', nullable: true })

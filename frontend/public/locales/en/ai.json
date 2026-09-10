@@ -184,6 +184,156 @@
     "citation_list": {
       "title": "References",
       "empty": "No references available"
+    },
+    "admin": {
+      "title": "RAG Admin Console",
+      "tabs": {
+        "dashboard": "Dashboard",
+        "classification": "Classification",
+        "lifecycle": "Lifecycle",
+        "metrics": "Metrics",
+        "retry": "Retry"
+      },
+      "dashboard": {
+        "title": "Ingestion Status Dashboard",
+        "refresh": "Refresh",
+        "filter_project": "Filter by Project",
+        "filter_status": "Filter by Status",
+        "all_projects": "All Projects",
+        "all_statuses": "All Statuses",
+        "columns": {
+          "attachment": "Attachment",
+          "filename": "Filename",
+          "mime_type": "Type",
+          "rag_status": "RAG Status",
+          "ai_processing_status": "AI Pipeline",
+          "chunk_count": "Chunks",
+          "classification": "Classification",
+          "override": "Override",
+          "last_updated": "Last Updated",
+          "error": "Error"
+        },
+        "empty_state": {
+          "no_data": "No attachments found",
+          "no_match": "No attachments match the current filters",
+          "suggestion": "Try adjusting filters or wait for files to be uploaded"
+        }
+      },
+      "classification": {
+        "title": "Classification Override",
+        "select_attachment": "Select an attachment",
+        "current_classification": "Current Classification",
+        "new_classification": "New Classification",
+        "reason": "Reason",
+        "reason_placeholder": "Enter reason for classification override",
+        "submit": "Override Classification",
+        "override_info": {
+          "reason": "Reason",
+          "overridden_by": "Overridden By",
+          "overridden_at": "Overridden At",
+          "no_override": "No override applied"
+        },
+        "empty_state": {
+          "no_data": "No attachments found"
+        }
+      },
+      "lifecycle": {
+        "title": "Generation Lifecycle",
+        "select_attachment": "Select an attachment",
+        "force_reingest": "Force Re-ingest",
+        "confirm_reingest": "Are you sure you want to force re-ingest this attachment?",
+        "columns": {
+          "status": "Status",
+          "chunk_count": "Chunks",
+          "created_at": "Created",
+          "activated_at": "Activated",
+          "retired_at": "Retired",
+          "failed_at": "Failed",
+          "error_code": "Error Code",
+          "error_message": "Error Message"
+        },
+        "empty_state": {
+          "no_generation": "No generations for this attachment yet",
+          "suggestion": "Start ingestion first"
+        },
+        "errors": {
+          "building_in_progress": "Ingestion already in progress. Please wait for the current ingestion to complete before retrying."
+        }
+      },
+      "metrics": {
+        "title": "Observability Metrics",
+        "reset": "Reset Metrics",
+        "confirm_reset": "Are you sure you want to reset all metrics? This action cannot be undone.",
+        "reset_success": "Metrics reset successfully",
+        "cards": {
+          "ingestion_duration": "Ingestion Duration",
+          "chunk_count": "Chunk Count",
+          "vector_latency": "Vector Latency",
+          "stale_result_rate": "Stale Result Rate",
+          "fallback_rate": "Fallback Rate",
+          "cleanup_retry_rate": "Cleanup Retry Rate"
+        },
+        "labels": {
+          "count": "Count",
+          "sum_ms": "Total (ms)",
+          "buckets": "Buckets",
+          "filtered": "Filtered",
+          "total": "Total",
+          "full_text_fallbacks": "Full-text Fallbacks",
+          "total_queries": "Total Queries",
+          "retries": "Retries",
+          "total_chunks": "Total Chunks",
+          "ingestions": "Ingestions"
+        },
+        "empty_state": {
+          "no_data": "No RAG activity yet. Metrics will be recorded when ingestion occurs."
+        }
+      },
+      "retry": {
+        "title": "Failed Ingestion Retry",
+        "rag_failures": "RAG Generation Failures",
+        "ai_pipeline_failures": "AI Pipeline Failures",
+        "retry_selected": "Retry Selected",
+        "retry_all": "Retry All",
+        "confirm_retry": "Retry {{count}} failed ingestion(s)?",
+        "partial_success": "{{succeeded}} succeeded, {{failed}} failed",
+        "columns": {
+          "attachment": "Attachment",
+          "filename": "Filename",
+          "status": "Status",
+          "error_code": "Error Code",
+          "error_message": "Error Message",
+          "failed_at": "Failed At"
+        },
+        "empty_state": {
+          "no_failures": "No failed ingestions"
+        }
+      },
+      "status": {
+        "NOT_STARTED": "Not Started",
+        "BUILDING": "Building",
+        "ACTIVE": "Active",
+        "RETIRED": "Retired",
+        "FAILED": "Failed"
+      },
+      "ai_processing_status": {
+        "PENDING": "Pending",
+        "PROCESSING": "Processing",
+        "DONE": "Done",
+        "FAILED": "Failed"
+      },
+      "errors": {
+        "permission_denied": "You do not have permission to perform this action",
+        "service_unavailable": "AI service is currently unavailable. Please try again later.",
+        "attachment_not_found": "Attachment not found",
+        "checksum_required": "Checksum is required for re-ingest. Please ensure the file has been properly uploaded.",
+        "batch_too_large": "Maximum 50 attachments can be retried at once",
+        "load_failed": "Failed to load data. Please try again."
+      },
+      "common": {
+        "loading": "Loading...",
+        "cancel": "Cancel"
+      }
     }
   }
 }

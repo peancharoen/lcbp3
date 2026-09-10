@@ -470,6 +470,7 @@ _Avoid_: BGE service, embed service, always-resident BGE
 | ADR-033 | Active Model & OCR Management      | Synchronous Model switch, GPU VRAM Auto-release, Sidecar API Key protection          | ✅ Active      |
 | ADR-034 | Thai Model Stack                   | typhoon2.5-np-dms:latest (Main) + typhoon-np-dms-ocr:latest (OCR, keep_alive:0)      | ✅ Active      |
 | ADR-041 | Server Consolidation               | Co-locate ทุก services บน New Server (4 layers); NPM แยก QNAP; ASUSTOR = Primary NAS | ✅ Implemented |
+| ADR-053 | RAG Admin Console Architecture     | Route prefix `ai/admin/rag/...`; 4 permissions (rag.manage, rag.admin.write, document.classification_override, rag.retry); status enum จริง; metrics reset global-only; FAILED→RETIRED before retry; orphan scan Cron; frontend single page + 5 tabs; AiEnabledGuard method-level on operations | ✅ Accepted |
 
 **หมายเหตุ**: ADR-023A ยังคงเป็น canonical สำหรับ infrastructure — ADR-024/025/026/027 เพิ่ม runtime layer; ADR-028 ปรับ Migration Pipeline; ADR-033 จัดระบบโมเดลและ OCR
 
