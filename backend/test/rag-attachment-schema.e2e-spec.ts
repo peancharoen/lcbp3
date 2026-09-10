@@ -60,7 +60,7 @@ describe('RAG Attachment Schema (E2E) — Feature 254 T022', () => {
             password: configService.get<string>('DB_PASSWORD', 'Center2025'),
             database: configService.get<string>('DB_DATABASE', 'lcbp3_dev'),
             charset: 'utf8mb4',
-            autoLoadEntities: true,
+            entities: [__dirname + '/../src/**/*.entity{.ts,.js}'],
             synchronize: false,
             connectTimeout: 30000,
             acquireTimeout: 30000,
