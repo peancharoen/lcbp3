@@ -81,7 +81,7 @@ describe('RagAdminController', () => {
       expect(result).toEqual({ items: [], total: 0, page: 1, pageSize: 20 });
     });
 
-    it('should pass projectPublicId and status filters', async () => {
+    it('should pass status filters', async () => {
       mockRagAdminService.listAttachments.mockResolvedValue({
         items: [],
         total: 0,
@@ -90,14 +90,12 @@ describe('RagAdminController', () => {
       });
 
       await controller.listAttachments({
-        projectPublicId: '019505a1-7c3e-7000-8000-abc123def456',
         status: RagAdminStatusFilter.ACTIVE,
         page: 2,
         pageSize: RagAdminPageSize.FIFTY,
       });
 
       expect(mockRagAdminService.listAttachments).toHaveBeenCalledWith({
-        projectPublicId: '019505a1-7c3e-7000-8000-abc123def456',
         status: RagAdminStatusFilter.ACTIVE,
         page: 2,
         pageSize: RagAdminPageSize.FIFTY,
