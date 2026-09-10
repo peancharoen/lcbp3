@@ -71,7 +71,13 @@ export class Attachment extends UuidBaseEntity {
   effectiveClassification!: string;
 
   // Feature 254/255: Classification override columns (ADR-016)
-  @Column({ name: 'classification_override', length: 50, nullable: true })
+  // ระบุ type: 'varchar' ชัดเจน เพราะ string | null union ทำให้ reflect-metadata ส่ง Object กลับมา ซึ่ง MariaDB ไม่รองรับ
+  @Column({
+    name: 'classification_override',
+    type: 'varchar',
+    length: 50,
+    nullable: true,
+  })
   classificationOverride?: string | null;
 
   @Column({
@@ -83,6 +89,7 @@ export class Attachment extends UuidBaseEntity {
 
   @Column({
     name: 'classification_override_actor_user_public_id',
+    type: 'varchar',
     length: 36,
     nullable: true,
   })
