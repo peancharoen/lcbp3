@@ -104,7 +104,7 @@ describe('WorkflowTransitionGuard', () => {
     it('should allow access for org admin with same organization as document', async () => {
       // Arrange
       userService.getUserPermissions.mockResolvedValue([
-        'organization.manage_users',
+        'organization.manage_members',
       ]);
       const mockInstance = {
         id: 'instance-123',
@@ -129,7 +129,7 @@ describe('WorkflowTransitionGuard', () => {
     it('should deny access for org admin from different organization', async () => {
       // Arrange
       userService.getUserPermissions.mockResolvedValue([
-        'organization.manage_users',
+        'organization.manage_members',
       ]);
       const mockInstance = {
         id: 'instance-123',
@@ -148,7 +148,7 @@ describe('WorkflowTransitionGuard', () => {
     it('should deny access for org admin when document has no organization', async () => {
       // Arrange
       userService.getUserPermissions.mockResolvedValue([
-        'organization.manage_users',
+        'organization.manage_members',
       ]);
       const mockInstance = {
         id: 'instance-123',
@@ -281,9 +281,9 @@ describe('WorkflowTransitionGuard', () => {
 
   // T025: DSL require.role → CASL ability mapping tests
   describe('DSL CASL Role Mapping (FR-002a)', () => {
-    it('should allow access when DSL requires OrgAdmin role and user has organization.manage_users', async () => {
+    it('should allow access when DSL requires OrgAdmin role and user has organization.manage_members', async () => {
       userService.getUserPermissions.mockResolvedValue([
-        'organization.manage_users',
+        'organization.manage_members',
       ]);
       const mockInstance = {
         id: 'instance-dsl-1',

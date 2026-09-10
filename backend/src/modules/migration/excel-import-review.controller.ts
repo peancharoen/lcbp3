@@ -90,7 +90,7 @@ interface MulterFile {
  * RBAC (FR-018):
  * - check: correspondence.import_review (Superadmin, Org Admin, Document Control)
  * - MIGRATION_STAGING: สงวนไว้ให้ Admin เท่านั้น (system.manage_all หรือ
- *   organization.manage_users) — Document Control ใช้ DIRECT_IMPORT เท่านั้น (D7)
+ *   organization.manage_members) — Document Control ใช้ DIRECT_IMPORT เท่านั้น (D7)
  * - External AI (GEMINI/CLAUDE): สงวนไว้ให้ Admin เท่านั้น (D2)
  */
 @ApiTags('Excel Import Review')
@@ -174,7 +174,7 @@ export class ExcelImportReviewController {
     // ดึงสิทธิ์ทั้งหมดของ User (pattern เดียวกับ workflow-transition.guard.ts)
     const permissions = await this.userService.getUserPermissions(user.user_id);
     const isSuperadmin = permissions.includes('system.manage_all');
-    const isOrgAdmin = permissions.includes('organization.manage_users');
+    const isOrgAdmin = permissions.includes('organization.manage_members');
     const isAdmin = isSuperadmin || isOrgAdmin;
 
     // RBAC เพิ่มเติม: MIGRATION_STAGING สงวนไว้ให้ Admin เท่านั้น (FR-018, D7)

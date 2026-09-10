@@ -1,7 +1,7 @@
 # Project Memory Override
 
 > **Project:** NAP-DMS (LCBP3) — Laem Chabang Port Phase 3 Document Management System
-> **Version:** 1.9.20 (Last Synced: 2026-09-08 Schema Drift Bugfix — 8 Admin Console Issues)
+> **Version:** 1.9.20 (Last Synced: 2026-09-10 Skip CI + Deploy Blocker Fix)
 > **Stack:** NestJS 11 + Next.js 16 + TypeScript + MariaDB 11.8 + Redis + BullMQ + Elasticsearch + Ollama (on-prem AI)
 
 > [!IMPORTANT]
@@ -283,6 +283,8 @@
 | D303 | **`orphanScanRagAttachments` ต้องใช้ `a.uuid` ไม่ใช่ `a.public_id`** — ADR-019: `UuidBaseEntity` maps TypeScript `publicId` → DB column `uuid`; การใช้ `a.public_id` ใน LEFT JOIN ทำให้ join ไม่ match อะไรเลย → ทุก generation ถูก treat เป็น orphan → ลบ Qdrant vectors + chunks + pages + generation records ของทุก attachment ทุก 6 ชม. (data loss bug); กฎทั่วไป: raw SQL join กับ entity ที่ extends `UuidBaseEntity` ต้องใช้ column `uuid` | ADR-019 / Session 2026-09-11 |
 | D304 | **`attachments` table ไม่มี `project_public_id` column — ไม่สามารถ filter attachments โดย project โดยตรง** — `project_public_id` มีแค่ใน `rag_attachment_chunks` table; attachments เชื่อมกับ project ผ่าน correspondence chain (attachment → correspondence_revision → correspondence → project); ถ้าต้องการ project filter ในอนาคตต้อง join ผ่าน chain นี้ ไม่ใช่เพิ่ม column โดยตรง | ADR-044 / Session 2026-09-11 |
 | D305 | **RAG Admin i18n ใช้ `useRagAdminT()` hook (locale-aware) ไม่ใช่ plain `ragAdminT` function** — รองรับ EN/TH locale switching ตาม 05-08-i18n-guidelines; plain function เก็บไว้สำหรับ non-component contexts (defaults Thai); กฎ: frontend i18n helper ต้องเป็น hook ที่รับ locale param ไม่ใช่ module-level function ที่ hardcode locale | 05-08-i18n-guidelines / Session 2026-09-11 |
+| D306 | **TypeORM `@Column` ต้องระบุ `type` ชัดเจนเมื่อ TS type เป็น union (`string \| null`, `Date \| null`)** — เสริม D185 (2026-08-30 refresh-token entity) ที่พูดถึง isolated incident; ปัญหาเดียวกันเกิดซ้ำกับ `Attachment` entity (Feature 254) ยืนยันว่าเป็น systemic pattern; TypeORM `reflect-metadata` ไม่สามารถ infer column type จาก TypeScript union type ได้ — ส่งกลับ `Object` ซึ่ง MariaDB ปฏิเสธด้วย `DataTypeNotSupportedError` ตอน runtime (ไม่ติด TSC เพราะ `skipLibCheck: true`); ทุก `@Column` ที่ TS type เป็น union ต้องระบุ `type: 'varchar'`/`'datetime'`/`'text'` ชัดเจน; กฎนี้ครอบคลุมทุก entity ไม่ใช่แค่ entity ใด entity หนึ่ง | Session 2026-09-10 |
+| D307 | **Force-push amend เพื่อแก้ `[skip CI]` ที่ติดมาโดยไม่ตั้งใจ** — `2git.sh` ไม่รองรับ force-push กรณี commit ที่ push ไปแล้ว; ถ้า commit ที่ push ไป `origin/main` แล้วมี `[skip CI]` โดยไม่ตั้งใจ (ไม่ใช่ docs/memory commit) สามารถ `git commit --amend` ลบ `[skip CI]` ออกแล้ว `git push --force-with-lease` ได้ โดยต้องได้รับ explicit user authorization ต่อครั้ง; `--force-with-lease` ปลอดภัยกว่า `--force` เพราะ abort ถ้ามีคน push ใหม่ระหว่างนั้น; หลัง force-push ให้ตรวจสอบด้วย `list_action_runs` ว่า CI triggered จริง | Session 2026-09-10 |
 
 ## Environment & Services
 
@@ -336,6 +338,7 @@ QDRANT_URL
 #### A. Code / Tech Debt (ทำในเครื่องนี้ได้)
 
 - [x] Feature 254 Code Review Remediation — แก้ 6 actions + 2 suggestions: TOCTOU race fix (findOne เข้า transaction), reorder upsert→activate, extract shared `RagGenerationStateService`, fix `createSegment` JSDoc, prefix `_force`, wrap `markFailed` nested try-catch, +2 tests (Qdrant failure + markFailed failure); แก้ deploy blocker `AiModule` ไม่ import `CaslModule`; 2865 tests pass, tsc+lint clean, backend+frontend healthy; commits `efef87e7` + `5b8b9b7e`; lock D297-D301 — ✅ 2026-09-10
+- [x] Skip CI + Deploy Blocker Fix — (1) commit `4a053028` มี `[skip CI]` โดยไม่ตั้งใจ แก้ด้วย amend + force-push (`e21871a6`) (2) backend container unhealthy จาก TypeORM `DataTypeNotSupportedError` (`Attachment.classificationOverride` ไม่มี `type: 'varchar'`) แก้ 2 คอลัมน์ใน `attachment.entity.ts`; commit `701e32b0`; CI run #706 in_progress; lock D306-D307 — ⏳ 2026-09-10 (รอ CI deploy สำเร็จ)
 - [x] Feature 255 RAG Admin Console Code Review Remediation — แก้ 4 CRITICAL + 3 HIGH + 4 MEDIUM จาก Antigravity Code Review: (1) CRITICAL: map `effectiveClassification` + 4 override columns บน `Attachment` entity (2) CRITICAL: ลบ `projectPublicId` filter (ไม่มี column จริง) (3) CRITICAL: แทน `fetchClassificationOverrides` audit_logs query ด้วย direct column reads (4) CRITICAL: แก้ `orphanScanRagAttachments` `a.public_id`→`a.uuid` (data loss bug) (5) HIGH: `useRagAdminT()` hook locale-aware (6) HIGH: populate LifecycleTab SelectContent (7) HIGH: แก้ duplicate override reason column (8-11) MEDIUM: i18n strings + type getMetrics + BullMQ compensation + shadcn Dialog; 68/68 tests pass, tsc+lint clean; commit `2e1702fa`; lock D302-D305 — ✅ 2026-09-11
 - [x] Feature 253 — BullMQ bulk store + Maintenance Vector Sync harden (`bulk-operations` queue + `BulkOperationsProcessor`, `VectorSyncService` Qdrant/DB, `preFilterCancelled` SQL fix) — backend 166/166 suites 2566 tests, tsc/lint:ci ผ่าน; frontend tsc/lint ผ่าน; squashed + pushed via `2git.sh` เป็น `077705c5` — ✅ 2026-09-08
 - [x] ลบ `DocumentComparisonView` + `ExtractionResult` type (D162 follow-up — verified: ยังมีอยู่, ไม่มี caller) — ✅ 2026-09-05

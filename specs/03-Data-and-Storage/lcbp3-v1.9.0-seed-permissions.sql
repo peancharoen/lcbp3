@@ -847,6 +847,8 @@ VALUES -- User Management
   -- Organization
   (2, 12),
   -- organization.view
+  (2, 15),
+  -- organization.manage_members (Org Admin สามารถจัดการสมาชิก + ใช้ MIGRATION_STAGING ตาม ADR-052)
   -- Master Data
   (2, 46),
   -- master_data.tag.manage

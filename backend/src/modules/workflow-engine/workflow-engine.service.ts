@@ -413,7 +413,9 @@ export class WorkflowEngineService {
       const actorPermissions =
         await this.userService.getUserPermissions(userId);
       const isSuperadmin = actorPermissions.includes('system.manage_all');
-      const isOrgAdmin = actorPermissions.includes('organization.manage_users');
+      const isOrgAdmin = actorPermissions.includes(
+        'organization.manage_members'
+      );
       if (!isSuperadmin && !isOrgAdmin) {
         throw new WorkflowException(
           'WORKFLOW_IMPERSONATION_FORBIDDEN',

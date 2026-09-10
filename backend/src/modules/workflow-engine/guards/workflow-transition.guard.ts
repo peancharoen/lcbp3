@@ -21,7 +21,7 @@ import type { RequestWithUser } from '../../../common/interfaces/request-with-us
 // 'ไม่รู้จัก' DSL role → fall through ไป Level 3 (assignedUserId) check
 const DSL_ROLE_TO_CASL: Record<string, string> = {
   Superadmin: 'system.manage_all',
-  OrgAdmin: 'organization.manage_users',
+  OrgAdmin: 'organization.manage_members',
   ContractMember: 'contract.view',
   AssignedHandler: '__assigned__', // ไม่ map ไป CASL — จัดการโดย Level 3 check
 };
@@ -30,7 +30,7 @@ const DSL_ROLE_TO_CASL: Record<string, string> = {
  * WorkflowTransitionGuard — ตรวจสอบสิทธิ์ 4 ระดับก่อนอนุญาตให้เปลี่ยนสถานะ Workflow
  *
  * Level 1:   system.manage_all (Superadmin) → ผ่านทันที
- * Level 2:   organization.manage_users + สังกัดองค์กรเดียวกับเอกสาร → ผ่าน
+ * Level 2:   organization.manage_members + สังกัดองค์กรเดียวกับเอกสาร → ผ่าน
  * Level 2.5: [C3] contract_organizations membership — ถ้า instance.contractId ถูกตั้ง
  *             และ User ไม่อยู่ใน contract นั้น → ForbiddenException (cross-contract block)
  * Level 3:   Assigned Handler (context.assignedUserId === req.user.user_id) → ผ่าน
@@ -68,7 +68,7 @@ export class WorkflowTransitionGuard implements CanActivate {
     );
 
     const isSuperadmin = userPermissions.includes('system.manage_all');
-    const isOrgAdmin = userPermissions.includes('organization.manage_users');
+    const isOrgAdmin = userPermissions.includes('organization.manage_members');
 
     // ADR-049 T014: ถ้ามี impersonation request แต่ไม่ใช่ admin → ปฏิเสธ
     if (isImpersonating && !isSuperadmin && !isOrgAdmin) {
@@ -120,7 +120,7 @@ export class WorkflowTransitionGuard implements CanActivate {
       }
     }
 
-    // Level 2: Org Admin — organization.manage_users + สังกัดองค์กรเดียวกับเอกสาร
+    // Level 2: Org Admin — organization.manage_members + สังกัดองค์กรเดียวกับเอกสาร
     const docOrgId = instance.context?.organizationId as number | undefined;
     if (
       isOrgAdmin &&
