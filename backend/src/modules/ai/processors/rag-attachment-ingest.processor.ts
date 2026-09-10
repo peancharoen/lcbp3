@@ -53,9 +53,10 @@ export class RagAttachmentIngestProcessor extends WorkerHost {
   }
 
   async process(job: Job<RagAttachmentIngestJobPayload>): Promise<void> {
-    const { attachmentPublicId, attachmentChecksum, force } = job.data;
+    const { attachmentPublicId, attachmentChecksum, force: _force } = job.data;
+    // force ใช้ใน ingestionService.ingest() ไม่ใช่ใน processor — log เพื่อ audit trail เท่านั้น
     this.logger.log(
-      `Processing RAG attachment ingest — attachment=${attachmentPublicId}, force=${force}`
+      `Processing RAG attachment ingest — attachment=${attachmentPublicId}, force=${_force}`
     );
 
     const generation = await this.generationRepository.findOne({
@@ -200,15 +201,17 @@ export class RagAttachmentIngestProcessor extends WorkerHost {
       // 5. Persist chunks
       await this.chunkRepository.save(chunkEntities);
 
-      // 6. Verify checksum และ activate
+      // 6. Verify checksum
       await this.ingestionService.markVerified(
         generation.generationUuid,
         attachmentChecksum
       );
-      await this.ingestionService.activate(generation.generationUuid);
 
-      // 7. Upsert vectors to Qdrant
+      // 7. Upsert vectors to Qdrant ก่อน activate — ป้องกัน window ที่ ACTIVE แต่ยังไม่มี vectors
       await this.qdrantService.upsert(ownerContext.projectPublicId, points);
+
+      // 8. Activate generation — vectors พร้อมแล้ว ปลอดภัยที่จะเปิดใช้งาน
+      await this.ingestionService.activate(generation.generationUuid);
 
       this.logger.log(
         `RAG ingestion complete — attachment=${attachmentPublicId}, chunks=${chunkEntities.length}`
@@ -218,20 +221,31 @@ export class RagAttachmentIngestProcessor extends WorkerHost {
       this.logger.error(
         `RAG ingestion failed for ${attachmentPublicId}: ${errorMessage}`
       );
-      await this.ingestionService.markFailed(
-        generation.generationUuid,
-        'INGESTION_ERROR',
-        errorMessage
-      );
+      try {
+        await this.ingestionService.markFailed(
+          generation.generationUuid,
+          'INGESTION_ERROR',
+          errorMessage
+        );
+      } catch (markFailedErr: unknown) {
+        const markFailedMessage =
+          markFailedErr instanceof Error
+            ? markFailedErr.message
+            : String(markFailedErr);
+        this.logger.error(
+          `Failed to mark generation ${generation.generationUuid} as FAILED: ${markFailedMessage}`
+        );
+      }
     }
   }
 
   /**
    * สร้าง TextSegment จาก attachment — สำหรับ ZIP ใช้ SECTION segment
    * พร้อม sourceLocator ที่ชี้ไปยัง inner file path (T061, FR-039)
-   * - ถ้าเป็น ZIP และมี SecureArchiveService จะ extract และใช้ inner file path
-   * - ถ้าเป็น ZIP แต่ไม่มี SecureArchiveService จะ parse ocrText เพื่อหา file path
    * - ถ้าไม่ใช่ ZIP จะใช้ WHOLE_DOCUMENT (default behavior)
+   * - ถ้าเป็น ZIP จะ parse ocrText เพื่อหา file path ด้วย regex (fallback)
+   *   หมายเหตุ: ZIP extraction ที่ปลอดภัยทำใน ingestionService ผ่าน SecureArchiveService
+   *   ส่วน createSegment ทำแค่สร้าง segment จาก ocrText ที่ได้มา
    */
   private createSegment(
     attachment: Attachment,

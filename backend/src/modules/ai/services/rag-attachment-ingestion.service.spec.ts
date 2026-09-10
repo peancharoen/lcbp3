@@ -10,6 +10,7 @@ import { RagAttachmentGeneration } from '../entities/rag-attachment-generation.e
 import { RagAttachmentChunk } from '../entities/rag-attachment-chunk.entity';
 import { RagAttachmentIngestionService } from './rag-attachment-ingestion.service';
 import { RagGenerationLockService } from './rag-generation-lock.service';
+import { RagGenerationStateService } from './rag-generation-state.service';
 import { RagErrorService } from './rag-error.service';
 
 describe('RagAttachmentIngestionService', () => {
@@ -26,6 +27,12 @@ describe('RagAttachmentIngestionService', () => {
   const lockService = { acquire: jest.fn().mockResolvedValue(lock) };
   const errorService = new RagErrorService();
   const dataSource = { transaction: jest.fn() };
+  const stateService = {
+    markVerified: jest.fn().mockResolvedValue(undefined),
+    activate: jest.fn().mockResolvedValue(undefined),
+    markFailed: jest.fn().mockResolvedValue(undefined),
+    getStatus: jest.fn(),
+  };
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -47,6 +54,7 @@ describe('RagAttachmentIngestionService', () => {
         { provide: DataSource, useValue: dataSource },
         { provide: RagGenerationLockService, useValue: lockService },
         { provide: RagErrorService, useValue: errorService },
+        { provide: RagGenerationStateService, useValue: stateService },
       ],
     }).compile();
     service = module.get<RagAttachmentIngestionService>(
@@ -122,191 +130,58 @@ describe('RagAttachmentIngestionService', () => {
     expect(lock.release).toHaveBeenCalled();
   });
 
-  // 5. activation guard — พยายาม activate generation ที่ไม่ใช่ BUILDING ต้องปฏิเสธ
-  it('throws when generation state is not BUILDING during activation attempt', async () => {
-    generationRepository.findOne.mockResolvedValue({
-      generationUuid: 'gen-1',
-      status: 'ACTIVE',
-      attachmentChecksumSnapshot: 'e'.repeat(64),
-      verifiedContentChecksum: 'e'.repeat(64),
-    });
-
-    await expect(service.activate('gen-1')).rejects.toMatchObject({
-      code: 'RAG_GENERATION_STATE_INVALID',
-    });
-  });
-
-  // 6. markVerified — อัปเดต verifiedContentChecksum เมื่อ checksum ตรง
-  it('marks verified when checksum matches the snapshot', async () => {
-    generationRepository.findOne.mockResolvedValue({
-      generationUuid: 'gen-1',
-      status: 'BUILDING',
-      attachmentChecksumSnapshot: 'a'.repeat(64),
-    });
-
-    await service.markVerified('gen-1', 'a'.repeat(64));
-
-    expect(generationRepository.update).toHaveBeenCalledWith(
-      { generationUuid: 'gen-1' },
-      { verifiedContentChecksum: 'a'.repeat(64) }
-    );
-  });
-
-  // 7. markVerified — ปฏิเสธเมื่อ generation ไม่พบ
-  it('throws when generation is not found during markVerified', async () => {
-    generationRepository.findOne.mockResolvedValue(null);
-
-    await expect(
-      service.markVerified('gen-missing', 'a'.repeat(64))
-    ).rejects.toMatchObject({
-      code: 'RAG_GENERATION_STATE_INVALID',
-    });
-  });
-
-  // 8. markVerified — ปฏิเสธเมื่อ status ไม่ใช่ BUILDING
-  it('throws when generation status is not BUILDING during markVerified', async () => {
-    generationRepository.findOne.mockResolvedValue({
-      generationUuid: 'gen-1',
-      status: 'ACTIVE',
-      attachmentChecksumSnapshot: 'a'.repeat(64),
-    });
-
-    await expect(
-      service.markVerified('gen-1', 'a'.repeat(64))
-    ).rejects.toMatchObject({
-      code: 'RAG_GENERATION_STATE_INVALID',
-    });
-  });
-
-  // 9. markVerified — mark FAILED เมื่อ verified checksum ไม่ตรง snapshot
-  it('marks FAILED when verified checksum does not match snapshot', async () => {
-    generationRepository.findOne.mockResolvedValue({
-      generationUuid: 'gen-1',
-      status: 'BUILDING',
-      attachmentChecksumSnapshot: 'a'.repeat(64),
-    });
-
-    await service.markVerified('gen-1', 'b'.repeat(64));
-
-    expect(generationRepository.update).toHaveBeenCalledWith(
-      { generationUuid: 'gen-1' },
-      expect.objectContaining({
-        status: 'FAILED',
-        errorCode: 'CHECKSUM_MISMATCH',
-      })
-    );
-  });
-
-  // 10. activate — สำเร็จเมื่อ generation เป็น BUILDING และ verified
-  it('activates a verified BUILDING generation via transaction', async () => {
-    generationRepository.findOne.mockResolvedValue({
-      generationUuid: 'gen-1',
-      attachmentUuid: 'att-1',
-      status: 'BUILDING',
-      verifiedContentChecksum: 'a'.repeat(64),
-    });
-    const txRepo = {
-      findOne: jest.fn().mockResolvedValue({
-        generationUuid: 'gen-1',
-        attachmentUuid: 'att-1',
-        status: 'BUILDING',
-        verifiedContentChecksum: 'a'.repeat(64),
-      }),
-      createQueryBuilder: jest.fn().mockReturnValue({
-        update: jest.fn().mockReturnThis(),
-        set: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        andWhere: jest.fn().mockReturnThis(),
-        execute: jest.fn().mockResolvedValue(undefined),
-      }),
-      update: jest.fn().mockResolvedValue(undefined),
-    };
-    dataSource.transaction.mockImplementation(
-      async (cb: (mgr: unknown) => Promise<void>) => {
-        await cb({ getRepository: () => txRepo });
-      }
-    );
-
+  // 5. activate — delegate ไปยัง stateService
+  it('delegates activate to stateService', async () => {
     await service.activate('gen-1');
+    expect(stateService.activate).toHaveBeenCalledWith('gen-1');
+  });
 
-    expect(txRepo.update).toHaveBeenCalledWith(
-      { generationUuid: 'gen-1' },
-      expect.objectContaining({ status: 'ACTIVE' })
+  // 6. markVerified — delegate ไปยัง stateService
+  it('delegates markVerified to stateService', async () => {
+    await service.markVerified('gen-1', 'a'.repeat(64));
+    expect(stateService.markVerified).toHaveBeenCalledWith(
+      'gen-1',
+      'a'.repeat(64)
     );
   });
 
-  // 11. activate — ปฏิเสธเมื่อ generation ไม่ได้ verified
-  it('throws when generation is not verified during activation', async () => {
-    generationRepository.findOne.mockResolvedValue({
-      generationUuid: 'gen-1',
-      status: 'BUILDING',
-      verifiedContentChecksum: null,
-    });
-
-    await expect(service.activate('gen-1')).rejects.toMatchObject({
-      code: 'RAG_GENERATION_STATE_INVALID',
-    });
-  });
-
-  // 12. markFailed — บันทึก error code และ message
-  it('marks a generation as FAILED with error code and message', async () => {
+  // 7. markFailed — delegate ไปยัง stateService
+  it('delegates markFailed to stateService', async () => {
     await service.markFailed('gen-1', 'INGESTION_ERROR', 'something broke');
-
-    expect(generationRepository.update).toHaveBeenCalledWith(
-      { generationUuid: 'gen-1' },
-      expect.objectContaining({
-        status: 'FAILED',
-        errorCode: 'INGESTION_ERROR',
-        errorMessage: 'something broke',
-      })
+    expect(stateService.markFailed).toHaveBeenCalledWith(
+      'gen-1',
+      'INGESTION_ERROR',
+      'something broke'
     );
   });
 
-  // 13. getStatus — คืน NOT_STARTED เมื่อไม่มี generation
-  it('returns NOT_STARTED status when no generation exists', async () => {
-    generationRepository.findOne.mockResolvedValue(null);
-
-    const result = await service.getStatus('att-1');
-
-    expect(result).toEqual({
+  // 8. getStatus — delegate ไปยัง stateService
+  it('delegates getStatus to stateService', async () => {
+    stateService.getStatus.mockResolvedValue({
       attachmentPublicId: 'att-1',
-      status: 'NOT_STARTED',
-      chunkCount: 0,
-    });
-  });
-
-  // 14. getStatus — คืนสถานะและ chunk count เมื่อมี generation
-  it('returns status and chunk count when generation exists', async () => {
-    generationRepository.findOne.mockResolvedValue({
-      generationUuid: 'gen-1',
       status: 'ACTIVE',
-      activatedAt: new Date('2026-09-10'),
-      errorMessage: undefined,
+      chunkCount: 5,
     });
-    chunkRepository.count.mockResolvedValue(5);
-
     const result = await service.getStatus('att-1');
-
+    expect(stateService.getStatus).toHaveBeenCalledWith('att-1');
     expect(result).toEqual({
       attachmentPublicId: 'att-1',
       status: 'ACTIVE',
       chunkCount: 5,
-      indexedAt: new Date('2026-09-10'),
-      lastError: undefined,
     });
   });
 
-  // 15. isValidChecksum — ตรวจความยาว 64 hex chars
+  // 9. isValidChecksum — ตรวจความยาว 64 hex chars
   it('validates a correct 64-char hex checksum', () => {
     expect(service.isValidChecksum('a'.repeat(64))).toBe(true);
   });
 
-  // 16. isValidChecksum — ปฏิเสธ checksum ที่สั้นเกินไป
+  // 10. isValidChecksum — ปฏิเสธ checksum ที่สั้นเกินไป
   it('rejects a checksum that is too short', () => {
     expect(service.isValidChecksum('abc')).toBe(false);
   });
 
-  // 17. isValidChecksum — ปฏิเสธ checksum ที่มี non-hex chars
+  // 11. isValidChecksum — ปฏิเสธ checksum ที่มี non-hex chars
   it('rejects a checksum with non-hex characters', () => {
     expect(service.isValidChecksum('g'.repeat(64))).toBe(false);
   });

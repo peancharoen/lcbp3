@@ -3,13 +3,12 @@
 // - 2026-09-09: เพิ่ม regression tests สำหรับ RAG generation lifecycle (Feature 254)
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { DataSource } from 'typeorm';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Attachment } from '../../../common/file-storage/entities/attachment.entity';
 import { RagAttachmentGeneration } from '../entities/rag-attachment-generation.entity';
-import { RagAttachmentChunk } from '../entities/rag-attachment-chunk.entity';
 import { RagGenerationService } from './rag-generation.service';
 import { RagGenerationLockService } from './rag-generation-lock.service';
+import { RagGenerationStateService } from './rag-generation-state.service';
 import { RagErrorService } from './rag-error.service';
 
 describe('RagGenerationService', () => {
@@ -24,11 +23,15 @@ describe('RagGenerationService', () => {
     save: jest.fn(),
     update: jest.fn(),
   };
-  const chunkRepository = { count: jest.fn().mockResolvedValue(0) };
   const lock = { release: jest.fn().mockResolvedValue(undefined) };
   const lockService = { acquire: jest.fn().mockResolvedValue(lock) };
   const errorService = new RagErrorService();
-  const dataSource = { transaction: jest.fn() };
+  const stateService = {
+    markVerified: jest.fn().mockResolvedValue(undefined),
+    activate: jest.fn().mockResolvedValue(undefined),
+    markFailed: jest.fn().mockResolvedValue(undefined),
+    getStatus: jest.fn(),
+  };
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -43,13 +46,9 @@ describe('RagGenerationService', () => {
           provide: getRepositoryToken(RagAttachmentGeneration),
           useValue: generationRepository,
         },
-        {
-          provide: getRepositoryToken(RagAttachmentChunk),
-          useValue: chunkRepository,
-        },
-        { provide: DataSource, useValue: dataSource },
         { provide: RagGenerationLockService, useValue: lockService },
         { provide: RagErrorService, useValue: errorService },
+        { provide: RagGenerationStateService, useValue: stateService },
       ],
     }).compile();
     service = module.get<RagGenerationService>(RagGenerationService);
@@ -109,21 +108,11 @@ describe('RagGenerationService', () => {
     expect(generationRepository.save).toHaveBeenCalled();
   });
 
-  it('marks a generation FAILED when verified checksum mismatches', async () => {
-    generationRepository.findOne.mockResolvedValue({
-      generationUuid: 'gen-1',
-      status: 'BUILDING',
-      attachmentChecksumSnapshot: 'a'.repeat(64),
-    });
-
-    await service.markVerified('gen-1', 'b'.repeat(64));
-
-    expect(generationRepository.update).toHaveBeenCalledWith(
-      { generationUuid: 'gen-1' },
-      expect.objectContaining({
-        status: 'FAILED',
-        errorCode: 'CHECKSUM_MISMATCH',
-      })
+  it('delegates markVerified to stateService', async () => {
+    await service.markVerified('gen-1', 'a'.repeat(64));
+    expect(stateService.markVerified).toHaveBeenCalledWith(
+      'gen-1',
+      'a'.repeat(64)
     );
   });
 
@@ -186,158 +175,32 @@ describe('RagGenerationService', () => {
     });
   });
 
-  it('marks verified when checksum matches the snapshot', async () => {
-    generationRepository.findOne.mockResolvedValue({
-      generationUuid: 'gen-1',
-      status: 'BUILDING',
-      attachmentChecksumSnapshot: 'a'.repeat(64),
-    });
-
-    await service.markVerified('gen-1', 'a'.repeat(64));
-
-    expect(generationRepository.update).toHaveBeenCalledWith(
-      { generationUuid: 'gen-1' },
-      { verifiedContentChecksum: 'a'.repeat(64) }
-    );
-  });
-
-  it('throws when generation is not found during markVerified', async () => {
-    generationRepository.findOne.mockResolvedValue(null);
-
-    await expect(
-      service.markVerified('gen-missing', 'a'.repeat(64))
-    ).rejects.toMatchObject({
-      code: 'RAG_GENERATION_STATE_INVALID',
-    });
-  });
-
-  it('throws when generation status is not BUILDING during markVerified', async () => {
-    generationRepository.findOne.mockResolvedValue({
-      generationUuid: 'gen-1',
-      status: 'ACTIVE',
-      attachmentChecksumSnapshot: 'a'.repeat(64),
-    });
-
-    await expect(
-      service.markVerified('gen-1', 'a'.repeat(64))
-    ).rejects.toMatchObject({
-      code: 'RAG_GENERATION_STATE_INVALID',
-    });
-  });
-
-  it('activates a verified BUILDING generation via transaction', async () => {
-    const txGen = {
-      generationUuid: 'gen-1',
-      attachmentUuid: 'att-1',
-      status: 'BUILDING',
-      verifiedContentChecksum: 'a'.repeat(64),
-    };
-    const txRepo = {
-      findOne: jest.fn().mockResolvedValue(txGen),
-      createQueryBuilder: jest.fn().mockReturnValue({
-        update: jest.fn().mockReturnThis(),
-        set: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        andWhere: jest.fn().mockReturnThis(),
-        execute: jest.fn().mockResolvedValue(undefined),
-      }),
-      update: jest.fn().mockResolvedValue(undefined),
-    };
-    dataSource.transaction.mockImplementation(
-      async (cb: (mgr: unknown) => Promise<void>) => {
-        await cb({ getRepository: () => txRepo });
-      }
-    );
-
+  it('delegates activate to stateService', async () => {
     await service.activate('gen-1');
-
-    expect(txRepo.update).toHaveBeenCalledWith(
-      { generationUuid: 'gen-1' },
-      expect.objectContaining({ status: 'ACTIVE' })
-    );
+    expect(stateService.activate).toHaveBeenCalledWith('gen-1');
   });
 
-  it('throws when generation is not found during activate', async () => {
-    const txRepo = {
-      findOne: jest.fn().mockResolvedValue(null),
-      createQueryBuilder: jest.fn(),
-      update: jest.fn(),
-    };
-    dataSource.transaction.mockImplementation(
-      async (cb: (mgr: unknown) => Promise<void>) => {
-        await cb({ getRepository: () => txRepo });
-      }
-    );
-
-    await expect(service.activate('gen-missing')).rejects.toMatchObject({
-      code: 'RAG_GENERATION_STATE_INVALID',
-    });
-  });
-
-  it('throws when generation is not verified during activate', async () => {
-    const txRepo = {
-      findOne: jest.fn().mockResolvedValue({
-        generationUuid: 'gen-1',
-        attachmentUuid: 'att-1',
-        status: 'BUILDING',
-        verifiedContentChecksum: null,
-      }),
-      createQueryBuilder: jest.fn(),
-      update: jest.fn(),
-    };
-    dataSource.transaction.mockImplementation(
-      async (cb: (mgr: unknown) => Promise<void>) => {
-        await cb({ getRepository: () => txRepo });
-      }
-    );
-
-    await expect(service.activate('gen-1')).rejects.toMatchObject({
-      code: 'RAG_GENERATION_STATE_INVALID',
-    });
-  });
-
-  it('marks a generation as FAILED with error code and message', async () => {
+  it('delegates markFailed to stateService', async () => {
     await service.markFailed('gen-1', 'INGESTION_ERROR', 'something broke');
-
-    expect(generationRepository.update).toHaveBeenCalledWith(
-      { generationUuid: 'gen-1' },
-      expect.objectContaining({
-        status: 'FAILED',
-        errorCode: 'INGESTION_ERROR',
-        errorMessage: 'something broke',
-      })
+    expect(stateService.markFailed).toHaveBeenCalledWith(
+      'gen-1',
+      'INGESTION_ERROR',
+      'something broke'
     );
   });
 
-  it('returns NOT_STARTED status when no generation exists', async () => {
-    generationRepository.findOne.mockResolvedValue(null);
-
-    const result = await service.getStatus('att-1');
-
-    expect(result).toEqual({
+  it('delegates getStatus to stateService', async () => {
+    stateService.getStatus.mockResolvedValue({
       attachmentPublicId: 'att-1',
-      status: 'NOT_STARTED',
-      chunkCount: 0,
-    });
-  });
-
-  it('returns status and chunk count when generation exists', async () => {
-    generationRepository.findOne.mockResolvedValue({
-      generationUuid: 'gen-1',
       status: 'ACTIVE',
-      activatedAt: new Date('2026-09-10'),
-      errorMessage: undefined,
+      chunkCount: 5,
     });
-    chunkRepository.count.mockResolvedValue(5);
-
     const result = await service.getStatus('att-1');
-
+    expect(stateService.getStatus).toHaveBeenCalledWith('att-1');
     expect(result).toEqual({
       attachmentPublicId: 'att-1',
       status: 'ACTIVE',
       chunkCount: 5,
-      indexedAt: new Date('2026-09-10'),
-      lastError: undefined,
     });
   });
 

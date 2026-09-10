@@ -92,6 +92,7 @@ import { RagAttachmentChunk } from './entities/rag-attachment-chunk.entity';
 import { RagGenerationLockService } from './services/rag-generation-lock.service';
 import { RagErrorService } from './services/rag-error.service';
 import { RagGenerationService } from './services/rag-generation.service';
+import { RagGenerationStateService } from './services/rag-generation-state.service';
 import { RagClassificationService } from './services/rag-classification.service';
 import { RagTextSegmentService } from './services/rag-text-segment.service';
 import { RagChunkingService } from './services/rag-chunking.service';
@@ -239,6 +240,7 @@ import { SecureArchiveService } from '../../common/file-storage/secure-archive.s
     RagGenerationLockService,
     RagErrorService,
     RagGenerationService,
+    RagGenerationStateService,
     RagClassificationService,
     RagTextSegmentService,
     RagChunkingService,
@@ -282,6 +284,7 @@ import { SecureArchiveService } from '../../common/file-storage/secure-archive.s
     RagGenerationLockService,
     RagErrorService,
     RagGenerationService,
+    RagGenerationStateService,
     RagClassificationService,
     RagTextSegmentService,
     RagChunkingService,

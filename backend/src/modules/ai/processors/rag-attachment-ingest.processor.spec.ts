@@ -271,10 +271,14 @@ describe('RagAttachmentIngestProcessor', () => {
       'gen-1',
       'a'.repeat(64)
     );
-    expect(ingestionService.activate).toHaveBeenCalledWith('gen-1');
+    // Qdrant upsert must happen BEFORE activate (no window of ACTIVE without vectors)
     expect(qdrantService.upsert).toHaveBeenCalledWith(
       mockOwnerContext.projectPublicId,
       expect.any(Array)
+    );
+    expect(ingestionService.activate).toHaveBeenCalledWith('gen-1');
+    expect(qdrantService.upsert.mock.invocationCallOrder[0]).toBeLessThan(
+      ingestionService.activate.mock.invocationCallOrder[0]
     );
   });
 
@@ -425,5 +429,76 @@ describe('RagAttachmentIngestProcessor', () => {
       'no file path here'
     );
     expect(textSegmentService.normalizeSection).not.toHaveBeenCalled();
+  });
+
+  // Suggestion: Qdrant upsert failure — generation ไม่ถูก activate และ markFailed ทำงาน
+  it('marks FAILED when Qdrant upsert fails (vectors missing before activate)', async () => {
+    generationRepository.findOne.mockResolvedValue({
+      generationUuid: 'gen-1',
+      attachmentUuid: 'att-1',
+      status: 'BUILDING',
+    });
+    attachmentRepository.findOne.mockResolvedValue({
+      publicId: 'att-1',
+      ocrText: 'sample text for chunking',
+      mimeType: 'application/pdf',
+      classification: 'INTERNAL',
+    });
+    attachmentSourceService.resolveFromAttachment.mockResolvedValue(
+      mockOwnerContext
+    );
+    textSegmentService.normalizeWholeDocument.mockReturnValue(mockSegment);
+    chunkingService.chunkSegment.mockReturnValue([mockDraft]);
+    embeddingService.embedChunk.mockResolvedValue(mockEmbedResult);
+    embeddingService.buildQdrantPoint.mockReturnValue({
+      id: mockDraft.chunkPublicId,
+      vector: {
+        bge_dense: mockEmbedResult.dense,
+        bge_sparse: mockEmbedResult.sparse,
+      },
+      payload: {},
+    });
+    qdrantService.upsert.mockRejectedValue(new Error('Qdrant connection lost'));
+
+    await processor.process(
+      makeJob({
+        attachmentPublicId: 'att-1',
+        attachmentChecksum: 'a'.repeat(64),
+        force: false,
+      })
+    );
+
+    // activate ต้องไม่ถูกเรียก เพราะ upsert ล้มเหลวก่อน
+    expect(ingestionService.activate).not.toHaveBeenCalled();
+    // markFailed ต้องถูกเรียกด้วย INGESTION_ERROR
+    expect(ingestionService.markFailed).toHaveBeenCalledWith(
+      'gen-1',
+      'INGESTION_ERROR',
+      'Qdrant connection lost'
+    );
+  });
+
+  // Suggestion: markFailed ใน catch block ล้มเหลวเอง — error ต้องไม่ propagate เป็น unhandled rejection
+  it('logs error when markFailed itself throws in catch block', async () => {
+    generationRepository.findOne.mockResolvedValue({
+      generationUuid: 'gen-1',
+      attachmentUuid: 'att-1',
+      status: 'BUILDING',
+    });
+    attachmentRepository.findOne.mockRejectedValue(new Error('DB down'));
+    ingestionService.markFailed.mockRejectedValue(new Error('DB still down'));
+
+    // ต้องไม่ throw — catch block จัดการ markFailed error ภายใน
+    await expect(
+      processor.process(
+        makeJob({
+          attachmentPublicId: 'att-1',
+          attachmentChecksum: 'a'.repeat(64),
+          force: false,
+        })
+      )
+    ).resolves.toBeUndefined();
+
+    expect(ingestionService.markFailed).toHaveBeenCalled();
   });
 });
