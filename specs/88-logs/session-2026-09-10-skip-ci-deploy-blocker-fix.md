@@ -57,6 +57,6 @@ TypeORM `reflect-metadata` ไม่สามารถ infer column type จา�
 - [x] Backend build ผ่าน (`pnpm --filter backend build`)
 - [x] Backend lint:ci ผ่าน (`pnpm --filter backend lint:ci`)
 - [x] Commit `701e32b0` push ผ่าน `2git.sh`
-- [x] CI run #706 triggered (status: in_progress → ตรวจสอบที่ https://git.np-dms.work/np-dms/lcbp3/actions/runs/706)
-- [x] CI run #705 (commit เดิม `e21871a6`) confirmed failure — deploy blocker จาก entity error
-- [ ] CI run #706 deploy สำเร็จ + backend+frontend healthy (pending — รอ CI จบ)
+- [x] CI run #706 (commit `701e32b0`) — **conclusion: success** (completed 2026-09-10 21:24:52, deploy สำเร็จ)
+- [x] CI run #705 (commit `e21871a6`) confirmed failure — deploy blocker จาก entity error
+- [x] CI run #707 (commit `2841e812` — RBAC fix + memory save) — status: in_progress
