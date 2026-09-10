@@ -7,8 +7,9 @@
 
 import 'reflect-metadata';
 
-// Global test timeout (30 วินาที)
-jest.setTimeout(30000);
+// Global test timeout (60 วินาที) — รองรับ CI runner ที่มี resource contention (D274, D302)
+// ExcelJS I/O tests ช้าบน ASUSTOR runner — local รันเร็ว (~10ms) แต่ CI อาจช้ากว่า 30s
+jest.setTimeout(60000);
 
 // Mock console methods ใน test environment
 // ลด noise ใน test output แต่ยังเก็บ error ไว้
