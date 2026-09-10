@@ -13,6 +13,10 @@ module.exports = {
   // File extensions
   moduleFileExtensions: ['js', 'json', 'ts'],
 
+  // Test timeout — 60s สำหรับ CI runner ที่มี resource contention (ExcelJS I/O ช้าบน ASUSTOR)
+  // Local รันเร็ว (~10ms) แต่ CI runner อาจช้ากว่า 30s default (D274, D302)
+  testTimeout: 60000,
+
   // Root directory for tests
   rootDir: '.',
 
