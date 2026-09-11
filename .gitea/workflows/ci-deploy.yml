@@ -62,8 +62,10 @@ jobs:
           # runtime อ่านจาก devEngines.runtime หรือระบุ explicit (node@24)
 
       # ── [2] ชี้ store ไปที่ volume ที่ mount ไว้ ─────────────
-      - name: 🔧 Set pnpm store path
-        run: pnpm config set store-dir /root/.local/share/pnpm
+      # capacity=2 → CI1+CI2 รันขนานกัน ใช้ store แยกกันป้องกัน pnpm race condition
+      # (ERR_PNPM_ENOTEMPTY/ENOENT) — ทั้งสอง path อยู่บน volume เดียวกัน → มี cache ข้าม run
+      - name: 🔧 Set pnpm store path (per-job)
+        run: pnpm config set store-dir /root/.local/share/pnpm/ci-quality
 
       - name: 📦 Install deps
         run: pnpm install --frozen-lockfile
@@ -121,8 +123,10 @@ jobs:
           runtime: node@24
 
       # ── [2] ชี้ store ไปที่ volume ที่ mount ไว้ ─────────────
-      - name: 🔧 Set pnpm store path
-        run: pnpm config set store-dir /root/.local/share/pnpm
+      # capacity=2 → CI1+CI2 รันขนานกัน ใช้ store แยกกันป้องกัน pnpm race condition
+      # (ERR_PNPM_ENOTEMPTY/ENOENT) — ทั้งสอง path อยู่บน volume เดียวกัน → มี cache ข้าม run
+      - name: 🔧 Set pnpm store path (per-job)
+        run: pnpm config set store-dir /root/.local/share/pnpm/ci-test
 
       - name: 📦 Install deps
         run: pnpm install --frozen-lockfile
