@@ -298,6 +298,11 @@
 | D318 | **`commitRecord`RAG trigger ใช้`enqueueRagPrepare()`** — ไม่ใช่ `triggerRagBatch()`; spy ต้อง target ให้ถูก | Session 2026-09-11 |
 | D319 | **`LegacyIngestionService`constructor ต้องการ`@InjectQueue('ai-batch')`** — test module ต้อง provide `'BullQueue_ai-batch'`token | Session 2026-09-11 |
 | D320 | **Performance test ใช้`Array.from({ length: N }, () => 0)`** — แทน `new Array(N).fill(0)`เพื่อหลีก ESLint`no-unsafe-argument` | Session 2026-09-11 |
+| D321 | **`MigrationController.approveQueueItem`signature** =`(publicId, dto, idempotencyKey, user)` — มี idempotencyKey เป็น param ที่ 3 | Session 2026-09-11 |
+| D322 | **`MigrationService.approveQueueItemByPublicId`** อยู่ใน `MigrationService`ไม่ใช่`MigrationReviewService` | Session 2026-09-11 |
+| D323 | **`MigrationController.updateQueueOcr`** signature = `(publicId, dto, idempotencyKey, user)`แต่เรียก`reviewService.updateQueueOcr(publicId, dto, userId)` — idempotencyKey ตรวจใน controller ไม่ส่งต่อ | Session 2026-09-11 |
+| D324 | **`MigrationController.importCorrespondence`** signature = `(dto, idempotencyKey, user)`→ เรียก`service.importCorrespondence(dto, key, userId)`| Session 2026-09-11 |
+| D325 | **Security test mock** ต้อง cast`mock.calls`เป็น typed tuple array เพื่อหลีก ESLint`no-unsafe-member-access` | Session 2026-09-11 |
 
 ## Environment & Services
 
@@ -382,6 +387,8 @@ QDRANT_URL
 - [ ] อัปเกรด Vitest 4.1.9 → 5.x — prerequisites ผ่านแล้ว (Node v24.20.0, Vite 7.3.6); ระวัง breaking changes: `clearMocks` default true, `testNamePattern` format เปลี่ยน, `expect.poll` เข้มงวดขึ้น; อาจแก้ `poolOptions` type definition ให้ลบ `@ts-expect-error` ได้; ทำเป็น task แยก ตรวจ test ที่พึ่ง call history ข้าม test ก่อน
 - [x] Migration Queue Unification — ลบ dead queue `QUEUE_AI_INGEST`, เพิ่ม monitoring 7 queues, Map registry, 18 job constants, แก้ CI 401 test, แก้ non-Excel file → 400; deploy image `9274a0578930`; Phase 2+ tests ผ่าน; lock D310-D314 — ✅ 2026-09-11
 - [x] Migration Test Plan Phase 3 + 4 — สร้าง integration + performance tests: Phase 3A (12 tests), Phase 3B (7 tests), Phase 4A (3 tests), Phase 4C (6 tests); รวม 28 tests ผ่าน; tsc+eslint 0 errors; commits `e75653af`+`e51c95b0`; lock D315-D320 — ✅ 2026-09-11
+- [x] Migration Test Plan Phase 5 — Security & RBAC tests: 5A CASL Guard (11), 5B UUID/ADR-019 (3), 5C AI Boundary (4), 5D Idempotency (4); 22 tests ผ่าน; CI #722 success; deploy `987731f6b823`; lock D321-D325 — ✅ 2026-09-11
+- [x] **Migration Admin Test Plan ครบทุก Phase** — Phase 1-5 complete; 54 tests total (19 integration + 13 performance + 22 security) — ✅ 2026-09-11
 
 #### B. Manual / Browser Verify บน production (ต้องทำเองหรือใช้ Playwright)
 
