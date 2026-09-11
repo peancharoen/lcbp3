@@ -956,4 +956,194 @@ describe('LegacyIngestionService (ADR-047)', () => {
 
     expect(result.enqueuedCount).toBe(1);
   });
+
+  // ─── Phase 2 Coverage Gap Tests ──────────────────────────────────────────
+
+  it('ควร throw BadRequestException เมื่อไฟล์ไม่ใช่ .xlsx (non-Excel → 400)', async () => {
+    // สร้างไฟล์ PDF จริงใน temp dir
+    const pdfPath = path.join(tempTestDir, 'not-excel.pdf');
+    fs.writeFileSync(pdfPath, '%PDF-1.4 dummy content');
+
+    await expect(
+      service.startIngestion({
+        filePath: pdfPath,
+        projectPublicId: '019505a1-7c3e-7000-8000-proj12345678',
+      })
+    ).rejects.toThrow('ไฟล์ต้องเป็น Excel (.xlsx) เท่านั้น');
+  });
+
+  it('ควร throw BadRequestException เมื่อไฟล์ไม่มีนามสกุล', async () => {
+    const noExtPath = path.join(tempTestDir, 'no-extension-file');
+    fs.writeFileSync(noExtPath, 'some content');
+
+    await expect(
+      service.startIngestion({
+        filePath: noExtPath,
+        projectPublicId: '019505a1-7c3e-7000-8000-proj12345678',
+      })
+    ).rejects.toThrow('ไฟล์ต้องเป็น Excel (.xlsx) เท่านั้น');
+  });
+
+  it('ควร skip ทุกแถวเมื่อไม่พบ header ที่ตรง (docNumberCol=-1)', async () => {
+    mockProjectRepo.findOne.mockResolvedValue({
+      id: 5,
+      publicId: '019505a1-7c3e-7000-8000-proj12345678',
+      projectCode: 'LCBP3-C2',
+    });
+
+    // สร้างไฟล์ที่มีแต่ข้อมูล ไม่มี header row — หลีกเลี่ยง pattern ที่ detectHeaderMapping จะจับได้
+    const noHeaderPath = path.join(tempTestDir, 'no-header.xlsx');
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Sheet1');
+    for (let i = 0; i < 6; i++) {
+      worksheet.addRow([i, `data-${i}`, `value-${i}`]);
+    }
+    await workbook.xlsx.writeFile(noHeaderPath);
+
+    const result = await service.startIngestion({
+      filePath: noHeaderPath,
+      projectPublicId: '019505a1-7c3e-7000-8000-proj12345678',
+      pdfFolderPath: tempTestDir,
+    });
+
+    // docNumberCol=-1 → ทุกแถวถูก skip เพราะ docNumber ว่าง
+    expect(result.enqueuedCount).toBe(0);
+    expect(result.skippedCount).toBeGreaterThan(0);
+  });
+
+  it('ควร log warning แต่ไม่ crash เมื่อ attachment creation ล้มเหลว', async () => {
+    mockProjectRepo.findOne.mockResolvedValue({
+      id: 5,
+      publicId: '019505a1-7c3e-7000-8000-proj12345678',
+      projectCode: 'LCBP3-C2',
+    });
+    mockReviewQueueRepo.findOne.mockResolvedValue(null);
+    mockAttachmentRepo.save.mockRejectedValueOnce(new Error('DB constraint'));
+
+    const result = await service.startIngestion({
+      filePath: tempExcelPath,
+      projectPublicId: '019505a1-7c3e-7000-8000-proj12345678',
+      pdfFolderPath: tempTestDir,
+    });
+
+    // ยังประมวลผลสำเร็จ แม้ attachment creation ล้มเหลว
+    expect(result.status).toBe('COMPLETED');
+  });
+
+  it('ควร update progress เป็น FAILED เมื่อ stream error ล้มเหลว', async () => {
+    mockProjectRepo.findOne.mockResolvedValue({
+      id: 5,
+      publicId: '019505a1-7c3e-7000-8000-proj12345678',
+      projectCode: 'LCBP3-C2',
+    });
+
+    // สร้างไฟล์ที่ไม่ใช่ Excel จริง ๆ (แต่มีนามสกุล .xlsx) เพื่อให้ ExcelJS throw
+    const corruptPath = path.join(tempTestDir, 'corrupt.xlsx');
+    fs.writeFileSync(corruptPath, 'not a real xlsx file');
+
+    await expect(
+      service.startIngestion({
+        filePath: corruptPath,
+        projectPublicId: '019505a1-7c3e-7000-8000-proj12345678',
+        pdfFolderPath: tempTestDir,
+      })
+    ).rejects.toThrow();
+
+    // ตรวจสอบว่า progress ถูก update เป็น FAILED
+    expect(mockProgressRepo.update).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        status: MigrationProgressStatus.FAILED,
+      })
+    );
+  });
+
+  it('ควร log warning แต่ไม่ crash เมื่อ logError save ล้มเหลว', async () => {
+    mockProjectRepo.findOne.mockResolvedValue({
+      id: 5,
+      publicId: '019505a1-7c3e-7000-8000-proj12345678',
+      projectCode: 'LCBP3-C2',
+    });
+    mockReviewQueueRepo.findOne.mockResolvedValue(null);
+    mockErrorRepo.save.mockRejectedValueOnce(new Error('error table down'));
+
+    // ใช้ไฟล์ที่มี PDF ไม่พบ เพื่อ trigger logError path
+    const result = await service.startIngestion({
+      filePath: tempExcelPath,
+      projectPublicId: '019505a1-7c3e-7000-8000-proj12345678',
+      pdfFolderPath: tempTestDir,
+    });
+
+    // ไม่ crash แม้ logError จะ fail
+    expect(result.status).toBe('COMPLETED');
+  });
+
+  // ─── B11 Idempotency + Revision Loop Branch Coverage ──────────────────────
+
+  it('B11: ควร reuse tempAttachmentId เมื่อ queueItem มี tempAttachmentId และมี resolvedPdfPath', async () => {
+    mockProjectRepo.findOne.mockResolvedValue({
+      id: 5,
+      publicId: '019505a1-7c3e-7000-8000-proj12345678',
+      projectCode: 'LCBP3-C2',
+    });
+
+    // queueItem มี tempAttachmentId อยู่แล้ว → ควร reuse ไม่สร้างใหม่
+    // ใช้ mockResolvedValueOnce (ไม่ใช่ mockResolvedValue) เพื่อป้องกัน persistent default
+    // ที่จะทำให้ test ถัดไปติด infinite loop ใน revision while-loop
+    mockReviewQueueRepo.findOne
+      .mockResolvedValueOnce({
+        id: 200,
+        batchId: 'BATCH-REUSE-001',
+        documentNumber: 'LCBP3-C2-2024-001',
+        tempAttachmentId: 55,
+      })
+      .mockResolvedValueOnce(null); // แถวที่ 2 ไม่ซ้ำ
+
+    const result = await service.startIngestion({
+      filePath: tempExcelPath,
+      projectPublicId: '019505a1-7c3e-7000-8000-proj12345678',
+      pdfFolderPath: tempTestDir,
+      batchId: 'BATCH-REUSE-001',
+    });
+
+    expect(result.status).toBe('COMPLETED');
+    // ไม่ควรสร้าง attachment ใหม่ เพราะ reuse tempAttachmentId เดิม
+    expect(mockAttachmentRepo.save).not.toHaveBeenCalled();
+  });
+
+  it('ควร increment revision หลายครั้งเมื่อ -R1 และ -R2 มีอยู่แล้ว (revision loop)', async () => {
+    mockProjectRepo.findOne.mockResolvedValue({
+      id: 5,
+      publicId: '019505a1-7c3e-7000-8000-proj12345678',
+      projectCode: 'LCBP3-C2',
+    });
+
+    // แถวแรก: queueItem มีอยู่ (batchId เดียวกัน) + -R1 มีอยู่ + -R2 ไม่มี
+    mockReviewQueueRepo.findOne
+      .mockResolvedValueOnce({
+        id: 300,
+        batchId: 'BATCH-REV-LOOP',
+        documentNumber: 'LCBP3-C2-2024-001',
+      })
+      .mockResolvedValueOnce({
+        id: 301,
+        documentNumber: 'LCBP3-C2-2024-001-R1',
+      }) // -R1 exists
+      .mockResolvedValueOnce(null) // -R2 ไม่มี → break
+      .mockResolvedValueOnce(null); // แถวที่ 2 ไม่ซ้ำ
+
+    const result = await service.startIngestion({
+      filePath: tempExcelPath,
+      projectPublicId: '019505a1-7c3e-7000-8000-proj12345678',
+      pdfFolderPath: tempTestDir,
+      batchId: 'BATCH-REV-LOOP',
+    });
+
+    expect(result.enqueuedCount).toBe(2);
+    // ตรวจสอบว่ามีการ save ด้วย documentNumber ที่มี -R2 suffix (revision loop รอบที่ 2)
+    const savedDocNumbers = mockReviewQueueRepo.save.mock.calls
+      .map(([entity]: [MockEntity]) => entity.documentNumber)
+      .filter((n: unknown): n is string => typeof n === 'string');
+    expect(savedDocNumbers).toContain('LCBP3-C2-2024-001-R2');
+  });
 });

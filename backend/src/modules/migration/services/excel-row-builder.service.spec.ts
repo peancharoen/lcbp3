@@ -408,4 +408,127 @@ describe('ExcelRowBuilderService', () => {
       await expect(service.buildFromWorkbook(missingPath)).rejects.toThrow();
     });
   });
+
+  // ─── Phase 2 Coverage Gap Tests ──────────────────────────────────────────
+
+  describe('buildFromWorkbook — edge cases สำหรับ branch coverage', () => {
+    it('ควรข้ามแถวที่ว่างเปล่าทั้งหมดโดยไม่นับเป็น skipped', async () => {
+      const filePath = path.join(tmpDir, 'empty-rows.xlsx');
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet('Sheet1');
+      ws.addRow([
+        'เลขที่เอกสาร',
+        'เรื่อง',
+        'วันที่ออก',
+        'วันที่รับ',
+        'จาก',
+        'ถึง',
+        'หมวดหมู่',
+        'ชื่อไฟล์',
+        'หมายเหตุ',
+      ]);
+      ws.addRow([
+        'DOC-001',
+        'Test',
+        '2024-01-01',
+        '2024-01-02',
+        'A',
+        'B',
+        '',
+        '',
+        '',
+      ]);
+      ws.addRow(['', '', '', '', '', '', '', '', '']); // แถวว่างเปล่า
+      ws.addRow(['', '', '', '', '', '', '', '', '']); // แถวว่างเปล่า
+      await wb.xlsx.writeFile(filePath);
+
+      const result = await service.buildFromWorkbook(filePath);
+
+      expect(result.rows).toHaveLength(1);
+      // empty rows ไม่นับเป็น skipped
+      expect(result.skippedRows).toBe(0);
+    });
+
+    it('ควรอ่าน cell ที่เป็น number ได้ (readCellAsString number path)', async () => {
+      const filePath = path.join(tmpDir, 'numeric-cell.xlsx');
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet('Sheet1');
+      ws.addRow(['เลขที่เอกสาร', 'เรื่อง']);
+      ws.addRow([12345, 'Numeric doc number']);
+      await wb.xlsx.writeFile(filePath);
+
+      const result = await service.buildFromWorkbook(filePath);
+
+      expect(result.rows).toHaveLength(1);
+      expect(result.rows[0].documentNumber).toBe('12345');
+    });
+
+    it('ควรอ่าน cell ที่เป็น hyperlink object ได้', async () => {
+      const filePath = path.join(tmpDir, 'hyperlink-cell.xlsx');
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet('Sheet1');
+      ws.addRow(['เลขที่เอกสาร', 'เรื่อง']);
+      const row = ws.addRow(['', 'Hyperlink test']);
+      // ตั้งค่า cell เป็น hyperlink object
+      row.getCell(1).value = {
+        text: 'DOC-HYPERLINK-001',
+        hyperlink: 'http://example.com/doc',
+      } as unknown as string;
+      await wb.xlsx.writeFile(filePath);
+
+      const result = await service.buildFromWorkbook(filePath);
+
+      expect(result.rows).toHaveLength(1);
+      expect(result.rows[0].documentNumber).toBe('DOC-HYPERLINK-001');
+    });
+
+    it('ควรอ่าน cell ที่เป็น RichText ได้', async () => {
+      const filePath = path.join(tmpDir, 'richtext-cell.xlsx');
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet('Sheet1');
+      ws.addRow(['เลขที่เอกสาร', 'เรื่อง']);
+      const row = ws.addRow(['', 'RichText test']);
+      // ตั้งค่า cell เป็น RichText
+      row.getCell(1).value = {
+        richText: [{ text: 'DOC-RICH-' }, { text: '001' }],
+      } as unknown as string;
+      await wb.xlsx.writeFile(filePath);
+
+      const result = await service.buildFromWorkbook(filePath);
+
+      expect(result.rows).toHaveLength(1);
+      expect(result.rows[0].documentNumber).toBe('DOC-RICH-001');
+    });
+
+    it('ควรไม่อ่าน cell ที่เป็น boolean (return undefined)', async () => {
+      const filePath = path.join(tmpDir, 'boolean-cell.xlsx');
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet('Sheet1');
+      ws.addRow(['เลขที่เอกสาร', 'เรื่อง']);
+      const row = ws.addRow(['', 'Boolean test']);
+      row.getCell(1).value = true as unknown as string;
+      await wb.xlsx.writeFile(filePath);
+
+      const result = await service.buildFromWorkbook(filePath);
+
+      // boolean cell → readCellAsString returns undefined → แถวถูกข้ามเป็น skipped
+      expect(result.rows).toHaveLength(0);
+      expect(result.skippedRows).toBe(1);
+    });
+
+    it('ควรไม่อ่าน cell ที่เป็น Date ใน documentNumber (return undefined)', async () => {
+      const filePath = path.join(tmpDir, 'date-cell.xlsx');
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet('Sheet1');
+      ws.addRow(['เลขที่เอกสาร', 'เรื่อง']);
+      const row = ws.addRow(['', 'Date test']);
+      row.getCell(1).value = new Date('2024-06-15') as unknown as string;
+      await wb.xlsx.writeFile(filePath);
+
+      const result = await service.buildFromWorkbook(filePath);
+
+      // Date cell → readCellAsString returns undefined → แถวถูกข้าม
+      expect(result.skippedRows).toBe(1);
+    });
+  });
 });
