@@ -295,5 +295,36 @@ describe('LocalOllamaReviewAdapter', () => {
       expect(findings).toHaveLength(0);
       expect(ollamaService.generate).not.toHaveBeenCalled();
     });
+
+    // E.2.1: Ollama ตอบ JSON ที่ไม่ใช่ format ที่คาดหวาน → คืน [] (ไม่มี suggestion)
+    it('E.2.1: คืน [] เมื่อ Ollama ตอบ JSON ที่ไม่ใช่ format ที่คาดหวาน', async () => {
+      ollamaService.generate.mockResolvedValue(
+        JSON.stringify({ foo: 'bar', baz: 42, unrelated: true })
+      );
+
+      const findings = await adapter.review(makeInput([makeRow()]));
+
+      expect(findings).toHaveLength(0);
+    });
+
+    // E.2.2: Ollama ตอบ empty response → fail-open
+    it('E.2.2: คืน [] เมื่อ Ollama ตอบ empty string', async () => {
+      ollamaService.generate.mockResolvedValue('');
+
+      const findings = await adapter.review(makeInput([makeRow()]));
+
+      expect(findings).toHaveLength(0);
+    });
+
+    // E.2.3: Ollama timeout → fail-open + ไม่ throw
+    it('E.2.3: คืน [] เมื่อ Ollama timeout (error มีคำว่า timeout)', async () => {
+      ollamaService.generate.mockRejectedValue(
+        new Error('Request timed out after 30000ms')
+      );
+
+      const findings = await adapter.review(makeInput([makeRow()]));
+
+      expect(findings).toHaveLength(0);
+    });
   });
 });

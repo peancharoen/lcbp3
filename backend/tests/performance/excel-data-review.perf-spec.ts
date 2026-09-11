@@ -282,10 +282,6 @@ describe('SC-001: Layer 1+2 Performance (Feature 252)', () => {
 
     expect(result.totalRows).toBe(200);
     expect(elapsed).toBeLessThan(1500);
-    // eslint-disable-next-line no-console
-    console.log(
-      `  SC-001 C.1.1: 200 rows completed in ${elapsed}ms (threshold: 1500ms)`
-    );
   });
 
   it('C.1.2: 50 แถว → check() เสร็จภายใน 500ms (sanity check)', async () => {
@@ -312,10 +308,6 @@ describe('SC-001: Layer 1+2 Performance (Feature 252)', () => {
 
     expect(result.totalRows).toBe(50);
     expect(elapsed).toBeLessThan(500);
-    // eslint-disable-next-line no-console
-    console.log(
-      `  SC-001 C.1.2: 50 rows completed in ${elapsed}ms (threshold: 500ms)`
-    );
   });
 });
 
@@ -369,10 +361,6 @@ describe('SC-002: Annotated Excel Performance (Feature 252)', () => {
 
     expect(fs.existsSync(outputPath)).toBe(true);
     expect(elapsed).toBeLessThan(10000);
-    // eslint-disable-next-line no-console
-    console.log(
-      `  SC-002 C.2.1: 200 rows annotated in ${elapsed}ms (threshold: 10000ms)`
-    );
   });
 
   it('C.2.2: สร้าง annotated Excel 100 แถว (ไม่มี findings) เสร็จภายใน 5000ms (sanity)', async () => {
@@ -402,9 +390,5 @@ describe('SC-002: Annotated Excel Performance (Feature 252)', () => {
 
     expect(fs.existsSync(outputPath)).toBe(true);
     expect(elapsed).toBeLessThan(5000);
-    // eslint-disable-next-line no-console
-    console.log(
-      `  SC-002 C.2.2: 100 rows annotated in ${elapsed}ms (threshold: 5000ms)`
-    );
   });
 });
