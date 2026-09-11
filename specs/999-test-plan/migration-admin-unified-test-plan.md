@@ -757,3 +757,91 @@ Phase 5 (Security & RBAC)      ← P2 ความปลอดภัย
 | RAG/embedding sync | ✅ rag-prepare → embed-document ทำงานครบ | logs: `enqueueRagPrepare` + `processRagPrepare` + `Embedding job processing` |
 | RFA APP status | ✅ มีใน DB โดยไม่ต้อง insert ด้วยมือ | DB: `rfa_status_codes` id=8, `status_code='APP'` |
 | Queue separation | ✅ `ai-rag-ingest` queue ถูก register ใน Redis | Redis: `bull:ai-rag-ingest:meta` key exists |
+
+---
+
+## 14. Phase 2+ Execution Results (2026-09-11, image 9274a0578930)
+
+### Summary
+
+**Deploy**: Commit `9274a057` → image `9274a0578930` deployed to production (https://lcbp3.np-dms.work)
+**Scope**: Queue unification refactor + Phase 2+ tests (edge cases, RBAC, performance, idempotency)
+
+### 14A. Queue Refactor Verification
+
+| Test | ผลที่คาดหวาง | ผลจริง | สถานะ |
+|------|-------------|--------|-------|
+| Metrics endpoint แสดง 7 queues | รวม `ai-rag-ingest` + `ai-vector-deletion` | 7 queues แสดงครบ | ✅ |
+| `ai-ingest` หายไปจาก metrics | ไม่มี `ai-ingest` ใน bullmq_jobs_* | ไม่พบ `ai-ingest` | ✅ |
+| `BullmqMetricsService` เริ่มทำงาน | log "BullMQ metrics collector started" | log ปรากฏ | ✅ |
+| Leftover Redis key cleanup | `bull:ai-ingest:meta` ถูกลบ | ลบแล้ว | ✅ |
+| `getQueueByName` Map registry | รองรับทุก queue, error message dynamic | ไม่ได้ทดสอบ direct (RBAC block) | ⚠️ |
+
+### 14B. Idempotency & Duplicate Prevention
+
+| Test | สถานการณ์ | ผลจริง | สถานะ |
+|------|-----------|--------|-------|
+| 2C.11 Re-ingest ไฟล์เดิม | ไม่สร้าง duplicate document numbers | DB: 0 duplicates | ✅ |
+| 2C.12 Idempotency-Key ซ้ำ | ข้ามหรือ reuse | document_number reuse ถูกต้อง | ✅ |
+| 2D.8 Double Execute Import | ป้องกัน duplicate | IMPORTED status blocks re-approve (MIGRATION_ITEM_NOT_REVIEWABLE) | ✅ |
+| Empty Idempotency-Key | 400 VALIDATION_ERROR | 400 VALIDATION_ERROR | ✅ |
+| Missing Idempotency-Key | 400 VALIDATION_ERROR | 400 VALIDATION_ERROR | ✅ |
+
+### 14C. RBAC Matrix (Production)
+
+| User | Role | Endpoint | ผลที่คาดหวาง | ผลจริง | สถานะ |
+|------|------|----------|-------------|--------|-------|
+| admin | Org Admin | ingest/start | 201 | 201 | ✅ |
+| admin | Org Admin | queue list | 200 | 200 | ✅ |
+| viewer01 | Viewer | ingest/start | 403 | 403 HTTP_ERROR | ✅ |
+| viewer01 | Viewer | queue list | 403 | 403 HTTP_ERROR | ✅ |
+| viewer01 | Viewer | approve | 403 | 403 HTTP_ERROR | ✅ |
+| editor01 | Editor | ingest/start | 403 | 403 HTTP_ERROR | ✅ |
+| editor01 | Editor | queue list | 403 | 403 HTTP_ERROR | ✅ |
+
+**RBAC unit tests**: 19/19 PASS (ability.factory.spec.ts)
+
+### 14D. Edge Cases
+
+| Test | สถานการณ์ | ผลจริง | สถานะ |
+|------|-----------|--------|-------|
+| 2C.7 Non-existent file path | 404 NOT_FOUND | 404 NOT_FOUND | ✅ |
+| 2C.5 Invalid project UUID | 400 (class-validator) | 400 HTTP_ERROR | ✅ |
+| Empty body | 400 (class-validator) | 400 HTTP_ERROR | ✅ |
+| 2C.8 Non-Excel file (PDF) | คาด 400/422 | 500 UNEXPECTED_ERROR | ⚠️ Minor |
+
+**Issue**: ส่ง PDF แทน Excel ได้ 500 แทนที่จะเป็น 400/422 — ควร validate file extension ก่อน processing (low priority, error ถูกจับได้)
+
+### 14E. Performance
+
+| Endpoint | Response Time | HTTP | สถานะ |
+|----------|--------------|------|-------|
+| queue list (limit=20) | ~7-10ms | 200 | ✅ |
+| queue list + filter status=PENDING | ~7ms | 200 | ✅ |
+| /metrics | ~2ms | 200 | ✅ |
+
+### 14F. Backend Unit/Integration Tests
+
+| Test Suite | Tests | สถานะ |
+|------------|-------|-------|
+| Full backend test suite | 2913 passed (197 suites) | ✅ |
+| TypeScript typecheck | 0 errors | ✅ |
+| ability.factory.spec.ts (RBAC) | 19/19 | ✅ |
+| ai-queue.service.spec.ts | 29/29 | ✅ |
+| ai-ingest.service.spec.ts | included in 29 | ✅ |
+| bullmq-metrics.service.spec.ts | included in 2913 | ✅ |
+
+### 14G. Queue Unification Changes Deployed
+
+| เปลี่ยนแปลง | รายละเอียด | สถานะ |
+|------------|-----------|-------|
+| ลบ `QUEUE_AI_INGEST` | dead queue, no processor | ✅ deployed |
+| เพิ่ม `ai-rag-ingest` monitoring | metrics + module registration | ✅ deployed |
+| เพิ่ม `ai-vector-deletion` monitoring | metrics + module registration | ✅ deployed |
+| `getQueueByName` Map registry | แทน if-else chain | ✅ deployed |
+| Job name constants | 18 constants ใหม่ | ✅ deployed |
+
+### Issues ที่เหลือ
+
+1. **⚠️ Non-Excel file returns 500** — ควร validate file extension ก่อน processing (low priority)
+2. **⚠️ `getQueueByName` direct API test** — ติด RBAC block, แต่ unit tests ครอบคลุมแล้ว
