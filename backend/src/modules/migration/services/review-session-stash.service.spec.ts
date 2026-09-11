@@ -487,4 +487,69 @@ describe('ReviewSessionStashService', () => {
       expect(result!.reviewSessionPublicId).toBe(created.reviewSessionPublicId);
     });
   });
+
+  // ----------------------------------------------------------------
+  // B.3 — coverage bump (G6): tryLockForConfirm + getStashDir
+  // ----------------------------------------------------------------
+  describe('tryLockForConfirm (B.3.1-B.3.3)', () => {
+    it('B.3.1: คืน true และเปลี่ยน status เป็น CONFIRMED เมื่อ session มีอยู่และ status=READY', async () => {
+      const created = await service.createSession(makeInput());
+      redis.get.mockResolvedValue(JSON.stringify(created));
+
+      const result = await service.tryLockForConfirm(
+        created.reviewSessionPublicId
+      );
+
+      expect(result).toBe(true);
+      expect(redis.set).toHaveBeenCalledWith(
+        REVIEW_SESSION_REDIS_PREFIX + created.reviewSessionPublicId,
+        expect.stringContaining('"status":"CONFIRMED"'),
+        'EX',
+        REVIEW_SESSION_TTL_SECONDS
+      );
+    });
+
+    it('B.3.2: คืน false เมื่อ session ไม่มีอยู่ (Redis คืน null)', async () => {
+      redis.get.mockResolvedValue(null);
+
+      const result = await service.tryLockForConfirm(
+        '019505a1-0000-7000-8000-0000000000aa'
+      );
+
+      expect(result).toBe(false);
+    });
+
+    it('B.3.3: คืน false เมื่อ session status ไม่ใช่ READY (ถูก confirm ไปแล้ว)', async () => {
+      const created = await service.createSession(makeInput());
+      const confirmedSession = { ...created, status: 'CONFIRMED' as const };
+      redis.get.mockResolvedValue(JSON.stringify(confirmedSession));
+
+      const result = await service.tryLockForConfirm(
+        created.reviewSessionPublicId
+      );
+
+      expect(result).toBe(false);
+    });
+
+    it('B.3.4: คืน false เมื่อ Redis set ล้มเหลว (outage safety)', async () => {
+      const created = await service.createSession(makeInput());
+      redis.get.mockResolvedValue(JSON.stringify(created));
+      redis.set.mockRejectedValue(new Error('Redis connection lost'));
+
+      const result = await service.tryLockForConfirm(
+        created.reviewSessionPublicId
+      );
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('getStashDir (B.3.5)', () => {
+    it('B.3.5: คืน path ที่เป็น sessionsRoot + reviewSessionPublicId', () => {
+      const sessionId = '019505a1-0000-7000-8000-0000000000bb';
+      const result = service.getStashDir(sessionId);
+
+      expect(result).toBe(path.join(stagingRoot, 'import-review', sessionId));
+    });
+  });
 });
