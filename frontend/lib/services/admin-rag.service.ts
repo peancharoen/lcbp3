@@ -175,66 +175,66 @@ const BASE_URL = '/ai/admin/rag';
 export const adminRagService = {
   /** GET /ai/admin/rag/attachments — dashboard list (US1) */
   async listAttachments(params: RagAdminListParams): Promise<RagAdminAttachmentsResponse> {
-    const response = await api.get<RagAdminAttachmentsResponse>(`${BASE_URL}/attachments`, { params });
-    return response.data;
+    const response = await api.get(`${BASE_URL}/attachments`, { params });
+    return response.data.data as RagAdminAttachmentsResponse; // Unwrap NestJS Interceptor 'data' wrapper
   },
 
   /** GET /ai/admin/rag/attachments/classification — classification list (US2, Q43) */
   async listAttachmentsForClassification(params: RagAdminClassificationListParams): Promise<RagAdminClassificationListResponse> {
-    const response = await api.get<RagAdminClassificationListResponse>(`${BASE_URL}/attachments/classification`, { params });
-    return response.data;
+    const response = await api.get(`${BASE_URL}/attachments/classification`, { params });
+    return response.data.data as RagAdminClassificationListResponse; // Unwrap NestJS Interceptor 'data' wrapper
   },
 
   /** GET /ai/admin/rag/attachments/:id/generations — lifecycle (US3) */
   async listGenerations(attachmentPublicId: string): Promise<RagAdminGenerationsResponse> {
-    const response = await api.get<RagAdminGenerationsResponse>(`${BASE_URL}/attachments/${attachmentPublicId}/generations`);
-    return response.data;
+    const response = await api.get(`${BASE_URL}/attachments/${attachmentPublicId}/generations`);
+    return response.data.data as RagAdminGenerationsResponse; // Unwrap NestJS Interceptor 'data' wrapper
   },
 
   /** POST /ai/admin/rag/attachments/:id/reingest — force re-ingest (US3, Q12) */
   async reingest(attachmentPublicId: string, idempotencyKey: string): Promise<RagAdminReingestResponse> {
-    const response = await api.post<RagAdminReingestResponse>(
+    const response = await api.post(
       `${BASE_URL}/attachments/${attachmentPublicId}/reingest`,
       {},
       { headers: { 'Idempotency-Key': idempotencyKey } }
     );
-    return response.data;
+    return response.data.data as RagAdminReingestResponse; // Unwrap NestJS Interceptor 'data' wrapper
   },
 
   /** GET /ai/admin/rag/metrics — metrics snapshot (US4) */
   async getMetrics(): Promise<RagAdminMetricsSnapshot> {
-    const response = await api.get<RagAdminMetricsSnapshot>(`${BASE_URL}/metrics`);
-    return response.data;
+    const response = await api.get(`${BASE_URL}/metrics`);
+    return response.data.data as RagAdminMetricsSnapshot; // Unwrap NestJS Interceptor 'data' wrapper
   },
 
   /** POST /ai/admin/rag/metrics/reset — global reset (US4, Q15) */
   async resetMetrics(): Promise<RagAdminMetricsResetResponse> {
-    const response = await api.post<RagAdminMetricsResetResponse>(`${BASE_URL}/metrics/reset`, {});
-    return response.data;
+    const response = await api.post(`${BASE_URL}/metrics/reset`, {});
+    return response.data.data as RagAdminMetricsResetResponse; // Unwrap NestJS Interceptor 'data' wrapper
   },
 
   /** GET /ai/admin/rag/failed-ingestions — 2 sections (US5, Q31) */
   async listFailedIngestions(params: RagAdminFailedIngestionsParams): Promise<RagAdminFailedIngestionsResponse> {
-    const response = await api.get<RagAdminFailedIngestionsResponse>(`${BASE_URL}/failed-ingestions`, { params });
-    return response.data;
+    const response = await api.get(`${BASE_URL}/failed-ingestions`, { params });
+    return response.data.data as RagAdminFailedIngestionsResponse; // Unwrap NestJS Interceptor 'data' wrapper
   },
 
   /** POST /ai/admin/rag/failed-ingestions/retry — batch retry (US5, Q17) */
   async batchRetry(attachmentPublicIds: string[], idempotencyKey: string): Promise<RagAdminBatchRetryResponse> {
-    const response = await api.post<RagAdminBatchRetryResponse>(
+    const response = await api.post(
       `${BASE_URL}/failed-ingestions/retry`,
       { attachmentPublicIds },
       { headers: { 'Idempotency-Key': idempotencyKey } }
     );
-    return response.data;
+    return response.data.data as RagAdminBatchRetryResponse; // Unwrap NestJS Interceptor 'data' wrapper
   },
 
   /** PATCH /ai/rag/attachments/:id/classification — existing endpoint (US2, no backend change) */
   async overrideClassification(attachmentPublicId: string, classification: SecurityClassification, reason: string): Promise<{ attachmentPublicId: string; classification: SecurityClassification }> {
-    const response = await api.patch<{ attachmentPublicId: string; classification: SecurityClassification }>(
+    const response = await api.patch(
       `/ai/rag/attachments/${attachmentPublicId}/classification`,
       { classification, reason }
     );
-    return response.data;
+    return response.data.data as { attachmentPublicId: string; classification: SecurityClassification }; // Unwrap NestJS Interceptor 'data' wrapper
   },
 };

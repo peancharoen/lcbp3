@@ -26,8 +26,8 @@ export function ServiceUnavailableBanner() {
   const { data: health } = useQuery({
     queryKey: ['ai-admin-health'],
     queryFn: async () => {
-      const response = await apiClient.get<AiSystemHealth>('/ai/admin/health');
-      return response.data;
+      const response = await apiClient.get('/ai/admin/health');
+      return response.data.data as AiSystemHealth; // Unwrap NestJS Interceptor 'data' wrapper
     },
     refetchInterval: 10_000,
     refetchIntervalInBackground: false,
