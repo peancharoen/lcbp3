@@ -5,15 +5,49 @@ on:
     branches: [main, develop]
   pull_request:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: "Pipeline mode"
+        required: true
+        default: "full"
+        type: choice
+        options:
+          - full
+          - ci-only
+          - deploy-only
+          - skip-lint
+          - skip-test
+
+# ============================================================
+# Commit Message Tags (push events only):
+#   [skip CI]      → ข้าม CI ทั้งหมด + ข้าม Deploy
+#   [skip lint]    → ข้าม CI1 (Lint+Security), ยังรัน CI2 + Deploy
+#   [skip test]    → ข้าม CI2 (Test), ยังรัน CI1 + Deploy
+#   [deploy-only]  → ข้าม CI ทั้งหมด, Deploy ตรง (กรณี emergency/hotfix)
+#
+# Manual Dispatch Modes (workflow_dispatch):
+#   full          → CI1 + CI2 + Deploy (if main)
+#   ci-only       → CI1 + CI2 only, no Deploy
+#   deploy-only   → Skip CI, Deploy directly
+#   skip-lint     → Skip CI1, run CI2 + Deploy
+#   skip-test     → Run CI1, skip CI2, Deploy
+# ============================================================
 
 jobs:
   # ============================================================
-  # JOB 1 : CI & Quality Gate
+  # CI1: Quality Gate (Lint + Security + Patch Integrity)
   # ============================================================
-  build:
+  ci-quality:
     runs-on: lcbp3-ci
-    timeout-minutes: 15
-    if: "!contains(github.event.head_commit.message, '[skip CI]')"
+    timeout-minutes: 10
+    if: |
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'workflow_dispatch' &&
+        (inputs.mode == 'full' || inputs.mode == 'ci-only' || inputs.mode == 'skip-test')) ||
+      (github.event_name == 'push' &&
+        !contains(github.event.head_commit.message, '[skip CI]') &&
+        !contains(github.event.head_commit.message, '[skip lint]') &&
+        !contains(github.event.head_commit.message, '[deploy-only]'))
     steps:
       - name: Checkout (HTTPS)
         uses: actions/checkout@v4
@@ -61,6 +95,38 @@ jobs:
         # ป้องกัน orphan patch ที่จะทำให้ pnpm --filter deploy fail (allowUnusedPatches ปิด safety net)
         run: ./scripts/check-patches.sh
 
+  # ============================================================
+  # CI2: Test Gate (Backend + Frontend Tests)
+  # ============================================================
+  ci-test:
+    runs-on: lcbp3-ci
+    timeout-minutes: 15
+    if: |
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'workflow_dispatch' &&
+        (inputs.mode == 'full' || inputs.mode == 'ci-only' || inputs.mode == 'skip-lint')) ||
+      (github.event_name == 'push' &&
+        !contains(github.event.head_commit.message, '[skip CI]') &&
+        !contains(github.event.head_commit.message, '[skip test]') &&
+        !contains(github.event.head_commit.message, '[deploy-only]'))
+    steps:
+      - name: Checkout (HTTPS)
+        uses: actions/checkout@v4
+
+      # ── [1] pnpm 12 = native binary (Rust) — ใช้ pnpm/setup ไม่ใช่ action-setup ──
+      - name: ⚙️ Install pnpm + Node
+        uses: pnpm/setup@v1
+        with:
+          version: 12.4.0
+          runtime: node@24
+
+      # ── [2] ชี้ store ไปที่ volume ที่ mount ไว้ ─────────────
+      - name: 🔧 Set pnpm store path
+        run: pnpm config set store-dir /root/.local/share/pnpm
+
+      - name: 📦 Install deps
+        run: pnpm install --frozen-lockfile
+
       # ── [3] แยก step — เห็น failure ได้ชัดขึ้น ──────────────
       - name: 🧪 Test backend
         run: pnpm test
@@ -76,7 +142,7 @@ jobs:
           CI: "true"
 
   # ============================================================
-  # JOB 2 : Deploy — New Server (np-dms-lcbp3 / 192.168.10.11)
+  # JOB 3 : Deploy — New Server (np-dms-lcbp3 / 192.168.10.11)
   # Architecture: ADR-041 Server Consolidation
   # 4-layer docker-compose:
   #   Layer 1: Infrastructure (mariadb, redis, es, qdrant, pma)
@@ -86,11 +152,25 @@ jobs:
   # Source repo: /opt/np-dms-lcbp3/ (git clone)
   # Runtime:     /opt/np-dms/{01-infrastructure,02-platform,03-application,04-ai}/
   # Env:         /opt/np-dms/.env (master — shared across all layers)
+  #
+  # Deploy condition:
+  #   - รอ CI2 (ci-test) สำเร็จ หรือถูก skip (กรณี [skip test] / [deploy-only])
+  #   - ถ้า CI2 fail → ห้าม deploy
+  #   - รันเฉพาะ branch main
+  #   - กรณี [skip CI] → ไม่ deploy
   # ============================================================
   deploy:
-    needs: build
-    if: github.ref == 'refs/heads/main'
+    needs: [ci-test]
     runs-on: lcbp3-ci
+    if: |
+      always() &&
+      github.ref == 'refs/heads/main' &&
+      (needs.ci-test.result == 'success' || needs.ci-test.result == 'skipped') &&
+      (
+        (github.event_name == 'workflow_dispatch' && inputs.mode != 'ci-only') ||
+        (github.event_name == 'push' &&
+          !contains(github.event.head_commit.message, '[skip CI]'))
+      )
     steps:
       - name: " Checkout"
         uses: actions/checkout@v4
