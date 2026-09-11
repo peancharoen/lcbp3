@@ -240,19 +240,22 @@ describe('apiClient', () => {
   });
 
   describe('401 Handling', () => {
-    it('should redirect to login on 401 error', async () => {
+    it('should clear auth state on 401 error (B4 fix — no direct redirect)', async () => {
       const mockLocation = { href: '' };
       Object.defineProperty(window, 'location', {
         value: mockLocation,
         writable: true,
       });
+      const logoutSpy = vi.spyOn(useAuthStore.getState(), 'logout');
       const axiosError = {
         response: {
           status: 401,
         },
       };
       await rejectedHandler(axiosError).catch(() => {});
-      expect(mockLocation.href).toBe('/login');
+      // B4 fix: ไม่ redirect ทันที — ล้าง auth state แล้วให้ NextAuth/RouteGuard จัดการ
+      expect(logoutSpy).toHaveBeenCalled();
+      expect(mockLocation.href).toBe('');
     });
   });
 });
