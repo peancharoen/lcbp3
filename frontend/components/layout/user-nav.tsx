@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { signOut, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/lib/stores/auth-store';
 
 export function UserNav() {
   const { data: session } = useSession();
@@ -38,6 +39,14 @@ export function UserNav() {
   const userRole = session?.user?.role || 'Viewer';
 
   const handleLogout = async () => {
+    // B2/B8 fix: เรียก backend logout เพื่อ blacklist token ก่อน signOut ของ NextAuth
+    // ใช้ /api/backend-logout (Next.js API route) เพื่อหลีกเลี่ยงการชนกับ NextAuth route /api/auth/[...nextauth]
+    try {
+      await fetch('/backend-logout', { method: 'POST' });
+    } catch {
+      // ไม่สำคัญถ้า backend logout ล้มเหลว — session ฝั่ง client ยังต้อง clear
+    }
+    useAuthStore.getState().logout();
     await signOut({ redirect: false });
     router.push('/login');
   };

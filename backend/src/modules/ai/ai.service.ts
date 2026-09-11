@@ -35,6 +35,9 @@ import { Attachment } from '../../common/file-storage/entities/attachment.entity
 import {
   QUEUE_AI_BATCH,
   QUEUE_AI_REALTIME,
+  JOB_AI_SUGGEST,
+  JOB_EMBED_DOCUMENT,
+  JOB_MIGRATE_DOCUMENT,
 } from '../common/constants/queue.constants';
 import { AiRealtimeJobData } from './processors/ai-realtime.processor';
 import { AiBatchJobData } from './processors/ai-batch.processor';
@@ -191,9 +194,9 @@ export class AiService {
     }
     try {
       const job = await this.aiRealtimeQueue.add(
-        'ai-suggest',
+        JOB_AI_SUGGEST,
         {
-          jobType: 'ai-suggest',
+          jobType: JOB_AI_SUGGEST,
           documentPublicId: dto.documentPublicId,
           projectPublicId: dto.projectPublicId || '',
           payload: dto.payload ?? {},
@@ -227,9 +230,9 @@ export class AiService {
     }
     try {
       const job = await this.aiBatchQueue.add(
-        'embed-document',
+        JOB_EMBED_DOCUMENT,
         {
-          jobType: 'embed-document',
+          jobType: JOB_EMBED_DOCUMENT,
           documentPublicId: dto.documentPublicId || '',
           projectPublicId: dto.projectPublicId || '',
           payload: dto.payload ?? {},
@@ -422,10 +425,10 @@ export class AiService {
         dto.payload.tempAttachmentId
       );
       const job = await this.aiBatchQueue.add(
-        'migrate-document',
+        JOB_MIGRATE_DOCUMENT,
         {
           ...payload,
-          jobType: 'migrate-document',
+          jobType: JOB_MIGRATE_DOCUMENT,
           documentPublicId: dto.payload.tempAttachmentId,
           projectPublicId,
           payload: {

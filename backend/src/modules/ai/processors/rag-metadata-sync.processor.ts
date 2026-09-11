@@ -10,7 +10,7 @@ import { Job } from 'bullmq';
 import { Repository } from 'typeorm';
 import { Attachment } from '../../../common/file-storage/entities/attachment.entity';
 import { AiQdrantService } from '../qdrant.service';
-import { QUEUE_AI_BATCH } from '../../common/constants/queue.constants';
+import { QUEUE_AI_RAG_INGEST } from '../../common/constants/queue.constants';
 import { JOB_RAG_METADATA_SYNC } from '../../common/constants/queue.constants';
 import type { RagMetadataSyncJobPayload } from '../ai-queue.service';
 
@@ -19,7 +19,7 @@ import type { RagMetadataSyncJobPayload } from '../ai-queue.service';
  * ทำหน้าที่: อ่าน classification ปัจจุบันจาก Attachment → อัปเดต Qdrant payload
  * ไม่ต้อง re-embed เพราะ classification เป็น metadata field ไม่ใช่ vector
  */
-@Processor(QUEUE_AI_BATCH, { concurrency: 1 })
+@Processor(QUEUE_AI_RAG_INGEST, { concurrency: 1 })
 export class RagMetadataSyncProcessor extends WorkerHost {
   private readonly logger = new Logger(RagMetadataSyncProcessor.name);
 

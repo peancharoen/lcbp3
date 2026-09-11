@@ -26,14 +26,19 @@ import { Queue, JobsOptions } from 'bullmq';
 import Redis from 'ioredis';
 import { v7 as uuidv7 } from 'uuid';
 import {
-  QUEUE_AI_INGEST,
   QUEUE_AI_RAG,
   QUEUE_AI_VECTOR_DELETION,
   QUEUE_AI_BATCH,
   QUEUE_AI_REALTIME,
+  QUEUE_AI_RAG_INGEST,
   JOB_RAG_ATTACHMENT_INGEST,
   JOB_RAG_METADATA_SYNC,
   JOB_RAG_GENERATION_CLEANUP,
+  JOB_RAG_QUERY,
+  JOB_DELETE_DOCUMENT_VECTORS,
+  JOB_RAG_PREPARE,
+  JOB_EMBED_DOCUMENT,
+  JOB_CLEAR_FAILED_JOBS,
 } from '../common/constants/queue.constants';
 import { QueueJobItemDto } from './dto/queue-jobs.dto';
 import { ServiceUnavailableException } from '../../common/exceptions';
@@ -49,13 +54,6 @@ const REDIS_KEY_MODEL_TRANSITIONING = 'ai:model:transitioning';
 const REDIS_KEY_OCR_BATCH_ACTIVE = 'ai:ocr-batch:active';
 /** TTL ของ ai:ocr-batch:active — เป็น crash safety net เท่านั้น ต้อง heartbeat ต่ออายุก่อนหมด */
 const OCR_BATCH_LOCK_TTL_SECONDS = 30;
-
-/** Payload สำหรับงาน ingest เอกสารเก่าเข้า AI Pipeline */
-export interface AiIngestJobPayload {
-  batchId: string;
-  filePublicIds: string[];
-  source: 'api' | 'folder-watcher';
-}
 
 /** Payload สำหรับงาน RAG Query ที่ต้องเข้าคิวบน Desk-5439 */
 export interface AiRagJobPayload {
@@ -117,9 +115,9 @@ export class AiQueueService {
     removeOnFail: 200,
   };
 
+  private readonly queueRegistry: ReadonlyMap<string, Queue<unknown>>;
+
   constructor(
-    @InjectQueue(QUEUE_AI_INGEST)
-    private readonly ingestQueue: Queue<AiIngestJobPayload>,
     @InjectQueue(QUEUE_AI_RAG)
     private readonly ragQueue: Queue<AiRagJobPayload>,
     @InjectQueue(QUEUE_AI_VECTOR_DELETION)
@@ -128,8 +126,20 @@ export class AiQueueService {
     private readonly batchQueue: Queue<unknown>,
     @InjectQueue(QUEUE_AI_REALTIME)
     private readonly realtimeQueue: Queue<unknown>,
+    @InjectQueue(QUEUE_AI_RAG_INGEST)
+    private readonly ragIngestQueue: Queue<unknown>,
     @InjectRedis() private readonly redis: Redis
-  ) {}
+  ) {
+    // Map-based registry — แทน if-else chain เดิม รองรับทุก queue และป้องกัน
+    // string literal drift (ถ้าเปลี่ยนชื่อใน constants จะยัง match ได้)
+    this.queueRegistry = new Map<string, Queue<unknown>>([
+      [QUEUE_AI_RAG, this.ragQueue as Queue<unknown>],
+      [QUEUE_AI_VECTOR_DELETION, this.vectorDeletionQueue as Queue<unknown>],
+      [QUEUE_AI_BATCH, this.batchQueue],
+      [QUEUE_AI_REALTIME, this.realtimeQueue],
+      [QUEUE_AI_RAG_INGEST, this.ragIngestQueue],
+    ]);
+  }
 
   /**
    * ตรวจสอบว่า Ollama กำลังอยู่ระหว่างเปลี่ยน model หรือกำลังรัน OCR batch phase อยู่หรือไม่
@@ -202,25 +212,12 @@ export class AiQueueService {
   }
 
   /**
-   * ส่ง batch migration เข้า queue เพื่อไม่ให้ request thread ทำงานหนัก
-   * @idempotency `jobId = batchId:source` — การส่ง batch เดิมซ้ำจะคืน job ID เดิม ไม่สร้างงานใหม่
-   */
-  async enqueueIngest(payload: AiIngestJobPayload): Promise<string> {
-    await this.checkAiUnavailableLocks();
-    const job = await this.ingestQueue.add('legacy-migration-ingest', payload, {
-      ...this.defaultOptions,
-      jobId: `${payload.batchId}:${payload.source}`,
-    });
-    return String(job.id);
-  }
-
-  /**
    * ส่ง RAG query เข้า queue ที่ processor จะกำหนด concurrency = 1
    * @idempotency `jobId = requestPublicId` — ถ้า request เดิม (UUID เดียวกัน) ถูก submit ซ้ำ BullMQ จะไม่สร้างงานใหม่
    */
   async enqueueRagQuery(payload: AiRagJobPayload): Promise<string> {
     await this.checkAiUnavailableLocks();
-    const job = await this.ragQueue.add('rag-query', payload, {
+    const job = await this.ragQueue.add(JOB_RAG_QUERY, payload, {
       ...this.defaultOptions,
       jobId: payload.requestPublicId,
     });
@@ -236,7 +233,7 @@ export class AiQueueService {
   ): Promise<string> {
     await this.checkAiUnavailableLocks();
     const job = await this.vectorDeletionQueue.add(
-      'delete-document-vectors',
+      JOB_DELETE_DOCUMENT_VECTORS,
       payload,
       {
         ...this.defaultOptions,
@@ -351,9 +348,9 @@ export class AiQueueService {
   async enqueueRagPrepare(payload: RagPrepareJobPayload): Promise<string> {
     await this.checkAiUnavailableLocks();
     const job = await this.batchQueue.add(
-      'rag-prepare',
+      JOB_RAG_PREPARE,
       {
-        jobType: 'rag-prepare',
+        jobType: JOB_RAG_PREPARE,
         ...payload,
       },
       {
@@ -364,15 +361,19 @@ export class AiQueueService {
     return String(job.id);
   }
 
-  /** ส่งงานสร้าง RAG generation ของ Attachment เข้า ai-batch แบบ idempotent */
+  /** ส่งงานสร้าง RAG generation ของ Attachment เข้า ai-rag-ingest แบบ idempotent (B13 fix) */
   async enqueueRagAttachmentIngestion(
     payload: RagAttachmentIngestJobPayload
   ): Promise<string> {
     await this.checkAiUnavailableLocks();
-    const job = await this.batchQueue.add(JOB_RAG_ATTACHMENT_INGEST, payload, {
-      ...this.defaultOptions,
-      jobId: `${JOB_RAG_ATTACHMENT_INGEST}:${payload.attachmentPublicId}:${payload.attachmentChecksum}`,
-    });
+    const job = await this.ragIngestQueue.add(
+      JOB_RAG_ATTACHMENT_INGEST,
+      payload,
+      {
+        ...this.defaultOptions,
+        jobId: `${JOB_RAG_ATTACHMENT_INGEST}:${payload.attachmentPublicId}:${payload.attachmentChecksum}`,
+      }
+    );
     return String(job.id);
   }
 
@@ -381,7 +382,7 @@ export class AiQueueService {
     payload: RagMetadataSyncJobPayload
   ): Promise<string> {
     await this.checkAiUnavailableLocks();
-    const job = await this.batchQueue.add(JOB_RAG_METADATA_SYNC, payload, {
+    const job = await this.ragIngestQueue.add(JOB_RAG_METADATA_SYNC, payload, {
       ...this.defaultOptions,
       jobId: `${JOB_RAG_METADATA_SYNC}:${payload.generationUuid}`,
     });
@@ -393,10 +394,14 @@ export class AiQueueService {
     payload: RagGenerationCleanupJobPayload
   ): Promise<string> {
     await this.checkAiUnavailableLocks();
-    const job = await this.batchQueue.add(JOB_RAG_GENERATION_CLEANUP, payload, {
-      ...this.defaultOptions,
-      jobId: `${JOB_RAG_GENERATION_CLEANUP}:${payload.generationUuid}`,
-    });
+    const job = await this.ragIngestQueue.add(
+      JOB_RAG_GENERATION_CLEANUP,
+      payload,
+      {
+        ...this.defaultOptions,
+        jobId: `${JOB_RAG_GENERATION_CLEANUP}:${payload.generationUuid}`,
+      }
+    );
     return String(job.id);
   }
 
@@ -419,9 +424,9 @@ export class AiQueueService {
   }): Promise<string> {
     await this.checkAiUnavailableLocks();
     const job = await this.batchQueue.add(
-      'embed-document',
+      JOB_EMBED_DOCUMENT,
       {
-        jobType: 'embed-document',
+        jobType: JOB_EMBED_DOCUMENT,
         documentPublicId: payload.documentPublicId,
         projectPublicId: payload.projectPublicId,
         payload: {
@@ -576,9 +581,9 @@ export class AiQueueService {
 
     // Enqueue งาน async ผ่าน batchQueue
     await this.batchQueue.add(
-      'clear-failed-jobs',
+      JOB_CLEAR_FAILED_JOBS,
       {
-        jobType: 'clear-failed-jobs',
+        jobType: JOB_CLEAR_FAILED_JOBS,
         targetQueueName: queueName,
         trackingId,
         requestedBy: requestedByUserPublicId,
@@ -614,21 +619,20 @@ export class AiQueueService {
     ) as import('./dto/queue-jobs.dto').ClearFailedJobsStatusDto;
   }
 
-  /** Helper: ดึง Queue instance ตามชื่อ (รองรับเฉพาะ ai-batch และ ai-realtime) */
+  /** Helper: ดึง Queue instance ตามชื่อ (รองรับ ai-batch, ai-realtime, ai-rag-ingest) */
   private getQueueByName(queueName: string): Queue<unknown> {
-    if (queueName === 'ai-batch') {
-      return this.batchQueue;
+    const queue = this.queueRegistry.get(queueName);
+    if (!queue) {
+      const allowed = Array.from(this.queueRegistry.keys()).join(', ');
+      throw new HttpException(
+        {
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: `Unknown queue: ${queueName}. Allowed: ${allowed}`,
+        },
+        HttpStatus.BAD_REQUEST
+      );
     }
-    if (queueName === 'ai-realtime') {
-      return this.realtimeQueue;
-    }
-    throw new HttpException(
-      {
-        statusCode: HttpStatus.BAD_REQUEST,
-        message: `Unknown queue: ${queueName}. Allowed: ai-batch, ai-realtime`,
-      },
-      HttpStatus.BAD_REQUEST
-    );
+    return queue;
   }
 
   /**

@@ -14,6 +14,7 @@ import { MigrationError } from '../entities/migration-error.entity';
 import { Project } from '../../project/entities/project.entity';
 import { Organization } from '../../organization/entities/organization.entity';
 import { CorrespondenceType } from '../../correspondence/entities/correspondence-type.entity';
+import { Attachment } from '../../../common/file-storage/entities/attachment.entity';
 import { NotFoundException } from '../../../common/exceptions';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -93,6 +94,14 @@ describe('LegacyIngestionService (ADR-047)', () => {
         ): Promise<{ id: string }> =>
           Promise.resolve({ id: opts?.jobId ?? 'job-123' })
       ),
+  };
+
+  // B11 fix: mock attachmentRepo สำหรับสร้าง attachment record ใน legacy ingestion
+  const mockAttachmentRepo = {
+    create: jest.fn().mockImplementation((entity: unknown) => entity),
+    save: jest
+      .fn()
+      .mockResolvedValue({ id: 73, ...(entity: unknown) => entity ?? {} }),
   };
 
   const tempTestDir = path.join(__dirname, '__temp_test_ingest__');
@@ -183,6 +192,10 @@ describe('LegacyIngestionService (ADR-047)', () => {
         {
           provide: getRepositoryToken(CorrespondenceType),
           useValue: mockCorrespondenceTypeRepo,
+        },
+        {
+          provide: getRepositoryToken(Attachment),
+          useValue: mockAttachmentRepo,
         },
         {
           provide: 'BullQueue_ai-batch',
@@ -659,6 +672,112 @@ describe('LegacyIngestionService (ADR-047)', () => {
     )[0] as MockEntity;
     const details = savedEntity.details as Record<string, unknown>;
     expect(details.source_file_path).toContain('DOC-NOEXT');
+  });
+
+  it('ควร resolve staging PDF แบบ case-insensitive (.PDF ตัวใหญ่ใน disk, .pdf ตัวเล็กใน Excel)', async () => {
+    mockProjectRepo.findOne.mockResolvedValue({
+      id: 5,
+      publicId: '019505a1-7c3e-7000-8000-proj12345678',
+      projectCode: 'LCBP3-C2',
+    });
+
+    // สร้างไฟล์ PDF ที่มีนามสกุล .PDF (ตัวใหญ่)
+    const upperCasePdfPath = path.join(tempTestDir, 'DOC-CASE-TEST.PDF');
+    fs.writeFileSync(upperCasePdfPath, '%PDF-1.4 dummy');
+
+    const caseTestPath = path.join(tempTestDir, 'case-insensitive-pdf.xlsx');
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Sheet1');
+    worksheet.addRow([
+      'ลำดับ',
+      'เลขที่เอกสาร',
+      'เรื่อง',
+      'วันที่ออก',
+      'วันที่รับ',
+      'จาก',
+      'ถึง',
+      'หมวดหมู่',
+      'ชื่อไฟล์',
+      'หมายเหตุ',
+    ]);
+    worksheet.addRow([
+      1,
+      'DOC-CASE-001',
+      'Test case insensitive',
+      '2024-05-15',
+      '2024-05-16',
+      'ITD',
+      'TEAM',
+      '',
+      'DOC-CASE-TEST.pdf', // ตัวเล็ก .pdf แต่ไฟล์จริงคือ .PDF
+      '',
+    ]);
+    await workbook.xlsx.writeFile(caseTestPath);
+
+    await service.startIngestion({
+      filePath: caseTestPath,
+      projectPublicId: '019505a1-7c3e-7000-8000-proj12345678',
+      pdfFolderPath: tempTestDir,
+    });
+
+    const savedEntity = (
+      mockReviewQueueRepo.save.mock.calls[0] as unknown[]
+    )[0] as MockEntity;
+    const details = savedEntity.details as Record<string, unknown>;
+    // ต้อง match ได้เพราะ resolveStagingPdf ทำ case-insensitive search
+    expect(details.source_file_path).toContain('DOC-CASE-TEST');
+  });
+
+  it('ควรไม่ resolve staging PDF เมื่อชื่อไฟล์ใน Excel ไม่ตรงกับไฟล์จริงเลย', async () => {
+    mockProjectRepo.findOne.mockResolvedValue({
+      id: 5,
+      publicId: '019505a1-7c3e-7000-8000-proj12345678',
+      projectCode: 'LCBP3-C2',
+    });
+
+    const mismatchTestPath = path.join(tempTestDir, 'mismatch-pdf.xlsx');
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Sheet1');
+    worksheet.addRow([
+      'ลำดับ',
+      'เลขที่เอกสาร',
+      'เรื่อง',
+      'วันที่ออก',
+      'วันที่รับ',
+      'จาก',
+      'ถึง',
+      'หมวดหมู่',
+      'ชื่อไฟล์',
+      'หมายเหตุ',
+    ]);
+    worksheet.addRow([
+      1,
+      'DOC-MISMATCH-001',
+      'Test mismatch filename',
+      '2024-05-15',
+      '2024-05-16',
+      'ITD',
+      'TEAM',
+      '',
+      'NONEXISTENT-FILE-NAME.pdf', // ไม่มีไฟล์นี้ใน staging folder
+      '',
+    ]);
+    await workbook.xlsx.writeFile(mismatchTestPath);
+
+    await service.startIngestion({
+      filePath: mismatchTestPath,
+      projectPublicId: '019505a1-7c3e-7000-8000-proj12345678',
+      pdfFolderPath: tempTestDir,
+    });
+
+    const savedEntity = (
+      mockReviewQueueRepo.save.mock.calls[0] as unknown[]
+    )[0] as MockEntity;
+    const details = savedEntity.details as Record<string, unknown>;
+    // source_file_path ต้องเป็นค่าที่ไม่ resolve (เก็บเฉพาะ rawFileName ไม่ใช่ full path)
+    expect(details.source_file_path).toBe('NONEXISTENT-FILE-NAME.pdf');
+    // และต้องมี error log สำหรับ FILE_NOT_FOUND
+    expect(mockErrorRepo.save).toHaveBeenCalled();
   });
 
   it('ควรข้ามแถวที่ไม่มีเลขที่เอกสาร', async () => {

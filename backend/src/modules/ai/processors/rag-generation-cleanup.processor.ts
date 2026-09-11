@@ -17,7 +17,7 @@ import {
 } from '../entities/pending-vector-deletion.entity';
 import { AiQdrantService } from '../qdrant.service';
 import { RagObservabilityService } from '../services/rag-observability.service';
-import { QUEUE_AI_BATCH } from '../../common/constants/queue.constants';
+import { QUEUE_AI_RAG_INGEST } from '../../common/constants/queue.constants';
 import type { RagGenerationCleanupJobPayload } from '../ai-queue.service';
 
 /**
@@ -26,7 +26,7 @@ import type { RagGenerationCleanupJobPayload } from '../ai-queue.service';
  * หาก Qdrant deletion ล้มเหลว จะบันทึก pending vector deletion (compensation)
  * แล้ว throw error เพื่อ trigger BullMQ retry (ADR-008)
  */
-@Processor(QUEUE_AI_BATCH)
+@Processor(QUEUE_AI_RAG_INGEST)
 export class RagGenerationCleanupProcessor extends WorkerHost {
   private readonly logger = new Logger(RagGenerationCleanupProcessor.name);
 

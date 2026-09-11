@@ -47,6 +47,7 @@ const AI_QUEUES: string[] = [
   'ai-batch',
   'ai-ingest',
   'ai-rag',
+  'ai-rag-ingest',
   'ai-vector-deletion',
 ];
 

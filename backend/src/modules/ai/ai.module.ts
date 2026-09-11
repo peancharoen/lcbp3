@@ -70,8 +70,8 @@ import { AiPromptsModule } from './prompts/ai-prompts.module';
 import { AiPrompt } from './prompts/ai-prompts.entity';
 import {
   QUEUE_AI_BATCH,
-  QUEUE_AI_INGEST,
   QUEUE_AI_RAG,
+  QUEUE_AI_RAG_INGEST,
   QUEUE_AI_REALTIME,
   QUEUE_AI_VECTOR_DELETION,
 } from '../common/constants/queue.constants';
@@ -141,7 +141,6 @@ import { SecureArchiveService } from '../../common/file-storage/secure-archive.s
     ]),
 
     BullModule.registerQueue(
-      { name: QUEUE_AI_INGEST },
       {
         name: QUEUE_AI_REALTIME,
         defaultJobOptions: {
@@ -161,6 +160,16 @@ import { SecureArchiveService } from '../../common/file-storage/secure-archive.s
         },
       },
       { name: QUEUE_AI_RAG },
+      {
+        // B13 fix: แยก queue สำหรับ RAG attachment operations
+        name: QUEUE_AI_RAG_INGEST,
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 5000 },
+          removeOnComplete: 100,
+          removeOnFail: 500,
+        },
+      },
       { name: QUEUE_AI_VECTOR_DELETION },
       // np-dms-ocr + np-dms-ai queues: concurrency=1 เพื่อป้องกัน VRAM overflow (ADR-032)
       {

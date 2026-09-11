@@ -76,6 +76,14 @@ describe('BullmqMetricsService', () => {
         delayed: 0,
         paused: 0,
       }),
+      createMockQueue({
+        waiting: 0,
+        active: 0,
+        completed: 1,
+        failed: 0,
+        delayed: 0,
+        paused: 0,
+      }),
     ];
 
     gauges = [
@@ -94,6 +102,7 @@ describe('BullmqMetricsService', () => {
       queues[3] as never,
       queues[4] as never,
       queues[5] as never,
+      queues[6] as never,
       gauges[0] as unknown as Gauge<string>,
       gauges[1] as unknown as Gauge<string>,
       gauges[2] as unknown as Gauge<string>,
@@ -202,7 +211,7 @@ describe('BullmqMetricsService', () => {
   });
 
   describe('collectMetrics all queues', () => {
-    it('should call getJobCounts for all 6 queues', async () => {
+    it('should call getJobCounts for all 7 queues', async () => {
       await service.onModuleInit();
 
       for (const q of queues) {
@@ -220,23 +229,23 @@ describe('BullmqMetricsService', () => {
     it('should set all 6 gauges for each queue', async () => {
       await service.onModuleInit();
 
-      // 6 queues × 6 gauges = 36 set calls
+      // 7 queues × 6 gauges = 42 set calls
       const totalSets = gauges.reduce(
         (sum, g) => sum + g.set.mock.calls.length,
         0
       );
-      expect(totalSets).toBe(36);
+      expect(totalSets).toBe(42);
     });
   });
 
   describe('decorator metadata', () => {
-    it('should have design:paramtypes metadata with 12 parameters', () => {
+    it('should have design:paramtypes metadata with 13 parameters', () => {
       const paramTypes = Reflect.getMetadata(
         'design:paramtypes',
         BullmqMetricsService
       );
       expect(paramTypes).toBeDefined();
-      expect(paramTypes).toHaveLength(12);
+      expect(paramTypes).toHaveLength(13);
     });
 
     it('should re-evaluate module decorators via isolateModules', () => {

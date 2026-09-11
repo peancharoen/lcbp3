@@ -34,6 +34,7 @@ import {
   ValidationException,
 } from '../../../common/exceptions';
 import { StartIngestDto } from '../dto/start-ingest.dto';
+import { Attachment } from '../../../common/file-storage/entities/attachment.entity';
 
 export interface IngestSummary {
   batchId: string;
@@ -83,6 +84,8 @@ export class LegacyIngestionService {
     private readonly organizationRepo: Repository<Organization>,
     @InjectRepository(CorrespondenceType)
     private readonly correspondenceTypeRepo: Repository<CorrespondenceType>,
+    @InjectRepository(Attachment)
+    private readonly attachmentRepo: Repository<Attachment>,
     @InjectQueue('ai-batch')
     private readonly aiBatchQueue: Queue
   ) {}
@@ -292,11 +295,47 @@ export class LegacyIngestionService {
               }
             }
 
+            // B11 fix: สร้าง attachment record สำหรับ PDF ที่พบ และผูกกับ queue item
+            // ผ่าน tempAttachmentIds — เพื่อให้ Execute Import สามารถ commit ได้โดยไม่ต้อง
+            // สร้าง attachment ด้วยมือ
+            // Idempotency: ถ้า queue item มี tempAttachmentId อยู่แล้ว (resume) จะไม่สร้างใหม่
+            let attachmentIdForQueue: number | undefined;
+
             // บันทึกหรืออัปเดตลง migration_review_queue
             // FR-007: หากเลขที่เอกสารซ้ำใน Batch เดียวกัน ให้เพิ่ม revisionNumber
             let queueItem = await this.reviewQueueRepo.findOne({
               where: { documentNumber: docNumber },
             });
+
+            // B11 idempotency: ถ้า queue item มี tempAttachmentId อยู่แล้ว (resume) ใช้ attachment เดิม
+            if (queueItem?.tempAttachmentId && resolvedPdfPath) {
+              attachmentIdForQueue = queueItem.tempAttachmentId;
+            } else if (resolvedPdfPath) {
+              try {
+                const fileStats = fs.statSync(resolvedPdfPath);
+                const baseName = path.basename(resolvedPdfPath);
+                const attachment = this.attachmentRepo.create({
+                  originalFilename: baseName,
+                  storedFilename: baseName,
+                  filePath: resolvedPdfPath,
+                  mimeType: 'application/pdf',
+                  fileSize: fileStats.size,
+                  isTemporary: false,
+                  uploadedByUserId: 2, // admin user — legacy ingestion
+                  aiProcessingStatus: 'PENDING',
+                  classification: 'INTERNAL',
+                  effectiveClassification: 'INTERNAL',
+                });
+                const saved = await this.attachmentRepo.save(attachment);
+                attachmentIdForQueue = saved.id;
+              } catch (attErr: unknown) {
+                const attMsg =
+                  attErr instanceof Error ? attErr.message : String(attErr);
+                this.logger.warn(
+                  `Failed to create attachment for ${docNumber}: ${attMsg}`
+                );
+              }
+            }
 
             // ตรวจหา duplicate ใน batch เดียวกัน → สร้าง revision suffix
             let finalDocNumber = docNumber;
@@ -335,6 +374,11 @@ export class LegacyIngestionService {
             queueItem.status = MigrationReviewStatus.PENDING;
             queueItem.aiStatus = MigrationAiStatus.PENDING;
             queueItem.compareStatus = CompareStatus.COMPARED;
+            // B11 fix: ผูก attachment ที่สร้างใหม่เข้ากับ queue item
+            if (attachmentIdForQueue) {
+              queueItem.tempAttachmentIds = [attachmentIdForQueue];
+              queueItem.tempAttachmentId = attachmentIdForQueue;
+            }
             queueItem.details = {
               source_file_path: resolvedPdfPath || rawFileName || undefined,
               unresolved_orgs:

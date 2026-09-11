@@ -13,11 +13,11 @@ import { OcrService } from './services/ocr.service';
 import { AiQdrantService } from './qdrant.service';
 import { AiPromptsService } from './prompts/ai-prompts.service';
 import {
-  QUEUE_AI_INGEST,
   QUEUE_AI_RAG,
   QUEUE_AI_VECTOR_DELETION,
   QUEUE_AI_BATCH,
   QUEUE_AI_REALTIME,
+  QUEUE_AI_RAG_INGEST,
 } from '../common/constants/queue.constants';
 
 // ────────────────────────────────────────────────────────────────────────────────
@@ -107,10 +107,6 @@ describe('RAG Pipeline — Integration (SC-002 / Gap fixes)', () => {
         providers: [
           AiQueueService,
           {
-            provide: getQueueToken(QUEUE_AI_INGEST),
-            useValue: { add: jest.fn() },
-          },
-          {
             provide: getQueueToken(QUEUE_AI_RAG),
             useValue: { add: jest.fn() },
           },
@@ -121,6 +117,10 @@ describe('RAG Pipeline — Integration (SC-002 / Gap fixes)', () => {
           { provide: getQueueToken(QUEUE_AI_BATCH), useValue: mockBatchQueue },
           {
             provide: getQueueToken(QUEUE_AI_REALTIME),
+            useValue: createMockQueue(),
+          },
+          {
+            provide: getQueueToken(QUEUE_AI_RAG_INGEST),
             useValue: createMockQueue(),
           },
           {

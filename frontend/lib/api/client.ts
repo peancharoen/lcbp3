@@ -172,11 +172,9 @@ apiClient.interceptors.response.use(
 
       // กรณี Token หมดอายุ หรือ ไม่มีสิทธิ์
       if (status === 401) {
-        // ล้าง auth state ใน store แล้ว redirect ไป login
+        // B4 fix: ไม่ redirect ทันที — ล้าง auth state แล้วให้ NextAuth/RouteGuard จัดการ redirect
+        // การ redirect ทุก 401 ทำให้ user ถูกไล่ออกแม้จะเป็นแค่ API รอง (dashboard stats)
         useAuthStore.getState().logout();
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login';
-        }
       }
     }
     // แปลง error เป็น structured format ตาม ADR-007 ก่อน reject

@@ -12,7 +12,7 @@ import { RagAttachmentChunk } from '../entities/rag-attachment-chunk.entity';
 import { RagAttachmentPage } from '../entities/rag-attachment-page.entity';
 import { AiQdrantService } from '../qdrant.service';
 import { RagObservabilityService } from '../services/rag-observability.service';
-import { QUEUE_AI_BATCH } from '../../common/constants/queue.constants';
+import { QUEUE_AI_RAG_INGEST } from '../../common/constants/queue.constants';
 
 /** Payload สำหรับ FAILED generation retention cleanup job */
 export interface RagGenerationRetentionJobPayload {
@@ -30,7 +30,7 @@ const FAILED_GENERATION_RETENTION_DAYS = 30;
  *
  * ควรรันเป็น periodic job (เช่น daily) ผ่าน BullMQ scheduler
  */
-@Processor(QUEUE_AI_BATCH)
+@Processor(QUEUE_AI_RAG_INGEST)
 export class RagGenerationRetentionProcessor extends WorkerHost {
   private readonly logger = new Logger(RagGenerationRetentionProcessor.name);
 

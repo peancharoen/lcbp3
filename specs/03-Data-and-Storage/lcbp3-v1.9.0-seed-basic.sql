@@ -1159,6 +1159,7 @@ INSERT INTO rfa_status_codes (
     sort_order
   )
 VALUES ('DFT', 'Draft', 'ฉบับร่าง', 1),
+  ('APP', 'Approved', 'อนุมัติแล้ว', 10),
   ('FAP', 'For Approve', 'เพื่อขออนุมัติ', 11),
   ('FRE', 'For Review', 'เพื่อตรวจสอบ', 12),
   ('FCO', 'For Construction', 'เพื่อก่อสร้าง', 20),
@@ -1187,12 +1188,48 @@ VALUES ('1A', 'Approved by Authority', 10, 0),
   ('4', 'Rejected', 40, 1);
 
 -- ADR-049: Seed rfa_consent_reasons (CONSULTANT consent metadata — ไม่มีผลต่อ state)
-INSERT INTO rfa_consent_reasons (public_id, code, description, sort_order, is_active)
-VALUES (UUID(), 'NO_OBJECTION', 'No objection to the design/submission', 10, 1),
-  (UUID(), 'COMMENTS_PROVIDED', 'Comments provided but no objection', 20, 1),
-  (UUID(), 'AGREED_WITH_CONDITIONS', 'Agreed with conditions to be addressed', 30, 1),
-  (UUID(), 'FORWARDED_TO_DESIGNER', 'Forwarded to designer for review', 40, 1),
-  (UUID(), 'REQUESTED_REVISION', 'Requested revision before consent', 50, 1);
+INSERT INTO rfa_consent_reasons (
+    public_id,
+    code,
+    description,
+    sort_order,
+    is_active
+  )
+VALUES (
+    UUID(),
+    'NO_OBJECTION',
+    'No objection to the design/submission',
+    10,
+    1
+  ),
+  (
+    UUID(),
+    'COMMENTS_PROVIDED',
+    'Comments provided but no objection',
+    20,
+    1
+  ),
+  (
+    UUID(),
+    'AGREED_WITH_CONDITIONS',
+    'Agreed with conditions to be addressed',
+    30,
+    1
+  ),
+  (
+    UUID(),
+    'FORWARDED_TO_DESIGNER',
+    'Forwarded to designer for review',
+    40,
+    1
+  ),
+  (
+    UUID(),
+    'REQUESTED_REVISION',
+    'Requested revision before consent',
+    50,
+    1
+  );
 
 -- Seed circulation_status_codes
 INSERT INTO circulation_status_codes (code, description, sort_order)
@@ -2863,7 +2900,6 @@ VALUES (
 -- Migration AI seeds — sync กลับจาก deltas (2026-07-27, 2026-08-06)
 -- เพื่อให้ fresh install ได้ข้อมูลครบเหมือน environment ที่ apply delta แล้ว
 -- ==========================================================
-
 -- 1. SANDBOX project สำหรับ AI Full Pipeline Testing (ADR-042)
 INSERT INTO projects (
     project_code,
@@ -2938,7 +2974,14 @@ VALUES (
 UPDATE setting_key = setting_key;
 
 -- 3. ai_prompt_types + ai_prompts สำหรับ migration_compare (ADR-029, FR-006~008)
-INSERT INTO ai_prompt_types (public_id, prompt_type, display_name, description, is_system_managed, is_active)
+INSERT INTO ai_prompt_types (
+    public_id,
+    prompt_type,
+    display_name,
+    description,
+    is_system_managed,
+    is_active
+  )
 SELECT UUID(),
   'migration_compare',
   'Migration Compare',

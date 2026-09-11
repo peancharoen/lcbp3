@@ -21,14 +21,14 @@ import { RagChunkingService } from '../services/rag-chunking.service';
 import { RagAttachmentSourceService } from '../services/rag-attachment-source.service';
 import { RagEmbeddingService } from '../services/rag-embedding.service';
 import { AiQdrantService } from '../qdrant.service';
-import { QUEUE_AI_BATCH } from '../../common/constants/queue.constants';
+import { QUEUE_AI_RAG_INGEST } from '../../common/constants/queue.constants';
 import type { RagAttachmentIngestJobPayload } from '../ai-queue.service';
 import type { RagTextSegment } from '../interfaces/rag-attachment.types';
 /**
  * Processor สำหรับ RAG Attachment ingestion
  * ทำหน้าที่: normalize → segment → chunk → embed → persist → activate
  */
-@Processor(QUEUE_AI_BATCH, { concurrency: 1 })
+@Processor(QUEUE_AI_RAG_INGEST, { concurrency: 1 })
 export class RagAttachmentIngestProcessor extends WorkerHost {
   private readonly logger = new Logger(RagAttachmentIngestProcessor.name);
 

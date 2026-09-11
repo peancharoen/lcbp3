@@ -13,10 +13,11 @@ import { Queue } from 'bullmq';
 import { Gauge } from 'prom-client';
 import { InjectMetric, makeGaugeProvider } from '@willsoto/nestjs-prometheus';
 import {
-  QUEUE_AI_INGEST,
   QUEUE_AI_REALTIME,
   QUEUE_AI_BATCH,
   QUEUE_AI_RAG,
+  QUEUE_AI_RAG_INGEST,
+  QUEUE_AI_VECTOR_DELETION,
 } from '../../common/constants/queue.constants';
 import { QUEUE_NP_DMS_OCR } from '../../ai/processors/np-dms-ocr-processor';
 import { QUEUE_NP_DMS_AI } from '../../ai/processors/np-dms-ai.processor';
@@ -31,10 +32,12 @@ export class BullmqMetricsService implements OnModuleInit, OnModuleDestroy {
   private interval?: NodeJS.Timeout;
 
   constructor(
-    @InjectQueue(QUEUE_AI_INGEST) private readonly ingestQueue: Queue,
     @InjectQueue(QUEUE_AI_REALTIME) private readonly realtimeQueue: Queue,
     @InjectQueue(QUEUE_AI_BATCH) private readonly batchQueue: Queue,
     @InjectQueue(QUEUE_AI_RAG) private readonly ragQueue: Queue,
+    @InjectQueue(QUEUE_AI_RAG_INGEST) private readonly ragIngestQueue: Queue,
+    @InjectQueue(QUEUE_AI_VECTOR_DELETION)
+    private readonly vectorDeletionQueue: Queue,
     @InjectQueue(QUEUE_NP_DMS_OCR) private readonly ocrQueue: Queue,
     @InjectQueue(QUEUE_NP_DMS_AI) private readonly aiQueue: Queue,
     @InjectMetric('bullmq_jobs_waiting')
@@ -65,10 +68,11 @@ export class BullmqMetricsService implements OnModuleInit, OnModuleDestroy {
 
   private async collectMetrics(): Promise<void> {
     const queues: Array<{ name: string; queue: Queue }> = [
-      { name: QUEUE_AI_INGEST, queue: this.ingestQueue },
       { name: QUEUE_AI_REALTIME, queue: this.realtimeQueue },
       { name: QUEUE_AI_BATCH, queue: this.batchQueue },
       { name: QUEUE_AI_RAG, queue: this.ragQueue },
+      { name: QUEUE_AI_RAG_INGEST, queue: this.ragIngestQueue },
+      { name: QUEUE_AI_VECTOR_DELETION, queue: this.vectorDeletionQueue },
       { name: QUEUE_NP_DMS_OCR, queue: this.ocrQueue },
       { name: QUEUE_NP_DMS_AI, queue: this.aiQueue },
     ];

@@ -109,6 +109,22 @@ describe('AbilityFactory', () => {
 
       expect(ability.can('create', 'correspondence')).toBe(false);
     });
+
+    it('should grant permissions for org-scoped assignment when context has no organizationId (admin-level endpoints)', () => {
+      const user = createMockUser({
+        assignments: [
+          createMockAssignment({
+            organizationId: 1,
+            permissionNames: ['migration.commit'],
+          }),
+        ],
+      });
+
+      // request ไม่ได้ส่ง organizationId มา (เช่น POST /ai/migration/review)
+      const ability = factory.createForUser(user, {});
+
+      expect(ability.can('commit', 'migration')).toBe(true);
+    });
   });
 
   describe('Project Level', () => {

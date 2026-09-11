@@ -7,7 +7,6 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 
 import { Readable } from 'stream';
 import { AiIngestService } from './ai-ingest.service';
-import { AiQueueService } from './ai-queue.service';
 import { FileStorageService } from '../../common/file-storage/file-storage.service';
 import { MigrationService } from '../migration/migration.service';
 import {
@@ -75,10 +74,6 @@ const mockFileStorage = {
   upload: jest.fn().mockResolvedValue({ id: 10, publicId: 'att-uuid-001' }),
 };
 
-const mockAiQueue = {
-  enqueueIngest: jest.fn().mockResolvedValue('job-id-001'),
-};
-
 const mockMigration = {
   importCorrespondence: jest
     .fn()
@@ -128,7 +123,6 @@ describe('AiIngestService', () => {
         AiIngestService,
         { provide: ConfigService, useValue: mockConfig },
         { provide: FileStorageService, useValue: mockFileStorage },
-        { provide: AiQueueService, useValue: mockAiQueue },
         { provide: MigrationService, useValue: mockMigration },
         {
           provide: getRepositoryToken(MigrationReviewRecord),
@@ -155,7 +149,6 @@ describe('AiIngestService', () => {
       id: 10,
       publicId: 'att-uuid-001',
     });
-    mockAiQueue.enqueueIngest.mockResolvedValue('job-id-001');
     mockMigration.importCorrespondence.mockResolvedValue({
       publicId: 'corr-uuid-001',
     });
@@ -206,7 +199,7 @@ describe('AiIngestService', () => {
       ).rejects.toThrow(ValidationException);
     });
 
-    it('ควรสร้าง staging record และ enqueue job เมื่อรับไฟล์ที่ถูกต้อง', async () => {
+    it('ควรสร้าง staging record เมื่อรับไฟล์ที่ถูกต้อง (ไม่ enqueue — ADR-047)', async () => {
       const file = makeFile();
       const createdRecord = makePendingRecord();
       mockReviewRepo.create.mockReturnValue(createdRecord);
@@ -216,9 +209,6 @@ describe('AiIngestService', () => {
 
       expect(mockFileStorage.upload).toHaveBeenCalledWith(file, 1);
       expect(mockReviewRepo.create).toHaveBeenCalledWith(
-        expect.objectContaining({ batchId: 'batch-001' })
-      );
-      expect(mockAiQueue.enqueueIngest).toHaveBeenCalledWith(
         expect.objectContaining({ batchId: 'batch-001' })
       );
       expect(result).toMatchObject({ batchId: 'batch-001', queued: 1 });

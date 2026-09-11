@@ -222,7 +222,7 @@ function LegacyManagementTab() {
 
   return (
     <div className="space-y-6">
-      <LegacyIngestionCard onIngestionStarted={fetchData} />
+      <LegacyIngestionCard onIngestionStarted={() => { fetchData(); fetchBatches(); }} />
 
       <Card>
         <CardHeader>

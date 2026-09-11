@@ -17,6 +17,10 @@ import {
 } from '../entities/migration-review.entity';
 import { MigrationQueueItemDto } from '../dto/migration-queue-item.dto';
 import { User } from '../../user/entities/user.entity';
+import {
+  QUEUE_AI_BATCH,
+  JOB_EXTRACT_METADATA,
+} from '../../common/constants/queue.constants';
 
 @Injectable()
 export class MigrationService {
@@ -25,7 +29,7 @@ export class MigrationService {
   constructor(
     @InjectRepository(MigrationReviewRecord)
     private readonly migrationRepo: Repository<MigrationReviewRecord>,
-    @InjectQueue('ai-batch')
+    @InjectQueue(QUEUE_AI_BATCH)
     private readonly aiBatchQueue: Queue,
     private readonly dataSource: DataSource
   ) {}
@@ -60,7 +64,7 @@ export class MigrationService {
     const saved = await this.migrationRepo.save(record);
 
     // 3. Queue AI processing (OCR + Metadata Extraction)
-    await this.aiBatchQueue.add('extract-metadata', {
+    await this.aiBatchQueue.add(JOB_EXTRACT_METADATA, {
       migrationQueuePublicId: saved.publicId,
       tempPath: dto.tempPath,
       filename: dto.filename,

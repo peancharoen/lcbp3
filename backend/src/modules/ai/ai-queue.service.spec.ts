@@ -7,11 +7,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getQueueToken } from '@nestjs/bullmq';
 import { AiQueueService } from './ai-queue.service';
 import {
-  QUEUE_AI_INGEST,
   QUEUE_AI_RAG,
   QUEUE_AI_VECTOR_DELETION,
   QUEUE_AI_BATCH,
   QUEUE_AI_REALTIME,
+  QUEUE_AI_RAG_INGEST,
   JOB_RAG_ATTACHMENT_INGEST,
 } from '../common/constants/queue.constants';
 
@@ -79,20 +79,16 @@ describe('AiQueueService', () => {
     jest.clearAllMocks();
     store.clear();
     queues = {
-      [QUEUE_AI_INGEST]: createMockQueue(),
       [QUEUE_AI_RAG]: createMockQueue(),
       [QUEUE_AI_VECTOR_DELETION]: createMockQueue(),
       [QUEUE_AI_BATCH]: createMockQueue(),
       [QUEUE_AI_REALTIME]: createMockQueue(),
+      [QUEUE_AI_RAG_INGEST]: createMockQueue(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AiQueueService,
-        {
-          provide: getQueueToken(QUEUE_AI_INGEST),
-          useValue: queues[QUEUE_AI_INGEST],
-        },
         {
           provide: getQueueToken(QUEUE_AI_RAG),
           useValue: queues[QUEUE_AI_RAG],
@@ -108,6 +104,10 @@ describe('AiQueueService', () => {
         {
           provide: getQueueToken(QUEUE_AI_REALTIME),
           useValue: queues[QUEUE_AI_REALTIME],
+        },
+        {
+          provide: getQueueToken(QUEUE_AI_RAG_INGEST),
+          useValue: queues[QUEUE_AI_RAG_INGEST],
         },
         {
           provide: 'default_IORedisModuleConnectionToken',
@@ -346,30 +346,7 @@ describe('AiQueueService', () => {
   });
 
   // ─── ADR-048 FR-009: Transition lock on ALL enqueue paths ──────────────────
-
-  describe('FR-009: transition lock on enqueueIngest', () => {
-    it('ควร throw 503 เมื่อมี transition lock และเรียก enqueueIngest', async () => {
-      store.set('ai:model:transitioning', 'locked');
-      await expect(
-        service.enqueueIngest({
-          batchId: 'batch-1',
-          filePublicIds: ['file-1'],
-          source: 'api',
-        })
-      ).rejects.toThrow('Service Unavailable');
-      expect(queues[QUEUE_AI_INGEST].add).not.toHaveBeenCalled();
-    });
-
-    it('ควรส่ง ingest ปกติเมื่อไม่มี lock', async () => {
-      const jobId = await service.enqueueIngest({
-        batchId: 'batch-1',
-        filePublicIds: ['file-1'],
-        source: 'api',
-      });
-      expect(jobId).toBe('new-job');
-      expect(queues[QUEUE_AI_INGEST].add).toHaveBeenCalled();
-    });
-  });
+  // Note: enqueueIngest() ถูกลบแล้ว — QUEUE_AI_INGEST เป็น dead queue (ADR-047 supersede)
 
   describe('FR-009: transition lock on enqueueVectorDeletion', () => {
     it('ควร throw 503 เมื่อมี transition lock และเรียก enqueueVectorDeletion', async () => {
@@ -444,7 +421,8 @@ describe('AiQueueService', () => {
   });
 
   // ─── Feature 254 Phase 3 US1 T023: enqueueRagAttachmentIngestion ───────────
-  // ทดสอบการ enqueue งาน RAG Attachment ingestion เข้า ai-batch ตาม ADR-008/ADR-023
+  // ทดสอบการ enqueue งาน RAG Attachment ingestion เข้า ai-rag-ingest ตาม ADR-008/ADR-023
+  // B13 fix: ย้ายจาก ai-batch ไป ai-rag-ingest เพื่อป้องกัน job ผิด type ถูก claim โดย processor ผิด
   // ครอบคลุม 5 พฤติกรรม: jobId, queue ที่ถูกต้อง, idempotency, retry attempts, payload fields
   describe('Feature 254 T023: enqueueRagAttachmentIngestion', () => {
     const basePayload = {
@@ -456,21 +434,21 @@ describe('AiQueueService', () => {
     it('1. ควรคืน jobId หลัง enqueue สำเร็จ', async () => {
       const jobId = await service.enqueueRagAttachmentIngestion(basePayload);
       expect(jobId).toBe('new-job');
-      expect(queues[QUEUE_AI_BATCH].add).toHaveBeenCalledTimes(1);
+      expect(queues[QUEUE_AI_RAG_INGEST].add).toHaveBeenCalledTimes(1);
     });
 
-    it('2. ควรส่งงานเข้า ai-batch queue (ไม่ใช่ queue อื่น) ตาม ADR-008', async () => {
+    it('2. ควรส่งงานเข้า ai-rag-ingest queue (ไม่ใช่ queue อื่น) ตาม ADR-008', async () => {
       await service.enqueueRagAttachmentIngestion(basePayload);
-      expect(queues[QUEUE_AI_BATCH].add).toHaveBeenCalledWith(
+      expect(queues[QUEUE_AI_RAG_INGEST].add).toHaveBeenCalledWith(
         JOB_RAG_ATTACHMENT_INGEST,
         expect.any(Object),
         expect.any(Object)
       );
       // ตรวจสอบว่า queue อื่นไม่ถูกเรียก
-      expect(queues[QUEUE_AI_INGEST].add).not.toHaveBeenCalled();
       expect(queues[QUEUE_AI_RAG].add).not.toHaveBeenCalled();
       expect(queues[QUEUE_AI_VECTOR_DELETION].add).not.toHaveBeenCalled();
       expect(queues[QUEUE_AI_REALTIME].add).not.toHaveBeenCalled();
+      expect(queues[QUEUE_AI_BATCH].add).not.toHaveBeenCalled();
     });
 
     it('3. idempotency — enqueue payload เดิมซ้ำควรส่ง jobId option เดียวกัน (BullMQ dedup)', async () => {
@@ -478,7 +456,7 @@ describe('AiQueueService', () => {
       await service.enqueueRagAttachmentIngestion(basePayload);
 
       const expectedJobId = `${JOB_RAG_ATTACHMENT_INGEST}:${basePayload.attachmentPublicId}:${basePayload.attachmentChecksum}`;
-      const calls = queues[QUEUE_AI_BATCH].add.mock.calls as Array<
+      const calls = queues[QUEUE_AI_RAG_INGEST].add.mock.calls as Array<
         [string, unknown, { jobId: string }]
       >;
       expect(calls).toHaveLength(2);
@@ -494,7 +472,7 @@ describe('AiQueueService', () => {
         ...basePayload,
         attachmentChecksum: 'sha256:changed',
       });
-      const calls = queues[QUEUE_AI_BATCH].add.mock.calls as Array<
+      const calls = queues[QUEUE_AI_RAG_INGEST].add.mock.calls as Array<
         [string, unknown, { jobId: string }]
       >;
       expect(calls[0][2].jobId).not.toBe(calls[1][2].jobId);
@@ -502,7 +480,7 @@ describe('AiQueueService', () => {
 
     it('4. retry behavior — job ต้องมี attempts = 3 ตาม defaultOptions', async () => {
       await service.enqueueRagAttachmentIngestion(basePayload);
-      const [, , options] = queues[QUEUE_AI_BATCH].add.mock.calls[0] as [
+      const [, , options] = queues[QUEUE_AI_RAG_INGEST].add.mock.calls[0] as [
         string,
         unknown,
         { attempts: number },
@@ -512,7 +490,7 @@ describe('AiQueueService', () => {
 
     it('5. payload ต้องมี required fields (attachmentPublicId, attachmentChecksum, force)', async () => {
       await service.enqueueRagAttachmentIngestion(basePayload);
-      const [, payload] = queues[QUEUE_AI_BATCH].add.mock.calls[0] as [
+      const [, payload] = queues[QUEUE_AI_RAG_INGEST].add.mock.calls[0] as [
         string,
         {
           attachmentPublicId: string;
@@ -531,7 +509,7 @@ describe('AiQueueService', () => {
       await expect(
         service.enqueueRagAttachmentIngestion(basePayload)
       ).rejects.toThrow('Service Unavailable');
-      expect(queues[QUEUE_AI_BATCH].add).not.toHaveBeenCalled();
+      expect(queues[QUEUE_AI_RAG_INGEST].add).not.toHaveBeenCalled();
     });
   });
 });

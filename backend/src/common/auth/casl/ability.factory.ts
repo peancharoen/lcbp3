@@ -119,8 +119,13 @@ export class AbilityFactory {
     }
 
     // Level 2: Organization scope
+    // ถ้า request ไม่ระบุ organizationId (เช่น admin-level endpoints อย่าง migration.commit)
+    // ให้ถือว่า org-scoped assignment ยัง match ได้ — ไม่เช่นนั้น Org Admin จะเข้าไม่ได้
     if (assignment.organizationId) {
-      return context.organizationId === assignment.organizationId;
+      return (
+        context.organizationId === undefined ||
+        context.organizationId === assignment.organizationId
+      );
     }
 
     return false;

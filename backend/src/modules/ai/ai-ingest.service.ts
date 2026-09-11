@@ -19,7 +19,6 @@ import {
 import { Project } from '../project/entities/project.entity';
 import { Organization } from '../organization/entities/organization.entity';
 import { CorrespondenceType } from '../correspondence/entities/correspondence-type.entity';
-import { AiQueueService } from './ai-queue.service';
 import {
   ApproveLegacyMigrationDto,
   LegacyMigrationIngestDto,
@@ -65,7 +64,6 @@ export class AiIngestService {
   constructor(
     private readonly configService: ConfigService,
     private readonly fileStorageService: FileStorageService,
-    private readonly aiQueueService: AiQueueService,
     private readonly migrationService: MigrationService,
     @InjectRepository(MigrationReviewRecord)
     private readonly reviewRepo: Repository<MigrationReviewRecord>,
@@ -132,17 +130,15 @@ export class AiIngestService {
     }
 
     const saved = await this.reviewRepo.save(createdRecords);
-    const queueJobId = await this.aiQueueService.enqueueIngest({
-      batchId: dto.batchId,
-      filePublicIds,
-      source: dto.source === 'folder-watcher' ? 'folder-watcher' : 'api',
-    });
 
+    // QUEUE_AI_INGEST ถูกลบแล้ว — ADR-047 supersede ด้วย LegacyIngestionService
+    // ที่ใช้ ai-batch queue ผ่าน legacy-ai-enrichment job แทน
+    // ยังเก็บ staging records ไว้สำหรับ listQueue/approve endpoints
     this.logger.log(
       `AI legacy migration batch ${dto.batchId} created ${saved.length} staging records`
     );
 
-    return { batchId: dto.batchId, queued: saved.length, queueJobId };
+    return { batchId: dto.batchId, queued: saved.length };
   }
 
   async listQueue(
