@@ -292,6 +292,12 @@
 | D312 | **Job names รวมเป็น constants ใน `queue.constants.ts`** — 18 constants ใหม่ (`JOB_OCR`, `JOB_OCR_EXTRACT`, `JOB_EXTRACT_METADATA`, `JOB_AI_SUGGEST`, `JOB_RAG_QUERY`, `JOB_EMBED_DOCUMENT`, `JOB_SANDBOX*_`, `JOB*MIGRATE_DOCUMENT`, `JOB_RAG_PREPARE`, `JOB_LEGACY*_`, `JOB_CLEAR_FAILED_JOBS`, `JOB_DELETE_DOCUMENT_VECTORS`); แทน string literals ใน services/processors | Session 2026-09-11 |
 | D313 | **Monitoring ครอบคลุม 7 queues** — `ai-realtime`, `ai-batch`, `ai-rag-query`, `ai-rag-ingest`, `ai-vector-deletion`, `np-dms-ocr`, `np-dms-ai`; `ai-ingest` ลบออกแล้ว | Session 2026-09-11 |
 | D314 | **`LegacyIngestionService`validate`.xlsx`extension ก่อน processing** — non-Excel file → 400`BadRequestException` แทน 500 unhandled error; ป้องกัน ExcelJS throw จาก PDF/ไฟล์อื่น | Session 2026-09-11 |
+| D315 | **Migration integration test harness** — ต้อง mock query runner manager ครบทุก method (`findOne`, `find`, `create`, `save`, `update`, `query`, `getRepository`) เพราะ `commitRecord` มี deep call path | Session 2026-09-11 |
+| D316 | **`CleanExpiredStashesWorker`ใช้`fs.rm`โดยตรง** — ไม่ใช่`stashService.deleteSession`; constructor รับ `ReviewSessionStashService` ตัวเดียว | Session 2026-09-11 |
+| D317 | **`RagBatchService.triggerRagBatch()`ใช้`dataSource.query()`โดยตรง** — ไม่ผ่าน repository; mock ต้องมี`DataSource.query()`ไม่ใช่แค่`getRepository()` | Session 2026-09-11 |
+| D318 | **`commitRecord`RAG trigger ใช้`enqueueRagPrepare()`** — ไม่ใช่ `triggerRagBatch()`; spy ต้อง target ให้ถูก | Session 2026-09-11 |
+| D319 | **`LegacyIngestionService`constructor ต้องการ`@InjectQueue('ai-batch')`** — test module ต้อง provide `'BullQueue_ai-batch'`token | Session 2026-09-11 |
+| D320 | **Performance test ใช้`Array.from({ length: N }, () => 0)`** — แทน `new Array(N).fill(0)`เพื่อหลีก ESLint`no-unsafe-argument` | Session 2026-09-11 |
 
 ## Environment & Services
 
@@ -375,6 +381,7 @@ QDRANT_URL
 - [ ] Registry GC script ทดสอบรันจริงบน ASUSTOR — สร้าง script แล้ว ตั้ง cron แล้ว แต่ยังไม่ได้ทดสอบรันจริง (จะหยุด registry ~10-30 วินาที)
 - [ ] อัปเกรด Vitest 4.1.9 → 5.x — prerequisites ผ่านแล้ว (Node v24.20.0, Vite 7.3.6); ระวัง breaking changes: `clearMocks` default true, `testNamePattern` format เปลี่ยน, `expect.poll` เข้มงวดขึ้น; อาจแก้ `poolOptions` type definition ให้ลบ `@ts-expect-error` ได้; ทำเป็น task แยก ตรวจ test ที่พึ่ง call history ข้าม test ก่อน
 - [x] Migration Queue Unification — ลบ dead queue `QUEUE_AI_INGEST`, เพิ่ม monitoring 7 queues, Map registry, 18 job constants, แก้ CI 401 test, แก้ non-Excel file → 400; deploy image `9274a0578930`; Phase 2+ tests ผ่าน; lock D310-D314 — ✅ 2026-09-11
+- [x] Migration Test Plan Phase 3 + 4 — สร้าง integration + performance tests: Phase 3A (12 tests), Phase 3B (7 tests), Phase 4A (3 tests), Phase 4C (6 tests); รวม 28 tests ผ่าน; tsc+eslint 0 errors; commits `e75653af`+`e51c95b0`; lock D315-D320 — ✅ 2026-09-11
 
 #### B. Manual / Browser Verify บน production (ต้องทำเองหรือใช้ Playwright)
 
