@@ -3,7 +3,7 @@
 // - 2026-08-20: สร้าง Native Ingestion Engine สำหรับอ่าน Excel ขนาดใหญ่ (Streaming) และนำเข้าสู่ Staging Queue (ADR-047)
 // - 2026-08-25: ลบ auto-enqueue BullMQ ออกจาก Ingestion — ผู้ใช้ต้องกด Start Extract เอง (D156)
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -101,6 +101,14 @@ export class LegacyIngestionService {
 
     if (!fs.existsSync(filePath)) {
       throw new NotFoundException('Excel File', filePath);
+    }
+
+    // ตรวจสอบนามสกุลไฟล์ — รับเฉพาะ .xlsx เท่านั้น (ป้องกันการส่ง PDF/ไฟล์อื่น ทำให้ ExcelJS throw 500)
+    const fileExt = path.extname(filePath).toLowerCase();
+    if (fileExt !== '.xlsx') {
+      throw new BadRequestException(
+        `ไฟล์ต้องเป็น Excel (.xlsx) เท่านั้น — ได้รับ: ${fileExt || 'ไม่มีนามสกุล'}`
+      );
     }
 
     // 1. ตรวจสอบและค้นหา Project จาก UUIDv7
