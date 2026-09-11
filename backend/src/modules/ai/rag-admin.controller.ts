@@ -9,6 +9,7 @@ import {
   Headers,
   HttpCode,
   HttpStatus,
+  Logger,
   Param,
   Post,
   Query,
@@ -55,6 +56,8 @@ import { RagAttachmentIngestionService } from './services/rag-attachment-ingesti
 @UseGuards(JwtAuthGuard, RbacGuard)
 @Controller('ai/admin/rag')
 export class RagAdminController {
+  private readonly logger = new Logger(RagAdminController.name);
+
   constructor(
     private readonly ragAdminService: RagAdminService,
     private readonly observabilityService: RagObservabilityService,
@@ -122,7 +125,45 @@ export class RagAdminController {
   @RequirePermission('rag.manage')
   @ApiOperation({ summary: 'Get RAG observability metrics snapshot' })
   public getMetrics(): RagAdminMetricsSnapshotDto {
-    return this.observabilityService.getSnapshot() as unknown as RagAdminMetricsSnapshotDto;
+    try {
+      return this.observabilityService.getSnapshot() as unknown as RagAdminMetricsSnapshotDto;
+    } catch (err) {
+      // FR-018: คืน zero-value snapshot เมื่อ observability service ไม่พร้อม ไม่ throw 500
+      this.logger.error(
+        `getMetrics: observability service unavailable — ${(err as Error).message}`
+      );
+      return {
+        swap: {
+          started: 0,
+          completed: 0,
+          rolledBack: 0,
+          activeConcurrent: 0,
+          maxConcurrent: 0,
+        },
+        qdrantDeletion: {
+          attempted: 0,
+          succeeded: 0,
+          partialFailures: 0,
+          totalPendingRetries: 0,
+        },
+        cleanup: { processed: 0, succeeded: 0, failed: 0, durationMs: 0 },
+        ingestionDuration: {
+          count: 0,
+          sumMs: 0,
+          buckets: { 100: 0, 500: 0, 2000: 0 },
+        },
+        chunkCount: { total: 0, ingestionCount: 0 },
+        vectorLatency: {
+          count: 0,
+          sumMs: 0,
+          buckets: { 100: 0, 500: 0, 2000: 0 },
+        },
+        staleResultRate: { stale: 0, total: 0 },
+        fallbackRate: { fullTextFallback: 0, totalQueries: 0 },
+        cleanupRetryRate: { retries: 0, cleanups: 0 },
+        uptimeMs: 0,
+      } as unknown as RagAdminMetricsSnapshotDto;
+    }
   }
 
   /** POST /ai/admin/rag/metrics/reset — global reset (US4, Q15) */

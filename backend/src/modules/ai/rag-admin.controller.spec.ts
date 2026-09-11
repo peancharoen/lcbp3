@@ -198,6 +198,21 @@ describe('RagAdminController', () => {
       expect(mockObservabilityService.getSnapshot).toHaveBeenCalled();
       expect(result).toEqual(mockSnapshot);
     });
+
+    it('2D.1: should return zero-value snapshot when observability service throws (FR-018)', () => {
+      mockObservabilityService.getSnapshot.mockImplementation(() => {
+        throw new Error('Qdrant connection refused');
+      });
+
+      const result = controller.getMetrics();
+
+      // Should not throw — should return zero-value snapshot
+      expect(result).toBeDefined();
+      expect(result.uptimeMs).toBe(0);
+      expect(result.ingestionDuration.count).toBe(0);
+      expect(result.chunkCount.total).toBe(0);
+      expect(result.vectorLatency.count).toBe(0);
+    });
   });
 
   describe('POST /ai/admin/rag/metrics/reset (T044)', () => {

@@ -107,6 +107,89 @@ Phase 5: Security & RBAC     ← ทดสอบความปลอดภั�
 > **เป้าหมาย**: ยืนยันว่าผู้ใช้ใช้งานผ่านหน้าเว็บ `/admin/ai/rag-console/` ได้จริง
 > **วิธี**: ใช้ Playwright (ตาม skill `e2e-testing`) หรือ manual verify ผ่าน `check-real-app`
 
+### Phase 1 Results (2026-09-12)
+
+**Production URL**: https://lcbp3.np-dms.work/admin/ai/rag-console
+**Account**: superadmin (seeded — has `system.manage_all`, `document.classification_override`, `ai.read_analytics`, `monitoring.view_health`, `monitoring.view_metrics`)
+**CI/CD**: Run #724 — ci-quality ✅, ci-test ✅, deploy ✅ (commit `23db3109`)
+
+#### P0 Bug Found & Fixed During Phase 1
+
+| ID | Severity | Description | Root Cause | Fix | Commit |
+|----|----------|-------------|------------|-----|--------|
+| P0-ENVELOPE | P0 | Page crash: `TypeError: Cannot read properties of undefined (reading 'length')` | `admin-rag.service.ts` returned `response.data` (NestJS envelope `{ statusCode, message, data }`) instead of `response.data.data` (inner payload). Components accessed `data.items.length` → undefined.length | All 9 service methods + `ServiceUnavailableBanner` changed to `response.data.data` with `as Type` cast (matching `correspondence.service.ts` pattern) | `23db3109` |
+
+**Test coverage gap**: Component tests mock TanStack Query hooks directly (supplying `{ items: [...] }`), not the Axios service. The service-layer envelope unwrapping was never tested against a real API response. → See Phase 2 addendum: service-level envelope test needed.
+
+#### Phase 1 Step Results
+
+| Step | Result | Evidence |
+|------|--------|----------|
+| 1A.1 | ✅ PASS | Page loads with 5 tabs: แดชบอร์ด, การจัดหมวด, วงจรการสร้าง, เมตริก, รีทราย |
+| 1A.2 | ✅ PASS | Dashboard table renders 6 attachments with columns: ชื่อไฟล์, สถานะ RAG, AI Pipeline, จำนวน Chunk, การจัดหมวด, อัปเดตล่าสุด |
+| 1A.3 | ✅ PASS | Status badges render: ยังไม่เริ่น (NOT_STARTED), ล้มเหลว (FAILED), กำลังสร้าง (BUILDING) |
+| 1A.4 | ⏭ SKIP | No project filter dropdown visible in current deployment (single-project seed data) |
+| 1A.5 | ✅ PASS | Status filter = ล้มเหลว (FAILED) → shows only 1 FAILED attachment |
+| 1A.6 | ⏭ SKIP | NOT_STARTED filter not separately tested (4 NOT_STARTED rows visible in unfiltered view) |
+| 1A.7 | ⏭ SKIP | Page size selector not visible in current deployment |
+| 1A.8 | ⏭ SKIP | Page size validation not tested (no selector) |
+| 1A.9 | ⏭ SKIP | Auto-refresh polling not explicitly timed (infrastructure polling at 10s/30s visible) |
+| 1A.10 | ⏭ SKIP | Background polling pause not tested |
+| 1A.11 | ✅ PASS | Manual รีเฟรช button works — table refreshes |
+| 1A.12 | ⏭ SKIP | Empty state not tested (6 attachments present) |
+| 1B.1 | ✅ PASS | Classification tab shows 6 rows with columns: ชื่อไฟล์, การจัดหมวดปัจจุบัน, การ Override, เหตุผล, Override โดย |
+| 1B.2 | ✅ PASS | All rows show INTERNAL classification, "ยังไม่เคย override" (never overridden), "-" for reason/actor |
+| 1B.3 | ⏭ SKIP | Override submit not executed (avoid modifying production data) |
+| 1B.4 | ⏭ SKIP | Effective classification badge after override not tested (no submit) |
+| 1B.5 | ⏭ SKIP | Audit trail display not tested (P2 gap — no dedicated audit trail UI) |
+| 1B.6 | ✅ PASS | Submit button disabled when reason empty; enabled after typing reason |
+| 1C.1 | ✅ PASS | Lifecycle tab: attachment selector + generation timeline (4 BUILDING entries for rag-schema-e2e-seed.pdf) |
+| 1C.2 | ✅ PASS | Each generation shows status, timestamp, chunk count — **no generationUuid exposed** (ADR-019 compliant) |
+| 1C.3 | ⏭ SKIP | No ACTIVE generation in seed data (all BUILDING) |
+| 1C.4 | ⏭ SKIP | Force re-ingest not executed (avoid modifying production data) |
+| 1C.5 | ✅ PASS | Confirmation dialog appears: "คุณแน่ใจหรือไม่ที่จะบังคับ re-ingest ไฟล์แนปนี้?" with ยกเลิก/บังคับ Re-ingest buttons |
+| 1C.6 | ⏭ SKIP | No-checksum edge case not tested |
+| 1C.7 | ✅ PASS | FAILED generations show errorCode (INGESTION_ERROR, NO_OCR_TEXT) + errorMessage + failedAt |
+| 1C.8 | ⏭ SKIP | No RETIRED generation in seed data |
+| 1D.1 | ✅ PASS | Metrics tab shows 6 cards: ระยะเวลา Ingestion, จำนวน Chunk, ความหน่วง Vector, อัตราผลลัพธ์เก่า, อัตรา Fallback, อัตรา Retry การทำความสะอาด |
+| 1D.2 | ✅ PASS | Zero values displayed correctly (no errors) |
+| 1D.3 | ✅ PASS | Reset button shows confirmation dialog: "การกระทำนี้ไม่สามารถยกเลิกได้" |
+| 1D.4 | ⏭ SKIP | Reset not confirmed (avoid resetting production metrics) |
+| 1D.5 | ✅ PASS | No per-project reset button (only global reset) |
+| 1E.1 | ✅ PASS | Retry tab shows 2 sections: การสร้าง Generation ที่ล้มเหลว + AI Pipeline ที่ล้มเหลว |
+| 1E.2 | ✅ PASS | RAG failures section: 4 rows with checkbox, filename, errorCode, errorMessage, failedAt |
+| 1E.3 | ✅ PASS | AI pipeline failures section: empty state "ไม่มี ingestion ที่ล้มเหลว" |
+| 1E.4 | ✅ PASS | Checkbox selection works — "Retry ทั้งหมด" becomes "Retry ที่เลือก (1)" |
+| 1E.5 | ⏭ SKIP | Batch retry not executed (avoid modifying production data) |
+| 1E.6 | ⏭ SKIP | Partial-success results not tested (no batch retry) |
+| 1E.7 | ⏭ SKIP | Permanent error message not tested |
+| 1F.1 | ✅ PASS | admin (role: ADMIN) gets 401/403 on all RAG admin endpoints (verified in prior session) |
+| 1F.2 | ✅ PASS | superadmin gets 200 on all 4 RAG admin endpoints (verified via fetch) |
+| 1F.3 | ⏭ SKIP | Org Admin role not tested (no seeded account) |
+| 1F.4 | ⏭ SKIP | Org Admin reset not tested |
+| 1F.5 | ⏭ SKIP | Org Admin retry not tested |
+| 1F.6 | ⏭ SKIP | Classification permission gating not tested (P1 gap — frontend gating) |
+| 1F.7 | ⏭ SKIP | Viewer role not tested |
+| 1G.1 | ⏭ SKIP | Qdrant down not tested (service healthy) |
+| 1G.2 | ⏭ SKIP | Ollama down not tested (service healthy) |
+| 1G.3 | ⏭ SKIP | Orphaned attachment not tested |
+| 1G.4 | ⏭ SKIP | Empty state not tested (data present) |
+| 1G.5 | ✅ PASS | Metrics zero values display correctly |
+| 1G.6 | ✅ PASS | No UUIDs exposed in visible page text (ADR-019 compliant) |
+| 1G.7 | ✅ PASS | No ServiceUnavailableBanner shown (all services healthy) |
+| 1H.1 | ✅ PASS | Console: 0 errors, 0 warnings in current session (after fix deployed) |
+| 1H.2 | ✅ PASS | Responsive: renders correctly at 768px tablet and 1280px desktop |
+| 1H.3 | ⏭ SKIP | i18n language switch not explicitly tested |
+| 1H.4 | ⏭ SKIP | Network parameter check not explicitly captured |
+
+#### New Issues Discovered During Phase 1
+
+| ID | Severity | Description | Affected |
+|----|----------|-------------|----------|
+| ISSUE-001 | P1 → Resolved | **Schema mismatch (historical)**: 3 of 4 failed RAG generations show error `Unknown column 'Attachment.effective_classification' in 'SELECT'` — the delta `2026-09-09-rag-attachment-classification.sql` was not applied to production until after 9/11 11:38 AM. Column now exists (verified via `SHOW COLUMNS FROM attachments`). These are historical error records, not a current issue. | Backend `RagAdminService.listAttachments()` / `RagAttachment` entity |
+| ISSUE-002 | P2 → Resolved | **Frontend RBAC gap**: Classification override form was shown for all users with page access — no frontend check for `document.classification_override` permission (SC-008). Fixed in commit `e11ec34a`: form now hidden, rows not clickable, permission-denied notice shown. | `frontend/app/(admin)/admin/ai/rag-console/page.tsx` |
+| ISSUE-003 | P2 → Resolved | **Service-level test gap**: No test exercised the Axios service envelope unwrapping — component tests mock hooks directly, so the P0 bug was not caught. Fixed in commit `91dda98c`: 10 service-level tests added covering all 9 service methods. | `frontend/lib/services/__tests__/admin-rag.service.test.ts` |
+
 ### 1A. Ingestion Status Dashboard (US1 — P1)
 
 **เตรียมการ**:
@@ -215,6 +298,33 @@ Phase 5: Security & RBAC     ← ทดสอบความปลอดภั�
 
 > **สถานะปัจจุบัน**: 25 unit tests pass (controller 11 + service 14)
 > **ช่องว่าง**: audit trail display, orphan cleanup edge cases, service unavailable handling
+
+### Phase 2 Results (2026-09-12)
+
+**Status**: ✅ COMPLETE — All 10 new tests pass (7 new + 3 already existed)
+
+| Phase | Tests | Status | Commit |
+|-------|-------|--------|--------|
+| 2A — Audit Trail | 3 new | ✅ PASS | `14538091` |
+| 2B — Pagination Edge Cases | 3 new | ✅ PASS | `14538091` |
+| 2C — Orphan Scan Edge Cases | 3 (already existed) | ✅ PASS | N/A |
+| 2D — Service Unavailable | 1 new + code fix | ✅ PASS | `14538091` |
+
+**Full test suite after Phase 2**:
+- Backend: 2970 passed, 17 skipped (205 suites)
+- Frontend: 1085 passed (156 files)
+
+**Code changes**:
+- `backend/src/modules/ai/rag-admin.controller.ts`: Added try/catch to `getMetrics()` — returns zero-value snapshot when observability service throws (FR-018)
+- `backend/src/modules/ai/services/rag-admin.service.spec.ts`: +6 tests (2A.1, 2A.2, 2A.3, 2B.1, 2B.2, 2B.3)
+- `backend/src/modules/ai/rag-admin.controller.spec.ts`: +1 test (2D.1)
+
+**ISSUE-002 fix** (commit `e11ec34a`):
+- `frontend/app/(admin)/admin/ai/rag-console/page.tsx`: Classification override form now gated behind `document.classification_override` permission (SC-008)
+- `frontend/app/(admin)/admin/ai/rag-console/__tests__/classification.test.tsx`: +1 test for permission-denied state
+
+**ISSUE-003 fix** (commit `91dda98c`):
+- `frontend/lib/services/__tests__/admin-rag.service.test.ts`: New file with 10 service-level tests exercising NestJS response envelope unwrapping (`response.data.data`) for all 9 service methods
 
 ### 2A. RagAdminService — Audit Trail (Spec 255)
 

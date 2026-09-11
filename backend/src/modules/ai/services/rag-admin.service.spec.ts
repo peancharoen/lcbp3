@@ -292,4 +292,150 @@ describe('RagAdminService', () => {
       expect(result.failed[0].reason).toContain('No generation');
     });
   });
+
+  // ==========================================================
+  // Phase 2A: Audit Trail (Spec 255 FR-005, SC-006)
+  // ==========================================================
+
+  describe('listAttachmentsForClassification — Audit Trail (2A)', () => {
+    it('2A.1: should return classificationOverride object when attachment has been overridden', async () => {
+      const qb = mockAttachmentRepo.createQueryBuilder();
+      qb.getCount.mockResolvedValue(1);
+      qb.getRawMany.mockResolvedValue([
+        {
+          attachmentPublicId: 'test-uuid-1',
+          originalFilename: 'doc1.pdf',
+          effectiveClassification: 'CONFIDENTIAL',
+          overrideReason: 'Security review required',
+          overrideActor: 'admin-user-uuid',
+          overrideAt: new Date('2026-09-12T00:00:00Z'),
+        },
+      ]);
+
+      const result = await service.listAttachmentsForClassification({});
+
+      expect(result.items).toHaveLength(1);
+      const item = result.items[0];
+      expect(item.classificationOverride).not.toBeNull();
+      expect(item.classificationOverride?.reason).toBe(
+        'Security review required'
+      );
+      expect(item.classificationOverride?.overriddenBy).toBe('admin-user-uuid');
+      expect(item.classificationOverride?.overriddenAt).toEqual(
+        new Date('2026-09-12T00:00:00Z')
+      );
+      expect(item.effectiveClassification).toBe('CONFIDENTIAL');
+    });
+
+    it('2A.2: should return classificationOverride = null when attachment has never been overridden', async () => {
+      const qb = mockAttachmentRepo.createQueryBuilder();
+      qb.getCount.mockResolvedValue(1);
+      qb.getRawMany.mockResolvedValue([
+        {
+          attachmentPublicId: 'test-uuid-2',
+          originalFilename: 'doc2.pdf',
+          effectiveClassification: 'INTERNAL',
+          overrideReason: null,
+          overrideActor: null,
+          overrideAt: null,
+        },
+      ]);
+
+      const result = await service.listAttachmentsForClassification({});
+
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0].classificationOverride).toBeNull();
+    });
+  });
+
+  describe('batchRetry — Permanent Error (2A.3, US5 AC4)', () => {
+    it('2A.3: should return failed[] with user-friendly reason when ingestion throws permanent error', async () => {
+      mockGenerationRepo.findOne.mockResolvedValue({
+        generationUuid: 'gen-1',
+        status: 'FAILED',
+        attachmentUuid: 'uuid-1',
+      });
+      mockGenerationRepo.update.mockResolvedValue({});
+      // Simulate permanent error from ingestionService.ingest()
+      mockIngestionService.ingest.mockRejectedValue(
+        new Error('File is corrupted and cannot be ingested')
+      );
+
+      const result = await service.batchRetry(['uuid-1']);
+
+      expect(result.failed).toHaveLength(1);
+      expect(result.failed[0].attachmentPublicId).toBe('uuid-1');
+      expect(result.failed[0].reason).toContain('corrupted');
+      expect(result.succeeded).toHaveLength(0);
+    });
+  });
+
+  // ==========================================================
+  // Phase 2B: Pagination Edge Cases (Spec 255 FR-003)
+  // ==========================================================
+
+  describe('listAttachments — Pagination Edge Cases (2B)', () => {
+    it('2B.1: should accept pageSize=50 and return correct total', async () => {
+      const qb = mockAttachmentRepo.createQueryBuilder();
+      qb.getCount.mockResolvedValue(100);
+      qb.getRawMany.mockResolvedValue([]);
+
+      const result = await service.listAttachments({
+        page: 1,
+        pageSize: RagAdminPageSize.FIFTY,
+      });
+
+      expect(result.pageSize).toBe(RagAdminPageSize.FIFTY);
+      expect(result.total).toBe(100);
+      expect(result.page).toBe(1);
+    });
+
+    it('2B.2: should return empty items when page exceeds total pages (no error)', async () => {
+      const qb = mockAttachmentRepo.createQueryBuilder();
+      qb.getCount.mockResolvedValue(5);
+      qb.getRawMany.mockResolvedValue([]);
+
+      // Page 100 when only 5 items exist (page 1 of pageSize 20)
+      const result = await service.listAttachments({
+        page: 100,
+        pageSize: RagAdminPageSize.TWENTY,
+      });
+
+      expect(result.items).toEqual([]);
+      expect(result.total).toBe(5);
+      expect(result.page).toBe(100);
+    });
+
+    it('2B.3: should apply both status filter and project filter together', async () => {
+      const qb = mockAttachmentRepo.createQueryBuilder();
+      qb.getCount.mockResolvedValue(2);
+      qb.getRawMany.mockResolvedValue([
+        {
+          attachmentPublicId: 'uuid-1',
+          originalFilename: 'doc1.pdf',
+          mimeType: 'application/pdf',
+          ragStatus: 'FAILED',
+          aiProcessingStatus: 'DONE',
+          chunkCount: 1,
+          effectiveClassification: 'INTERNAL',
+          overrideReason: null,
+          overrideActor: null,
+          overrideAt: null,
+          lastUpdated: new Date(),
+          createdAt: new Date(),
+          errorCode: null,
+          errorMessage: null,
+        },
+      ]);
+
+      const result = await service.listAttachments({
+        status: 'FAILED' as never,
+        projectPublicId: 'proj-uuid-1',
+      });
+
+      // Verify andWhere was called (filter applied)
+      expect(qb.andWhere).toHaveBeenCalled();
+      expect(result.total).toBe(2);
+    });
+  });
 });

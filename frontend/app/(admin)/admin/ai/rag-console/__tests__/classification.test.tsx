@@ -31,6 +31,11 @@ vi.mock('@/components/admin/ai/rag-console/rag-admin-i18n', () => ({
   useRagAdminT: () => (key: string) => key,
 }));
 
+vi.mock('@/lib/stores/auth-store', () => ({
+  useAuthStore: (selector: (s: { hasPermission: (p: string) => boolean }) => boolean) =>
+    selector({ hasPermission: (p: string) => p === 'document.classification_override' }),
+}));
+
 class ResizeObserver {
   observe() {}
   unobserve() {}
@@ -135,6 +140,40 @@ describe('Classification Tab (US2)', () => {
       expect(screen.getByText('doc1.pdf')).toBeInTheDocument();
       expect(screen.getByText('INTERNAL')).toBeInTheDocument();
       expect(screen.getAllByText('Security review').length).toBeGreaterThan(0);
+    });
+  });
+
+  it('should hide override form and show permission denied when user lacks document.classification_override (SC-008)', async () => {
+    // Override the auth-store mock for this test only
+    vi.mocked(
+      await import('@/lib/stores/auth-store')
+    ).useAuthStore = (() => false) as unknown as typeof import('@/lib/stores/auth-store').useAuthStore;
+
+    mockUseRagClassificationList.mockReturnValue({
+      data: {
+        items: [
+          {
+            attachmentPublicId: 'test-uuid-1',
+            originalFilename: 'doc1.pdf',
+            effectiveClassification: 'INTERNAL',
+            classificationOverride: null,
+          },
+        ],
+        total: 1,
+        page: 1,
+        pageSize: 20,
+      },
+      isLoading: false,
+    });
+
+    renderWithQueryClient(<RagAdminConsolePage />);
+
+    const classificationTab = screen.getByText('tabs.classification');
+    await userEvent.click(classificationTab);
+
+    await waitFor(() => {
+      expect(screen.getByText('doc1.pdf')).toBeInTheDocument();
+      expect(screen.getByText('classification.permission_denied')).toBeInTheDocument();
     });
   });
 });

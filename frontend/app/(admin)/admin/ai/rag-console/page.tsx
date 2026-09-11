@@ -32,6 +32,7 @@ import { EmptyState } from '@/components/admin/ai/rag-console/EmptyState';
 import { GenerationTimeline } from '@/components/admin/ai/rag-console/GenerationTimeline';
 import { MetricsCard } from '@/components/admin/ai/rag-console/MetricsCard';
 import { RetryButton } from '@/components/admin/ai/rag-console/RetryButton';
+import { useAuthStore } from '@/lib/stores/auth-store';
 import type {
   RagAdminStatus,
   SecurityClassification,
@@ -192,6 +193,7 @@ function ClassificationTab() {
   const ragAdminT = useRagAdminT();
   const { data, isLoading } = useRagClassificationList({});
   const overrideMutation = useRagClassificationOverride();
+  const hasOverridePermission = useAuthStore((s) => s.hasPermission('document.classification_override'));
   const [selectedAttachment, setSelectedAttachment] = useState<string | null>(null);
   const [newClassification, setNewClassification] = useState<SecurityClassification>('PUBLIC');
   const [reason, setReason] = useState('');
@@ -239,8 +241,8 @@ function ClassificationTab() {
             {data.items.map((item) => (
               <tr
                 key={item.attachmentPublicId}
-                className={`border-b cursor-pointer hover:bg-muted/50 ${selectedAttachment === item.attachmentPublicId ? 'bg-muted' : ''}`}
-                onClick={() => setSelectedAttachment(item.attachmentPublicId)}
+                className={`border-b ${hasOverridePermission ? 'cursor-pointer hover:bg-muted/50' : ''} ${selectedAttachment === item.attachmentPublicId ? 'bg-muted' : ''}`}
+                onClick={() => hasOverridePermission && setSelectedAttachment(item.attachmentPublicId)}
               >
                 <td className="p-2">{item.originalFilename}</td>
                 <td className="p-2">
@@ -269,7 +271,7 @@ function ClassificationTab() {
         </table>
       </div>
 
-      {selectedAttachment && (
+      {selectedAttachment && hasOverridePermission && (
         <div className="rounded-md border p-4 space-y-3">
           <h3 className="font-medium">{ragAdminT('classification.title')}</h3>
           <div className="space-y-2">
@@ -301,6 +303,12 @@ function ClassificationTab() {
           >
             {ragAdminT('classification.submit')}
           </Button>
+        </div>
+      )}
+
+      {!hasOverridePermission && (
+        <div className="rounded-md border border-muted p-4 text-sm text-muted-foreground">
+          {ragAdminT('classification.permission_denied')}
         </div>
       )}
     </div>

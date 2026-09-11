@@ -235,7 +235,8 @@
         },
         "empty_state": {
           "no_data": "No attachments found"
-        }
+        },
+        "permission_denied": "No permission to override classification — requires document.classification_override"
       },
       "lifecycle": {
         "title": "Generation Lifecycle",

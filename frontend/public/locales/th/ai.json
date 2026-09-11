@@ -267,7 +267,8 @@
         },
         "empty_state": {
           "no_data": "ไม่พบไฟล์แนบ"
-        }
+        },
+        "permission_denied": "ไม่มีสิทธิ์ override การจัดหมวด — ต้องมี permission document.classification_override"
       },
       "lifecycle": {
         "title": "วงจรการสร้าง Generation",
