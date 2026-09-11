@@ -7,7 +7,7 @@
 **วันที่ร่าง**: 2026-09-11
 **ขอบเขต**: หน้าจอ `/admin/migration` + `/admin/import-review` และ Backend Migration Module ทั้งหมด
 **ADR อ้างอิง**: ADR-028, ADR-042, ADR-047, ADR-052, ADR-023A, ADR-019, ADR-016, ADR-008
-**Test Data**: ให้เลือก
+**Test Data**: ให้ใช้โดยเลือก
  - ไฟล์ Excel (.xlsx)=เลือกจาก NAS ที่มีอยู่แล้ว
  - เลือกไฟล์จาก NAS=C2024-5.xlsx (13KB)
  - โฟลเดอร์ Staging PDF บน NAS=\incoming\08C.2\2567
