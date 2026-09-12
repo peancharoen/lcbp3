@@ -8,8 +8,7 @@
 **ขอบเขต**: Document Actions (Cancel / Hard-Delete / Metadata Patch / Bulk Ops) + Admin Maintenance Console ครอบคลุม 5 ประเภทเอกสาร (Correspondence, RFA, Transmittal, Drawings, Circulation)
 **สเปคหลัก**: `specs/200-fullstacks/253-unified-doc-crud/`
 **ADR อ้างอิง**: ADR-019 (UUID), ADR-016 (RBAC), ADR-002 (Numbering/Redlock), ADR-008 (BullMQ), ADR-007 (Errors), ADR-021 (Workflow), ADR-023/023A (AI Boundary), ADR-044 (Schema)
-**ทดสอบบน production**: https://lcbp3.np-dms.work/admin/ai/rag-console
-**Login Credentials:**
+**ทดสอบบน production**: https://lcbp3.np-dms.work
 ```
 username:superadmin password:Center2025
 username:admin password:Center2025

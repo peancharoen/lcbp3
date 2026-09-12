@@ -43,3 +43,9 @@ next-env.d.ts
 # Understand-Anything (เลิกใช้ — กัน auto-generated knowledge graph)
 .understand-anything/
 .ua/
+
+# Playwright E2E
+/.e2e-cache
+/test-results
+/playwright-report
+/playwright/.cache
