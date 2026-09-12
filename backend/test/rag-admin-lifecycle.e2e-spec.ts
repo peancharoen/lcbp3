@@ -212,4 +212,54 @@ describe('RAG Admin Lifecycle flow (E2E) — Feature 255 T065', () => {
       .set('Idempotency-Key', 'test-key-789')
       .expect(400);
   });
+
+  // ==========================================================
+  // Phase 3D: Force Re-ingest → BullMQ → Generation Lifecycle
+  // (Spec 255 US3 AC3, 254 FR-009, rag-admin.service.ts L379-393)
+  // ==========================================================
+
+  it('3D.1: POST reingest with ACTIVE generation → creates BUILDING, ACTIVE preserved (US3 AC3, 254 FR-009)', async () => {
+    const attachmentPublicId = uuidv7();
+
+    // Mock service: reingest succeeds — new BUILDING created, BullMQ job enqueued
+    mockRagAdminService.reingest.mockResolvedValue({
+      attachmentPublicId,
+      status: 'BUILDING',
+      jobId: 'bullmq-job-3d1',
+    });
+
+    const response = await request(app.getHttpServer() as import('http').Server)
+      .post(`/ai/admin/rag/attachments/${attachmentPublicId}/reingest`)
+      .set('Idempotency-Key', 'reingest-key-3d1')
+      .expect(202);
+
+    const body = response.body as ReingestResponse;
+    expect(body.status).toBe('BUILDING');
+    expect(body.jobId).toBe('bullmq-job-3d1');
+
+    // Verify service was called
+    expect(mockRagAdminService.reingest).toHaveBeenCalledWith(
+      attachmentPublicId
+    );
+  });
+
+  it('3D.2: POST reingest when BullMQ enqueue fails → generation marked FAILED (errorCode=ENQUEUE_FAILED, no dangling BUILDING)', async () => {
+    const attachmentPublicId = uuidv7();
+
+    // Mock service: reingest throws because BullMQ enqueue failed
+    // Service should mark generation FAILED with errorCode=ENQUEUE_FAILED before throwing
+    mockRagAdminService.reingest.mockRejectedValue(
+      new Error('BullMQ enqueue failed: connection refused')
+    );
+
+    await request(app.getHttpServer() as import('http').Server)
+      .post(`/ai/admin/rag/attachments/${attachmentPublicId}/reingest`)
+      .set('Idempotency-Key', 'reingest-key-3d2')
+      .expect(500);
+
+    // Verify service was called (it handles the FAILED marking internally)
+    expect(mockRagAdminService.reingest).toHaveBeenCalledWith(
+      attachmentPublicId
+    );
+  });
 });

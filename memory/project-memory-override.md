@@ -389,6 +389,7 @@ QDRANT_URL
 - [x] Migration Test Plan Phase 3 + 4 — สร้าง integration + performance tests: Phase 3A (12 tests), Phase 3B (7 tests), Phase 4A (3 tests), Phase 4C (6 tests); รวม 28 tests ผ่าน; tsc+eslint 0 errors; commits `e75653af`+`e51c95b0`; lock D315-D320 — ✅ 2026-09-11
 - [x] Migration Test Plan Phase 5 — Security & RBAC tests: 5A CASL Guard (11), 5B UUID/ADR-019 (3), 5C AI Boundary (4), 5D Idempotency (4); 22 tests ผ่าน; CI #722 success; deploy `987731f6b823`; lock D321-D325 — ✅ 2026-09-11
 - [x] **Migration Admin Test Plan ครบทุก Phase** — Phase 1-5 complete; 54 tests total (19 integration + 13 performance + 22 security) — ✅ 2026-09-11
+- [x] **RAG Admin Console Test Plan ครบทุก Phase** — Phase 1-5 complete; Phase 1 browser E2E (8 sections, P0 envelope fix + RBAC gating), Phase 2 backend unit (7 tests + FR-018 graceful degradation), Phase 3 integration (11 E2E), Phase 4 performance (76-96ms API, 343ms load, ROW_NUMBER indexed), Phase 5 security & RBAC (19 E2E: RBAC/UUID/AI boundary/idempotency/error handling); 51 RAG admin E2E tests pass (9 suites); commits `7fecbdda` (Phase 1+2 pushed) + `ff5318c2` (Phase 3 local) + `1570184e` (Phase 4+5 local) — ✅ 2026-09-12
 
 #### B. Manual / Browser Verify บน production (ต้องทำเองหรือใช้ Playwright)
 

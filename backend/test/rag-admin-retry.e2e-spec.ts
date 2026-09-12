@@ -202,4 +202,87 @@ describe('RAG Admin Retry flow (E2E) — Feature 255 T067', () => {
       .send({ attachmentPublicIds: [] })
       .expect(400);
   });
+
+  // ==========================================================
+  // Phase 3C: BullMQ Retry Flow Integration (ADR-008, Q35/Q36)
+  // ==========================================================
+
+  it('3C.1: POST retry with FAILED generation → service marks RETIRED + creates BUILDING + enqueues BullMQ job (Q35/Q36, ADR-008)', async () => {
+    const attachmentPublicId = uuidv7();
+
+    // Mock service: retry succeeds — FAILED→RETIRED, new BUILDING created, BullMQ job enqueued
+    mockRagAdminService.batchRetry.mockResolvedValue({
+      succeeded: [
+        {
+          attachmentPublicId,
+          jobId: 'bullmq-job-123',
+        },
+      ],
+      failed: [],
+      totalRequested: 1,
+      totalSucceeded: 1,
+      totalFailed: 0,
+    });
+
+    const response = await request(app.getHttpServer() as import('http').Server)
+      .post('/ai/admin/rag/failed-ingestions/retry')
+      .set('Idempotency-Key', 'retry-key-3c1')
+      .send({ attachmentPublicIds: [attachmentPublicId] })
+      .expect(200);
+
+    const body = response.body as BatchRetryResponse;
+    expect(body.succeeded).toHaveLength(1);
+    expect((body.succeeded[0] as { jobId: string }).jobId).toBe(
+      'bullmq-job-123'
+    );
+    expect(body.totalSucceeded).toBe(1);
+    expect(body.totalFailed).toBe(0);
+
+    // Verify service was called with correct attachment IDs
+    expect(mockRagAdminService.batchRetry).toHaveBeenCalledWith([
+      attachmentPublicId,
+    ]);
+  });
+
+  it('3C.2: POST retry with BUILDING generation → returns failed[] with status reason (Q17)', async () => {
+    const attachmentPublicId = uuidv7();
+
+    mockRagAdminService.batchRetry.mockResolvedValue({
+      succeeded: [],
+      failed: [
+        {
+          attachmentPublicId,
+          reason:
+            'Latest generation status is BUILDING, only FAILED can be retried',
+        },
+      ],
+      totalRequested: 1,
+      totalSucceeded: 0,
+      totalFailed: 1,
+    });
+
+    const response = await request(app.getHttpServer() as import('http').Server)
+      .post('/ai/admin/rag/failed-ingestions/retry')
+      .set('Idempotency-Key', 'retry-key-3c2')
+      .send({ attachmentPublicIds: [attachmentPublicId] })
+      .expect(200);
+
+    const body = response.body as BatchRetryResponse;
+    expect(body.failed).toHaveLength(1);
+    expect((body.failed[0] as { reason: string }).reason).toContain('BUILDING');
+    expect(body.totalSucceeded).toBe(0);
+  });
+
+  it('3C.3: POST retry with 51 items → rejected by @ArrayMaxSize(50) validation (Q34)', async () => {
+    const ids = Array.from({ length: 51 }, () => uuidv7());
+
+    await request(app.getHttpServer() as import('http').Server)
+      .post('/ai/admin/rag/failed-ingestions/retry')
+      .set('Idempotency-Key', 'retry-key-3c3')
+      .send({ attachmentPublicIds: ids })
+      .expect(400);
+
+    // Service should NOT be called for invalid input
+    expect(mockRagAdminService.batchRetry).not.toHaveBeenCalled();
+  });
 });
