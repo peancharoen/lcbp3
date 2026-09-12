@@ -307,6 +307,9 @@
 | D327 | **CI job image = `node:20`(ไม่ใช่`ubuntu:22.04`)** — `actions/checkout@v4`เป็น Node action ต้องมี`node`ใน PATH ตั้งแต่ step แรก;`ubuntu:22.04`ไม่มี Node → fail ที่ Checkout;`node:20`มี Node + npm พร้อม แต่ยังต้อง setup pnpm แยก | Session 2026-09-12 |
 | D328 | **Runner data path =`/var/lib/docker/runner/`** — docker-lv (100G, 93G free); ไม่ใช้ `/opt/np-dms`(86% full); subdirs:`data/`(registration),`config/`(config.yaml),`pnpm-store/`(per-job subdirs),`tool-cache/`(Node versions) | Session 2026-09-12 |
 | D329 | **Runner Gitea URL =`http://192.168.10.11:3003`** — job containers ใช้ bridge network ไม่สามารถ resolve Docker internal DNS `gitea` ได้ ต้องใช้ host IP; runner container เองใช้ Docker network แต่ job containers แยก | Session 2026-09-12 |
+| D330 | **Staging-file recursive search สำหรับ nested NAS directories** — `resolveStagingPdf` (legacy-ingestion.service) + `getStagingFileStream` (migration.service) เพิ่ม recursive search (bounded depth 5) ใน `stagingDir`/`legacyNasPath` เมื่อ flat search ไม่พบ; แก้ปัญหา OCR failed เพราะ PDF อยู่ใน subdirectory (`Incoming/08C.2/2567/`) แต่ queue เก็บเฉพาะ filename; path traversal guard คงไว้ — recursive search ทำหลัง guard ผ่าน; 4 unit tests ผ่าน | Session 2026-09-12 |
+| D331 | **Skills sync `.claude/skills/` ↔ `.devin/skills/` สมบูรณ์ (C5 done)** — `.devin/skills/` เป็น source of truth (v1.9.18, 25 skills); copy `2git-push/` + `test-plan-generator/` + `README.md` ไป `.claude/skills/`; `diff -rq` ไม่มี diff แล้ว; ตาม D186 `.claude/skills/` เป็น mirror ของ `.devin/skills/` | Session 2026-09-12 |
+| D332 | **C2 (n8n upgrade + workflow E2E) ยกเลิก — ไม่ใช้ n8n แล้ว** — n8n เคยเป็น Migration Phase orchestrator (ADR-023A D1/D3) แต่ ADR-047 Native NestJS `LegacyIngestionService` แทนแล้ว; n8n workflow ไม่จำเป็น ไม่ต้อง upgrade ไม่ต้อง E2E | Session 2026-09-12 |
 
 ## Environment & Services
 

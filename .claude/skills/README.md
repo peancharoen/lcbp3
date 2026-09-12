@@ -1,6 +1,6 @@
 # `.agents/skills/` — LCBP3 Agent Skill Pack
 
-**Version:** 1.9.0 | **Last Updated:** 2026-06-07 | **Total Skills:** 24
+**Version:** 1.9.18 | **Last Updated:** 2026-09-08 | **Total Skills:** 25
 
 Agent skills for AI-assisted development in **Devin IDE** (and compatible agents: Codex CLI, opencode, Amp, Antigravity, AGENTS.md-aware tools).
 
@@ -16,6 +16,7 @@ Agent skills for AI-assisted development in **Devin IDE** (and compatible agents
 ├── _LCBP3-CONTRACTS.md          # Shared bounded-worker packet, reviewer evidence bar, and TDD evidence format
 ├── README.md                    # (this file)
 ├── save-memory/                 # Session log & project memory update
+├── 2git-push/                   # Safe Gitea push workflow (2git.sh guardrails)
 ├── nestjs-best-practices/       # Backend rules (40 rules across 10 categories)
 ├── next-best-practices/         # Frontend rules (Next.js 15+)
 ├── e2e-testing/                 # Playwright E2E testing patterns (POM, flaky tests, CI/CD)
