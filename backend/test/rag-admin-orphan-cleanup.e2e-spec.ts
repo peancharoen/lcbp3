@@ -55,8 +55,14 @@ describe('RAG Admin Orphan Cleanup (E2E) — Phase 3E', () => {
       controllers: [RagAdminController],
       providers: [
         { provide: RagAdminService, useValue: mockRagAdminService },
-        { provide: RagObservabilityService, useValue: mockObservabilityService },
-        { provide: RagAttachmentIngestionService, useValue: mockIngestionService },
+        {
+          provide: RagObservabilityService,
+          useValue: mockObservabilityService,
+        },
+        {
+          provide: RagAttachmentIngestionService,
+          useValue: mockIngestionService,
+        },
         { provide: AiQueueService, useValue: mockAiQueueService },
         { provide: DataSource, useValue: {} },
         { provide: getRepositoryToken(Attachment), useValue: {} },

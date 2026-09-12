@@ -1178,10 +1178,12 @@ graph TD
 
 ---
 
-# Appendix C — Gitea Runner (act_runner) on ASUSTOR
+# Appendix C — Gitea Runner (act_runner) on New Server
 
-> **Platform:** ASUSTOR AS5403T (192.168.10.9) · Path: `/volume1/np-dms/gitea-runner/`
-> **Note (post-ADR-041):** Gitea is now on `np-dms-lcbp3` (02-platform layer); the Runner remains on ASUSTOR (per Server Role Separation — monitoring/registry/gitea-runner).
+> **Platform:** np-dms-lcbp3 (192.168.10.11) · Path: `/var/lib/docker/runner/`
+> **Updated (2026-09-12):** Runner migrated from ASUSTOR to New Server — see MIGRATION-PLAN.md §13
+> **Rationale:** ASUSTOR Celeron N5105 (4 threads) bottleneck → New Server Ryzen 5 5600 (12 threads) = ~7x faster CI
+> **Note:** ASUSTOR runner (`asustor-runner`) deregistered; ASUSTOR still hosts registry + monitoring + NAS
 
 ## C.1 Get Registration Token
 
@@ -1190,45 +1192,41 @@ Gitea Web UI → **Site Administration** → **Actions** → **Runners** → **C
 ## C.2 Setup Directory
 
 ```bash
-ssh asustor
-mkdir -p /volume1/np-dms/gitea-runner/data
+# On np-dms-lcbp3 (192.168.10.11)
+sudo mkdir -p /var/lib/docker/runner/{data,config,pnpm-store,tool-cache}
 ```
 
 ## C.3 Docker Compose
 
+> Full compose file at: `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/05-ci/docker-compose.yml`
+
 ```yaml
-# /volume1/np-dms/gitea-runner/docker-compose.yml
-services:
-  runner:
-    image: gitea/act_runner:latest
-    container_name: gitea-runner
-    restart: always
-    environment:
-      GITEA_INSTANCE_URL: https://git.np-dms.work
-      GITEA_RUNNER_REGISTRATION_TOKEN: <paste-token-here>
-      GITEA_RUNNER_NAME: asustor-runner
-      # Label must match runs-on in deploy.yaml
-      GITEA_RUNNER_LABELS: lcbp3-ci:docker://ubuntu:22.04
-    volumes:
-      - /volume1/np-dms/gitea-runner/data:/data
-      - /var/run/docker.sock:/var/run/docker.sock
+# /var/lib/docker/runner/config/config.yaml — act_runner config
+runner:
+  capacity: 2          # 2 concurrent jobs (Ryzen 5 5600 has 12 threads)
+container:
+  network: bridge      # Isolate CI containers from production network
 ```
 
 ```bash
-cd /volume1/np-dms/gitea-runner
-docker compose up -d
+# Create .env with registration token
+cp .env.example .env
+# Edit .env: GITEA_RUNNER_REGISTRATION_TOKEN=<token from Gitea>
+
+cd /opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/05-ci
+docker compose --env-file /var/lib/docker/runner/.env up -d
 ```
 
 ## C.4 Verify
 
-Gitea → **Settings** → **Actions** → **Runners** — should show **Total: 1** with green indicator next to `asustor-runner`.
+Gitea → **Settings** → **Actions** → **Runners** — should show **Total: 1** with green indicator next to `lcbp3-runner`.
 
 ## C.5 Maintenance
 
 ```bash
 # Cleanup old build images periodically
-docker image prune -a    # on ASUSTOR (runner images)
-ssh admin@192.168.10.11 "docker image prune -a"  # on np-dms-lcbp3 (app images)
+docker image prune -a    # on np-dms-lcbp3 (runner + app images — runner now co-located)
+ssh admin@192.168.10.9 "docker image prune -a"  # on ASUSTOR (registry + monitoring images)
 ```
 
 ### Automated Cleanup (cron on ASUSTOR)

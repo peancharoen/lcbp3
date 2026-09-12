@@ -57,8 +57,14 @@ describe('RAG Admin Cross-Project Filter (E2E) — Phase 3A', () => {
       controllers: [RagAdminController],
       providers: [
         { provide: RagAdminService, useValue: mockRagAdminService },
-        { provide: RagObservabilityService, useValue: mockObservabilityService },
-        { provide: RagAttachmentIngestionService, useValue: mockIngestionService },
+        {
+          provide: RagObservabilityService,
+          useValue: mockObservabilityService,
+        },
+        {
+          provide: RagAttachmentIngestionService,
+          useValue: mockIngestionService,
+        },
         { provide: AiQueueService, useValue: mockAiQueueService },
         { provide: DataSource, useValue: {} },
         { provide: getRepositoryToken(Attachment), useValue: {} },

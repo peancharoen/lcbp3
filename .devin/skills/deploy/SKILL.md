@@ -224,15 +224,15 @@ cd /opt/np-dms-lcbp3
 
 ## ⚠️ Common Issues
 
-| Symptom            | Cause                        | Fix                                                                  |
-| ------------------ | ---------------------------- | -------------------------------------------------------------------- |
-| Backend unhealthy  | DB connection failed         | Check MariaDB container + `/opt/np-dms/.env`                         |
-| Frontend blank     | Build error                  | Check Next.js build logs: `docker logs lcbp3-frontend`               |
-| 502 Bad Gateway    | Container not started        | `docker compose -f /opt/np-dms/03-application/docker-compose.yml ps` |
-| Pipeline stuck     | Gitea runner offline         | Restart runner: `systemctl restart gitea-actions-runner`             |
-| Permission denied  | Runtime files owned by root  | `sudo chown np-dms:np-dms /opt/np-dms/*/docker-compose.yml`          |
-| Image push fail    | ASUSTOR registry down        | Check `curl http://192.168.10.9:5000/v2/_catalog`                    |
-| Auto-rollback fail | No previous image in history | Manual: `./scripts/rollback.sh <SHA>`                                |
+| Symptom            | Cause                        | Fix                                                                                                                  |
+| ------------------ | ---------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Backend unhealthy  | DB connection failed         | Check MariaDB container + `/opt/np-dms/.env`                                                                         |
+| Frontend blank     | Build error                  | Check Next.js build logs: `docker logs lcbp3-frontend`                                                               |
+| 502 Bad Gateway    | Container not started        | `docker compose -f /opt/np-dms/03-application/docker-compose.yml ps`                                                 |
+| Pipeline stuck     | Gitea runner offline         | `cd /opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/05-ci && docker compose restart` |
+| Permission denied  | Runtime files owned by root  | `sudo chown np-dms:np-dms /opt/np-dms/*/docker-compose.yml`                                                          |
+| Image push fail    | ASUSTOR registry down        | Check `curl http://192.168.10.9:5000/v2/_catalog`                                                                    |
+| Auto-rollback fail | No previous image in history | Manual: `./scripts/rollback.sh <SHA>`                                                                                |
 
 ## 🚨 Emergency Hotfix (P0)
 

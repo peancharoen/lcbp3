@@ -1,0 +1,84 @@
+# File: specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/05-ci/docker-compose.yml
+# DMS Container v1.9.x — Layer 5: CI (Gitea Actions Runner)
+# Host: np-dms-lcbp3 (192.168.10.11)
+# Change Log:
+# - 2026-09-12: Initial creation — migrate runner from ASUSTOR to New Server
+#   Rationale: ASUSTOR Celeron N5105 (4 threads) bottleneck → Ryzen 5 5600 (12 threads)
+#   Storage: docker-lv (100G, 93G free) — ไม่ใช้ /opt/np-dms (86% full)
+#   Gitea: co-located → Docker internal DNS (latency 0)
+# ============================================================
+# 🔒 SECURITY:
+#   - Runner ไม่ expose port ใด ๆ (outbound only — ไป Gitea)
+#   - Docker socket: read-write (จำเป็นสำหรับ spin up job containers)
+#   - Job containers: bridge network (แยกจาก lcbp3 production network)
+# ============================================================
+
+x-restart: &restart_policy
+  restart: unless-stopped
+
+x-logging: &default_logging
+  logging:
+    driver: 'json-file'
+    options:
+      max-size: '10m'
+      max-file: '5'
+
+name: lcbp3-ci
+
+services:
+  # ----------------------------------------------------------------
+  # 1. Gitea Actions Runner — CI/CD executor
+  # Label: lcbp3-ci (dedicated for this repo)
+  # Job image: ubuntu:22.04 (setup-node จะ install Node version ที่ถูกต้อง)
+  # ----------------------------------------------------------------
+  runner:
+    <<: [*restart_policy, *default_logging]
+    image: gitea/act_runner:0.4.0
+    container_name: gitea-runner
+    environment:
+      - TZ=Asia/Bangkok
+      - CONFIG_FILE=/config.yaml
+
+      # Gitea connection — Docker internal DNS (co-located, latency 0)
+      - GITEA_INSTANCE_URL=${GITEA_INSTANCE_URL:-http://gitea:3000}
+      - GITEA_RUNNER_REGISTRATION_TOKEN=${GITEA_RUNNER_REGISTRATION_TOKEN:?GITEA_RUNNER_REGISTRATION_TOKEN required}
+      - GITEA_RUNNER_NAME=${GITEA_RUNNER_NAME:-lcbp3-runner}
+
+      # Label: lcbp3-ci (dedicated for this repo — ไม่ใช้ self-hosted แบบกว้าง)
+      # Use node:20 (not ubuntu:22.04) — actions/checkout@v4 is a Node action that needs Node.js
+      - GITEA_RUNNER_LABELS=lcbp3-ci:docker://node:20
+
+      # pnpm store path — ชี้ไปที่ volume ด้านล่าง
+      - PNPM_HOME=/root/.local/share/pnpm
+
+    volumes:
+      # Docker socket — จำเป็นสำหรับ spin up job containers
+      - /var/run/docker.sock:/var/run/docker.sock
+
+      # Runner registration + state — docker-lv (100G, 93G free)
+      - /var/lib/docker/runner/data:/data
+
+      # pnpm global store — persist ข้ามทุก run, ไม่ถูกลบตอน Checkout
+      # per-job subdirs (ci-quality, ci-test) สร้างโดย ci-deploy.yml
+      - /var/lib/docker/runner/pnpm-store:/root/.local/share/pnpm
+
+      # Node.js tool cache — setup-node ไม่ต้อง download ซ้ำ
+      - /var/lib/docker/runner/tool-cache:/opt/hostedtoolcache
+
+      # act_runner config
+      - /var/lib/docker/runner/config/config.yaml:/config.yaml
+
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 4G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+    healthcheck:
+      test: ['CMD', 'pgrep', 'act_runner']
+      interval: 30s
+      timeout: 10s
+      retries: 3

@@ -6,7 +6,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import {
   INestApplication,
   ValidationPipe,
-  ForbiddenException,
+  ExecutionContext,
   NotFoundException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
@@ -34,8 +34,6 @@ import { v7 as uuidv7 } from 'uuid';
  * ทดสอบ RBAC permission gating, UUID compliance, AI boundary, idempotency, error handling
  */
 describe('RAG Admin Security & RBAC (E2E) — Phase 5', () => {
-  let app: INestApplication;
-
   const mockRagAdminService = {
     listAttachments: jest.fn(),
     listAttachmentsForClassification: jest.fn(),
@@ -84,8 +82,10 @@ describe('RAG Admin Security & RBAC (E2E) — Phase 5', () => {
     })
       .overrideGuard(JwtAuthGuard)
       .useValue({
-        canActivate: (context: import('@nestjs/core').ExecutionContext) => {
-          const req = context.switchToHttp().getRequest();
+        canActivate: (context: ExecutionContext) => {
+          const req = context.switchToHttp().getRequest<{
+            user: { user_id: number; username: string };
+          }>();
           req.user = { user_id: 1, username: 'testuser' };
           return true;
         },
@@ -254,7 +254,8 @@ describe('RAG Admin Security & RBAC (E2E) — Phase 5', () => {
           .get('/ai/admin/rag/attachments')
           .expect(200);
 
-        const item = res.body.items[0];
+        const item = (res.body as { items: Array<Record<string, unknown>> })
+          .items[0];
         expect(item.attachmentPublicId).toMatch(
           /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[0-9a-f]{4}-[0-9a-f]{12}$/i
         );
@@ -290,7 +291,9 @@ describe('RAG Admin Security & RBAC (E2E) — Phase 5', () => {
           .get(`/ai/admin/rag/attachments/${attachmentPublicId}/generations`)
           .expect(200);
 
-        const gen = res.body.generations[0];
+        const gen = (
+          res.body as { generations: Array<Record<string, unknown>> }
+        ).generations[0];
         expect(gen).not.toHaveProperty('generationUuid');
         expect(gen).not.toHaveProperty('generationId');
       } finally {
@@ -331,7 +334,8 @@ describe('RAG Admin Security & RBAC (E2E) — Phase 5', () => {
           .get('/ai/admin/rag/attachments/classification')
           .expect(200);
 
-        const item = res.body.items[0];
+        const item = (res.body as { items: Array<Record<string, unknown>> })
+          .items[0];
         expect(item.attachmentPublicId).toMatch(
           /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}/i
         );
@@ -495,8 +499,9 @@ describe('RAG Admin Security & RBAC (E2E) — Phase 5', () => {
 
         // Should return zero-value snapshot, not 500
         expect(res.body).toBeDefined();
-        expect(res.body.swap).toBeDefined();
-        expect(res.body.swap.started).toBe(0);
+        const body = res.body as { swap?: { started: number } };
+        expect(body.swap).toBeDefined();
+        expect(body.swap!.started).toBe(0);
       } finally {
         await testApp.close();
       }

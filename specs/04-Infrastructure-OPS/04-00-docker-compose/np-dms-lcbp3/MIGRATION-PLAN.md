@@ -2604,3 +2604,111 @@ cd /opt/np-dms/04-ai/ocr-sidecar && sudo docker compose --env-file ../../.env up
 | Shutdown script | ✅ ทดสอบผ่าน — down ครบ 4 group, `docker ps` ว่างเปล่า |
 
 ระบบพร้อมใช้งานจริง — เมื่อไฟดับและแบตลงถึง threshold ที่ตั้งไว้ เครื่องจะ graceful stop Docker stack ทั้งหมด (เรียงจาก AI layer → Application → Platform → Infrastructure) ก่อน shutdown อัตโนมัติ
+
+---
+
+## 13. Addendum: Gitea Actions Runner Migration — ASUSTOR → New Server (2026-09-12)
+
+> **สาเหตุ:** ASUSTOR Celeron N5105 (4 threads, 2.0GHz) เป็น bottleneck สำหรับ CI — `ci-test` ใช้ 23.8 min, `ci-quality` ใช้ 17.0 min (รวม ~24 min) เนื่องจาก CPU ไม่พอสำหรับ parallel jobs + pnpm install + lint/test
+>
+> **ผลลัพธ์:** ย้าย runner ไป New Server (Ryzen 5 5600, 12 threads) — `ci-test` ลดเหลือ 3.3 min, `ci-quality` ลดเหลือ 3.5 min (**~7x เร็วขึ้น**)
+
+### 13.1 การตัดสินใจ
+
+| # | Decision | Choice | Rationale |
+|---|----------|--------|-----------|
+| R1 | Runner data path | `/var/lib/docker/runner/` | docker-lv (100G, 93G free) — ไม่ใช้ /opt/np-dms (86% full) |
+| R2 | Gitea URL | `http://192.168.10.11:3003` | Job containers ใช้ bridge network — ไม่สามารถ resolve Docker internal DNS 'gitea' ได้ |
+| R3 | Compose layer | `05-ci/` (ใหม่) | แยกจาก platform layer — lifecycle ต่างกัน (CI ไม่ใช่ production service) |
+| R4 | Runner capacity | 2 (เท่าเดิม) | Ryzen 5 5600 มี headroom พอ — ขยับทีหลังได้ |
+| R5 | Job image | `node:20` (ไม่ใช่ `ubuntu:22.04`) | `actions/checkout@v4` เป็น Node action — ต้องมี Node.js ใน PATH ตั้งแต่ step แรก |
+| R6 | pnpm store | per-job subdirs (เท่าเดิม) | ป้องกัน race condition ระหว่าง parallel jobs |
+
+### 13.2 สถาปัตยกรรมหลังย้าย
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  New Server (192.168.10.11)                              │
+│  ┌─────────────────────────────────────────────────────┐ │
+│  │  Docker Engine                                       │ │
+│  │  ┌──────────────┐  ┌───────────────────────────────┐  │ │
+│  │  │ gitea-runner │  │ Job containers (node:20)     │  │ │
+│  │  │ (act_runner) │──│  ci-quality, ci-test, deploy │  │ │
+│  │  │ capacity: 2  │  │  bridge network (isolated)    │  │ │
+│  │  └──────────────┘  └───────────────────────────────┘  │ │
+│  │  Volumes:                                           │ │
+│  │  /var/lib/docker/runner/                             │ │
+│  │  ├── data/          (registration + state)           │ │
+│  │  ├── config/        (config.yaml)                    │ │
+│  │  ├── pnpm-store/    (per-job subdirs)                │ │
+│  │  └── tool-cache/    (Node.js versions)               │ │
+│  └─────────────────────────────────────────────────────┘ │
+│              │                                            │
+│              │ http://192.168.10.11:3003                  │
+│              ▼                                            │
+│  ┌──────────────┐                                        │
+│  │    Gitea     │ (co-located, latency 0)                │
+│  └──────────────┘                                        │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│  ASUSTOR (192.168.10.9) — หลังย้าย                       │
+│  ┌──────────────┐  ┌──────────────┐  ┌───────────────┐   │
+│  │  Registry    │  │  Monitoring  │  │  NAS/Storage  │   │
+│  │  :5000       │  │  (Prom, etc) │  │  (CIFS)       │   │
+│  └──────────────┘  └──────────────┘  └───────────────┘   │
+│  ❌ Runner — deregistered, container ยังรัน (ต้อง stop)   │
+└─────────────────────────────────────────────────────────┘
+```
+
+### 13.3 Performance Comparison
+
+| Job | ASUSTOR (เดิม) | New Server (ใหม่) | ปรับปรุง |
+|-----|----------------|-------------------|---------|
+| `ci-test` | 23.8 min (1428s) | **3.3 min (200s)** | **7.1x** |
+| `ci-quality` | 17.0 min (1020s) | **3.5 min (213s)** | **4.8x** |
+| `deploy` | 2.6 min (156s) | 2.6 min (ไม่เปลี่ยน) | — |
+| **รวม CI+Deploy** | ~28 min | **~6 min** | **~4.7x** |
+
+### 13.4 ขั้นตอนที่ดำเนินการแล้ว
+
+1. ✅ สร้าง directory `/var/lib/docker/runner/{data,config,pnpm-store,tool-cache}`
+2. ✅ สร้าง compose files ที่ `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/05-ci/`
+3. ✅ สร้าง `config.yaml` (capacity: 2, bridge network)
+4. ✅ Register `lcbp3-runner` บน Gitea (id=3, label: `lcbp3-ci:docker://node:20`)
+5. ✅ Disable `asustor-runner` (id=1) ชั่วคราวเพื่อทดสอบ
+6. ✅ ทดสอบ CI pipeline (run #728) — `ci-test` ผ่าน, `ci-quality` fail ที่ lint (pre-existing code issues)
+7. ✅ Deregister `asustor-runner` (id=1) จาก Gitea
+
+### 13.5 ขั้นตอนที่เหลือ (ต้องทำด้วยมือบน ASUSTOR)
+
+```bash
+# SSH ไป ASUSTOR และ stop runner container
+ssh admin@192.168.10.9
+cd /volume1/np-dms/gitea-runner
+docker compose down
+
+# ตรวจสอบว่า container หยุดแล้ว
+docker ps | grep runner
+# ไม่ควรเห็น act_runner container
+
+# (Optional) ลบ runner data หากไม่ต้องการเก็บ
+# rm -rf /volume1/np-dms/gitea-runner/
+```
+
+### 13.6 Files Created
+
+| File | Purpose |
+|------|---------|
+| `05-ci/docker-compose.yml` | Runner container definition (act_runner:0.4.0, node:20 job image) |
+| `05-ci/config.yaml` | act_runner config (capacity: 2, bridge network) |
+| `05-ci/.env.example` | Environment template (Gitea URL, registration token, runner name) |
+
+### 13.7 Runtime Data
+
+| Path | LV | Size | Purpose |
+|------|----|------|---------|
+| `/var/lib/docker/runner/data/` | docker-lv | ~1MB | Runner registration + state |
+| `/var/lib/docker/runner/config/` | docker-lv | <1KB | config.yaml |
+| `/var/lib/docker/runner/pnpm-store/` | docker-lv | ~5GB | pnpm global store (per-job subdirs) |
+| `/var/lib/docker/runner/tool-cache/` | docker-lv | ~500MB | Node.js versions (setup-node cache) |
