@@ -35,6 +35,10 @@ import {
 } from '../../../common/exceptions';
 import { StartIngestDto } from '../dto/start-ingest.dto';
 import { Attachment } from '../../../common/file-storage/entities/attachment.entity';
+import {
+  ENV_LEGACY_NAS_PATH,
+  LEGACY_NAS_PATH_DEFAULT,
+} from '../constants/migration.constants';
 
 export interface IngestSummary {
   batchId: string;
@@ -167,6 +171,11 @@ export class LegacyIngestionService {
       process.env.MIGRATION_STAGING_DIR ||
       path.join(process.cwd(), 'uploads/staging');
 
+    // ADR-047: Legacy NAS path สำหรับ fallback recursive search (D157, D330)
+    // ไฟล์ PDF บน NAS อยู่ใน subdirectory ตามโครงสร้างโฟลเดอร์ เช่น Incoming/08C.2/2567/
+    const legacyNasPath =
+      process.env[ENV_LEGACY_NAS_PATH] || LEGACY_NAS_PATH_DEFAULT;
+
     let totalRowsProcessed = 0;
     let enqueuedCount = 0;
     let skippedCount = 0;
@@ -287,18 +296,20 @@ export class LegacyIngestionService {
             }
 
             // ตรวจสอบการมีอยู่ของไฟล์ PDF บน Staging Disk
+            // D330: ค้นหาแบบ flat ก่อน ถ้าไม่พบค่อย recursive search ใน legacyNasPath
             let resolvedPdfPath: string | null = null;
             if (rawFileName) {
               resolvedPdfPath = this.resolveStagingPdf(
                 stagingFolder,
-                rawFileName
+                rawFileName,
+                legacyNasPath
               );
               if (!resolvedPdfPath) {
                 await this.logError(
                   batchId,
                   docNumber,
                   MigrationErrorType.FILE_NOT_FOUND,
-                  `ไม่พบไฟล์ PDF '${rawFileName}' ในโฟลเดอร์ Staging: ${stagingFolder}`
+                  `ไม่พบไฟล์ PDF '${rawFileName}' ในโฟลเดอร์ Staging: ${stagingFolder} หรือ Legacy NAS: ${legacyNasPath}`
                 );
               }
             }
@@ -615,10 +626,15 @@ export class LegacyIngestionService {
   /**
    * ตรวจสอบและค้นหาไฟล์ PDF ใน Staging Directory แบบ Case-insensitive
    * รองรับ Excel ที่ระบุชื่อไฟล์โดยไม่มี .pdf extension
+   *
+   * D330: เพิ่ม recursive search ใน legacyNasPath เมื่อ flat search ใน stagingDir ไม่พบ
+   * ไฟล์ PDF บน NAS อยู่ใน subdirectory ตามโครงสร้าง เช่น Incoming/08C.2/2567/
+   * ค้นหาแบบ bounded depth (max 5 ระดับ) เพื่อป้องกัน traversal ช้าเกินไป
    */
   private resolveStagingPdf(
     stagingDir: string,
-    fileName: string
+    fileName: string,
+    legacyNasPath?: string
   ): string | null {
     const cleanFileName = fileName.trim();
     const candidates = [cleanFileName];
@@ -629,6 +645,7 @@ export class LegacyIngestionService {
       candidates.push(`${cleanFileName}.pdf`);
     }
 
+    // 1. ค้นหาแบบ flat ใน stagingDir ก่อน (existing behavior)
     for (const candidate of candidates) {
       const exactPath = path.join(stagingDir, candidate);
       if (fs.existsSync(exactPath)) {
@@ -645,8 +662,82 @@ export class LegacyIngestionService {
           return path.join(stagingDir, match);
         }
       } catch {
-        return null;
+        // ไปค้นใน legacyNasPath แทน
       }
+    }
+
+    // 2. D330: ค้นหาแบบ recursive ใน stagingDir (bounded depth)
+    for (const candidate of candidates) {
+      const found = this.findFileRecursive(stagingDir, candidate, 5);
+      if (found) return found;
+    }
+
+    // 3. D330: ค้นหาแบบ flat + recursive ใน legacyNasPath (fallback)
+    if (legacyNasPath) {
+      for (const candidate of candidates) {
+        const exactPath = path.join(legacyNasPath, candidate);
+        if (fs.existsSync(exactPath)) {
+          return exactPath;
+        }
+
+        try {
+          if (!fs.existsSync(legacyNasPath)) return null;
+          const files = fs.readdirSync(legacyNasPath);
+          const lowerTarget = candidate.toLowerCase();
+          const match = files.find((f) => f.toLowerCase() === lowerTarget);
+          if (match) {
+            return path.join(legacyNasPath, match);
+          }
+        } catch {
+          // ไปค้น recursive แทน
+        }
+
+        const found = this.findFileRecursive(legacyNasPath, candidate, 5);
+        if (found) return found;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * D330: ค้นหาไฟล์แบบ recursive (bounded depth) — case-insensitive
+   * ใช้สำหรับค้นหา PDF ใน subdirectory ของ NAS mount
+   * @param rootDir โฟลเดอร์เริ่มต้น
+   * @param fileName ชื่อไฟล์เป้าหมาย (case-insensitive)
+   * @param maxDepth ความลึกสูงสุด (default 5)
+   * @returns full path ถ้าพบ, null ถ้าไม่พบ
+   */
+  private findFileRecursive(
+    rootDir: string,
+    fileName: string,
+    maxDepth: number = 5
+  ): string | null {
+    if (maxDepth < 0) return null;
+    const lowerTarget = fileName.toLowerCase();
+
+    try {
+      if (!fs.existsSync(rootDir)) return null;
+      const entries = fs.readdirSync(rootDir, { withFileTypes: true });
+
+      for (const entry of entries) {
+        const fullPath = path.join(rootDir, entry.name);
+
+        if (entry.isFile() && entry.name.toLowerCase() === lowerTarget) {
+          return fullPath;
+        }
+
+        if (entry.isDirectory() && maxDepth > 0) {
+          const found = this.findFileRecursive(
+            fullPath,
+            fileName,
+            maxDepth - 1
+          );
+          if (found) return found;
+        }
+      }
+    } catch {
+      // ข้าม directory ที่อ่านไม่ได้
     }
 
     return null;

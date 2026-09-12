@@ -64,7 +64,7 @@ import {
 import { MigrationError } from './entities/migration-error.entity';
 import { MigrationQueueQueryDto } from './dto/migration-queue-query.dto';
 import { Attachment } from '../../common/file-storage/entities/attachment.entity';
-import { createReadStream, existsSync } from 'fs';
+import { createReadStream, existsSync, readdirSync } from 'fs';
 import * as path from 'path';
 import { RagBatchService } from './services/rag-batch.service';
 import { ReviewThresholdService } from './services/review-threshold.service';
@@ -1825,6 +1825,9 @@ export class MigrationService {
    * ADR-016: Stream ไฟล์จาก staging directory โดยตรวจ path traversal เข้มงวด
    * อนุญาตเฉพาะ path ที่ resolve แล้วอยู่ภายใต้ stagingDir เท่านั้น
    * ป้องกัน Local File Inclusion (LFI) เช่น `?path=../../etc/passwd`
+   *
+   * D330: ถ้า flat path ไม่พบไฟล์ ให้ค้นหาแบบ recursive ใน allowedRoots (bounded depth 5)
+   * สำหรับรองรับข้อมูลเดิมที่ source_file_path เก็บแค่ filename ไม่มี subdirectory
    */
   getStagingFileStream(filePath: string) {
     if (!filePath) {
@@ -1853,10 +1856,66 @@ export class MigrationService {
       );
     }
 
-    if (!existsSync(resolvedPath)) {
-      throw new NotFoundException('File', filePath);
+    if (existsSync(resolvedPath)) {
+      return createReadStream(resolvedPath);
     }
 
-    return createReadStream(resolvedPath);
+    // D330: Fallback recursive search สำหรับข้อมูลเดิมที่ source_file_path เก็บแค่ filename
+    // ค้นหาใน allowedRoots แบบ bounded depth 5 ระดับ
+    const fileName = path.basename(resolvedPath);
+    for (const root of allowedRoots) {
+      const found = this.findFileRecursive(root, fileName, 5);
+      if (found) {
+        this.logger.log(
+          `D330: Resolved staging file via recursive search: ${found}`
+        );
+        return createReadStream(found);
+      }
+    }
+
+    throw new NotFoundException('File', filePath);
+  }
+
+  /**
+   * D330: ค้นหาไฟล์แบบ recursive (bounded depth) — case-insensitive
+   * ใช้สำหรับค้นหา PDF ใน subdirectory ของ staging/legacyNasPath
+   * @param rootDir โฟลเดอร์เริ่มต้น
+   * @param fileName ชื่อไฟล์เป้าหมาย (case-insensitive)
+   * @param maxDepth ความลึกสูงสุด (default 5)
+   * @returns full path ถ้าพบ, null ถ้าไม่พบ
+   */
+  private findFileRecursive(
+    rootDir: string,
+    fileName: string,
+    maxDepth: number = 5
+  ): string | null {
+    if (maxDepth < 0) return null;
+    const lowerTarget = fileName.toLowerCase();
+
+    try {
+      if (!existsSync(rootDir)) return null;
+      const entries = readdirSync(rootDir, { withFileTypes: true });
+
+      for (const entry of entries) {
+        const fullPath = path.join(rootDir, entry.name);
+
+        if (entry.isFile() && entry.name.toLowerCase() === lowerTarget) {
+          return fullPath;
+        }
+
+        if (entry.isDirectory() && maxDepth > 0) {
+          const found = this.findFileRecursive(
+            fullPath,
+            fileName,
+            maxDepth - 1
+          );
+          if (found) return found;
+        }
+      }
+    } catch {
+      // ข้าม directory ที่อ่านไม่ได้
+    }
+
+    return null;
   }
 }

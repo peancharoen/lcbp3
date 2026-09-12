@@ -15,6 +15,7 @@ jest.mock('fs', () => {
     ...actual,
     createReadStream: jest.fn(),
     existsSync: jest.fn(),
+    readdirSync: jest.fn(),
   };
 });
 
@@ -59,11 +60,12 @@ import {
   SystemException,
   BusinessException,
 } from '../../common/exceptions';
-import { createReadStream, existsSync } from 'fs';
+import { createReadStream, existsSync, readdirSync } from 'fs';
 import * as path from 'path';
 
 const mockedExistsSync = jest.mocked(existsSync);
 const mockedCreateReadStream = jest.mocked(createReadStream);
+const mockedReaddirSync = jest.mocked(readdirSync);
 
 describe('MigrationService', () => {
   let service: MigrationService;
@@ -2332,6 +2334,72 @@ describe('MigrationService', () => {
       );
       expect(stream).toBeDefined();
       expect(mockedCreateReadStream).toHaveBeenCalled();
+    });
+
+    // D330: Recursive search tests — ค้นหา PDF ใน subdirectory ของ legacyNasPath
+    it('D330: ค้นหา PDF แบบ recursive ใน legacyNasPath เมื่อ flat path ไม่พบ', () => {
+      const legacyNasPath = '/mnt/legacy-staging';
+      // Setup: existsSync คืน false สำหรับ flat path แต่คืน true สำหรับ legacyNasPath root และ subdirectory
+      mockedExistsSync.mockImplementation((p: unknown) => {
+        const pStr = String(p);
+        // flat path ไม่พบ
+        if (pStr === path.join(legacyNasPath, 'DOC-001.pdf')) return false;
+        // legacyNasPath root มีอยู่
+        if (pStr === legacyNasPath) return true;
+        // subdirectory มีอยู่
+        if (pStr === path.join(legacyNasPath, 'Incoming')) return true;
+        if (pStr === path.join(legacyNasPath, 'Incoming', '08C.2')) return true;
+        return false;
+      });
+
+      // readdirSync คืน directory entries
+      mockedReaddirSync.mockImplementation((p: unknown) => {
+        const pStr = String(p);
+        if (pStr === legacyNasPath) {
+          return [
+            { name: 'Incoming', isFile: () => false, isDirectory: () => true },
+          ];
+        }
+        if (pStr === path.join(legacyNasPath, 'Incoming')) {
+          return [
+            { name: '08C.2', isFile: () => false, isDirectory: () => true },
+          ];
+        }
+        if (pStr === path.join(legacyNasPath, 'Incoming', '08C.2')) {
+          return [
+            {
+              name: 'DOC-001.pdf',
+              isFile: () => true,
+              isDirectory: () => false,
+            },
+          ];
+        }
+        return [];
+      });
+
+      mockedCreateReadStream.mockReturnValue({} as never);
+
+      // Act: เรียกด้วย path ที่อยู่ใน legacyNasPath แต่ไฟล์อยู่ใน subdirectory
+      // (เหมือนข้อมูลเดิมที่ source_file_path เก็บ path ที่ root แต่ไฟล์จริงอยู่ใน subdirectory)
+      const stream = service.getStagingFileStream(
+        path.join(legacyNasPath, 'DOC-001.pdf')
+      );
+
+      // Assert: พบไฟล์ผ่าน recursive search และสร้าง stream ได้
+      expect(stream).toBeDefined();
+      expect(mockedCreateReadStream).toHaveBeenCalledWith(
+        path.join(legacyNasPath, 'Incoming', '08C.2', 'DOC-001.pdf')
+      );
+    });
+
+    it('D330: คืน NotFoundException เมื่อ recursive search ไม่พบไฟล์', () => {
+      mockedExistsSync.mockReturnValue(false);
+      mockedReaddirSync.mockReturnValue([]);
+
+      const stagingDir = path.join(process.cwd(), 'uploads/staging');
+      expect(() =>
+        service.getStagingFileStream(path.join(stagingDir, 'nonexistent.pdf'))
+      ).toThrow(NotFoundException);
     });
   });
 

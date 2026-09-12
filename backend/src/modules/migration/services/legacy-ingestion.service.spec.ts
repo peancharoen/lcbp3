@@ -780,6 +780,133 @@ describe('LegacyIngestionService (ADR-047)', () => {
     expect(mockErrorRepo.save).toHaveBeenCalled();
   });
 
+  // D330: Recursive search tests — ค้นหา PDF ใน subdirectory ของ staging/legacyNasPath
+  it('D330: ควร resolve staging PDF แบบ recursive ใน subdirectory ของ stagingDir', async () => {
+    mockProjectRepo.findOne.mockResolvedValue({
+      id: 5,
+      publicId: '019505a1-7c3e-7000-8000-proj12345678',
+      projectCode: 'LCBP3-C2',
+    });
+
+    // สร้าง subdirectory ลึก 2 ระดับ แล้ววาง PDF ไว้ข้างใน
+    const nestedDir = path.join(tempTestDir, 'Incoming', '08C.2');
+    fs.mkdirSync(nestedDir, { recursive: true });
+    const nestedPdfPath = path.join(nestedDir, 'DOC-NESTED-001.pdf');
+    fs.writeFileSync(nestedPdfPath, '%PDF-1.4 nested content');
+
+    const nestedTestPath = path.join(tempTestDir, 'nested-pdf.xlsx');
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Sheet1');
+    worksheet.addRow([
+      'ลำดับ',
+      'เลขที่เอกสาร',
+      'เรื่อง',
+      'วันที่ออก',
+      'วันที่รับ',
+      'จาก',
+      'ถึง',
+      'หมวดหมู่',
+      'ชื่อไฟล์',
+      'หมายเหตุ',
+    ]);
+    worksheet.addRow([
+      1,
+      'DOC-NESTED-001',
+      'Test nested PDF',
+      '2024-05-15',
+      '2024-05-16',
+      'ITD',
+      'TEAM',
+      '',
+      'DOC-NESTED-001.pdf',
+      '',
+    ]);
+    await workbook.xlsx.writeFile(nestedTestPath);
+
+    await service.startIngestion({
+      filePath: nestedTestPath,
+      projectPublicId: '019505a1-7c3e-7000-8000-proj12345678',
+      pdfFolderPath: tempTestDir,
+    });
+
+    const savedEntity = (
+      mockReviewQueueRepo.save.mock.calls[0] as unknown[]
+    )[0] as MockEntity;
+    const details = savedEntity.details as Record<string, unknown>;
+    // D330: source_file_path ต้องเป็น full path ที่ resolve จาก recursive search
+    expect(details.source_file_path).toContain('DOC-NESTED-001.pdf');
+    expect(String(details.source_file_path)).toContain('Incoming');
+    expect(String(details.source_file_path)).toContain('08C.2');
+  });
+
+  it('D330: ควร resolve staging PDF แบบ recursive ใน legacyNasPath เมื่อ stagingDir ไม่พบ', async () => {
+    mockProjectRepo.findOne.mockResolvedValue({
+      id: 5,
+      publicId: '019505a1-7c3e-7000-8000-proj12345678',
+      projectCode: 'LCBP3-C2',
+    });
+
+    // สร้าง legacyNasPath temp dir แยกจาก stagingDir
+    const legacyNasDir = path.join(tempTestDir, '__legacy_nas__');
+    const nestedLegacyDir = path.join(legacyNasDir, 'Incoming', '2567');
+    fs.mkdirSync(nestedLegacyDir, { recursive: true });
+    const legacyPdfPath = path.join(nestedLegacyDir, 'DOC-LEGACY-001.pdf');
+    fs.writeFileSync(legacyPdfPath, '%PDF-1.4 legacy content');
+
+    // สร้าง stagingDir ที่ว่าง (ไม่มี PDF)
+    const emptyStagingDir = path.join(tempTestDir, '__empty_staging__');
+    fs.mkdirSync(emptyStagingDir, { recursive: true });
+
+    // Set env ให้ legacyNasPath ชี้ไปยัง legacy dir
+    process.env.LEGACY_NAS_PATH = legacyNasDir;
+
+    const legacyTestPath = path.join(tempTestDir, 'legacy-pdf.xlsx');
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Sheet1');
+    worksheet.addRow([
+      'ลำดับ',
+      'เลขที่เอกสาร',
+      'เรื่อง',
+      'วันที่ออก',
+      'วันที่รับ',
+      'จาก',
+      'ถึง',
+      'หมวดหมู่',
+      'ชื่อไฟล์',
+      'หมายเหตุ',
+    ]);
+    worksheet.addRow([
+      1,
+      'DOC-LEGACY-001',
+      'Test legacy NAS PDF',
+      '2024-05-15',
+      '2024-05-16',
+      'ITD',
+      'TEAM',
+      '',
+      'DOC-LEGACY-001.pdf',
+      '',
+    ]);
+    await workbook.xlsx.writeFile(legacyTestPath);
+
+    await service.startIngestion({
+      filePath: legacyTestPath,
+      projectPublicId: '019505a1-7c3e-7000-8000-proj12345678',
+      pdfFolderPath: emptyStagingDir,
+    });
+
+    const savedEntity = (
+      mockReviewQueueRepo.save.mock.calls[0] as unknown[]
+    )[0] as MockEntity;
+    const details = savedEntity.details as Record<string, unknown>;
+    // D330: source_file_path ต้องเป็น full path ที่ resolve จาก legacyNasPath recursive search
+    expect(details.source_file_path).toContain('DOC-LEGACY-001.pdf');
+    expect(String(details.source_file_path)).toContain('Incoming');
+    expect(String(details.source_file_path)).toContain('2567');
+
+    delete process.env.LEGACY_NAS_PATH;
+  });
+
   it('ควรข้ามแถวที่ไม่มีเลขที่เอกสาร', async () => {
     mockProjectRepo.findOne.mockResolvedValue({
       id: 5,
