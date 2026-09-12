@@ -6,6 +6,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TemplateEditor } from '../template-editor';
 import { CorrespondenceType, Discipline } from '@/types/master-data';
 
+// Mock HoverCard — Radix hover-card triggers `window` access via setTimeout
+// after jsdom teardown, causing unhandled ReferenceError (D274)
+vi.mock('@/components/ui/hover-card', () => ({
+  HoverCard: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  HoverCardTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  HoverCardContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+}));
+
 const mockTypes: CorrespondenceType[] = [
   { publicId: 'type1', typeCode: 'RFA', typeName: 'Request for Approval', isActive: true } as any,
   { publicId: 'type2', typeCode: 'TRN', typeName: 'Transmittal', isActive: true } as any,
@@ -79,11 +87,11 @@ describe('TemplateEditor', () => {
 
     const formatInput = screen.getByLabelText('Template Format *');
     await user.type(formatInput, 'TEST-');
-    
+
     // Click a variable button
     const orgButton = screen.getByRole('button', { name: '{ORG}' });
     await user.click(orgButton);
-    
+
     expect(formatInput).toHaveValue('TEST-{ORG}');
   });
 
@@ -102,7 +110,7 @@ describe('TemplateEditor', () => {
 
     const formatInput = screen.getByLabelText('Template Format *');
     fireEvent.change(formatInput, { target: { value: '{PROJECT}-{SEQ:4}' } });
-    
+
     expect(screen.getByText('LCBP3-0001')).toBeInTheDocument();
   });
 
@@ -121,7 +129,7 @@ describe('TemplateEditor', () => {
 
     const cancelButton = screen.getByRole('button', { name: 'Cancel' });
     await user.click(cancelButton);
-    
+
     expect(onCancel).toHaveBeenCalled();
   });
 
@@ -140,13 +148,13 @@ describe('TemplateEditor', () => {
 
     const formatInput = screen.getByLabelText('Template Format *');
     fireEvent.change(formatInput, { target: { value: '{PROJECT}-{SEQ:4}' } });
-    
+
     // We cannot easily test Radix Select interactions in jsdom without massive pointer mocking,
     // so we'll test the default values submission first.
-    
+
     const saveButton = screen.getByRole('button', { name: 'Save Template' });
     await user.click(saveButton);
-    
+
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
       projectId: 1,
       formatTemplate: '{PROJECT}-{SEQ:4}',
