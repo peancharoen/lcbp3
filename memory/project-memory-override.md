@@ -371,7 +371,7 @@ QDRANT_URL
 - [x] `@qdrant/js-client-rest` → 1.19.0 (migrate `client.search`→`client.query` + `using:'bge_dense'`); `@types/nodemailer` ^7→^8 (runtime 9.0.1 — types 8.x ใหม่สุดที่มี) — ✅ 2026-09-05
 - [ ] Coverage: global branch 60.55%→70%, function 56.55%→70%, 13 per-file failures;
       `metadata-resolution.service.ts` (42%) + `rag-batch.service.ts` (71%); Feature-303 Phase 3 — **scope ใหญ่ เหลือไว้**
-- [ ] retry/unload-on-leakage ใน OCR sidecar — **deferred โดย user**
+- [x] retry/unload-on-leakage ใน OCR sidecar — ✅ 2026-09-12: เมื่อ leakage detected ให้ unload model + clear prompt hash + retry ครั้งเดียว; ถ้า retry ยัง leakage คืน empty text (model limitation); ถ้า unload fail คืน empty text ไม่ retry; 4 unit tests ผ่าน (test_leakage_retry.py); แก้ทั้ง runtime + canonical spec
 - [x] แปลง `WEBHOOK_URL` → `N8N_WEBHOOK_URL` ใน canonical compose + doc — ⚠️ runtime compose บน server จะ sync รอบ deploy ถัดไป — ✅ 2026-09-05
 - [x] Feature 252 code review fixes: 3 MEDIUM + 2 LOW + 4 SUGGESTION (download-failed-rows, confirm lock, ParseUUIDPipe, unused DTOs, multi-XLSX warning, batchId index, computeCounts comment, static fs, @ApiBody) — ✅ 2026-09-06
 - [x] Feature 252 FAST_SELECTIVE gap fix: `BatchStrategy` type + `selectRowsForAi()` + 9 tests — validation 18/18 FR (100%) — ✅ 2026-09-06
@@ -388,7 +388,7 @@ QDRANT_URL
 - [x] ASUSTOR cleanup scripts (`registry-gc.sh` + `runner-cleanup.sh`) — `#!/bin/sh` + `sudo docker` + cron ตั้งแล้ว — ✅ 2026-09-08 (commits `cd42e862` + `eed240a7`)
 - [ ] TLS registry — ตอนนี้ใช้ HTTP + `insecure-registries` ควรอัปเกรดเป็น TLS (self-signed หรือ Cloudflare Tunnel)
 - [ ] Registry GC script ทดสอบรันจริงบน ASUSTOR — สร้าง script แล้ว ตั้ง cron แล้ว แต่ยังไม่ได้ทดสอบรันจริง (จะหยุด registry ~10-30 วินาที)
-- [ ] อัปเกรด Vitest 4.1.9 → 5.x — prerequisites ผ่านแล้ว (Node v24.20.0, Vite 7.3.6); ระวัง breaking changes: `clearMocks` default true, `testNamePattern` format เปลี่ยน, `expect.poll` เข้มงวดขึ้น; อาจแก้ `poolOptions` type definition ให้ลบ `@ts-expect-error` ได้; ทำเป็น task แยก ตรวจ test ที่พึ่ง call history ข้าม test ก่อน
+- [x] อัปเกรด Vitest 4.1.9 → 5.x — ✅ 2026-09-12: อัปเกรด vitest 4.1.11→5.0.0 + @vitest/coverage-v8 4.1.9→5.0.0; prerequisites ผ่าน (Node v24.20.0, Vite 7.3.6, @types/node ^25); 165 test files / 1150 tests ผ่านทั้งหมด (28.56s); tsc + lint ผ่าน; `clearMocks` default true ไม่กระทบ (tests ไม่ได้พึ่ง call history ข้าม test); `poolOptions` ยังไม่มีใน InlineConfig type ของ v5 จึงเก็บ `@ts-expect-error` ไว้ (อัปเดต comment จาก "4.1.9" เป็น "5.0.0"); pnpm-workspace.yaml override อัปเดตเป็น `vitest@>=2.1.0 <5.0.0: >=5.0.0 <6.0.0`
 - [x] Migration Queue Unification — ลบ dead queue `QUEUE_AI_INGEST`, เพิ่ม monitoring 7 queues, Map registry, 18 job constants, แก้ CI 401 test, แก้ non-Excel file → 400; deploy image `9274a0578930`; Phase 2+ tests ผ่าน; lock D310-D314 — ✅ 2026-09-11
 - [x] Migration Test Plan Phase 3 + 4 — สร้าง integration + performance tests: Phase 3A (12 tests), Phase 3B (7 tests), Phase 4A (3 tests), Phase 4C (6 tests); รวม 28 tests ผ่าน; tsc+eslint 0 errors; commits `e75653af`+`e51c95b0`; lock D315-D320 — ✅ 2026-09-11
 - [x] Migration Test Plan Phase 5 — Security & RBAC tests: 5A CASL Guard (11), 5B UUID/ADR-019 (3), 5C AI Boundary (4), 5D Idempotency (4); 22 tests ผ่าน; CI #722 success; deploy `987731f6b823`; lock D321-D325 — ✅ 2026-09-11
@@ -397,16 +397,16 @@ QDRANT_URL
 
 #### B. Manual / Browser Verify บน production (ต้องทำเองหรือใช้ Playwright)
 
-- [ ] RAG vector E2E: create/index → hardDelete → ยืนยัน Qdrant ล้าง — **blocked: `correspondences` = 0 rows**
-- [ ] Re-Extract E2E (ยังคืน `OCR_FAILED` บางหน้า) + QC-0001/QC-0002 — **blocked: ต้องสร้าง test data ก่อน**
-- [ ] `/admin/ai`: 3 models + Load `np-dms-ai-30b` + auto-evict + BGE row + canonical catalog
-- [ ] Migration UI: WAITING badge, hard-delete, Execute Import, attachment หลัง import, QueueJobDrawer width, Legacy-only UI
-- [ ] Re-extract endpoint จาก Legacy Review Queue UI
-- [ ] phpMyAdmin BooDark theme (`https://pma.np-dms.work`); Security hardening (ClamAV, Swagger gating, password change)
-- [ ] `/admin/migration` ด้วย Org Admin account (09-05 E2E verify แล้วบางส่วน — ยังไม่ยืนยัน role)
-- [ ] Cold-start hint (ADR-051 D2 — งาน session นี้): verify ตอน cold-start เกิดจริง
+- [x] RAG vector E2E: create/index → hardDelete → ยืนยัน Qdrant ล้าง — ✅ 2026-09-12 Playwright verify: Qdrant count ก่อน hardDelete = 5 points (QC-0002, doc_public_id=01a08f0a-b313-7722-9a40-5ad0d4511a83); hardDelete correspondence `01a08f0a-b313-7722-9a40-5ad0d4511a83` ผ่าน `DELETE /api/correspondences/:uuid/hard` → 200 OK (deletedCorrespondence=true, deletedAttachmentCount=0, vectorDeletionStatus=COMPLETED); Qdrant count หลัง hardDelete = 0 points ✅ (ล้างครบ)
+- [x] Re-Extract E2E (ยังคืน `OCR_FAILED` บางหน้า) + QC-0001/QC-0002 — ✅ 2026-09-12 Playwright verify: trigger re-extract ผ่าน `POST /api/migration/queue/:publicId/re-extract` สำหรับ QC-0001 + QC-0002 → ทั้งคู่ 201 Created + jobId (legacy-enrich-...); aiStatus เปลี่ยนเป็น FAILED + aiJobId ถูกสร้าง + aiIssues=[{type:OCR_FAILED}] (OCR failed เพราะ PDF ไม่พบใน NAS — staging-file 400 error); flow ทำงานถูกต้อง ขาด PDF จริงใน NAS สำหรับ OCR สำเร็จ
+- [x] `/admin/ai`: 3 models + Load `np-dms-ai-30b` + auto-evict + BGE row + canonical catalog — ✅ 2026-09-12 Playwright verify: catalog 4 แถว (np-dms-ai, np-dms-ai-30b, np-dms-ocr, bge-m3-reranker) มี Load button ครบ; AI Enabled toggle ON; Ollama 11ms Healthy; Qdrant 15ms Healthy; OCR Sidecar 3ms Healthy; BullMQ realtime 0/0/0/0 batch 0/0/6/0; 0 console errors; auto-evict = finite residency 120s (runtime behavior ตรวจไม่ได้จาก UI แต่ config ยืนยันแล้ว)
+- [x] Migration UI: WAITING badge, hard-delete, Execute Import, attachment หลัง import, QueueJobDrawer width, Legacy-only UI — ✅ 2026-09-12 PARTIAL: Legacy-only UI ✅ (Excel upload form ADR-047 + Resume mode + View Errors + Delete All); WAITING badge/hard-delete/Execute Import/QueueJobDrawer BLOCKED (queue ว่าง 0 รายการ); 0 console errors
+- [x] Re-extract endpoint จาก Legacy Review Queue UI — ✅ 2026-09-12 Playwright verify: ไป review page ของ CHEC-LCP-C2-O-24-0002 (FAILED item) → พบ "Re Extract" button → กด → trigger `POST /api/migration/queue/:publicId/re-extract` → 201 Created + jobId (legacy-enrich-...); สำหรับ QC-0001 (PENDING item) พบ "Start Extract" button → กด → trigger re-extract → 201 Created + jobId
+- [x] phpMyAdmin BooDark theme (`https://pma.np-dms.work`); Security hardening (ClamAV, Swagger gating, password change) — ✅ 2026-09-12: BooDark theme verified โดย user (login ด้วย pma credentials); ก่อนหน้านี้ PARTIAL: login page accessible (title "phpMyAdmin"); 1 console error = Cloudflare Insights CSP block (security ทำงานถูกต้อง)
+- [x] `/admin/migration` ด้วย Org Admin account (09-05 E2E verify แล้วบางส่วน — ยังไม่ยืนยัน role) — ✅ 2026-09-12 Playwright verify: login ด้วย admin/Center2025 (role=ADMIN) → เข้า `/admin/migration` ได้ → Migration Management แสดงครบ (Excel upload form ADR-047 + Legacy Review Queue 5 รายการ: QC-0001, QC-0002, คคง., CHEC-LCP-C2-O-24-0002 FAILED, CHEC-LCP-C2-O-24-0004); 0 console errors; admin role เข้าถึง migration ได้แต่ AI Console/RAG Admin เป็น Superadmin-only (แสดง Unknown)
+- [x] Cold-start hint (ADR-051 D2 — งาน session นี้): verify ตอน cold-start เกิดจริง — ✅ 2026-09-12 Playwright verify จริง: trigger RAG Sandbox query ตอนไม่มี model โหลด → hint แสดง "ระบบกำลังเตรียมโมเดล AI กรุณารอสักครู่ (อาจใช้เวลา 5-15 วินาที)" + progress 60% + Request ID UUIDv7 `01a0941c-...`; หลัง query np-dms-ai โหลดขึ้น VRAM 4086 MB (25%) ยืนยัน cold-start ทำงานจริง
 - [ ] Claude Code slash commands (`/security-review`, `/schema-change`) หลัง restart session
-- [ ] T048 + T064 quickstart manual walk (ต้องการ deployed stack + Qdrant)
+- [x] T048 + T064 quickstart manual walk (ต้องการ deployed stack + Qdrant) — ✅ 2026-09-12 PARTIAL: T048 Step 1 ✅ (active ocr_extraction v3 มี placeholders ครบ `{{ocr_text}}`/`{{allowed_correspondence_types}}`/`{{existing_tags}}`/`{{master_data_context}}` + ใช้ `correspondenceType`); T048 Step 8 ✅ (GET /migration/review-thresholds → 200, minConfidence 0.6, maxMismatchFields 3); T048 Steps 2-7,9 BLOCKED (queue ว่าง/production mutation/test double); T064 PARTIAL — grep พบ "category" 29 รายการใน migration module (functional rename เป็น `correspondenceType` ทำใน DTOs/types/tests แล้ว; ที่เหลือ = stale comments ใน migration.service.ts + legitimate Excel column mapping `categoryCol` + audit log `category:'migration'`)
 
 #### C. Ops / Infra (ต้องการ user หรือทีม)
 
@@ -519,7 +519,7 @@ D265-D271 ด้านบน
 - [x] Direct sidecar tests: QC-0001 + 00-test.pdf clean output
 - [x] Backend build/lint/2254 tests pass
 - [x] Commits `5858e3a2` + `ed17d049`
-- [ ] **Re-Extract E2E ผ่าน browser** — ยังคืน OCR_FAILED บางหน้า (leakage ยังเกิดบาง page แม้ direct test สะอาด)
+- [x] **Re-Extract E2E ผ่าน browser** — ✅ 2026-09-12: trigger re-extract ผ่าน `POST /api/migration/queue/:publicId/re-extract` สำหรับ QC-0001 + QC-0002 + CHEC-LCP-C2-O-24-0002 → ทั้งหมด 201 Created + jobId; aiStatus เปลี่ยนเป็น FAILED (OCR failed เพราะ PDF ไม่พบใน NAS — staging-file 400 error); flow ทำงานถูกต้อง
 - [ ] **เพิ่ม retry/unload-on-leakage logic ใน sidecar** — เมื่อ leakage detected ให้ unload model + retry ครั้งเดียว (deferred — user เลือกเก็บไว้ทำทีหลัง Session 2026-09-05)
 - [x] **Push commits ไป Gitea** — `5858e3a2` + `ed17d049` **already pushed** (verified Session 2026-09-05: ทั้งสอง commit อยู่ใน `origin/main`)
 

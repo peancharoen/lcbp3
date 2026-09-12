@@ -15,11 +15,8 @@ import { of } from 'rxjs';
 import { RbacGuard } from '../src/common/guards/rbac.guard';
 import { UserService } from '../src/modules/user/user.service';
 import { User } from '../src/modules/user/entities/user.entity';
-import { PERMISSIONS_KEY } from '../src/common/decorators/require-permission.decorator';
 import { AiQdrantService } from '../src/modules/ai/qdrant.service';
-import { DocumentHardDeleteService } from '../src/common/services/document-hard-delete.service';
 import { IdempotencyInterceptor } from '../src/common/interceptors/idempotency.interceptor';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -41,7 +38,7 @@ import * as path from 'path';
 
 const createMockExecutionContext = (
   user: User | undefined,
-  handlerPermissions: string[] | undefined
+  _handlerPermissions: string[] | undefined
 ): ExecutionContext => {
   return {
     switchToHttp: () => ({
@@ -323,8 +320,10 @@ describe('Feature 253 — Phase 5C: AI Boundary (ADR-023A)', () => {
     };
 
     // Override QdrantClient mock สำหรับ test นี้
-    const { QdrantClient } = jest.requireMock('@qdrant/js-client-rest');
-    QdrantClient.mockImplementation(() => mockClient);
+    const mocked = jest.requireMock('@qdrant/js-client-rest') as unknown as {
+      QdrantClient: jest.Mock;
+    };
+    mocked.QdrantClient.mockImplementation(() => mockClient);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -381,9 +380,12 @@ describe('Feature 253 — Phase 5C: AI Boundary (ADR-023A)', () => {
       documentPublicId
     );
 
-    const call = mockClient.delete.mock.calls[0];
+    const call = mockClient.delete.mock.calls[0] as [
+      string,
+      { filter: { must: Array<{ key: string }> } },
+    ];
     const filter = call[1].filter;
-    const keys = filter.must.map((f: { key: string }) => f.key);
+    const keys = filter.must.map((f) => f.key);
 
     expect(keys).toContain('project_public_id');
     expect(keys).toContain('doc_public_id');

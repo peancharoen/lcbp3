@@ -46,6 +46,10 @@
 #   - ลบ OCR_SIDECAR_API_KEY env var check, api_key_header, get_api_key function
 #   - ลบ Depends(get_api_key) จากทุก endpoint (/ocr, /ocr-upload, /embed, /rerank)
 #   - ลบ imports: APIKeyHeader, Security, Depends (คง status ไว้สำหรับ HTTP_403/400)
+# - 2026-09-12: A2 — retry/unload-on-leakage: เมื่อ leakage detected ให้ unload model + retry ครั้งเดียว
+#   - เพิ่ม import unload_ollama_model จาก prompt_cache
+#   - Leakage detection block: unload → clear prompt hash → retry → ถ้ายัง leakage คืน empty text
+#   - เหตุผล: leakage อาจเกิดจาก stale KV cache ไม่ใช่ model limitation เสมอไป
 
 import os
 import logging
@@ -65,6 +69,7 @@ from services.prompt_cache import (
     check_and_unload_if_changed,
     clear_prompt_hash,
     init_redis_client,
+    unload_ollama_model,
 )
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, status
@@ -579,14 +584,36 @@ async def _process_ocr_impl(
     if _leakage_found:
         # ADR-040 D3: Model echo training prompt format เมื่ออ่าน image ไม่ออก
         # (เช่น scanned PDF คุณภาพต่ำ, ภาพหมุน, หน้าว่าง, หน้าที่ model ไม่สามารถ parse ได้)
-        # คืน empty text เพื่อป้องกัน prompt ถูก persist เป็น OCR content
-        # ไม่ retry เพราะเป็น model limitation ไม่ใช่ stale KV cache
+        # A2: unload model + retry ครั้งเดียว — leakage อาจเกิดจาก stale KV cache
+        # ถ้า retry แล้วยัง leakage แสดงว่าเป็น model limitation จริง → คืน empty text
         logger.warning(
             f"Prompt leakage detected — model echoed training prompt format (page unreadable). "
             f"markers={_leakage_found} textLen={len(result_text)} page={page_num} "
-            f"(returning empty text — model could not read this page)"
+            f"(unloading model + retrying once to clear stale KV cache)"
         )
-        result_text = ""
+        unload_success = await unload_ollama_model(
+            OLLAMA_API_URL, model_name, ollama_client
+        )
+        if unload_success:
+            # Clear prompt hash เพื่อให้ request ถัดไปถือว่าเป็น first request (ไม่ skip unload)
+            if redis_client is not None:
+                await clear_prompt_hash(redis_client, model_name)
+            logger.info(f"Leakage retry: model unloaded, retrying OCR for page={page_num}")
+            result_text = await _call_ollama()
+            _leakage_retry = [m for m in _LEAKAGE_MARKERS if m.lower() in result_text.lower()]
+            if _leakage_retry:
+                logger.warning(
+                    f"Prompt leakage persists after unload+retry — model limitation "
+                    f"(page unreadable). markers={_leakage_retry} textLen={len(result_text)} "
+                    f"page={page_num} (returning empty text)"
+                )
+                result_text = ""
+        else:
+            logger.warning(
+                f"Model unload failed during leakage retry — returning empty text "
+                f"(page={page_num})"
+            )
+            result_text = ""
     return result_text
 
 @app.post("/ocr", response_model=OcrResponse)
