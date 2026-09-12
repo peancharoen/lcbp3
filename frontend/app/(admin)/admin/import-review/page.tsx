@@ -13,6 +13,8 @@
 // - 2026-09-12: Async/polling pattern (ADR-008) — check() คืน sessionId ทันที
 //   แล้ว poll GET /status จนเสร็จ แก้ปัญหา axios timeout 15s ไม่พอสำหรับ
 //   AI review 265+ แถว. เพิ่ม progress bar + current step display.
+// - 2026-09-12: Persist sessionId/result/confirmResult ลง localStorage
+//   เพื่อให้ผู้ใช้กลับมาดูผลได้ภายใน 24 ชม. แม้ออกจากหน้า/refresh
 
 'use client';
 
@@ -25,11 +27,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { DownloadIcon, UploadIcon, XIcon, CheckIcon, LoaderIcon } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { DownloadIcon, UploadIcon, XIcon, CheckIcon, LoaderIcon, ChevronDown, ChevronRight, FolderIcon, FolderOpenIcon } from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useProjectStore } from '@/lib/stores/project-store';
 import { useCheckImportReview, useReviewStatus, useConfirmImportReview, useCancelImportReview } from '@/hooks/use-import-review';
 import { importReviewService } from '@/lib/services/import-review.service';
+import { migrationService, type LegacyFolderNode } from '@/lib/services/migration.service';
 import {
   AiReviewerProvider,
   BatchStrategy,
@@ -37,6 +41,36 @@ import {
   ConfirmReviewResponse,
   ReviewTargetMode,
 } from '@/types/import-review';
+
+/** localStorage keys สำหรับ persist session ข้าม page unmount/refresh */
+const LS_KEY_SESSION_ID = 'import-review:sessionId';
+const LS_KEY_RESULT = 'import-review:result';
+const LS_KEY_CONFIRM_RESULT = 'import-review:confirmResult';
+
+/** อ่านค่าจาก localStorage อย่างปลอดภัย (SSR-safe + try/catch) */
+function readLS<T>(key: string): T | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** เขียนค่าลง localStorage อย่างปลอดภัย */
+function writeLS<T>(key: string, value: T | null): void {
+  if (typeof window === 'undefined') return;
+  try {
+    if (value === null) {
+      window.localStorage.removeItem(key);
+    } else {
+      window.localStorage.setItem(key, JSON.stringify(value));
+    }
+  } catch {
+    // ignore quota/permission errors
+  }
+}
 
 const FINDING_BADGE_VARIANT: Record<string, 'destructive' | 'secondary' | 'default'> = {
   BLOCK: 'destructive',
@@ -55,9 +89,15 @@ export default function ImportReviewPage() {
   const [targetMode, setTargetMode] = useState<ReviewTargetMode>('DIRECT_IMPORT');
   const [aiProvider, setAiProvider] = useState<AiReviewerProvider>('LOCAL_OLLAMA');
   const [batchStrategy, setBatchStrategy] = useState<BatchStrategy>('FULL');
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [result, setResult] = useState<CheckReviewResponse | null>(null);
-  const [confirmResult, setConfirmResult] = useState<ConfirmReviewResponse | null>(null);
+  // NAS folder picker (MIGRATION_STAGING mode)
+  const [nasFolderPath, setNasFolderPath] = useState<string>('');
+  const [nasFolderTree, setNasFolderTree] = useState<LegacyFolderNode[]>([]);
+  const [folderPickerOpen, setFolderPickerOpen] = useState(false);
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  // Restore จาก localStorage — ถ้ามี session อยู่กลับมาดูผลต่อได้
+  const [sessionId, setSessionId] = useState<string | null>(() => readLS<string>(LS_KEY_SESSION_ID));
+  const [result, setResult] = useState<CheckReviewResponse | null>(() => readLS<CheckReviewResponse>(LS_KEY_RESULT));
+  const [confirmResult, setConfirmResult] = useState<ConfirmReviewResponse | null>(() => readLS<ConfirmReviewResponse>(LS_KEY_CONFIRM_RESULT));
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDownloadingFailedRows, setIsDownloadingFailedRows] = useState(false);
 
@@ -66,16 +106,47 @@ export default function ImportReviewPage() {
   const confirmMutation = useConfirmImportReview();
   const cancelMutation = useCancelImportReview();
 
-  // เมื่อ status กลายเป็น READY ให้เก็บ result
+  // โหลด NAS folder tree เมื่อเลือก MIGRATION_STAGING mode
+  useEffect(() => {
+    if (targetMode === 'MIGRATION_STAGING' && nasFolderTree.length === 0) {
+      migrationService.listLegacyFolders().then(setNasFolderTree).catch(() => undefined);
+    }
+  }, [targetMode, nasFolderTree.length]);
+
+  // Sync sessionId → localStorage (persist ข้าม unmount/refresh)
+  useEffect(() => {
+    writeLS(LS_KEY_SESSION_ID, sessionId);
+  }, [sessionId]);
+
+  // Sync result → localStorage
+  useEffect(() => {
+    writeLS(LS_KEY_RESULT, result);
+  }, [result]);
+
+  // Sync confirmResult → localStorage
+  useEffect(() => {
+    writeLS(LS_KEY_CONFIRM_RESULT, confirmResult);
+  }, [confirmResult]);
+
+  // เมื่อ status กลายเป็น READY ให้เก็บ result และหยุด poll
   useEffect(() => {
     if (statusQuery.data?.status === 'READY' && statusQuery.data.result) {
       setResult(statusQuery.data.result);
-      setSessionId(null); // หยุด poll
+      setSessionId(null); // หยุด poll + clear localStorage sessionId
     }
-    if (statusQuery.data?.status === 'FAILED' && statusQuery.data.errorMessage) {
-      setSessionId(null); // หยุด poll
+    // FAILED / EXPIRED / CANCELLED → หยุด poll + clear localStorage
+    if (
+      statusQuery.data?.status === 'FAILED' ||
+      statusQuery.data?.status === 'EXPIRED' ||
+      statusQuery.data?.status === 'CANCELLED'
+    ) {
+      setSessionId(null);
     }
-  }, [statusQuery.data]);
+    // Session ไม่พบ (404/expired บน backend) → clear localStorage
+    if (statusQuery.isError) {
+      setSessionId(null);
+    }
+  }, [statusQuery.data, statusQuery.isError]);
 
   if (!canAccess) {
     return (
@@ -94,7 +165,14 @@ export default function ImportReviewPage() {
     setResult(null);
     setConfirmResult(null);
     checkMutation.mutate(
-      { projectPublicId: selectedProjectId, targetMode, aiProvider, batchStrategy, file },
+      {
+        projectPublicId: selectedProjectId,
+        targetMode,
+        aiProvider,
+        batchStrategy,
+        file,
+        nasFolderPath: targetMode === 'MIGRATION_STAGING' ? nasFolderPath || undefined : undefined,
+      },
       { onSuccess: (data) => setSessionId(data.reviewSessionPublicId) }
     );
   };
@@ -141,12 +219,20 @@ export default function ImportReviewPage() {
     setResult(null);
     setConfirmResult(null);
     setSessionId(null);
+    // localStorage ถูกเคลียร์โดย useEffect sync ด้านบน
   };
 
-  const isProcessing = !!sessionId && statusQuery.data?.status !== 'READY' && statusQuery.data?.status !== 'FAILED';
+  const isProcessing = !!sessionId && statusQuery.data?.status !== 'READY' && statusQuery.data?.status !== 'FAILED' && statusQuery.data?.status !== 'EXPIRED' && statusQuery.data?.status !== 'CANCELLED' && !statusQuery.isError;
   const progressValue = statusQuery.data?.progress ?? 0;
   const currentStep = statusQuery.data?.currentStep ?? '';
-  const failedMessage = statusQuery.data?.status === 'FAILED' ? statusQuery.data.errorMessage : null;
+  const failedMessage =
+    statusQuery.data?.status === 'FAILED'
+      ? statusQuery.data.errorMessage
+      : statusQuery.data?.status === 'EXPIRED'
+        ? 'session หมดอายุ (เกิน 24 ชม.) — กรุณาอัปโหลดใหม่'
+        : statusQuery.isError
+          ? 'session ไม่พบ (อาจหมดอายุหรือถูกลบ) — กรุณาอัปโหลดใหม่'
+          : null;
 
   return (
     <div className="p-6 space-y-6">
@@ -168,13 +254,22 @@ export default function ImportReviewPage() {
 
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-1.5">
-              <Label htmlFor="import-review-file">ไฟล์ (.xlsx หรือ .zip)</Label>
+              <Label htmlFor="import-review-file">
+                {targetMode === 'MIGRATION_STAGING'
+                  ? 'ไฟล์ Excel (.xlsx เท่านั้น)'
+                  : 'ไฟล์ (.xlsx หรือ .zip พร้อมไฟล์แนบ PDF)'}
+              </Label>
               <Input
                 id="import-review-file"
                 type="file"
-                accept=".xlsx,.zip"
+                accept={targetMode === 'MIGRATION_STAGING' ? '.xlsx' : '.xlsx,.zip'}
                 onChange={(e) => setFile(e.target.files?.[0] ?? null)}
               />
+              {targetMode === 'DIRECT_IMPORT' && (
+                <p className="text-xs text-muted-foreground">
+                  ถ้ามีไฟล์แนบ PDF ให้รวมเป็น .zip (ที่มีทั้ง .xlsx + PDFs)
+                </p>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -210,6 +305,63 @@ export default function ImportReviewPage() {
               </Select>
             </div>
           </div>
+
+          {/* NAS folder picker — MIGRATION_STAGING mode only */}
+          {targetMode === 'MIGRATION_STAGING' && (
+            <div className="space-y-1.5">
+              <Label>โฟลเดอร์ Staging PDF บน NAS (ไม่บังคับ)</Label>
+              <Popover open={folderPickerOpen} onOpenChange={setFolderPickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    disabled={nasFolderTree.length === 0}
+                    className="w-full justify-between text-sm font-normal"
+                  >
+                    <span className="truncate">
+                      {nasFolderPath
+                        ? nasFolderPath.replace(/^.*\/([^/]+)$/, '$1/')
+                        : nasFolderTree.length === 0
+                          ? 'ไม่พบโฟลเดอร์ใน NAS'
+                          : 'เลือกโฟลเดอร์ Staging PDF...'}
+                    </span>
+                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[480px] p-0" align="start">
+                  <div className="max-h-[320px] overflow-y-auto p-1">
+                    {nasFolderTree.length === 0 ? (
+                      <div className="px-3 py-6 text-center text-xs text-muted-foreground">
+                        ไม่พบโฟลเดอร์ใน NAS
+                      </div>
+                    ) : (
+                      <FolderTree
+                        nodes={nasFolderTree}
+                        expanded={expandedFolders}
+                        onToggle={(path) => {
+                          const next = new Set(expandedFolders);
+                          if (next.has(path)) {
+                            next.delete(path);
+                          } else {
+                            next.add(path);
+                          }
+                          setExpandedFolders(next);
+                        }}
+                        selectedPath={nasFolderPath}
+                        onSelect={(path) => {
+                          setNasFolderPath(path);
+                          setFolderPickerOpen(false);
+                        }}
+                      />
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+              <p className="text-xs text-muted-foreground">
+                เลือกโฟลเดอร์ที่มีไฟล์ PDF แนบ — ระบบจะสแกนหาไฟล์ PDF ในโฟลเดอร์นี้แทนการอัปโหลด .zip
+              </p>
+            </div>
+          )}
 
           <div className="flex items-center gap-3">
             <Select value={batchStrategy} onValueChange={(v) => setBatchStrategy(v as BatchStrategy)}>
@@ -415,5 +567,89 @@ function SummaryStat({
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className={`text-2xl font-bold truncate ${className ?? ''}`}>{value}</p>
     </div>
+  );
+}
+
+// --- FolderTree: recursive tree view สำหรับเลือก Staging PDF folder ---
+interface FolderTreeProps {
+  nodes: LegacyFolderNode[];
+  expanded: Set<string>;
+  onToggle: (path: string) => void;
+  selectedPath: string;
+  onSelect: (path: string) => void;
+  depth?: number;
+}
+
+function FolderTree({
+  nodes,
+  expanded,
+  onToggle,
+  selectedPath,
+  onSelect,
+  depth = 0,
+}: FolderTreeProps) {
+  return (
+    <ul className={depth === 0 ? '' : 'ml-3 border-l border-border/40 pl-1'}>
+      {nodes.map((node) => {
+        const hasChildren = node.children.length > 0;
+        const isExpanded = expanded.has(node.path);
+        const isSelected = selectedPath === node.path;
+        return (
+          <li key={node.path}>
+            <div
+              className={`flex items-center gap-1 rounded px-1.5 py-1 text-xs cursor-pointer hover:bg-accent ${
+                isSelected ? 'bg-primary/15 text-primary font-medium' : ''
+              }`}
+              style={{ paddingLeft: `${depth * 12 + 6}px` }}
+              onClick={() => onSelect(node.path)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onSelect(node.path);
+                }
+              }}
+            >
+              {hasChildren ? (
+                <button
+                  type="button"
+                  className="shrink-0 rounded p-0.5 hover:bg-accent-foreground/10"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggle(node.path);
+                  }}
+                  aria-label={isExpanded ? 'ย่อ' : 'ขยาย'}
+                >
+                  {isExpanded ? (
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  ) : (
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  )}
+                </button>
+              ) : (
+                <span className="inline-block w-[22px] shrink-0" />
+              )}
+              {isExpanded && hasChildren ? (
+                <FolderOpenIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              ) : (
+                <FolderIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              )}
+              <span className="truncate">{node.name}</span>
+            </div>
+            {hasChildren && isExpanded && (
+              <FolderTree
+                nodes={node.children}
+                expanded={expanded}
+                onToggle={onToggle}
+                selectedPath={selectedPath}
+                onSelect={onSelect}
+                depth={depth + 1}
+              />
+            )}
+          </li>
+        );
+      })}
+    </ul>
   );
 }

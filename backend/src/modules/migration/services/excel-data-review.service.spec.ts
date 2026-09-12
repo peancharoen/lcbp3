@@ -923,6 +923,44 @@ describe('ExcelDataReviewService', () => {
         sentRows.every((r) => !r.findings.some((f) => f.level === 'BLOCK'))
       ).toBe(true);
     });
+
+    it('FAST_SELECTIVE: cap WARN rows ที่ 50 แถว (ป้องกัน migration data ส่ง AI ทุกแถว)', async () => {
+      // จำลอง migration data: ทุกแถวมี WARN จาก master mismatch
+      const rows: ExcelCorrespondenceRow[] = [];
+      for (let i = 1; i <= 265; i++) {
+        rows.push(
+          makeRow({
+            rowIndex: i,
+            findings: [
+              {
+                row: i,
+                column: 'Category',
+                level: 'WARN' as const,
+                message: 'ประเภทเอกสารไม่ตรง Master',
+              },
+            ],
+          })
+        );
+      }
+      rowBuilder.buildFromWorkbook.mockResolvedValue(makeParsed(rows));
+      businessRules.validate.mockResolvedValue({ findings: [], rows });
+      aiFactory.review.mockResolvedValue({
+        available: true,
+        findings: [],
+      });
+      const sessionId = await setupProcessCheck({
+        batchStrategy: 'FAST_SELECTIVE',
+      });
+
+      await service.processCheck(sessionId);
+
+      const calledWith = aiFactory.review.mock.calls[0][0];
+      // 265 WARN → capped at 50, 0 PASS → 0 sampled → รวม 50
+      expect(calledWith.rows.length).toBe(50);
+      expect(
+        calledWith.rows.every((r) => r.findings.some((f) => f.level === 'WARN'))
+      ).toBe(true);
+    });
   });
 
   describe('getAnnotatedFilePath (T015)', () => {

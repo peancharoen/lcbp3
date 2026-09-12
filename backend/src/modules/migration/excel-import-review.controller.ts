@@ -133,6 +133,12 @@ export class ExcelImportReviewController {
     description: 'LOCAL_OLLAMA (default), GEMINI, CLAUDE',
     required: false,
   })
+  @ApiQuery({
+    name: 'nasFolderPath',
+    description:
+      'พาธโฟลเดอร์ Staging PDF บน NAS (MIGRATION_STAGING เท่านั้น) — ใช้แทน .zip',
+    required: false,
+  })
   @UseInterceptors(
     FileInterceptor('file', {
       limits: { fileSize: MAX_FILE_SIZE },
@@ -210,6 +216,7 @@ export class ExcelImportReviewController {
         mimetype: file.mimetype,
         size: file.size,
       },
+      nasFolderPath: dto.nasFolderPath,
     });
   }
 

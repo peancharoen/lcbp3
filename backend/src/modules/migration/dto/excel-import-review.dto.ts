@@ -104,4 +104,17 @@ export class CheckImportReviewDto {
     value === undefined || value === null || value === '' ? 'FULL' : value
   )
   batchStrategy: BatchStrategy = 'FULL';
+
+  /**
+   * พาธของโฟลเดอร์ Staging PDF บน NAS (สำหรับ MIGRATION_STAGING mode)
+   * ใช้แทนการอัปโหลด .zip — ระบบจะสแกนหาไฟล์ PDF ในโฟลเดอร์นี้
+   * ต้องอยู่ภายใต้ LEGACY_NAS_PATH (path traversal guard — ADR-016)
+   */
+  @ApiPropertyOptional({
+    description:
+      'พาธโฟลเดอร์ Staging PDF บน NAS (MIGRATION_STAGING เท่านั้น) — ' +
+      'ใช้แทน .zip สำหรับไฟล์แนบ (ADR-047)',
+  })
+  @IsOptional()
+  nasFolderPath?: string;
 }

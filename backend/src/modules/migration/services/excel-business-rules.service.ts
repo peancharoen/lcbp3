@@ -5,6 +5,9 @@
 //   organization resolution, type/discipline resolution, project mismatch,
 //   chronology guard, attachment filename matching, revision semantics
 //   ผลลัพธ์เป็น ReviewFinding[] ระดับ BLOCK/WARN ส่งต่อ Layer 3
+// - 2026-09-12: D9 attachment check ข้าม WARN ใน MIGRATION_STAGING mode
+//   เพราะ migration data ไฟล์แนบอยู่บน NAS folder หรือจะส่งทีหลัง
+//   (pre-registration) — ไม่ใช่ error สำหรับ migration
 
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -115,7 +118,11 @@ export class ExcelBusinessRulesService {
     this.checkChronology(rows, allFindings);
 
     // 7) ตรวจ attachment filename matching (D9)
-    this.checkAttachments(rows, input.attachmentFileNames, allFindings);
+    // MIGRATION_STAGING: ข้าม WARN เพราะไฟล์แนบอาจอยู่บน NAS folder
+    // หรือจะส่งมาทีหลัง (pre-registration) — ไม่ใช่ error สำหรับ migration
+    if (input.targetMode === 'DIRECT_IMPORT') {
+      this.checkAttachments(rows, input.attachmentFileNames, allFindings);
+    }
 
     return { findings: allFindings, rows };
   }

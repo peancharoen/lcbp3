@@ -157,6 +157,7 @@ export class ReviewSessionStashService {
     batchStrategy: BatchStrategy;
     originalFileName: string;
     fileBuffer: Buffer;
+    nasFolderPath?: string;
   }): Promise<ReviewSessionData> {
     const reviewSessionPublicId = this.generateUUIDv7();
     const sessionDir = path.join(this.sessionsRoot, reviewSessionPublicId);
@@ -192,6 +193,7 @@ export class ReviewSessionStashService {
       progress: 0,
       currentStep: 'Queued',
       batchStrategy: input.batchStrategy,
+      nasFolderPath: input.nasFolderPath,
     };
 
     const redisKey = REVIEW_SESSION_REDIS_PREFIX + reviewSessionPublicId;

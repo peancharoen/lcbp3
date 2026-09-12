@@ -46,6 +46,14 @@ export const FAST_SELECTIVE_THRESHOLD = 200;
 export const FAST_SELECTIVE_SAMPLE_PERCENT = 0.05;
 
 /**
+ * จำนวนแถว WARN สูงสุดที่ส่ง AI ในโหมด FAST_SELECTIVE
+ * ถ้า WARN เกินจำนวนนี้ จะสุ่มตัวอย่างแทนการส่งหมด
+ * (ป้องกัน migration data ที่ทุกแถวมี WARN จาก master mismatch
+ *  ทำให้ FAST_SELECTIVE ส่ง AI ทุกแถวเหมือน FULL mode)
+ */
+export const FAST_SELECTIVE_WARN_CAP = 50;
+
+/**
  * ข้อมูล Review Session ที่เก็บใน Redis ภายใต้คีย์
  * `import_review:session:<reviewSessionPublicId>` ด้วย TTL 24 ชั่วโมง
  * (FR-012, D8, data-model.md §1) — ไม่สร้างตารางชั่วคราวใน MariaDB (ADR-044)
@@ -106,6 +114,9 @@ export interface ReviewSessionData {
   currentStep?: string;
   /** Batch strategy ที่ผู้ใช้เลือกตอน check() — ใช้ใน worker */
   batchStrategy?: BatchStrategy;
+  /** พาธโฟลเดอร์ Staging PDF บน NAS (MIGRATION_STAGING เท่านั้น) —
+   *  ใช้ใน worker เพื่อสแกนหาไฟล์แนบ PDF แทนการแตก .zip */
+  nasFolderPath?: string;
 }
 
 /**

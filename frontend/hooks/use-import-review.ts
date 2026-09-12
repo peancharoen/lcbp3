@@ -32,6 +32,7 @@ export function useCheckImportReview() {
       aiProvider: AiReviewerProvider;
       batchStrategy: BatchStrategy;
       file: File;
+      nasFolderPath?: string;
     }): Promise<{ reviewSessionPublicId: string }> =>
       importReviewService.check(params),
     onError: (error: unknown) => {

@@ -63,12 +63,17 @@ import {
   BatchStrategy,
   ExcelCorrespondenceRow,
   FAST_SELECTIVE_SAMPLE_PERCENT,
+  FAST_SELECTIVE_WARN_CAP,
   REVIEW_SESSION_TTL_SECONDS,
 } from '../types/excel-review.types';
 import {
   QUEUE_IMPORT_REVIEW,
   JOB_IMPORT_REVIEW_CHECK,
 } from '../../common/constants/queue.constants';
+import {
+  ENV_LEGACY_NAS_PATH,
+  LEGACY_NAS_PATH_DEFAULT,
+} from '../constants/migration.constants';
 
 /**
  * Input สำหรับ check() — มาจาก controller หลังผ่าน DTO validation
@@ -86,6 +91,8 @@ export interface CheckReviewInput {
     mimetype: string;
     size: number;
   };
+  /** พาธโฟลเดอร์ Staging PDF บน NAS (MIGRATION_STAGING เท่านั้น) */
+  nasFolderPath?: string;
 }
 
 /**
@@ -260,6 +267,7 @@ export class ExcelDataReviewService {
       batchStrategy: input.batchStrategy,
       originalFileName: input.file.originalname,
       fileBuffer: input.file.buffer,
+      nasFolderPath: input.nasFolderPath,
     });
 
     // 4) Queue BullMQ job เพื่อประมวลผลใน background (ADR-008)
@@ -337,8 +345,20 @@ export class ExcelDataReviewService {
         10,
         'Extracting Excel'
       );
-      const { excelBuffer, excelFileName, attachmentFileNames } =
-        this.extractExcelAndAttachments(file);
+      const {
+        excelBuffer,
+        excelFileName,
+        attachmentFileNames: zipAttachments,
+      } = this.extractExcelAndAttachments(file);
+
+      // 2b) ถ้ามี nasFolderPath (MIGRATION_STAGING) ให้สแกนหา PDFs ใน NAS
+      let attachmentFileNames = zipAttachments;
+      if (session.nasFolderPath) {
+        attachmentFileNames = this.scanNasFolderForPdfs(session.nasFolderPath);
+        this.logger.log(
+          `NAS folder scan: ${session.nasFolderPath} → ${attachmentFileNames.length} PDFs`
+        );
+      }
 
       // 3) รัน ExcelRowBuilder (single parser — FR-002)
       await this.stash.updateProgress(
@@ -403,19 +423,41 @@ export class ExcelDataReviewService {
       });
 
       // 6) Layer 3 — AI Reviewer (Fail-Open, FR-009)
-      await this.stash.updateProgress(
-        reviewSessionPublicId,
-        60,
-        'Layer 3: AI Review'
-      );
       const batchStrategy = session.batchStrategy ?? 'FULL';
       const rowsForAi = this.selectRowsForAi(layer2.rows, batchStrategy);
-      const aiResult = await this.aiFactory.review({
-        rows: rowsForAi,
-        projectPublicId: session.projectPublicId,
-        provider: session.selectedAiProvider,
-        batchStrategy,
-      });
+      const aiRowCount = rowsForAi.length;
+      const aiStep =
+        aiRowCount > 50
+          ? `Layer 3: AI Review (${aiRowCount} แถว — อาจใช้เวลา ${Math.ceil(aiRowCount / 30)}+ นาที)`
+          : 'Layer 3: AI Review';
+      await this.stash.updateProgress(reviewSessionPublicId, 60, aiStep);
+
+      // Progress ticker: ค่อยๆ เพิ่ม 60% → 84% ระหว่าง AI review
+      // (ป้องกัน progress ค้างที่ 60% ตลอดการประมวลผล 10+ นาที)
+      let tickerPct = 60;
+      const ticker = setInterval(() => {
+        if (tickerPct >= 84) return;
+        tickerPct += 2;
+        void this.stash
+          .updateProgress(
+            reviewSessionPublicId,
+            tickerPct,
+            `${aiStep} (${tickerPct}%)`
+          )
+          .catch(() => undefined); // session อาจหมดอายุระหว่างนั้น — ไม่เป็นไร
+      }, 15000); // อัปเดตทุก 15 วินาที
+
+      let aiResult: Awaited<ReturnType<typeof this.aiFactory.review>>;
+      try {
+        aiResult = await this.aiFactory.review({
+          rows: rowsForAi,
+          projectPublicId: session.projectPublicId,
+          provider: session.selectedAiProvider,
+          batchStrategy,
+        });
+      } finally {
+        clearInterval(ticker);
+      }
 
       // 7) รวม findings
       await this.stash.updateProgress(
@@ -974,14 +1016,50 @@ export class ExcelDataReviewService {
   }
 
   /**
-   * นับ pass/warn/block จาก rows + findings
+   * สแกนโฟลเดอร์ NAS เพื่อหาไฟล์ PDF (MIGRATION_STAGING mode)
+   * ใช้แทนการแตก .zip — ไฟล์แนบอยู่บน NAS อยู่แล้ว (ADR-047)
    *
-   * canConfirm logic (แก้ตาม Wave 3 review):
-   * - global BLOCK (row=0) เช่น project-not-found, missing headers → ห้าม confirm
-   * - DIRECT_IMPORT: atomic — มี row BLOCK แม้ 1 แถว → ห้าม confirm
-   * - MIGRATION_STAGING: partial quarantine — row BLOCK ไป quarantine,
-   *   แถวที่ผ่านยัง confirm ได้ (แต่ global BLOCK ยังห้าม confirm)
+   * Security: path traversal guard — ต้องอยู่ภายใต้ LEGACY_NAS_PATH
    */
+  private scanNasFolderForPdfs(folderPath: string): string[] {
+    const basePath = path.resolve(
+      process.env[ENV_LEGACY_NAS_PATH] || LEGACY_NAS_PATH_DEFAULT
+    );
+    const resolvedPath = path.resolve(folderPath);
+
+    // ADR-016: path traversal guard — ต้องอยู่ใต้ basePath เสมอ
+    const relative = path.relative(basePath, resolvedPath);
+    if (relative.startsWith('..') || path.isAbsolute(relative)) {
+      this.logger.warn(
+        `NAS folder path traversal blocked: ${folderPath} (base=${basePath})`
+      );
+      return [];
+    }
+
+    if (!fs.existsSync(resolvedPath)) {
+      this.logger.warn(`NAS folder not found: ${resolvedPath}`);
+      return [];
+    }
+
+    const pdfFiles: string[] = [];
+    try {
+      const entries = fs.readdirSync(resolvedPath, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.isFile()) {
+          const ext = path.extname(entry.name).toLowerCase();
+          if (ext === '.pdf') {
+            pdfFiles.push(this.sanitizeFileName(entry.name));
+          }
+        }
+      }
+    } catch (err: unknown) {
+      const detail = err instanceof Error ? err.message : 'unknown';
+      this.logger.warn(`ไม่สามารถอ่าน NAS folder "${resolvedPath}": ${detail}`);
+    }
+
+    return pdfFiles;
+  }
+
   /**
    * เลือกแถวที่จะส่งให้ AI Reviewer ตาม batchStrategy (Q3, US3 Acceptance 1)
    *
@@ -1001,7 +1079,7 @@ export class ExcelDataReviewService {
       return rows;
     }
 
-    // FAST_SELECTIVE: แยกแถว WARN และแถวที่ผ่าน (ไม่มี finding ระดับ WARN/BLOCK)
+    // FAST_SELECTIVE: แยกแถว WARN/BLOCK และแถวที่ผ่าน
     const warnRows = rows.filter((r) =>
       r.findings.some((f) => f.level === 'WARN')
     );
@@ -1009,32 +1087,57 @@ export class ExcelDataReviewService {
       (r) => !r.findings.some((f) => f.level === 'WARN' || f.level === 'BLOCK')
     );
 
+    // Fisher-Yates shuffle แบบสุ่มตัวอย่าง (ไม่กลาง array เพื่อหลีกเลี่ยง O(n))
+    const sample = <T>(source: T[], size: number): T[] => {
+      const sampled: T[] = [];
+      const copy = [...source];
+      for (let i = 0; i < size && i < copy.length; i++) {
+        const j = i + Math.floor(Math.random() * (copy.length - i));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+        sampled.push(copy[i]);
+      }
+      return sampled;
+    };
+
+    // Cap WARN rows: ถ้ามี WARN เยอะเกินไป (เช่น migration data ที่ทุกแถวมี WARN
+    // จาก master mismatch) ให้สุ่มตัวอย่างแทนการส่งหมด
+    // — ป้องกัน FAST_SELECTIVE ส่ง AI ทุกแถวเหมือน FULL mode
+    const warnSampleSize = Math.min(warnRows.length, FAST_SELECTIVE_WARN_CAP);
+    const sampledWarn =
+      warnSampleSize < warnRows.length
+        ? sample(warnRows, warnSampleSize)
+        : warnRows;
+
     // สุ่ม 5% ของแถวที่ผ่าน (อย่างน้อย 1 แถว ถ้ามี passRows)
-    const sampleSize = Math.max(
+    const passSampleSize = Math.max(
       1,
       Math.ceil(passRows.length * FAST_SELECTIVE_SAMPLE_PERCENT)
     );
+    const sampledPass = sample(passRows, passSampleSize);
 
-    // Fisher-Yates shuffle แบบสุ่มตัวอย่าง (ไม่กลาง array เพื่อหลีกเลี่ยง O(n))
-    const sampledPass: ExcelCorrespondenceRow[] = [];
-    const passCopy = [...passRows];
-    for (let i = 0; i < sampleSize && i < passCopy.length; i++) {
-      const j = i + Math.floor(Math.random() * (passCopy.length - i));
-      [passCopy[i], passCopy[j]] = [passCopy[j], passCopy[i]];
-      sampledPass.push(passCopy[i]);
-    }
-
-    // รวม WARN + sampled pass แล้วเรียงตาม row index
-    const selected = [...warnRows, ...sampledPass];
+    // รวม sampled WARN + sampled pass แล้วเรียงตาม row index
+    const selected = [...sampledWarn, ...sampledPass];
     selected.sort((a, b) => a.rowIndex - b.rowIndex);
 
+    const warnCapped = warnRows.length > FAST_SELECTIVE_WARN_CAP;
     this.logger.log(
-      `FAST_SELECTIVE: ส่ง AI ${selected.length}/${rows.length} แถว (WARN=${warnRows.length}, sampled=${sampledPass.length}/${passRows.length})`
+      `FAST_SELECTIVE: ส่ง AI ${selected.length}/${rows.length} แถว ` +
+        `(WARN=${sampledWarn.length}/${warnRows.length}${warnCapped ? ` [capped@${FAST_SELECTIVE_WARN_CAP}]` : ''}, ` +
+        `sampled=${sampledPass.length}/${passRows.length})`
     );
 
     return selected;
   }
 
+  /**
+   * นับ pass/warn/block จาก rows + findings
+   *
+   * canConfirm logic (แก้ตาม Wave 3 review):
+   * - global BLOCK (row=0) เช่น project-not-found, missing headers → ห้าม confirm
+   * - DIRECT_IMPORT: atomic — มี row BLOCK แม้ 1 แถว → ห้าม confirm
+   * - MIGRATION_STAGING: partial quarantine — row BLOCK ไป quarantine,
+   *   แถวที่ผ่านยัง confirm ได้ (แต่ global BLOCK ยังห้าม confirm)
+   */
   private computeCounts(
     rows: ExcelCorrespondenceRow[],
     allFindings: ReviewFinding[],

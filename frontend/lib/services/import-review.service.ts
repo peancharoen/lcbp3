@@ -57,16 +57,21 @@ export const importReviewService = {
     aiProvider: AiReviewerProvider;
     batchStrategy: BatchStrategy;
     file: File;
+    nasFolderPath?: string;
   }): Promise<CheckReviewAsyncResponse> => {
     const formData = new FormData();
     formData.append('file', params.file);
+    const queryParams: Record<string, string> = {
+      projectPublicId: params.projectPublicId,
+      targetMode: params.targetMode,
+      aiProvider: params.aiProvider,
+      batchStrategy: params.batchStrategy,
+    };
+    if (params.nasFolderPath) {
+      queryParams.nasFolderPath = params.nasFolderPath;
+    }
     const { data } = await api.post('/v1/correspondence/import-review/check', formData, {
-      params: {
-        projectPublicId: params.projectPublicId,
-        targetMode: params.targetMode,
-        aiProvider: params.aiProvider,
-        batchStrategy: params.batchStrategy,
-      },
+      params: queryParams,
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return extractNestedData<CheckReviewAsyncResponse>(data);

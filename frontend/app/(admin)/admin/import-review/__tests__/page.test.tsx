@@ -148,7 +148,7 @@ describe('ImportReviewPage', () => {
 
     renderPage();
 
-    const fileInput = screen.getByLabelText(/ไฟล์ \(\.xlsx หรือ \.zip\)/) as HTMLInputElement;
+    const fileInput = screen.getByLabelText(/ไฟล์ \(\.xlsx หรือ \.zip พร้อมไฟล์แนบ PDF\)/) as HTMLInputElement;
     const file = new File(['dummy'], 'register.xlsx', { type: 'application/vnd.openxmlformats' });
     fireEvent.change(fileInput, { target: { files: [file] } });
 
@@ -203,7 +203,7 @@ describe('ImportReviewPage', () => {
 
     renderPage();
 
-    const fileInput = screen.getByLabelText(/ไฟล์ \(\.xlsx หรือ \.zip\)/) as HTMLInputElement;
+    const fileInput = screen.getByLabelText(/ไฟล์ \(\.xlsx หรือ \.zip พร้อมไฟล์แนบ PDF\)/) as HTMLInputElement;
     fireEvent.change(fileInput, { target: { files: [new File(['x'], 'a.xlsx')] } });
     fireEvent.click(screen.getByRole('button', { name: /อัปโหลดและตรวจสอบ/ }));
 
@@ -259,7 +259,7 @@ describe('ImportReviewPage', () => {
 
     renderPage();
 
-    fireEvent.change(screen.getByLabelText(/ไฟล์ \(\.xlsx หรือ \.zip\)/), {
+    fireEvent.change(screen.getByLabelText(/ไฟล์ \(\.xlsx หรือ \.zip พร้อมไฟล์แนบ PDF\)/), {
       target: { files: [new File(['x'], 'a.xlsx')] },
     });
     fireEvent.click(screen.getByRole('button', { name: /อัปโหลดและตรวจสอบ/ }));
