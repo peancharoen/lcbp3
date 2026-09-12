@@ -16,6 +16,9 @@
 //   7) Layer 3 รันหลัง Layer 2 ด้วย Fail-Open policy (FR-009)
 //   8) สร้างไฟล์ annotated .xlsx หลังสร้าง session (FR-010, D4)
 //   9) อัปเดต annotatedFilePath ใน Redis session
+// - 2026-09-12: Async/polling pattern (ADR-008) — check() คืน sessionId ทันที
+//   แล้ว BullMQ worker ประมวลผลใน background, frontend poll GET /status
+//   แก้ปัญหา axios timeout 15s ไม่พอสำหรับ AI review 265+ แถว
 
 import {
   Injectable,
@@ -25,9 +28,13 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import AdmZip from 'adm-zip';
 import { Project } from '../../project/entities/project.entity';
 import { ExcelRowBuilderService } from './excel-row-builder.service';
@@ -56,7 +63,12 @@ import {
   BatchStrategy,
   ExcelCorrespondenceRow,
   FAST_SELECTIVE_SAMPLE_PERCENT,
+  REVIEW_SESSION_TTL_SECONDS,
 } from '../types/excel-review.types';
+import {
+  QUEUE_IMPORT_REVIEW,
+  JOB_IMPORT_REVIEW_CHECK,
+} from '../../common/constants/queue.constants';
 
 /**
  * Input สำหรับ check() — มาจาก controller หลังผ่าน DTO validation
@@ -134,6 +146,41 @@ export interface CancelResponse {
 const SUPPORTED_EXTENSIONS = ['.xlsx', '.zip'];
 
 /**
+ * Response ของ POST /check (async pattern — คืนทันที ไม่รอประมวลผล)
+ * Frontend ใช้ reviewSessionPublicId เพื่อ poll GET /:sessionId/status
+ */
+export interface CheckReviewAsyncResponse {
+  reviewSessionPublicId: string;
+  status: 'PENDING';
+  /** URL สำหรับ poll status */
+  statusUrl: string;
+}
+
+/**
+ * Response ของ GET /:sessionId/status (async pattern)
+ * เมื่อ status === 'READY' จะมี result (เหมือน CheckReviewResponse เดิม)
+ */
+export interface ReviewStatusResponse {
+  reviewSessionPublicId: string;
+  status:
+    | 'PENDING'
+    | 'PROCESSING'
+    | 'READY'
+    | 'FAILED'
+    | 'CONFIRMED'
+    | 'CANCELLED'
+    | 'EXPIRED';
+  progress?: number;
+  currentStep?: string;
+  errorMessage?: string;
+  /** ผลลัพธ์เมื่อ status === 'READY' (เหมือน CheckReviewResponse เดิม) */
+  result?: CheckReviewResponse;
+}
+
+/** Redis key prefix สำหรับเก็บ check result (findings + metadata) */
+const REVIEW_RESULT_REDIS_PREFIX = 'import_review:result:';
+
+/**
  * ExcelDataReviewService — orchestrator กลางของ 4-Layer Pipeline (T009)
  *
  * หน้าที่ปัจจุบัน (Wave 3):
@@ -163,16 +210,27 @@ export class ExcelDataReviewService {
     private readonly stash: ReviewSessionStashService,
     private readonly aiFactory: AiReviewProviderFactory,
     private readonly annotator: ExcelAnnotatorService,
-    private readonly quarantine: ExcelQuarantineService
+    private readonly quarantine: ExcelQuarantineService,
+    @InjectRedis()
+    private readonly redis: Redis,
+    @InjectQueue(QUEUE_IMPORT_REVIEW)
+    private readonly importReviewQueue: Queue
   ) {}
 
   /**
-   * รัน 4-Layer review บนไฟล์ที่อัปโหลด
-   * Layer 3 (AI) รันด้วย Fail-Open policy — ไม่ขัดขวางกระบวนการ (FR-009)
+   * รับไฟล์ Excel/ZIP และเริ่ม 4-Layer review แบบ async (ADR-008)
+   *
+   * Flow:
+   * 1. Validate file extension + project
+   * 2. สร้าง pending session ใน Redis + เขียนไฟล์ใน stash
+   * 3. Queue BullMQ job เพื่อประมวลผลใน background
+   * 4. คืน { reviewSessionPublicId, status: 'PENDING' } ทันที
+   *
+   * Frontend poll GET /:sessionId/status จนกว่า status จะเป็น READY/FAILED
    */
-  async check(input: CheckReviewInput): Promise<CheckReviewResponse> {
+  async check(input: CheckReviewInput): Promise<CheckReviewAsyncResponse> {
     this.logger.log(
-      `เริ่ม check: project=${input.projectPublicId}, mode=${input.targetMode}, file=${input.file.originalname}`
+      `เริ่ม check (async): project=${input.projectPublicId}, mode=${input.targetMode}, file=${input.file.originalname}`
     );
 
     // 1) ตรวจนามสกุลไฟล์ — แปลงเป็น BadRequestException (ไม่ปล่อย 500)
@@ -193,151 +251,299 @@ export class ExcelDataReviewService {
       );
     }
 
-    // 3) แยก Excel buffer + attachment file names
-    const { excelBuffer, excelFileName, attachmentFileNames } =
-      this.extractExcelAndAttachments(input.file);
-
-    // 4) รัน ExcelRowBuilder (single parser — FR-002) — catch workbook errors
-    const tmpDir = await fs.promises.mkdtemp(
-      path.join(os.tmpdir(), 'excel-review-')
-    );
-    const sanitizedFileName = this.sanitizeFileName(excelFileName);
-    const tmpExcelPath = path.join(tmpDir, sanitizedFileName);
-    let parsed: ExcelRowBuilderResult | undefined;
-    try {
-      await fs.promises.writeFile(tmpExcelPath, excelBuffer);
-      try {
-        parsed = await this.rowBuilder.buildFromWorkbook(tmpExcelPath);
-      } catch (err: unknown) {
-        // Corrupt workbook → controlled 4xx (ไม่ปล่อย 500)
-        const detail = err instanceof Error ? err.message : 'unknown';
-        this.logger.warn(`อ่าน workbook ไม่ได้: ${detail}`);
-        throw new BadRequestException(
-          `ไม่สามารถอ่านไฟล์ Excel ได้ — ไฟล์อาจเสียหรือรูปแบบไม่ถูกต้อง: ${detail}`
-        );
-      }
-    } finally {
-      // Cleanup temp dir — log errors ไม่ swallow (ADR-007)
-      try {
-        await fs.promises.rm(tmpDir, { recursive: true, force: true });
-      } catch (cleanupErr: unknown) {
-        const detail =
-          cleanupErr instanceof Error ? cleanupErr.message : 'unknown';
-        this.logger.warn(
-          `ไม่สามารถลบ temp dir "${tmpDir}" ได้: ${detail} — อาจต้อง cleanup ด้วย cron`
-        );
-      }
-    }
-
-    // 5) Layer 1 — Schema validation (parsed จะไม่เป็น undefined เพราะ catch จะ throw)
-    if (!parsed) {
-      throw new BadRequestException(
-        'ไม่สามารถอ่านไฟล์ Excel ได้ — กรุณาตรวจสอบรูปแบบไฟล์อีกครั้ง'
-      );
-    }
-    const layer1 = this.schemaValidator.validate(parsed);
-
-    // 6) Layer 2 — Business rules (cross-table)
-    const layer2 = await this.businessRules.validate({
-      rows: layer1.rows,
-      projectPublicId: input.projectPublicId,
-      targetMode: input.targetMode,
-      attachmentFileNames,
-    });
-
-    // 7) Layer 3 — AI Reviewer (Fail-Open, FR-009)
-    //    รันหลัง Layer 2 เพื่อให้ AI ไม่ต้อง review แถวที่มี BLOCK อยู่แล้ว
-    //    AI คืน AI_SUGGEST findings เท่านั้น — ไม่มี BLOCK/WARN
-    //    Q3 Batching Strategy: ถ้า >200 แถวและเลือก FAST_SELECTIVE
-    //    ส่งเฉพาะแถว WARN + สุ่ม 5% ของแถวที่เหลือ (US3 Acceptance 1)
-    const rowsForAi = this.selectRowsForAi(layer2.rows, input.batchStrategy);
-    const aiResult = await this.aiFactory.review({
-      rows: rowsForAi,
-      projectPublicId: input.projectPublicId,
-      provider: input.aiProvider,
-      batchStrategy: input.batchStrategy,
-    });
-
-    // 8) รวม findings ทั้งหมด (Layer 1 + Layer 2 + Layer 3)
-    const allFindings = [
-      ...layer1.findings,
-      ...layer2.findings,
-      ...aiResult.findings,
-    ];
-
-    // 9) นับ pass/warn/block + canConfirm (รวม global blocks + target mode)
-    const counts = this.computeCounts(
-      layer2.rows,
-      allFindings,
-      input.targetMode
-    );
-
-    // 10) สร้าง Review Session ใน Redis + เขียนไฟล์ดิบใน stash
-    const session = await this.stash.createSession({
+    // 3) สร้าง pending session + เขียนไฟล์ใน stash (async pattern)
+    const session = await this.stash.createPendingSession({
       projectPublicId: input.projectPublicId,
       targetMode: input.targetMode,
       uploadedBy: input.uploadedBy,
       selectedAiProvider: input.aiProvider,
+      batchStrategy: input.batchStrategy,
       originalFileName: input.file.originalname,
       fileBuffer: input.file.buffer,
-      totalRows: counts.totalRows,
-      passCount: counts.passCount,
-      warnCount: counts.warnCount,
-      blockCount: counts.blockCount,
-      aiSuggestCount: counts.aiSuggestCount,
     });
 
-    // 11) สร้างไฟล์ annotated .xlsx (FR-010, D4)
-    //     ใช้ path ใน stash directory: <sessionsRoot>/<sessionId>/annotated.xlsx
-    //     Fail-Open: ถ้า annotator ล้มเหลว ยังคงส่ง response ได้ (ไม่มีไฟล์ annotated)
-    let annotatedFilePath = '';
-    try {
-      const annotatedFileName = 'annotated.xlsx';
-      annotatedFilePath = path.join(
-        path.dirname(session.originalFilePath),
-        annotatedFileName
+    // 4) Queue BullMQ job เพื่อประมวลผลใน background (ADR-008)
+    await this.importReviewQueue.add(
+      JOB_IMPORT_REVIEW_CHECK,
+      {
+        reviewSessionPublicId: session.reviewSessionPublicId,
+      },
+      {
+        // jobId ซ้ำซ้อนไม่ได้ — ใช้ sessionId เป็น jobId เพื่อ idempotency
+        jobId: session.reviewSessionPublicId,
+        // timeout ยาวเพราะ AI review 265+ แถวใช้เวลานาน
+        removeOnComplete: 100,
+        removeOnFail: 100,
+      }
+    );
+
+    this.logger.log(
+      `check (async) queued: session=${session.reviewSessionPublicId}, file=${input.file.originalname}`
+    );
+
+    return {
+      reviewSessionPublicId: session.reviewSessionPublicId,
+      status: 'PENDING',
+      statusUrl: `/api/v1/correspondence/import-review/${session.reviewSessionPublicId}/status`,
+    };
+  }
+
+  /**
+   * ประมวลผล 4-Layer review ใน background (เรียกโดย BullMQ worker)
+   *
+   * Flow:
+   * 1. อ่าน session จาก Redis — เปลี่ยน status เป็น PROCESSING
+   * 2. อ่านไฟล์จาก stash
+   * 3. รัน Layer 1 (Schema) + Layer 2 (Business Rules) + Layer 3 (AI)
+   * 4. สร้างไฟล์ annotated .xlsx
+   * 5. อัปเดต session ด้วย result + เปลี่ยน status เป็น READY
+   * 6. บันทึก CheckReviewResponse ใน Redis (สำหรับ getStatus)
+   *
+   * ถ้าเกิด error: เปลี่ยน status เป็น FAILED + บันทึก errorMessage
+   */
+  async processCheck(reviewSessionPublicId: string): Promise<void> {
+    const session = await this.stash.getSession(reviewSessionPublicId);
+    if (!session) {
+      this.logger.warn(
+        `processCheck: session ${reviewSessionPublicId} ไม่มีอยู่ — อาจหมดอายุ`
       );
-      await this.annotator.generateAnnotated({
-        originalFilePath: session.originalFilePath,
-        rows: layer2.rows,
-        counts,
-        findings: allFindings,
-        outputPath: annotatedFilePath,
+      return;
+    }
+
+    if (session.status !== 'PENDING') {
+      this.logger.warn(
+        `processCheck: session ${reviewSessionPublicId} status=${session.status} — ข้าม (ไม่ใช่ PENDING)`
+      );
+      return;
+    }
+
+    // เปลี่ยน status เป็น PROCESSING
+    await this.stash.updateStatus(reviewSessionPublicId, 'PROCESSING');
+    await this.stash.updateProgress(reviewSessionPublicId, 5, 'Reading file');
+
+    try {
+      // 1) อ่านไฟล์จาก stash
+      const fileBuffer = await this.readFileFromStash(session.originalFilePath);
+      const file = {
+        originalname: session.originalFileName,
+        buffer: fileBuffer,
+        mimetype: '',
+        size: fileBuffer.length,
+      };
+
+      // 2) แยก Excel buffer + attachment file names
+      await this.stash.updateProgress(
+        reviewSessionPublicId,
+        10,
+        'Extracting Excel'
+      );
+      const { excelBuffer, excelFileName, attachmentFileNames } =
+        this.extractExcelAndAttachments(file);
+
+      // 3) รัน ExcelRowBuilder (single parser — FR-002)
+      await this.stash.updateProgress(
+        reviewSessionPublicId,
+        20,
+        'Parsing Excel'
+      );
+      const tmpDir = await fs.promises.mkdtemp(
+        path.join(os.tmpdir(), 'excel-review-')
+      );
+      const sanitizedFileName = this.sanitizeFileName(excelFileName);
+      const tmpExcelPath = path.join(tmpDir, sanitizedFileName);
+      let parsed: ExcelRowBuilderResult | undefined;
+      try {
+        await fs.promises.writeFile(tmpExcelPath, excelBuffer);
+        try {
+          parsed = await this.rowBuilder.buildFromWorkbook(tmpExcelPath);
+        } catch (err: unknown) {
+          const detail = err instanceof Error ? err.message : 'unknown';
+          this.logger.warn(`อ่าน workbook ไม่ได้: ${detail}`);
+          throw new BadRequestException(
+            `ไม่สามารถอ่านไฟล์ Excel ได้ — ไฟล์อาจเสียหรือรูปแบบไม่ถูกต้อง: ${detail}`
+          );
+        }
+      } finally {
+        try {
+          await fs.promises.rm(tmpDir, { recursive: true, force: true });
+        } catch (cleanupErr: unknown) {
+          const detail =
+            cleanupErr instanceof Error ? cleanupErr.message : 'unknown';
+          this.logger.warn(
+            `ไม่สามารถลบ temp dir "${tmpDir}" ได้: ${detail} — อาจต้อง cleanup ด้วย cron`
+          );
+        }
+      }
+
+      if (!parsed) {
+        throw new BadRequestException(
+          'ไม่สามารถอ่านไฟล์ Excel ได้ — กรุณาตรวจสอบรูปแบบไฟล์อีกครั้ง'
+        );
+      }
+
+      // 4) Layer 1 — Schema validation
+      await this.stash.updateProgress(
+        reviewSessionPublicId,
+        35,
+        'Layer 1: Schema validation'
+      );
+      const layer1 = this.schemaValidator.validate(parsed);
+
+      // 5) Layer 2 — Business rules
+      await this.stash.updateProgress(
+        reviewSessionPublicId,
+        50,
+        'Layer 2: Business rules'
+      );
+      const layer2 = await this.businessRules.validate({
+        rows: layer1.rows,
+        projectPublicId: session.projectPublicId,
+        targetMode: session.targetMode,
+        attachmentFileNames,
       });
-      // อัปเดต annotatedFilePath ใน Redis session
-      await this.stash.updateAnnotatedPath(
-        session.reviewSessionPublicId,
-        annotatedFilePath
+
+      // 6) Layer 3 — AI Reviewer (Fail-Open, FR-009)
+      await this.stash.updateProgress(
+        reviewSessionPublicId,
+        60,
+        'Layer 3: AI Review'
+      );
+      const batchStrategy = session.batchStrategy ?? 'FULL';
+      const rowsForAi = this.selectRowsForAi(layer2.rows, batchStrategy);
+      const aiResult = await this.aiFactory.review({
+        rows: rowsForAi,
+        projectPublicId: session.projectPublicId,
+        provider: session.selectedAiProvider,
+        batchStrategy,
+      });
+
+      // 7) รวม findings
+      await this.stash.updateProgress(
+        reviewSessionPublicId,
+        85,
+        'Computing results'
+      );
+      const allFindings = [
+        ...layer1.findings,
+        ...layer2.findings,
+        ...aiResult.findings,
+      ];
+
+      // 8) นับ pass/warn/block + canConfirm
+      const counts = this.computeCounts(
+        layer2.rows,
+        allFindings,
+        session.targetMode
+      );
+
+      // 9) สร้างไฟล์ annotated .xlsx (Fail-Open)
+      let annotatedFilePath = '';
+      try {
+        annotatedFilePath = path.join(
+          path.dirname(session.originalFilePath),
+          'annotated.xlsx'
+        );
+        await this.annotator.generateAnnotated({
+          originalFilePath: session.originalFilePath,
+          rows: layer2.rows,
+          counts,
+          findings: allFindings,
+          outputPath: annotatedFilePath,
+        });
+        await this.stash.updateAnnotatedPath(
+          reviewSessionPublicId,
+          annotatedFilePath
+        );
+      } catch (err: unknown) {
+        const detail = err instanceof Error ? err.message : 'unknown';
+        this.logger.warn(
+          `สร้างไฟล์ annotated ล้มเหลว: ${detail} — ผู้ใช้ยังสามารถตรวจ findings ได้`
+        );
+      }
+
+      // 10) อัปเดต session ด้วย result + เปลี่ยน status เป็น READY
+      await this.stash.updateResult(reviewSessionPublicId, {
+        totalRows: counts.totalRows,
+        passCount: counts.passCount,
+        warnCount: counts.warnCount,
+        blockCount: counts.blockCount,
+        aiSuggestCount: counts.aiSuggestCount,
+        annotatedFilePath,
+      });
+
+      // 11) บันทึก CheckReviewResponse ใน Redis (สำหรับ getStatus)
+      const checkResult: CheckReviewResponse = {
+        reviewSessionPublicId,
+        targetMode: session.targetMode,
+        totalRows: counts.totalRows,
+        passCount: counts.passCount,
+        warnCount: counts.warnCount,
+        blockCount: counts.blockCount,
+        aiSuggestCount: counts.aiSuggestCount,
+        canConfirm: counts.canConfirm,
+        downloadAnnotatedUrl: `/api/v1/correspondence/import-review/${reviewSessionPublicId}/download-annotated`,
+        findings: allFindings,
+        aiAvailable: aiResult.available,
+        aiUnavailableReason: aiResult.unavailableReason,
+        aiReviewedRowCount: rowsForAi.length,
+        aiSamplingMode: batchStrategy,
+      };
+      await this.redis.set(
+        REVIEW_RESULT_REDIS_PREFIX + reviewSessionPublicId,
+        JSON.stringify(checkResult),
+        'EX',
+        REVIEW_SESSION_TTL_SECONDS
+      );
+
+      this.logger.log(
+        `processCheck เสร็จ: session=${reviewSessionPublicId}, rows=${counts.totalRows}, pass=${counts.passCount}, warn=${counts.warnCount}, block=${counts.blockCount}, ai=${aiResult.available ? 'available' : 'unavailable'} (sampled=${rowsForAi.length}/${counts.totalRows}, mode=${batchStrategy}), canConfirm=${counts.canConfirm}`
       );
     } catch (err: unknown) {
-      // Fail-Open — ไม่ขัดขวาง response แค่ log และแจ้ง
       const detail = err instanceof Error ? err.message : 'unknown';
-      this.logger.warn(
-        `สร้างไฟล์ annotated ล้มเหลว: ${detail} — ผู้ใช้ยังสามารถตรวจ findings ได้`
+      this.logger.error(
+        `processCheck ล้มเหลว: session=${reviewSessionPublicId}, error=${detail}`
+      );
+      await this.stash.updateStatus(reviewSessionPublicId, 'FAILED', detail);
+    }
+  }
+
+  /**
+   * อ่านสถานะของ session (async pattern — เรียกโดย GET /:sessionId/status)
+   * คืน status + progress + result (เมื่อ status === 'READY')
+   */
+  async getStatus(
+    reviewSessionPublicId: string
+  ): Promise<ReviewStatusResponse> {
+    const session = await this.stash.getSession(reviewSessionPublicId);
+    if (!session) {
+      throw new NotFoundException(
+        `ไม่พบ Review Session "${reviewSessionPublicId}" — อาจหมดอายุแล้ว (TTL 24 ชั่วโมง)`
       );
     }
 
-    // 12) สร้าง response
-    const response: CheckReviewResponse = {
-      reviewSessionPublicId: session.reviewSessionPublicId,
-      targetMode: input.targetMode,
-      totalRows: counts.totalRows,
-      passCount: counts.passCount,
-      warnCount: counts.warnCount,
-      blockCount: counts.blockCount,
-      aiSuggestCount: counts.aiSuggestCount,
-      canConfirm: counts.canConfirm,
-      downloadAnnotatedUrl: `/api/v1/correspondence/import-review/${session.reviewSessionPublicId}/download-annotated`,
-      findings: allFindings,
-      aiAvailable: aiResult.available,
-      aiUnavailableReason: aiResult.unavailableReason,
-      aiReviewedRowCount: rowsForAi.length,
-      aiSamplingMode: input.batchStrategy,
+    const response: ReviewStatusResponse = {
+      reviewSessionPublicId,
+      status: session.status,
+      progress: session.progress,
+      currentStep: session.currentStep,
+      errorMessage: session.errorMessage,
     };
 
-    this.logger.log(
-      `check เสร็จ: session=${session.reviewSessionPublicId}, rows=${counts.totalRows}, pass=${counts.passCount}, warn=${counts.warnCount}, block=${counts.blockCount}, ai=${aiResult.available ? 'available' : 'unavailable'} (sampled=${rowsForAi.length}/${counts.totalRows}, mode=${input.batchStrategy}), canConfirm=${counts.canConfirm}`
-    );
+    // ถ้า status === 'READY' ให้ดึง result จาก Redis
+    if (session.status === 'READY') {
+      const raw = await this.redis.get(
+        REVIEW_RESULT_REDIS_PREFIX + reviewSessionPublicId
+      );
+      if (raw) {
+        try {
+          response.result = JSON.parse(raw) as CheckReviewResponse;
+        } catch {
+          this.logger.warn(
+            `getStatus: parse result ล้มเหลวสำหรับ session ${reviewSessionPublicId}`
+          );
+        }
+      }
+    }
 
     return response;
   }

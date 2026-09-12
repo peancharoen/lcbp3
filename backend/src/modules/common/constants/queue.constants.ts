@@ -66,3 +66,9 @@ export const JOB_DELETE_DOCUMENT_VECTORS = 'delete-document-vectors';
 
 /** Queue สำหรับ bulk operations (cancel/tag/export) แบบ durable (Feature 253) */
 export const QUEUE_BULK_OPERATIONS = 'bulk-operations';
+
+/** Queue สำหรับ Excel Import Review background processing (ADR-008, ADR-052) */
+export const QUEUE_IMPORT_REVIEW = 'import-review';
+
+/** Job name สำหรับ import-review check (async pattern) */
+export const JOB_IMPORT_REVIEW_CHECK = 'import-review-check';

@@ -5,6 +5,9 @@
 //   เป็น foundation ที่ service ทุกตัวใน Wave 2-6 ต้อง import ร่วมกัน
 // - 2026-09-06: เพิ่ม BatchStrategy type สำหรับ Q3 Batching Strategy
 //   (FULL = synchronous ≤200 rows, FAST_SELECTIVE = WARN + 5% sample >200 rows)
+// - 2026-09-12: Async/polling pattern — เพิ่ม status PENDING/PROCESSING/COMPLETED/
+//   FAILED สำหรับ background processing via BullMQ (ADR-008). check() คืน
+//   sessionId ทันที แล้ว frontend poll GET /:sessionId/status จนเสร็จ
 
 /**
  * ระดับความรุนแรงของ finding จากการตรวจทาน (data-model.md §2)
@@ -73,11 +76,36 @@ export interface ReviewSessionData {
    *  isValidSessionData ถือว่า undefined เป็น valid เพื่อ backward compat */
   failedRowsFilePath: string;
   selectedAiProvider: AiReviewerProvider;
-  status: 'READY' | 'CONFIRMED' | 'CANCELLED' | 'EXPIRED';
+  /**
+   * สถานะของ session:
+   * - PENDING: ยังไม่เริ่มประมวลผล (เพิ่งสร้าง session ใน check())
+   * - PROCESSING: กำลังประมวลผลอยู่ใน BullMQ worker
+   * - READY: ประมวลผลเสร็จ พร้อมให้ผู้ใช้ review/confirm
+   * - FAILED: ประมวลผลล้มเหลว (ดู errorMessage)
+   * - CONFIRMED: ผู้ใช้กด confirm แล้ว
+   * - CANCELLED: ผู้ใช้กด cancel แล้ว
+   * - EXPIRED: หมดอายุแล้ว (TTL 24 ชม.)
+   */
+  status:
+    | 'PENDING'
+    | 'PROCESSING'
+    | 'READY'
+    | 'FAILED'
+    | 'CONFIRMED'
+    | 'CANCELLED'
+    | 'EXPIRED';
   /** ISO date string ของเวลาที่สร้าง session */
   createdAt: string;
   /** ISO date string ของเวลาหมดอายุ (+24h) */
   expiresAt: string;
+  /** ข้อความ error กรณี status === 'FAILED' (async pattern) */
+  errorMessage?: string;
+  /** ความคืบหน้า 0-100 เปอร์เซ็นต์ (async pattern — อัปเดตจาก worker) */
+  progress?: number;
+  /** ขั้นตอนปัจจุบันที่กำลังประมวลผล (async pattern — เช่น "Layer 3: AI Review") */
+  currentStep?: string;
+  /** Batch strategy ที่ผู้ใช้เลือกตอน check() — ใช้ใน worker */
+  batchStrategy?: BatchStrategy;
 }
 
 /**

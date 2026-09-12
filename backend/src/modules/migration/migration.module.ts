@@ -8,6 +8,8 @@
 //   ExcelDateParserService, ReviewSessionStashService, ExcelRowBuilderService,
 //   ExcelSchemaValidatorService, ExcelBusinessRulesService, ExcelDataReviewService,
 //   ExcelImportReviewController + Discipline entity
+// - 2026-09-12: Async/polling pattern — เพิ่ม BullMQ queue import-review +
+//   ImportReviewProcessor สำหรับ background processing (ADR-008)
 
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -60,6 +62,8 @@ import {
 import { LocalOllamaReviewAdapter } from './services/local-ollama-review.adapter';
 import { ExcelAnnotatorService } from './services/excel-annotator.service';
 import { ExcelQuarantineService } from './services/excel-quarantine.service';
+import { ImportReviewProcessor } from './processors/import-review.processor';
+import { QUEUE_IMPORT_REVIEW } from '../common/constants/queue.constants';
 import { RbacGuard } from '../../common/guards/rbac.guard';
 import { AiModule } from '../ai/ai.module';
 import { SearchModule } from '../search/search.module';
@@ -84,6 +88,9 @@ import { SearchModule } from '../search/search.module';
     ]),
     BullModule.registerQueue({
       name: 'ai-batch',
+    }),
+    BullModule.registerQueue({
+      name: QUEUE_IMPORT_REVIEW,
     }),
     FileStorageModule,
     NotificationModule,
@@ -129,6 +136,8 @@ import { SearchModule } from '../search/search.module';
     ExcelAnnotatorService,
     // Quarantine (T017, FR-015, D6)
     ExcelQuarantineService,
+    // Async/polling pattern — BullMQ processor (ADR-008)
+    ImportReviewProcessor,
     // RbacGuard ต้องการ UserService จาก UserModule (resolve ใน module scope)
     RbacGuard,
     // REVIEW_STAGING_ROOT_TOKEN — root directory สำหรับ stash files

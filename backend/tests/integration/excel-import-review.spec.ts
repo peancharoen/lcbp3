@@ -7,10 +7,12 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { getQueueToken } from '@nestjs/bullmq';
 import { DataSource } from 'typeorm';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import { QUEUE_IMPORT_REVIEW } from '../../src/modules/common/constants/queue.constants';
 
 // In-memory Redis mock สำหรับ integration test
 const redisStore = new Map<string, string>();
@@ -178,6 +180,10 @@ describe('Integration: Excel Import Review Pipeline (Feature 252, T026)', () => 
         {
           provide: 'default_IORedisModuleConnectionToken',
           useValue: mockRedisClient,
+        },
+        {
+          provide: getQueueToken(QUEUE_IMPORT_REVIEW),
+          useValue: { add: jest.fn().mockResolvedValue({ id: 'job-1' }) },
         },
         {
           provide: 'REVIEW_STAGING_ROOT',

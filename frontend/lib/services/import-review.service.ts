@@ -5,14 +5,17 @@
 //   path `v1/correspondence/import-review` (backend/src/modules/migration/
 //   excel-import-review.controller.ts) — apiClient baseURL already includes
 //   `/api`, so paths here start with `/v1/...`.
+// - 2026-09-12: Async/polling pattern (ADR-008) — check() คืน sessionId ทันที
+//   + เพิ่ม getStatus() สำหรับ poll จนกว่าจะเสร็จ แก้ปัญหา axios timeout 15s
 
 import api from '../api/client';
 import {
   AiReviewerProvider,
   BatchStrategy,
   CancelReviewResponse,
-  CheckReviewResponse,
+  CheckReviewAsyncResponse,
   ConfirmReviewResponse,
+  ReviewStatusResponse,
   ReviewTargetMode,
 } from '@/types/import-review';
 
@@ -44,14 +47,17 @@ const triggerBlobDownload = (blob: Blob, filename: string): void => {
 };
 
 export const importReviewService = {
-  /** FR-001: อัปโหลดไฟล์ .xlsx/.zip และรัน 4-Layer review */
+  /**
+   * FR-001: อัปโหลดไฟล์ .xlsx/.zip และเริ่ม 4-Layer review (async pattern)
+   * คืน sessionId ทันที — frontend ต้อง poll getStatus() จนกว่าจะเสร็จ
+   */
   check: async (params: {
     projectPublicId: string;
     targetMode: ReviewTargetMode;
     aiProvider: AiReviewerProvider;
     batchStrategy: BatchStrategy;
     file: File;
-  }): Promise<CheckReviewResponse> => {
+  }): Promise<CheckReviewAsyncResponse> => {
     const formData = new FormData();
     formData.append('file', params.file);
     const { data } = await api.post('/v1/correspondence/import-review/check', formData, {
@@ -63,7 +69,16 @@ export const importReviewService = {
       },
       headers: { 'Content-Type': 'multipart/form-data' },
     });
-    return extractNestedData<CheckReviewResponse>(data);
+    return extractNestedData<CheckReviewAsyncResponse>(data);
+  },
+
+  /**
+   * Async pattern — poll status จนกว่าจะ READY/FAILED (ADR-008)
+   * เรียกซ้ำทุก 2 วินาที จนกว่า status จะเป็น READY หรือ FAILED
+   */
+  getStatus: async (sessionId: string): Promise<ReviewStatusResponse> => {
+    const { data } = await api.get(`/v1/correspondence/import-review/${sessionId}/status`);
+    return extractNestedData<ReviewStatusResponse>(data);
   },
 
   /** FR-013: ดาวน์โหลดไฟล์ Annotated Excel และบันทึกลงเครื่องทันที */

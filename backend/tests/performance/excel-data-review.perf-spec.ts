@@ -8,6 +8,7 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { getQueueToken } from '@nestjs/bullmq';
 import { DataSource } from 'typeorm';
 import * as fs from 'fs';
 import * as os from 'os';
@@ -23,6 +24,7 @@ import { AiReviewProviderFactory } from '../../src/modules/migration/services/ai
 import { ExcelAnnotatorService } from '../../src/modules/migration/services/excel-annotator.service';
 import { ExcelQuarantineService } from '../../src/modules/migration/services/excel-quarantine.service';
 import { ExcelDateParserService } from '../../src/modules/migration/services/excel-date-parser.service';
+import { QUEUE_IMPORT_REVIEW } from '../../src/modules/common/constants/queue.constants';
 import { ImportTransaction } from '../../src/modules/migration/entities/import-transaction.entity';
 import { Project } from '../../src/modules/project/entities/project.entity';
 import { Organization } from '../../src/modules/organization/entities/organization.entity';
@@ -248,6 +250,10 @@ describe('SC-001: Layer 1+2 Performance (Feature 252)', () => {
           provide: 'default_IORedisModuleConnectionToken',
           useValue: mockRedis,
         },
+        {
+          provide: getQueueToken(QUEUE_IMPORT_REVIEW),
+          useValue: { add: jest.fn().mockResolvedValue({ id: 'job-1' }) },
+        },
         { provide: 'REVIEW_STAGING_ROOT', useValue: stagingRoot },
       ],
     }).compile();
@@ -260,13 +266,13 @@ describe('SC-001: Layer 1+2 Performance (Feature 252)', () => {
     fs.rmSync(stagingRoot, { recursive: true, force: true });
   });
 
-  it('C.1.1: 200 แถว → check() เสร็จภายใน 1500ms', async () => {
+  it('C.1.1: 200 แถว → check() + processCheck() เสร็จภายใน 1500ms', async () => {
     const filePath = path.join(tmpDir, 'test-200-rows.xlsx');
     await createTestWorkbook(200, filePath);
     const fileBuffer = fs.readFileSync(filePath);
 
     const start = Date.now();
-    const result = await service.check({
+    const checkResult = await service.check({
       projectPublicId: '019505a1-7c3e-7000-8000-perf-proj-001',
       targetMode: 'DIRECT_IMPORT',
       aiProvider: 'LOCAL_OLLAMA',
@@ -280,19 +286,21 @@ describe('SC-001: Layer 1+2 Performance (Feature 252)', () => {
         size: fileBuffer.length,
       },
     });
+    await service.processCheck(checkResult.reviewSessionPublicId);
     const elapsed = Date.now() - start;
 
-    expect(result.totalRows).toBe(200);
+    const status = await service.getStatus(checkResult.reviewSessionPublicId);
+    expect(status.result?.totalRows).toBe(200);
     expect(elapsed).toBeLessThan(1500);
   });
 
-  it('C.1.2: 50 แถว → check() เสร็จภายใน 500ms (sanity check)', async () => {
+  it('C.1.2: 50 แถว → check() + processCheck() เสร็จภายใน 500ms (sanity check)', async () => {
     const filePath = path.join(tmpDir, 'test-50-rows.xlsx');
     await createTestWorkbook(50, filePath);
     const fileBuffer = fs.readFileSync(filePath);
 
     const start = Date.now();
-    const result = await service.check({
+    const checkResult = await service.check({
       projectPublicId: '019505a1-7c3e-7000-8000-perf-proj-001',
       targetMode: 'DIRECT_IMPORT',
       aiProvider: 'LOCAL_OLLAMA',
@@ -306,9 +314,11 @@ describe('SC-001: Layer 1+2 Performance (Feature 252)', () => {
         size: fileBuffer.length,
       },
     });
+    await service.processCheck(checkResult.reviewSessionPublicId);
     const elapsed = Date.now() - start;
 
-    expect(result.totalRows).toBe(50);
+    const status = await service.getStatus(checkResult.reviewSessionPublicId);
+    expect(status.result?.totalRows).toBe(50);
     expect(elapsed).toBeLessThan(500);
   });
 });

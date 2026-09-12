@@ -20,6 +20,9 @@
 //   '/api/api/v1/correspondence/import-review/...' (ใช้งานจริงไม่ได้เลย)
 //   แก้เป็น 'v1/correspondence/import-review' ให้ตรงกับ convention ของ
 //   controller อื่นทั้งหมดในระบบ (พบระหว่างเพิ่ม frontend menu, feature 252)
+// - 2026-09-12: Async/polling pattern (ADR-008) — POST /check คืน sessionId
+//   ทันที (ไม่รอประมวลผล) + เพิ่ม GET /:sessionId/status สำหรับ poll
+//   แก้ปัญหา axios timeout 15s ไม่พอสำหรับ AI review 265+ แถว
 
 import {
   Controller,
@@ -208,6 +211,27 @@ export class ExcelImportReviewController {
         size: file.size,
       },
     });
+  }
+
+  /**
+   * GET /api/v1/correspondence/import-review/:sessionId/status
+   * อ่านสถานะของ review session (async pattern — ADR-008)
+   * Frontend poll endpoint นี้จนกว่า status จะเป็น READY/FAILED
+   */
+  @Get(':sessionId/status')
+  @RequirePermission('correspondence.import_review')
+  @ApiOperation({
+    summary: 'Poll review session status (async pattern — ADR-008)',
+  })
+  @ApiParam({
+    name: 'sessionId',
+    description: 'UUIDv7 reviewSessionPublicId',
+    type: String,
+  })
+  async getStatus(
+    @Param('sessionId', new ParseUUIDPipe()) sessionId: string
+  ): Promise<Awaited<ReturnType<ExcelDataReviewService['getStatus']>>> {
+    return this.reviewService.getStatus(sessionId);
   }
 
   /**

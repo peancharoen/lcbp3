@@ -5,6 +5,8 @@
 //   backend/src/modules/migration/types/excel-review.types.ts and
 //   backend/src/modules/migration/services/excel-data-review.service.ts
 //   response shapes exactly so the UI stays in sync with the API contract.
+// - 2026-09-12: Async/polling pattern — เพิ่ม CheckReviewAsyncResponse +
+//   ReviewStatusResponse สำหรับ poll GET /:sessionId/status (ADR-008)
 
 export type FindingLevel = 'BLOCK' | 'WARN' | 'AI_SUGGEST';
 
@@ -13,6 +15,16 @@ export type ReviewTargetMode = 'MIGRATION_STAGING' | 'DIRECT_IMPORT';
 export type AiReviewerProvider = 'LOCAL_OLLAMA' | 'GEMINI' | 'CLAUDE';
 
 export type BatchStrategy = 'FULL' | 'FAST_SELECTIVE';
+
+/** Session status สำหรับ async pattern (ADR-008) */
+export type ReviewSessionStatus =
+  | 'PENDING'
+  | 'PROCESSING'
+  | 'READY'
+  | 'FAILED'
+  | 'CONFIRMED'
+  | 'CANCELLED'
+  | 'EXPIRED';
 
 export interface ReviewFinding {
   row: number;
@@ -40,6 +52,24 @@ export interface CheckReviewResponse {
   aiUnavailableReason?: string;
   aiReviewedRowCount: number;
   aiSamplingMode: BatchStrategy;
+}
+
+/** Response ของ POST /check (async pattern — คืนทันที ไม่รอประมวลผล) */
+export interface CheckReviewAsyncResponse {
+  reviewSessionPublicId: string;
+  status: 'PENDING';
+  statusUrl: string;
+}
+
+/** Response ของ GET /:sessionId/status (async pattern — poll จนเสร็จ) */
+export interface ReviewStatusResponse {
+  reviewSessionPublicId: string;
+  status: ReviewSessionStatus;
+  progress?: number;
+  currentStep?: string;
+  errorMessage?: string;
+  /** ผลลัพธ์เมื่อ status === 'READY' */
+  result?: CheckReviewResponse;
 }
 
 /** Response ของ POST /v1/correspondence/import-review/:sessionId/confirm (FR-014~FR-017) */

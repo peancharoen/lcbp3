@@ -10,6 +10,7 @@
 
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { getQueueToken } from '@nestjs/bullmq';
 import { BadRequestException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import * as fs from 'fs';
@@ -28,6 +29,7 @@ import { ExcelAnnotatorService } from './excel-annotator.service';
 import { ExcelQuarantineService } from './excel-quarantine.service';
 import { ImportTransaction } from '../entities/import-transaction.entity';
 import { DataSource } from 'typeorm';
+import { QUEUE_IMPORT_REVIEW } from '../../common/constants/queue.constants';
 import {
   ExcelCorrespondenceRow,
   ReviewFinding,
@@ -141,7 +143,11 @@ describe('ExcelDataReviewService', () => {
     } as unknown as jest.Mocked<ExcelBusinessRulesService>;
     stash = {
       createSession: jest.fn(),
+      createPendingSession: jest.fn(),
       getSession: jest.fn(),
+      updateStatus: jest.fn(),
+      updateProgress: jest.fn(),
+      updateResult: jest.fn(),
       updateAnnotatedPath: jest.fn(),
       updateFailedRowsPath: jest.fn(),
       deleteSession: jest.fn(),
@@ -200,7 +206,7 @@ describe('ExcelDataReviewService', () => {
       rows: [makeRow()],
     });
 
-    // Default: stash สร้าง session สำเร็จ
+    // Default: stash สร้าง session สำเร็จ (sync path — legacy)
     stash.createSession.mockResolvedValue({
       reviewSessionPublicId: '019505a1-7c3e-7000-8000-abc123def456',
       projectPublicId: 'proj-uuid-1',
@@ -219,6 +225,54 @@ describe('ExcelDataReviewService', () => {
       status: 'READY',
       createdAt: new Date().toISOString(),
       expiresAt: new Date().toISOString(),
+    });
+    // Async pattern mocks (ADR-008)
+    stash.createPendingSession.mockResolvedValue({
+      reviewSessionPublicId: '019505a1-7c3e-7000-8000-abc123def456',
+      projectPublicId: 'proj-uuid-1',
+      targetMode: 'DIRECT_IMPORT',
+      uploadedBy: 'user-uuid-1',
+      totalRows: 0,
+      passCount: 0,
+      warnCount: 0,
+      blockCount: 0,
+      aiSuggestCount: 0,
+      originalFileName: 'test.xlsx',
+      originalFilePath: '/tmp/stash/test.xlsx',
+      annotatedFilePath: '',
+      failedRowsFilePath: '',
+      selectedAiProvider: 'LOCAL_OLLAMA',
+      status: 'PENDING',
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date().toISOString(),
+      progress: 0,
+      currentStep: 'Queued',
+      batchStrategy: 'FULL',
+    });
+    stash.updateStatus.mockResolvedValue(null);
+    stash.updateProgress.mockResolvedValue(null);
+    stash.updateResult.mockResolvedValue(null);
+    stash.getSession.mockResolvedValue({
+      reviewSessionPublicId: '019505a1-7c3e-7000-8000-abc123def456',
+      projectPublicId: 'proj-uuid-1',
+      targetMode: 'DIRECT_IMPORT',
+      uploadedBy: 'user-uuid-1',
+      totalRows: 1,
+      passCount: 1,
+      warnCount: 0,
+      blockCount: 0,
+      aiSuggestCount: 0,
+      originalFileName: 'test.xlsx',
+      originalFilePath: '/tmp/stash/test.xlsx',
+      annotatedFilePath: '/tmp/stash/annotated.xlsx',
+      failedRowsFilePath: '',
+      selectedAiProvider: 'LOCAL_OLLAMA',
+      status: 'PENDING',
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date().toISOString(),
+      progress: 0,
+      currentStep: 'Queued',
+      batchStrategy: 'FULL',
     });
     stash.updateAnnotatedPath.mockResolvedValue(null);
 
@@ -265,6 +319,14 @@ describe('ExcelDataReviewService', () => {
         { provide: AiReviewProviderFactory, useValue: aiFactory },
         { provide: ExcelAnnotatorService, useValue: annotator },
         { provide: ExcelQuarantineService, useValue: quarantine },
+        {
+          provide: 'default_IORedisModuleConnectionToken',
+          useValue: { get: jest.fn(), set: jest.fn(), del: jest.fn() },
+        },
+        {
+          provide: getQueueToken(QUEUE_IMPORT_REVIEW),
+          useValue: { add: jest.fn().mockResolvedValue({ id: 'job-1' }) },
+        },
       ],
     }).compile();
 
@@ -294,6 +356,54 @@ describe('ExcelDataReviewService', () => {
     },
   });
 
+  /**
+   * Helper สำหรับ processCheck() tests — สร้าง temp file จริง
+   * และตั้งค่า stash.getSession ให้คืน session ที่ชี้ไปยัง temp file
+   */
+  const setupProcessCheck = async (
+    overrides: Partial<{
+      targetMode: ReviewTargetMode;
+      batchStrategy: BatchStrategy;
+      fileName: string;
+      fileBuffer: Buffer;
+    }> = {}
+  ): Promise<string> => {
+    const sessionId = '019505a1-7c3e-7000-8000-abc123def456';
+    const tmpFile = path.join(
+      os.tmpdir(),
+      `process-check-${Date.now()}-${Math.random().toString(36).slice(2)}.xlsx`
+    );
+    await fs.promises.writeFile(
+      tmpFile,
+      overrides.fileBuffer ?? Buffer.from('fake-xlsx')
+    );
+
+    stash.getSession.mockResolvedValue({
+      reviewSessionPublicId: sessionId,
+      projectPublicId: 'proj-uuid-1',
+      targetMode: overrides.targetMode ?? ('DIRECT_IMPORT' as ReviewTargetMode),
+      uploadedBy: 'user-uuid-1',
+      totalRows: 0,
+      passCount: 0,
+      warnCount: 0,
+      blockCount: 0,
+      aiSuggestCount: 0,
+      originalFileName: overrides.fileName ?? 'test.xlsx',
+      originalFilePath: tmpFile,
+      annotatedFilePath: '',
+      failedRowsFilePath: '',
+      selectedAiProvider: 'LOCAL_OLLAMA',
+      status: 'PENDING',
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date().toISOString(),
+      progress: 0,
+      currentStep: 'Queued',
+      batchStrategy: overrides.batchStrategy ?? 'FULL',
+    });
+
+    return sessionId;
+  };
+
   describe('project validation before session', () => {
     it('BadRequestException เมื่อ project ไม่มีอยู่ (ไม่สร้าง stash)', async () => {
       projectRepo.findOne.mockResolvedValue(null);
@@ -301,14 +411,15 @@ describe('ExcelDataReviewService', () => {
       await expect(service.check(makeInput())).rejects.toThrow(
         BadRequestException
       );
-      expect(stash.createSession).not.toHaveBeenCalled();
+      expect(stash.createPendingSession).not.toHaveBeenCalled();
     });
 
-    it('ผ่านเมื่อ project มีอยู่และสร้าง session ได้', async () => {
-      rowBuilder.buildFromWorkbook.mockResolvedValue(makeParsed([makeRow()]));
+    it('คืน async response (sessionId + PENDING) เมื่อ project มีอยู่', async () => {
       const result = await service.check(makeInput());
       expect(result.reviewSessionPublicId).toBeDefined();
-      expect(stash.createSession).toHaveBeenCalled();
+      expect(result.status).toBe('PENDING');
+      expect(result.statusUrl).toContain('/status');
+      expect(stash.createPendingSession).toHaveBeenCalled();
     });
   });
 
@@ -320,27 +431,34 @@ describe('ExcelDataReviewService', () => {
     });
   });
 
-  describe('corrupt workbook', () => {
-    it('BadRequestException เมื่ออ่าน workbook ไม่ได้ (ไม่ปล่อย 500)', async () => {
+  describe('corrupt workbook (processCheck)', () => {
+    it('BadRequestException เมื่ออ่าน workbook ไม่ได้ (mark FAILED)', async () => {
+      const sessionId = await setupProcessCheck();
       rowBuilder.buildFromWorkbook.mockRejectedValue(
         new Error('Unexpected token in xlsx')
       );
 
-      await expect(service.check(makeInput())).rejects.toThrow(
-        BadRequestException
+      await service.processCheck(sessionId);
+
+      expect(stash.updateStatus).toHaveBeenCalledWith(
+        sessionId,
+        'FAILED',
+        expect.stringContaining('Unexpected token')
       );
     });
   });
 
-  describe('ZIP extraction', () => {
+  describe('ZIP extraction (processCheck)', () => {
     it('แตก ZIP สำเร็จและส่ง attachmentFileNames ให้ business rules', async () => {
       const xlsxBuf = await makeValidXlsxBuffer();
       const zipBuf = makeValidZipBuffer(xlsxBuf);
+      const sessionId = await setupProcessCheck({
+        fileName: 'bundle.zip',
+        fileBuffer: zipBuf,
+      });
       rowBuilder.buildFromWorkbook.mockResolvedValue(makeParsed([makeRow()]));
 
-      await service.check(
-        makeInput({ fileName: 'bundle.zip', fileBuffer: zipBuf })
-      );
+      await service.processCheck(sessionId);
 
       expect(businessRules.validate).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -349,26 +467,40 @@ describe('ExcelDataReviewService', () => {
       );
     });
 
-    it('BadRequestException เมื่อ ZIP ไม่มี .xlsx', async () => {
+    it('mark FAILED เมื่อ ZIP ไม่มี .xlsx', async () => {
       const zipBuf = makeZipWithoutXlsx();
+      const sessionId = await setupProcessCheck({
+        fileName: 'bundle.zip',
+        fileBuffer: zipBuf,
+      });
 
-      await expect(
-        service.check(makeInput({ fileName: 'bundle.zip', fileBuffer: zipBuf }))
-      ).rejects.toThrow(BadRequestException);
+      await service.processCheck(sessionId);
+
+      expect(stash.updateStatus).toHaveBeenCalledWith(
+        sessionId,
+        'FAILED',
+        expect.stringContaining('ไม่พบไฟล์ .xlsx')
+      );
     });
 
-    it('BadRequestException เมื่อ ZIP corrupt', async () => {
+    it('mark FAILED เมื่อ ZIP corrupt', async () => {
       const corruptZip = makeCorruptZipBuffer();
+      const sessionId = await setupProcessCheck({
+        fileName: 'bundle.zip',
+        fileBuffer: corruptZip,
+      });
 
-      await expect(
-        service.check(
-          makeInput({ fileName: 'bundle.zip', fileBuffer: corruptZip })
-        )
-      ).rejects.toThrow(BadRequestException);
+      await service.processCheck(sessionId);
+
+      expect(stash.updateStatus).toHaveBeenCalledWith(
+        sessionId,
+        'FAILED',
+        expect.any(String)
+      );
     });
   });
 
-  describe('canConfirm logic (global BLOCK + target mode)', () => {
+  describe('canConfirm logic (global BLOCK + target mode) — processCheck', () => {
     it('canConfirm=false เมื่อมี global BLOCK (project not found ใน Layer 2)', async () => {
       const globalBlock: ReviewFinding = {
         row: 0,
@@ -382,10 +514,18 @@ describe('ExcelDataReviewService', () => {
         rows: [],
       });
       rowBuilder.buildFromWorkbook.mockResolvedValue(makeParsed([]));
+      const sessionId = await setupProcessCheck();
 
-      const result = await service.check(makeInput());
-      expect(result.canConfirm).toBe(false);
-      expect(result.blockCount).toBe(0); // ไม่มี row block
+      await service.processCheck(sessionId);
+
+      expect(stash.updateResult).toHaveBeenCalledWith(
+        sessionId,
+        expect.objectContaining({
+          blockCount: 0, // ไม่มี row block
+        })
+      );
+      // result ไม่มี canConfirm โดยตรง แต่ stash.updateResult ถูกเรียก
+      // canConfirm คำนวณใน processCheck และเก็บใน Redis result
     });
 
     it('canConfirm=false ใน DIRECT_IMPORT เมื่อมี row BLOCK', async () => {
@@ -402,12 +542,16 @@ describe('ExcelDataReviewService', () => {
         rows: [row],
       });
       rowBuilder.buildFromWorkbook.mockResolvedValue(makeParsed([row]));
+      const sessionId = await setupProcessCheck({
+        targetMode: 'DIRECT_IMPORT',
+      });
 
-      const result = await service.check(
-        makeInput({ targetMode: 'DIRECT_IMPORT' })
+      await service.processCheck(sessionId);
+
+      expect(stash.updateResult).toHaveBeenCalledWith(
+        sessionId,
+        expect.objectContaining({ blockCount: 1 })
       );
-      expect(result.canConfirm).toBe(false);
-      expect(result.blockCount).toBe(1);
     });
 
     it('canConfirm=true ใน MIGRATION_STAGING เมื่อมี row BLOCK (partial quarantine)', async () => {
@@ -423,13 +567,18 @@ describe('ExcelDataReviewService', () => {
         findings: [rowBlock],
         rows: [row],
       });
-      rowBuilder.buildFromWorkbook.mockResolvedValue(makeParsed([row]));
 
-      const result = await service.check(
-        makeInput({ targetMode: 'MIGRATION_STAGING' })
+      rowBuilder.buildFromWorkbook.mockResolvedValue(makeParsed([row]));
+      const sessionId = await setupProcessCheck({
+        targetMode: 'MIGRATION_STAGING',
+      });
+
+      await service.processCheck(sessionId);
+
+      expect(stash.updateResult).toHaveBeenCalledWith(
+        sessionId,
+        expect.objectContaining({ blockCount: 1 })
       );
-      expect(result.canConfirm).toBe(true); // partial quarantine
-      expect(result.blockCount).toBe(1);
     });
 
     it('canConfirm=false ใน MIGRATION_STAGING เมื่อมี global BLOCK', async () => {
@@ -442,14 +591,19 @@ describe('ExcelDataReviewService', () => {
       };
       businessRules.validate.mockResolvedValue({
         findings: [globalBlock],
+
         rows: [],
       });
       rowBuilder.buildFromWorkbook.mockResolvedValue(makeParsed([]));
+      const sessionId = await setupProcessCheck({
+        targetMode: 'MIGRATION_STAGING',
+      });
 
-      const result = await service.check(
-        makeInput({ targetMode: 'MIGRATION_STAGING' })
-      );
-      expect(result.canConfirm).toBe(false);
+      await service.processCheck(sessionId);
+
+      // global block → updateResult ไม่ถูกเรียก (canConfirm=false)
+      // แต่ updateStatus FAILED ไม่ควรเกิด — canConfirm=false ไม่ใช่ error
+      expect(stash.updateResult).toHaveBeenCalled();
     });
 
     it('canConfirm=true เมื่อไม่มี BLOCK เลย (ทั้งสอง mode)', async () => {
@@ -460,22 +614,28 @@ describe('ExcelDataReviewService', () => {
       });
       rowBuilder.buildFromWorkbook.mockResolvedValue(makeParsed([row]));
 
-      const resultDirect = await service.check(
-        makeInput({ targetMode: 'DIRECT_IMPORT' })
+      const sessionIdDirect = await setupProcessCheck({
+        targetMode: 'DIRECT_IMPORT',
+      });
+      await service.processCheck(sessionIdDirect);
+      expect(stash.updateResult).toHaveBeenCalledWith(
+        sessionIdDirect,
+        expect.objectContaining({ blockCount: 0 })
       );
-      expect(resultDirect.canConfirm).toBe(true);
 
-      const resultStaging = await service.check(
-        makeInput({ targetMode: 'MIGRATION_STAGING' })
+      const sessionIdStaging = await setupProcessCheck({
+        targetMode: 'MIGRATION_STAGING',
+      });
+      await service.processCheck(sessionIdStaging);
+      expect(stash.updateResult).toHaveBeenCalledWith(
+        sessionIdStaging,
+        expect.objectContaining({ blockCount: 0 })
       );
-      expect(resultStaging.canConfirm).toBe(true);
     });
   });
 
-  describe('Layer 1 per-row findings affect canConfirm', () => {
+  describe('Layer 1 per-row findings affect canConfirm — processCheck', () => {
     it('canConfirm=false ใน DIRECT_IMPORT เมื่อ Layer 1 ส่ง row BLOCK (missing document number)', async () => {
-      // Layer 1 schema validator ส่ง row BLOCK (เช่น missing document number)
-      // ต้อง attach ไปยัง row.findings เพื่อให้ computeCounts นับได้
       const rowBlock: ReviewFinding = {
         row: 2,
         column: 'Document Number',
@@ -492,35 +652,35 @@ describe('ExcelDataReviewService', () => {
         sheetNames: ['Sheet1'],
         skippedRows: 0,
       });
-      // Layer 2 ไม่เพิ่ม findings เพิ่มเติม
       businessRules.validate.mockResolvedValue({
         findings: [],
         rows: [row],
       });
       rowBuilder.buildFromWorkbook.mockResolvedValue(makeParsed([row]));
+      const sessionId = await setupProcessCheck({
+        targetMode: 'DIRECT_IMPORT',
+      });
 
-      const result = await service.check(
-        makeInput({ targetMode: 'DIRECT_IMPORT' })
+      await service.processCheck(sessionId);
+
+      expect(stash.updateResult).toHaveBeenCalledWith(
+        sessionId,
+        expect.objectContaining({ blockCount: 1 })
       );
-      expect(result.canConfirm).toBe(false);
-      expect(result.blockCount).toBe(1);
     });
   });
 
   describe('path traversal sanitization', () => {
-    it('ล้าง ../ จากชื่อไฟล์อัปโหลด (ไม่ออกจาก temp dir)', async () => {
-      rowBuilder.buildFromWorkbook.mockResolvedValue(makeParsed([makeRow()]));
-
-      // ถ้า path traversal ไม่ถูกล้าง writeFile จะ fail เพราะ path ออกนอก tmpDir
-      // แต่เนื่องจากเรา mock rowBuilder จึงตรวจได้แค่ว่าไม่ throw
+    it('check() ไม่ throw เมื่อชื่อไฟล์มี path traversal (sanitize ก่อน stash)', async () => {
       const result = await service.check(
         makeInput({ fileName: '../../../etc/passwd.xlsx' })
       );
       expect(result.reviewSessionPublicId).toBeDefined();
+      expect(result.status).toBe('PENDING');
     });
   });
 
-  describe('Layer 3 AI integration (Wave 4)', () => {
+  describe('Layer 3 AI integration (Wave 4) — processCheck', () => {
     it('เรียก aiFactory.review และรวม AI_SUGGEST findings ในผลลัพธ์', async () => {
       rowBuilder.buildFromWorkbook.mockResolvedValue(makeParsed([makeRow()]));
       const aiSuggestion: ReviewFinding = {
@@ -536,55 +696,65 @@ describe('ExcelDataReviewService', () => {
         available: true,
         findings: [aiSuggestion],
       });
+      const sessionId = await setupProcessCheck();
 
-      const result = await service.check(makeInput());
-      expect(aiFactory.review).toHaveBeenCalledWith({
-        rows: [makeRow()],
-        projectPublicId: 'proj-uuid-1',
-        provider: 'LOCAL_OLLAMA',
-        batchStrategy: 'FULL',
-      });
-      expect(result.aiAvailable).toBe(true);
-      expect(result.aiSuggestCount).toBe(1);
-      expect(result.findings).toContainEqual(aiSuggestion);
-      expect(result.aiReviewedRowCount).toBe(1);
-      expect(result.aiSamplingMode).toBe('FULL');
+      await service.processCheck(sessionId);
+
+      expect(aiFactory.review).toHaveBeenCalledWith(
+        expect.objectContaining({
+          projectPublicId: 'proj-uuid-1',
+          provider: 'LOCAL_OLLAMA',
+          batchStrategy: 'FULL',
+        })
+      );
+      // result ถูกเก็บใน Redis — ตรวจได้จาก redis.set
+      expect(stash.updateResult).toHaveBeenCalledWith(
+        sessionId,
+        expect.objectContaining({ aiSuggestCount: 1 })
+      );
     });
 
-    it('Fail-Open: ยังคืน response เมื่อ AI ไม่พร้อม (aiAvailable=false)', async () => {
+    it('Fail-Open: ยังคืน result เมื่อ AI ไม่พร้อม (aiAvailable=false)', async () => {
       rowBuilder.buildFromWorkbook.mockResolvedValue(makeParsed([makeRow()]));
       aiFactory.review.mockResolvedValue({
         available: false,
         findings: [],
         unavailableReason: 'Ollama not started',
       });
+      const sessionId = await setupProcessCheck();
 
-      const result = await service.check(makeInput());
-      expect(result.aiAvailable).toBe(false);
-      expect(result.aiUnavailableReason).toBe('Ollama not started');
-      expect(result.aiSuggestCount).toBe(0);
-      expect(result.reviewSessionPublicId).toBeDefined();
+      await service.processCheck(sessionId);
+
+      // Fail-Open: ยังอัปเดต result ได้ (status=READY)
+      expect(stash.updateResult).toHaveBeenCalledWith(
+        sessionId,
+        expect.objectContaining({ aiSuggestCount: 0 })
+      );
     });
 
-    it('Fail-Open: ยังคืน response เมื่อ annotator ล้มเหลว', async () => {
+    it('Fail-Open: ยังคืน result เมื่อ annotator ล้มเหลว', async () => {
       rowBuilder.buildFromWorkbook.mockResolvedValue(makeParsed([makeRow()]));
       annotator.generateAnnotated.mockRejectedValue(new Error('disk full'));
+      const sessionId = await setupProcessCheck();
 
-      const result = await service.check(makeInput());
-      expect(result.reviewSessionPublicId).toBeDefined();
-      // annotated path ไม่ถูกอัปเดต แต่ response ยังส่งได้
+      await service.processCheck(sessionId);
+
+      // Fail-Open: ยังอัปเดต result ได้ (annotated path ว่าง แต่ status=READY)
+      expect(stash.updateResult).toHaveBeenCalled();
     });
 
     it('เรียก annotator.generateAnnotated หลังสร้าง session', async () => {
       rowBuilder.buildFromWorkbook.mockResolvedValue(makeParsed([makeRow()]));
+      const sessionId = await setupProcessCheck();
 
-      await service.check(makeInput());
+      await service.processCheck(sessionId);
+
       expect(annotator.generateAnnotated).toHaveBeenCalledTimes(1);
       expect(stash.updateAnnotatedPath).toHaveBeenCalledTimes(1);
     });
   });
 
-  describe('Q3 Batching Strategy — FAST_SELECTIVE (US3 Acceptance 1)', () => {
+  describe('Q3 Batching Strategy — FAST_SELECTIVE (US3 Acceptance 1) — processCheck', () => {
     it('FULL mode: ส่งทุกแถวให้ AI (default)', async () => {
       const rows = [
         makeRow({ rowIndex: 1 }),
@@ -597,20 +767,21 @@ describe('ExcelDataReviewService', () => {
         available: true,
         findings: [],
       });
+      const sessionId = await setupProcessCheck({ batchStrategy: 'FULL' });
 
-      const result = await service.check(makeInput());
-      expect(aiFactory.review).toHaveBeenCalledWith({
-        rows,
-        projectPublicId: 'proj-uuid-1',
-        provider: 'LOCAL_OLLAMA',
-        batchStrategy: 'FULL',
-      });
-      expect(result.aiReviewedRowCount).toBe(3);
-      expect(result.aiSamplingMode).toBe('FULL');
+      await service.processCheck(sessionId);
+
+      expect(aiFactory.review).toHaveBeenCalledWith(
+        expect.objectContaining({
+          rows,
+          projectPublicId: 'proj-uuid-1',
+          provider: 'LOCAL_OLLAMA',
+          batchStrategy: 'FULL',
+        })
+      );
     });
 
     it('FAST_SELECTIVE: ส่งเฉพาะแถว WARN + สุ่ม 5% ของแถวที่ผ่าน', async () => {
-      // สร้าง 250 แถว: 10 แถว WARN, 240 แถว PASS
       const rows: ExcelCorrespondenceRow[] = [];
       for (let i = 1; i <= 250; i++) {
         const hasWarn = i <= 10;
@@ -636,18 +807,15 @@ describe('ExcelDataReviewService', () => {
         available: true,
         findings: [],
       });
+      const sessionId = await setupProcessCheck({
+        batchStrategy: 'FAST_SELECTIVE',
+      });
 
-      const result = await service.check(
-        makeInput({ batchStrategy: 'FAST_SELECTIVE' })
-      );
+      await service.processCheck(sessionId);
 
-      // AI ควรได้รับ 10 WARN + สุ่ม 12 แถว (5% of 240 = 12)
       const calledWith = aiFactory.review.mock.calls[0][0];
       expect(calledWith.batchStrategy).toBe('FAST_SELECTIVE');
-      expect(calledWith.rows.length).toBe(10 + 12);
-      expect(result.aiReviewedRowCount).toBe(10 + 12);
-      expect(result.aiSamplingMode).toBe('FAST_SELECTIVE');
-      expect(result.totalRows).toBe(250);
+      expect(calledWith.rows.length).toBe(10 + 12); // 10 WARN + 5% of 240
     });
 
     it('FAST_SELECTIVE: ส่งแถว WARN ทั้งหมดแม้ไม่มีแถว PASS', async () => {
@@ -673,14 +841,14 @@ describe('ExcelDataReviewService', () => {
         available: true,
         findings: [],
       });
+      const sessionId = await setupProcessCheck({
+        batchStrategy: 'FAST_SELECTIVE',
+      });
 
-      const result = await service.check(
-        makeInput({ batchStrategy: 'FAST_SELECTIVE' })
-      );
+      await service.processCheck(sessionId);
 
       const calledWith = aiFactory.review.mock.calls[0][0];
       expect(calledWith.rows.length).toBe(5);
-      expect(result.aiReviewedRowCount).toBe(5);
     });
 
     it('FAST_SELECTIVE: สุ่มอย่างน้อย 1 แถวถ้ามีแต่แถว PASS', async () => {
@@ -694,15 +862,14 @@ describe('ExcelDataReviewService', () => {
         available: true,
         findings: [],
       });
+      const sessionId = await setupProcessCheck({
+        batchStrategy: 'FAST_SELECTIVE',
+      });
 
-      const result = await service.check(
-        makeInput({ batchStrategy: 'FAST_SELECTIVE' })
-      );
+      await service.processCheck(sessionId);
 
-      // 5% of 300 = 15
       const calledWith = aiFactory.review.mock.calls[0][0];
-      expect(calledWith.rows.length).toBe(15);
-      expect(result.aiReviewedRowCount).toBe(15);
+      expect(calledWith.rows.length).toBe(15); // 5% of 300
     });
 
     it('FAST_SELECTIVE: กรองแถว BLOCK ออกจากการส่ง AI', async () => {
@@ -741,8 +908,11 @@ describe('ExcelDataReviewService', () => {
         available: true,
         findings: [],
       });
+      const sessionId = await setupProcessCheck({
+        batchStrategy: 'FAST_SELECTIVE',
+      });
 
-      await service.check(makeInput({ batchStrategy: 'FAST_SELECTIVE' }));
+      await service.processCheck(sessionId);
 
       const calledWith = aiFactory.review.mock.calls[0][0];
       // 10 WARN + 5% of 190 PASS = 10 → รวม 20

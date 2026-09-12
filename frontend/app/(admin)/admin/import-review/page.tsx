@@ -10,10 +10,13 @@
 //   carries failedRowsDownloadUrl for quarantined rows in MIGRATION_STAGING,
 //   but it was previously discarded; users had no way to retrieve
 //   failed_rows.xlsx after confirming. Also add "เริ่มรายการใหม่" reset action.
+// - 2026-09-12: Async/polling pattern (ADR-008) — check() คืน sessionId ทันที
+//   แล้ว poll GET /status จนเสร็จ แก้ปัญหา axios timeout 15s ไม่พอสำหรับ
+//   AI review 265+ แถว. เพิ่ม progress bar + current step display.
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -21,10 +24,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { DownloadIcon, UploadIcon, XIcon, CheckIcon } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { DownloadIcon, UploadIcon, XIcon, CheckIcon, LoaderIcon } from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useProjectStore } from '@/lib/stores/project-store';
-import { useCheckImportReview, useConfirmImportReview, useCancelImportReview } from '@/hooks/use-import-review';
+import { useCheckImportReview, useReviewStatus, useConfirmImportReview, useCancelImportReview } from '@/hooks/use-import-review';
 import { importReviewService } from '@/lib/services/import-review.service';
 import {
   AiReviewerProvider,
@@ -51,14 +55,27 @@ export default function ImportReviewPage() {
   const [targetMode, setTargetMode] = useState<ReviewTargetMode>('DIRECT_IMPORT');
   const [aiProvider, setAiProvider] = useState<AiReviewerProvider>('LOCAL_OLLAMA');
   const [batchStrategy, setBatchStrategy] = useState<BatchStrategy>('FULL');
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [result, setResult] = useState<CheckReviewResponse | null>(null);
   const [confirmResult, setConfirmResult] = useState<ConfirmReviewResponse | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDownloadingFailedRows, setIsDownloadingFailedRows] = useState(false);
 
   const checkMutation = useCheckImportReview();
+  const statusQuery = useReviewStatus(sessionId);
   const confirmMutation = useConfirmImportReview();
   const cancelMutation = useCancelImportReview();
+
+  // เมื่อ status กลายเป็น READY ให้เก็บ result
+  useEffect(() => {
+    if (statusQuery.data?.status === 'READY' && statusQuery.data.result) {
+      setResult(statusQuery.data.result);
+      setSessionId(null); // หยุด poll
+    }
+    if (statusQuery.data?.status === 'FAILED' && statusQuery.data.errorMessage) {
+      setSessionId(null); // หยุด poll
+    }
+  }, [statusQuery.data]);
 
   if (!canAccess) {
     return (
@@ -74,9 +91,11 @@ export default function ImportReviewPage() {
 
   const handleUpload = () => {
     if (!file || !selectedProjectId) return;
+    setResult(null);
+    setConfirmResult(null);
     checkMutation.mutate(
       { projectPublicId: selectedProjectId, targetMode, aiProvider, batchStrategy, file },
-      { onSuccess: (data) => setResult(data) }
+      { onSuccess: (data) => setSessionId(data.reviewSessionPublicId) }
     );
   };
 
@@ -121,7 +140,13 @@ export default function ImportReviewPage() {
     setFile(null);
     setResult(null);
     setConfirmResult(null);
+    setSessionId(null);
   };
+
+  const isProcessing = !!sessionId && statusQuery.data?.status !== 'READY' && statusQuery.data?.status !== 'FAILED';
+  const progressValue = statusQuery.data?.progress ?? 0;
+  const currentStep = statusQuery.data?.currentStep ?? '';
+  const failedMessage = statusQuery.data?.status === 'FAILED' ? statusQuery.data.errorMessage : null;
 
   return (
     <div className="p-6 space-y-6">
@@ -193,20 +218,58 @@ export default function ImportReviewPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="FULL">Full Review (≤200 แถว)</SelectItem>
-                <SelectItem value="FAST_SELECTIVE">Fast Selective (WARN + สุ่ม 5%, &gt;200 แถว)</SelectItem>
+                <SelectItem value="FAST_SELECTIVE">{`Fast Selective (WARN + สุ่ม 5%, >200 แถว)`}</SelectItem>
               </SelectContent>
             </Select>
 
             <Button
               onClick={handleUpload}
-              disabled={!file || !selectedProjectId || checkMutation.isPending}
+              disabled={!file || !selectedProjectId || checkMutation.isPending || isProcessing}
             >
               <UploadIcon className="h-4 w-4 mr-2" />
-              {checkMutation.isPending ? 'กำลังตรวจสอบ...' : 'อัปโหลดและตรวจสอบ'}
+              {checkMutation.isPending ? 'กำลังส่งไฟล์...' : 'อัปโหลดและตรวจสอบ'}
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      {/* Async progress panel */}
+      {isProcessing && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <LoaderIcon className="h-4 w-4 animate-spin" />
+              กำลังตรวจสอบข้อมูล...
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Progress value={progressValue} />
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>{currentStep || 'กำลังประมวลผล...'}</span>
+              <span>{progressValue}%</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              ระบบกำลังรัน 4-Layer review ใน background (ADR-008) — ไม่ต้องรอหน้านี้
+              สามารถกลับมาดูผลได้ภายใน 24 ชั่วโมง
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Error panel */}
+      {failedMessage && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base text-destructive">การตรวจสอบล้มเหลว</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-destructive">{failedMessage}</p>
+            <Button variant="secondary" className="mt-4" onClick={handleStartNew}>
+              เริ่มรายการใหม่
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {result && (
         <>

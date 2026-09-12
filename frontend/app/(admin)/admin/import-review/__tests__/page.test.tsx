@@ -11,7 +11,7 @@ import ImportReviewPage from '../page';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useProjectStore } from '@/lib/stores/project-store';
 import { importReviewService } from '@/lib/services/import-review.service';
-import type { CheckReviewResponse, ConfirmReviewResponse } from '@/types/import-review';
+import type { CheckReviewResponse, ConfirmReviewResponse, ReviewStatusResponse } from '@/types/import-review';
 
 vi.mock('@/lib/stores/auth-store', () => ({
   useAuthStore: vi.fn(),
@@ -24,6 +24,7 @@ vi.mock('@/lib/stores/project-store', () => ({
 vi.mock('@/lib/services/import-review.service', () => ({
   importReviewService: {
     check: vi.fn(),
+    getStatus: vi.fn(),
     confirm: vi.fn(),
     cancel: vi.fn(),
     downloadAnnotated: vi.fn(),
@@ -117,7 +118,7 @@ describe('ImportReviewPage', () => {
       hasRole: () => false,
     } as unknown as ReturnType<typeof useAuthStore>);
 
-    const mockCheckResponse: CheckReviewResponse = {
+    const mockResult: CheckReviewResponse = {
       reviewSessionPublicId: SESSION_ID,
       targetMode: 'DIRECT_IMPORT',
       totalRows: 10,
@@ -132,7 +133,18 @@ describe('ImportReviewPage', () => {
       aiReviewedRowCount: 10,
       aiSamplingMode: 'FULL',
     };
-    vi.mocked(importReviewService.check).mockResolvedValue(mockCheckResponse);
+    // Async pattern: check() คืน sessionId ทันที, getStatus() คืน result เมื่อ READY
+    vi.mocked(importReviewService.check).mockResolvedValue({
+      reviewSessionPublicId: SESSION_ID,
+      status: 'PENDING',
+      statusUrl: `/api/v1/correspondence/import-review/${SESSION_ID}/status`,
+    });
+    const mockStatus: ReviewStatusResponse = {
+      reviewSessionPublicId: SESSION_ID,
+      status: 'READY',
+      result: mockResult,
+    };
+    vi.mocked(importReviewService.getStatus).mockResolvedValue(mockStatus);
 
     renderPage();
 
@@ -163,7 +175,7 @@ describe('ImportReviewPage', () => {
       hasRole: () => false,
     } as unknown as ReturnType<typeof useAuthStore>);
 
-    const mockCheckResponse: CheckReviewResponse = {
+    const mockResult: CheckReviewResponse = {
       reviewSessionPublicId: SESSION_ID,
       targetMode: 'DIRECT_IMPORT',
       totalRows: 10,
@@ -178,7 +190,16 @@ describe('ImportReviewPage', () => {
       aiReviewedRowCount: 10,
       aiSamplingMode: 'FULL',
     };
-    vi.mocked(importReviewService.check).mockResolvedValue(mockCheckResponse);
+    vi.mocked(importReviewService.check).mockResolvedValue({
+      reviewSessionPublicId: SESSION_ID,
+      status: 'PENDING',
+      statusUrl: `/api/v1/correspondence/import-review/${SESSION_ID}/status`,
+    });
+    vi.mocked(importReviewService.getStatus).mockResolvedValue({
+      reviewSessionPublicId: SESSION_ID,
+      status: 'READY',
+      result: mockResult,
+    });
 
     renderPage();
 
@@ -198,7 +219,7 @@ describe('ImportReviewPage', () => {
       hasRole: (role: string) => role === 'Admin',
     } as unknown as ReturnType<typeof useAuthStore>);
 
-    const mockCheckResponse: CheckReviewResponse = {
+    const mockResult: CheckReviewResponse = {
       reviewSessionPublicId: SESSION_ID,
       targetMode: 'MIGRATION_STAGING',
       totalRows: 10,
@@ -223,7 +244,17 @@ describe('ImportReviewPage', () => {
       failedRowsDownloadUrl: `/api/v1/correspondence/import-review/${SESSION_ID}/download-failed-rows`,
       status: 'CONFIRMED',
     };
-    vi.mocked(importReviewService.check).mockResolvedValue(mockCheckResponse);
+    // Async pattern: check() คืน sessionId, getStatus() คืน result เมื่อ READY
+    vi.mocked(importReviewService.check).mockResolvedValue({
+      reviewSessionPublicId: SESSION_ID,
+      status: 'PENDING',
+      statusUrl: `/api/v1/correspondence/import-review/${SESSION_ID}/status`,
+    });
+    vi.mocked(importReviewService.getStatus).mockResolvedValue({
+      reviewSessionPublicId: SESSION_ID,
+      status: 'READY',
+      result: mockResult,
+    });
     vi.mocked(importReviewService.confirm).mockResolvedValue(mockConfirmResponse);
 
     renderPage();

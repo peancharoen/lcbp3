@@ -4,6 +4,8 @@
 //   ทำหน้าที่จัดการ Review Session ใน Redis (24h TTL) และไฟล์ใน stash directory
 //   ส่วนตัวของแต่ละ session พร้อม cleanup สำหรับ cron worker (Edge case 5, D5)
 //   ใช้ UUIDv7 string เป็น reviewSessionPublicId ตาม ADR-019 (ห้าม parseInt/Number)
+// - 2026-09-12: Async/polling pattern — เพิ่ม createPendingSession, updateStatus,
+//   updateProgress, updateResult สำหรับ BullMQ background processing (ADR-008)
 
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
@@ -15,6 +17,7 @@ import {
   ReviewSessionData,
   ReviewTargetMode,
   AiReviewerProvider,
+  BatchStrategy,
   REVIEW_SESSION_REDIS_PREFIX,
   REVIEW_SESSION_TTL_SECONDS,
 } from '../types/excel-review.types';
@@ -136,6 +139,170 @@ export class ReviewSessionStashService {
     );
 
     return session;
+  }
+
+  /**
+   * สร้าง Review Session ในสถานะ PENDING (async pattern — ADR-008)
+   * ใช้โดย ExcelDataReviewService.check() เพื่อสร้าง session ทันที
+   * แล้วส่ง BullMQ job ประมวลผลใน background
+   *
+   * คืน session ที่ยังไม่มี counts (totalRows=0, passCount=0, ...) เพราะ
+   * ยังไม่ได้ประมวลผล — counts จะถูกอัปเดตโดย worker ผ่าน updateResult()
+   */
+  async createPendingSession(input: {
+    projectPublicId: string;
+    targetMode: ReviewTargetMode;
+    uploadedBy: string;
+    selectedAiProvider: AiReviewerProvider;
+    batchStrategy: BatchStrategy;
+    originalFileName: string;
+    fileBuffer: Buffer;
+  }): Promise<ReviewSessionData> {
+    const reviewSessionPublicId = this.generateUUIDv7();
+    const sessionDir = path.join(this.sessionsRoot, reviewSessionPublicId);
+    const safeFileName = this.sanitizeFileName(input.originalFileName);
+    const originalFilePath = path.join(sessionDir, safeFileName);
+
+    await fs.promises.mkdir(sessionDir, { recursive: true });
+    await fs.promises.writeFile(originalFilePath, input.fileBuffer);
+
+    const now = new Date();
+    const expiresAt = new Date(
+      now.getTime() + REVIEW_SESSION_TTL_SECONDS * 1000
+    );
+
+    const session: ReviewSessionData = {
+      reviewSessionPublicId,
+      projectPublicId: input.projectPublicId,
+      targetMode: input.targetMode,
+      uploadedBy: input.uploadedBy,
+      totalRows: 0,
+      passCount: 0,
+      warnCount: 0,
+      blockCount: 0,
+      aiSuggestCount: 0,
+      originalFileName: safeFileName,
+      originalFilePath,
+      annotatedFilePath: '',
+      failedRowsFilePath: '',
+      selectedAiProvider: input.selectedAiProvider,
+      status: 'PENDING',
+      createdAt: now.toISOString(),
+      expiresAt: expiresAt.toISOString(),
+      progress: 0,
+      currentStep: 'Queued',
+      batchStrategy: input.batchStrategy,
+    };
+
+    const redisKey = REVIEW_SESSION_REDIS_PREFIX + reviewSessionPublicId;
+    await this.redis.set(
+      redisKey,
+      JSON.stringify(session),
+      'EX',
+      REVIEW_SESSION_TTL_SECONDS
+    );
+
+    this.logger.debug(
+      `สร้าง Pending Session ${reviewSessionPublicId} (mode=${input.targetMode})`
+    );
+
+    return session;
+  }
+
+  /**
+   * อัปเดต status ของ session (async pattern)
+   * ใช้โดย worker เพื่อเปลี่ยน PENDING → PROCESSING → READY/FAILED
+   */
+  async updateStatus(
+    reviewSessionPublicId: string,
+    status: ReviewSessionData['status'],
+    errorMessage?: string
+  ): Promise<ReviewSessionData | null> {
+    const session = await this.getSession(reviewSessionPublicId);
+    if (!session) {
+      return null;
+    }
+    const updated: ReviewSessionData = {
+      ...session,
+      status,
+      ...(errorMessage !== undefined ? { errorMessage } : {}),
+    };
+    const redisKey = REVIEW_SESSION_REDIS_PREFIX + reviewSessionPublicId;
+    await this.redis.set(
+      redisKey,
+      JSON.stringify(updated),
+      'EX',
+      REVIEW_SESSION_TTL_SECONDS
+    );
+    return updated;
+  }
+
+  /**
+   * อัปเดต progress ของ session (async pattern)
+   * ใช้โดย worker เพื่ออัปเดต progress percent + current step
+   */
+  async updateProgress(
+    reviewSessionPublicId: string,
+    progress: number,
+    currentStep: string
+  ): Promise<ReviewSessionData | null> {
+    const session = await this.getSession(reviewSessionPublicId);
+    if (!session) {
+      return null;
+    }
+    const updated: ReviewSessionData = {
+      ...session,
+      progress,
+      currentStep,
+    };
+    const redisKey = REVIEW_SESSION_REDIS_PREFIX + reviewSessionPublicId;
+    await this.redis.set(
+      redisKey,
+      JSON.stringify(updated),
+      'EX',
+      REVIEW_SESSION_TTL_SECONDS
+    );
+    return updated;
+  }
+
+  /**
+   * อัปเดต result ของ session (async pattern)
+   * ใช้โดย worker เมื่อประมวลผลเสร็จ — อัปเดต counts + annotatedFilePath
+   * และเปลี่ยน status เป็น READY
+   */
+  async updateResult(
+    reviewSessionPublicId: string,
+    result: {
+      totalRows: number;
+      passCount: number;
+      warnCount: number;
+      blockCount: number;
+      aiSuggestCount: number;
+      annotatedFilePath: string;
+    }
+  ): Promise<ReviewSessionData | null> {
+    const session = await this.getSession(reviewSessionPublicId);
+    if (!session) {
+      return null;
+    }
+    const updated: ReviewSessionData = {
+      ...session,
+      ...result,
+      status: 'READY',
+      progress: 100,
+      currentStep: 'Completed',
+    };
+    const redisKey = REVIEW_SESSION_REDIS_PREFIX + reviewSessionPublicId;
+    await this.redis.set(
+      redisKey,
+      JSON.stringify(updated),
+      'EX',
+      REVIEW_SESSION_TTL_SECONDS
+    );
+    this.logger.debug(
+      `อัปเดต result ของ session ${reviewSessionPublicId}: rows=${result.totalRows}, status=READY`
+    );
+    return updated;
   }
 
   /**
@@ -386,7 +553,14 @@ export class ReviewSessionStashService {
         v.selectedAiProvider === 'CLAUDE') &&
       typeof v.status === 'string' &&
       typeof v.createdAt === 'string' &&
-      typeof v.expiresAt === 'string'
+      typeof v.expiresAt === 'string' &&
+      // async pattern fields — optional for backward compat with older sessions
+      (v.errorMessage === undefined || typeof v.errorMessage === 'string') &&
+      (v.progress === undefined || typeof v.progress === 'number') &&
+      (v.currentStep === undefined || typeof v.currentStep === 'string') &&
+      (v.batchStrategy === undefined ||
+        v.batchStrategy === 'FULL' ||
+        v.batchStrategy === 'FAST_SELECTIVE')
     );
   }
 
