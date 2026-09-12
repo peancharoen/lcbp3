@@ -25,10 +25,20 @@ describe('Feature 253 — Phase 3: Side Effects Pipeline (Integration)', () => {
   let app: INestApplication;
   let jwtService: JwtService;
   let dataSource: DataSource;
-  let mockSearchService: { indexDocument: jest.Mock; search: jest.Mock; deleteDocument: jest.Mock };
+  let mockSearchService: {
+    indexDocument: jest.Mock;
+    search: jest.Mock;
+    deleteDocument: jest.Mock;
+  };
   let mockNotificationService: { send: jest.Mock };
-  let mockAiQueueService: { enqueueReEmbed: jest.Mock; enqueueSearchReindex: jest.Mock };
-  let mockAiQdrantService: { deleteByFilter: jest.Mock; deletePoints: jest.Mock };
+  let mockAiQueueService: {
+    enqueueReEmbed: jest.Mock;
+    enqueueSearchReindex: jest.Mock;
+  };
+  let mockAiQdrantService: {
+    deleteByFilter: jest.Mock;
+    deletePoints: jest.Mock;
+  };
 
   const adminUser = { user_id: 2, username: 'admin' };
   let adminToken: string;
@@ -166,8 +176,9 @@ describe('Feature 253 — Phase 3: Side Effects Pipeline (Integration)', () => {
   // 3B — Hard-Delete Cascade (FR-008 to FR-011)
   describe('3B — Hard-Delete Cascade', () => {
     it('3B.1 — Hard-Delete ที่ไม่มี auth → 401/403', async () => {
-      const res = await request(app.getHttpServer() as import('http').Server)
-        .delete('/correspondences/019abc01-0000-7000-8000-000000000001/hard');
+      const res = await request(
+        app.getHttpServer() as import('http').Server
+      ).delete('/correspondences/019abc01-0000-7000-8000-000000000001/hard');
 
       expect([401, 403]).toContain(res.status);
     });
@@ -254,7 +265,7 @@ describe('Feature 253 — Phase 3: Side Effects Pipeline (Integration)', () => {
     it('3C.3 — Bulk Cancel เกิน 100 items → 422 (ArrayMaxSize)', async () => {
       const publicIds = Array.from(
         { length: 101 },
-        () => '019abc01-0000-7000-8000-000000000001',
+        () => '019abc01-0000-7000-8000-000000000001'
       );
 
       const res = await request(app.getHttpServer() as import('http').Server)
@@ -348,7 +359,10 @@ describe('Feature 253 — Phase 3: Side Effects Pipeline (Integration)', () => {
       const res = await request(app.getHttpServer() as import('http').Server)
         .patch(`/correspondences/${corr.publicId}/metadata`)
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ patch: { remarks: 'Phase 3 metadata test' }, version: corr.version });
+        .send({
+          patch: { remarks: 'Phase 3 metadata test' },
+          version: corr.version,
+        });
 
       // Search re-index เป็น fire-and-forget — อาจยังไม่เสร็จเมื่อ assert
       // แค่ตรวจว่า response status ถูกต้อง (permission check อยู่ใน Phase 5)
