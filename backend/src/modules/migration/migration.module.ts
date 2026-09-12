@@ -49,6 +49,7 @@ import {
   REVIEW_STAGING_ROOT_TOKEN,
 } from './services/review-session-stash.service';
 import { ExcelRowBuilderService } from './services/excel-row-builder.service';
+import { ExcelHeaderDetectorService } from './services/excel-header-detector.service';
 import { ExcelSchemaValidatorService } from './services/excel-schema-validator.service';
 import { ExcelBusinessRulesService } from './services/excel-business-rules.service';
 import { ExcelDataReviewService } from './services/excel-data-review.service';
@@ -110,6 +111,7 @@ import { SearchModule } from '../search/search.module';
     ExcelDateParserService,
     ReviewSessionStashService,
     ExcelRowBuilderService,
+    ExcelHeaderDetectorService,
     ExcelSchemaValidatorService,
     ExcelBusinessRulesService,
     ExcelDataReviewService,

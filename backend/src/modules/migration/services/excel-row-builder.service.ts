@@ -5,15 +5,20 @@
 //   เป็น single parser ที่ใช้ร่วมกันทั้งขั้นตอน Check และ Commit (FR-002)
 //   เพิกเฉยคอลัมน์ที่ขึ้นต้นด้วย [AI] อัตโนมัติเมื่อ Re-upload (FR-011)
 //   รองรับ header ทั้งภาษาไทยและอังกฤษ และตรวจจับ header ภายใน 5 แถวแรก
+// - 2026-09-12: ใช้ ExcelHeaderDetectorService แทน COLUMN_ALIASES แบบ exact match
+//   เหตุ: exact match ทำให้ header ที่ /admin/migration อ่านได้ (substring match)
+//   กลับอ่านไม่ได้ใน /admin/import-review — ทำให้ header detection ไม่ unified
+//   ตอนนี้ใช้ shared detector (substring match + unified aliases) เหมือนกัน
 
 import { Injectable, Logger } from '@nestjs/common';
 import * as ExcelJS from 'exceljs';
 import { ExcelCorrespondenceRow } from '../types/excel-review.types';
 import { ANNOTATED_AUDIT_COLUMN_PREFIX } from '../types/excel-review.types';
 import { ExcelDateParserService } from './excel-date-parser.service';
-
-/** จำนวนแถวสูงสุดที่จะสแกนหา header row */
-const HEADER_SCAN_MAX_ROWS = 5;
+import {
+  ExcelHeaderDetectorService,
+  HEADER_SCAN_MAX_ROWS,
+} from './excel-header-detector.service';
 
 /** ค่า revision เริ่มต้นเมื่อไม่ระบุ (D10) */
 const DEFAULT_REVISION = '0';
@@ -52,50 +57,6 @@ interface ColumnMapping {
 }
 
 /**
- * alias ของชื่อคอลัมน์แต่ละ field — รวมภาษาไทยและอังกฤษ (ตัวพิมพ์เล็ก/ใหญ่ insensitive)
- * ไม่รวมคอลัมน์ที่ขึ้นต้นด้วย [AI] เพราะถูกกรองก่อน match
- */
-const COLUMN_ALIASES: Record<keyof ColumnMapping, string[]> = {
-  documentNumber: [
-    'เอกสารเลขที่',
-    'document number',
-    'doc number',
-    'doc no',
-    'เลขที่เอกสาร',
-    'เลขที่',
-  ],
-  subject: ['เรื่อง', 'subject', 'หัวข้อ', 'title'],
-  issuedDate: [
-    'วันที่ออก',
-    'date of issue',
-    'issued date',
-    'issue date',
-    'วันที่เอกสาร',
-    'date issued',
-  ],
-  receivedDate: [
-    'วันที่รับ',
-    'date received',
-    'received date',
-    'วันรับ',
-    'date of receipt',
-  ],
-  senderOrg: ['ผู้ส่ง', 'from', 'sender', 'หน่วยงานผู้ส่ง', 'org from'],
-  receiverOrg: ['ผู้รับ', 'to', 'receiver', 'หน่วยงานผู้รับ', 'org to'],
-  correspondenceType: [
-    'ประเภท',
-    'category',
-    'type',
-    'correspondence type',
-    'ประเภทเอกสาร',
-  ],
-  fileName: ['ชื่อไฟล์', 'file name', 'filename', 'file', 'ไฟล์'],
-  remarks: ['หมายเหตุ', 'remarks', 'remark', 'note', 'notes'],
-  revision: ['revision', 'rev', 'ฉบับ', 'ครั้งที่'],
-  discipline: ['discipline', 'วิชาการ', 'สาขา'],
-};
-
-/**
  * ExcelRowBuilderService — single parser กลางของ Pipeline (T006)
  *
  * หลักการสำคัญ (FR-002):
@@ -105,12 +66,18 @@ const COLUMN_ALIASES: Record<keyof ColumnMapping, string[]> = {
  *
  * FR-011: เพิกเฉยคอลัมน์ที่ขึ้นต้นด้วย [AI] อัตโนมัติ
  * (ผู้ใช้ดาวน์โหลดไฟล์ annotated แล้วแก้ไขและ re-upload ได้โดยไม่กระทบการ parse)
+ *
+ * 2026-09-12: header detection ใช้ ExcelHeaderDetectorService (shared) แทน
+ * COLUMN_ALIASES แบบ exact match — ทำให้ header matching เหมือนกันทุก path
  */
 @Injectable()
 export class ExcelRowBuilderService {
   private readonly logger = new Logger(ExcelRowBuilderService.name);
 
-  constructor(private readonly dateParser: ExcelDateParserService) {}
+  constructor(
+    private readonly dateParser: ExcelDateParserService,
+    private readonly headerDetector: ExcelHeaderDetectorService
+  ) {}
 
   /**
    * parse workbook จาก path ของไฟล์ .xlsx
@@ -193,36 +160,60 @@ export class ExcelRowBuilderService {
     return undefined;
   }
 
-  /** สร้าง ColumnMapping จากแถวหนึ่ง (เทียบ alias และกรอง [AI] columns) */
+  /** สร้าง ColumnMapping จากแถวหนึ่ง (ใช้ shared detector + กรอง [AI] columns) */
   private buildColumnMapping(headerRow: ExcelJS.Row): ColumnMapping {
-    const mapping: ColumnMapping = {};
-
+    // สร้าง colHeaders map: 1-based col → [header text (lowercase)]
+    // กรองคอลัมน์ [AI] ออกก่อนส่งให้ detector (FR-011)
+    const colHeaders = new Map<number, string[]>();
     headerRow.eachCell((cell, colNumber) => {
       const headerText = this.readCellAsString(cell);
       if (!headerText) {
         return;
       }
-
       // กรองคอลัมน์ [AI] — เพิกเฉยทั้งหมด (FR-011)
       if (headerText.startsWith(ANNOTATED_AUDIT_COLUMN_PREFIX)) {
         return;
       }
-
       const normalized = headerText.trim().toLowerCase();
-      (Object.keys(COLUMN_ALIASES) as (keyof ColumnMapping)[]).forEach(
-        (field) => {
-          if (mapping[field] !== undefined) {
-            return; // ใช้คอลัมน์แรกที่เจอ
-          }
-          const aliases = COLUMN_ALIASES[field];
-          if (aliases.some((a) => a.toLowerCase() === normalized)) {
-            mapping[field] = colNumber - 1; // แปลง 1-based → 0-based
-          }
-        }
-      );
+      colHeaders.set(colNumber, [normalized]);
     });
 
-    return mapping;
+    // เรียก shared detector — คืน 1-based column indices
+    const detected = this.headerDetector.detectHeaders(colHeaders);
+
+    // แปลง 1-based → 0-based และ map ไปยัง ColumnMapping ของ service นี้
+    return {
+      documentNumber:
+        detected.documentNumber !== undefined
+          ? detected.documentNumber - 1
+          : undefined,
+      subject:
+        detected.subject !== undefined ? detected.subject - 1 : undefined,
+      issuedDate:
+        detected.issuedDate !== undefined ? detected.issuedDate - 1 : undefined,
+      receivedDate:
+        detected.receivedDate !== undefined
+          ? detected.receivedDate - 1
+          : undefined,
+      senderOrg:
+        detected.senderOrg !== undefined ? detected.senderOrg - 1 : undefined,
+      receiverOrg:
+        detected.receiverOrg !== undefined
+          ? detected.receiverOrg - 1
+          : undefined,
+      correspondenceType:
+        detected.correspondenceType !== undefined
+          ? detected.correspondenceType - 1
+          : undefined,
+      fileName:
+        detected.fileName !== undefined ? detected.fileName - 1 : undefined,
+      remarks:
+        detected.remarks !== undefined ? detected.remarks - 1 : undefined,
+      revision:
+        detected.revision !== undefined ? detected.revision - 1 : undefined,
+      discipline:
+        detected.discipline !== undefined ? detected.discipline - 1 : undefined,
+    };
   }
 
   /** สร้าง ExcelCorrespondenceRow จาก ExcelJS.Row */

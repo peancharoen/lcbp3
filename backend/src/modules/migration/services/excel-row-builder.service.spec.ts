@@ -11,6 +11,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { ExcelRowBuilderService } from './excel-row-builder.service';
 import { ExcelDateParserService } from './excel-date-parser.service';
+import { ExcelHeaderDetectorService } from './excel-header-detector.service';
 import { ANNOTATED_AUDIT_COLUMN_PREFIX } from '../types/excel-review.types';
 
 interface SheetFixture {
@@ -26,7 +27,11 @@ describe('ExcelRowBuilderService', () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'row-builder-spec-'));
 
     const module = await Test.createTestingModule({
-      providers: [ExcelRowBuilderService, ExcelDateParserService],
+      providers: [
+        ExcelRowBuilderService,
+        ExcelDateParserService,
+        ExcelHeaderDetectorService,
+      ],
     }).compile();
 
     service = module.get<ExcelRowBuilderService>(ExcelRowBuilderService);

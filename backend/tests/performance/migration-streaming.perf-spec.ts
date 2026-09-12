@@ -15,6 +15,7 @@ import * as path from 'path';
 import * as ExcelJS from 'exceljs';
 
 import { LegacyIngestionService } from '../../src/modules/migration/services/legacy-ingestion.service';
+import { ExcelHeaderDetectorService } from '../../src/modules/migration/services/excel-header-detector.service';
 import { FileStorageService } from '../../src/common/file-storage/file-storage.service';
 import { AiQdrantService } from '../../src/modules/ai/qdrant.service';
 import { RagRetrievalService } from '../../src/modules/ai/services/rag-retrieval.service';
@@ -194,6 +195,7 @@ describe('Phase 4A: ExcelJS Streaming Performance (Spec 244)', () => {
         },
         { provide: FileStorageService, useValue: mockFileStorageService },
         { provide: 'BullQueue_ai-batch', useValue: mockAiBatchQueue },
+        ExcelHeaderDetectorService,
       ],
     }).compile();
 

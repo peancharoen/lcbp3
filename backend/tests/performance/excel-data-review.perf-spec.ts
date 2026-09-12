@@ -15,6 +15,7 @@ import * as path from 'path';
 import ExcelJS from 'exceljs';
 import { ExcelDataReviewService } from '../../src/modules/migration/services/excel-data-review.service';
 import { ExcelRowBuilderService } from '../../src/modules/migration/services/excel-row-builder.service';
+import { ExcelHeaderDetectorService } from '../../src/modules/migration/services/excel-header-detector.service';
 import { ExcelSchemaValidatorService } from '../../src/modules/migration/services/excel-schema-validator.service';
 import { ExcelBusinessRulesService } from '../../src/modules/migration/services/excel-business-rules.service';
 import { ReviewSessionStashService } from '../../src/modules/migration/services/review-session-stash.service';
@@ -202,6 +203,7 @@ describe('SC-001: Layer 1+2 Performance (Feature 252)', () => {
       providers: [
         ExcelDataReviewService,
         ExcelRowBuilderService,
+        ExcelHeaderDetectorService,
         ExcelSchemaValidatorService,
         ExcelBusinessRulesService,
         ExcelDateParserService,

@@ -5,6 +5,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { LegacyIngestionService } from './legacy-ingestion.service';
+import { ExcelHeaderDetectorService } from './excel-header-detector.service';
 import { MigrationReviewQueue } from '../entities/migration-review-queue.entity';
 import {
   MigrationProgress,
@@ -201,6 +202,7 @@ describe('LegacyIngestionService (ADR-047)', () => {
           provide: 'BullQueue_ai-batch',
           useValue: mockAiBatchQueue,
         },
+        ExcelHeaderDetectorService,
       ],
     }).compile();
 

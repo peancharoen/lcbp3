@@ -39,6 +39,7 @@ import {
   ENV_LEGACY_NAS_PATH,
   LEGACY_NAS_PATH_DEFAULT,
 } from '../constants/migration.constants';
+import { ExcelHeaderDetectorService } from './excel-header-detector.service';
 
 export interface IngestSummary {
   batchId: string;
@@ -91,7 +92,8 @@ export class LegacyIngestionService {
     @InjectRepository(Attachment)
     private readonly attachmentRepo: Repository<Attachment>,
     @InjectQueue('ai-batch')
-    private readonly aiBatchQueue: Queue
+    private readonly aiBatchQueue: Queue,
+    private readonly headerDetector: ExcelHeaderDetectorService
   ) {}
 
   /**
@@ -510,6 +512,8 @@ export class LegacyIngestionService {
 
     if (!Array.isArray(headerRows) || headerRows.length === 0) return mapping;
 
+    // สะสม header texts จากทุกแถวใน buffer (สูงสุด 5 แถว) เป็น map
+    // col → [header text (lowercase), ...] — ส่งให้ shared detector
     const colHeaders = new Map<number, string[]>();
     for (const rowValues of headerRows) {
       if (!Array.isArray(rowValues)) continue;
@@ -522,103 +526,20 @@ export class LegacyIngestionService {
       }
     }
 
-    const firstMatch = (
-      predicates: string[],
-      mustInclude?: string[],
-      mustNotInclude?: string[]
-    ): number => {
-      for (const [col, headers] of colHeaders) {
-        if (headers.length === 0) continue;
-        for (const h of headers) {
-          if (predicates.some((p) => h.includes(p))) {
-            if (
-              mustNotInclude?.some((ex) => h.includes(ex)) ||
-              mustInclude?.some((req) => !h.includes(req))
-            ) {
-              continue;
-            }
-            return col;
-          }
-        }
-      }
-      return -1;
-    };
+    // เรียก shared detector — คืน 1-based column indices (undefined = ไม่พบ)
+    const detected = this.headerDetector.detectHeaders(colHeaders);
 
-    mapping.docNumberCol = firstMatch(
-      ['เอกสารเลขที่', 'corr', 'correspondence_number'],
-      [],
-      ['รับ', 'dc']
-    );
-    if (mapping.docNumberCol === -1) {
-      mapping.docNumberCol = firstMatch([
-        'เลขที่เอกสาร',
-        'doc no',
-        'doc number',
-        'document no',
-        'document number',
-      ]);
-    }
-    if (mapping.docNumberCol === -1) {
-      mapping.docNumberCol = firstMatch(['เลขที่หนังสือ', 'หนังสือ']);
-    }
-    if (mapping.docNumberCol === -1) {
-      mapping.docNumberCol = firstMatch(['no'], ['number']);
-    }
-
-    mapping.subjectCol = firstMatch([
-      'subject',
-      'title',
-      'เรื่อง',
-      'ชื่อเรื่อง',
-      'หัวข้อ',
-    ]);
-
-    mapping.receivedDateCol = firstMatch([
-      'วันที่รับ',
-      'วันรับ',
-      'date received',
-      'received',
-    ]);
-
-    mapping.issuedDateCol = firstMatch([
-      'วันที่ออก',
-      'วันที่ออกหนังสือ',
-      'date of issue',
-      'issued',
-      'sent',
-      'ลงวันที่',
-    ]);
-
-    mapping.fromCol = firstMatch(['ผู้ส่ง', 'จาก', 'from', 'sender', 'ส่ง']);
-
-    mapping.toCol = firstMatch([
-      'ผู้รับ',
-      'to',
-      'receiver',
-      'recipient',
-      'ถึง',
-    ]);
-
-    mapping.categoryCol = firstMatch(['category', 'ประเภท', 'หมวดหมู่']);
-
-    mapping.correspondenceTypeIdCol = firstMatch([
-      'correspondence_type',
-      'type_id',
-      'correspondence type',
-      'corr type',
-      'รหัสประเภท',
-    ]);
-
-    mapping.fileNameCol = firstMatch([
-      'ชื่อไฟล์',
-      'file name',
-      'filename',
-      'pdf',
-      'ไฟล์',
-      'เอกสารแนบ',
-    ]);
-
-    mapping.remarksCol = firstMatch(['หมายเหตุ', 'remark', 'note', 'notes']);
+    // แปลงจาก HeaderFieldMapping → ColumnMapping (undefined → -1)
+    mapping.docNumberCol = detected.documentNumber ?? -1;
+    mapping.subjectCol = detected.subject ?? -1;
+    mapping.issuedDateCol = detected.issuedDate ?? -1;
+    mapping.receivedDateCol = detected.receivedDate ?? -1;
+    mapping.fromCol = detected.senderOrg ?? -1;
+    mapping.toCol = detected.receiverOrg ?? -1;
+    mapping.categoryCol = detected.correspondenceType ?? -1;
+    mapping.correspondenceTypeIdCol = detected.correspondenceTypeId ?? -1;
+    mapping.fileNameCol = detected.fileName ?? -1;
+    mapping.remarksCol = detected.remarks ?? -1;
 
     return mapping;
   }

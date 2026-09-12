@@ -38,6 +38,7 @@ describe('LocalOllamaReviewAdapter', () => {
   beforeEach(async () => {
     ollamaService = {
       generate: jest.fn(),
+      checkHealth: jest.fn(),
     } as unknown as jest.Mocked<OllamaService>;
 
     const module = await Test.createTestingModule({
@@ -57,27 +58,48 @@ describe('LocalOllamaReviewAdapter', () => {
   });
 
   describe('isAvailable', () => {
-    it('คืน true เมื่อ Ollama generate สำเร็จ', async () => {
-      ollamaService.generate.mockResolvedValue('pong response');
+    it('คืน true เมื่อ Ollama checkHealth คืน HEALTHY', async () => {
+      ollamaService.checkHealth.mockResolvedValue({
+        status: 'HEALTHY',
+        latencyMs: 50,
+        models: ['np-dms-ai:latest'],
+      });
 
       const result = await adapter.isAvailable();
 
       expect(result).toBe(true);
-      expect(ollamaService.generate).toHaveBeenCalledWith('ping', {
-        timeoutMs: 5000,
-      });
+      expect(ollamaService.checkHealth).toHaveBeenCalledTimes(1);
     });
 
-    it('คืน false เมื่อ Ollama generate throw (ไม่ start)', async () => {
-      ollamaService.generate.mockRejectedValue(new Error('Connection refused'));
+    it('คืน true เมื่อ Ollama checkHealth คืน DEGRADED', async () => {
+      ollamaService.checkHealth.mockResolvedValue({
+        status: 'DEGRADED',
+        latencyMs: 3000,
+        models: ['np-dms-ai:latest'],
+      });
+
+      const result = await adapter.isAvailable();
+
+      expect(result).toBe(true);
+    });
+
+    it('คืน false เมื่อ Ollama checkHealth คืน DOWN', async () => {
+      ollamaService.checkHealth.mockResolvedValue({
+        status: 'DOWN',
+        latencyMs: 5000,
+        models: [],
+        error: 'Connection refused',
+      });
 
       const result = await adapter.isAvailable();
 
       expect(result).toBe(false);
     });
 
-    it('คืน false เมื่อ Ollama generate คืนค่าที่ไม่ใช่ string', async () => {
-      ollamaService.generate.mockResolvedValue(null as unknown as string);
+    it('คืน false เมื่อ Ollama checkHealth throw (ไม่ start)', async () => {
+      ollamaService.checkHealth.mockRejectedValue(
+        new Error('Connection refused')
+      );
 
       const result = await adapter.isAvailable();
 

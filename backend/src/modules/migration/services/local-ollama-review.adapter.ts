@@ -3,6 +3,10 @@
 // - 2026-09-06: Initial creation — Local Ollama AI Reviewer Adapter (T012, FR-008, D2)
 //   ใช้ OllamaService ที่มีอยู่แล้ว (np-dms-ai) สำหรับ Layer 3 review
 //   ปฏิบัติตาม ADR-023/023A/043: Local AI เท่านั้น, ไม่ส่งข้อมูลออกภายนอก
+// - 2026-09-12: แก้ isAvailable() จาก generate('ping') เป็น checkHealth()
+//   เหตุ: generate('ping') ไม่จำกัด num_predict → LLM สร้าง response ยาว (485 tokens)
+//   รวมเวลา cold-start ~7.4s เกิน timeout 5s → isAvailable() คืน false ผิด
+//   checkHealth() เรียก /api/tags (lightweight, ไม่ต้อง load model) → เร็วและเชื่อถือได้
 
 import { Injectable, Logger } from '@nestjs/common';
 import { OllamaService } from '../../ai/services/ollama.service';
@@ -27,11 +31,12 @@ export class LocalOllamaReviewAdapter implements AiReviewerAdapter {
 
   async isAvailable(): Promise<boolean> {
     try {
-      // ทดสอบด้วย prompt สั้น ๆ — ถ้า Ollama ไม่ start จะ throw
-      const result = await this.ollamaService.generate('ping', {
-        timeoutMs: 5000,
-      });
-      return typeof result === 'string';
+      // ใช้ checkHealth() แทน generate('ping') — checkHealth() เรียก /api/tags
+      // (lightweight, ไม่ต้อง load model เข้า VRAM) ทำให้เร็วและไม่ timeout
+      // ยอมรับทั้ง HEALTHY และ DEGRADED (DEGRADED = Ollama รันอยู่แต่ /api/ps หรือ
+      // /api/version ช้า — ยังใช้ generate ได้ปกติ)
+      const health = await this.ollamaService.checkHealth();
+      return health.status === 'HEALTHY' || health.status === 'DEGRADED';
     } catch (err: unknown) {
       const detail = err instanceof Error ? err.message : 'unknown';
       this.logger.debug(`Ollama availability check failed: ${detail}`);
