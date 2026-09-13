@@ -22,6 +22,10 @@
 // - 2026-08-26: Bugfix — ส่ง issueDate (จาก dto.documentDate) เข้า importStagingFile
 //   เพื่อให้ folder permanent/{docType}/{YYYY}/{MM}/ ใช้วันที่เอกสาร ไม่ใช่วันที่นำเข้า
 //   (TypeORM ปฏิเสธ delete({}) ด้วย empty conditions) + aiStatus เริ่มต้นเป็น WAITING แทน PENDING
+// - 2026-09-13: Feature 254 — route migration post-import ผ่าน RagAttachmentIngestProcessor
+//   แทน deprecated EmbeddingService: compute SHA-256 checksum ตอน import + ingest() + enqueueRagAttachmentIngestion
+//   สร้าง rag_attachment_generations/chunks records + อัปเดต rag_status (ADR-022)
+// - 2026-09-13: Fix — IMPORT_TX_STATUS_FAILED constant แทน hardcoded 500
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -65,9 +69,12 @@ import { MigrationError } from './entities/migration-error.entity';
 import { MigrationQueueQueryDto } from './dto/migration-queue-query.dto';
 import { Attachment } from '../../common/file-storage/entities/attachment.entity';
 import { createReadStream, existsSync, readdirSync } from 'fs';
+import { createHash } from 'crypto';
 import * as path from 'path';
 import { RagBatchService } from './services/rag-batch.service';
 import { ReviewThresholdService } from './services/review-threshold.service';
+import { RagAttachmentIngestionService } from '../ai/services/rag-attachment-ingestion.service';
+import { AiQueueService } from '../ai/ai-queue.service';
 import type {
   MigrationAiExtractionDetails,
   MetadataConfidence,
@@ -81,6 +88,7 @@ import {
   CORRESPONDENCE_STATUS_CLBOWN,
   CORRESPONDENCE_STATUS_DRAFT,
   IMPORT_TX_STATUS_SUCCESS,
+  IMPORT_TX_STATUS_FAILED,
   ENV_STAGING_DIR,
   STAGING_DIR_DEFAULT,
   ENV_LEGACY_NAS_PATH,
@@ -114,11 +122,15 @@ export class MigrationService {
     private readonly reviewQueueRepo: Repository<MigrationReviewQueue>,
     @InjectRepository(MigrationError)
     private readonly errorRepo: Repository<MigrationError>,
+    @InjectRepository(Attachment)
+    private readonly attachmentRepo: Repository<Attachment>,
     @InjectQueue('ai-batch')
     private readonly aiBatchQueue: Queue,
     private readonly fileStorageService: FileStorageService,
     private readonly ragBatchService: RagBatchService,
-    private readonly reviewThresholdService: ReviewThresholdService
+    private readonly reviewThresholdService: ReviewThresholdService,
+    private readonly ragIngestionService: RagAttachmentIngestionService,
+    private readonly aiQueueService: AiQueueService
   ) {
     this.stagingDir =
       this.configService.get<string>(ENV_STAGING_DIR) || STAGING_DIR_FALLBACK;
@@ -634,37 +646,87 @@ export class MigrationService {
 
       await queryRunner.commitTransaction();
 
-      // ADR-042/047: trigger rag-prepare เส้นเดียวกับเอกสารปกติ หลัง commit
-      // D158: trigger RAG เมื่อมี attachment เท่านั้น — ไม่ต้องมี ocrText
-      // ถ้าไม่มี cachedOcrText, processRagPrepare จะอ่านจาก attachment หรือทำ OCR เอง
+      // ADR-042/047 + Feature 254: route migration post-import ผ่าน RagAttachmentIngestProcessor
+      // แทน deprecated EmbeddingService — สร้าง generation/chunk records และ persist ลง DB
+      // ต้อง compute checksum ก่อนเพื่อให้ RagAttachmentIngestionService.ingest() ทำงานได้
       if (attachmentId) {
         const mainAttachment = await queryRunner.manager.findOne(Attachment, {
           where: { id: attachmentId },
-          select: ['publicId', 'filePath'],
+          select: ['publicId', 'filePath', 'checksum', 'ragStatus'],
         });
         if (mainAttachment) {
           try {
-            await this.ragBatchService.enqueueRagPrepare({
-              documentPublicId: correspondence.publicId,
-              projectPublicId: project.publicId,
-              correspondenceNumber: correspondence.correspondenceNumber,
-              docType: type?.typeCode || 'LETTER',
-              statusCode: status.statusCode,
-              revisionNumber: revision.revisionNumber,
-              subject: revision.subject,
-              documentDate: revision.documentDate
-                ? revision.documentDate.toISOString().split('T')[0]
-                : undefined,
-              cachedOcrText: dto.ocrText?.trim() || undefined,
-              attachmentPath: mainAttachment.filePath || undefined,
-              attachmentPublicId: mainAttachment.publicId,
-            });
+            // 1. Compute SHA-256 checksum ถ้ายังไม่มี (migration attachments มักเป็น NULL)
+            let checksum = mainAttachment.checksum ?? null;
+            if (!checksum && mainAttachment.filePath) {
+              checksum = await this.computeFileChecksum(
+                mainAttachment.filePath
+              );
+              if (checksum) {
+                await this.attachmentRepo.update(
+                  { publicId: mainAttachment.publicId },
+                  { checksum, ragStatus: 'PROCESSING' as const }
+                );
+                this.logger.log(
+                  `Computed checksum for attachment ${mainAttachment.publicId}: ${checksum}`
+                );
+              }
+            } else if (checksum) {
+              // มี checksum อยู่แล้ว — แค่ตั้ง rag_status = PROCESSING
+              await this.attachmentRepo.update(
+                { publicId: mainAttachment.publicId },
+                { ragStatus: 'PROCESSING' as const }
+              );
+            }
+
+            // 2. สร้าง BUILDING generation ผ่าน ingestionService.ingest()
+            if (checksum) {
+              const generation = await this.ragIngestionService.ingest(
+                mainAttachment.publicId
+              );
+              // 3. Enqueue ai-rag-ingest job ให้ RagAttachmentIngestProcessor ประมวลผล
+              await this.aiQueueService.enqueueRagAttachmentIngestion({
+                attachmentPublicId: mainAttachment.publicId,
+                attachmentChecksum: checksum,
+                force: false,
+              });
+              this.logger.log(
+                `Post-import RAG ingestion enqueued for [${correspondence.publicId}] — generation=${generation.generationUuid}`
+              );
+            } else {
+              // Fallback: ถ้าไม่มีไฟล์ (checksum compute ไม่ได้) ใช้ rag-prepare เดิม
+              this.logger.warn(
+                `No file to compute checksum for ${mainAttachment.publicId} — falling back to rag-prepare`
+              );
+              await this.ragBatchService.enqueueRagPrepare({
+                documentPublicId: correspondence.publicId,
+                projectPublicId: project.publicId,
+                correspondenceNumber: correspondence.correspondenceNumber,
+                docType: type?.typeCode || 'LETTER',
+                statusCode: status.statusCode,
+                revisionNumber: revision.revisionNumber,
+                subject: revision.subject,
+                documentDate: revision.documentDate
+                  ? revision.documentDate.toISOString().split('T')[0]
+                  : undefined,
+                cachedOcrText: dto.ocrText?.trim() || undefined,
+                attachmentPath: mainAttachment.filePath || undefined,
+                attachmentPublicId: mainAttachment.publicId,
+              });
+            }
           } catch (ragErr: unknown) {
             const ragMsg =
               ragErr instanceof Error ? ragErr.message : String(ragErr);
             this.logger.warn(
-              `Post-import RAG re-embed failed for [${correspondence.publicId}]: ${ragMsg}`
+              `Post-import RAG ingestion failed for [${correspondence.publicId}]: ${ragMsg}`
             );
+            // ตั้ง rag_status = FAILED ถ้า ingestion ล้มเหลว
+            await this.attachmentRepo
+              .update(
+                { publicId: mainAttachment.publicId },
+                { ragStatus: 'FAILED' as const, ragLastError: ragMsg }
+              )
+              .catch(() => {});
           }
         }
       }
@@ -695,7 +757,7 @@ export class MigrationService {
         idempotencyKey,
         documentNumber: dto.documentNumber,
         batchId: dto.batchId,
-        statusCode: 500,
+        statusCode: IMPORT_TX_STATUS_FAILED,
       });
       await this.importTransactionRepo.save(failedTransaction).catch(() => {});
 
@@ -1917,5 +1979,25 @@ export class MigrationService {
     }
 
     return null;
+  }
+
+  /** Compute SHA-256 checksum ของไฟล์แบบ streaming (สำหรับ migration attachments ที่ไม่มี checksum) */
+  private async computeFileChecksum(filePath: string): Promise<string | null> {
+    try {
+      if (!existsSync(filePath)) {
+        this.logger.warn(`computeFileChecksum: file not found: ${filePath}`);
+        return null;
+      }
+      const hash = createHash('sha256');
+      const stream = createReadStream(filePath);
+      for await (const chunk of stream) {
+        hash.update(chunk as Buffer);
+      }
+      return hash.digest('hex');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`computeFileChecksum: failed for ${filePath}: ${msg}`);
+      return null;
+    }
   }
 }

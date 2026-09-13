@@ -19,10 +19,14 @@ export const BATCH_ID_HUMAN_REVIEW = 'HUMAN_REVIEW' as const;
 
 /**
  * Import Transaction status codes
+ * status_code column เป็น int(11) — ใช้ integer ไม่ใช่ string
+ * 201 = success (HTTP 201 Created), 500 = failure (HTTP 500)
+ * 100 = pending (ยังไม่ได้ประมวลผล), 101 = processing (กำลังประมวลผล)
  */
-export const IMPORT_TX_STATUS_PENDING = 'PENDING' as const;
-export const IMPORT_TX_STATUS_PROCESSING = 'PROCESSING' as const;
+export const IMPORT_TX_STATUS_PENDING = 100 as const;
+export const IMPORT_TX_STATUS_PROCESSING = 101 as const;
 export const IMPORT_TX_STATUS_SUCCESS = 201 as const;
+export const IMPORT_TX_STATUS_FAILED = 500 as const;
 
 /**
  * Queue status values สำหรับ MigrationReviewQueue (mirror of MigrationReviewStatus enum)

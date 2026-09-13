@@ -2,6 +2,7 @@
 // Change Log:
 // - 2026-09-10: T024 rename RagOwnerContextService → RagAttachmentSourceService (Feature 254)
 // - 2026-09-09: เพิ่ม service สำหรับ resolve owner context จาก Attachment (Feature 254)
+// - 2026-09-13: Bugfix — แก้ SQL column ผิด ct.code → ct.type_code
 
 import { Injectable, Logger } from '@nestjs/common';
 import { DataSource } from 'typeorm';
@@ -53,7 +54,7 @@ export class RagAttachmentSourceService {
            c.uuid AS owner_public_id,
            p.uuid AS project_public_id,
            c.correspondence_number AS doc_number,
-           ct.code AS doc_type
+           ct.type_code AS doc_type
          FROM attachments a
          INNER JOIN correspondence_revision_attachments cra ON cra.attachment_id = a.id
          INNER JOIN correspondence_revisions cr ON cr.id = cra.correspondence_revision_id

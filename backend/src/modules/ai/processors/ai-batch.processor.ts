@@ -23,6 +23,8 @@
 // - 2026-08-30: ปรับ lockDuration 150000ms → 700000ms เพื่อรองรับ OCR timeout 600s ของ np-dms-ocr โดยไม่ให้ job stall ตอนกลางคัน
 // - 2026-08-26: Bugfix — processRagPrepare อ่าน cachedOcrText/attachmentPath/attachmentPublicId จาก top level
 //   ของ job data ด้วย (ไม่ใช่แค่ data.payload) — enqueueRagPrepare ส่ง fields ที่ top level ไม่ได้ห่อใน payload
+// - 2026-09-13: Bugfix — processEmbedDocument และ processRagPrepare อัปเดต attachments.rag_status
+//   (PENDING → PROCESSING → INDEXED/FAILED) หลัง embed สำเร็จ/ล้มเหลว (ADR-022)
 
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
@@ -492,10 +494,13 @@ export class AiBatchProcessor extends WorkerHost {
   private async processEmbedDocument(data: AiBatchJobData): Promise<void> {
     const startTime = Date.now();
     const { documentPublicId, projectPublicId, payload } = data;
-    const pdfPath = payload.pdfPath as string;
+    const pdfPath = readString(payload.pdfPath);
     const extractedText = readString(payload.extractedText);
-    if (!pdfPath) {
-      throw new Error('pdfPath is required for embed-document job');
+    // pdfPath จำเป็นเฉพาะเมื่อไม่มี extractedText (ต้อง OCR ใหม่) — triggerRagBatch flow ส่ง extractedText โดยตรง
+    if (!pdfPath && !extractedText) {
+      throw new Error(
+        'pdfPath or extractedText is required for embed-document job'
+      );
     }
     const correspondenceNumber =
       readString(payload.correspondenceNumber) ?? documentPublicId;
@@ -531,7 +536,21 @@ export class AiBatchProcessor extends WorkerHost {
       resolvedOcrText
     );
     if (!result.success) {
+      // ADR-022: อัปเดต rag_status = FAILED เมื่อ embed ล้มเหลว
+      const attachmentPublicId = readString(payload.attachmentPublicId);
+      if (attachmentPublicId) {
+        await this.setRagStatus(
+          attachmentPublicId,
+          'FAILED',
+          result.error ?? 'Unknown embedding error'
+        );
+      }
       throw new Error(`Embedding failed: ${result.error ?? 'Unknown error'}`);
+    }
+    // ADR-022: อัปเดต rag_status = INDEXED เมื่อ embed สำเร็จ
+    const attachmentPublicId = readString(payload.attachmentPublicId);
+    if (attachmentPublicId) {
+      await this.setRagStatus(attachmentPublicId, 'INDEXED');
     }
     const durationMs = Date.now() - startTime;
     await this.saveAiAuditLog({
@@ -578,6 +597,20 @@ export class AiBatchProcessor extends WorkerHost {
     await this.attachmentRepo.update(
       { publicId: documentPublicId },
       { aiProcessingStatus: status }
+    );
+  }
+
+  /** ADR-022: อัปเดต rag_status ของ Attachment หลัง RAG embed สำเร็จ/ล้มเหลว */
+  private async setRagStatus(
+    attachmentPublicId: string,
+    status: 'PENDING' | 'PROCESSING' | 'INDEXED' | 'FAILED',
+    errorMessage?: string
+  ): Promise<void> {
+    await this.attachmentRepo.update(
+      { publicId: attachmentPublicId },
+      status === 'FAILED'
+        ? { ragStatus: status, ragLastError: errorMessage ?? null }
+        : { ragStatus: status, ragLastError: null }
     );
   }
 
@@ -1118,6 +1151,14 @@ export class AiBatchProcessor extends WorkerHost {
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
         this.logger.error(`processRagPrepare: OCR extraction failed: ${msg}`);
+        // ADR-022: ตั้ง rag_status = FAILED เมื่อ OCR ล้มเหลว
+        if (attachmentPublicId) {
+          await this.setRagStatus(
+            attachmentPublicId,
+            'FAILED',
+            `OCR extraction failed: ${msg}`
+          );
+        }
         throw err;
       }
     }
@@ -1136,6 +1177,8 @@ export class AiBatchProcessor extends WorkerHost {
     // ADR-042: Persist OCR text ก่อนเสมอก่อน enqueue embedding job
     if (attachmentPublicId) {
       try {
+        // ADR-022: ตั้ง rag_status = PROCESSING เมื่อเริ่ม RAG prepare
+        await this.setRagStatus(attachmentPublicId, 'PROCESSING');
         await this.attachmentRepo.update(
           { publicId: attachmentPublicId },
           { ocrText: cachedOcrText }
@@ -1166,6 +1209,7 @@ export class AiBatchProcessor extends WorkerHost {
         documentDate,
         extractedText: cachedOcrText,
         pdfPath: attachmentPath,
+        attachmentPublicId: attachmentPublicId ?? undefined,
       });
       const durationMs = Date.now() - startTime;
       await this.saveAiAuditLog({

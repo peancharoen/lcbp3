@@ -1,6 +1,7 @@
 // File: backend/src/modules/ai/processors/rag-generation-cleanup.processor.ts
 // Change Log:
 // - 2026-09-11: T050 — เพิ่ม BullMQ WorkerHost สำหรับ RETIRED generation cleanup (Feature 254, Phase 5 US3)
+// - 2026-09-14: B13 phase 2 — ย้ายไป QUEUE_AI_RAG_GENERATION_CLEANUP แยกจาก ai-rag-ingest
 
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -17,7 +18,7 @@ import {
 } from '../entities/pending-vector-deletion.entity';
 import { AiQdrantService } from '../qdrant.service';
 import { RagObservabilityService } from '../services/rag-observability.service';
-import { QUEUE_AI_RAG_INGEST } from '../../common/constants/queue.constants';
+import { QUEUE_AI_RAG_GENERATION_CLEANUP } from '../../common/constants/queue.constants';
 import type { RagGenerationCleanupJobPayload } from '../ai-queue.service';
 
 /**
@@ -26,7 +27,7 @@ import type { RagGenerationCleanupJobPayload } from '../ai-queue.service';
  * หาก Qdrant deletion ล้มเหลว จะบันทึก pending vector deletion (compensation)
  * แล้ว throw error เพื่อ trigger BullMQ retry (ADR-008)
  */
-@Processor(QUEUE_AI_RAG_INGEST)
+@Processor(QUEUE_AI_RAG_GENERATION_CLEANUP)
 export class RagGenerationCleanupProcessor extends WorkerHost {
   private readonly logger = new Logger(RagGenerationCleanupProcessor.name);
 

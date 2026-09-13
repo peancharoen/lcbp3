@@ -1,6 +1,7 @@
 // File: backend/src/modules/ai/processors/rag-generation-retention.processor.ts
 // Change Log:
 // - 2026-09-11: T052 — เพิ่ม BullMQ WorkerHost สำหรับ FAILED generation 30-day retention (Feature 254, Phase 5 US3)
+// - 2026-09-14: B13 phase 2 — ย้ายไป QUEUE_AI_RAG_GENERATION_RETENTION แยกจาก ai-rag-ingest
 
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -12,7 +13,7 @@ import { RagAttachmentChunk } from '../entities/rag-attachment-chunk.entity';
 import { RagAttachmentPage } from '../entities/rag-attachment-page.entity';
 import { AiQdrantService } from '../qdrant.service';
 import { RagObservabilityService } from '../services/rag-observability.service';
-import { QUEUE_AI_RAG_INGEST } from '../../common/constants/queue.constants';
+import { QUEUE_AI_RAG_GENERATION_RETENTION } from '../../common/constants/queue.constants';
 
 /** Payload สำหรับ FAILED generation retention cleanup job */
 export interface RagGenerationRetentionJobPayload {
@@ -30,7 +31,7 @@ const FAILED_GENERATION_RETENTION_DAYS = 30;
  *
  * ควรรันเป็น periodic job (เช่น daily) ผ่าน BullMQ scheduler
  */
-@Processor(QUEUE_AI_RAG_INGEST)
+@Processor(QUEUE_AI_RAG_GENERATION_RETENTION)
 export class RagGenerationRetentionProcessor extends WorkerHost {
   private readonly logger = new Logger(RagGenerationRetentionProcessor.name);
 

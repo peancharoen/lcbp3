@@ -3,6 +3,10 @@
 // - 2026-08-06: Initial creation — stub for Phase 6 implementation (Feature 242, FR-021, FR-022, FR-023, FR-024, FR-025, FR-026)
 // - 2026-08-06: Full implementation — RAG candidate query + BullMQ enqueue + idempotency (T053, T055)
 // - 2026-08-23: เปลี่ยน migration Execute Import ให้ใช้ rag-prepare เส้นเดียวกับเอกสารปกติ
+// - 2026-09-13: Bugfix — แก้ raw SQL ใน fetchRagCandidates ใช้ column ผิด (a.public_id → a.uuid,
+//   cra.revision_id → cra.correspondence_revision_id) และ checkActiveImportBatches ใช้ status → status_code
+// - 2026-09-13: Fix — triggerRagBatch ใช้ Correspondence UUID เป็น documentPublicId (Qdrant doc_public_id)
+//   แทน Attachment UUID เพื่อไม่ให้ VectorCleanupService orphanScan ลบเป็น orphan
 
 import { Injectable, Logger, Optional } from '@nestjs/common';
 import { DataSource } from 'typeorm';
@@ -34,7 +38,8 @@ export interface RagBatchResult {
 /** RAG candidate row จาก query */
 interface RagCandidate {
   id: number;
-  public_id: string;
+  attachment_public_id: string;
+  correspondence_public_id: string;
   ocr_text: string | null;
   mime_type: string | null;
   original_filename: string | null;
@@ -95,7 +100,7 @@ export class RagBatchService {
       }
 
       // FR-025: ตรวจสอบ idempotency — ถ้า job มีอยู่แล้วใน queue ให้ skip
-      const jobId = `rag-prepare-${candidate.public_id}`;
+      const jobId = `rag-prepare-${candidate.correspondence_public_id}`;
       if (this.aiBatchQueue) {
         try {
           const existingJob = await this.aiBatchQueue.getJob(jobId);
@@ -104,10 +109,13 @@ export class RagBatchService {
             continue;
           }
           // FR-024: enqueue rag-prepare job (concurrency=1 ควบคุมโดย BullMQ)
+          // documentPublicId = Correspondence UUID (สำหรับ Qdrant doc_public_id ที่ orphanScan ตรวจสอบ)
+          // attachmentPublicId = Attachment UUID (สำหรับ rag_status tracking)
           await this.aiBatchQueue.add(
             'rag-prepare',
             {
-              documentPublicId: candidate.public_id,
+              documentPublicId: candidate.correspondence_public_id,
+              attachmentPublicId: candidate.attachment_public_id,
               projectPublicId: candidate.project_public_id ?? '',
               batchId: batchId ?? undefined,
               jobType: 'rag-prepare',
@@ -121,14 +129,14 @@ export class RagBatchService {
           enqueued += 1;
         } catch (err: unknown) {
           this.logger.error(
-            `triggerRagBatch: failed to enqueue job for ${candidate.public_id}: ${err instanceof Error ? err.message : String(err)}`
+            `triggerRagBatch: failed to enqueue job for ${candidate.correspondence_public_id}: ${err instanceof Error ? err.message : String(err)}`
           );
           failed += 1;
         }
       } else {
         // Queue ไม่พร้อมใช้งาน — log warning
         this.logger.warn(
-          `triggerRagBatch: ai-batch queue not available — cannot enqueue ${candidate.public_id}`
+          `triggerRagBatch: ai-batch queue not available — cannot enqueue ${candidate.correspondence_public_id}`
         );
         failed += 1;
       }
@@ -209,11 +217,12 @@ export class RagBatchService {
     }
 
     const sql = `
-      SELECT DISTINCT a.id, a.public_id, a.ocr_text, a.mime_type, a.original_filename,
+      SELECT DISTINCT a.id, a.uuid AS attachment_public_id, a.ocr_text, a.mime_type, a.original_filename,
+        c.uuid AS correspondence_public_id,
         p.uuid AS project_public_id
       FROM attachments a
       JOIN correspondence_revision_attachments cra ON cra.attachment_id = a.id
-      JOIN correspondence_revisions cr ON cr.id = cra.revision_id
+      JOIN correspondence_revisions cr ON cr.id = cra.correspondence_revision_id
       JOIN correspondences c ON c.id = cr.correspondence_id
       LEFT JOIN projects p ON p.id = c.project_id
       ${batchJoin}
@@ -233,7 +242,7 @@ export class RagBatchService {
   private async checkActiveImportBatches(): Promise<string | undefined> {
     try {
       const rows = await this.dataSource.query<{ active_count: number }[]>(
-        'SELECT COUNT(*) as active_count FROM import_transactions WHERE status IN (?, ?)',
+        'SELECT COUNT(*) as active_count FROM import_transactions WHERE status_code IN (?, ?)',
         [IMPORT_TX_STATUS_PENDING, IMPORT_TX_STATUS_PROCESSING]
       );
       if (rows.length > 0 && rows[0].active_count > 0) {

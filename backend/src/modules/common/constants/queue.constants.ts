@@ -1,6 +1,10 @@
 // File: src/modules/common/constants/queue.constants.ts
 // Queue name constants สำหรับ BullMQ (ADR-008)
 // รวม queue ทั้งหมดของระบบไว้ที่เดียว
+// Change Log:
+// - 2026-09-14: B13 phase 2 — แยก queue สำหรับแต่ละ RAG lifecycle processor
+//   (metadata-sync, generation-cleanup, generation-retention) ป้องกัน BullMQ
+//   ส่ง job ไปยัง processor ผิด type
 
 // ─── Existing Queues ───────────────────────────────────────────────────────
 export const QUEUE_NOTIFICATIONS = 'notifications';
@@ -41,6 +45,15 @@ export const QUEUE_AI_VECTOR_DELETION = 'ai-vector-deletion';
 export const JOB_RAG_ATTACHMENT_INGEST = 'rag-attachment-ingest';
 export const JOB_RAG_METADATA_SYNC = 'rag-metadata-sync';
 export const JOB_RAG_GENERATION_CLEANUP = 'rag-generation-cleanup';
+
+/**
+ * Separate queues สำหรับ RAG lifecycle processors — ป้องกัน BullMQ ส่ง job
+ * ไปยัง processor ผิด type (B13 fix เดิมแยกจาก ai-batch แต่ยังรวม 4 processors
+ ใน queue เดียวกัน ทำให้ job ผิด type ถูก claim โดย processor ผิด)
+ */
+export const QUEUE_AI_RAG_METADATA_SYNC = 'ai-rag-metadata-sync';
+export const QUEUE_AI_RAG_GENERATION_CLEANUP = 'ai-rag-generation-cleanup';
+export const QUEUE_AI_RAG_GENERATION_RETENTION = 'ai-rag-generation-retention';
 
 /** Job names สำหรับ ai-batch queue */
 export const JOB_OCR = 'ocr';

@@ -11,6 +11,8 @@
 // - 2026-05-30: ลงทะเบียน VramMonitorService, OcrCacheService, NpDmsOcrProcessor, NpDmsAiProcessor (ADR-032).
 // - 2026-06-13: ลงทะเบียน AiSandboxProfile สำหรับ ADR-036 sandbox-production parity
 // - 2026-08-24: ADR-048 T004 — ลงทะเบียน NodeMetricsService สำหรับ AI Engine Control Center telemetry
+// - 2026-09-14: B13 phase 2 — ลงทะเบียน queue แยกสำหรับ RAG lifecycle processors
+//   (ai-rag-metadata-sync, ai-rag-generation-cleanup, ai-rag-generation-retention)
 // Module สำหรับ AI Gateway — ลงทะเบียน Services และ Controllers (ADR-023)
 
 import { Logger, Module, OnModuleInit, forwardRef } from '@nestjs/common';
@@ -72,6 +74,9 @@ import {
   QUEUE_AI_BATCH,
   QUEUE_AI_RAG,
   QUEUE_AI_RAG_INGEST,
+  QUEUE_AI_RAG_METADATA_SYNC,
+  QUEUE_AI_RAG_GENERATION_CLEANUP,
+  QUEUE_AI_RAG_GENERATION_RETENTION,
   QUEUE_AI_REALTIME,
   QUEUE_AI_VECTOR_DELETION,
 } from '../common/constants/queue.constants';
@@ -171,6 +176,35 @@ import { SecureArchiveService } from '../../common/file-storage/secure-archive.s
         },
       },
       { name: QUEUE_AI_VECTOR_DELETION },
+      // B13 fix (phase 2): แยก queue สำหรับแต่ละ RAG lifecycle processor
+      // ป้องกัน BullMQ ส่ง job ไปยัง processor ผิด type
+      {
+        name: QUEUE_AI_RAG_METADATA_SYNC,
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 5000 },
+          removeOnComplete: 100,
+          removeOnFail: 500,
+        },
+      },
+      {
+        name: QUEUE_AI_RAG_GENERATION_CLEANUP,
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 5000 },
+          removeOnComplete: 100,
+          removeOnFail: 500,
+        },
+      },
+      {
+        name: QUEUE_AI_RAG_GENERATION_RETENTION,
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 5000 },
+          removeOnComplete: 100,
+          removeOnFail: 500,
+        },
+      },
       // np-dms-ocr + np-dms-ai queues: concurrency=1 เพื่อป้องกัน VRAM overflow (ADR-032)
       {
         name: QUEUE_NP_DMS_OCR,

@@ -5,6 +5,9 @@
 // - 2026-05-14: ย้าย PROMPT_CONTEXT_LIMIT เป็น instance field ที่อ่านจาก RAG_CONTEXT_LIMIT_CHARS (💡 S1).
 // - 2026-06-05: ปรับปรุงใช้ Hybrid Search + Reranker ผ่าน Sidecar ตาม ADR-035 (T015, T030)
 // - 2026-09-12: T040 — เพิ่ม stale-result skip (ACTIVE generation guard) + full-text fallback + retrievalMode tracking
+// - 2026-09-14: Enrich vector results ด้วย chunk content จาก DB — Qdrant payload ของ
+//   generation-aware flow ไม่มี chunk_text/doc_type/doc_number (เก็บเฉพาะ metadata)
+//   ทำให้ buildContext สร้าง context ว่าง → LLM ตอบ "ไม่พบข้อมูล" แม้มี vectors สูง
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -265,6 +268,13 @@ export class AiRagService {
       const activeVectorResults =
         await this.guardService.filterActiveChunksFromResults(searchResults);
 
+      // 2b.1 Enrich vector results ด้วย chunk content จาก DB
+      //     Qdrant payload ของ generation-aware flow เก็บเฉพาะ metadata
+      //     (chunk_public_id, generation_uuid, owner_public_id, ...) ไม่มี chunk_text
+      //     ต้องดึง content/doc_type/doc_number จาก rag_attachment_chunks เพื่อให้
+      //     buildContext สร้าง context ได้สมบูรณ์ (มิฉะนั้น LLM ตอบ "ไม่พบข้อมูล")
+      await this.enrichVectorResultsWithChunkContent(activeVectorResults);
+
       // 2c. Full-text fallback / hybrid supplement (T040)
       //     - กรณี vector ไม่มี valid ACTIVE chunks → fall back สู่ MariaDB FULLTEXT
       //     - กรณี vector มี valid chunks น้อยกว่า threshold → supplement ด้วย FULLTEXT (HYBRID)
@@ -438,6 +448,51 @@ export class AiRagService {
         `Ollama generation failed — model=${this.ollamaModel}: ${err instanceof Error ? err.message : String(err)}`
       );
       return { answer: 'ไม่พบข้อมูลในเอกสารที่ระบุ', usedFallback: true };
+    }
+  }
+
+  /**
+   * Enrich vector search results ด้วย chunk content จาก rag_attachment_chunks
+   * Qdrant payload ของ generation-aware flow เก็บเฉพาะ metadata ไม่มี chunk_text
+   * ต้องดึง content/doc_type/doc_number จาก DB เพื่อให้ buildContext ทำงานได้
+   */
+  private async enrichVectorResultsWithChunkContent(
+    results: AiVectorSearchResult[]
+  ): Promise<void> {
+    if (results.length === 0) return;
+
+    const chunkIds = results
+      .map((r) => r.payload['chunk_public_id'] as string | undefined)
+      .filter((id): id is string => !!id);
+
+    if (chunkIds.length === 0) return;
+
+    const chunks = await this.chunkRepository
+      .createQueryBuilder('chunk')
+      .select([
+        'chunk.chunkPublicId',
+        'chunk.content',
+        'chunk.docType',
+        'chunk.docNumber',
+      ])
+      .where('chunk.chunkPublicId IN (:...chunkIds)', { chunkIds })
+      .getMany();
+
+    const chunkMap = new Map(chunks.map((c) => [c.chunkPublicId, c]));
+
+    for (const r of results) {
+      const chunkId = r.payload['chunk_public_id'] as string | undefined;
+      if (!chunkId) continue;
+      const chunk = chunkMap.get(chunkId);
+      if (chunk) {
+        r.payload['chunk_text'] = chunk.content;
+        if (!r.payload['doc_type'] && chunk.docType) {
+          r.payload['doc_type'] = chunk.docType;
+        }
+        if (!r.payload['doc_number'] && chunk.docNumber) {
+          r.payload['doc_number'] = chunk.docNumber;
+        }
+      }
     }
   }
 

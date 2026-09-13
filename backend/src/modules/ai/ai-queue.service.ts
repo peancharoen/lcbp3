@@ -19,6 +19,9 @@
 //   (ดู mapStatusToErrorType/ไม่มีการอ่าน custom code เลย) ทำให้ frontend interceptor
 //   (`code === 'AI_FEATURES_UNAVAILABLE'`) ไม่เคย match มาตั้งแต่แรก แก้โดยเปลี่ยนไปใช้
 //   ServiceUnavailableException (BaseException subclass, เหมือน ai-enabled.guard.ts) แทน
+// - 2026-09-14: B13 phase 2 — แยก queue สำหรับ RAG lifecycle processors
+//   (metadata-sync, generation-cleanup, generation-retention) ออกจาก ai-rag-ingest
+//   เพื่อป้องกัน BullMQ ส่ง job ไปยัง processor ผิด type
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { InjectRedis } from '@nestjs-modules/ioredis';
@@ -31,6 +34,9 @@ import {
   QUEUE_AI_BATCH,
   QUEUE_AI_REALTIME,
   QUEUE_AI_RAG_INGEST,
+  QUEUE_AI_RAG_METADATA_SYNC,
+  QUEUE_AI_RAG_GENERATION_CLEANUP,
+  QUEUE_AI_RAG_GENERATION_RETENTION,
   JOB_RAG_ATTACHMENT_INGEST,
   JOB_RAG_METADATA_SYNC,
   JOB_RAG_GENERATION_CLEANUP,
@@ -128,6 +134,12 @@ export class AiQueueService {
     private readonly realtimeQueue: Queue<unknown>,
     @InjectQueue(QUEUE_AI_RAG_INGEST)
     private readonly ragIngestQueue: Queue<unknown>,
+    @InjectQueue(QUEUE_AI_RAG_METADATA_SYNC)
+    private readonly ragMetadataSyncQueue: Queue<unknown>,
+    @InjectQueue(QUEUE_AI_RAG_GENERATION_CLEANUP)
+    private readonly ragGenerationCleanupQueue: Queue<unknown>,
+    @InjectQueue(QUEUE_AI_RAG_GENERATION_RETENTION)
+    private readonly ragGenerationRetentionQueue: Queue<unknown>,
     @InjectRedis() private readonly redis: Redis
   ) {
     // Map-based registry — แทน if-else chain เดิม รองรับทุก queue และป้องกัน
@@ -138,6 +150,9 @@ export class AiQueueService {
       [QUEUE_AI_BATCH, this.batchQueue],
       [QUEUE_AI_REALTIME, this.realtimeQueue],
       [QUEUE_AI_RAG_INGEST, this.ragIngestQueue],
+      [QUEUE_AI_RAG_METADATA_SYNC, this.ragMetadataSyncQueue],
+      [QUEUE_AI_RAG_GENERATION_CLEANUP, this.ragGenerationCleanupQueue],
+      [QUEUE_AI_RAG_GENERATION_RETENTION, this.ragGenerationRetentionQueue],
     ]);
   }
 
@@ -382,10 +397,14 @@ export class AiQueueService {
     payload: RagMetadataSyncJobPayload
   ): Promise<string> {
     await this.checkAiUnavailableLocks();
-    const job = await this.ragIngestQueue.add(JOB_RAG_METADATA_SYNC, payload, {
-      ...this.defaultOptions,
-      jobId: `${JOB_RAG_METADATA_SYNC}:${payload.generationUuid}`,
-    });
+    const job = await this.ragMetadataSyncQueue.add(
+      JOB_RAG_METADATA_SYNC,
+      payload,
+      {
+        ...this.defaultOptions,
+        jobId: `${JOB_RAG_METADATA_SYNC}:${payload.generationUuid}`,
+      }
+    );
     return String(job.id);
   }
 
@@ -394,7 +413,7 @@ export class AiQueueService {
     payload: RagGenerationCleanupJobPayload
   ): Promise<string> {
     await this.checkAiUnavailableLocks();
-    const job = await this.ragIngestQueue.add(
+    const job = await this.ragGenerationCleanupQueue.add(
       JOB_RAG_GENERATION_CLEANUP,
       payload,
       {
@@ -421,6 +440,7 @@ export class AiQueueService {
     documentDate?: string;
     extractedText: string;
     pdfPath?: string;
+    attachmentPublicId?: string;
   }): Promise<string> {
     await this.checkAiUnavailableLocks();
     const job = await this.batchQueue.add(
@@ -438,6 +458,7 @@ export class AiQueueService {
           revisionNumber: payload.revisionNumber,
           subject: payload.subject,
           documentDate: payload.documentDate,
+          attachmentPublicId: payload.attachmentPublicId,
         },
         idempotencyKey: `embed-document:${payload.documentPublicId}:${payload.revisionNumber}`,
       },

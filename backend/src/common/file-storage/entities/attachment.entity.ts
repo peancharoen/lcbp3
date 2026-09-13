@@ -59,6 +59,19 @@ export class Attachment extends UuidBaseEntity {
   })
   aiProcessingStatus!: 'PENDING' | 'PROCESSING' | 'DONE' | 'FAILED';
 
+  // ADR-022: สถานะ RAG ingestion ระดับ file — track การ embed ลง Qdrant
+  @Column({
+    name: 'rag_status',
+    type: 'enum',
+    enum: ['PENDING', 'PROCESSING', 'INDEXED', 'FAILED'],
+    default: 'PENDING',
+  })
+  ragStatus!: 'PENDING' | 'PROCESSING' | 'INDEXED' | 'FAILED';
+
+  // ADR-022: Error message ล่าสุดเมื่อ rag_status = FAILED
+  @Column({ name: 'rag_last_error', type: 'text', nullable: true })
+  ragLastError?: string | null;
+
   @Column({
     type: 'enum',
     enum: ['PUBLIC', 'INTERNAL', 'CONFIDENTIAL'],

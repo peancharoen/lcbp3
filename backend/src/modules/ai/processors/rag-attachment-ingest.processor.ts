@@ -1,6 +1,7 @@
 // File: backend/src/modules/ai/processors/rag-attachment-ingest.processor.ts
 // Change Log:
 // - 2026-09-14: T061 เพิ่ม ZIP handling ผ่าน SecureArchiveService + sourceLocator fallback (Feature 254, Phase 6 US4)
+// - 2026-09-13: Bugfix — อัปเดต attachments.rag_status (PROCESSING → INDEXED/FAILED) หลัง ingestion (ADR-022)
 // - 2026-09-10: T024-T028 update imports สำหรับ renamed/new services (Feature 254)
 // - 2026-09-09: เพิ่ม BullMQ processor สำหรับ RAG Attachment ingestion (Feature 254)
 
@@ -69,6 +70,14 @@ export class RagAttachmentIngestProcessor extends WorkerHost {
       );
       return;
     }
+
+    // ADR-022: ตั้ง rag_status = PROCESSING เมื่อเริ่ม ingestion
+    await this.attachmentRepository
+      .update(
+        { publicId: attachmentPublicId },
+        { ragStatus: 'PROCESSING' as const }
+      )
+      .catch(() => {});
 
     try {
       const attachment = await this.attachmentRepository.findOne({
@@ -213,6 +222,12 @@ export class RagAttachmentIngestProcessor extends WorkerHost {
       // 8. Activate generation — vectors พร้อมแล้ว ปลอดภัยที่จะเปิดใช้งาน
       await this.ingestionService.activate(generation.generationUuid);
 
+      // ADR-022: อัปเดต rag_status = INDEXED เมื่อ ingestion สำเร็จ
+      await this.attachmentRepository.update(
+        { publicId: attachmentPublicId },
+        { ragStatus: 'INDEXED' as const, ragLastError: null }
+      );
+
       this.logger.log(
         `RAG ingestion complete — attachment=${attachmentPublicId}, chunks=${chunkEntities.length}`
       );
@@ -221,6 +236,13 @@ export class RagAttachmentIngestProcessor extends WorkerHost {
       this.logger.error(
         `RAG ingestion failed for ${attachmentPublicId}: ${errorMessage}`
       );
+      // ADR-022: อัปเดต rag_status = FAILED เมื่อ ingestion ล้มเหลว
+      await this.attachmentRepository
+        .update(
+          { publicId: attachmentPublicId },
+          { ragStatus: 'FAILED' as const, ragLastError: errorMessage }
+        )
+        .catch(() => {});
       try {
         await this.ingestionService.markFailed(
           generation.generationUuid,

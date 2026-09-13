@@ -170,9 +170,11 @@ export class EmbeddingService {
         ocrText
       );
 
-      // เรียก LLM
+      // เรียก LLM — ใช้ batch timeout (env AI_BATCH_TIMEOUT_MS, default 120000ms) แทน default 30s
+      // เพื่อป้องกัน timeout สำหรับเอกสารยาวที่ต้อง chunk หลายส่วน
       const llmOutput = await this.ollamaService.generate(
-        resolved.resolvedPrompt
+        resolved.resolvedPrompt,
+        { timeoutMs: this.ollamaService.getBatchTimeoutMs() }
       );
 
       // ดึงและวิเคราะห์ข้อความภายในแท็ก <chunk topic="...">
