@@ -17,6 +17,9 @@ import {
   QUEUE_AI_BATCH,
   QUEUE_AI_RAG,
   QUEUE_AI_RAG_INGEST,
+  QUEUE_AI_RAG_METADATA_SYNC,
+  QUEUE_AI_RAG_GENERATION_CLEANUP,
+  QUEUE_AI_RAG_GENERATION_RETENTION,
   QUEUE_AI_VECTOR_DELETION,
 } from '../../common/constants/queue.constants';
 import { QUEUE_NP_DMS_OCR } from '../../ai/processors/np-dms-ocr-processor';
@@ -36,6 +39,12 @@ export class BullmqMetricsService implements OnModuleInit, OnModuleDestroy {
     @InjectQueue(QUEUE_AI_BATCH) private readonly batchQueue: Queue,
     @InjectQueue(QUEUE_AI_RAG) private readonly ragQueue: Queue,
     @InjectQueue(QUEUE_AI_RAG_INGEST) private readonly ragIngestQueue: Queue,
+    @InjectQueue(QUEUE_AI_RAG_METADATA_SYNC)
+    private readonly ragMetadataSyncQueue: Queue,
+    @InjectQueue(QUEUE_AI_RAG_GENERATION_CLEANUP)
+    private readonly ragGenerationCleanupQueue: Queue,
+    @InjectQueue(QUEUE_AI_RAG_GENERATION_RETENTION)
+    private readonly ragGenerationRetentionQueue: Queue,
     @InjectQueue(QUEUE_AI_VECTOR_DELETION)
     private readonly vectorDeletionQueue: Queue,
     @InjectQueue(QUEUE_NP_DMS_OCR) private readonly ocrQueue: Queue,
@@ -72,6 +81,15 @@ export class BullmqMetricsService implements OnModuleInit, OnModuleDestroy {
       { name: QUEUE_AI_BATCH, queue: this.batchQueue },
       { name: QUEUE_AI_RAG, queue: this.ragQueue },
       { name: QUEUE_AI_RAG_INGEST, queue: this.ragIngestQueue },
+      { name: QUEUE_AI_RAG_METADATA_SYNC, queue: this.ragMetadataSyncQueue },
+      {
+        name: QUEUE_AI_RAG_GENERATION_CLEANUP,
+        queue: this.ragGenerationCleanupQueue,
+      },
+      {
+        name: QUEUE_AI_RAG_GENERATION_RETENTION,
+        queue: this.ragGenerationRetentionQueue,
+      },
       { name: QUEUE_AI_VECTOR_DELETION, queue: this.vectorDeletionQueue },
       { name: QUEUE_NP_DMS_OCR, queue: this.ocrQueue },
       { name: QUEUE_NP_DMS_AI, queue: this.aiQueue },

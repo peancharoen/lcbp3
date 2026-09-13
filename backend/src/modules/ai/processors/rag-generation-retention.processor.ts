@@ -6,7 +6,9 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Logger, Optional } from '@nestjs/common';
-import { Job } from 'bullmq';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue, Job } from 'bullmq';
 import { Repository, LessThan } from 'typeorm';
 import { RagAttachmentGeneration } from '../entities/rag-attachment-generation.entity';
 import { RagAttachmentChunk } from '../entities/rag-attachment-chunk.entity';
@@ -43,10 +45,36 @@ export class RagGenerationRetentionProcessor extends WorkerHost {
     @InjectRepository(RagAttachmentPage)
     private readonly pageRepository: Repository<RagAttachmentPage>,
     private readonly qdrantService: AiQdrantService,
+    @InjectQueue(QUEUE_AI_RAG_GENERATION_RETENTION)
+    private readonly retentionQueue: Queue,
     @Optional()
     private readonly observabilityService?: RagObservabilityService
   ) {
     super();
+  }
+
+  /**
+   * Scheduler สำหรับ enqueue retention cleanup job รายวัน (03:00 ทุกวัน)
+   * ใช้ BullMQ queue แทนการ process ตรง เพื่อให้มี retry + observability
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_3AM)
+  async scheduleRetentionCleanup(): Promise<void> {
+    try {
+      await this.retentionQueue.add(
+        'rag-generation-retention',
+        { batchSize: 100 },
+        {
+          jobId: `retention-${new Date().toISOString().slice(0, 10)}`,
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        }
+      );
+      this.logger.log('Scheduled daily FAILED generation retention cleanup');
+    } catch (err: unknown) {
+      this.logger.error(
+        `Failed to schedule retention cleanup: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
   }
 
   /**

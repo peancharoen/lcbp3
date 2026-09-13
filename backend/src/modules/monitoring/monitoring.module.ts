@@ -22,6 +22,9 @@ import {
   QUEUE_AI_BATCH,
   QUEUE_AI_RAG,
   QUEUE_AI_RAG_INGEST,
+  QUEUE_AI_RAG_METADATA_SYNC,
+  QUEUE_AI_RAG_GENERATION_CLEANUP,
+  QUEUE_AI_RAG_GENERATION_RETENTION,
   QUEUE_AI_VECTOR_DELETION,
 } from '../common/constants/queue.constants';
 import { QUEUE_NP_DMS_OCR } from '../ai/processors/np-dms-ocr-processor';
@@ -54,6 +57,9 @@ import {
       { name: QUEUE_AI_BATCH },
       { name: QUEUE_AI_RAG },
       { name: QUEUE_AI_RAG_INGEST },
+      { name: QUEUE_AI_RAG_METADATA_SYNC },
+      { name: QUEUE_AI_RAG_GENERATION_CLEANUP },
+      { name: QUEUE_AI_RAG_GENERATION_RETENTION },
       { name: QUEUE_AI_VECTOR_DELETION },
       { name: QUEUE_NP_DMS_OCR },
       { name: QUEUE_NP_DMS_AI }

@@ -69,6 +69,30 @@ describe('BullmqMetricsService', () => {
         paused: 0,
       }),
       createMockQueue({
+        waiting: 0,
+        active: 0,
+        completed: 0,
+        failed: 0,
+        delayed: 0,
+        paused: 0,
+      }),
+      createMockQueue({
+        waiting: 0,
+        active: 0,
+        completed: 0,
+        failed: 0,
+        delayed: 0,
+        paused: 0,
+      }),
+      createMockQueue({
+        waiting: 0,
+        active: 0,
+        completed: 0,
+        failed: 0,
+        delayed: 0,
+        paused: 0,
+      }),
+      createMockQueue({
         waiting: 2,
         active: 0,
         completed: 8,
@@ -103,6 +127,9 @@ describe('BullmqMetricsService', () => {
       queues[4] as never,
       queues[5] as never,
       queues[6] as never,
+      queues[7] as never,
+      queues[8] as never,
+      queues[9] as never,
       gauges[0] as unknown as Gauge<string>,
       gauges[1] as unknown as Gauge<string>,
       gauges[2] as unknown as Gauge<string>,
@@ -211,7 +238,7 @@ describe('BullmqMetricsService', () => {
   });
 
   describe('collectMetrics all queues', () => {
-    it('should call getJobCounts for all 7 queues', async () => {
+    it('should call getJobCounts for all 10 queues', async () => {
       await service.onModuleInit();
 
       for (const q of queues) {
@@ -229,23 +256,23 @@ describe('BullmqMetricsService', () => {
     it('should set all 6 gauges for each queue', async () => {
       await service.onModuleInit();
 
-      // 7 queues × 6 gauges = 42 set calls
+      // 10 queues × 6 gauges = 60 set calls
       const totalSets = gauges.reduce(
         (sum, g) => sum + g.set.mock.calls.length,
         0
       );
-      expect(totalSets).toBe(42);
+      expect(totalSets).toBe(60);
     });
   });
 
   describe('decorator metadata', () => {
-    it('should have design:paramtypes metadata with 13 parameters', () => {
+    it('should have design:paramtypes metadata with 16 parameters', () => {
       const paramTypes = Reflect.getMetadata(
         'design:paramtypes',
         BullmqMetricsService
       );
       expect(paramTypes).toBeDefined();
-      expect(paramTypes).toHaveLength(13);
+      expect(paramTypes).toHaveLength(16);
     });
 
     it('should re-evaluate module decorators via isolateModules', () => {
