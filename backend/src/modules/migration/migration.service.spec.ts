@@ -35,6 +35,8 @@ import { MigrationError } from './entities/migration-error.entity';
 import { FileStorageService } from '../../common/file-storage/file-storage.service';
 import { RagBatchService } from './services/rag-batch.service';
 import { ReviewThresholdService } from './services/review-threshold.service';
+import { RagAttachmentIngestionService } from '../ai/services/rag-attachment-ingestion.service';
+import { AiQueueService } from '../ai/ai-queue.service';
 import { Discipline } from '../master/entities/discipline.entity';
 import { Correspondence } from '../correspondence/entities/correspondence.entity';
 import { CorrespondenceRecipient } from '../correspondence/entities/correspondence-recipient.entity';
@@ -110,8 +112,27 @@ describe('MigrationService', () => {
 
   const mockAttachmentFind = jest.fn();
 
+  const mockAttachmentRepo = {
+    findOne: jest.fn(),
+    find: mockAttachmentFind,
+    update: jest.fn(),
+    save: jest.fn(),
+    create: jest.fn(),
+  };
+
   const mockFileStorageService = {
     importStagingFile: jest.fn(),
+  };
+
+  const mockRagIngestionService = {
+    ingest: jest.fn().mockResolvedValue({ generationPublicId: 'gen-uuid-001' }),
+  };
+
+  const mockAiQueueService = {
+    enqueueRagAttachmentIngestion: jest
+
+      .fn()
+      .mockResolvedValue({ jobId: 'job-1' }),
   };
 
   const mockQueryRunner = {
@@ -195,6 +216,10 @@ describe('MigrationService', () => {
           useValue: mockMigrationErrorRepo,
         },
         {
+          provide: getRepositoryToken(Attachment),
+          useValue: mockAttachmentRepo,
+        },
+        {
           provide: FileStorageService,
           useValue: mockFileStorageService,
         },
@@ -217,6 +242,14 @@ describe('MigrationService', () => {
         {
           provide: ReviewThresholdService,
           useValue: mockReviewThresholdService,
+        },
+        {
+          provide: RagAttachmentIngestionService,
+          useValue: mockRagIngestionService,
+        },
+        {
+          provide: AiQueueService,
+          useValue: mockAiQueueService,
         },
       ],
     }).compile();

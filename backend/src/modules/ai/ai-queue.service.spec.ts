@@ -12,6 +12,9 @@ import {
   QUEUE_AI_BATCH,
   QUEUE_AI_REALTIME,
   QUEUE_AI_RAG_INGEST,
+  QUEUE_AI_RAG_METADATA_SYNC,
+  QUEUE_AI_RAG_GENERATION_CLEANUP,
+  QUEUE_AI_RAG_GENERATION_RETENTION,
   JOB_RAG_ATTACHMENT_INGEST,
 } from '../common/constants/queue.constants';
 
@@ -84,6 +87,9 @@ describe('AiQueueService', () => {
       [QUEUE_AI_BATCH]: createMockQueue(),
       [QUEUE_AI_REALTIME]: createMockQueue(),
       [QUEUE_AI_RAG_INGEST]: createMockQueue(),
+      [QUEUE_AI_RAG_METADATA_SYNC]: createMockQueue(),
+      [QUEUE_AI_RAG_GENERATION_CLEANUP]: createMockQueue(),
+      [QUEUE_AI_RAG_GENERATION_RETENTION]: createMockQueue(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -108,6 +114,18 @@ describe('AiQueueService', () => {
         {
           provide: getQueueToken(QUEUE_AI_RAG_INGEST),
           useValue: queues[QUEUE_AI_RAG_INGEST],
+        },
+        {
+          provide: getQueueToken(QUEUE_AI_RAG_METADATA_SYNC),
+          useValue: queues[QUEUE_AI_RAG_METADATA_SYNC],
+        },
+        {
+          provide: getQueueToken(QUEUE_AI_RAG_GENERATION_CLEANUP),
+          useValue: queues[QUEUE_AI_RAG_GENERATION_CLEANUP],
+        },
+        {
+          provide: getQueueToken(QUEUE_AI_RAG_GENERATION_RETENTION),
+          useValue: queues[QUEUE_AI_RAG_GENERATION_RETENTION],
         },
         {
           provide: 'default_IORedisModuleConnectionToken',

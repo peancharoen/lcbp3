@@ -16,6 +16,7 @@ describe('RagAttachmentIngestProcessor', () => {
   };
   const attachmentRepository = {
     findOne: jest.fn(),
+    update: jest.fn().mockResolvedValue(undefined),
   };
   const pageRepository = {
     create: jest.fn((v: unknown) => v),

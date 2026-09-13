@@ -461,6 +461,15 @@ export class AiRagService {
   ): Promise<void> {
     if (results.length === 0) return;
 
+    // Skip enrichment เมื่อ payload มี chunk_text อยู่แล้ว (legacy flow หรือ test mock)
+    const needsEnrichment = results.some(
+      (r) =>
+        !r.payload['chunk_text'] &&
+        !r.payload['content_preview'] &&
+        r.payload['chunk_public_id']
+    );
+    if (!needsEnrichment) return;
+
     const chunkIds = results
       .map((r) => r.payload['chunk_public_id'] as string | undefined)
       .filter((id): id is string => !!id);

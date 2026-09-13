@@ -24,6 +24,9 @@ import {
 } from './entities/migration-review-queue.entity';
 import { MigrationService } from './migration.service';
 import { ReviewThresholdService } from './services/review-threshold.service';
+import { Attachment } from '../../common/file-storage/entities/attachment.entity';
+import { RagAttachmentIngestionService } from '../ai/services/rag-attachment-ingestion.service';
+import { AiQueueService } from '../ai/ai-queue.service';
 
 describe('MigrationService approve-and-import status', () => {
   let service: MigrationService;
@@ -79,6 +82,10 @@ describe('MigrationService approve-and-import status', () => {
           useValue: {},
         },
         {
+          provide: getRepositoryToken(Attachment),
+          useValue: {},
+        },
+        {
           provide: FileStorageService,
           useValue: {},
         },
@@ -98,6 +105,16 @@ describe('MigrationService approve-and-import status', () => {
             getThresholds: jest
               .fn()
               .mockResolvedValue({ maxMismatchFields: 3, minConfidence: 0.6 }),
+          },
+        },
+        {
+          provide: RagAttachmentIngestionService,
+          useValue: { ingest: jest.fn().mockResolvedValue({}) },
+        },
+        {
+          provide: AiQueueService,
+          useValue: {
+            enqueueRagAttachmentIngestion: jest.fn().mockResolvedValue({}),
           },
         },
       ],

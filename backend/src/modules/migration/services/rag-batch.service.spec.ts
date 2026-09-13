@@ -185,7 +185,8 @@ describe('RagBatchService (Feature 242)', () => {
       const candidates = [
         {
           id: 1,
-          public_id: 'att-uuid-001',
+          attachment_public_id: 'att-uuid-001',
+          correspondence_public_id: 'corr-uuid-001',
           ocr_text: 'Valid OCR text content here',
           mime_type: 'application/pdf',
           original_filename: 'doc1.pdf',
@@ -193,7 +194,8 @@ describe('RagBatchService (Feature 242)', () => {
         },
         {
           id: 2,
-          public_id: 'att-uuid-002',
+          attachment_public_id: 'att-uuid-002',
+          correspondence_public_id: 'corr-uuid-002',
           ocr_text: 'Another valid document text',
           mime_type: 'application/pdf',
           original_filename: 'doc2.pdf',
@@ -214,7 +216,8 @@ describe('RagBatchService (Feature 242)', () => {
       const candidates = [
         {
           id: 1,
-          public_id: 'att-dwg-001',
+          attachment_public_id: 'att-dwg-001',
+          correspondence_public_id: 'corr-dwg-001',
           ocr_text: 'some text',
           mime_type: 'application/dwg',
           original_filename: 'plan.dwg',
@@ -234,7 +237,8 @@ describe('RagBatchService (Feature 242)', () => {
       const candidates = [
         {
           id: 1,
-          public_id: 'att-dxf-001',
+          attachment_public_id: 'att-dxf-001',
+          correspondence_public_id: 'corr-dxf-001',
           ocr_text: 'some text',
           mime_type: null,
           original_filename: 'drawing.dxf',
@@ -253,7 +257,8 @@ describe('RagBatchService (Feature 242)', () => {
       const candidates = [
         {
           id: 1,
-          public_id: 'att-empty-ocr',
+          attachment_public_id: 'att-empty-ocr',
+          correspondence_public_id: 'corr-empty-ocr',
           ocr_text: '   ',
           mime_type: 'application/pdf',
           original_filename: 'doc.pdf',
@@ -272,7 +277,8 @@ describe('RagBatchService (Feature 242)', () => {
       const candidates = [
         {
           id: 1,
-          public_id: 'att-null-ocr',
+          attachment_public_id: 'att-null-ocr',
+          correspondence_public_id: 'corr-null-ocr',
           ocr_text: null,
           mime_type: 'application/pdf',
           original_filename: 'doc.pdf',
@@ -291,7 +297,8 @@ describe('RagBatchService (Feature 242)', () => {
       const candidates = [
         {
           id: 1,
-          public_id: 'att-already',
+          attachment_public_id: 'att-already',
+          correspondence_public_id: 'corr-already',
           ocr_text: 'valid text',
           mime_type: 'application/pdf',
           original_filename: 'doc.pdf',
@@ -311,7 +318,8 @@ describe('RagBatchService (Feature 242)', () => {
       const candidates = [
         {
           id: 1,
-          public_id: 'att-completed',
+          attachment_public_id: 'att-completed',
+          correspondence_public_id: 'corr-completed',
           ocr_text: 'valid text',
           mime_type: 'application/pdf',
           original_filename: 'doc.pdf',
@@ -330,7 +338,8 @@ describe('RagBatchService (Feature 242)', () => {
       const candidates = [
         {
           id: 1,
-          public_id: 'att-valid',
+          attachment_public_id: 'att-valid',
+          correspondence_public_id: 'corr-valid',
           ocr_text: 'valid text',
           mime_type: 'application/pdf',
           original_filename: 'doc.pdf',
@@ -338,7 +347,8 @@ describe('RagBatchService (Feature 242)', () => {
         },
         {
           id: 2,
-          public_id: 'att-dwg',
+          attachment_public_id: 'att-dwg',
+          correspondence_public_id: 'corr-dwg',
           ocr_text: 'text',
           mime_type: 'application/dwg',
           original_filename: 'plan.dwg',
@@ -346,7 +356,8 @@ describe('RagBatchService (Feature 242)', () => {
         },
         {
           id: 3,
-          public_id: 'att-empty',
+          attachment_public_id: 'att-empty',
+          correspondence_public_id: 'corr-empty',
           ocr_text: '',
           mime_type: 'application/pdf',
           original_filename: 'doc2.pdf',
@@ -380,7 +391,8 @@ describe('RagBatchService (Feature 242)', () => {
       const candidates = [
         {
           id: 1,
-          public_id: 'att-fail',
+          attachment_public_id: 'att-fail',
+          correspondence_public_id: 'corr-fail',
           ocr_text: 'valid text',
           mime_type: 'application/pdf',
           original_filename: 'doc.pdf',
@@ -412,7 +424,8 @@ describe('RagBatchService (Feature 242)', () => {
       const candidates = [
         {
           id: 1,
-          public_id: 'att-data-check',
+          attachment_public_id: 'att-data-check',
+          correspondence_public_id: 'corr-data-check',
           ocr_text: 'valid text',
           mime_type: 'application/pdf',
           original_filename: 'doc.pdf',
@@ -426,13 +439,14 @@ describe('RagBatchService (Feature 242)', () => {
       expect(mockQueue.add).toHaveBeenCalledWith(
         'rag-prepare',
         expect.objectContaining({
-          documentPublicId: 'att-data-check',
+          documentPublicId: 'corr-data-check',
+          attachmentPublicId: 'att-data-check',
           projectPublicId: 'proj-uuid-999',
           batchId: 'batch-x',
           jobType: 'rag-prepare',
         }),
         expect.objectContaining({
-          jobId: 'rag-prepare-att-data-check',
+          jobId: 'rag-prepare-corr-data-check',
           removeOnComplete: 100,
           removeOnFail: 50,
         })
@@ -452,7 +466,8 @@ describe('RagBatchService (Feature 242)', () => {
           return Promise.resolve([
             {
               id: 1,
-              public_id: 'att-no-queue',
+              attachment_public_id: 'att-no-queue',
+              correspondence_public_id: 'corr-no-queue',
               ocr_text: 'valid text',
               mime_type: 'application/pdf',
               original_filename: 'doc.pdf',

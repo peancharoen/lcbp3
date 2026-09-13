@@ -18,6 +18,9 @@ import {
   QUEUE_AI_BATCH,
   QUEUE_AI_REALTIME,
   QUEUE_AI_RAG_INGEST,
+  QUEUE_AI_RAG_METADATA_SYNC,
+  QUEUE_AI_RAG_GENERATION_CLEANUP,
+  QUEUE_AI_RAG_GENERATION_RETENTION,
 } from '../common/constants/queue.constants';
 
 // ────────────────────────────────────────────────────────────────────────────────
@@ -43,6 +46,8 @@ const buildEmbeddingModule = async (
 ) => {
   const mockOllamaService = {
     generate: jest.fn().mockResolvedValue(ollamaGenerateResponse),
+    getBatchTimeoutMs: jest.fn().mockReturnValue(120000),
+    getMainModelName: jest.fn().mockReturnValue('np-dms-ai'),
   };
   const mockAiPromptsService = {
     resolveActive: jest.fn().mockResolvedValue({
@@ -121,6 +126,18 @@ describe('RAG Pipeline — Integration (SC-002 / Gap fixes)', () => {
           },
           {
             provide: getQueueToken(QUEUE_AI_RAG_INGEST),
+            useValue: createMockQueue(),
+          },
+          {
+            provide: getQueueToken(QUEUE_AI_RAG_METADATA_SYNC),
+            useValue: createMockQueue(),
+          },
+          {
+            provide: getQueueToken(QUEUE_AI_RAG_GENERATION_CLEANUP),
+            useValue: createMockQueue(),
+          },
+          {
+            provide: getQueueToken(QUEUE_AI_RAG_GENERATION_RETENTION),
             useValue: createMockQueue(),
           },
           {

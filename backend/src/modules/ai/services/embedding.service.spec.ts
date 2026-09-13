@@ -28,6 +28,8 @@ describe('EmbeddingService (US3 — Semantic Chunking)', () => {
   };
   const mockOllamaService = {
     generate: jest.fn(),
+    getBatchTimeoutMs: jest.fn().mockReturnValue(120000),
+    getMainModelName: jest.fn().mockReturnValue('np-dms-ai'),
   };
   const mockQdrantService = {
     deleteByDocumentPublicId: jest.fn().mockResolvedValue(undefined),
@@ -92,7 +94,8 @@ describe('EmbeddingService (US3 — Semantic Chunking)', () => {
         'ข้อความทดสอบสำหรับการหั่นแบบ semantic chunking ซึ่งมีความยาวเกิน 50 ตัวอักษรอย่างแน่นอน'
       );
       expect(ollamaService.generate).toHaveBeenCalledWith(
-        'mock resolved prompt'
+        'mock resolved prompt',
+        { timeoutMs: 120000 }
       );
       expect(ocrService.embedViaSidecar).toHaveBeenCalledTimes(2);
       expect(qdrantService.deleteByDocumentPublicId).toHaveBeenCalledWith(
