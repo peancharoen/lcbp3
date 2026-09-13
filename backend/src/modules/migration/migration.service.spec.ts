@@ -2632,4 +2632,90 @@ describe('MigrationService', () => {
       ).resolves.toBeDefined();
     });
   });
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // T063 — Migration checksum computation (post-SC-002 structural fix)
+  // ─────────────────────────────────────────────────────────────────────────────
+  describe('T063 — computeFileChecksum', () => {
+    const callComputeChecksum = async (
+      filePath: string
+    ): Promise<string | null> => {
+      return (
+        service as unknown as {
+          computeFileChecksum: (p: string) => Promise<string | null>;
+        }
+      ).computeFileChecksum(filePath);
+    };
+
+    it('ควร return SHA-256 hex string เมื่อไฟล์存在', async () => {
+      mockedExistsSync.mockReturnValueOnce(true);
+      mockedCreateReadStream.mockReturnValueOnce(
+        (async function* () {
+          await Promise.resolve();
+          yield Buffer.from('test content');
+        })() as never
+      );
+
+      const result = await callComputeChecksum('/fake/path/file.pdf');
+
+      expect(result).toMatch(/^[a-f0-9]{64}$/);
+    });
+
+    it('ควร return null เมื่อไฟล์ไม่存在', async () => {
+      mockedExistsSync.mockReturnValueOnce(false);
+
+      const result = await callComputeChecksum('/nonexistent/file.pdf');
+
+      expect(result).toBeNull();
+    });
+
+    it('ควร return null เมื่อ stream throw error', async () => {
+      mockedExistsSync.mockReturnValueOnce(true);
+      mockedCreateReadStream.mockImplementationOnce(() => {
+        throw new Error('Permission denied');
+      });
+
+      const result = await callComputeChecksum('/locked/file.pdf');
+
+      expect(result).toBeNull();
+    });
+
+    it('ควร return hash ที่ stable สำหรับเนื้อหาเดียวกัน', async () => {
+      mockedExistsSync.mockReturnValue(true);
+      const streamGen = () =>
+        (async function* () {
+          await Promise.resolve();
+          yield Buffer.from('identical content');
+        })() as never;
+      mockedCreateReadStream.mockReturnValue(streamGen());
+
+      const result1 = await callComputeChecksum('/path/a.pdf');
+      mockedCreateReadStream.mockReturnValue(streamGen());
+      const result2 = await callComputeChecksum('/path/b.pdf');
+
+      expect(result1).toBe(result2);
+      expect(result1).toMatch(/^[a-f0-9]{64}$/);
+    });
+
+    it('ควร return hash ที่ต่างกันสำหรับเนื้อหาต่างกัน', async () => {
+      mockedExistsSync.mockReturnValue(true);
+      mockedCreateReadStream.mockReturnValueOnce(
+        (async function* () {
+          await Promise.resolve();
+          yield Buffer.from('content A');
+        })() as never
+      );
+      mockedCreateReadStream.mockReturnValueOnce(
+        (async function* () {
+          await Promise.resolve();
+          yield Buffer.from('content B');
+        })() as never
+      );
+
+      const result1 = await callComputeChecksum('/path/a.pdf');
+      const result2 = await callComputeChecksum('/path/b.pdf');
+
+      expect(result1).not.toBe(result2);
+    });
+  });
 });
