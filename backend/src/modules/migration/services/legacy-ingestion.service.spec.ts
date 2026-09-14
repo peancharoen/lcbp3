@@ -16,7 +16,10 @@ import { Project } from '../../project/entities/project.entity';
 import { Organization } from '../../organization/entities/organization.entity';
 import { CorrespondenceType } from '../../correspondence/entities/correspondence-type.entity';
 import { Attachment } from '../../../common/file-storage/entities/attachment.entity';
-import { NotFoundException } from '../../../common/exceptions';
+import {
+  NotFoundException,
+  ValidationException,
+} from '../../../common/exceptions';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as ExcelJS from 'exceljs';
@@ -1113,7 +1116,7 @@ describe('LegacyIngestionService (ADR-047)', () => {
     ).rejects.toThrow('ไฟล์ต้องเป็น Excel (.xlsx) เท่านั้น');
   });
 
-  it('ควร skip ทุกแถวเมื่อไม่พบ header ที่ตรง (docNumberCol=-1)', async () => {
+  it('ควร throw ValidationException เมื่อไม่พบ header ที่ตรงภายใน 5 แถวแรก', async () => {
     mockProjectRepo.findOne.mockResolvedValue({
       id: 5,
       publicId: '019505a1-7c3e-7000-8000-proj12345678',
@@ -1129,15 +1132,14 @@ describe('LegacyIngestionService (ADR-047)', () => {
     }
     await workbook.xlsx.writeFile(noHeaderPath);
 
-    const result = await service.startIngestion({
-      filePath: noHeaderPath,
-      projectPublicId: '019505a1-7c3e-7000-8000-proj12345678',
-      pdfFolderPath: tempTestDir,
-    });
-
-    // docNumberCol=-1 → ทุกแถวถูก skip เพราะ docNumber ว่าง
-    expect(result.enqueuedCount).toBe(0);
-    expect(result.skippedCount).toBeGreaterThan(0);
+    // ไม่พบ header ใน 5 แถวแรก → throw ValidationException
+    await expect(
+      service.startIngestion({
+        filePath: noHeaderPath,
+        projectPublicId: '019505a1-7c3e-7000-8000-proj12345678',
+        pdfFolderPath: tempTestDir,
+      })
+    ).rejects.toThrow(ValidationException);
   });
 
   it('ควร log warning แต่ไม่ crash เมื่อ attachment creation ล้มเหลว', async () => {

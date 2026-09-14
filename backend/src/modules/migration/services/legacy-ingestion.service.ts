@@ -215,6 +215,8 @@ export class LegacyIngestionService {
             }
             columnMapping = this.detectHeaderMapping(headerRowBuffer);
             if (columnMapping.docNumberCol === -1) {
+              // ยังไม่พบ header — รีเซ็ต columnMapping เพื่อให้ row ถัดไปเข้าสู่ header detection อีกครั้ง
+              columnMapping = null;
               continue;
             }
             continue;
