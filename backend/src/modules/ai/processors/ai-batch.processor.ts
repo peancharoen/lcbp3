@@ -2605,6 +2605,15 @@ export class AiBatchProcessor extends WorkerHost {
           });
         }
       } finally {
+        // D334: ก่อน reload main model (np-dms-ai) ต้อง unload np-dms-ocr ออกจาก
+        // VRAM ก่อน — มิฉะนั้น Ollama จะ offload main model บางส่วนไป CPU เพราะ
+        // VRAM ไม่พอ (พบจริง: np-dms-ai โหลดแค่ 1488MB จาก 6214MB เพราะ np-dms-ocr
+        // ยังครอบครอง VRAM อยู่ ทำให้ LLM inference ช้าลงมาก)
+        const ocrModel = this.ollamaService.getOcrModelName();
+        this.logger.log(
+          `Phase 1 OCR เสร็จ — unload ${ocrModel} ออกจาก VRAM ก่อน reload ${mainModel}`
+        );
+        await this.ollamaService.unloadModel(ocrModel);
         await this.ollamaService.loadModel(
           mainModel,
           this.ollamaService.getMainKeepAliveSeconds()

@@ -84,6 +84,7 @@ describe('OcrService Parameter Wiring (T066)', () => {
 
   const mockOllamaService = {
     getMainModelName: jest.fn().mockReturnValue('np-dms-ai:latest'),
+    getOcrModelName: jest.fn().mockReturnValue('np-dms-ocr:latest'),
     getMainKeepAliveSeconds: jest.fn().mockReturnValue(120),
     unloadModel: jest.fn().mockResolvedValue(true),
     loadModel: jest.fn().mockResolvedValue(true),
@@ -167,6 +168,10 @@ describe('OcrService Parameter Wiring (T066)', () => {
     await service.detectAndExtract({ pdfPath: '/path/to/test.pdf' });
     expect(mockOllamaService.unloadModel).toHaveBeenCalledWith(
       'np-dms-ai:latest'
+    );
+    // D334: ต้อง unload np-dms-ocr ด้วยก่อน reload main model
+    expect(mockOllamaService.unloadModel).toHaveBeenCalledWith(
+      'np-dms-ocr:latest'
     );
     expect(mockOllamaService.loadModel).toHaveBeenCalledWith(
       'np-dms-ai:latest',

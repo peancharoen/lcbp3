@@ -295,6 +295,13 @@ export class OcrService {
     try {
       return await this.extractTextOnly(input);
     } finally {
+      // D334: unload np-dms-ocr ก่อน reload main model — มิฉะนั้น VRAM ไม่พอ
+      // และ main model จะถูก offload ไป CPU บางส่วน
+      const ocrModel = this.ollamaService.getOcrModelName();
+      this.logger.log(
+        `OCR เสร็จ — unload ${ocrModel} ออกจาก VRAM ก่อน reload ${mainModel}`
+      );
+      await this.ollamaService.unloadModel(ocrModel);
       await this.ollamaService.loadModel(
         mainModel,
         this.ollamaService.getMainKeepAliveSeconds()

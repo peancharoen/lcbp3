@@ -1025,9 +1025,14 @@ describe('AiBatchProcessor', () => {
 
       expect(mockAiQueueService.acquireOcrBatchLock).toHaveBeenCalledTimes(1);
       expect(ocrService.unloadBgeModels).toHaveBeenCalledTimes(1);
-      expect(mockOllamaService.unloadModel).toHaveBeenCalledTimes(1);
+      // D334: unloadModel เรียก 2 ครั้ง — ครั้งที่ 1 unload np-dms-ai ก่อน OCR loop
+      // ครั้งที่ 2 unload np-dms-ocr หลัง OCR loop ก่อน reload np-dms-ai
+      expect(mockOllamaService.unloadModel).toHaveBeenCalledTimes(2);
       expect(mockOllamaService.unloadModel).toHaveBeenCalledWith(
         'np-dms-ai:latest'
+      );
+      expect(mockOllamaService.unloadModel).toHaveBeenCalledWith(
+        'np-dms-ocr:latest'
       );
       expect(ocrService.extractTextOnly).toHaveBeenCalledTimes(2);
       expect(ocrService.detectAndExtract).not.toHaveBeenCalled();
