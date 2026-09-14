@@ -912,6 +912,188 @@ describe('LegacyIngestionService (ADR-047)', () => {
     delete process.env.LEGACY_NAS_PATH;
   });
 
+  it('D331: ควร resolve staging PDF ด้วย I672-XXXX prefix เมื่อชื่อไฟล์ไม่ตรง (คคง. pattern)', async () => {
+    mockProjectRepo.findOne.mockResolvedValue({
+      id: 5,
+      publicId: '019505a1-7c3e-7000-8000-proj12345678',
+      projectCode: 'LCBP3-C2',
+    });
+    mockReviewQueueRepo.findOne.mockResolvedValue(null);
+
+    // สร้างไฟล์ใน stagingDir ที่ขึ้นต้นด้วย I672-0003 แต่ชื่อเต็มต่างจาก Excel
+    const prefixPdfPath = path.join(
+      tempTestDir,
+      'I672-0003-ผรม.2-คคง.-CHEC-LCP-C2-O-24-0001.pdf'
+    );
+    fs.writeFileSync(prefixPdfPath, '%PDF-1.4 prefix content');
+
+    const prefixTestPath = path.join(tempTestDir, 'prefix-match.xlsx');
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Sheet1');
+    worksheet.addRow([
+      'ลำดับ',
+      'เลขที่เอกสาร',
+      'เรื่อง',
+      'วันที่ออก',
+      'วันที่รับ',
+      'จาก',
+      'ถึง',
+      'หมวดหมู่',
+      'ชื่อไฟล์',
+      'หมายเหตุ',
+    ]);
+    // Excel มีชื่อไฟล์ I672-0003-ผรม.2-คคง.-คคง. (ไม่มี .pdf)
+    worksheet.addRow([
+      1,
+      'CHEC-LCP-C2-O-24-0001',
+      'Test prefix match',
+      '2024-05-15',
+      '2024-05-16',
+      'ITD',
+      'TEAM',
+      '',
+      'I672-0003-ผรม.2-คคง.-คคง.',
+      '',
+    ]);
+    await workbook.xlsx.writeFile(prefixTestPath);
+
+    const result = await service.startIngestion({
+      filePath: prefixTestPath,
+      projectPublicId: '019505a1-7c3e-7000-8000-proj12345678',
+      pdfFolderPath: tempTestDir,
+    });
+
+    // D331: ต้อง resolve ได้ด้วย I672-0003 prefix match
+    expect(result.enqueuedCount).toBe(1);
+    const savedEntity = (
+      mockReviewQueueRepo.save.mock.calls[0] as unknown[]
+    )[0] as MockEntity;
+    const details = savedEntity.details as Record<string, unknown>;
+    expect(String(details.source_file_path)).toContain('I672-0003');
+    expect(String(details.source_file_path)).toContain('CHEC-LCP-C2-O-24-0001');
+  });
+
+  it('D332: ควร resolve staging PDF ด้วย สคฉ.3-YYYY → I672-YYYY (เลขส่งออก)', async () => {
+    mockProjectRepo.findOne.mockResolvedValue({
+      id: 5,
+      publicId: '019505a1-7c3e-7000-8000-proj12345678',
+      projectCode: 'LCBP3-C2',
+    });
+    mockReviewQueueRepo.findOne.mockResolvedValue(null);
+
+    // สร้างไฟล์ใน stagingDir ที่ใช้เลขส่งออก I672-0127 (ไม่ใช่ I672-0017)
+    const docNumPdfPath = path.join(
+      tempTestDir,
+      'I672-0127-ผรม.2-คคง.-0056-2567.pdf'
+    );
+    fs.writeFileSync(docNumPdfPath, '%PDF-1.4 doc num content');
+
+    const docNumTestPath = path.join(tempTestDir, 'docnum-match.xlsx');
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Sheet1');
+    worksheet.addRow([
+      'ลำดับ',
+      'เลขที่เอกสาร',
+      'เรื่อง',
+      'วันที่ออก',
+      'วันที่รับ',
+      'จาก',
+      'ถึง',
+      'หมวดหมู่',
+      'ชื่อไฟล์',
+      'หมายเหตุ',
+    ]);
+    // Excel มี I672-0017-สคฉ.3-0127-2567 → ต้อง match I672-0127 บน disk
+    worksheet.addRow([
+      1,
+      'สคฉ.3-0127-2567',
+      'Test doc number match',
+      '2024-05-15',
+      '2024-05-16',
+      'ITD',
+      'TEAM',
+      '',
+      'I672-0017-สคฉ.3-0127-2567',
+      '',
+    ]);
+    await workbook.xlsx.writeFile(docNumTestPath);
+
+    const result = await service.startIngestion({
+      filePath: docNumTestPath,
+      projectPublicId: '019505a1-7c3e-7000-8000-proj12345678',
+      pdfFolderPath: tempTestDir,
+    });
+
+    // D332: ต้อง resolve ได้ด้วย สคฉ.3-0127 → I672-0127
+    expect(result.enqueuedCount).toBe(1);
+    const savedEntity = (
+      mockReviewQueueRepo.save.mock.calls[0] as unknown[]
+    )[0] as MockEntity;
+    const details = savedEntity.details as Record<string, unknown>;
+    expect(String(details.source_file_path)).toContain('I672-0127');
+  });
+
+  it('D333: ควร resolve staging PDF ด้วย LCBP3-C2-XXX-XXX pattern เมื่อ I672-XXXX ไม่ตรง', async () => {
+    mockProjectRepo.findOne.mockResolvedValue({
+      id: 5,
+      publicId: '019505a1-7c3e-7000-8000-proj12345678',
+      projectCode: 'LCBP3-C2',
+    });
+
+    // สร้างไฟล์ใน stagingDir ที่ใช้ I672-0130 (ไม่ใช่ I672-0132 ตาม Excel)
+    const lcbpPdfPath = path.join(
+      tempTestDir,
+      'I672-0130-LCBP3-C2-MAT-STR-MAT-0001-A.pdf'
+    );
+    fs.writeFileSync(lcbpPdfPath, '%PDF-1.4 LCBP3 pattern content');
+
+    const lcbpTestPath = path.join(tempTestDir, 'lcbp-match.xlsx');
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Sheet1');
+    worksheet.addRow([
+      'ลำดับ',
+      'เลขที่เอกสาร',
+      'เรื่อง',
+      'วันที่ออก',
+      'วันที่รับ',
+      'จาก',
+      'ถึง',
+      'หมวดหมู่',
+      'ชื่อไฟล์',
+      'หมายเหตุ',
+    ]);
+    // Excel มี I672-0132-LCBP3-C2-MAT-STR-MAT-0001-A → ต้อง match I672-0130 บน disk
+    worksheet.addRow([
+      1,
+      'LCBP3-C2-MAT-STR-MAT-0001-A',
+      'Test LCBP3 pattern',
+      '2024-05-15',
+      '2024-05-16',
+      'ITD',
+      'TEAM',
+      '',
+      'I672-0132-LCBP3-C2-MAT-STR-MAT-0001-A',
+      '',
+    ]);
+    await workbook.xlsx.writeFile(lcbpTestPath);
+
+    const result = await service.startIngestion({
+      filePath: lcbpTestPath,
+      projectPublicId: '019505a1-7c3e-7000-8000-proj12345678',
+      pdfFolderPath: tempTestDir,
+    });
+
+    // D333: ต้อง resolve ได้ด้วย LCBP3-C2-MAT-STR-MAT-0001-A pattern
+    expect(result.enqueuedCount).toBe(1);
+    const savedEntity = (
+      mockReviewQueueRepo.save.mock.calls[0] as unknown[]
+    )[0] as MockEntity;
+    const details = savedEntity.details as Record<string, unknown>;
+    expect(String(details.source_file_path)).toContain(
+      'LCBP3-C2-MAT-STR-MAT-0001-A'
+    );
+  });
+
   it('ควรข้ามแถวที่ไม่มีเลขที่เอกสาร', async () => {
     mockProjectRepo.findOne.mockResolvedValue({
       id: 5,

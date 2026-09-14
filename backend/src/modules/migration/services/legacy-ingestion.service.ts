@@ -604,7 +604,7 @@ export class LegacyIngestionService {
         }
 
         try {
-          if (!fs.existsSync(legacyNasPath)) return null;
+          if (!fs.existsSync(legacyNasPath)) break;
           const files = fs.readdirSync(legacyNasPath);
           const lowerTarget = candidate.toLowerCase();
           const match = files.find((f) => f.toLowerCase() === lowerTarget);
@@ -618,6 +618,230 @@ export class LegacyIngestionService {
         const found = this.findFileRecursive(legacyNasPath, candidate, 5);
         if (found) return found;
       }
+    }
+
+    // 4. Fuzzy fallback: ค้นหาด้วย I672-XXXX prefix (เลขรับเอกสาร)
+    // ใช้เมื่อชื่อไฟล์ใน Excel ไม่ตรงกับ disk เช่น:
+    //   Excel: I672-0003-ผรม.2-คคง.-คคง.  → Disk: I672-0003-ผรม.2-คคง.-CHEC-LCP-C2-O-24-0001.pdf
+    //   Excel: I672-0014-สคฉ.3-0121-2567 → Disk: I672-0014-สคฉ.30121.pdf
+    const prefixMatch = this.resolveByI672Prefix(
+      stagingDir,
+      legacyNasPath,
+      cleanFileName
+    );
+    if (prefixMatch) return prefixMatch;
+
+    // 5. Fuzzy fallback: สคฉ.3-YYYY → I672-YYYY (เลขส่งออก)
+    // ใช้เมื่อ Excel ใช้เลขรับ I672-XXXX-สคฉ.3-YYYY-2567
+    //   แต่ disk ใช้เลขส่งออก I672-YYYY-ผรม.2-คคง.-ZZZZ-2567.pdf
+    const docNumMatch = this.resolveByDocNumber(
+      stagingDir,
+      legacyNasPath,
+      cleanFileName
+    );
+    if (docNumMatch) return docNumMatch;
+
+    // 6. Fuzzy fallback: LCBP3-C2-XXX-XXX pattern
+    // ใช้เมื่อ Excel มี I672-XXXX ไม่ตรงกับ disk แต่ LCBP3-C2-XXX-XXX ตรง
+    const lcbpMatch = this.resolveByLcbpPattern(
+      stagingDir,
+      legacyNasPath,
+      cleanFileName
+    );
+    if (lcbpMatch) return lcbpMatch;
+
+    return null;
+  }
+
+  /**
+   * Fuzzy fallback 1: ค้นหาด้วย I672-XXXX prefix (เลขรับเอกสาร)
+   * ใช้เมื่อชื่อไฟล์ใน Excel มี I672-XXXX prefix ตรงกับ disk แต่ส่วนที่เหลือต่างกัน
+   * เช่น Excel: I672-0003-ผรม.2-คคง.-คคง. → Disk: I672-0003-ผรม.2-คคง.-CHEC-LCP-C2-O-24-0001.pdf
+   * @returns full path ถ้าพบ, null ถ้าไม่พบ
+   */
+  private resolveByI672Prefix(
+    stagingDir: string,
+    legacyNasPath: string | undefined,
+    fileName: string
+  ): string | null {
+    // ดึง I672-XXXX prefix จากชื่อไฟล์
+    const prefixMatch = fileName.match(/^(I672-\d{4})/i);
+    if (!prefixMatch) return null;
+    const prefix = prefixMatch[1];
+
+    // ค้นหาไฟล์ที่ขึ้นต้นด้วย I672-XXXX ใน stagingDir
+    const found = this.findFileByPrefixRecursive(stagingDir, prefix, 5);
+    if (found) return found;
+
+    // ค้นใน legacyNasPath ถ้ามี
+    if (legacyNasPath) {
+      const foundLegacy = this.findFileByPrefixRecursive(
+        legacyNasPath,
+        prefix,
+        5
+      );
+      if (foundLegacy) return foundLegacy;
+    }
+
+    return null;
+  }
+
+  /**
+   * Fuzzy fallback 2: สคฉ.3-YYYY → I672-YYYY (เลขส่งออก)
+   * ใช้เมื่อ Excel ใช้เลขรับ I672-XXXX-สคฉ.3-YYYY-2567
+   *   แต่ disk ใช้เลขส่งออก I672-YYYY-ผรม.2-คคง.-ZZZZ-2567.pdf
+   * @returns full path ถ้าพบ, null ถ้าไม่พบ
+   */
+  private resolveByDocNumber(
+    stagingDir: string,
+    legacyNasPath: string | undefined,
+    fileName: string
+  ): string | null {
+    // ดึงเลขเอกสาร YYYY จาก สคฉ.3-YYYY-2567 pattern
+    const docMatch = fileName.match(/สคฉ\.3-(\d{4})-2567/i);
+    if (!docMatch) return null;
+    const docNum = docMatch[1];
+    const targetPrefix = `I672-${docNum}`;
+
+    // ค้นหาไฟล์ที่ขึ้นต้นด้วย I672-YYYY ใน stagingDir
+    const found = this.findFileByPrefixRecursive(stagingDir, targetPrefix, 5);
+    if (found) return found;
+
+    // ค้นใน legacyNasPath ถ้ามี
+    if (legacyNasPath) {
+      const foundLegacy = this.findFileByPrefixRecursive(
+        legacyNasPath,
+        targetPrefix,
+        5
+      );
+      if (foundLegacy) return foundLegacy;
+    }
+
+    return null;
+  }
+
+  /**
+   * Fuzzy fallback 3: LCBP3-C2-XXX-XXX pattern
+   * ใช้เมื่อ Excel มี I672-XXXX ไม่ตรงกับ disk แต่ LCBP3-C2-XXX-XXX ตรง
+   * เช่น Excel: I672-0132-LCBP3-C2-MAT-STR-MAT-0001-A → Disk: I672-0130-LCBP3-C2-MAT-STR-MAT-0001-A.pdf
+   * @returns full path ถ้าพบ, null ถ้าไม่พบ
+   */
+  private resolveByLcbpPattern(
+    stagingDir: string,
+    legacyNasPath: string | undefined,
+    fileName: string
+  ): string | null {
+    // ดึง LCBP3-C2-XXX-XXX... pattern จากชื่อไฟล์
+    const lcbpMatch = fileName.match(
+      /(LCBP3-C2-[A-Z]{3}-[A-Z]{3}-[A-Z]{3}-\d{4}-[A-Z])/i
+    );
+    if (!lcbpMatch) return null;
+    const lcbpPattern = lcbpMatch[1];
+
+    // ค้นหาไฟล์ที่มี LCBP3-C2-XXX-XXX pattern ใน stagingDir
+    const found = this.findFileByPatternRecursive(stagingDir, lcbpPattern, 5);
+    if (found) return found;
+
+    // ค้นใน legacyNasPath ถ้ามี
+    if (legacyNasPath) {
+      const foundLegacy = this.findFileByPatternRecursive(
+        legacyNasPath,
+        lcbpPattern,
+        5
+      );
+      if (foundLegacy) return foundLegacy;
+    }
+
+    return null;
+  }
+
+  /**
+   * ค้นหาไฟล์ที่ขึ้นต้นด้วย prefix ที่กำหนด (case-insensitive) แบบ recursive
+   * @param rootDir โฟลเดอร์เริ่มต้น
+   * @param prefix prefix ที่จะค้นหา (เช่น I672-0003)
+   * @param maxDepth ความลึกสูงสุด
+   * @returns full path ถ้าพบ, null ถ้าไม่พบ
+   */
+  private findFileByPrefixRecursive(
+    rootDir: string,
+    prefix: string,
+    maxDepth: number = 5
+  ): string | null {
+    if (maxDepth < 0) return null;
+    const lowerPrefix = prefix.toLowerCase();
+
+    try {
+      if (!fs.existsSync(rootDir)) return null;
+      const entries = fs.readdirSync(rootDir, { withFileTypes: true });
+
+      for (const entry of entries) {
+        const fullPath = path.join(rootDir, entry.name);
+
+        if (
+          entry.isFile() &&
+          entry.name.toLowerCase().startsWith(lowerPrefix) &&
+          entry.name.toLowerCase().endsWith('.pdf')
+        ) {
+          return fullPath;
+        }
+
+        if (entry.isDirectory() && maxDepth > 0) {
+          const found = this.findFileByPrefixRecursive(
+            fullPath,
+            prefix,
+            maxDepth - 1
+          );
+          if (found) return found;
+        }
+      }
+    } catch {
+      // ข้าม directory ที่อ่านไม่ได้
+    }
+
+    return null;
+  }
+
+  /**
+   * ค้นหาไฟล์ที่มี pattern อยู่ในชื่อไฟล์ (case-insensitive) แบบ recursive
+   * @param rootDir โฟลเดอร์เริ่มต้น
+   * @param pattern pattern ที่จะค้นหา (เช่น LCBP3-C2-MAT-STR-MAT-0001-A)
+   * @param maxDepth ความลึกสูงสุด
+   * @returns full path ถ้าพบ, null ถ้าไม่พบ
+   */
+  private findFileByPatternRecursive(
+    rootDir: string,
+    pattern: string,
+    maxDepth: number = 5
+  ): string | null {
+    if (maxDepth < 0) return null;
+    const lowerPattern = pattern.toLowerCase();
+
+    try {
+      if (!fs.existsSync(rootDir)) return null;
+      const entries = fs.readdirSync(rootDir, { withFileTypes: true });
+
+      for (const entry of entries) {
+        const fullPath = path.join(rootDir, entry.name);
+
+        if (
+          entry.isFile() &&
+          entry.name.toLowerCase().includes(lowerPattern) &&
+          entry.name.toLowerCase().endsWith('.pdf')
+        ) {
+          return fullPath;
+        }
+
+        if (entry.isDirectory() && maxDepth > 0) {
+          const found = this.findFileByPatternRecursive(
+            fullPath,
+            pattern,
+            maxDepth - 1
+          );
+          if (found) return found;
+        }
+      }
+    } catch {
+      // ข้าม directory ที่อ่านไม่ได้
     }
 
     return null;
