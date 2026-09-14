@@ -92,3 +92,9 @@ embed-document job (เดิม, ไม่เปลี่ยน logic):
 - Sandbox Project data ต้องถูกลบเป็นระยะ (ไม่มี auto-TTL ในเวอร์ชันนี้) — ต้องอาศัย admin กด "Clear Sandbox Data" เอง
 - `attachments.ocr_text` เพิ่มขนาด storage ต่อไฟล์ (LONGTEXT) — ยอมรับได้เพราะ 1 แถวต่อ 1 attachment ที่ถูกประมวลผลจริงเท่านั้น
 - แยก `rag-prepare`/`embed-document` เป็น 2 jobs ทำให้ retry semantics เปลี่ยน (Step A สำเร็จแล้วไม่ retry ซ้ำ แม้ Step B fail) — ต้อง monitor `ai_audit_logs` เพื่อ track ว่า pipeline จบสมบูรณ์หรือค้างที่ Step B
+
+---
+
+## Related Documents (Updated)
+
+- **[ADR-054: Migration Review Queue Metadata Separation](./ADR-054-migration-review-queue-metadata-separation.md)** — เพิ่ม `attachments.ocr_text_bak` (D6) สำหรับสำเนา `ocr_text` ก่อนเขียนทับทุกครั้ง (ทั้ง legacy import และ ingestion ปกติ) ป้องกันการทับ OCR text จริงด้วย placeholder หรือผลลัพธ์ใหม่ที่แย่กว่า หาก ADR-054 implement แล้ว `attachments.ocr_text` ยังเป็น source of truth ตอน production เหมือนเดิม แต่มี `ocr_text_bak` เป็นสำเนาสำรอง

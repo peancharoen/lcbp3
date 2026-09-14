@@ -2,13 +2,16 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "SC-002 Golden Set — AI Classification Accuracy E2E",
   "description": "Human-verified golden set สำหรับทดสอบ AI classification accuracy แบบ end-to-end (SC-002 scenario) ครอบคลุม intent classification, RAG query, metadata extraction และ OCR quality — ไม่ได้สร้างโดย AI ที่อยู่ภายใต้การทดสอบ",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "createdAt": "2026-09-14",
+  "updatedAt": "2026-09-14",
   "projectPublicId": "01a01992-8420-74ff-b0f4-0c8560a8478c",
   "projectName": "โครงการพัฒนาท่าเรือแหลมฉบัง ระยะที่ 3 (ส่วนที่ 2)",
+  "batchId": "BATCH-C2-2567-005",
   "documents": [
     {
-      "id": "QC-0001",
+      "id": "CHEC-LCP-C2-O-24-0009",
+      "legacyId": "QC-0001",
       "correspondenceType": "RFA",
       "subject": "ขออนุมัติส่วนผสมคอนกรีต (Concrete Mix Design)",
       "expectedAiType": "RFA",
@@ -19,49 +22,54 @@
       "keyContent": ["CEMENT", "FLY ASH", "SAND", "ROCK", "ADMIXTURE", "TIS 15-3562", "ASTM C150", "MIX DESIGN"]
     },
     {
-      "id": "QC-0002",
+      "id": "CHEC-LCP-C2-O-24-0010",
+      "legacyId": "QC-0002",
       "correspondenceType": "RFA",
-      "subject": "เชิญเข้าร่วมทดสอบผสมคอนกรีต",
+      "subject": "เสนอส่วนผสมคอนกรีต (Concrete Mix Design) จาก สีมเมต์ซิตี้คอนกรีต",
       "expectedAiType": "RFA",
       "expectedConfidenceMin": 0.8,
       "expectedOcrQualityMin": 0.7,
       "expectedRagIndexed": true,
       "expectedChunkCountMin": 5,
-      "keyContent": ["ทดสอบผสมคอนกรีต", "คอนกรีต", "RFA"]
+      "keyContent": ["ทดสอบผสมคอนกรีต", "คอนกรีต", "RFA", "สีมเมต์ซิตี้คอนกรีต"]
     },
     {
-      "id": "คคง.",
+      "id": "ผรม.2-คคง.-0025-2567",
+      "legacyId": "คคง.",
       "correspondenceType": "TRANSMITTAL",
-      "subject": "ส่งผังโครงสร้างองค์กร",
+      "subject": "ขออนุมัติการเปลี่ยนแปลงรายชื่อบุคลากรพร้อมประวัติ และผังบุคลากร",
       "expectedAiType": "TRANSMITTAL",
       "expectedConfidenceMin": 0.85,
       "expectedOcrQualityMin": 0.7,
       "expectedRagIndexed": true,
       "expectedChunkCountMin": 3,
-      "keyContent": ["ผังโครงสร้างองค์กร", "TRANSMITTAL", "คคง."],
+      "keyContent": ["ผังบุคลากร", "TRANSMITTAL", "คคง.", "รายชื่อบุคลากร"],
       "notes": "subject มีความคลุมเครือ (อาจถูกตัด) — ทดสอบ robustness ของ classifier"
     },
     {
-      "id": "CHEC-LCP-C2-O-24-0002",
-      "correspondenceType": "TRANSMITTAL",
-      "subject": "ส่งแผนผังสำนักงานสนาม",
-      "expectedAiType": "TRANSMITTAL",
+      "id": "ผรม.2-คคง.-0049-2567",
+      "legacyId": "CHEC-LCP-C2-O-24-0002",
+      "correspondenceType": "RFA",
+      "subject": "แจ้งความประสงค์เริ่มดำเนินการก่อสร้างสำนักงานสนาม",
+      "expectedAiType": "RFA",
       "expectedConfidenceMin": 0.85,
       "expectedOcrQualityMin": 0.8,
       "expectedRagIndexed": true,
       "expectedChunkCountMin": 10,
-      "keyContent": ["แผนผังสำนักงานสนาม", "Site Office", "Thung Sukhla", "Si Racha", "Chon Buri", "12,100 ตร.ม."]
+      "keyContent": ["สำนักงานสนาม", "Site Office", "ก่อสร้าง", "CHEC"],
+      "notes": "เอกสารเกี่ยวกับสำนักงานสนาม — AI อาจจำแนกเป็น TRANSMITTAL ได้ ทดสอบ ambiguity"
     },
     {
-      "id": "CHEC-LCP-C2-O-24-0004",
+      "id": "ผรม.2-คคง.-67091804",
+      "legacyId": "CHEC-LCP-C2-O-24-0004",
       "correspondenceType": "RFA",
-      "subject": "นำเสนอคู่มือ HSE",
+      "subject": "ขออนุมัติคู่มือระบบการจัดการความปลอดภัย สุขภาพอนามัย และสิ่งแวดล้อม (HSE Manual)",
       "expectedAiType": "RFA",
       "expectedConfidenceMin": 0.8,
       "expectedOcrQualityMin": 0.8,
       "expectedRagIndexed": true,
       "expectedChunkCountMin": 10,
-      "keyContent": ["คู่มือ HSE", "ระบบการจัดการความปลอดภัย", "สุขภาพอนามัย", "สิ่งแวดล้อม", "CHEC-HSE-MANUAL", "CHEC"],
+      "keyContent": ["คู่มือ HSE", "ระบบการจัดการความปลอดภัย", "สุขภาพอนามัย", "สิ่งแวดล้อม", "CHEC"],
       "notes": "expectedAiType=RFA แต่ AI อาจจำแนกเป็น TRANSMITTAL ได้ — ทดสอบ ambiguity tolerance"
     }
   ],
@@ -100,7 +108,7 @@
     },
     {
       "id": "INTENT-5",
-      "query": "สถานะเอกสาร QC-0001 คืออะไร",
+      "query": "สถานะเอกสาร CHEC-LCP-C2-O-24-0009 คืออะไร",
       "expectedIntent": "GET_CORRESPONDENCE",
       "expectedMethod": "llm_fallback",
       "expectedConfidenceMin": 0.9,
@@ -116,7 +124,7 @@
     },
     {
       "id": "INTENT-7",
-      "query": "แผนผังโครงสร้างองค์กรมีอะไรบ้าง",
+      "query": "ผังบุคลากรประกอบด้วยอะไรบ้าง",
       "expectedIntent": "RAG_QUERY",
       "expectedMethod": "llm_fallback",
       "expectedConfidenceMin": 0.9,
@@ -147,8 +155,8 @@
     },
     {
       "id": "RAG-Q3",
-      "question": "แผนผังสำนักงานสนามอยู่ที่ไหน?",
-      "expectedAnswerKeywords": ["ทุ่งสุขลา", "ศรีราชา", "ชลบุรี"],
+      "question": "สำนักงานสนามอยู่ที่ไหน?",
+      "expectedAnswerKeywords": ["สำนักงานสนาม", "Site Office", "ก่อสร้าง"],
       "expectedConfidenceMin": 0.5,
       "expectedCitationCountMin": 3,
       "expectedSnippetFilledRatio": 1.0,
@@ -157,8 +165,8 @@
     },
     {
       "id": "RAG-Q4",
-      "question": "ผังโครงสร้างองค์กรประกอบด้วยอะไรบ้าง?",
-      "expectedAnswerKeywords": ["โครงสร้างองค์กร"],
+      "question": "ผังบุคลากรประกอบด้วยอะไรบ้าง?",
+      "expectedAnswerKeywords": ["ผังบุคลากร", "รายชื่อบุคลากร"],
       "expectedConfidenceMin": 0.3,
       "expectedCitationCountMin": 1,
       "expectedSnippetFilledRatio": 0.5,
@@ -169,7 +177,7 @@
     {
       "id": "RAG-Q5-ambiguity",
       "question": "เอกสารอะไรบ้างที่เกี่ยวกับคอนกรีต?",
-      "expectedAnswerKeywords": ["QC-0001", "QC-0002", "คอนกรีต"],
+      "expectedAnswerKeywords": ["CHEC-LCP-C2-O-24-0009", "CHEC-LCP-C2-O-24-0010", "คอนกรีต"],
       "expectedConfidenceMin": 0.3,
       "expectedCitationCountMin": 2,
       "expectedSnippetFilledRatio": 0.5,
@@ -202,43 +210,43 @@
   ],
   "metadataExtractionGoldenSet": [
     {
-      "documentId": "QC-0001",
+      "documentId": "CHEC-LCP-C2-O-24-0009",
       "expectedType": "RFA",
       "expectedConfidenceMin": 0.85,
       "expectedOcrQualityMin": 0.8,
-      "expectedTags": ["Urgent"],
+      "expectedTags": [],
       "expectedRequiresHumanReview": false
     },
     {
-      "documentId": "QC-0002",
+      "documentId": "CHEC-LCP-C2-O-24-0010",
       "expectedType": "RFA",
       "expectedConfidenceMin": 0.8,
       "expectedOcrQualityMin": 0.7,
-      "expectedTags": ["Urgent"],
+      "expectedTags": [],
       "expectedRequiresHumanReview": false
     },
     {
-      "documentId": "คคง.",
+      "documentId": "ผรม.2-คคง.-0025-2567",
       "expectedType": "TRANSMITTAL",
       "expectedConfidenceMin": 0.85,
       "expectedOcrQualityMin": 0.7,
-      "expectedTags": ["Urgent"],
+      "expectedTags": [],
       "expectedRequiresHumanReview": false
     },
     {
-      "documentId": "CHEC-LCP-C2-O-24-0002",
-      "expectedType": "TRANSMITTAL",
+      "documentId": "ผรม.2-คคง.-0049-2567",
+      "expectedType": "RFA",
       "expectedConfidenceMin": 0.85,
       "expectedOcrQualityMin": 0.8,
-      "expectedTags": ["Urgent"],
+      "expectedTags": [],
       "expectedRequiresHumanReview": false
     },
     {
-      "documentId": "CHEC-LCP-C2-O-24-0004",
+      "documentId": "ผรม.2-คคง.-67091804",
       "expectedType": "RFA",
       "expectedConfidenceMin": 0.8,
       "expectedOcrQualityMin": 0.8,
-      "expectedTags": ["Urgent"],
+      "expectedTags": [],
       "expectedRequiresHumanReview": false,
       "notes": "expectedType=RFA แต่ AI อาจจำแนกเป็น TRANSMITTAL — ทดสอบ ambiguity"
     }

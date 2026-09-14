@@ -5,13 +5,14 @@
 
 # ADR-050: AI Metadata Extraction Output Contract — `ocrQuality` + Per-field `metadata.confidence` + `requiresHumanReview`
 
-**Status:** Accepted
+**Status:** Accepted (ข้อ 2 ถูก supersede บางส่วนโดย ADR-054 — แยก ingestion metadata ออกจาก JSON bag)
 **Date:** 2026-08-31
 **Related Documents:**
 - [docs/ai-prompt-refactor-20260831.md](../../docs/ai-prompt-refactor-20260831.md) (ต้นเรื่อง — แนวทาง refactor `np-dms-ocr`/`np-dms-ai`)
 - [ADR-029: Dynamic Prompt Management](./ADR-029-dynamic-prompt-management.md) (Active Prompt source)
 - [ADR-037: Unified Prompt Management UX/UI](./ADR-037-unified-prompt-management-ux-ui.md)
 - [ADR-044: Database Schema Strategy Amendment](./ADR-044-database-schema-strategy-amendment.md) (SQL delta convention)
+- [ADR-054: Migration Review Queue Metadata Separation](./ADR-054-migration-review-queue-metadata-separation.md) (supersede ข้อ 2 บางส่วน — แยก ingestion metadata ออกจาก JSON bag)
 - [CONTEXT.md](../../CONTEXT.md) — resolved ambiguity: `allowed_correspondence_types` = `correspondence_types`
 
 ---

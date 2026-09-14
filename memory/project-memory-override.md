@@ -310,6 +310,10 @@
 | D330 | **Staging-file recursive search สำหรับ nested NAS directories** — `resolveStagingPdf` (legacy-ingestion.service) + `getStagingFileStream` (migration.service) เพิ่ม recursive search (bounded depth 5) ใน `stagingDir`/`legacyNasPath` เมื่อ flat search ไม่พบ; แก้ปัญหา OCR failed เพราะ PDF อยู่ใน subdirectory (`Incoming/08C.2/2567/`) แต่ queue เก็บเฉพาะ filename; path traversal guard คงไว้ — recursive search ทำหลัง guard ผ่าน; 4 unit tests ผ่าน | Session 2026-09-12 |
 | D331 | **Skills sync `.claude/skills/` ↔ `.devin/skills/` สมบูรณ์ (C5 done)** — `.devin/skills/` เป็น source of truth (v1.9.18, 25 skills); copy `2git-push/` + `test-plan-generator/` + `README.md` ไป `.claude/skills/`; `diff -rq` ไม่มี diff แล้ว; ตาม D186 `.claude/skills/` เป็น mirror ของ `.devin/skills/` | Session 2026-09-12 |
 | D332 | **C2 (n8n upgrade + workflow E2E) ยกเลิก — ไม่ใช้ n8n แล้ว** — n8n เคยเป็น Migration Phase orchestrator (ADR-023A D1/D3) แต่ ADR-047 Native NestJS `LegacyIngestionService` แทนแล้ว; n8n workflow ไม่จำเป็น ไม่ต้อง upgrade ไม่ต้อง E2E | Session 2026-09-12 |
+| D334 | **D334 — Unload np-dms-ocr ก่อน reload np-dms-ai (VRAM fix)** — หลัง OCR batch เสร็จ ระบบต้อง `unloadModel('np-dms-ocr')` ก่อน `loadModel('np-dms-ai')` เสมอ ไม่เช่นนั้น VRAM ไม่พอ Ollama offload np-dms-ai ไป CPU (1488MB จาก 6214MB); fix ใน `processLegacyOcrBatchPhase` + `detectAndExtract` (`ai-batch.processor.ts`); commit `49e4841a` pushed+deployed | Session 2026-09-14 |
+| D335 | **D335 — JSON bag reset ทำลายข้อมูล (data loss lesson)** — `migration_review_queue.ai_metadata_json` เป็น JSON bag กว้างที่ปนกัน 3 ประเภท (ingestion metadata + AI output + review state); ห้าม reset ทั้ง bag โดยไม่ whitelist fields — ต้อง reset เฉพาะ AI output fields (`ocrQuality`, `metadata.*`) เท่านั้น; `source_file_path`, `attachment_ids`, `original_row_index` เป็น ingestion metadata ที่ห้ามทำลาย; backup ก่อน bulk UPDATE/DELETE เสมอ (CREATE TABLE ... AS SELECT); canary test 1 record ก่อน batch ใหญ่ — **รวมใน ADR-054 D3+D8** | ADR-054 |
+| D336 | **D336 — OCR text source of truth ไม่ sync ระหว่าง queue ↔ attachment** — `migration_review_queue.ocr_text` เป็น source of truth ตอน migration (เขียนโดย extractor) แต่ `attachments.ocr_text` ว่างจนกว่าจะ commit; ถ้า queue.ocr_text หาย = หายถาวร (ไม่มีสำรอง); แก้ด้วย `ocr_text_bak` column ในทั้ง 2 ตาราง — สำเนาก่อนเขียนทับทุกครั้ง — **รวมใน ADR-054 D5+D6** | ADR-054 |
+| D337 | **D337 — Column ว่างแต่ข้อมูลไปอยู่ใน JSON bag (anti-pattern)** — `migration_review_queue` มี `storage_temp_path` + `original_filename` ว่างทั้ง 2 column แต่ `source_file_path` ไปอยู่ใน `ai_metadata_json` แทน; ADR-050 ข้อ 2 บอก "ไม่เพิ่ม column ต่อ field" แต่จริงๆ มี column อยู่แล้วไม่ยอมใช้; ย้าย `source_file_path` ไป `storage_temp_path` และแยก `review_state_json` ออกจาก `ai_metadata_json` — **รวมใน ADR-054 D1+D2+D9\*\* | ADR-054 |
 
 ## Environment & Services
 
@@ -416,8 +420,41 @@ QDRANT_URL
 - [ ] Rotate Uptime Kuma push tokens 5 ตัว (อยู่ใน git history) + JWT/password หลัง workflow stable
 - [ ] n8n: `Route Poll Status` failedReason terminal condition, webhook-form test, PostgreSQL 16→17, binary storage migration (ก่อน n8n 3.0), workflow E2E + dry run Excel จริง (blocked)
 - [ ] **ADR-044/045 team review** + ปิด Gitea issue #2 (backend/DBA + DevOps — ส่วน "ไม่มี TypeORM migrations" verify ผ่านแล้ว)
-- [ ] SC-002 E2E accuracy test (Chat Q&A ≥80%)
+- [ ] SC-002 E2E accuracy test (Chat Q&A ≥80%) — **in progress** (re-extraction 183 records กำลังทำงาน, ~3 ชม.)
 - [ ] Sync `.claude/skills/` กับ `.devin/skills/` เมื่อมี skill เปลี่ยน (กฎต่อเนื่อง ไม่ใช่งานครั้งเดียว)
+
+---
+
+### 🚨 SC-002 Accuracy Test — In Progress (Session 2026-09-14)
+
+**อ่านรายละเอียดเต็มที่:** `specs/88-logs/session-2026-09-14-sc002-accuracy-reextract-data-loss.md`
+
+#### สถานะปัจจุบัน
+
+- [x] D334 VRAM fix — unload np-dms-ocr ก่อน reload np-dms-ai (commit `49e4841a` pushed+deployed)
+- [x] Resolver fallback matching — 3 strategies สำหรับ PDF ที่ชื่อไม่ตรง (commit `869a9f12` pushed+deployed)
+- [x] Re-ingest 49 ไฟล์ — 266 enqueued, 0 errors, 37 ไฟล์ match เพิ่ม (202→239 มี PDF)
+- [x] Golden set อัปเดตใช้ document_number จริง (5 docs, 7 intents, 7 RAG queries, 5 metadata)
+- [x] Accuracy comparison script สร้างแล้ว (`specs/999-test-plan/scripts/sc002-accuracy-compare.ts`)
+- [ ] **Re-extract 183 records (pre-ADR-050 → new format)** — OCR กำลังทำงาน (37 DONE + 182 WAITING + 1 RUNNING + 19 FAILED)
+- [ ] ตรวจ accuracy — เปรียบเทียบ AI output กับ golden set
+- [ ] Threshold recalibration ตาม ADR-023A (rejected rate, override rate, confidence distribution)
+
+#### งานที่ต้องทำหลัง re-extract เสร็จ
+
+- [x] **ADR-054 เขียนเสร็จ** — 10 decisions (D1-D10) + OCR Text Protection Chain + supersede ADR-050 ข้อ 2
+- [x] **ADR-047 + ADR-042 อัปเดต** — อ้างถึง ADR-054
+- [ ] **Implement ADR-054** (พร้อมแล้วเมื่ออนุมัติ):
+  - [ ] SQL delta: `ocr_text_bak` (queue + attachment) + `review_state_json` + `imported_correspondence_public_id`
+  - [ ] Entity: เพิ่ม 4 column ใหม่
+  - [ ] `LegacyIngestionService`: เขียน `storage_temp_path` + `original_filename` ตอน ingest
+  - [ ] `AiBatchProcessor`: fallback path + `ocr_text_bak` ก่อนเขียนทับ
+  - [ ] `MigrationService`: `reExtractQueueItem` reset `ai_metadata_json` เท่านั้น + `importedCorrespondencePublicId` หลัง import
+  - [ ] `MigrationReviewService`: เขียน review state ลง `review_state_json`
+  - [ ] TRUNCATE migration_review_queue + re-ingest จาก Excel ใหม่ทั้งหมด
+  - [ ] Tests: 11 tests ป้องกัน data loss
+- [ ] ตรวจ accuracy — เปรียบเทียบ AI output กับ golden set
+- [ ] Threshold recalibration ตาม ADR-023A (rejected rate, override rate, confidence distribution)
 
 ---
 

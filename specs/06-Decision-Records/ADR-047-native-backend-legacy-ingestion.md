@@ -143,6 +143,13 @@
 | **ADR-028** | 1.0 | Core (Staging Queue & Review Lifecycle) | ✅ Implemented |
 | **ADR-042** | 1.0 | Required (OCR Text Persistence & RAG Sync) | ✅ Implemented |
 | **ADR-047** | 1.0 | Target (Native Backend Legacy Ingestion) | ✅ Implemented |
+| **ADR-054** | 1.0 | Amends (OCR text protection + metadata separation) | 📋 Planned |
+
+> **⚠️ ADR-054 แก้ไขส่วนที่เกี่ยวกับ `ocr_text` และ `ai_metadata_json`:**
+> - ห้ามเขียน `"ไม่มี ไฟล์ PDF (ยกเลิก/ถอน)"` ทับ OCR text จริง → ใช้ `ocr_text_bak` สำเนาก่อนทับ
+> - แยก `ai_metadata_json` (AI output) จาก `review_state_json` (review state) และ `storage_temp_path` (ingestion metadata)
+> - หลัง import เก็บ `imported_correspondence_public_id` เพื่อ link กลับ
+> - ดูรายละเอียดใน [ADR-054](./ADR-054-migration-review-queue-metadata-separation.md)
 
 ---
 
