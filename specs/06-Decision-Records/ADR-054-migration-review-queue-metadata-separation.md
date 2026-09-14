@@ -39,8 +39,13 @@
 | ประเภท | Fields | ใครเขียน | เก็บที่ (หลัง ADR-054) | ควร reset ตอน re-extract? |
 |--------|--------|---------|---------------------|--------------------------|
 | **Ingestion metadata** | `source_file_path`, `attachment_ids`, `original_row_index` | `LegacyIngestionService` ตอน ingest | column (`storage_temp_path`, `original_filename`) | ❌ ห้าม |
-| **AI extraction output** | `ocrQuality`, `metadata.summary/correspondenceType/tags/confidence.*`, `aiFailureReason` | `AiBatchProcessor` ตอน extraction | `ai_metadata_json` | ✅ ควร |
-| **Review state** | `fieldResolutions`, `compareResult`, `capturedThresholds` | `MigrationReviewService` ตอน review | `review_state_json` (D9 — column ใหม่) | ❌ ห้าม |
+| **AI extraction output** | `ocrQuality`, `metadata.summary/correspondenceType/tags/confidence.*`, `aiFailureReason`, `compareResult`, `capturedThresholds` | `AiBatchProcessor` ตอน extraction | `ai_metadata_json` | ✅ ควร |
+| **Review state** | `fieldResolutions` | `MigrationReviewService` ตอน review | `review_state_json` (D9 — column ใหม่) | ❌ ห้าม |
+
+> หมายเหตุ: `compareResult`/`capturedThresholds` ย้ายมาอยู่กลุ่ม AI extraction output (ไม่ใช่ Review
+> state ตามที่ร่างแรกจัดไว้) เพราะ `AiBatchProcessor` เป็นคนเขียนจริงตอน extraction (ไม่ใช่
+> `MigrationReviewService` ตอน review) และต้องคำนวณใหม่ทุกครั้งที่ re-extract — ถ้าห้าม reset จะทำให้
+> mismatch fields ค้างเป็นค่าเก่าไม่ sync กับ AI output ปัจจุบัน (ยืนยันกับ user 2026-09-14)
 
 การปนกันนี้ทำให้ reset AI output fields เป็นเรื่องอันตราย — ถ้าไม่ระวังจะทำลาย ingestion metadata และ review state ไปด้วย
 
@@ -52,7 +57,11 @@
 |--------|---------|------------------|
 | `storage_temp_path` | ❌ ว่าง (0/37) | `ai_metadata_json.source_file_path` |
 | `original_filename` | ❌ ว่าง (0/37) | `ai_metadata_json.source_file_path` (basename) |
-| `ai_issues` | ❌ ว่าง (0/37) | `ai_metadata_json.ocrQuality.issues[]` |
+
+> หมายเหตุ: `ai_issues` column **ไม่ใช่** anti-pattern แบบเดียวกัน — มี write path อยู่แล้ว
+> (`migration.service.ts` `queueItem.aiIssues = dto.aiIssues`) เก็บ `NEW_TAG_SUGGESTED`
+> (tag ใหม่จาก register fields ที่ต้องการ human review) ซึ่งเป็นคนละ concept กับ
+> `ocrQuality.issues[]` (ปัญหาคุณภาพ OCR) — ไม่มี decision ใน ADR นี้ (D1-D10) แก้ไข column นี้
 
 และมีข้อมูลซ้ำซ้อน 3 ที่:
 
@@ -128,10 +137,10 @@ Step 3: เขียน placeholder ทับ ocr_text
       → ถ้าถูกทับ ยังกู้จาก ocr_text_bak ได้
 
 Step 4: ไม่มีสำเนาสำรอง
-  ├── D5: migration_review_queue.ocr_text_bak
-  │   → สำเนาใน queue เอง ไม่ต้องพึ่ง table อื่น
-  └── D6: attachments.ocr_text_bak
-      → สำเนาใน attachment เอง ก่อนเขียนทับทุกครั้ง
+  └── D5: migration_review_queue.ocr_text_bak
+      → สำเนาใน queue เอง ไม่ต้องพึ่ง table อื่น
+      (attachments.ocr_text ไม่ต้องมี backup — ตรวจโค้ดแล้วพบว่าไม่มี overwrite
+      scenario เกิดขึ้นได้จริงในปัจจุบัน ดูหมายเหตุท้าย D5)
 
 กระบวนการ (ครอบทุก step):
   └── D8: Operational safety protocol
@@ -144,7 +153,7 @@ Step 4: ไม่มีสำเนาสำรอง
 | Decision | เกี่ยวกับ ocr_text? | ทำไมถึงอยู่ใน ADR นี้ |
 |----------|---------------------|---------------------|
 | D2: แยก `original_filename` | ❌ ไม่เกี่ยว | เป็น anti-pattern ที่สังเกตเห็นตอนตรวจ (column ว่างแต่ข้อมูลไปอยู่ใน JSON) — เป็น root cause เดียวกันคือ "มี column แต่ไม่ยอมใช้" |
-| D7: ลดความซ้ำซ้อน confidence | ❌ ไม่เกี่ยว | เป็น anti-pattern อีกอัน (confidence ซ้ำ 3 ที่) — แก้ในที่เดียวกันเพราะเกี่ยวกับ storage model เดียวกัน |
+| D7: Confidence values — กำหนด scope | ❌ ไม่เกี่ยว | เป็น anti-pattern อีกอัน (confidence ซ้ำ 3 ที่) — แก้ในที่เดียวกันเพราะเกี่ยวกับ storage model เดียวกัน |
 
 D2 และ D7 ไม่ใช่สาเหตุของ data loss แต่เป็น anti-pattern ที่เกิดจาก root cause เดียวกันคือ ADR-050 ข้อ 2 ที่บอกว่า "ไม่เพิ่ม column ต่อ field" ทำให้มี column ว่างแต่ข้อมูลไปอยู่ใน JSON แก้ใน ADR เดียวกันเพราะเป็นการแก้ storage model ครั้งเดียว
 
@@ -185,19 +194,16 @@ D2 และ D7 ไม่ใช่สาเหตุของ data loss แต�
 // ❌ ผิด — ลบทั้งก้อน ทำลาย ingestion metadata
 queueItem.details = null;
 
-// ✅ ถูก — whitelist เฉพาะ AI output fields ที่จะ reset
+// ✅ ถูก — whitelist เฉพาะ ingestion metadata ที่ต้องเก็บ (ไม่ใช่ AI output)
 const preservedFields = {
   source_file_path: queueItem.details?.source_file_path,
   attachment_ids: queueItem.details?.attachment_ids,
   original_row_index: queueItem.details?.original_row_index,
-  fieldResolutions: queueItem.details?.fieldResolutions,
-  compareResult: queueItem.details?.compareResult,
-  capturedThresholds: queueItem.details?.capturedThresholds,
 };
-queueItem.details = { ...preservedFields }; // ไม่มี ocrQuality, metadata.*
+queueItem.details = { ...preservedFields }; // ไม่มี ocrQuality, metadata.*, compareResult, capturedThresholds
 ```
 
-**หมายเหตุ**: หลัง D9 (แยก `review_state_json`) review state ย้ายออกจาก `ai_metadata_json` แล้ว — ทำให้ reset ง่ายขึ้นเพราะ `ai_metadata_json` เก็บเฉพาะ AI output เท่านั้น สามารถ reset ทั้ง bag ได้โดยไม่ทำลาย review state แต่ยังคง whitelist ไว้เป็น defense in depth สำหรับ ingestion metadata ที่อาจยังค้างอยู่ใน bag เดิม
+**หมายเหตุ**: `fieldResolutions` ไม่อยู่ใน whitelist นี้เพราะหลัง D9 ย้ายออกไป `review_state_json` เป็นคนละ column ไปเลย (ไม่ต้อง preserve ภายใน `ai_metadata_json` อีก) ส่วน `compareResult`/`capturedThresholds` ก็ไม่อยู่ใน whitelist เช่นกัน เพราะจัดเป็น AI extraction output (เขียนโดย `AiBatchProcessor`, ต้องคำนวณใหม่ทุกครั้งที่ re-extract) ไม่ใช่ review state — reset ได้ตามปกติ (ดู D9) หลัง D9 ทำให้ reset ง่ายขึ้นเพราะ `ai_metadata_json` เก็บเฉพาะ AI output เท่านั้น สามารถ reset ทั้ง bag ได้โดยไม่ทำลาย review state แต่ยังคง whitelist ไว้เป็น defense in depth สำหรับ ingestion metadata ที่อาจยังค้างอยู่ใน bag เดิม
 
 **Rationale**: การ reset ทั้ง bag ทำลายข้อมูลที่ไม่ใช่ AI output ที่เป็น root cause ของ data loss incident — whitelist approach ทำให้แม้มี field ใหม่ในอนาคตก็ไม่ถูก reset โดยไม่ตั้งใจ เพราะ default คือ "เก็บไว้" ไม่ใช่ "ลบทิ้ง"
 
@@ -210,18 +216,18 @@ queueItem.details = { ...preservedFields }; // ไม่มี ocrQuality, metad
 **Decision**: ถ้า `storage_temp_path` และ `details.source_file_path` ไม่มี ให้ดึงจาก `attachments.file_path` ผ่าน `temp_attachment_id` / `temp_attachment_ids`:
 
 ```typescript
+const fallbackAttachmentId = queueItem.tempAttachmentIds?.[0];
 const pdfPath =
   queueItem.storageTempPath ??
-  queueItem.details?.source_file_path ??
-  (queueItem.tempAttachmentId
+  (fallbackAttachmentId
     ? await this.attachmentRepo.findOne({
-        where: { id: queueItem.tempAttachmentId },
+        where: { id: fallbackAttachmentId },
         select: ['filePath'],
       }).then(a => a?.filePath)
     : undefined);
 ```
 
-**Rationale**: `attachments` table เป็น source of truth ของไฟล์จริง — ถ้า queue metadata หาย ยังกู้ได้จาก attachment ทำให้ extractor ไม่เจอ NO_PDF โดยไม่จำเป็น และไม่เขียน placeholder ทับ OCR text
+**Rationale**: `attachments` table เป็น source of truth ของไฟล์จริง — ถ้า queue metadata หาย ยังกู้ได้จาก attachment ทำให้ extractor ไม่เจอ NO_PDF โดยไม่จำเป็น และไม่เขียน placeholder ทับ OCR text ใช้ `tempAttachmentIds[0]` (current field) แทน `tempAttachmentId` (deprecated field) แม้ปัจจุบัน `LegacyIngestionService` จะ dual-write ทั้งสอง field ตรงกันเสมอ (`legacy-ingestion.service.ts:402-403`) แต่ field ที่ entity ระบุไว้ชัดเจนว่า deprecated ไม่ควรถูกอ้างอิงในโค้ดใหม่ — ถ้าถูกลบออกในอนาคตตามทิศทางของ deprecation notice โค้ดที่อ้าง `tempAttachmentIds` จะไม่พัง ไม่มี fallback กลางไปที่ `queueItem.details?.source_file_path` เพราะ D1 ระบุชัดว่า "ไม่มี backward compat" — หลัง D1 implement แล้ว ไม่มี code path ไหนเขียน `details.source_file_path` อีกต่อไป (ย้ายไปเขียน `storageTempPath` ทั้งหมด) และ TRUNCATE ล้างแถวเก่าที่อาจยังมี field นี้ค้างอยู่ทิ้งไปแล้ว การเก็บ fallback ที่ไม่มีวันมีค่าไว้จะเป็น dead code ที่ทำให้เข้าใจผิดว่ายังมีบางจุดเขียนอยู่
 
 **Alternatives rejected**:
 - ไม่มี fallback — ถ้า queue metadata หาย = NO_PDF = data loss (เหตุการณ์ที่เกิดจริง)
@@ -242,46 +248,25 @@ queueItem.ocrText = newOcrText; // ทับด้วยค่าใหม่
 **Rationale**: ถ้า re-extract ผิดพลาด (เช่น NO_PDF → placeholder ทับของจริง) ยังมี `ocr_text_bak` กู้ได้ — เป็น defense in depth ที่ไม่ต้องพึ่ง `attachments.ocr_text` (ซึ่งอาจยังว่างในช่วง migration) การสำเนาก่อนทับเป็น pattern ที่เรียบง่ายและป้องกันได้ทุกกรณี ไม่ใช่แค่กรณี NO_PDF
 
 **Alternatives rejected**:
-- สำเนาไป `attachments.ocr_text` ตอน extraction (D5 เดิม) — ยังไม่พอ เพราะถ้า re-extract ครั้งที่ 2 ก็ทับ `attachments.ocr_text` อีก ไม่มีสำเนาสำรอง
+- สำเนาไป `attachments.ocr_text` ตอน extraction — ยังไม่พอ เพราะถ้า re-extract ครั้งที่ 2 ก็ทับ `attachments.ocr_text` อีก ไม่มีสำเนาสำรอง
 - ใช้ audit log table แยก — ต้อง join ทุกครั้งที่กู้ ซับซ้อนเกินไปสำหรับการกู้คืนด่วน
-- ไม่สำเนา แค่ห้ามเขียนทับ (D6 เดิม) — ถ้า logic ตรวจผิดพลาดก็ทับได้ การสำเนาเป็น safety net ที่ไม่พึ่ง logic
+- ไม่สำเนา แค่ห้ามเขียนทับ — ถ้า logic ตรวจผิดพลาดก็ทับได้ การสำเนาเป็น safety net ที่ไม่พึ่ง logic
 
-### D6: สำเนา `ocr_text` ไป `ocr_text_bak` ก่อนเขียนทับ (attachments)
+**หมายเหตุ (ตัด `attachments.ocr_text_bak` ออกจาก ADR นี้)**: ร่างแรกมี D6 (`attachments.ocr_text_bak`)
+เพื่อป้องกันการเขียนทับ `attachments.ocr_text` ทั้งตอน migration commit (`importCorrespondence`) และ
+production ingestion ปกติ (`processRagPrepare`/`processEmbedDocument`) — แต่ตรวจโค้ดแล้วพบว่า**ไม่มี
+overwrite scenario เกิดขึ้นได้จริงในทั้งสองจุด**:
+- `importCorrespondence` — `attachmentId` มาจาก `fileStorageService.importStagingFile(...)` ซึ่งสร้าง
+  attachment ใหม่เสมอจาก staging file (two-phase upload) → `ocr_text` เป็น `NULL` ก่อนเขียนเสมอ (first-write)
+- `processRagPrepare` — มี logic "reuse cached `ocr_text` — no re-OCR" (FR-014, SC-006) อยู่แล้ว คือ
+  เขียนเฉพาะตอนที่ `ocr_text` ยังว่าง (write-once + reuse) ไม่มี re-OCR endpoint ที่ overwrite ค่าที่มีอยู่
 
-**Decision**: เพิ่ม column `ocr_text_bak LONGTEXT NULL` ใน `attachments` — ก่อนเขียน `attachments.ocr_text` ทุกครั้ง (ทั้ง legacy import และ ingestion ปกติ) ต้องสำเนาค่าเดิมไปที่ `ocr_text_bak` ก่อน:
+จึงตัด D6 ออกจาก ADR นี้ทั้งหมด (ไม่เพิ่ม column, ไม่แก้โค้ดจุดนี้) — ถ้าในอนาคตต้องการเพิ่มความสามารถ
+"re-OCR เอกสารที่มีอยู่แล้วใน production" (เพื่อปรับปรุงคุณภาพ OCR เอกสารเก่า) เป็น net-new capability
+ที่ไม่เคยมีในระบบ ต้องออกแบบ compare-before-replace logic ใหม่ (ใคร trigger, เกณฑ์เปรียบเทียบ, RBAC, UI)
+— ควรเป็น ADR แยกต่างหาก ไม่ใช่ส่วนหนึ่งของ ADR นี้ (ยืนยันกับ user 2026-09-14)
 
-```typescript
-// ใน importCorrespondence (legacy import) ก่อนเขียน attachments.ocr_text
-if (attachmentId && dto.ocrText?.trim()) {
-  // สำเนาค่าเดิมก่อนทับ
-  const existing = await this.attachmentRepo.findOne({
-    where: { id: attachmentId },
-    select: ['ocrText'],
-  });
-  if (existing?.ocrText && existing.ocrText.trim().length > 0) {
-    await this.attachmentRepo.update(
-      { id: attachmentId },
-      { ocrTextBak: existing.ocrText }
-    );
-  }
-  await this.attachmentRepo.update(
-    { id: attachmentId },
-    { ocrText: dto.ocrText.trim() }
-  );
-}
-
-// ใน processRagPrepare / processEmbedDocument (ingestion ปกติ) ก่อนเขียน attachments.ocr_text
-// ใช้ pattern เดียวกัน — สำเนาก่อนทับ
-```
-
-**Rationale**: `attachments.ocr_text` เป็น source of truth ตอน production (RAG prepare อ่านจากที่นี่) — ถ้าถูกทับโดยไม่ตั้งใจ (เช่น re-OCR ใหม่ได้ผลลัพธ์แย่กว่าเดิม) ยังมี `ocr_text_bak` กู้ได้ การสำเนาก่อนทับทุกครั้งทำให้ไม่ต้องตรวจ logic ว่าควรทับหรือไม่ — สำเนาเสมอ ปลอดภัยกว่า
-
-**Alternatives rejected**:
-- ห้ามเขียนทับถ้ามีค่าเดิม — ทำให้ไม่สามารถ re-OCR ได้เลย แม้ผลลัพธ์ใหม่จะดีกว่า
-- ใช้ audit log table แยก — ซับซ้อน ต้อง join ทุกครั้ง
-- ไม่สำเนา — ถ้าทับผิด = หายถาวร (เหมือนเหตุการณ์ที่เกิด)
-
-### D7: ลดความซ้ำซ้อน — confidence values เก็บที่เดียว
+### D7: Confidence values — กำหนด scope ชัดเจนของแต่ละที่เก็บ (ไม่ลบความซ้ำซ้อน)
 
 **Decision**: หลัง migration เสร็จ ให้ตัดสินใจว่า confidence values เก็บที่ไหนเป็น source of truth:
 
@@ -328,37 +313,41 @@ queueItem.details = {
   // AI output (reset ได้)
   ocrQuality: { ... },
   metadata: { ... },
-  // Review state (ห้าม reset) — ปนอยู่ใน bag เดียวกัน
-  fieldResolutions: { ... },
   compareResult: { ... },
   capturedThresholds: { ... },
+  // Review state (ห้าม reset) — ปนอยู่ใน bag เดียวกัน
+  fieldResolutions: { ... },
 };
 
 // หลัง ADR-054 — แยกชัดเจน
 queueItem.details = {
-  // AI output เท่านั้น — reset ได้ตอน re-extract
+  // AI output เท่านั้น — เขียนโดย AiBatchProcessor, reset ได้ตอน re-extract
+  // compareResult/capturedThresholds อยู่ที่นี่ (ไม่ใช่ review_state_json) เพราะต้องคำนวณใหม่
+  // ทุกครั้งที่ extract ใหม่ — ถ้าห้าม reset จะค้างเป็นค่าเก่าไม่ sync กับ AI output ปัจจุบัน
   ocrQuality: { ... },
   metadata: { ... },
-};
-queueItem.reviewState = {
-  // Review state เท่านั้น — ห้าม reset ตอน re-extract
-  fieldResolutions: { ... },
   compareResult: { ... },
   capturedThresholds: { ... },
 };
+queueItem.reviewState = {
+  // Review state เท่านั้น — เขียนโดย MigrationReviewService ตอน review (การตัดสินใจของมนุษย์)
+  // ห้าม reset ตอน re-extract
+  fieldResolutions: { ... },
+};
 ```
 
-**Rationale**: การแยก 3 ประเภทข้อมูลออกจากกันอย่างชัดเจน:
+**Rationale**: การแยกออกจากกันอย่างชัดเจนตาม **ownership จริง** (ใครเขียน) ไม่ใช่ตาม "เกี่ยวกับ review หรือเปล่า":
 - **Ingestion metadata** → column (`storage_temp_path`, `original_filename`) — ตั้งแต่ ingest ไม่เปลี่ยน
-- **AI output** → `ai_metadata_json` — reset ได้ตอน re-extract
-- **Review state** → `review_state_json` — ห้าม reset ตอน re-extract
+- **AI output** → `ai_metadata_json` — เขียนโดย `AiBatchProcessor`, reset ได้ตอน re-extract (รวม `compareResult`/`capturedThresholds`)
+- **Review state** → `review_state_json` — เขียนโดย `MigrationReviewService` เท่านั้น (`fieldResolutions`), ห้าม reset ตอน re-extract
 
-ทำให้ `reExtractQueueItem` ง่ายขึ้น — แค่ reset `ai_metadata_json` ทั้ง bag ได้เลย เพราะไม่มี review state ปนอยู่แล้ว ไม่ต้อง whitelist ไม่ต้องกลัวทำลาย review state
+ทำให้ `reExtractQueueItem` ง่ายขึ้น — แค่ reset `ai_metadata_json` ทั้ง bag ได้เลย เพราะไม่มี field ที่มนุษย์เขียนปนอยู่แล้ว ไม่ต้อง whitelist ไม่ต้องกลัวทำลาย review state และ `AiBatchProcessor` ไม่ต้องแตะ `review_state_json` เลยแม้แต่ตอน extraction ปกติ (ป้องกัน AI เขียนทับการตัดสินใจของมนุษย์โดยไม่ตั้งใจ)
 
 **Alternatives rejected**:
 - คง review state ใน `ai_metadata_json` + whitelist ตอน reset (D3) — ยังพึ่ง logic whitelist ที่อาจผิดพลาด ถ้ามี field ใหม่ที่ลืมใส่ใน whitelist = หาย
 - แยกเป็น 3 JSON columns (`ingestion_metadata`, `ai_output`, `review_state`) — ingestion metadata ย้ายเป็น column จริงแล้ว (D1/D2) ไม่ต้องเป็น JSON
-- ทำ review state เป็น column เดี่ยวๆ แต่ละ field (`field_resolutions`, `compare_result`, `captured_thresholds`) — เพิ่ม schema เกินจำเป็น (ADR-044) review state เป็น flexible structure ที่อาจเปลี่ยน
+- ทำ review state เป็น column เดี่ยวๆ แต่ละ field (`field_resolutions`) — เพิ่ม schema เกินจำเป็น (ADR-044) review state เป็น flexible structure ที่อาจเปลี่ยน
+- ย้าย `compareResult`/`capturedThresholds` ไป `review_state_json` พร้อม `fieldResolutions` (ร่างแรกของ D9) — ทำให้ `AiBatchProcessor` ต้องเขียนทับ column ที่ชื่อบอกว่า "ห้าม reset" ทุกครั้งที่ extract ใหม่ ขัดกับ contract ของตัวเอง และถ้าทำให้ AI ห้ามทับจริง จะได้ mismatch fields ค้างเป็นค่าเก่า ไม่ sync กับ AI output ปัจจุบัน (ยืนยันกับ user 2026-09-14)
 
 ### D10: หลัง import เสร็จ — เก็บ record ไว้เป็น audit trail + link กลับ
 
@@ -394,7 +383,7 @@ await this.reviewQueueRepo.save(queueItem);
 
 - การ reset AI output ไม่ทำลาย ingestion metadata อีก
 - การ reset AI output ไม่ทำลาย review state อีก (D9 — แยก column)
-- มี `ocr_text_bak` สำเนาสำรองทั้งใน `migration_review_queue` และ `attachments` — กู้ได้ถ้าถูกทับ
+- มี `ocr_text_bak` สำเนาสำรองใน `migration_review_queue` — กู้ได้ถ้าถูกทับตอน re-extract
 - ลดความซ้ำซ้อน — `source_file_path` เก็บที่เดียว (column) ไม่ใช่ใน JSON
 - Bulk operation มี backup + canary + rollback ป้องกัน data loss
 - Query ด้วย `storage_temp_path` ได้โดยตรง (ไม่ต้อง `JSON_EXTRACT`)
@@ -403,8 +392,8 @@ await this.reviewQueueRepo.save(queueItem);
 
 ### Negative
 
-- ต้องเพิ่ม 4 column ใหม่: `migration_review_queue.ocr_text_bak` + `migration_review_queue.review_state_json` + `migration_review_queue.imported_correspondence_public_id` + `attachments.ocr_text_bak`
-- ต้องแก้ code หลายจุด: `LegacyIngestionService`, `AiBatchProcessor`, `MigrationService`, `MigrationReviewService`, `Attachment` entity
+- ต้องเพิ่ม 3 column ใหม่: `migration_review_queue.ocr_text_bak` + `migration_review_queue.review_state_json` + `migration_review_queue.imported_correspondence_public_id`
+- ต้องแก้ code หลายจุด: `LegacyIngestionService`, `AiBatchProcessor`, `MigrationService`, `MigrationReviewService`
 - Protocol (D8) เป็น guideline ไม่ได้บังคับผ่าน code — ต้องใช้วินัยในการปฏิบัติ
 - `ocr_text_bak` เก็บ snapshot ล่าสุดเท่านั้น (1 รุ่น) — ถ้าทับซ้ำหลายครั้งจะเหลือแค่รุ่นก่อนหน้าสุดท้าย
 - IMPORTED records ค้างในตาราง — ตารางโตตามจำนวน migration (แต่ migration เป็นครั้งเดียว ไม่โตเร็ว)
@@ -426,26 +415,28 @@ await this.reviewQueueRepo.save(queueItem);
 ALTER TABLE migration_review_queue
   ADD COLUMN ocr_text_bak LONGTEXT NULL AFTER ocr_text;
 
--- 2. เพิ่ม column ocr_text_bak ใน attachments
-ALTER TABLE attachments
-  ADD COLUMN ocr_text_bak LONGTEXT NULL AFTER ocr_text;
-
--- 3. เพิ่ม column review_state_json ใน migration_review_queue (D9)
+-- 2. เพิ่ม column review_state_json ใน migration_review_queue (D9)
 ALTER TABLE migration_review_queue
   ADD COLUMN review_state_json JSON NULL AFTER ai_metadata_json;
 
--- 4. เพิ่ม column imported_correspondence_public_id ใน migration_review_queue (D10)
+-- 3. เพิ่ม column imported_correspondence_public_id ใน migration_review_queue (D10)
 ALTER TABLE migration_review_queue
   ADD COLUMN imported_correspondence_public_id VARCHAR(36) NULL AFTER review_state_json;
 
--- 5. (ถ้ายังไม่มี original_filename column) เพิ่ม column
+-- 4. (ถ้ายังไม่มี original_filename column) เพิ่ม column
 -- ALTER TABLE migration_review_queue
 --   ADD COLUMN original_filename VARCHAR(512) NULL AFTER storage_temp_path;
 
--- 6. TRUNCATE migration_review_queue (เริ่ม migration ใหม่ทั้งหมด)
+-- 5. TRUNCATE migration_review_queue (เริ่ม migration ใหม่ทั้งหมด)
+-- หมายเหตุ: ตั้งใจไม่ backup ก่อน TRUNCATE นี้ (ต่างจาก D8 protocol ที่ใช้กับ production
+-- bulk operation) เพราะ 37 แถวปัจจุบันเป็น test/sandbox data ก่อน go-live จริง ทิ้งได้
+-- ไม่ต้องกู้คืน — เป็นการตัดสินใจโดยเจตนา ไม่ใช่การมองข้าม D8 (ยืนยันกับ user 2026-09-14)
+-- ตั้งใจลบทุกแถวจริง รวมถึงแถวที่อาจมีสถานะ IMPORTED แล้วก็ตาม — D10 (audit trail,
+-- ห้ามลบ record หลัง import) คุ้มครองเฉพาะ record ที่เกิดขึ้น "หลัง" ADR-054 มีผลบังคับใช้
+-- เท่านั้น ไม่ย้อนหลังไปคุ้มครอง 37 แถวชุดทดสอบก่อน go-live นี้ (ยืนยันกับ user 2026-09-14)
 TRUNCATE TABLE migration_review_queue;
 
--- 7. ไม่ต้อง backfill — เริ่มใหม่จาก Excel
+-- 6. ไม่ต้อง backfill — เริ่มใหม่จาก Excel
 ```
 
 ---
@@ -455,19 +446,19 @@ TRUNCATE TABLE migration_review_queue;
 | ขั้นตอน | ไฟล์ | งาน |
 |---------|------|-----|
 | 1 | `specs/99-archives/deltas/2026-09-14-adr-054-*.sql` | สร้าง SQL delta (ALTER + TRUNCATE) |
-| 2 | `backend/src/modules/migration/entities/migration-review-queue.entity.ts` | เพิ่ม `ocrTextBak` + `originalFilename` + `reviewStateJson` + `importedCorrespondencePublicId` column |
-| 3 | `backend/src/common/file-storage/entities/attachment.entity.ts` | เพิ่ม `ocrTextBak` column |
-| 4 | `backend/src/modules/migration/services/legacy-ingestion.service.ts` | เขียน `storage_temp_path` + `original_filename` ตอน ingest (แทน `details.source_file_path`) |
-| 5 | `backend/src/modules/ai/processors/ai-batch.processor.ts` | อ่าน PDF path จาก `storageTempPath` ก่อน, fallback `attachments.file_path` |
-| 6 | `backend/src/modules/ai/processors/ai-batch.processor.ts` | `persistLegacyEnrichmentResult` สำเนา `ocr_text` ไป `ocr_text_bak` ก่อนเขียนทับ |
-| 7 | `backend/src/modules/migration/migration.service.ts` | `reExtractQueueItem` reset `ai_metadata_json` เท่านั้น (ไม่ทำลาย `review_state_json`) |
-| 8 | `backend/src/modules/migration/migration-review.service.ts` | เขียน review state ลง `review_state_json` แทน `ai_metadata_json` |
-| 9 | `backend/src/modules/migration/migration.service.ts` | `approveQueueItem` / `approveQueueItemByPublicId` เก็บ `importedCorrespondencePublicId` หลัง import สำเร็จ |
-| 10 | `backend/src/modules/migration/migration.service.ts` | `importCorrespondence` สำเนา `attachments.ocr_text` ไป `ocr_text_bak` ก่อนเขียนทับ |
-| 11 | `backend/src/modules/ai/processors/ai-batch.processor.ts` | `processRagPrepare` / `processEmbedDocument` สำเนา `attachments.ocr_text` ไป `ocr_text_bak` ก่อนเขียนทับ |
-| 12 | `backend/src/modules/migration/migration.service.spec.ts` | เพิ่ม tests ป้องกัน data loss + audit trail |
-| 13 | `backend/src/modules/ai/processors/ai-batch.processor.spec.ts` | เพิ่ม tests สำหรับ fallback path + ocr_text_bak + review_state_json |
-| 14 | (manual) | TRUNCATE migration_review_queue + re-ingest จาก Excel ใหม่ทั้งหมด |
+| 2 | `backend/src/modules/migration/entities/migration-review-queue.entity.ts` | เพิ่ม `storageTempPath` (D1 — DB column มีอยู่แล้วแต่ entity ยังไม่ map) + `ocrTextBak` + `originalFilename` + `reviewState` (map จาก column `review_state_json`, ดู D9) + `importedCorrespondencePublicId` column |
+| 3 | `backend/src/modules/migration/services/legacy-ingestion.service.ts` | เขียน `storage_temp_path` + `original_filename` ตอน ingest (แทน `details.source_file_path`) |
+| 4 | `backend/src/modules/ai/processors/ai-batch.processor.ts` | อ่าน PDF path จาก `storageTempPath` ก่อน, fallback `attachments.file_path` |
+| 5 | `backend/src/modules/ai/processors/ai-batch.processor.ts` | `persistLegacyEnrichmentResult` สำเนา `ocr_text` ไป `ocr_text_bak` (migration_review_queue) ก่อนเขียนทับ |
+| 6 | `backend/src/modules/migration/migration.service.ts` | `reExtractQueueItem` reset `ai_metadata_json` เท่านั้น (ไม่ทำลาย `review_state_json`) |
+| 7 | `backend/src/modules/migration/migration-review.service.ts` | เขียน review state ลง `review_state_json` แทน `ai_metadata_json` |
+| 8 | `backend/src/modules/migration/migration.service.ts` | `approveQueueItem` / `approveQueueItemByPublicId` เก็บ `importedCorrespondencePublicId` หลัง import สำเร็จ |
+| 9 | `backend/src/modules/migration/migration.service.spec.ts` | เพิ่ม tests ป้องกัน data loss + audit trail |
+| 10 | `backend/src/modules/ai/processors/ai-batch.processor.spec.ts` | เพิ่ม tests สำหรับ fallback path + ocr_text_bak + review_state_json |
+| 11 | (manual) | Re-ingest จาก Excel ใหม่ทั้งหมด (TRUNCATE ทำไปแล้วตอนขั้นตอนที่ 1 พร้อม ALTER — SQL delta ไฟล์เดียว รันก่อนแก้โค้ด) |
+
+> `attachments.ocr_text_bak` (D6 เดิม) ถูกตัดออกทั้งหมด — ไม่มี step แก้ `Attachment` entity/
+> `importCorrespondence`/`processRagPrepare`/`processEmbedDocument` อีกต่อไป (ดูหมายเหตุท้าย D5)
 
 ### Tests ที่ต้องเพิ่ม
 
@@ -476,8 +467,6 @@ TRUNCATE TABLE migration_review_queue;
 - Reset ไม่ลบ `attachment_ids` / `temp_attachment_id`
 - Missing `storage_temp_path` ใช้ `attachments.file_path` ได้
 - Re-extract สำเนา `ocr_text` ไป `ocr_text_bak` ก่อนเขียนทับ (migration_review_queue)
-- Legacy import สำเนา `attachments.ocr_text` ไป `ocr_text_bak` ก่อนเขียนทับ
-- RAG prepare / embed สำเนา `attachments.ocr_text` ไป `ocr_text_bak` ก่อนเขียนทับ
 - Review state เขียนลง `review_state_json` ไม่ใช่ `ai_metadata_json`
 - หลัง import สำเร็จ `importedCorrespondencePublicId` ถูกเก็บ
 - ถ้า `ocr_text` ถูกทับ สามารถกู้จาก `ocr_text_bak` ได้
@@ -509,6 +498,5 @@ ADR-054 แก้ข้อนี้ทั้งข้อ — ปัญหาค�
   - `source_file_path` อยู่ใน column ไม่ใช่ JSON → reset JSON ไม่กระทบ path
   - `review_state_json` แยกจาก `ai_metadata_json` → reset AI output ไม่ทำลาย review state
   - `ocr_text_bak` ใน `migration_review_queue` → สำเนาก่อน re-extract ทุกครั้ง กู้ได้ถ้าถูกทับ
-  - `ocr_text_bak` ใน `attachments` → สำเนาก่อนเขียนทับทุกครั้ง (legacy import + ingestion ปกติ) กู้ได้ถ้าถูกทับ
   - `reExtractQueueItem` reset `ai_metadata_json` เท่านั้น → ไม่ทำลาย `review_state_json`
   - Extractor fallback หา PDF จาก attachment → ไม่เจอ NO_PDF โดยไม่จำเป็น
