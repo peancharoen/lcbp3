@@ -354,12 +354,12 @@ Phase 5: Security & RBAC      ← ทดสอบความปลอดภั�
 |------|-----------|-------------|-------|
 | 3C.1 | Full chain: ingest → extract → review (fieldResolutions) → re-extract → approve | `review_state_json` byte-identical ข้าม re-extract; `ocr_text_bak` มี snapshot; IMPORTED + `imported_correspondence_public_id` เชื่อม Correspondence | FR-003..FR-008 / SC-001, SC-004 |
 | 3C.2 | **Incident replay (SC-005)**: bulk reset `ai_metadata_json` บน item ที่มี OCR จริง → re-extract | จุดป้องกัน ≥3 จุดทำงาน: (1) `storage_temp_path` รอดเพราะเป็น column; (2) extractor resolve PDF ได้; (3) ถ้ายังพลาด `ocr_text_bak` ยังกู้ได้ — OCR จริงไม่หายถาวร | SC-005 |
-| 3C.3 | Fallback chain: clear `storage_temp_path` แต่ attachment ยังอยู่ → re-extract | resolve ผ่าน `attachments.file_path` (`tempAttachmentIds[0]`) → extract ปกติ ไม่เกิด NO_PDF | FR-002 / D4 |
-| 3C.4 | ลบ attachment ด้วย → re-extract | NO_PDF outcome ถูกต้องตามสเปค แต่ `ocr_text_bak` ยังเก็บข้อความจริง → restore ได้ | Edge Case / US1 AC#4 |
-| 3C.5 | Re-extract 2 ครั้งติด (ครั้งแรก NO_PDF) | `ocr_text_bak` ยังเป็นข้อความจริงล่าสุด — placeholder ไม่ถูก snapshot | FR-006 / Edge |
-| 3C.6 | Legacy ai-module path: `ai-ingest` สร้าง queue record → approve | `storageTempPath`/`originalFilename` ถูกเขียนตอน ingest; `importedCorrespondencePublicId` ถูกเซ็ตตอน approve | FR-014, FR-008 |
+| 3C.3 | Fallback chain: clear `storage_temp_path` แต่ attachment ยังอยู่ → re-extract | resolve ผ่าน `attachments.file_path` (`tempAttachmentIds[0]`) → extract ปกติ ไม่เกิด NO_PDF — ✅ **PASS** (2026-09-15, 16E) | FR-002 / D4 |
+| 3C.4 | ลบ attachment ด้วย → re-extract | NO_PDF outcome ถูกต้องตามสเปค แต่ `ocr_text_bak` ยังเก็บข้อความจริง → restore ได้ — ✅ **PASS** (2026-09-15, 16E) | Edge Case / US1 AC#4 |
+| 3C.5 | Re-extract 2 ครั้งติด (ครั้งแรก NO_PDF) | `ocr_text_bak` ยังเป็นข้อความจริงล่าสุด — placeholder ไม่ถูก snapshot — ✅ **PASS** (2026-09-15, 16E) | FR-006 / Edge |
+| 3C.6 | Legacy ai-module path: `ai-ingest` สร้าง queue record → approve | `storageTempPath`/`originalFilename` ถูกเขียนตอน ingest; `importedCorrespondencePublicId` ถูกเซ็ตตอน approve — ✅ **PASS** (2026-09-15, 16E) | FR-014, FR-008 |
 | 3C.7 | IMPORTED ผ่าน `commitRecord` (review commit path) | `imported_correspondence_public_id` + `reviewedBy` + `reviewedAt` ถูกเซ็ต; reverse lookup queue→correspondence ได้ | FR-008 / US3 AC#1 |
-| 3C.8 | Manual delete เท่านั้นที่ลบ IMPORTED row ได้ | ไม่มี auto-cleanup/cron ลบ IMPORTED; `deleteReviewQueueByBatch` (scoped) ลบได้ตามเดิม | FR-008 / US3 AC#3, D10 |
+| 3C.8 | Manual delete เท่านั้นที่ลบ IMPORTED row ได้ | ไม่มี auto-cleanup/cron ลบ IMPORTED; `deleteReviewQueueByBatch` (scoped) ลบได้ตามเดิม — ✅ **PASS** (2026-09-15, 16E) | FR-008 / US3 AC#3, D10 |
 
 ---
 
@@ -1007,6 +1007,7 @@ Phase 5 (Security & RBAC)      ← P2 ความปลอดภัย
 1. INT-PK exposure ในบาง legacy import responses — ADR-019 hardening pass (pre-existing)
 2. `attachments.ocr_text` ไม่มี backup column — ยืนยัน out of scope (ADR-055 draft ครอบ re-OCR production)
 3. Global coverage thresholds ไม่ถึง — pre-existing, ไม่เกี่ยว spec 256
+4. **n8n remnants cleanup** (พบระหว่าง 3C.6, 2026-09-15) — n8n retired แล้วแต่ code ยังหลงเหลือ: dead endpoint `POST /api/ai/legacy-migration/ingest` (ServiceAccountGuard + `AI_N8N_SERVICE_TOKEN`/`AI_N8N_AUTH_TOKEN` ไม่ได้ set → 401 เสมอ), n8n-oriented endpoints (`/api/ai/migration/checkpoint*`, `/migration/queue/record`, `/migration/errors` + `MigrationCheckpointService` + `migration-progress.entity`), dormant webhooks (`N8N_LINE_WEBHOOK_URL` LINE notify ใน `notification.processor.ts`, `N8N_WEBHOOK_URL` DLQ alert ใน `workflow-event.processor.ts`), `workflows/folder-watcher.json`, env vars ใน `env.validation.ts` — **ต้องทำเป็น spec + ADR amendment** (กระทบ API surface และ ADR-023A/047 ที่อ้าง n8n orchestration) — **ข้อยกเว้น: LINE notification ยังใช้งานอยู่** (user confirm 2026-09-15) แต่ `N8N_LINE_WEBHOOK_URL`/`N8N_WEBHOOK_URL` ไม่ได้ set ใน backend env → `sendLineImmediate`/`sendLineDigest` no-op เงียบ ๆ — LINE notify ตายเงียบอยู่จริง ต้องหา channel ทดแทนภายหลัง (ตัวเลือก: LINE Messaging API ตรง, webhook service อื่น, หรือคง n8n เฉพาะ LINE path) — ยังไม่ลงมือ, บันทึกไว้ก่อน
 
 ## 16. Live Execution Results — Session 2026-09-15 (ต่อจากการเตรียมข้อมูลใหม่)
 
@@ -1063,6 +1064,12 @@ Phase 5 (Security & RBAC)      ← P2 ความปลอดภัย
 | รายการ | สถานะ |
 |--------|-------|
 | 3C.2 Incident replay (SC-005) | ✅ **PASS** — replay incident เดิมบน QC-0001: `UPDATE ai_metadata_json=NULL` → re-extract → **3 ชั้นป้องกันพิสูจน์แล้ว**: (1) `storage_temp_path` รอดจาก bulk reset (เป็น column ไม่ใช่ JSON), (2) extractor resolve PDF จาก column → log `np-dms-ocr processing: /mnt/legacy-staging/.../QC-0001.pdf` → OCR จริง 15,087 chars (ไม่ใช่ placeholder), (3) `ocr_text_bak`=14,291 snapshot OCR จริงก่อนทับ — แม้ extract พลาดก็กู้ได้; `review_state_json` byte-identical ข้าม re-extract (SC-004), `ai_metadata_json` repopulate shape `{ocrQuality,metadata}` ไม่มี path ซ้อนใน JSON |
+| 3C.3 Fallback chain (attachment) | ✅ **PASS** — `storage_temp_path=NULL` แต่ `temp_attachment_ids=[339]` → re-extract → log `np-dms-ocr processing: ...QC-0001.pdf` (resolve ผ่าน `attachments.file_path`) → OCR จริง 15,335 bytes, `ocr_text_bak`=15,087 snapshot ค่าก่อนหน้า, `review_state_json` ครบ |
+| 3C.4 NO_PDF + bak กู้ได้ | ✅ **PASS** — เคลียร์ทั้ง path + `temp_attachment_ids` → re-extract → `ai_status=FAILED`, `ocr_text`=`NO_PDF_OCR_PLACEHOLDER`, `ocr_text_bak`=15,335 (OCR จริง) → restore-ocr-text API คืน OCR จริงสำเร็จ (10,171 chars) |
+| 3C.5 Placeholder-skip | ✅ **PASS** — re-extract ซ้ำอีกครั้งขณะยัง NO_PDF → `ocr_text_bak` **ยัง 15,335** — placeholder ไม่ถูก snapshot ทับข้อความจริง |
+| QC-0001 recovery | ✅ คืน links + restore OCR + re-extract สำเร็จ — end state: `PENDING_REVIEW`/`DONE`, ocr 15,679, bak 15,335 (จริงทั้งคู่), review state ครบ — พร้อมใช้เป็น fixture ต่อ |
+| 3C.6 legacy ai-ingest → approve | ✅ **PASS** — `POST /api/ai/legacy-migration/queue/:publicId/approve` (JWT + `ai.migration_manage` + Idempotency-Key) → status=IMPORTED, `imported_correspondence_public_id`=`01a0a3b6-...` ตรง `correspondences.uuid` (id=66, `correspondence_number`='AI-INGEST-001'), `reviewed_by`=2, `reviewed_at` ตั้ง, `hasAttachment=true`. **Caveat**: ingest endpoint (`POST /api/ai/legacy-migration/ingest`) ใช้ `ServiceAccountGuard` กับ `AI_N8N_SERVICE_TOKEN`/`AI_N8N_AUTH_TOKEN` ที่**ไม่ได้ configure ใน backend env** → endpoint ตอบ 401 เสมอ (disabled by config) — test จึงสร้าง record ตรงตาม shape ที่ `ingest()` เขียน (storage_temp_path/original_filename/temp_attachment_id เป็น column จริง) แล้วทดสอบ approve path จริง |
+| 3C.8 IMPORTED retention | ✅ **PASS** — code inspection + empirical: cron เดียวที่แตะ queue คือ `ExpirePendingReviewsWorker` (scope `status=PENDING` + `createdAt>30d` → set REJECTED ไม่ลบ row, ไม่แตะ IMPORTED); `CleanExpiredStashesWorker` ลบแค่ filesystem stash; `deleteReviewQueueByBatch` เป็น manual-only ผ่าน `DELETE /api/migration/queue` (`migration.delete` + Idempotency-Key, scope batchId/all/publicIds เสมอ); IMPORTED rows 3 รายการยังอยู่พร้อม link ครบ |
 | 3C.7 review-commit → import link | ✅ PASS หลัง fix (คคง.) |
 | Item 4 (`CHEC-LCP-C2-O-24-0002`) | PENDING — เหลือรายการเดียวสำหรับ test ต่อไป |
 | Item 5 (`CHEC-LCP-C2-O-24-0004`) | ✅ IMPORTED via live API หลัง deploy (commit โดยไม่มี fieldResolutions → `review_state_json` = `{}` — merge code persist empty object, harmless) |
