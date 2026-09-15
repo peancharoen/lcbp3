@@ -1026,7 +1026,7 @@ Phase 5 (Security & RBAC)      ← P2 ความปลอดภัย
 | 1G.6 Review state write | ✅ PASS | `review_state_json` = `{fieldResolutions, fieldAcknowledgments}` หลัง commit (FR-003/D9) |
 | 1G.7 IMPORTED + audit link | ✅ PASS | `status=IMPORTED`, `imported_correspondence_public_id=01a09a78-91a9-...` (= correspondences.uuid จริง) (FR-008/D10) |
 | 1G.9/1G.11 OCR snapshot | ✅ PASS | QC-0001: `ocr_text_bak`=14291 chars เก็บ OCR จริง แม้ `ocr_text` ปัจจุบัน degrade เหลือ 113 chars (placeholder) จาก fallback test — **แสดงการป้องกันทำงานจริงใน live incident** (FR-004/D5) |
-| 1G.4/1G.5 Restore endpoint | ✅ PASS (API) | restore สำเร็จ 2 ครั้ง (swap semantics — bak คงอยู่, idempotent); browser UI check เหลือ (playwright profile ถูกใช้งานอยู่ — button render ครอบโดย vitest 45 tests + API field `ocrTextBak`/`hasOcrTextBak` ยืนยันแล้ว) |
+| 1G.4/1G.5 Restore endpoint | ✅ PASS (API + **real browser**) | กดปุ่ม "กู้คืน OCR เดิม" บน `https://lcbp3.np-dms.work` → confirm dialog → `ocr_text` 61→14,291 chars (OCR จริงกลับมา), placeholder เข้า bak (113) — swap semantics ยืนยันใน DB; console 0 errors |
 | 1G.8 Attachment fallback | ⚠️ PARTIAL | path ที่ตั้งใจพัง → ENOENT log ถูกต้อง; formal fallback-success path ยังไม่ได้รันแยก |
 
 ### 16C. 🔴 DEFECT พบและแก้แล้ว — Review Commit 500 (commit `2b234182`)
@@ -1066,6 +1066,6 @@ Phase 5 (Security & RBAC)      ← P2 ความปลอดภัย
 | 3C.7 review-commit → import link | ✅ PASS หลัง fix (คคง.) |
 | Item 4 (`CHEC-LCP-C2-O-24-0002`) | PENDING — เหลือรายการเดียวสำหรับ test ต่อไป |
 | Item 5 (`CHEC-LCP-C2-O-24-0004`) | ✅ IMPORTED via live API หลัง deploy (commit โดยไม่มี fieldResolutions → `review_state_json` = `{}` — merge code persist empty object, harmless) |
-| Browser-driven UI verification (1G.4 button click) | ⏳ playwright profile ถูกใช้งานโดย session อื่น |
+| Browser-driven UI verification (1G.4/1G.5) | ✅ PASS — restore ผ่าน UI จริงบน production URL (kill stale chrome lock แล้วใช้ playwright ได้); localhost:3001 ใช้ไม่ได้เพราะ CSP `connect-src 'self'` บล็อก API calls ไป lcbp3.np-dms.work |
 | Deploy fix | ✅ `fc633ab3` → image `fc633ab38a20` — live endpoint ทำงานแล้ว |
 
