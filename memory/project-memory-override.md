@@ -314,6 +314,10 @@
 | D335 | **D335 — JSON bag reset ทำลายข้อมูล (data loss lesson)** — `migration_review_queue.ai_metadata_json` เป็น JSON bag กว้างที่ปนกัน 3 ประเภท (ingestion metadata + AI output + review state); ห้าม reset ทั้ง bag โดยไม่ whitelist fields — ต้อง reset เฉพาะ AI output fields (`ocrQuality`, `metadata.*`) เท่านั้น; `source_file_path`, `attachment_ids`, `original_row_index` เป็น ingestion metadata ที่ห้ามทำลาย; backup ก่อน bulk UPDATE/DELETE เสมอ (CREATE TABLE ... AS SELECT); canary test 1 record ก่อน batch ใหญ่ — **รวมใน ADR-054 D3+D8** | ADR-054 |
 | D336 | **D336 — OCR text source of truth ไม่ sync ระหว่าง queue ↔ attachment** — `migration_review_queue.ocr_text` เป็น source of truth ตอน migration (เขียนโดย extractor) แต่ `attachments.ocr_text` ว่างจนกว่าจะ commit; ถ้า queue.ocr_text หาย = หายถาวร (ไม่มีสำรอง); แก้ด้วย `ocr_text_bak` column ในทั้ง 2 ตาราง — สำเนาก่อนเขียนทับทุกครั้ง — **รวมใน ADR-054 D5+D6** | ADR-054 |
 | D337 | **D337 — Column ว่างแต่ข้อมูลไปอยู่ใน JSON bag (anti-pattern)** — `migration_review_queue` มี `storage_temp_path` + `original_filename` ว่างทั้ง 2 column แต่ `source_file_path` ไปอยู่ใน `ai_metadata_json` แทน; ADR-050 ข้อ 2 บอก "ไม่เพิ่ม column ต่อ field" แต่จริงๆ มี column อยู่แล้วไม่ยอมใช้; ย้าย `source_file_path` ไป `storage_temp_path` และแยก `review_state_json` ออกจาก `ai_metadata_json` — **รวมใน ADR-054 D1+D2+D9\*\* | ADR-054 |
+| D338 | **D338 — `.claude/skills/` เป็น symlink → `.devin/skills/`** — commit `30cfcaa1`; ไม่มี duplicate skill trees อีก; ห้ามสร้างไฟล์จริงใต้ `.claude/skills/`; side effect: `git stash` (และ lint-staged backup) ไม่รองรับ staged deletions ใต้ symlink path → ดู D341 | Session 2026-09-15 |
+| D339 | **D339 — Entity↔schema drift ต้อง verify `INFORMATION_SCHEMA.COLUMNS` ก่อนเชื่อ entity** — `MigrationReviewRecord` map 4 dead columns ที่ไม่มีใน real DB → `save()` throw `Unknown column` เงียบๆ; ห้าม assume entity ตรง schema — เช็ค DB จริงเสมอเมื่อ touch legacy entities | Session 2026-09-15 |
+| D340 | **D340 — `ocr_text_bak` restore = swap/toggle semantics** — restore ต้องย้าย current real `ocr_text` เข้า `ocr_text_bak` ก่อนเขียนค่าเก่ากลับ (non-destructive ทั้ง 2 ทิศ); ห้ามเขียนทับ current ทิ้งโดยไม่ snapshot | ADR-054 |
+| D341 | **D341 — `2git.sh` lint-staged limitation บน symlink paths** — lint-staged backup ใช้ `git stash` ซึ่ง fail เมื่อมี staged changes ใต้ path ที่กลายเป็น symlink (`error: '...' is beyond a symbolic link`); recovery: staged state ไม่หาย — `git commit --no-verify` + squash message format เดิม แล้ว push ต่อ; script อาจต้อง patch | Session 2026-09-15 |
 
 ## Environment & Services
 
@@ -421,7 +425,11 @@ QDRANT_URL
 - [ ] n8n: `Route Poll Status` failedReason terminal condition, webhook-form test, PostgreSQL 16→17, binary storage migration (ก่อน n8n 3.0), workflow E2E + dry run Excel จริง (blocked)
 - [ ] **ADR-044/045 team review** + ปิด Gitea issue #2 (backend/DBA + DevOps — ส่วน "ไม่มี TypeORM migrations" verify ผ่านแล้ว)
 - [ ] SC-002 E2E accuracy test (Chat Q&A ≥80%) — **in progress** (re-extraction 183 records กำลังทำงาน, ~3 ชม.)
-- [ ] Sync `.claude/skills/` กับ `.devin/skills/` เมื่อมี skill เปลี่ยน (กฎต่อเนื่อง ไม่ใช่งานครั้งเดียว)
+- [x] **Feature 256 ADR-054 COMPLETE + pushed** — implement (34 tasks, `97dcc0d5`) + 110-review folds (`27598ba1`: entity drift reconcile ผ่าน INFORMATION_SCHEMA verify, restoreOcrText swap, compareStatus UNAVAILABLE reset, reviewedBy int FK, hasOcrTextBak flag+badge, whitelist trim, replay warn) + 111-validate PASS 14/14 FR + rollouts `0546eb43`; SQL delta **applied แล้วบน real DB** (INFORMATION_SCHEMA confirmed); lock D338-D341 — ✅ 2026-09-15
+- [ ] Sync `.claude/skills/` กับ `.devin/skills/` เมื่อมี skill เปลี่ยน (กฎต่อเนื่อง — หมายเหตุ: ตอนนี้ `.claude/skills/` เป็น symlink → `.devin/skills/` ตาม D338 ไม่ต้อง sync manual แล้ว)
+- [ ] Patch `2git.sh` — lint-staged stash fails on symlink paths (D341): เพิ่ม `--no-verify` fallback หรือปิด lint-staged backup
+- [ ] Legacy import responses expose INT-PK (ADR-019 hardening pass — pre-existing, non-blocking)
+- [ ] ADR-055 draft review — production-doc re-OCR + `attachments.ocr_text` backup (ต่อจาก ADR-054)
 
 ---
 
