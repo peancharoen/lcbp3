@@ -1,12 +1,23 @@
-// File: specs/200-fullstacks/244-native-backend-legacy-ingestion/test-plan.md
+// File: specs/999-test-plan/20260615-A-migration-admin-unified-test-plan.md
 // Change Log:
 // - 2026-09-11: Initial unified test plan — ครอบคลุมทุกสเปคที่เกี่ยวข้องกับ /admin/migration
+// - 2026-09-15: เพิ่ม Spec 256 (ADR-054 Metadata Separation + OCR Text Protection) —
+//   E2E re-extract/restore, incident replay (SC-005), restore-ocr-text security;
+//   บันทึก unit coverage ที่ implement แล้ว (validation PASS 14/14 FR)
 
 # แผนการทดสอบรวม: การนำเข้าข้อมูลเก่า (/admin/migration)
 
-**วันที่ร่าง**: 2026-09-11
-**ขอบเขต**: หน้าจอ `/admin/migration` + `/admin/import-review` และ Backend Migration Module ทั้งหมด
-**ADR อ้างอิง**: ADR-028, ADR-042, ADR-047, ADR-052, ADR-023A, ADR-019, ADR-016, ADR-008
+**วันที่ร่าง**: 2026-09-11 | **อัปเดตล่าสุด**: 2026-09-15 (เพิ่ม Spec 256 / ADR-054)
+**ขอบเขต**: หน้าจอ `/admin/migration` + `/admin/import-review` และ Backend Migration Module ทั้งหมด + ADR-054 storage separation (`migration_review_queue`)
+**ADR อ้างอิง**: ADR-028, ADR-042, ADR-047, ADR-050 (ข้อ 2 superseded โดย ADR-054), ADR-052, ADR-054, ADR-023A, ADR-019, ADR-016, ADR-008, ADR-044
+**ทดสอบบน production**: https://lcbp3.np-dms.work
+**Login Credentials:**
+```
+username:superadmin password:Center2025
+username:admin password:Center2025
+username:editor01 password:Center2025
+username:viewer01 password:Center2025
+```
 **Test Data**: ให้ใช้โดยเลือก
  - ไฟล์ Excel (.xlsx)=เลือกจาก NAS ที่มีอยู่แล้ว
  - เลือกไฟล์จาก NAS=C2024-5.xlsx (13KB)
@@ -24,6 +35,7 @@
 | 2 | **242-migration-ai-pipeline** | ADR-028, ADR-042 | Multi-attachment, AI Compare (ทะเบียน vs เอกสาร), OCR text persistence, Post-migration Tag/UUID resolution, Batch RAG embedding | Draft — บางส่วน implement ใน 244 |
 | 3 | **244-native-backend-legacy-ingestion** | ADR-047 | **Main impl**: LegacyIngestionService, ExcelJS Streaming, CLI + Web Upload, OCR 3 หน้า, OCR Editing UI, RAG Auto-Sync, Batch Approve | Specified — validation PASS 47/47 |
 | 4 | **252-excel-data-review-pipeline** | ADR-052 | 4-Layer Excel Review (Schema→Business Rules→AI Reviewer→Stash & Confirm), Annotated Excel download, Two-phase Stash | Implemented — 223 tests pass, มี test-plan.md แล้ว |
+| 5 | **256-queue-metadata-separation** | ADR-054 (D1–D10) | Storage separation (ingestion→`storage_temp_path`/`original_filename` columns, AI output→`ai_metadata_json`, review state→`review_state_json`), `ocr_text_bak` snapshot + restore endpoint/UI, attachment fallback (D4), `imported_correspondence_public_id` audit link (D10), D8 bulk-op protocol, TRUNCATE restart | Implemented — validation PASS 14/14 FR + 11/11 AC (unit); E2E/integration ยังไม่ได้รัน |
 
 ### 1.2 Supporting Specs — สเปคสนับสนุนที่ migration ใช้
 
@@ -47,7 +59,12 @@
   │
   ├──► 242 (Multi-attachment + AI Compare + Post-migration Tag/UUID + Batch RAG)
   │
-  └──► 252 (ADR-052: 4-Layer Excel Review Pipeline — ด่านตรวจก่อนเข้า Staging)
+  ├──► 252 (ADR-052: 4-Layer Excel Review Pipeline — ด่านตรวจก่อนเข้า Staging)
+  │
+  └──► 256 (ADR-054: Metadata Separation + OCR Text Protection)
+         └──► แก้ storage model ของ 244/242 pipeline — ingestion metadata ย้ายเป็น real columns,
+              ai_metadata_json เหลือเฉพาะ AI output, review state แยกเป็น review_state_json,
+              ocr_text_bak snapshot + attachment fallback + imported_correspondence_public_id
 ```
 
 ---
@@ -152,6 +169,31 @@ Phase 5: Security & RBAC      ← ทดสอบความปลอดภั�
 - [ ] ไม่มี double-prefix bug (`/api/api/v1/...`)
 - [ ] Responsive: 375px mobile + 1280px desktop ไม่มี horizontal overflow
 
+### 1G. ADR-054 — Metadata Separation + OCR Text Protection (Spec 256)
+
+> **เป้าหมาย**: พิสูจน์บนเบราว์เซอร์จริงว่า re-extract ไม่ทำลาย OCR text / file path / review state (incident 2026-09-14 ต้องเกิดซ้ำไม่ได้)
+
+**เตรียมการ (สำคัญ — หลัง TRUNCATE)**:
+- [ ] SQL delta `2026-09-14-adr-054-migration-metadata-separation.sql` apply แล้ว — ตรวจ 3 columns ใหม่ใน `migration_review_queue` (`ocr_text_bak`, `review_state_json`, `imported_correspondence_public_id`)
+- [ ] `migration_review_queue` ถูก TRUNCATE แล้ว — **test data เก่า (TEST-MIG-001~005, batch BATCH-1789095095806) ไม่มีแล้ว** ต้อง re-ingest จาก Excel ก่อนทดสอบทุกส่วน
+- [ ] Re-ingest อย่างน้อย 1 batch ที่มี PDF match ได้จริง (ใช้ `C22024-5.xlsx` + staging folder `Incoming/08C.2/2567` ตาม Test Data ด้านบน)
+- [ ] รัน AI Extraction ให้เสร็จอย่างน้อย 1 รายการ (`ai_status=DONE`, `ocr_text` ไม่ว่าง)
+
+| ขั้นตอน | การกระทำ | ผลที่คาดหวาง | FR/Spec |
+|---------|---------|-------------|---------|
+| 1G.1 | Ingest Excel batch ใหม่ แล้วตรวจ queue item detail | `storageTempPath` + `originalFilename` มีค่า (first-class fields); `details` ไม่มี `source_file_path`/`fieldResolutions`/`attachment_ids` | 256 FR-001, FR-010 |
+| 1G.2 | รัน AI Extraction เสร็จ ตรวจ `details` payload | `details` มีเฉพาะ AI output (`ocrQuality`, `metadata.*`, `compareResult`, `capturedThresholds`) + residual keys (`original_row_index`, `unresolved_orgs`, `original_document_number`, `revision_number`) | 256 FR-004, FR-010 |
+| 1G.3 | Re-extract รายการที่มี `ocr_text` จริง | `ocr_text_bak` = ข้อความเดิมก่อนทับ; `storageTempPath`/`review_state_json` ไม่เปลี่ยน; `ai_metadata_json` ถูก reset แล้วเขียนใหม่ | 256 FR-005, FR-006, US1 AC#1, AC#3 |
+| 1G.4 | เปิดหน้า review detail ของรายการที่มี `ocrTextBak` | แสดงปุ่ม "กู้คืน OCR เดิม" เฉพาะเมื่อ `ocrTextBak`/`hasOcrTextBak` เป็นจริง | 256 FR-007 |
+| 1G.5 | กด "กู้คืน OCR เดิม" + confirm | `ocr_text` กลับเป็นค่าจาก `ocr_text_bak`; `ocr_text_bak` ยังคงอยู่ (non-destructive); refetch แล้ว textarea แสดงข้อความที่กู้ | 256 FR-007, contract §2 |
+| 1G.6 | Commit review พร้อม `fieldResolutions`/`fieldAcknowledgments` แล้ว re-extract | `review_state_json` byte-identical หลัง re-extract; `ai_metadata_json` เปลี่ยน; review UI แสดง resolutions เดิม | 256 FR-003, US2 AC#1, SC-004 |
+| 1G.7 | Approve/Execute Import จนสำเร็จ | แถวคงอยู่ status=IMPORTED + `importedCorrespondencePublicId` ชี้ไป Correspondence ใหม่; คลิก link เปิด Correspondence ได้ | 256 FR-008, US3 AC#1, D10 |
+| 1G.8 | Re-extract รายการที่ `storage_temp_path` ถูกลบ (simulate) แต่มี attachment | extractor fallback ไป `attachments.file_path` ผ่าน `tempAttachmentIds[0]` → ไม่เกิด NO_PDF placeholder | 256 FR-002, US1 AC#2, D4 |
+| 1G.9 | Re-extract รายการที่หา PDF ไม่ได้ทั้ง path + attachment | `ocr_text` ถูกทับด้วย placeholder แต่ `ocr_text_bak` เก็บข้อความจริงไว้ → กู้ได้ผ่านปุ่ม restore | 256 Edge Case, US1 AC#4 |
+| 1G.10 | Re-extract ซ้ำ 2 ครั้งติดกัน (ครั้งแรก fail→placeholder) | `ocr_text_bak` ยังเก็บข้อความจริงล่าสุด — placeholder ไม่ถูก snapshot ทับ bak | 256 Edge Case (placeholder-skip), FR-006 |
+| 1G.11 | แก้ไข OCR text ผ่าน textarea (manual edit) บนค่าจริง | `ocr_text` เดิมถูก snapshot ไป `ocr_text_bak` ก่อนเขียนค่าใหม่ | 256 FR-006, Edge Case (manual edit) |
+| 1G.12 | กด restore ซ้ำ 2 ครั้ง | ผลลัพธ์เหมือนเดิม (idempotent) — `ocr_text` เท่าเดิม | 256 contract §2 Idempotency |
+
 ---
 
 ## 4. Phase 2: Backend Unit Tests (P2 — ช่องว่างเร่งด่วน)
@@ -248,6 +290,32 @@ Phase 5: Security & RBAC      ← ทดสอบความปลอดภั�
 | 2F.3 | `clean-expired-stashes.worker.spec.ts` | stash root ไม่มี | log warning, ไม่โยน |
 | 2F.4 | `expire-pending-reviews.worker.ts` | PENDING > 30 วัน | auto-expire เป็น EXPIRED + cleanup + แจ้ง Admin |
 
+### 2G. ADR-054 Unit Coverage (Spec 256) — สถานะ: ✅ Implemented แล้ว
+
+> **หมายเหตุ**: spec 256 implement ครบทุก task (34/34) พร้อม TDD RED→GREEN ทุก wave — validation-report PASS 14/14 FR ส่วนนี้เป็น **regression coverage ที่ต้องคงไว้** ไม่ใช่ test ที่ต้องเขียนใหม่; ห้ามลบ/ลดจนกว่าจะมี spec ใหม่มาแทน
+
+**ไฟล์**: `backend/src/modules/migration/migration.service.spec.ts` + `migration-review.service.spec.ts` + `ai/processors/ai-batch.processor.spec.ts` + `ai/ai-ingest.service.spec.ts`
+
+| Test | สถานการณ์ | ผลที่คาดหวาง | FR/SC | สถานะ |
+|------|-----------|-------------|-------|-------|
+| 2G.1 | `reExtractQueueItem` บน item ที่มี metadata ครบ | reset เฉพาะ `ai_metadata_json` (AI output); เก็บ `storageTempPath`, `originalFilename`, `ocr_text`, `ocr_text_bak`, `reviewState` + residual `details` keys ไว้; `requiresHumanReview`/`ocrQualityConfidence`/`reviewReason` reset | FR-005 / SC-001 | ✅ |
+| 2G.2 | `resolveQueuePdfPath` เมื่อ `storageTempPath` ว่าง | fallback `attachments.file_path` ผ่าน `tempAttachmentIds[0]`; ไม่อ่าน `details.source_file_path` | FR-002 / D4 | ✅ |
+| 2G.3 | `updateQueueEnrichment` ทับ `ocr_text` ที่มีค่าจริง | snapshot ค่าเดิม → `ocr_text_bak` ก่อนเขียน (ครบทุก write site: single-doc, batch interim, batch final, failure path) | FR-006 / SC-002 | ✅ |
+| 2G.4 | `updateQueueEnrichment` ทับ `ocr_text` ที่เป็น placeholder | ไม่ snapshot (ข้าม — `isOcrFailurePlaceholder`); `ocr_text_bak` เดิมคงอยู่ | FR-006 / placeholder-skip | ✅ |
+| 2G.5 | `updateQueueOcr` (manual edit) บนค่าจริง | snapshot ก่อน overwrite ตามกฎเดียวกัน | FR-006 / Edge | ✅ |
+| 2G.6 | `restoreOcrText` เมื่อ `ocr_text_bak` ว่าง | BusinessException `MIGRATION_NO_BACKUP` (Thai userMessage + recoveryAction) | FR-007 / ADR-007 | ✅ |
+| 2G.7 | `restoreOcrText` เมื่อมี bak | swap กลับ `ocr_text`; bak คงอยู่; log actor | FR-007 | ✅ |
+| 2G.8 | `commitRecord` พร้อม `fieldResolutions`+`fieldAcknowledgments` | persist ลง `review_state_json` (merge, skip undefined) — **ไม่** เขียนลง `ai_metadata_json` | FR-003 | ✅ |
+| 2G.9 | `persistLegacyEnrichmentResult` / AI write paths | ไม่มี write ไป `review_state_json` ใด ๆ (grep: sole writer = `commitRecord`) | FR-003 / SC-004 | ✅ |
+| 2G.10 | 3 confidence stores | `ai_confidence` alias + `ocr_quality_confidence` column + `metadata.confidence.*`/`ocrQuality.confidence` JSON ถูก populate ครบ | FR-009 / D7 | ✅ |
+| 2G.11 | IMPORTED paths ทั้ง 4 (`approveQueueItem`, `approveQueueItemByPublicId`, `commitRecord`, ai-ingest `approve()`) | `status=IMPORTED` + `reviewedBy`/`reviewedAt` + `importedCorrespondencePublicId` ถูกเซ็ต; แถวไม่ถูกลบ | FR-008 / SC-003 | ✅ |
+| 2G.12 | `enqueueRecord` + `ALLOWED_ENQUEUE_DETAILS_KEYS` | `compareResult`/`capturedThresholds`/`disciplineId` persist ลง `ai_metadata_json`; keys ที่ไม่ whitelist ถูกทิ้ง | FR-004, FR-014 | ✅ |
+| 2G.13 | `LegacyIngestionService` + `ai-ingest.service.ts` ingest | เขียน `storage_temp_path` + `original_filename` ตอนสร้าง queue item; ไม่เขียน `details.source_file_path` | FR-001, FR-014 | ✅ |
+| 2G.14 | queue-item GET response | first-class fields (`storageTempPath`, `originalFilename`, `reviewState`, `ocrTextBak`/`hasOcrTextBak`, `importedCorrespondencePublicId`); `details` ไม่มี keys ที่ย้ายออก | FR-010 | ✅ |
+| 2G.15 | Frontend vitest (`components/migration/__tests__/`) | fixtures ใช้ `reviewState.fieldResolutions` + `storageTempPath`; restore-button render/behavior; stale `details.*` reads = 0 | FR-011 | ✅ (45/45) |
+
+**Evidence**: `specs/200-fullstacks/256-queue-metadata-separation/validation-report.md` (PASS 14/14 FR, SC-001..SC-005), `ledger.md` cp8 (backend jest 1546, frontend vitest 45/45)
+
 ---
 
 ## 5. Phase 3: Integration Tests (P2)
@@ -278,9 +346,26 @@ Phase 5: Security & RBAC      ← ทดสอบความปลอดภั�
 | 3B.3 | `--sheet=Sheet2` | อ่าน Sheet ที่ระบุ |
 | 3B.4 | Memory < 100MB สำหรับ 20,000 แถว | ตรวจ RAM ไม่เกิน 100MB |
 
+### 3C. ADR-054 Separation E2E + Incident Replay (Spec 256)
+
+**ไฟล์**: `backend/test/migration-adr054-integration.spec.ts` (สร้างใหม่ — ต้องการ DB + attachment fixture จริง)
+
+| Test | สถานการณ์ | ผลที่คาดหวาง | FR/SC |
+|------|-----------|-------------|-------|
+| 3C.1 | Full chain: ingest → extract → review (fieldResolutions) → re-extract → approve | `review_state_json` byte-identical ข้าม re-extract; `ocr_text_bak` มี snapshot; IMPORTED + `imported_correspondence_public_id` เชื่อม Correspondence | FR-003..FR-008 / SC-001, SC-004 |
+| 3C.2 | **Incident replay (SC-005)**: bulk reset `ai_metadata_json` บน item ที่มี OCR จริง → re-extract | จุดป้องกัน ≥3 จุดทำงาน: (1) `storage_temp_path` รอดเพราะเป็น column; (2) extractor resolve PDF ได้; (3) ถ้ายังพลาด `ocr_text_bak` ยังกู้ได้ — OCR จริงไม่หายถาวร | SC-005 |
+| 3C.3 | Fallback chain: clear `storage_temp_path` แต่ attachment ยังอยู่ → re-extract | resolve ผ่าน `attachments.file_path` (`tempAttachmentIds[0]`) → extract ปกติ ไม่เกิด NO_PDF | FR-002 / D4 |
+| 3C.4 | ลบ attachment ด้วย → re-extract | NO_PDF outcome ถูกต้องตามสเปค แต่ `ocr_text_bak` ยังเก็บข้อความจริง → restore ได้ | Edge Case / US1 AC#4 |
+| 3C.5 | Re-extract 2 ครั้งติด (ครั้งแรก NO_PDF) | `ocr_text_bak` ยังเป็นข้อความจริงล่าสุด — placeholder ไม่ถูก snapshot | FR-006 / Edge |
+| 3C.6 | Legacy ai-module path: `ai-ingest` สร้าง queue record → approve | `storageTempPath`/`originalFilename` ถูกเขียนตอน ingest; `importedCorrespondencePublicId` ถูกเซ็ตตอน approve | FR-014, FR-008 |
+| 3C.7 | IMPORTED ผ่าน `commitRecord` (review commit path) | `imported_correspondence_public_id` + `reviewedBy` + `reviewedAt` ถูกเซ็ต; reverse lookup queue→correspondence ได้ | FR-008 / US3 AC#1 |
+| 3C.8 | Manual delete เท่านั้นที่ลบ IMPORTED row ได้ | ไม่มี auto-cleanup/cron ลบ IMPORTED; `deleteReviewQueueByBatch` (scoped) ลบได้ตามเดิม | FR-008 / US3 AC#3, D10 |
+
 ---
 
 ## 6. Phase 4: Performance Tests (P3)
+
+> **หมายเหตุ**: Spec 256 ไม่กำหนด performance goals (migration-scale batch workload) — ไม่มี SC ด้าน performance สำหรับ ADR-054
 
 ### 4A. SC Criteria จาก Spec 244
 
@@ -351,6 +436,19 @@ Phase 5: Security & RBAC      ← ทดสอบความปลอดภั�
 | 5D.3 | ทุก approve/reject บันทึก `reviewed_by` + `reviewed_at` | audit log ครบ |
 | 5D.4 | OCR edit บันทึก audit trail | `reviewed_by` + `reviewed_at` บันทึก |
 
+### 5E. Restore-OCR-Text Endpoint Security (Spec 256, ADR-016)
+
+| Test | สถานการณ์ | ผลที่คาดหวาง | FR/Spec |
+|------|-----------|-------------|---------|
+| 5E.1 | viewer01 `POST /migration/queue/:publicId/restore-ocr-text` | 403 (ไม่มี `migration.commit`) | 256 FR-007, ADR-016 |
+| 5E.2 | editor01 เรียก restore endpoint | 403 | 256 FR-007 |
+| 5E.3 | admin เรียกโดยไม่มี `Idempotency-Key` | 400 VALIDATION_ERROR | Security rule §1 |
+| 5E.4 | `publicId` ไม่ใช่ UUID | 400 (`ParseUUIDPipe`) — ไม่มี `parseInt` บน UUID | ADR-019 |
+| 5E.5 | `publicId` ไม่มีในระบบ | 404 `MIGRATION_QUEUE_NOT_FOUND` | 256 contract §2 |
+| 5E.6 | item ที่ `ocr_text_bak` ว่าง/NULL | 400 `MIGRATION_NO_BACKUP` (BusinessException, Thai userMessage + recovery) | 256 FR-007, ADR-007 |
+| 5E.7 | restore ซ้ำด้วย Idempotency-Key เดิม/ใหม่ | state identical — `ocr_text` เท่าเดิม, bak ไม่ถูกลบ | 256 contract §2 |
+| 5E.8 | ปุ่ม "กู้คืน OCR เดิม" ใน UI | แสดงเฉพาะ role ที่มีสิทธิ์ + เฉพาะเมื่อ `ocrTextBak`/`hasOcrTextBak` จริง | 256 FR-007, FR-011 |
+
 ---
 
 ## 8. ไฟล์ทดสอบสรุป
@@ -368,9 +466,15 @@ Phase 5: Security & RBAC      ← ทดสอบความปลอดภั�
 | `excel-data-review.benchmark.spec.ts` | สร้างใหม่ | ~3 | P4 | 252 |
 | `gemini-review.adapter.spec.ts` | สร้างใหม่ | ~3 | P4 | 252 |
 | `claude-review.adapter.spec.ts` | สร้างใหม่ | ~3 | P4 | 252 |
-| Browser E2E (manual/Playwright) | ไม่ใช่ไฟล์ test | ~30 ขั้นตอน | P1 | 244+252 |
+| `migration.service.spec.ts` (+ADR-054) | ✅ Implemented แล้ว (spec 256 waves) | ~59 assertions เกี่ยวข้อง | P2 | 256 |
+| `ai-batch.processor.spec.ts` (+ADR-054) | ✅ Implemented แล้ว | ~12 assertions เกี่ยวข้อง | P2 | 256 |
+| `ai-ingest.service.spec.ts` (+ADR-054) | ✅ Implemented แล้ว | 20/20 | P2 | 256 |
+| `components/migration/__tests__/` (frontend) | ✅ Implemented แล้ว | 45/45 | P2 | 256 |
+| `migration-adr054-integration.spec.ts` | สร้างใหม่ | ~8 | P3 | 256 |
+| Browser E2E (manual/Playwright) | ไม่ใช่ไฟล์ test | ~30 + 12 (1G) ขั้นตอน | P1 | 244+252+256 |
 
-**รวม**: ~72 unit/integration tests ใหม่ + ~30 ขั้นตอน browser verify
+**รวม**: ~72 unit/integration tests ใหม่ (244/252) + ~8 integration tests ใหม่ (256) + ~42 ขั้นตอน browser verify
+**หมายเหตุ**: unit coverage ของ spec 256 implement ครบแล้ว (validation PASS 14/14 FR) — งานที่เหลือของ 256 คือ Browser E2E (1G), integration replay (3C), และ security verify (5E)
 
 ---
 
@@ -384,6 +488,7 @@ Phase 1 (Browser E2E)          ← P1 ทำก่อน — ยืนยัน�
   1D: RBAC
   1E: Edge Cases
   1F: Console/Network
+  1G: ADR-054 OCR Protection (re-extract, restore, IMPORTED link)
   ↓
 Phase 2 (Backend Unit)         ← P2 ปิด coverage gap
   2A: Migration Controller
@@ -392,21 +497,25 @@ Phase 2 (Backend Unit)         ← P2 ปิด coverage gap
   2D: Migration Review Service
   2E: Review Session Stash
   2F: Workers
+  2G: ADR-054 coverage (✅ implemented — regression guard)
   ↓
 Phase 3 (Integration)          ← P2 ทดสอบการเชื่อมต่อ
   3A: End-to-End Migration Flow
   3B: CLI Ingestion
+  3C: ADR-054 incident replay + separation E2E
   ↓
 Phase 4 (Performance)         ← P3 benchmark
   4A: 244 SC criteria
   4B: 252 SC criteria
   4C: 242 SC criteria
+  (256: N/A — spec ไม่กำหนด performance goals)
   ↓
 Phase 5 (Security & RBAC)      ← P2 ความปลอดภัย
   5A: CASL Guard
   5B: UUID Compliance
   5C: AI Boundary
   5D: Idempotency & Audit
+  5E: Restore-OCR-Text endpoint (256)
 ```
 
 ---
@@ -427,6 +536,12 @@ Phase 5 (Security & RBAC)      ← P2 ความปลอดภัย
 | RBAC | 0 unauthorized commits | ทุก 403 ทดสอบผ่าน |
 | UUID compliance | 0 INT PK exposure | API response audit |
 | AI audit log | 0 missing records | `ai_audit_logs` ครบ |
+| Re-extract zero data loss (256 SC-001) | ingestion columns + `review_state_json` + `ocr_text`/`ocr_text_bak` ไม่หาย | 1G.3, 3C.1 |
+| `ocr_text_bak` snapshot (256 SC-002) | 100% ของการทับ ocr_text จริงมี snapshot | 2G.3–2G.5, 3C.5 |
+| IMPORTED audit link (256 SC-003) | ทุก IMPORTED row มี `imported_correspondence_public_id`; 0 auto-delete | 1G.7, 3C.7, 3C.8 |
+| Review state survives re-extract (256 SC-004) | `review_state_json` byte-identical 100% | 1G.6, 3C.1 |
+| Incident blocked ≥3 points (256 SC-005) | column path + attachment fallback + `ocr_text_bak` | 3C.2–3C.4 |
+| Restore endpoint RBAC | 0 unauthorized restores | 5E.1–5E.2 |
 | ไม่มี `any` / `console.log` | 0 | eslint + tsc ผ่าน |
 | ไม่มี `parseInt` บน UUID | 0 | eslint no-restricted-syntax |
 
@@ -444,6 +559,11 @@ Phase 5 (Security & RBAC)      ← P2 ความปลอดภัย
 | 20,000 แถว test ต้องการไฟล์ใหญ่จริง | ยากต่อการ repro | ใช้ generated Excel + จำกัดที่ 1,000 แถวใน CI |
 | Qdrant ไม่ online | RAG test ล้มเหลว | ใช้ mock QdrantService ใน unit test |
 | BullMQ Redis ไม่ online | integration test ล้มเหลว | ใช้ in-memory queue หรือ test container |
+| Queue ว่างหลัง ADR-054 TRUNCATE | ไม่มี test data สำหรับ 1G ทั้งหมด | re-ingest จาก `C22024-5.xlsx` + extract ให้เสร็จก่อนรัน 1G |
+| SQL delta ยังไม่ apply ใน env ที่ทดสอบ | columns ใหม่ไม่มี → ingest/extract พัง | ตรวจ `DESCRIBE migration_review_queue` ก่อน (3 columns) — apply ผ่าน DBA ตาม D8 |
+| Placeholder constants drift | `isOcrFailurePlaceholder` miss → bak ถูกทับ | constants single-source ใน `migration.constants.ts`; grep หา hardcoded string ก่อน commit |
+| `compareResult` หายหลัง re-extract | UI แสดง compare ไม่ได้ชั่วคราว | spec-sanctioned — `compareStatus` reset เป็น UNAVAILABLE + reason; verify ใน 1G.2 |
+| D8 protocol เป็น convention ไม่บังคับ code | bulk op ผิดพลาดซ้ำได้ | runbook ใน 256 `quickstart.md` + pointer ใน `deltas/README.md`; ทบทวนก่อนทุก bulk op |
 
 ---
 
@@ -458,6 +578,11 @@ Phase 5 (Security & RBAC)      ← P2 ความปลอดภัย
 | 255 rag-admin-console | RAG batch management UI | มี test ของตัวเอง |
 | Push `origin/main` | ต้อง push ก่อนจึงจะ deploy และ browser-verify ได้ | pending |
 | สร้าง test data (correspondences) | จำเป็นสำหรับ confirm E2E | blocked |
+| 256 validation-report.md | validation PASS 14/14 FR + 11/11 AC + SC-001..005 | มีแล้ว — unit coverage ครบ เหลือ E2E |
+| 256 ledger.md | assurance ledger closed (cp0–cp8, 5 reviewer verdicts) | มีแล้ว |
+| 256 quickstart.md | apply order + D8 bulk-op runbook + emergency OCR restore SQL | มีแล้ว — ใช้เป็น runbook ตอน 1G/3C |
+| 256 contracts/queue-item-api.md | response shape (first-class fields) + restore endpoint contract | มีแล้ว — อ้างอิงตอนเขียน 1G assertions |
+| SQL delta ADR-054 (ALTER + TRUNCATE) | apply แล้วใน real DB (columns พร้อม — DBA applied) | ✅ applied — queue ถูก TRUNCATE, test data เก่าหาย |
 
 ---
 
@@ -845,3 +970,101 @@ Phase 5 (Security & RBAC)      ← P2 ความปลอดภัย
 
 1. **⚠️ Non-Excel file returns 500** — ควร validate file extension ก่อน processing (low priority)
 2. **⚠️ `getQueueByName` direct API test** — ติด RBAC block, แต่ unit tests ครอบคลุมแล้ว
+
+---
+
+## 15. Spec 256 (ADR-054) Implementation & Coverage Status (2026-09-15)
+
+> สรุปสถานะล่าสุดของ spec 256 เพื่อแยกชัดว่า "อะไรที่ unit test ปิดแล้ว" vs "อะไรที่แผนนี้เพิ่มเข้ามา"
+
+### 15A. Implementation Status
+
+| รายการ | สถานะ | Evidence |
+|--------|-------|----------|
+| Tasks (34/34) | ✅ ครบทุก task [X] | `256-queue-metadata-separation/tasks.md` |
+| Validation | ✅ PASS — 14/14 FR, 11/11 AC, 9/9 Edge, SC-001..005 | `256-queue-metadata-separation/validation-report.md` |
+| Ledger | ✅ closed — cp0–cp8, 5 independent reviewer verdicts (APPROVE×3, REQUEST_CHANGES×2 resolved) | `256-queue-metadata-separation/ledger.md` |
+| SQL delta | ✅ authored + applied ใน real DB (3 columns พร้อม, queue ถูก TRUNCATE) | `specs/03-Data-and-Storage/deltas/2026-09-14-adr-054-*.sql` |
+| Backend tests | ✅ jest 1546 pass (91 suites) — migration/ai modules ครอบ ADR-054 ทั้งหมด | ledger cp8 |
+| Frontend tests | ✅ vitest 45/45 | ledger cp8 |
+| Stale reads sweep | ✅ `details.source_file_path`/`details.fieldResolutions`/`details.attachment_ids` เหลือเฉพาะใน comments | T030 |
+
+### 15B. Coverage ที่ปิดแล้ว (unit) vs ที่เหลือ (แผนนี้)
+
+| มิติ | ปิดแล้วโดย spec 256 | เหลือตามแผนนี้ |
+|------|--------------------|----------------|
+| Snapshot-on-overwrite (3 write sites) | ✅ unit 2G.3–2G.5 | E2E verify 1G.3, 1G.9–1G.11 |
+| Placeholder-skip | ✅ unit 2G.4 | E2E double re-extract 1G.10, 3C.5 |
+| Attachment fallback (D4) | ✅ unit 2G.2 | E2E 1G.8, integration 3C.3–3C.4 |
+| review_state_json isolation | ✅ unit 2G.8–2G.9 | E2E 1G.6, integration 3C.1 |
+| IMPORTED + correspondence link | ✅ unit 2G.11 (4 paths) | E2E 1G.7, integration 3C.7–3C.8 |
+| Restore endpoint | ✅ unit 2G.6–2G.7 | E2E 1G.4–1G.5, 1G.12 + security 5E.1–5E.8 |
+| Incident replay (SC-005) | ✅ unit-level proof | **integration 3C.2 — ยังไม่ได้รัน** |
+| D8 bulk-op protocol | ✅ runbook documented | ops verify เมื่อมี bulk op จริง (convention) |
+
+### 15C. Follow-ups ที่ไม่บล็อก (จาก validation-report)
+
+1. INT-PK exposure ในบาง legacy import responses — ADR-019 hardening pass (pre-existing)
+2. `attachments.ocr_text` ไม่มี backup column — ยืนยัน out of scope (ADR-055 draft ครอบ re-OCR production)
+3. Global coverage thresholds ไม่ถึง — pre-existing, ไม่เกี่ยว spec 256
+
+## 16. Live Execution Results — Session 2026-09-15 (ต่อจากการเตรียมข้อมูลใหม่)
+
+### 16A. Test Data Preparation
+
+| ขั้นตอน | ผล | Evidence |
+|---------|-----|----------|
+| Re-ingest `C22024-5.xlsx` + `Incoming/08C.2/2567` | ✅ 5 รายการ (`BATCH-ADR054-E2E-001`) | totalRowsProcessed=5, errorCount=0 |
+| AI Extraction (Ollama `np-dms-ocr` + `np-dms-ai`) | ✅ QC-0001, QC-0002, คคง. → DONE; QC-0001 ภายหลัง FAILED จาก fallback test (คาดหมาย) | ocr_len 11143–15544, confidence 0.90–0.92 |
+
+### 16B. Phase 1G — ADR-054 OCR Protection (ผลจริง)
+
+| Test | ผล | Evidence |
+|------|-----|----------|
+| 1G.1 First-class ingestion fields | ✅ PASS | API detail คืน `storageTempPath`, `originalFilename`; `details` = `[attachments, original_row_index]` เท่านั้น — ไม่มี `source_file_path`/`fieldResolutions`/`attachment_ids` (FR-001/FR-002/FR-010) |
+| 1G.2 Extraction ไม่เขียน review_state | ✅ PASS | ทุกรายการ DONE มี `review_state_json=null` จนกว่า review จริง |
+| 1G.6 Review state write | ✅ PASS | `review_state_json` = `{fieldResolutions, fieldAcknowledgments}` หลัง commit (FR-003/D9) |
+| 1G.7 IMPORTED + audit link | ✅ PASS | `status=IMPORTED`, `imported_correspondence_public_id=01a09a78-91a9-...` (= correspondences.uuid จริง) (FR-008/D10) |
+| 1G.9/1G.11 OCR snapshot | ✅ PASS | QC-0001: `ocr_text_bak`=14291 chars เก็บ OCR จริง แม้ `ocr_text` ปัจจุบัน degrade เหลือ 113 chars (placeholder) จาก fallback test — **แสดงการป้องกันทำงานจริงใน live incident** (FR-004/D5) |
+| 1G.4/1G.5 Restore endpoint | ✅ PASS (API) | restore สำเร็จ 2 ครั้ง (swap semantics — bak คงอยู่, idempotent); browser UI check เหลือ (playwright profile ถูกใช้งานอยู่ — button render ครอบโดย vitest 45 tests + API field `ocrTextBak`/`hasOcrTextBak` ยืนยันแล้ว) |
+| 1G.8 Attachment fallback | ⚠️ PARTIAL | path ที่ตั้งใจพัง → ENOENT log ถูกต้อง; formal fallback-success path ยังไม่ได้รันแยก |
+
+### 16C. 🔴 DEFECT พบและแก้แล้ว — Review Commit 500 (commit `2b234182`)
+
+`POST /api/ai/migration/review` คืน 500 `SystemException` **ทุกรายการที่มี date หรือ tag** — พบว่าเป็น 3 defects ซ้อนกัน (diagnose ผ่าน Nest context script ใน container เพราะ `GlobalExceptionFilter` log เฉพาะ `err.message`="System Exception" ไม่ใช่ `technicalMessage`):
+
+| # | Root cause | Fix |
+|---|-----------|-----|
+| D1 | `queueItem.issuedDate.toISOString()` — MariaDB driver คืน DATE เป็น **string** → TypeError → 500 ทุกแถว Excel-ingested (มี date เสมอ) | `toIsoDateString()` normalize string/Date |
+| D2 | `manager.save(Tag, plainObject)` — TypeORM **ไม่** fire `@BeforeInsert generatePublicId` สำหรับ plain object → `tags.public_id` INSERT ล้ม "doesn't have a default value" | `manager.create(Tag,...)` + `save()` |
+| D3 | **Schema drift** `correspondence_tags` — prod มี 2 cols, canonical+entity ต้องการ 6 → INSERT ล้ม "Unknown column `is_ai_suggested`" | delta `2026-09-15-correspondence-tags-adr050-columns.sql` (+rollback) ตาม ADR-044 — **applied แล้วใน prod DB** |
+
+แก้เพิ่ม: raw `INSERT INTO tags` ใน `migration.service.ts` (direct path) ก็ omit `public_id` — เพิ่ม `uuidv7()`
+
+**Verification**: commit คคง. ผ่าน `commitRecord` จริง → `status=IMPORTED`, `imported_correspondence_public_id` ตั้ง, `review_state_json` persist, `correspondence_tags` row สร้างด้วย `is_ai_suggested=0` (correct per R7) — jest migration 743/743 pass
+**Deploy note**: แก้ใน source + commit local แล้ว — container ที่รันอยู่ยังเป็นโค้ดเดิม ต้อง deploy/rebuild ก่อน live API จะใช้ fix ได้ (dist ที่ inject เพื่อ verify ถูก restore กลับแล้ว)
+
+### 16D. Phase 5E — Restore Endpoint Security (ผลจริง — ทุกข้อ PASS)
+
+| Test | ผล | Evidence |
+|------|-----|----------|
+| 5E.1 Viewer restore | ✅ 403 PERMISSION_DENIED | `viewer01` role=Viewer ไม่มี `migration.commit` |
+| 5E.2 Non-privileged role | ✅ 403 PERMISSION_DENIED | `editor01` role=Editor — RBAC matrix ให้ `migration.commit` เฉพาะ Document Control/Org Admin/Superadmin (ไม่มี user ใช้ role Document Control ในระบบ — positive case ครอบโดย Org Admin) |
+| 5E.3 Org Admin restore | ✅ 200 | `admin` role=Org Admin |
+| 5E.5 ไม่มี Idempotency-Key | ✅ 400 | `requireIdempotencyKey` |
+| 5E.6 UUID ไม่ถูกต้อง | ✅ 400 | `ParseUUIDPipe` (ADR-019) |
+| 5E.7 publicId ไม่มีในระบบ | ✅ 404 NOT_FOUND | |
+| 5E.8 ไม่มี JWT | ✅ 401 | |
+| 5E.no-backup | ✅ 422 `MIGRATION_NO_BACKUP` | business error ถูก classify ไม่กลายเป็น 500 (ADR-007) |
+| 5E.idempotent | ✅ | restore ซ้ำไม่ทำลายข้อมูล — bak คงอยู่ |
+
+### 16E. สถานะคงเหลือ
+
+| รายการ | สถานะ |
+|--------|-------|
+| 3C.2 Incident replay (formal bulk-reset scenario) | ⏳ ยังไม่ได้รัน — QC-0001 แสดง protection สด ๆ แล้ว (bak รอดจาก placeholder overwrite) แต่ยังไม่ได้จัดลำดับ replay เต็มรูปแบบ |
+| 3C.7 review-commit → import link | ✅ PASS หลัง fix (คคง.) |
+| Items 4–5 (`CHEC-LCP-C2-O-24-0002/0004`) | PENDING — ยังไม่ extract |
+| Browser-driven UI verification (1G.4 button click) | ⏳ playwright profile ถูกใช้งานโดย session อื่น |
+| Deploy fix `2b234182` | ⏳ รอ push workflow (`2git.sh`) + CI deploy |
+

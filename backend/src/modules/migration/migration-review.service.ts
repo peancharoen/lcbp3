@@ -326,11 +326,16 @@ export class MigrationReviewService {
     if (existingTag) {
       tagId = existingTag.id;
     } else {
-      const newTag = await manager.save(Tag, {
-        projectId,
-        tagName,
-        createdBy: userId,
-      });
+      // Bugfix: manager.save(Tag, plainObject) ไม่ trigger @BeforeInsert generatePublicId
+      // (TypeORM transform plain object หลัง broadcast) ทำให้ tags.public_id เป็น NULL —
+      // ต้อง create() เป็น entity instance ก่อน save ถึงจะ generate UUIDv7 ตาม ADR-019
+      const newTag = await manager.save(
+        manager.create(Tag, {
+          projectId,
+          tagName,
+          createdBy: userId,
+        })
+      );
       tagId = newTag.id;
     }
     const existingLink = await manager.findOne(CorrespondenceTag, {
@@ -723,14 +728,16 @@ export class MigrationReviewService {
         'No Subject';
       // ADR-042/047: ใช้ ocrText เป็น body ของเอกสารถ้ายังไม่มี body จากผู้ตรวจทาน
       const finalBody = dto.body || queueItem.body || queueItem.ocrText || '';
+      // Bugfix: MariaDB driver คืน DATE column เป็น string ('YYYY-MM-DD') ไม่ใช่ Date —
+      // เรียก .toISOString() ตรง ๆ ทำให้ทุก queue item ที่มี issued/received date ล้มเป็น 500
+      const toIsoDateString = (d?: string | Date): string | undefined => {
+        if (!d) return undefined;
+        return d instanceof Date ? d.toISOString() : d;
+      };
       const issuedDateStr =
-        dto.issuedDate ??
-        (queueItem.issuedDate ? queueItem.issuedDate.toISOString() : undefined);
+        dto.issuedDate ?? toIsoDateString(queueItem.issuedDate);
       const receivedDateStr =
-        dto.receivedDate ??
-        (queueItem.receivedDate
-          ? queueItem.receivedDate.toISOString()
-          : undefined);
+        dto.receivedDate ?? toIsoDateString(queueItem.receivedDate);
       // ADR-002: ป้องกัน revision race condition — ใช้ pessimistic lock ค้นหา
       // revision ปัจจุบันแทน count() ที่อ่าน snapshot แล้ว race กับ concurrent tx
       const currentRevisions = await queryRunner.manager.find(

@@ -97,6 +97,7 @@ import { Attachment } from '../../common/file-storage/entities/attachment.entity
 import { createReadStream, existsSync, readdirSync } from 'fs';
 import { createHash } from 'crypto';
 import * as path from 'path';
+import { v7 as uuidv7 } from 'uuid';
 import { RagBatchService } from './services/rag-batch.service';
 import { ReviewThresholdService } from './services/review-threshold.service';
 import { RagAttachmentIngestionService } from '../ai/services/rag-attachment-ingestion.service';
@@ -702,8 +703,8 @@ export class MigrationService {
             const insertRes = await queryRunner.manager.query<{
               insertId: number;
             }>(
-              "INSERT INTO tags (project_id, tag_name, color_code, created_by) VALUES (?, ?, 'default', ?)",
-              [project.id, tagName, userId]
+              "INSERT INTO tags (public_id, project_id, tag_name, color_code, created_by) VALUES (?, ?, ?, 'default', ?)",
+              [uuidv7(), project.id, tagName, userId]
             );
             tagId = insertRes.insertId;
           }

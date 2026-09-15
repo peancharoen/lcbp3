@@ -218,15 +218,26 @@ function createMockQueryRunner(
       const id = idCounter++;
       return { id, publicId: `uuid-${id}`, ...data };
     }),
-    save: jest.fn((entity: EntityCtor, data: Record<string, unknown>) => {
-      if (entity === Tag) {
-        return { id: qcfg.tagInsertRes.insertId, ...data };
+    save: jest.fn(
+      (
+        entity: EntityCtor | Record<string, unknown>,
+        data?: Record<string, unknown>
+      ) => {
+        if (entity === Tag) {
+          return { id: qcfg.tagInsertRes.insertId, ...data };
+        }
+        if (entity === CorrespondenceTag) {
+          return { ...data };
+        }
+        // single-arg save(entityInstance) — instance จาก manager.create(Tag, ...)
+        // (production code เปลี่ยนเป็น create()+save เพื่อให้ @BeforeInsert ทำงาน)
+        const single = entity as Record<string, unknown>;
+        if (single && typeof single === 'object' && 'tagName' in single) {
+          return { id: qcfg.tagInsertRes.insertId, ...single };
+        }
+        return undefined;
       }
-      if (entity === CorrespondenceTag) {
-        return { ...data };
-      }
-      return undefined;
-    }),
+    ),
     update: jest.fn((..._args: unknown[]) => undefined),
     query: jest.fn((sql: string) => {
       if (sql.includes('rfa_types')) return qcfg.rfaTypeRes;
@@ -1092,10 +1103,10 @@ describe('MigrationReviewService', () => {
         'idem-key-tags-002'
       );
 
-      const insertTagCalls = qr.manager.save.mock.calls.filter(
+      const createTagCalls = qr.manager.create.mock.calls.filter(
         (call) => call[0] === Tag
       );
-      expect(insertTagCalls.length).toBe(1);
+      expect(createTagCalls.length).toBe(1);
       expect(qr.commitTransaction).toHaveBeenCalled();
     });
 
