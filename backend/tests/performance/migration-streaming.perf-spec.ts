@@ -252,6 +252,67 @@ describe('Phase 4A: ExcelJS Streaming Performance (Spec 244)', () => {
     expect(heapDeltaMB).toBeLessThan(100);
   });
 
+  // เก็บเป็น opt-in (PERF_20K=1) — 20K แถวสร้าง workbook ช้าใน CI; ค่า default เหมือนเดิม
+  // ตาม risk note ของ test plan (จำกัด 1,000 แถวใน CI) แต่ SC-244 ระบุ 20,000 แถว
+  (process.env['PERF_20K'] === '1' ? it : it.skip)(
+    '4A.1-20k: ExcelJS Streaming 20,000 แถว → heap delta < 100MB (SC-244 เต็ม)',
+    async () => {
+      const filePath = path.join(tmpDir, 'perf-20000.xlsx');
+      await createLargeWorkbook(20000, filePath);
+
+      projectRepo.findOne.mockResolvedValue({
+        id: 5,
+        publicId: '019505a1-7c3e-7000-8000-perf-proj-001',
+        projectCode: 'LCBP3-C2',
+      });
+      organizationRepo.find.mockResolvedValue([
+        { id: 10, organizationCode: 'ITD', organizationName: 'Italian-Thai' },
+        {
+          id: 20,
+          organizationCode: 'TEAM',
+          organizationName: 'Team Consulting',
+        },
+      ]);
+      (correspondenceTypeRepo.find as jest.Mock).mockResolvedValue([
+        { id: 6, typeCode: 'LETTER', typeName: 'Letter' },
+      ]);
+      reviewQueueRepo.findOne.mockResolvedValue(null);
+      progressRepo.findOne.mockResolvedValue(null);
+      progressRepo.create.mockImplementation((dto: unknown) => dto);
+      progressRepo.save.mockImplementation((entity: unknown) =>
+        Promise.resolve({ ...entity, id: 1 })
+      );
+
+      if (global.gc) {
+        global.gc();
+      }
+      const heapBefore = process.memoryUsage().heapUsed;
+
+      const result = await legacyIngestionService.startIngestion({
+        filePath,
+        projectPublicId: '019505a1-7c3e-7000-8000-perf-proj-001',
+        pdfFolderPath: tmpDir,
+      });
+
+      const heapAfter = process.memoryUsage().heapUsed;
+      const heapDeltaMB = (heapAfter - heapBefore) / (1024 * 1024);
+      // retained heap = หน่วยความจำที่ยังค้างหลัง GC (ต้องรันด้วย --expose-gc)
+      let retainedDeltaMB = heapDeltaMB;
+      if (global.gc) {
+        global.gc();
+        retainedDeltaMB =
+          (process.memoryUsage().heapUsed - heapBefore) / (1024 * 1024);
+      }
+      process.stderr.write(
+        `[4A.1-20k] enqueued=${result.enqueuedCount} peakDelta=${heapDeltaMB.toFixed(1)}MB retainedDelta=${retainedDeltaMB.toFixed(1)}MB\n`
+      );
+
+      expect(result.status).toBe('COMPLETED');
+      expect(result.enqueuedCount).toBe(20000);
+      expect(heapDeltaMB).toBeLessThan(100);
+    }
+  );
+
   it('4A.1b: ExcelJS Streaming 1,000 แถว → heap delta < 100MB', async () => {
     const filePath = path.join(tmpDir, 'perf-1000.xlsx');
     await createLargeWorkbook(1000, filePath);

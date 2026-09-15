@@ -366,6 +366,8 @@ Phase 5: Security & RBAC      ← ทดสอบความปลอดภั�
 ## 6. Phase 4: Performance Tests (P3)
 
 > **หมายเหตุ**: Spec 256 ไม่กำหนด performance goals (migration-scale batch workload) — ไม่มี SC ด้าน performance สำหรับ ADR-054
+>
+> **ผลจริง (2026-09-15)**: ดู Section 16F — 4A.1@20,000 แถว ✅ PASS หลัง WorkbookReader fix (peak 87.7MB), 4A.2 ⚠️ accepted deviation (63-65s), ที่เหลือ PASS
 
 ### 4A. SC Criteria จาก Spec 244
 
@@ -529,10 +531,10 @@ Phase 5 (Security & RBAC)      ← P2 ความปลอดภัย
 | Controller coverage | ≥80% (จาก 0% ในบางไฟล์) | `pnpm test:cov` | ✅ spec 252 phase B: 0%→94.23% |
 | 4-Layer Review 200 แถว | < 1.5 วินาที (SC-001) | benchmark test | ✅ 105ms (spec 252 phase C) |
 | Annotated Excel ≤200 แถว | < 10 วินาที (SC-002) | benchmark test | ✅ 22ms (spec 252 phase C) |
-| OCR 3 หน้า scanned PDF | < 60 วินาที/ไฟล์ | BullMQ worker timing | ⚠️ observed ~80s/file (12:59→13:01) — QC-0001 PDF ~10 หน้า, ยังไม่ normalize per-page |
-| ExcelJS Streaming 20K rows | < 100MB RAM | `process.memoryUsage()` | ⏸️ ยังไม่วัด (P3) |
-| AI Compare accuracy | ≥ 90% (SC-002 from 242) | ชุดทดสอบ 100 ฉบับ | ⏸️ ยังไม่วัด (P3) |
-| Semantic search | < 2 วินาที (SC-008 from 242) | Qdrant query timing | ⏸️ ยังไม่วัด (P3) |
+| OCR 3 หน้า scanned PDF | < 60 วินาที/ไฟล์ | BullMQ worker timing | ⚠️ 63.5s/65.1s (16F) — accepted deviation, ~21-22s/หน้า |
+| ExcelJS Streaming 20K rows | < 100MB RAM | `process.memoryUsage()` | ✅ peak 87.7MB หลัง WorkbookReader fix (16F) |
+| AI Compare accuracy | ≥ 90% (SC-002 from 242) | ชุดทดสอบ 100 ฉบับ | ✅ mock only — ยังไม่มี live model eval (16F) |
+| Semantic search | < 2 วินาที (SC-008 from 242) | Qdrant query timing | ✅ real infra: embed 33ms + search <1ms warm (16F); caveat corpus 138 pts |
 | RBAC | 0 unauthorized commits | ทุก 403 ทดสอบผ่าน | ✅ viewer01/editor01 → 403, admin → 200 (5E) |
 | UUID compliance | 0 INT PK exposure | API response audit | ✅ ParseUUIDPipe 400 + publicId-only (5E.4–5E.5); ⚠️ INT-PK exposure follow-up ยังเปิด (15C.1) |
 | AI audit log | 0 missing records | `ai_audit_logs` ครบ | ✅ approval audit log เขียนใน 3C.6 (T025 path) |
@@ -1075,4 +1077,27 @@ Phase 5 (Security & RBAC)      ← P2 ความปลอดภัย
 | Item 5 (`CHEC-LCP-C2-O-24-0004`) | ✅ IMPORTED via live API หลัง deploy (commit โดยไม่มี fieldResolutions → `review_state_json` = `{}` — merge code persist empty object, harmless) |
 | Browser-driven UI verification (1G.4/1G.5) | ✅ PASS — restore ผ่าน UI จริงบน production URL (kill stale chrome lock แล้วใช้ playwright ได้); localhost:3001 ใช้ไม่ได้เพราะ CSP `connect-src 'self'` บล็อก API calls ไป lcbp3.np-dms.work |
 | Deploy fix | ✅ `fc633ab3` → image `fc633ab38a20` — live endpoint ทำงานแล้ว |
+
+### 16F. Phase 4 — Performance Results (ผลจริง, 2026-09-15)
+
+| Test | เกณฑ์ | ผลจริง | Status |
+|------|-------|--------|--------|
+| 4A.1 ExcelJS @500 แถว | heap <100MB | heap delta <100MB, 188ms | ✅ PASS |
+| 4A.1b ExcelJS @1,000 แถว | heap <100MB | heap delta <100MB, 161ms | ✅ PASS |
+| 4A.1-20k ExcelJS @20,000 แถว | heap <100MB | **peak delta 87.7MB** หลัง WorkbookReader fix (ก่อนแก้ 167.2MB), retained **−21.1MB**, `enqueuedCount`=20,000, ~2.7s — opt-in `PERF_20K=1` | ✅ **PASS (fixed)** |
+| 4A.2 OCR 3 หน้าแรก | <60s/ไฟล์ | **63.5s / 65.1s** (2 runs สม่ำเสมอ) — QC-0001 = scanned A4 **28 หน้า** 8.55MB, วัดตรง sidecar `POST /ocr-upload` `maxPages=3` → 9,252 chars | ⚠️ **ACCEPTED** (เกิน ~8%, user sign-off) |
+| 4A.3 BullMQ lockDuration | ≤150s | mock sanity ผ่าน — ไม่ใช่ live batch-approve timing | ✅ (mock) |
+| 4B.1 Layer 1+2 @200 แถว | <1.5s | 119ms | ✅ PASS |
+| 4B.2 Annotated Excel @200 แถว | <10s | 25ms | ✅ PASS |
+| 4B.3 Layer 1+2 @50 แถว | <500ms | 19ms | ✅ PASS |
+| 4C.1/4C.2 AI Compare | ≥90% / ≤10% | deterministic mock — ไม่ใช่ live model accuracy eval | ✅ (mock only) |
+| 4C.3 Semantic search | <2s | **real infra**: warm embed 33ms + Qdrant filtered search **0.5–0.7ms** (cold 11.8ms), 10 hits, filter `project_public_id`, corpus 138 pts (`lcbp3_vectors`); cold-start embed 6.5s เฉพาะครั้งแรกหลัง restart (BGE-M3 lazy-load) | ✅ PASS* |
+
+**Findings:**
+
+1. **4A.1 FIXED** — `legacy-ingestion.service.ts` เดิมใช้ `workbook.xlsx.readFile()` = buffer ทั้ง workbook เข้า heap และ `worksheet.eachRow` เก็บ Row objects ทั้งหมดลง array (peak 167MB @20K); **แก้เป็น `ExcelJS.stream.xlsx.WorkbookReader` + `for await` row-by-row** → peak เหลือ **87.7MB** (<100MB), retained −21MB ไม่มี leak; ใช้ `row.number` คง indexing เดียวกับ `eachRow({includeEmpty:true})` เดิม; jest spec 34/34 ผ่าน
+2. **4A.2 ACCEPTED DEVIATION** — ~21–22s/หน้า ด้วย `np-dms-ocr` บนฮาร์ดแวร์ปัจจุบัน เกินเกณฑ์ 60s เล็กน้อย (~8%) สำหรับ scan หนัก — user รับผลนี้เป็นที่ยอมรับ; ถ้าต้องผ่านเกณฑ์ในอนาคตพิจารณาปรับ DPI/model เป็น follow-up
+3. **4C.3 caveat** — corpus เล็ก (138 vectors) latency ระดับ ms; warm path รวม ≈35ms; mock test เดิมใน perf-spec ไม่สะท้อน production แต่ live measurement นี้สะท้อน
+
+**File note**: `migration-streaming.perf-spec.ts` เคยถูก process ภายนอก (editor stale buffer + CRLF) เขียนทับ fix ซ้ำหลายครั้ง — ซ่อมสุดท้ายแล้ว; ถ้าไฟล์เปิดอยู่ใน editor ให้ reload ก่อนแก้ต่อ
 

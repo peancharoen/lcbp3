@@ -5,6 +5,8 @@
 // - 2026-09-14: ADR-054 T005 (FR-001) — เขียน file path/filename ลง storage_temp_path +
 //   original_filename columns แทน details.source_file_path; details เหลือเฉพาะ residual
 //   ingestion keys (unresolved_orgs, original_row_index, original_document_number, revision_number)
+// - 2026-09-15: SC-244 4A.1 fix — เปลี่ยน readFile()+eachRow (buffer ทั้ง workbook, peak 167MB
+//   @20K แถว) เป็น ExcelJS.stream.xlsx.WorkbookReader ทีละ row (peak 87.7MB < 100MB)
 
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -190,22 +192,29 @@ export class LegacyIngestionService {
     let currentRowIndex = 0;
 
     try {
-      const workbook = new ExcelJS.Workbook();
-      await workbook.xlsx.readFile(filePath);
+      // SC-244: streaming จริงด้วย WorkbookReader — ไม่ buffer ทั้ง workbook ลง heap
+      // (readFile + eachRow เดิมกิน ~167MB ที่ 20K แถว; reader นี้ประมวลผลทีละ row)
+      const workbookReader = new ExcelJS.stream.xlsx.WorkbookReader(filePath, {
+        entries: 'emit',
+        sharedStrings: 'cache',
+        styles: 'cache',
+        worksheets: 'emit',
+      });
 
-      for (const worksheet of workbook.worksheets) {
-        const currentSheetName = worksheet.name;
+      for await (const worksheet of workbookReader) {
+        // WorksheetReader runtime มี .name (resolve จาก workbook rels) แต่ .d.ts ไม่ได้ declare
+        const currentSheetName = (
+          worksheet as ExcelJS.stream.xlsx.WorksheetReader & { name: string }
+        ).name;
         if (sheetName && currentSheetName !== sheetName) {
           continue;
         }
 
-        const rows: ExcelJS.Row[] = [];
-        worksheet.eachRow({ includeEmpty: true }, (row) => rows.push(row));
-
         const headerRowBuffer: unknown[][] = [];
 
-        for (const row of rows) {
-          currentRowIndex++;
+        for await (const row of worksheet) {
+          // row.number = เลขแถวจริงใน Excel — คง index เดียวกับ eachRow({includeEmpty:true}) เดิม
+          currentRowIndex = row.number;
 
           // ตรวจจับ Header Mapping จากหลายแถวแรก (รองรับ Excel ที่มีหัวเรื่อง/คำอธิบายก่อนแถว Header)
           if (!columnMapping) {
