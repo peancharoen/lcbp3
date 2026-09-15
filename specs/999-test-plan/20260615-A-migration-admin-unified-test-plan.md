@@ -1042,7 +1042,7 @@ Phase 5 (Security & RBAC)      ← P2 ความปลอดภัย
 แก้เพิ่ม: raw `INSERT INTO tags` ใน `migration.service.ts` (direct path) ก็ omit `public_id` — เพิ่ม `uuidv7()`
 
 **Verification**: commit คคง. ผ่าน `commitRecord` จริง → `status=IMPORTED`, `imported_correspondence_public_id` ตั้ง, `review_state_json` persist, `correspondence_tags` row สร้างด้วย `is_ai_suggested=0` (correct per R7) — jest migration 743/743 pass
-**Deploy note**: แก้ใน source + commit local แล้ว — container ที่รันอยู่ยังเป็นโค้ดเดิม ต้อง deploy/rebuild ก่อน live API จะใช้ fix ได้ (dist ที่ inject เพื่อ verify ถูก restore กลับแล้ว)
+**Deploy note**: แก้ใน source → squash push `fc633ab3` → CI deploy `192.168.10.9:5000/lcbp3-backend:fc633ab38a20` ✅ — **live API verified**: `POST /api/ai/migration/review` บน `CHEC-LCP-C2-O-24-0004` คืน 201 `IMPORTED` + `correspondencePublicId` จริง
 
 ### 16D. Phase 5E — Restore Endpoint Security (ผลจริง — ทุกข้อ PASS)
 
@@ -1064,7 +1064,8 @@ Phase 5 (Security & RBAC)      ← P2 ความปลอดภัย
 |--------|-------|
 | 3C.2 Incident replay (formal bulk-reset scenario) | ⏳ ยังไม่ได้รัน — QC-0001 แสดง protection สด ๆ แล้ว (bak รอดจาก placeholder overwrite) แต่ยังไม่ได้จัดลำดับ replay เต็มรูปแบบ |
 | 3C.7 review-commit → import link | ✅ PASS หลัง fix (คคง.) |
-| Items 4–5 (`CHEC-LCP-C2-O-24-0002/0004`) | PENDING — ยังไม่ extract |
+| Item 4 (`CHEC-LCP-C2-O-24-0002`) | PENDING — เหลือรายการเดียวสำหรับ test ต่อไป |
+| Item 5 (`CHEC-LCP-C2-O-24-0004`) | ✅ IMPORTED via live API หลัง deploy (commit โดยไม่มี fieldResolutions → `review_state_json` = `{}` — merge code persist empty object, harmless) |
 | Browser-driven UI verification (1G.4 button click) | ⏳ playwright profile ถูกใช้งานโดย session อื่น |
-| Deploy fix `2b234182` | ⏳ รอ push workflow (`2git.sh`) + CI deploy |
+| Deploy fix | ✅ `fc633ab3` → image `fc633ab38a20` — live endpoint ทำงานแล้ว |
 
