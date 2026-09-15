@@ -20,11 +20,12 @@ interface MigrationReviewQueueItem {
   originalFilename?: string | null;
 
   /** NEW — OCR backup (D5) */
-  ocrTextBak?: string | null;   // list endpoint MAY omit for payload size; detail endpoint MUST include presence flag
+  ocrTextBak?: string | null;   // detail endpoint includes full value; list endpoint OMITS it
+  hasOcrTextBak?: boolean;      // list endpoint presence flag (detail may also omit bak payload in future)
 
   /** NEW — review state (D9) — human decisions only */
   reviewState?: {
-    fieldResolutions?: MigrationFieldResolutionState;
+    fieldResolutions?: FieldResolutionDto[];  // commit DTO shape: {field, source, finalValue}[] (backend MigrationReviewState; frontend FieldResolution[])
     fieldAcknowledgments?: string[];  // AcknowledgeableField values
   } | null;
 

@@ -525,7 +525,7 @@ export class FileStorageService {
     // ADR-016: Path Traversal Guard — ตรวจสอบว่า sourceFilePath อยู่ภายใต้
     // staging directory (tempDir, MIGRATION_STAGING_DIR, หรือ LEGACY_NAS_PATH) เท่านั้น
     // LEGACY_NAS_PATH เพิ่มเพื่อรองรับการ import ไฟล์ PDF จาก NAS โดยตรง
-    // (legacy ingestion เก็บ path ใน details.source_file_path ซึ่งอาจอยู่ใน NAS mount)
+    // (legacy ingestion เก็บ path ใน storage_temp_path column ซึ่งอาจอยู่ใน NAS mount — ADR-054 D1)
     const resolvedSource = path.resolve(sourceFilePath);
     const allowedStagingRoots = [
       path.resolve(this.tempDir),

@@ -1,5 +1,8 @@
 // File: frontend/components/migration/__tests__/review-detail-page.test.tsx
 // Change Log:
+// - 2026-09-14: T019/T023 (ADR-054) — migrate fixtures to new contract: reviewState.* first-class
+//   (fieldResolutions ย้ายออกจาก details), storageTempPath แทน details.source_file_path และ
+//   เพิ่ม test ว่า CompareResultTable ได้รับ compareResult/capturedThresholds จาก details
 // - 2026-08-31: T041-T045 — เพิ่ม tag accept/reject tests (US3): tag chips render, accept/reject controls,
 //   tagDecisions payload excludes rejected tags, evidence included, decision toggle
 // - 2026-08-31: T035 — initial RED test for detail page diagnostics (ocrQuality + metadata.confidence as separate sections)
@@ -9,7 +12,7 @@
 import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { MigrationReviewStatus, MigrationReviewQueueItem } from '@/types/migration';
+import { CompareStatus, MigrationReviewStatus, MigrationReviewQueueItem } from '@/types/migration';
 
 // --- Mocks ---
 
@@ -17,6 +20,8 @@ import { MigrationReviewStatus, MigrationReviewQueueItem } from '@/types/migrati
 // to avoid TDZ errors (vi.mock is hoisted above const declarations)
 const mockGetQueueItem = vi.fn();
 const mockCommitMutateAsync = vi.fn();
+const mockRestoreQueueOcrText = vi.fn();
+const mockCompareTableProps = vi.fn();
 
 // Mock next/navigation — override setup mock to provide a specific id
 vi.mock('next/navigation', () => ({
@@ -40,6 +45,8 @@ vi.mock('@/lib/services/migration.service', () => ({
     approveQueueItem: vi.fn(),
     rejectQueueItem: vi.fn(),
     startExtractQueueItem: vi.fn(),
+    restoreQueueOcrText: (publicId: string, idempotencyKey: string) =>
+      mockRestoreQueueOcrText(publicId, idempotencyKey),
   },
 }));
 
@@ -81,7 +88,11 @@ vi.mock('@/components/migration/ocr-text-editor', () => ({
   OcrTextEditor: () => <div data-testid="ocr-text-editor" />,
 }));
 vi.mock('@/components/migration/compare-result-table', () => ({
-  CompareResultTable: () => <div data-testid="compare-result-table" />,
+  // T023: capture props เพื่อ assert ว่า page ส่ง compareResult/capturedThresholds จาก details
+  CompareResultTable: (props: Record<string, unknown>) => {
+    mockCompareTableProps(props);
+    return <div data-testid="compare-result-table" />;
+  },
 }));
 
 // Import after mocks (vi.mock is hoisted)
@@ -119,8 +130,20 @@ const mockItem: MigrationReviewQueueItem = {
       ],
       confidence: { summary: 0.7, correspondenceType: 0.6, tags: 0.8 },
     },
-    fieldResolutions: {},
+    // ADR-054: details มีเฉพาะ AI output + residual ingestion keys —
+    // ไม่มี fieldResolutions/source_file_path อีกต่อไป (assertion โดย omission)
   },
+  // ADR-054 (D9, FR-010): review state เป็น first-class field — fieldResolutions ย้ายมาที่นี่
+  reviewState: {
+    fieldResolutions: [
+      { field: 'subject', source: 'EXCEL', finalValue: 'Test Document Subject' },
+    ],
+    fieldAcknowledgments: ['tags'],
+  },
+  // ADR-054 (FR-010): path ไฟล์ staging เป็น first-class field (ไม่ใช่ details.source_file_path)
+  storageTempPath: '/staging/docs/DOC-001.pdf',
+  // ADR-054 (FR-007): OCR backup ที่ restore ได้ — first-class field (ไม่ใช่ใน details)
+  ocrTextBak: 'original OCR text before manual edit',
   createdAt: '2026-08-01T00:00:00.000Z',
 };
 
@@ -131,6 +154,11 @@ describe('MigrationReviewPage — detail page diagnostics', () => {
     vi.clearAllMocks();
     mockGetQueueItem.mockResolvedValue(mockItem);
     mockCommitMutateAsync.mockResolvedValue({ success: true });
+    mockRestoreQueueOcrText.mockResolvedValue({
+      publicId: 'test-uuid-123',
+      ocrTextLength: 39,
+      restored: true,
+    });
   });
 
   // T035: ocrQuality and metadata.confidence rendered as SEPARATE labeled sections
@@ -208,6 +236,26 @@ describe('MigrationReviewPage — detail page diagnostics', () => {
     expect(metadataSection).toHaveTextContent('60.0%');
     // Tags confidence: 0.8 → 80.0%
     expect(metadataSection).toHaveTextContent('80.0%');
+  });
+
+  // ADR-054 (FR-011): reviewState จาก API hydrate เข้า editor state —
+  // ack ที่บันทึกไว้ต้องไหลกลับเข้า commit payload โดยไม่ต้องกดใหม่
+  it('hydrates fieldAcknowledgments from reviewState into commit payload', async () => {
+    render(<MigrationReviewPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/DOC-001/)).toBeInTheDocument();
+    });
+
+    // fixture ตั้ง reviewState.fieldAcknowledgments = ['tags'] — submit ทันทีโดยไม่กด ack เพิ่ม
+    fireEvent.click(screen.getByRole('button', { name: /Execute Import/i }));
+
+    await waitFor(() => {
+      expect(mockCommitMutateAsync).toHaveBeenCalledTimes(1);
+    });
+
+    const callArg = mockCommitMutateAsync.mock.calls[0][0];
+    expect(callArg.fieldAcknowledgments).toContain('tags');
   });
 
   // T039: acknowledge buttons wire into fieldAcknowledgments commit payload
@@ -535,5 +583,163 @@ describe('MigrationReviewPage — detail page diagnostics', () => {
     );
     expect(urgentDecision).toBeDefined();
     expect(urgentDecision.accepted).toBe(false);
+  });
+
+  // --- T016 (ADR-054, FR-007): Restore OCR เดิม ---
+
+  // T016: ปุ่ม restore แสดงเมื่อ ocrTextBak ไม่ว่าง
+  it('renders restore OCR button when ocrTextBak is non-empty', async () => {
+    render(<MigrationReviewPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/DOC-001/)).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('restore-ocr-button')).toBeInTheDocument();
+  });
+
+  // T016: ปุ่ม restore ซ่อนเมื่อ ocrTextBak เป็น null (ไม่มี backup)
+  it('hides restore OCR button when ocrTextBak is null', async () => {
+    mockGetQueueItem.mockResolvedValue({ ...mockItem, ocrTextBak: null });
+
+    render(<MigrationReviewPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/DOC-001/)).toBeInTheDocument();
+    });
+
+    expect(screen.queryByTestId('restore-ocr-button')).not.toBeInTheDocument();
+  });
+
+  // T016: ปุ่ม restore ซ่อนเมื่อ ocrTextBak เป็น empty string
+  it('hides restore OCR button when ocrTextBak is an empty string', async () => {
+    mockGetQueueItem.mockResolvedValue({ ...mockItem, ocrTextBak: '' });
+
+    render(<MigrationReviewPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/DOC-001/)).toBeInTheDocument();
+    });
+
+    expect(screen.queryByTestId('restore-ocr-button')).not.toBeInTheDocument();
+  });
+
+  // T016: click → confirm → เรียก restoreQueueOcrText ด้วย publicId + idempotency-key → refetch item
+  it('calls restoreQueueOcrText with publicId and idempotency key after confirm, then refetches the item', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    try {
+      render(<MigrationReviewPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/DOC-001/)).toBeInTheDocument();
+      });
+
+      // initial fetch เสร็จแล้ว 1 ครั้ง
+      expect(mockGetQueueItem).toHaveBeenCalledTimes(1);
+
+      fireEvent.click(screen.getByTestId('restore-ocr-button'));
+
+      await waitFor(() => {
+        expect(mockRestoreQueueOcrText).toHaveBeenCalledTimes(1);
+      });
+
+      const [calledPublicId, idempotencyKey] = mockRestoreQueueOcrText.mock.calls[0] as [string, string];
+      expect(calledPublicId).toBe('test-uuid-123');
+      // ADR-016: mutation ต้องส่ง idempotency-key ที่ไม่ว่างเสมอ
+      expect(typeof idempotencyKey).toBe('string');
+      expect(idempotencyKey.length).toBeGreaterThan(0);
+
+      // refetch เพื่อให้ OcrTextEditor แสดงข้อความที่กู้คืน
+      await waitFor(() => {
+        expect(mockGetQueueItem).toHaveBeenCalledTimes(2);
+      });
+    } finally {
+      confirmSpy.mockRestore();
+    }
+  });
+
+  // T016: ยกเลิก confirm → ไม่เรียก service
+  it('does not call restoreQueueOcrText when the confirm dialog is cancelled', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+
+    try {
+      render(<MigrationReviewPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/DOC-001/)).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('restore-ocr-button'));
+
+      expect(mockRestoreQueueOcrText).not.toHaveBeenCalled();
+    } finally {
+      confirmSpy.mockRestore();
+    }
+  });
+
+  // --- T023 (ADR-054, FR-010): compare data มาจาก details ไม่ใช่ top-level field ---
+
+  // T023: CompareResultTable ต้องได้รับ compareResult/capturedThresholds ที่อ่านจาก
+  // item.details (AI output ใน ai_metadata_json) — top-level reads เดิมเป็น always-undefined
+  it('passes compareResult and capturedThresholds from item.details to CompareResultTable', async () => {
+    const compareResult = {
+      fieldResults: [
+        {
+          field: 'documentNumber',
+          excelValue: 'DOC-001',
+          ocrValue: 'DOC-001',
+          match: true,
+          foundInDocument: true,
+        },
+      ],
+      mismatches: [],
+      confidence: 0.9,
+    };
+    const capturedThresholds = { maxMismatchFields: 3, minConfidence: 0.7 };
+    mockGetQueueItem.mockResolvedValue({
+      ...mockItem,
+      compareStatus: CompareStatus.COMPARED,
+      details: {
+        ...(mockItem.details as Record<string, unknown>),
+        compareResult,
+        capturedThresholds,
+      },
+    });
+
+    render(<MigrationReviewPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('compare-result-table')).toBeInTheDocument();
+    });
+
+    const props = mockCompareTableProps.mock.calls[0][0] as {
+      compareResult?: unknown;
+      capturedThresholds?: unknown;
+    };
+    expect(props.compareResult).toEqual(compareResult);
+    expect(props.capturedThresholds).toEqual(capturedThresholds);
+  });
+
+  // T023: item ที่ไม่มี details.compareResult → CompareResultTable ได้ compareResult=undefined
+  // (ไม่พัง — component มี fallback "ไม่มีข้อมูลการเปรียบเทียบ")
+  it('passes undefined compareResult when details.compareResult is absent', async () => {
+    mockGetQueueItem.mockResolvedValue({
+      ...mockItem,
+      compareStatus: CompareStatus.COMPARED,
+    });
+
+    render(<MigrationReviewPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('compare-result-table')).toBeInTheDocument();
+    });
+
+    const props = mockCompareTableProps.mock.calls[0][0] as {
+      compareResult?: unknown;
+      capturedThresholds?: unknown;
+    };
+    expect(props.compareResult).toBeUndefined();
+    expect(props.capturedThresholds).toBeUndefined();
   });
 });

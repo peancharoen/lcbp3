@@ -25,6 +25,8 @@
 //   ของ job data ด้วย (ไม่ใช่แค่ data.payload) — enqueueRagPrepare ส่ง fields ที่ top level ไม่ได้ห่อใน payload
 // - 2026-09-13: Bugfix — processEmbedDocument และ processRagPrepare อัปเดต attachments.rag_status
 //   (PENDING → PROCESSING → INDEXED/FAILED) หลัง embed สำเร็จ/ล้มเหลว (ADR-022)
+// - 2026-09-14: ADR-054 T004 — แทน hardcoded 'ไม่มี ไฟล์ PDF (ยกเลิก/ถอน)' ทั้ง 3 จุดด้วย
+//   NO_PDF_OCR_PLACEHOLDER จาก migration.constants (single-source สำหรับ snapshot-skip rule)
 
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
@@ -61,6 +63,7 @@ import {
   type CompareResult,
 } from '../types/migration-compare-result.type';
 import { isDwgFile } from '../../migration/constants/dwg-exclusion.constant';
+import { NO_PDF_OCR_PLACEHOLDER } from '../../migration/constants/migration.constants';
 import { deriveTagName } from '../../migration/types/tag-mapping-rule';
 import {
   CompareStatus,
@@ -2469,8 +2472,9 @@ export class AiBatchProcessor extends WorkerHost {
       }
 
       // Fallback: ไม่มี PDF ให้บันทึกข้อความใน ocr_text
+      // ADR-054 T004: ใช้ NO_PDF_OCR_PLACEHOLDER constant เดียวกับ snapshot-skip rule (R3)
       if (!hasPdf) {
-        ocrText = 'ไม่มี ไฟล์ PDF (ยกเลิก/ถอน)';
+        ocrText = NO_PDF_OCR_PLACEHOLDER;
       }
 
       await this.persistLegacyEnrichmentResult({
@@ -2492,7 +2496,7 @@ export class AiBatchProcessor extends WorkerHost {
       // แต่หาก throw ออกไปแล้ว retry ครบ 3 ครั้งยังไม่สำเร็จ จะทำให้ queue item ตกเป็น AI_FAILED)
       try {
         await this.migrationService.updateQueueEnrichment(queueId, {
-          ocrText: 'ไม่มี ไฟล์ PDF (ยกเลิก/ถอน)',
+          ocrText: NO_PDF_OCR_PLACEHOLDER,
           aiFailed: true,
           aiIssues: [{ type: 'AI_ENRICHMENT_FAILED', message: errMsg }],
           aiStatus: MigrationAiStatus.FAILED,
@@ -2592,7 +2596,7 @@ export class AiBatchProcessor extends WorkerHost {
               );
             }
           } else {
-            ocrText = 'ไม่มี ไฟล์ PDF (ยกเลิก/ถอน)';
+            ocrText = NO_PDF_OCR_PLACEHOLDER;
           }
           ocrResults.set(item.queueId, { ocrText, ocrFailed, hasPdf });
 

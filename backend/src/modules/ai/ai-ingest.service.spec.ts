@@ -1,6 +1,8 @@
 // File: src/modules/ai/ai-ingest.service.spec.ts
 // Change Log
 // - 2026-05-14: เพิ่ม Unit Tests ครอบคลุม AiIngestService — ingest, listQueue, approve (ADR-023).
+// - 2026-09-14: ADR-054 US3 (T025/T026d, FR-008/FR-014) — approve() ต้องตั้ง
+//   record.importedCorrespondencePublicId จาก publicId ของ correspondence ที่ import สร้าง
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { getRepositoryToken } from '@nestjs/typeorm';
@@ -75,9 +77,11 @@ const mockFileStorage = {
 };
 
 const mockMigration = {
-  importCorrespondence: jest
-    .fn()
-    .mockResolvedValue({ publicId: 'corr-uuid-001' }),
+  importCorrespondence: jest.fn().mockResolvedValue({
+    message: 'Import successful',
+    correspondenceId: 42,
+    correspondencePublicId: 'corr-uuid-001',
+  }),
 };
 
 const mockReviewRepo = {
@@ -150,7 +154,9 @@ describe('AiIngestService', () => {
       publicId: 'att-uuid-001',
     });
     mockMigration.importCorrespondence.mockResolvedValue({
-      publicId: 'corr-uuid-001',
+      message: 'Import successful',
+      correspondenceId: 42,
+      correspondencePublicId: 'corr-uuid-001',
     });
     mockProjectRepo.findOne.mockResolvedValue({
       id: 5,
@@ -417,6 +423,14 @@ describe('AiIngestService', () => {
           status: MigrationReviewRecordStatus.IMPORTED,
         })
       );
+
+      // ADR-054 US3 (FR-008/FR-014): durable audit link → correspondences.uuid
+      expect(mockReviewRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          importedCorrespondencePublicId: 'corr-uuid-001',
+        })
+      );
+      expect(record.importedCorrespondencePublicId).toBe('corr-uuid-001');
 
       // ตรวจสอบ AuditLog ถูกสร้าง (T025)
       expect(mockAuditLogRepo.create).toHaveBeenCalledWith(

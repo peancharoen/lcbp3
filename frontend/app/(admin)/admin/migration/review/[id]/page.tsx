@@ -1,5 +1,9 @@
 // File: app/(admin)/admin/migration/review/[id]/page.tsx
 // Change Log:
+// - 2026-09-14: T023 (ADR-054) — ส่ง compareResult/capturedThresholds จาก item.details ให้
+//   CompareResultTable (top-level reads เดิม always-undefined — AI output อยู่ใน ai_metadata_json)
+// - 2026-09-14: T016 — เพิ่มปุ่ม "กู้คืน OCR เดิม" (restore-ocr-text endpoint, ADR-054 FR-007)
+//   และเปลี่ยน sourceFilePath มาอ่านจาก item.storageTempPath (FR-010 — details.source_file_path ถูกย้ายออก)
 // - 2026-09-02: เพิ่ม dark: variants สำหรับ OCR Quality, Metadata Confidence, Tag Suggestions
 //   และ warning sections (reviewReason, unresolvedFields, correspondenceTypeError) —
 //   แก้ปัญหาพื้นหลังสีอ่อน (bg-*-50/50) กับตัวอักษรสีเข้ม (text-*-700) อ่านไม่ออกใน dark mode
@@ -37,6 +41,8 @@ import {
   MigrationOcrQualityAssessment,
   MigrationMetadataConfidence,
   MigrationTagSuggestion,
+  CompareResult,
+  CapturedThresholds,
 } from '@/types/migration';
 import { Organization } from '@/types/organization';
 import { Discipline, CorrespondenceType } from '@/types/master-data';
@@ -46,7 +52,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeftIcon, CheckCircleIcon, XCircleIcon, RefreshCwIcon, ShieldAlertIcon, AlertTriangleIcon } from 'lucide-react';
+import { ArrowLeftIcon, CheckCircleIcon, XCircleIcon, RefreshCwIcon, ShieldAlertIcon, AlertTriangleIcon, RotateCcwIcon } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
@@ -100,6 +106,23 @@ const getTagSuggestions = (details: MigrationReviewQueueItem['details']): Migrat
   const tags = (metadata as Record<string, unknown>).tags;
   if (!Array.isArray(tags)) return [];
   return tags as MigrationTagSuggestion[];
+};
+
+/** ADR-054 (T023): ดึง compareResult จาก details อย่างปลอดภัย
+ *  (AI output ใน ai_metadata_json — ไม่ใช่ top-level field ของ item อีกต่อไป) */
+const getCompareResult = (details: MigrationReviewQueueItem['details']): CompareResult | undefined => {
+  if (!details || typeof details !== 'object') return undefined;
+  const compareResult = (details as Record<string, unknown>).compareResult;
+  if (!compareResult || typeof compareResult !== 'object') return undefined;
+  return compareResult as CompareResult;
+};
+
+/** ADR-054 (T023): ดึง capturedThresholds จาก details อย่างปลอดภัย (FR-010c) */
+const getCapturedThresholds = (details: MigrationReviewQueueItem['details']): CapturedThresholds | undefined => {
+  if (!details || typeof details !== 'object') return undefined;
+  const capturedThresholds = (details as Record<string, unknown>).capturedThresholds;
+  if (!capturedThresholds || typeof capturedThresholds !== 'object') return undefined;
+  return capturedThresholds as CapturedThresholds;
 };
 
 /** แปลง confidence 0-1 เป็น percentage string */
@@ -230,6 +253,13 @@ export default function MigrationReviewPage() {
             // remarks จาก Excel (column "หมายเหตุ") — stored บน queueItem
             remarks: res.remarks || '',
           });
+
+          // ADR-054 (FR-011): hydrate review state จาก review_state_json (D9)
+          // — reviewer decisions เดิมต้องแสดงกลับเมื่อเปิดรายการซ้ำ
+          setFieldResolutions(res.reviewState?.fieldResolutions ?? []);
+          setFieldAcknowledgments(
+            (res.reviewState?.fieldAcknowledgments ?? []) as AcknowledgeableField[],
+          );
         }
       } catch (error: unknown) {
         // เก็บ error object สำหรับ pretty print บนหน้า
@@ -378,6 +408,31 @@ export default function MigrationReviewPage() {
     });
   };
 
+  // ADR-054 (FR-007): กู้คืน OCR text จาก ocr_text_bak — restore ไม่ลบ backup (non-destructive)
+  const handleRestoreOcr = async () => {
+    if (!item?.publicId) return;
+    if (!window.confirm(migrationReviewT('restore_ocr_confirm'))) return;
+    try {
+      setSubmitting(true);
+      const idempotencyKey = `restore-ocr-${item.publicId}-${Date.now()}`;
+      await migrationService.restoreQueueOcrText(item.publicId, idempotencyKey);
+      toast.success(migrationReviewT('restore_ocr_success'));
+      // refetch เพื่อให้ OcrTextEditor แสดงข้อความที่กู้คืน (sync ผ่าน initialOcrText prop)
+      await fetchItem(item.publicId);
+    } catch (error: unknown) {
+      // ADR-007: แสดง userMessage จาก structured error ของ interceptor (fallback raw axios shape)
+      const err = error as {
+        error?: { message?: string };
+        response?: { data?: { message?: string } };
+      };
+      toast.error(
+        err?.error?.message || err?.response?.data?.message || migrationReviewT('restore_ocr_error')
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const onReject = async () => {
     if (!item || !item.publicId || !confirm('Are you sure you want to REJECT this document? It will not be imported.')) return;
 
@@ -412,10 +467,9 @@ export default function MigrationReviewPage() {
     );
   }
 
-  const sourceFilePath =
-    typeof item.details?.source_file_path === 'string'
-      ? item.details.source_file_path
-      : null;
+  // ADR-054 (FR-010): source file path เป็น first-class field — อ่านจาก storageTempPath
+  // (details.source_file_path ถูกย้ายออกจาก details payload แล้ว)
+  const sourceFilePath = item.storageTempPath ?? null;
 
   // ADR-050 (T037): ดึง diagnostic data จาก details
   const ocrQuality = getOcrQuality(item.details);
@@ -457,16 +511,40 @@ export default function MigrationReviewPage() {
               <StagingFileViewer sourceFilePath={sourceFilePath} />
             </CardContent>
           </Card>
-          {/* Feature 242: Compare Result Table (FR-007, FR-011, FR-012c) */}
+          {/* Feature 242: Compare Result Table (FR-007, FR-011, FR-012c)
+              ADR-054: compareResult/capturedThresholds เป็น AI output ใน details
+              (ai_metadata_json) — ไม่ใช่ top-level field ของ item (read เดิม always-undefined) */}
           {item.compareStatus && (
             <CompareResultTable
               compareStatus={item.compareStatus}
-              compareResult={item.compareResult}
+              compareResult={getCompareResult(item.details)}
               compareUnavailableReason={item.compareUnavailableReason}
-              capturedThresholds={item.capturedThresholds}
+              capturedThresholds={getCapturedThresholds(item.details)}
               fieldResolutions={fieldResolutions}
               onFieldResolutionChange={setFieldResolutions}
             />
+          )}
+
+          {/* ADR-054 (FR-007): ปุ่มกู้คืน OCR เดิม — แสดงเฉพาะเมื่อมี ocrTextBak
+              (สำเนาสำรองยังคงถูกเก็บไว้หลัง restore — restore ไม่ลบ ocr_text_bak) */}
+          {item.publicId && item.ocrTextBak && (
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                data-testid="restore-ocr-button"
+                title={migrationReviewT('restore_ocr_tooltip')}
+                onClick={handleRestoreOcr}
+                disabled={submitting}
+              >
+                <RotateCcwIcon className="w-4 h-4 mr-2" />
+                {migrationReviewT('restore_ocr_button')}
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                {migrationReviewT('restore_ocr_note')}
+              </span>
+            </div>
           )}
 
           {/* ADR-047: OCR 3 หน้าแรก Text Editor — superadmin/admin แก้ไขและ Re-embed RAG ได้ */}

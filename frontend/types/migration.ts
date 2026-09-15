@@ -1,5 +1,10 @@
 // File: types/migration.ts
 // Change Log:
+// - 2026-09-14: T022 — ADR-054 contract finish: ตัด fieldResolutions ออกจาก details
+//   (ย้ายไป reviewState.fieldResolutions), ย้าย compareResult/capturedThresholds ลง details
+//   (AI output — ไม่เคยเป็น top-level field), เพิ่ม hasOcrTextBak flag สำหรับ list response
+// - 2026-09-14: T016 — เพิ่ม first-class fields ตาม ADR-054: storageTempPath, originalFilename,
+//   ocrTextBak, reviewState, importedCorrespondencePublicId (FR-007, FR-010)
 // - 2026-08-31: T029 — เพิ่ม requiresHumanReview, ocrQualityConfidence, MigrationAiExtractionDetails (ADR-050)
 // - 2026-08-23: เพิ่ม details field ใน MigrationReviewQueueItem สำหรับ source_file_path/disciplineId
 // - 2026-05-22: Initial creation and update for ADR-019 compatibility and added subject fields
@@ -76,7 +81,9 @@ export interface MigrationTagSuggestion {
   evidence: string;
 }
 
-/** ADR-050: สถานะการ resolve รายช่องของผู้ตรวจสอบ (data-model.md §4) */
+/** ADR-050: reference shape ของสถานะการ resolve รายช่อง (data-model.md §4)
+ *  ADR-054: ไม่ได้อยู่ใน details อีกต่อไป — backend ใช้เป็น commit-gate state เท่านั้น
+ *  (reviewState.fieldResolutions เป็น FieldResolution[] ตาม Feature 242 contract) */
 export interface MigrationFieldResolutionState {
   ocrQuality?: 'edited' | 'acknowledged';
   summary?: 'edited' | 'acknowledged';
@@ -113,13 +120,28 @@ export interface MigrationExtractedMetadata {
 export type MigrationAiFailureReason = 'SCHEMA_VALIDATION_FAILED' | 'LLM_CALL_FAILED';
 
 /** ADR-050: details JSON shape เต็มรูปแบบสำหรับ AI extraction output (data-model.md §1)
- *  มี index signature เพื่อรองรับ legacy/extra fields (เช่น source_file_path, disciplineId)
- *  ที่อาจอยู่ร่วมกับ new-shape fields ใน JSON เดียวกัน */
+ *  ADR-054: bag แคบลงเหลือ AI output + residual ingestion keys เท่านั้น —
+ *  `fieldResolutions` ย้ายไป `reviewState` (review_state_json), `source_file_path`
+ *  ย้ายไป `storageTempPath` column, `attachment_ids` ซ้ำ `temp_attachment_ids` column
+ *  มี index signature เพื่อรองรับ legacy/extra fields (เช่น disciplineId, attachments[]
+ *  ที่ enrichWithAttachments ฉีดตอน serialize) ที่อาจอยู่ร่วมกับ new-shape fields ใน JSON เดียวกัน */
 export interface MigrationAiExtractionDetails {
   ocrQuality: MigrationOcrQualityAssessment;
   metadata: MigrationExtractedMetadata;
   aiFailureReason?: MigrationAiFailureReason;
-  fieldResolutions: MigrationFieldResolutionState;
+  /** Feature 242: ผลการเปรียบเทียบทะเบียนกับเอกสารจริง (FR-007) — AI output อยู่ใน details เสมอ */
+  compareResult?: CompareResult;
+  /** Feature 242 (FR-010c): ค่า threshold ที่จับภาพไว้ ณ เวลาประมวลผล */
+  capturedThresholds?: CapturedThresholds;
+  // ── ADR-054 D3: residual ingestion keys (ไม่มี dedicated column — re-extract preserve) ──
+  /** index ของแถวใน Excel ตอน ingestion (เก็บไว้ debug/audit) */
+  original_row_index?: number;
+  /** ชื่อองค์กรผู้ส่ง/ผู้รับจาก Excel ที่ resolve ไม่ได้ตอน ingestion */
+  unresolved_orgs?: Record<string, string>;
+  /** เลขที่เอกสารดั้งเดิมก่อนถูกเติม revision suffix (-R1, -R2, …) */
+  original_document_number?: string;
+  /** ลำดับ revision ภายใน batch เดียวกัน (0 = ต้นฉบับ) */
+  revision_number?: number;
   [key: string]: unknown;
 }
 
@@ -164,16 +186,36 @@ export interface MigrationReviewQueueItem {
   tempAttachmentIds?: number[];
   compareStatus?: CompareStatus;
   compareUnavailableReason?: string;
-  compareResult?: CompareResult;
-  capturedThresholds?: CapturedThresholds;
   /** Edge Case 4: flag แสดงว่า AI enrichment ล้มเหลวหลัง retry ครบ */
   aiFailed?: boolean;
   /** ADR-050: server-computed flag — แสดงว่า item ต้องการการตรวจสอบโดยมนุษย์ (FR-003) */
   requiresHumanReview?: boolean;
   /** ADR-050: OCR quality confidence 0-1, promoted from details.ocrQuality.confidence (FR-004) */
   ocrQualityConfidence?: number | null;
-  /** Metadata จาก ingestion / AI enrichment เช่น source_file_path, disciplineId (ADR-047)
+  /** ADR-054 (FR-010): ingestion metadata — path ไฟล์ staging (ย้ายออกจาก details.source_file_path) */
+  storageTempPath?: string | null;
+  /** ADR-054 (FR-010): ชื่อไฟล์ต้นฉบับ (ย้ายออกจาก details.original_filename) */
+  originalFilename?: string | null;
+  /** ADR-054 (D5, FR-007): OCR text สำรองก่อน user edit — restore ไม่ลบค่านี้
+   *  list endpoint อาจไม่ส่ง (payload size) — ใช้ hasOcrTextBak ตรวจ presence แทน
+   *  แต่ detail endpoint ต้องส่งเสมอ */
+  ocrTextBak?: string | null;
+  /** ADR-054 (D5): presence flag บน LIST response — true เมื่อ ocr_text_bak ไม่ว่าง
+   *  (detail response ส่ง ocrTextBak เต็ม แทน flag นี้) */
+  hasOcrTextBak?: boolean;
+  /** ADR-054 (D9, FR-010): review state — การตัดสินใจของผู้ตรวจสอบเท่านั้น
+   *  (fieldResolutions ย้ายออกจาก details.fieldResolutions; shape = FieldResolutionDto[]
+   *  ตาม backend MigrationReviewState / data-model.md — ไม่ใช่ FieldResolutionState object) */
+  reviewState?: {
+    fieldResolutions?: FieldResolution[];
+    fieldAcknowledgments?: string[];
+  } | null;
+  /** ADR-054 (D10, FR-010): audit link — publicId ของ correspondence ที่ import สำเร็จแล้ว */
+  importedCorrespondencePublicId?: string | null;
+  /** Metadata จาก ingestion / AI enrichment เช่น disciplineId (ADR-047)
    *  ADR-050: หลัง refactor จะมี shape เต็มรูปแบบตาม MigrationAiExtractionDetails
+   *  ADR-054: AI output + residual ingestion keys เท่านั้น — source_file_path/original_filename/
+   *  fieldResolutions ย้ายออกเป็น first-class fields แล้ว
    *  Legacy items (pre-refactor) อาจมี shape เดิมที่ไม่มี metadata.confidence */
   details?: MigrationAiExtractionDetails | Record<string, unknown> | null;
 }

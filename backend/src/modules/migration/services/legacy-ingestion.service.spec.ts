@@ -1,6 +1,9 @@
 // File: backend/src/modules/migration/services/legacy-ingestion.service.spec.ts
 // Change Log:
 // - 2026-08-20: สร้าง Unit Test สำหรับ LegacyIngestionService (ADR-047)
+// - 2026-09-14: ADR-054 (FR-001) — แก้ 8 stale assertions จาก details.source_file_path
+//   เป็น storageTempPath/originalFilename columns + contract-lock assertions
+//   (details ต้องไม่มี source_file_path อีก)
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
@@ -676,7 +679,10 @@ describe('LegacyIngestionService (ADR-047)', () => {
       mockReviewQueueRepo.save.mock.calls[0] as unknown[]
     )[0] as MockEntity;
     const details = savedEntity.details as Record<string, unknown>;
-    expect(details.source_file_path).toContain('DOC-NOEXT');
+    // ADR-054 D1/D2 (FR-001): file location ลง column จริง ไม่ใช่ details bag
+    expect(String(savedEntity.storageTempPath)).toContain('DOC-NOEXT');
+    expect(savedEntity.originalFilename).toBe('DOC-NOEXT');
+    expect(details).not.toHaveProperty('source_file_path');
   });
 
   it('ควร resolve staging PDF แบบ case-insensitive (.PDF ตัวใหญ่ใน disk, .pdf ตัวเล็กใน Excel)', async () => {
@@ -730,7 +736,10 @@ describe('LegacyIngestionService (ADR-047)', () => {
     )[0] as MockEntity;
     const details = savedEntity.details as Record<string, unknown>;
     // ต้อง match ได้เพราะ resolveStagingPdf ทำ case-insensitive search
-    expect(details.source_file_path).toContain('DOC-CASE-TEST');
+    // ADR-054 D1/D2: assert บน storageTempPath/originalFilename columns (ไม่ใช่ details)
+    expect(String(savedEntity.storageTempPath)).toContain('DOC-CASE-TEST');
+    expect(savedEntity.originalFilename).toBe('DOC-CASE-TEST.PDF');
+    expect(details).not.toHaveProperty('source_file_path');
   });
 
   it('ควรไม่ resolve staging PDF เมื่อชื่อไฟล์ใน Excel ไม่ตรงกับไฟล์จริงเลย', async () => {
@@ -779,8 +788,11 @@ describe('LegacyIngestionService (ADR-047)', () => {
       mockReviewQueueRepo.save.mock.calls[0] as unknown[]
     )[0] as MockEntity;
     const details = savedEntity.details as Record<string, unknown>;
-    // source_file_path ต้องเป็นค่าที่ไม่ resolve (เก็บเฉพาะ rawFileName ไม่ใช่ full path)
-    expect(details.source_file_path).toBe('NONEXISTENT-FILE-NAME.pdf');
+    // ADR-054 D1: storageTempPath เก็บค่าที่ไม่ resolve (rawFileName เดิม ไม่ใช่ full path)
+    // — extract-time resolver จะขยายผ่าน recursive search (D330) ภายหลัง
+    expect(savedEntity.storageTempPath).toBe('NONEXISTENT-FILE-NAME.pdf');
+    expect(savedEntity.originalFilename).toBe('NONEXISTENT-FILE-NAME.pdf');
+    expect(details).not.toHaveProperty('source_file_path');
     // และต้องมี error log สำหรับ FILE_NOT_FOUND
     expect(mockErrorRepo.save).toHaveBeenCalled();
   });
@@ -838,10 +850,12 @@ describe('LegacyIngestionService (ADR-047)', () => {
       mockReviewQueueRepo.save.mock.calls[0] as unknown[]
     )[0] as MockEntity;
     const details = savedEntity.details as Record<string, unknown>;
-    // D330: source_file_path ต้องเป็น full path ที่ resolve จาก recursive search
-    expect(details.source_file_path).toContain('DOC-NESTED-001.pdf');
-    expect(String(details.source_file_path)).toContain('Incoming');
-    expect(String(details.source_file_path)).toContain('08C.2');
+    // D330: storageTempPath ต้องเป็น full path ที่ resolve จาก recursive search
+    expect(String(savedEntity.storageTempPath)).toContain('DOC-NESTED-001.pdf');
+    expect(String(savedEntity.storageTempPath)).toContain('Incoming');
+    expect(String(savedEntity.storageTempPath)).toContain('08C.2');
+    expect(savedEntity.originalFilename).toBe('DOC-NESTED-001.pdf');
+    expect(details).not.toHaveProperty('source_file_path');
   });
 
   it('D330: ควร resolve staging PDF แบบ recursive ใน legacyNasPath เมื่อ stagingDir ไม่พบ', async () => {
@@ -904,10 +918,12 @@ describe('LegacyIngestionService (ADR-047)', () => {
       mockReviewQueueRepo.save.mock.calls[0] as unknown[]
     )[0] as MockEntity;
     const details = savedEntity.details as Record<string, unknown>;
-    // D330: source_file_path ต้องเป็น full path ที่ resolve จาก legacyNasPath recursive search
-    expect(details.source_file_path).toContain('DOC-LEGACY-001.pdf');
-    expect(String(details.source_file_path)).toContain('Incoming');
-    expect(String(details.source_file_path)).toContain('2567');
+    // D330: storageTempPath ต้องเป็น full path ที่ resolve จาก legacyNasPath recursive search
+    expect(String(savedEntity.storageTempPath)).toContain('DOC-LEGACY-001.pdf');
+    expect(String(savedEntity.storageTempPath)).toContain('Incoming');
+    expect(String(savedEntity.storageTempPath)).toContain('2567');
+    expect(savedEntity.originalFilename).toBe('DOC-LEGACY-001.pdf');
+    expect(details).not.toHaveProperty('source_file_path');
 
     delete process.env.LEGACY_NAS_PATH;
   });
@@ -969,8 +985,11 @@ describe('LegacyIngestionService (ADR-047)', () => {
       mockReviewQueueRepo.save.mock.calls[0] as unknown[]
     )[0] as MockEntity;
     const details = savedEntity.details as Record<string, unknown>;
-    expect(String(details.source_file_path)).toContain('I672-0003');
-    expect(String(details.source_file_path)).toContain('CHEC-LCP-C2-O-24-0001');
+    expect(String(savedEntity.storageTempPath)).toContain('I672-0003');
+    expect(String(savedEntity.storageTempPath)).toContain(
+      'CHEC-LCP-C2-O-24-0001'
+    );
+    expect(details).not.toHaveProperty('source_file_path');
   });
 
   it('D332: ควร resolve staging PDF ด้วย สคฉ.3-YYYY → I672-YYYY (เลขส่งออก)', async () => {
@@ -1030,7 +1049,8 @@ describe('LegacyIngestionService (ADR-047)', () => {
       mockReviewQueueRepo.save.mock.calls[0] as unknown[]
     )[0] as MockEntity;
     const details = savedEntity.details as Record<string, unknown>;
-    expect(String(details.source_file_path)).toContain('I672-0127');
+    expect(String(savedEntity.storageTempPath)).toContain('I672-0127');
+    expect(details).not.toHaveProperty('source_file_path');
   });
 
   it('D333: ควร resolve staging PDF ด้วย LCBP3-C2-XXX-XXX pattern เมื่อ I672-XXXX ไม่ตรง', async () => {
@@ -1089,9 +1109,10 @@ describe('LegacyIngestionService (ADR-047)', () => {
       mockReviewQueueRepo.save.mock.calls[0] as unknown[]
     )[0] as MockEntity;
     const details = savedEntity.details as Record<string, unknown>;
-    expect(String(details.source_file_path)).toContain(
+    expect(String(savedEntity.storageTempPath)).toContain(
       'LCBP3-C2-MAT-STR-MAT-0001-A'
     );
+    expect(details).not.toHaveProperty('source_file_path');
   });
 
   it('ควรข้ามแถวที่ไม่มีเลขที่เอกสาร', async () => {

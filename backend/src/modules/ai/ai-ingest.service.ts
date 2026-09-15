@@ -1,6 +1,11 @@
 // File: src/modules/ai/ai-ingest.service.ts
 // Change Log
 // - 2026-05-14: เพิ่ม service สำหรับ Legacy Migration staging queue ตาม ADR-023.
+// - 2026-09-14: ADR-054 T007 (FR-014/FR-001) — ingest() เขียน storageTempPath (file path
+//   ของ attachment ที่ upload แล้ว) + originalFilename ลง column จริงของ queue item
+// - 2026-09-14: ADR-054 US3 (T026d, FR-008/FR-014) — approve() ตั้ง
+//   record.importedCorrespondencePublicId จาก correspondencePublicId ที่
+//   importCorrespondence คืนมา (audit link → correspondences.uuid)
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -99,6 +104,10 @@ export class AiIngestService {
         this.reviewRepo.create({
           batchId: dto.batchId,
           originalFileName: recordInput.originalFileName ?? file.originalname,
+          // ADR-054 D1/D2: ingestion metadata ลง column จริง (แยกจาก originalFileName
+          // ซึ่ง map คนละ column `original_file_name` — ใช้โดย toResponse)
+          originalFilename: file.originalname,
+          storageTempPath: attachment.filePath,
           sourceAttachmentPublicId: attachment.publicId,
           tempAttachmentId: attachment.id,
           extractedMetadata: recordInput.extractedMetadata,
@@ -116,6 +125,9 @@ export class AiIngestService {
             batchId: dto.batchId,
             originalFileName:
               recordInput.originalFileName ?? `${dto.batchId}-record.json`,
+            // ADR-054 D2: record-only branch ไม่มีไฟล์จริง — storageTempPath คง NULL
+            // แต่ยังเก็บ original_filename จาก metadata ถ้ามี
+            originalFilename: recordInput.originalFileName,
             extractedMetadata: recordInput.extractedMetadata,
             confidenceScore: recordInput.confidenceScore,
             status: this.deriveStatus(recordInput),
@@ -229,6 +241,13 @@ export class AiIngestService {
     );
 
     record.status = MigrationReviewRecordStatus.IMPORTED;
+    // ADR-054 US3 (T026d, FR-008/FR-014): durable audit link → correspondences.uuid
+    // ของเอกสารที่ import สร้าง (UUIDv7 string ตาม ADR-019 — ห้าม convert เป็น number)
+    record.importedCorrespondencePublicId =
+      importResult.correspondencePublicId ?? null;
+    // FR-008: reviewer attribution บน row ที่ retain ไว้ (reviewed_by เป็น INT FK → users)
+    record.reviewedBy = userId;
+    record.reviewedAt = new Date();
     record.extractedMetadata = {
       ...(record.extractedMetadata ?? {}),
       humanOverride: dto.finalMetadata ?? {},

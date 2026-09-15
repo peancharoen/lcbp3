@@ -61,7 +61,7 @@ specs/200-fullstacks/256-queue-metadata-separation/
 ### Source Code (repository root)
 
 ```text
-specs/99-archives/deltas/
+specs/03-Data-and-Storage/deltas/
 └── 2026-09-14-adr-054-migration-metadata-separation.sql   # ALTER + TRUNCATE
 
 backend/src/modules/

@@ -3,6 +3,16 @@
 // - 2026-08-31: Initial creation — MigrationAiExtractionDetails contract types per ADR-050
 //   (data-model.md §1-4). Backend-only representation of the AI metadata extraction output
 //   contract (`ocrQuality` + per-field `metadata.confidence` + `fieldResolutions`).
+// - 2026-09-14: ADR-054 T003 — แคบลงเหลือ AI output + residual ingestion keys เท่านั้น:
+//   ตัด `fieldResolutions` ออกจาก details (ย้ายไป `review_state_json` ผ่าน `MigrationReviewState`),
+//   `source_file_path` ย้ายไป `storage_temp_path` column, `attachment_ids` ซ้ำ `temp_attachment_ids`
+//   column; เพิ่ม `MigrationReviewState` (fieldResolutions + fieldAcknowledgments) สำหรับ
+//   review_state_json ใหม่
+
+import type {
+  AcknowledgeableField,
+  FieldResolutionDto,
+} from '../dto/commit-migration-review.dto';
 
 /**
  * ADR-050 §9 / data-model.md §2 — คุณภาพการอ่าน OCR text (แยกจาก business confidence เด็ดขาด)
@@ -63,6 +73,10 @@ export type AiFailureReason = 'SCHEMA_VALIDATION_FAILED' | 'LLM_CALL_FAILED';
 /**
  * data-model.md §4 — บันทึกว่า reviewer แก้ไข/รับทราบ field ที่ confidence ต่ำกว่า threshold
  * แล้วหรือยัง (ต่อ field ไม่ใช่ต่อ item — Decision 8) ใช้เป็น commit gate โดย FOUND-COMMIT unit
+ *
+ * ADR-054: เดิมฝังอยู่ใน `details.fieldResolutions` — หลัง D9 review state ย้ายไป
+ * `review_state_json` (ดู `MigrationReviewState`) คง type นี้ไว้เป็น reference shape ของ
+ * per-field resolution state ตาม Feature 242 contract (shape ไม่เปลี่ยน เปลี่ยนเฉพาะที่เก็บ)
  */
 export interface FieldResolutionState {
   ocrQuality?: 'edited' | 'acknowledged';
@@ -72,13 +86,37 @@ export interface FieldResolutionState {
 }
 
 /**
- * data-model.md §1 — shape ของ `migration_review_queue.ai_metadata_json` (`details`)
+ * ADR-054 D9 — shape ของ `migration_review_queue.review_state_json` (`reviewState`)
+ * เก็บเฉพาะการตัดสินใจของมนุษย์ (review state) — AI pipeline ห้ามเขียน column นี้เด็ดขาด
+ * (FR-003); re-extract ต้องไม่แตะต้อง (data-model.md ownership matrix)
+ */
+export interface MigrationReviewState {
+  /** การตัดสินใจรายช่องของผู้ตรวจสอบ — accept/reject/source ต่อ field (Feature 242, FR-011/FR-011b) */
+  fieldResolutions?: FieldResolutionDto[];
+  /** field ที่ผู้ตรวจสอบรับทราบ confidence ต่ำโดยไม่แก้ไขค่า (ADR-050 §4) */
+  fieldAcknowledgments?: AcknowledgeableField[];
+}
+
+/**
+ * data-model.md §1 + ADR-054 — shape ของ `migration_review_queue.ai_metadata_json` (`details`)
  * หลัง extraction ตาม ADR-050 (new-format marker คือ `metadata.confidence` ที่มีครบ 3 field)
+ *
+ * ADR-054: bag นี้แคบลงเหลือ **AI extraction output + residual ingestion keys** เท่านั้น
+ * - `fieldResolutions` ย้ายไป `review_state_json` (ดู `MigrationReviewState`)
+ * - `source_file_path` ย้ายไป `storage_temp_path` column (D1)
+ * - `attachment_ids` ซ้ำ `temp_attachment_ids` column — ไม่เขียนอีก
  */
 export interface MigrationAiExtractionDetails extends Record<string, unknown> {
   ocrQuality: OcrQualityAssessment;
   metadata: MigrationAiExtractionMetadata;
   aiFailureReason?: AiFailureReason;
-  /** เพิ่มโดย review actions เท่านั้น ไม่ใช่โดย extraction (data-model.md §1) */
-  fieldResolutions?: FieldResolutionState;
+  // ── Residual ingestion keys (ADR-054 D3 preservedFields — ไม่มี dedicated column) ──
+  /** index ของแถวใน Excel ตอน ingestion (เก็บไว้ debug/audit) */
+  original_row_index?: number;
+  /** ชื่อองค์กรผู้ส่ง/ผู้รับจาก Excel ที่ resolve ไม่ได้ตอน ingestion */
+  unresolved_orgs?: Record<string, string>;
+  /** เลขที่เอกสารดั้งเดิมก่อนถูกเติม revision suffix (-R1, -R2, …) */
+  original_document_number?: string;
+  /** ลำดับ revision ภายใน batch เดียวกัน (0 = ต้นฉบับ) */
+  revision_number?: number;
 }

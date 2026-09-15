@@ -2,6 +2,9 @@
 // Change Log:
 // - 2026-08-17: Initial creation — Centralize magic strings & constants สำหรับ migration module
 //   ป้องกันการกระจายของ string literals ที่ทำให้ refactor ยาก (Issue #3, Phase 2.4)
+// - 2026-09-14: ADR-054 T004 — single-source OCR failure placeholder (NO_PDF_OCR_PLACEHOLDER
+//   + OCR_FAILURE_PLACEHOLDERS + isOcrFailurePlaceholder) สำหรับ snapshot-skip rule ของ
+//   ocr_text_bak (R3) — เดิม string นี้ hardcode กระจายใน ai-batch.processor.ts 3 จุด
 
 /**
  * ค่า Master Data ที่ migration module อ้างอิง — ต้องมีใน DB seed data
@@ -69,3 +72,27 @@ export const SETTING_KEY_BATCH_TIMEOUT =
  */
 export const SETTING_KEY_REVIEW_THRESHOLDS =
   'MIGRATION_REVIEW_THRESHOLDS' as const;
+
+/**
+ * ADR-054 R3/D5 — OCR failure placeholder ที่ extractor เขียนลง `ocr_text` เมื่อไม่มีไฟล์ PDF
+ * ต้อง single-source ที่นี่เพื่อให้ snapshot rule (`ocr_text` → `ocr_text_bak`) ข้ามการสำเนา
+ * ค่า placeholder ได้ถูกต้อง — bak ต้องเก็บ "ข้อความจริงล่าสุด" เสมอ ไม่ใช่ placeholder
+ * (ผู้เขียน placeholder: AiBatchProcessor — processLegacyAiEnrichment + processLegacyOcrBatchPhase)
+ */
+export const NO_PDF_OCR_PLACEHOLDER = 'ไม่มี ไฟล์ PDF (ยกเลิก/ถอน)' as const;
+
+/**
+ * รายการ OCR failure placeholders ทั้งหมดที่ snapshot rule ต้องข้าม (exact-match)
+ * วางเป็น list เผื่ออนาคตมี placeholder อื่น (เช่น OCR_FAILED) เพิ่มเข้ามา
+ */
+export const OCR_FAILURE_PLACEHOLDERS: readonly string[] = [
+  NO_PDF_OCR_PLACEHOLDER,
+];
+
+/**
+ * ตรวจว่าค่า ocr_text ปัจจุบันเป็น known failure placeholder หรือไม่ (exact-match)
+ * ใช้โดย snapshot-on-overwrite rule ทุก write path (extraction + manual edit + re-extract reset)
+ */
+export function isOcrFailurePlaceholder(value?: string | null): boolean {
+  return typeof value === 'string' && OCR_FAILURE_PLACEHOLDERS.includes(value);
+}

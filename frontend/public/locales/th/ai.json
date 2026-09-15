@@ -187,7 +187,13 @@
     "sort_desc": "สูง→ต่ำ",
     "legacy_reextract_badge": "ต้องดึงข้อมูลใหม่",
     "legacy_reextract_button": "ดึงข้อมูลใหม่",
-    "tag_suggestions_title": "แท็กที่ AI แนะนำ"
+    "tag_suggestions_title": "แท็กที่ AI แนะนำ",
+    "restore_ocr_button": "กู้คืน OCR เดิม",
+    "restore_ocr_tooltip": "คืนค่าข้อความ OCR กลับเป็นเวอร์ชันก่อนแก้ไขล่าสุด (สำเนาสำรองยังถูกเก็บไว้)",
+    "restore_ocr_note": "สำเนาสำรองยังคงถูกเก็บไว้หลังกู้คืน",
+    "restore_ocr_confirm": "ต้องการกู้คืนข้อความ OCR กลับเป็นเวอร์ชันเดิมหรือไม่? ข้อความที่แก้ไขอยู่จะถูกแทนที่",
+    "restore_ocr_success": "กู้คืนข้อความ OCR เดิมเรียบร้อยแล้ว",
+    "restore_ocr_error": "กู้คืนข้อความ OCR ไม่สำเร็จ"
   },
   "rag": {
     "ingestion_status": {

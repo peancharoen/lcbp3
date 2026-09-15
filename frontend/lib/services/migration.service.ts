@@ -1,5 +1,6 @@
 // File: frontend/lib/services/migration.service.ts
 // Change Log:
+// - 2026-09-14: T016 — เพิ่ม restoreQueueOcrText (POST /migration/queue/:publicId/restore-ocr-text) (ADR-054, FR-007)
 // - 2026-08-31: T030 — เพิ่ม requiresHumanReview, sortBy, sortOrder params ใน getReviewQueue (ADR-050)
 // - 2026-06-13: Add support for direct array response in normalizePaginatedResponse and add file header
 
@@ -25,6 +26,13 @@ export interface LegacyFolderNode {
   name: string;
   path: string;
   children: LegacyFolderNode[];
+}
+
+/** ADR-054 (FR-007): response ของ POST /migration/queue/:publicId/restore-ocr-text */
+export interface RestoreQueueOcrTextResponse {
+  publicId: string;
+  ocrTextLength: number;
+  restored: boolean;
 }
 
 const extractNestedData = <T>(value: unknown): T => {
@@ -204,6 +212,20 @@ export const migrationService = {
       },
     });
     return (data?.data || data) as StartIngestResponse;
+  },
+
+  // ADR-054 (FR-007): กู้คืน OCR text จาก ocr_text_bak — restore ไม่ลบ backup (non-destructive)
+  // ADR-019 + ADR-016: ใช้ publicId และต้องส่ง Idempotency-Key
+  restoreQueueOcrText: async (
+    publicId: string,
+    idempotencyKey: string
+  ): Promise<RestoreQueueOcrTextResponse> => {
+    const { data } = await api.post(`/migration/queue/${publicId}/restore-ocr-text`, {}, {
+      headers: {
+        'idempotency-key': idempotencyKey,
+      },
+    });
+    return (data?.data || data) as RestoreQueueOcrTextResponse;
   },
 
   // ADR-019 + ADR-016: ใช้ publicId และต้องส่ง Idempotency-Key

@@ -3,6 +3,8 @@
 // - 2026-08-06: Initial creation with resolution & review endpoints
 // - 2026-08-30: เพิ่ม `POST queue/:publicId/re-extract` สำหรับ re-extract ก่อน Execute Import
 // - 2026-08-20: Added Streaming Legacy Ingestion & OCR sync endpoints (ADR-047)
+// - 2026-09-14: ADR-054 T015 — เพิ่ม `POST queue/:publicId/restore-ocr-text`
+//   (FR-007: กู้คืน ocr_text จาก ocr_text_bak, migration.commit permission + Idempotency-Key)
 
 import {
   Controller,
@@ -658,6 +660,34 @@ export class MigrationController {
     requireIdempotencyKey(idempotencyKey);
     const userId = requireUserId(user);
     return this.migrationReviewService.updateQueueOcr(publicId, dto, userId);
+  }
+
+  // ADR-054 D5 (FR-007): กู้คืน ocr_text จาก ocr_text_bak รายรายการ
+  // (restore เป็น non-destructive — bak คงอยู่; idempotent โดยนิยาม)
+  @Post('queue/:publicId/restore-ocr-text')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @RequirePermission('migration.commit')
+  @ApiOperation({
+    summary: 'Restore OCR text from ocr_text_bak backup (ADR-054)',
+  })
+  @ApiParam({
+    name: 'publicId',
+    description: 'UUIDv7 of the migration review queue item',
+  })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    required: true,
+    description:
+      'Unique key per restore request (ADR-016) — restore เป็น idempotent โดยนิยาม',
+  })
+  async restoreQueueOcrText(
+    @Param('publicId', ParseUUIDPipe) publicId: string,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @CurrentUser() user: User
+  ) {
+    requireIdempotencyKey(idempotencyKey);
+    const userId = requireUserId(user);
+    return this.migrationService.restoreOcrText(publicId, userId);
   }
 
   // ADR-047: List ไฟล์ Excel (.xlsx) จาก Legacy NAS สำหรับหน้า Legacy Management

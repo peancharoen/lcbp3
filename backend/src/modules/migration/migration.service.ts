@@ -26,6 +26,26 @@
 //   แทน deprecated EmbeddingService: compute SHA-256 checksum ตอน import + ingest() + enqueueRagAttachmentIngestion
 //   สร้าง rag_attachment_generations/chunks records + อัปเดต rag_status (ADR-022)
 // - 2026-09-13: Fix — IMPORT_TX_STATUS_FAILED constant แทน hardcoded 500
+// - 2026-09-14: ADR-054 T006 (FR-014) — enqueueRecord persist dto.details เข้า ai_metadata_json
+//   (merge กับค่าเดิม) แทนการ drop ทั้งก้อน — compareResult/capturedThresholds/disciplineId
+//   จาก processMigrateDocument ถึงได้บันทึกจริง
+// - 2026-09-14: ADR-054 US1 (T010-T015) — re-extract ปลอดภัยจาก data loss:
+//   T010 resolveQueuePdfPath (storageTempPath → attachments.file_path fallback ผ่าน
+//   tempAttachmentIds[0] แทน details.source_file_path); T011 snapshot ocrText→ocrTextBak
+//   ใน updateQueueEnrichment (ข้าม placeholder ตาม isOcrFailurePlaceholder);
+//   T012 reExtractQueueItem snapshot + whitelist details + reset requiresHumanReview/
+//   ocrQualityConfidence/reviewReason; T014 restoreOcrText (MIGRATION_NO_BACKUP);
+//   reviewer hardening — enqueueRecord whitelist dto.details keys
+//   (ALLOWED_ENQUEUE_DETAILS_KEYS)
+// - 2026-09-14: ADR-054 US2 reviewer folds — startExtractQueueItem strip transient
+//   `attachments[]` ออกจาก details ก่อน save (กัน enrichWithAttachments หลุด persist
+//   ลง ai_metadata_json); getReviewQueue list ตัด ocrTextBak ออก expose
+//   `hasOcrTextBak` flag แทน; แก้ docblock resolveQueuePdfPath ให้ตรงจริง (filename-only
+//   ถูก resolve โดย getStagingFileStream D330 ไม่ใช่ตอน extract)
+// - 2026-09-14: ADR-054 US3 (T026a-b, FR-008) — importCorrespondence คืน
+//   correspondencePublicId (success + idempotent replay resolve จาก
+//   document_number+project_id); approveQueueItem/approveQueueItemByPublicId
+//   ตั้ง importedCorrespondencePublicId เป็น audit link และ retain queue row
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -93,6 +113,7 @@ import {
   STAGING_DIR_DEFAULT,
   ENV_LEGACY_NAS_PATH,
   LEGACY_NAS_PATH_DEFAULT,
+  isOcrFailurePlaceholder,
 } from './constants/migration.constants';
 
 /**
@@ -100,6 +121,36 @@ import {
  * MIGRATION_STAGING_DIR (default: ./uploads/staging) ป้องกัน path traversal
  */
 const STAGING_DIR_FALLBACK = path.join(process.cwd(), STAGING_DIR_DEFAULT);
+
+/**
+ * ADR-054 reviewer hardening — keys ของ `dto.details` ที่ `enqueueRecord` ยอมรับเข้า
+ * `ai_metadata_json` เท่านั้น (ตรงกับสิ่งที่ `processMigrateDocument` ส่งจริง)
+ * กัน caller ที่ authorized ฉีด `source_file_path`/`fieldResolutions`/key อื่นๆ เข้า
+ * bag ที่ถูก narrow แล้ว (AI output + residual ingestion keys เท่านั้น)
+ * หมายเหตุ: disciplineCode/disciplineId/recipientsList/compareStatus/
+ * compareUnavailableReason เป็น compare/ingestion metadata จาก processMigrateDocument
+ * (ไม่ใช่ AI output ตาม FR-010) — เก็บใน details เพราะยังไม่มี column เฉพาะ
+ */
+const ALLOWED_ENQUEUE_DETAILS_KEYS: readonly string[] = [
+  'disciplineCode',
+  'disciplineId',
+  'recipientsList',
+  'compareResult',
+  'compareStatus',
+  'compareUnavailableReason',
+  'capturedThresholds',
+];
+
+/**
+ * ADR-054 D3/D9 (FR-005) — residual ingestion keys ที่ re-extract ต้อง preserve ใน
+ * `details` (ไม่มี dedicated column) — key อื่นทั้งหมดถือเป็น AI output ถูกล้าง
+ */
+const REEXTRACT_PRESERVED_DETAILS_KEYS: readonly string[] = [
+  'original_row_index',
+  'unresolved_orgs',
+  'original_document_number',
+  'revision_number',
+];
 
 @Injectable()
 export class MigrationService {
@@ -139,6 +190,8 @@ export class MigrationService {
       LEGACY_NAS_PATH_DEFAULT;
   }
 
+  // ADR-054 US3 (T026a, FR-008): ทุก branch ของ return ต้องมี correspondencePublicId
+  // (optional) — durable audit link → correspondences.uuid (UUIDv7 string, ADR-019)
   async importCorrespondence(
     dto: ImportCorrespondenceDto,
     idempotencyKey: string,
@@ -158,9 +211,24 @@ export class MigrationService {
         this.logger.log(
           `Idempotency key ${idempotencyKey} already processed. Returning cached success.`
         );
+        // ADR-054 US3 (T026a, FR-008): idempotent replay — resolve correspondence
+        // ที่เคยสร้างไว้เพื่อคง audit link ให้ caller (document_number+project_id
+        // คือ dedupe key เดียวกับที่ import path ใช้ด้านล่าง)
+        const replayedCorrespondence = await this.dataSource.manager.findOne(
+          Correspondence,
+          {
+            where: {
+              correspondenceNumber: existingTransaction.documentNumber,
+              projectId: dto.projectId,
+            },
+            select: ['id', 'publicId'],
+          }
+        );
         return {
           message: 'Already processed',
           transaction: existingTransaction,
+          correspondenceId: replayedCorrespondence?.id,
+          correspondencePublicId: replayedCorrespondence?.publicId,
         };
       } else {
         throw new ConflictException(
@@ -738,6 +806,9 @@ export class MigrationService {
       return {
         message: 'Import successful',
         correspondenceId: correspondence.id,
+        // ADR-054 US3 (T026a, FR-008): durable audit link → correspondences.uuid
+        // (UUIDv7 string — ห้าม convert เป็น number ตาม ADR-019)
+        correspondencePublicId: correspondence.publicId,
         revisionId: revision.id,
         transactionId: transaction.id,
         hasAttachment: attachmentId !== null,
@@ -819,6 +890,22 @@ export class MigrationService {
       queueItem.compareStatus = dto.compareStatus;
     }
     queueItem.compareUnavailableReason = dto.compareUnavailableReason;
+
+    // ADR-054 T006 (FR-014): persist dto.details เข้า ai_metadata_json — เดิมถูก drop ทั้งก้อน
+    // ทำให้ compareResult/capturedThresholds/disciplineId ที่ processMigrateDocument ส่งมาหายไป
+    // merge กับค่าเดิมเสมอเพื่อไม่ทับ residual ingestion keys (original_row_index ฯลฯ)
+    // Reviewer hardening: whitelist เฉพาะ keys ที่ processMigrateDocument ส่งจริง
+    // (ALLOWED_ENQUEUE_DETAILS_KEYS) — กัน caller ฉีด source_file_path/fieldResolutions
+    // เข้า bag ที่ถูก narrow แล้ว
+    if (dto.details) {
+      const filteredDetails: Record<string, unknown> = {};
+      for (const key of ALLOWED_ENQUEUE_DETAILS_KEYS) {
+        if (dto.details[key] !== undefined) {
+          filteredDetails[key] = dto.details[key];
+        }
+      }
+      queueItem.details = { ...(queueItem.details ?? {}), ...filteredDetails };
+    }
 
     if (dto.issuedDate) {
       const parsed = new Date(dto.issuedDate);
@@ -954,7 +1041,20 @@ export class MigrationService {
       where: { id: queueId },
     });
     if (queueItem) {
-      if (data.ocrText !== undefined) queueItem.ocrText = data.ocrText;
+      if (data.ocrText !== undefined) {
+        // ADR-054 D5 (FR-006, T011): snapshot ocr_text จริงล่าสุดไป ocr_text_bak ก่อนเขียนทับ
+        // — ข้ามเมื่อค่าปัจจุบันว่าง/null หรือเป็น known failure placeholder (bak ต้อง
+        // เก็บ "ข้อความจริงล่าสุด" เสมอ — กฎนี้ครอบคลุมทุก extraction write path เพราะ
+        // ทุก path ไหลผ่าน updateQueueEnrichment จุดเดียว)
+        if (
+          queueItem.ocrText &&
+          queueItem.ocrText.trim().length > 0 &&
+          !isOcrFailurePlaceholder(queueItem.ocrText)
+        ) {
+          queueItem.ocrTextBak = queueItem.ocrText;
+        }
+        queueItem.ocrText = data.ocrText;
+      }
       if (data.aiSummary !== undefined) queueItem.aiSummary = data.aiSummary;
       if (data.aiSuggestedCorrespondenceType !== undefined)
         queueItem.aiSuggestedCorrespondenceType =
@@ -968,9 +1068,10 @@ export class MigrationService {
       if (data.aiStatus !== undefined) queueItem.aiStatus = data.aiStatus;
       if (data.status !== undefined) queueItem.status = data.status;
       if (data.details !== undefined) {
-        // รวมเข้ากับ details เดิมเสมอ เพื่อรักษา legacy metadata (เช่น source_file_path,
-        // original_row_index, attachment_ids) ที่บันทึกไว้ตั้งแต่ ingestion (ADR-047)
-        // ไม่ให้ AI enrichment update ทับหาย
+        // รวมเข้ากับ details เดิมเสมอ เพื่อรักษา residual ingestion keys ที่ไม่มี
+        // dedicated column (original_row_index, unresolved_orgs, original_document_number,
+        // revision_number — ADR-054 D3) ไม่ให้ AI enrichment update ทับหาย
+        // (file location ย้ายไป storageTempPath column แล้ว — ไม่มีใน bag อีก)
         queueItem.details = { ...(queueItem.details ?? {}), ...data.details };
         // ADR-050 T010/T011/T012: shape ใหม่ (ocrQuality + metadata.confidence ครบ) →
         // คำนวณ promoted columns + ai_confidence alias เสมอ ฝั่ง backend เท่านั้น
@@ -1012,6 +1113,40 @@ export class MigrationService {
   }
 
   /**
+   * ADR-054 D1+D4 (FR-002, T010): resolve PDF path ของ queue item สำหรับ extractor
+   * ลำดับ: `storageTempPath` column (เขียนตอน ingestion — resolved path หรือ bare
+   * filename) → fallback `attachments.file_path` ผ่าน `tempAttachmentIds[0]`
+   * (attachments คือ source of truth ของไฟล์จริง) → `undefined` เมื่อหาไม่ได้เลย
+   * (extractor จะเขียน NO_PDF outcome ได้อย่างถูกต้อง โดย ocr_text_bak ยังรักษา
+   * ข้อความเดิมไว้)
+   * หมายเหตุ: ค่าที่เป็น filename ล้วนจะถูก resolve เป็น full path โดย viewer/staging
+   * resolver (getStagingFileStream — D330 recursive search) ไม่ใช่ที่ extraction path —
+   * OcrService อ่าน pdfPath ตรงๆ ตามค่าที่ resolve คืนมาจากที่นี่
+   * ห้าม fallback ไป `details.source_file_path` — key นั้นตายแล้วหลัง restart (R2)
+   */
+  private async resolveQueuePdfPath(
+    queueItem: MigrationReviewQueue
+  ): Promise<string | undefined> {
+    if (
+      queueItem.storageTempPath &&
+      queueItem.storageTempPath.trim().length > 0
+    ) {
+      return queueItem.storageTempPath;
+    }
+    const attachmentId = queueItem.tempAttachmentIds?.[0];
+    if (attachmentId != null) {
+      const attachment = await this.dataSource.manager.findOne(Attachment, {
+        where: { id: attachmentId },
+        select: ['id', 'filePath'],
+      });
+      if (attachment?.filePath) {
+        return attachment.filePath;
+      }
+    }
+    return undefined;
+  }
+
+  /**
    * ADR-047: เริ่มประมวลผล OCR/AI ของ queue item เดียว โดย enqueue legacy-ai-enrichment job
    */
   async startExtractQueueItem(
@@ -1041,12 +1176,10 @@ export class MigrationService {
       };
     }
 
-    // หา source PDF path จาก details (resolvedPdfPath จาก LegacyIngestionService เป็น absolute path)
-    const details = queueItem.details ?? {};
-    const pdfPath =
-      typeof details.source_file_path === 'string'
-        ? details.source_file_path
-        : undefined;
+    // ADR-054 FR-002 (T010): หา source PDF path จาก storageTempPath column ก่อน
+    // (resolvedPdfPath จาก LegacyIngestionService เป็น absolute path) แล้ว fallback
+    // ไป attachments.file_path ผ่าน tempAttachmentIds[0] — ห้ามอ่าน details.source_file_path
+    const pdfPath = await this.resolveQueuePdfPath(queueItem);
 
     const job = await this.aiBatchQueue.add(
       'legacy-ai-enrichment',
@@ -1079,6 +1212,14 @@ export class MigrationService {
 
     queueItem.aiStatus = MigrationAiStatus.WAITING;
     queueItem.aiJobId = String(job.id);
+    // ADR-054 (reviewer fold): fetchQueueItemByPublicId ผ่าน enrichWithAttachments ฉีด
+    // transient `attachments[]` เข้า details เพื่อ serialize ออก API เท่านั้น
+    // (data-model.md ownership matrix — ไม่ persist) — ลบออกก่อน save ไม่ให้หลุดลง
+    // ai_metadata_json (re-extract whitelist จะ drop มันใน cycle ถัดไปอยู่แล้ว แต่กัน
+    // ไม่ให้มันถูกเขียนตั้งแต่แรก)
+    if (queueItem.details && typeof queueItem.details === 'object') {
+      delete queueItem.details['attachments'];
+    }
     await this.reviewQueueRepo.save(queueItem);
 
     this.logger.log(
@@ -1173,6 +1314,30 @@ export class MigrationService {
       }
     }
 
+    // ADR-054 D5 (FR-006, T012): snapshot ocr_text จริงล่าสุดไป ocr_text_bak ก่อน null —
+    // ข้ามเมื่อค่าปัจจุบันเป็น known failure placeholder เพื่อให้ bak เก็บข้อความจริงเสมอ
+    if (
+      queueItem.ocrText &&
+      queueItem.ocrText.trim().length > 0 &&
+      !isOcrFailurePlaceholder(queueItem.ocrText)
+    ) {
+      queueItem.ocrTextBak = queueItem.ocrText;
+    }
+
+    // ADR-054 D3/D9 (FR-005): rebuild details ผ่าน whitelist — เก็บเฉพาะ residual
+    // ingestion keys ที่ไม่มี dedicated column; key อื่นทั้งหมดถือเป็น AI output ถูกล้าง
+    // (defense-in-depth — หลัง D9 bag มีแค่ AI output + residual keys อยู่แล้ว)
+    const existingDetails =
+      queueItem.details && typeof queueItem.details === 'object'
+        ? queueItem.details
+        : {};
+    const preservedDetails: Record<string, unknown> = {};
+    for (const key of REEXTRACT_PRESERVED_DETAILS_KEYS) {
+      if (existingDetails[key] !== undefined) {
+        preservedDetails[key] = existingDetails[key];
+      }
+    }
+
     queueItem.aiStatus = MigrationAiStatus.PENDING;
     queueItem.aiJobId = null;
     queueItem.aiFailed = false;
@@ -1182,7 +1347,16 @@ export class MigrationService {
     queueItem.extractedTags = null;
     queueItem.aiConfidence = null;
     queueItem.aiIssues = null;
+    // AI-derived review flags ต้อง reset ด้วย (R5) — ค่าใหม่จะถูกคำนวณใหม่ตอน extraction
+    queueItem.requiresHumanReview = false;
+    queueItem.ocrQualityConfidence = null;
+    // review_reason column nullable แต่ entity type เป็น string|undefined —
+    // reset เป็น NULL ผ่าน Record view (undefined จะไม่ถูก persist โดย TypeORM)
+    (queueItem as unknown as Record<string, unknown>)['reviewReason'] = null;
+    queueItem.details = preservedDetails;
     queueItem.status = MigrationReviewStatus.PENDING;
+    // ห้ามแตะ: storageTempPath, originalFilename, tempAttachmentIds, reviewState,
+    // ocrTextBak (เกินกว่า snapshot ด้านบน) — ทั้งหมดอยู่นอกขอบเขต reset ของ re-extract
     await this.reviewQueueRepo.save(queueItem);
 
     this.logger.log(
@@ -1262,11 +1436,9 @@ export class MigrationService {
           });
           continue;
         }
-        const details = queueItem.details ?? {};
-        const pdfPath =
-          typeof details.source_file_path === 'string'
-            ? details.source_file_path
-            : undefined;
+        // ADR-054 FR-002 (T010): storageTempPath → attachments.file_path fallback
+        // resolve ตอน enqueue เพราะ job payload ถูก freeze (ตาม tasks.md T010)
+        const pdfPath = await this.resolveQueuePdfPath(queueItem);
         const projectPublicId = queueItem.projectId
           ? ((
               await this.projectRepo.findOne({
@@ -1376,6 +1548,19 @@ export class MigrationService {
 
     // Enrich ชื่อ organization_code และชื่อประเภทเอกสารเพื่อแสดงผลในหน้า Legacy Management
     enrichedItems = await this.enrichWithReferenceData(enrichedItems);
+
+    // ADR-054 (reviewer fold): list rows ไม่ส่ง ocr_text_bak (LONGTEXT — payload ใหญ่)
+    // expose เฉพาะ presence flag `hasOcrTextBak` แทน (detail path ยังคงส่งค่าเต็ม) —
+    // mutate entity instance ตรงๆ เพื่อให้ @Exclude (instanceToPlain) ยังทำงานกับ
+    // internal id fields เหมือนเดิม
+    for (const item of enrichedItems) {
+      (
+        item as MigrationReviewQueue & { hasOcrTextBak: boolean }
+      ).hasOcrTextBak =
+        typeof item.ocrTextBak === 'string' &&
+        item.ocrTextBak.trim().length > 0;
+      delete item.ocrTextBak;
+    }
 
     return {
       items: enrichedItems,
@@ -1546,6 +1731,49 @@ export class MigrationService {
       );
     }
     return item;
+  }
+
+  /**
+   * ADR-054 D5 (FR-007, T014): กู้คืน `ocr_text` จาก `ocr_text_bak` รายรายการ
+   * — restore เป็น non-destructive (ไม่ลบ bak) เพื่อให้กู้ซ้ำ/ตรวจสอบย้อนหลังได้เสมอ
+   * ใช้ reviewQueueRepo.findOne ตรงๆ (ไม่ผ่าน fetchQueueItemByPublicId เพราะไม่ต้องการ
+   * enrichment ของ attachments/reference data)
+   * @param publicId UUIDv7 ของ queue item
+   * @param userId actor ที่สั่ง restore (audit log)
+   */
+  async restoreOcrText(
+    publicId: string,
+    userId: number
+  ): Promise<{ publicId: string; ocrTextLength: number; restored: true }> {
+    const queueItem = await this.reviewQueueRepo.findOne({
+      where: { publicId },
+    });
+    if (!queueItem) {
+      throw new NotFoundException('Queue item', publicId);
+    }
+    if (!queueItem.ocrTextBak || queueItem.ocrTextBak.trim().length === 0) {
+      // ADR-007: BusinessException พร้อม Thai userMessage + recovery guidance
+      throw new BusinessException(
+        'MIGRATION_NO_BACKUP',
+        `Queue item ${publicId} has no ocr_text_bak to restore`,
+        'ไม่มีสำเนา OCR text สำรองสำหรับรายการนี้',
+        [
+          'ตรวจสอบว่ารายการนี้เคยถูกเขียนทับ OCR text จริงหรือไม่ (snapshot เกิดเฉพาะตอน overwrite)',
+          'หากต้องการ OCR text ให้กด Re-extract หรือแก้ไข OCR text ด้วยตนเอง',
+          'ติดต่อผู้ดูแลระบบหากเชื่อว่าข้อความเดิมสูญหาย',
+        ]
+      );
+    }
+    queueItem.ocrText = queueItem.ocrTextBak;
+    await this.reviewQueueRepo.save(queueItem);
+    this.logger.log(
+      `User ${userId} restored OCR text backup for queue ${publicId} (ocrTextLength=${queueItem.ocrTextBak.length})`
+    );
+    return {
+      publicId,
+      ocrTextLength: queueItem.ocrTextBak.length,
+      restored: true,
+    };
   }
 
   async createError(dto: CreateMigrationErrorDto) {
@@ -1737,6 +1965,10 @@ export class MigrationService {
     queueItem.status = MigrationReviewStatus.IMPORTED;
     queueItem.reviewedBy = userId.toString();
     queueItem.reviewedAt = new Date();
+    // ADR-054 US3 (T026b, FR-008): durable audit link → correspondences.uuid
+    // ของเอกสารที่ import สร้าง; queue row ต้อง retained (ลบได้เฉพาะ scoped delete)
+    queueItem.importedCorrespondencePublicId =
+      result.correspondencePublicId ?? null;
     await this.reviewQueueRepo.save(queueItem);
 
     return result;
@@ -1789,6 +2021,10 @@ export class MigrationService {
     queueItem.status = MigrationReviewStatus.IMPORTED;
     queueItem.reviewedBy = userId.toString();
     queueItem.reviewedAt = new Date();
+    // ADR-054 US3 (T026b, FR-008): durable audit link → correspondences.uuid
+    // ของเอกสารที่ import สร้าง; queue row ต้อง retained (ลบได้เฉพาะ scoped delete)
+    queueItem.importedCorrespondencePublicId =
+      result.correspondencePublicId ?? null;
     await this.reviewQueueRepo.save(queueItem);
 
     return result;
@@ -1889,7 +2125,7 @@ export class MigrationService {
    * ป้องกัน Local File Inclusion (LFI) เช่น `?path=../../etc/passwd`
    *
    * D330: ถ้า flat path ไม่พบไฟล์ ให้ค้นหาแบบ recursive ใน allowedRoots (bounded depth 5)
-   * สำหรับรองรับข้อมูลเดิมที่ source_file_path เก็บแค่ filename ไม่มี subdirectory
+   * สำหรับรองรับข้อมูลที่ storageTempPath เก็บแค่ filename ไม่มี subdirectory (ADR-054 D1)
    */
   getStagingFileStream(filePath: string) {
     if (!filePath) {
@@ -1922,7 +2158,7 @@ export class MigrationService {
       return createReadStream(resolvedPath);
     }
 
-    // D330: Fallback recursive search สำหรับข้อมูลเดิมที่ source_file_path เก็บแค่ filename
+    // D330: Fallback recursive search สำหรับข้อมูลที่ storageTempPath เก็บแค่ filename
     // ค้นหาใน allowedRoots แบบ bounded depth 5 ระดับ
     const fileName = path.basename(resolvedPath);
     for (const root of allowedRoots) {

@@ -8,7 +8,7 @@
 ## Apply order (strict)
 
 ```text
-1. SQL delta  →  specs/99-archives/deltas/2026-09-14-adr-054-migration-metadata-separation.sql
+1. SQL delta  →  specs/03-Data-and-Storage/deltas/2026-09-14-adr-054-migration-metadata-separation.sql
                  (ALTER +3 columns, TRUNCATE migration_review_queue — intentional, see ADR-054 note)
 2. Backend    →  entity mappings + ingestion writes + processor reads + reset/restore logic
 3. Frontend   →  types/migration.ts + review detail page + compare-result-table
@@ -63,7 +63,7 @@ Prefer the UI button / endpoint. Manual SQL only if endpoint unavailable:
 ```sql
 UPDATE migration_review_queue
 SET ocr_text = ocr_text_bak
-WHERE public_id = '<queue-public-id>' AND ocr_text_bak IS NOT NULL;
+WHERE uuid = '<queue-public-id>' AND ocr_text_bak IS NOT NULL;
 ```
 
 ## Known traps

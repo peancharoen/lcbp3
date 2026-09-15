@@ -11,6 +11,10 @@
 // - 2026-06-03: ADR-034 — เพิ่ม OCR_JOB_TYPES import, mock unloadModel/loadModel/getOcrModelName, อัปเดต getMainModelName เป็น typhoon2.5, เพิ่ม test ocr-extract model switching
 // - 2026-06-13: ADR-036 — อัปเดต model switching tests เป็น np-dms-ai/np-dms-ocr
 // - 2026-06-13: US5 — Mock AiPolicyService เพื่อให้ผ่านการทดสอบและรองรับ sandbox parameter injection
+// - 2026-09-14: ADR-054 T008 (US1) — tests พิสูจน์ write-path contract ของ legacy
+//   enrichment: ทุก path ไหลผ่าน updateQueueEnrichment funnel เดียว, ใช้
+//   NO_PDF_OCR_PLACEHOLDER single-source constant และไม่มี path ใดส่ง reviewState/
+//   source_file_path/fieldResolutions (snapshot assertion จริงอยู่ใน migration.service.spec.ts)
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
@@ -35,6 +39,7 @@ import { ReviewThresholdService } from '../../migration/services/review-threshol
 import { AiPromptsService } from '../prompts/ai-prompts.service';
 import { AiPolicyService } from '../services/ai-policy.service';
 import { AiQueueService } from '../ai-queue.service';
+import { NO_PDF_OCR_PLACEHOLDER } from '../../migration/constants/migration.constants';
 
 describe('AiBatchProcessor', () => {
   let processor: AiBatchProcessor;
@@ -903,6 +908,64 @@ describe('AiBatchProcessor', () => {
             aiFailureReason: 'LLM_CALL_FAILED',
           }),
         })
+      );
+    });
+
+    // ── ADR-054 T021 (FR-003/FR-004/FR-009): persist payload = AI output only ──
+    it('ADR-054 T021: persistLegacyEnrichmentResult payload carries AI-output keys only — never reviewState/fieldResolutions', async () => {
+      mockOllamaService.generate.mockResolvedValueOnce(
+        JSON.stringify({
+          ocrQuality: { confidence: 0.9, issues: [] },
+          metadata: {
+            summary: 'สรุปเอกสาร',
+            correspondenceType: 'LETTER',
+            tags: [{ name: 'civil', isNew: false, evidence: 'Civil' }],
+            confidence: { summary: 0.9, correspondenceType: 0.85, tags: 0.8 },
+          },
+        })
+      );
+      const job = {
+        id: 'job-legacy-t021-isolation',
+        data: {
+          jobType: 'legacy-ai-enrichment',
+          queueId: 3005,
+          queuePublicId: 'queue-uuid-3005',
+          documentNumber: 'DOC-T021-ISO',
+          pdfPath: '/files/test-t021-iso.pdf',
+          projectPublicId: 'proj-uuid-456',
+          projectId: 2,
+        },
+      } as unknown as Job<AiBatchJobData>;
+
+      await processor.process(job);
+
+      // หา persist call สุดท้าย (ข้าม initial RUNNING update)
+      const calls = mockMigrationService.updateQueueEnrichment.mock.calls as [
+        number,
+        Record<string, unknown>,
+      ][];
+      const persistCall = calls.find(([, data]) => data['aiStatus'] === 'DONE');
+      expect(persistCall).toBeDefined();
+      const payload = persistCall![1];
+      // FR-003: AI pipeline ห้ามเขียน review_state_json — payload ต้องไม่มี key เหล่านี้เลย
+      expect(payload).not.toHaveProperty('reviewState');
+      expect(payload).not.toHaveProperty('fieldResolutions');
+      expect(payload).not.toHaveProperty('fieldAcknowledgments');
+      // FR-004: details มีเฉพาะ AI output (ocrQuality + metadata) — ไม่มี review keys
+      const details = payload['details'] as Record<string, unknown>;
+      expect(Object.keys(details).sort()).toEqual(['metadata', 'ocrQuality']);
+      expect(details).not.toHaveProperty('fieldResolutions');
+      // FR-009: confidence values ต้องอยู่ใน details JSON (per-field store)
+      const metadata = details['metadata'] as {
+        confidence: Record<string, number>;
+      };
+      expect(metadata.confidence).toEqual({
+        summary: 0.9,
+        correspondenceType: 0.85,
+        tags: 0.8,
+      });
+      expect((details['ocrQuality'] as { confidence: number }).confidence).toBe(
+        0.9
       );
     });
   });
@@ -1822,6 +1885,187 @@ describe('AiBatchProcessor', () => {
         }
       ).validateExtractionOutput(raw, ['LETTER']);
       expect(result).not.toBeNull();
+    });
+  });
+
+  // ── ADR-054 T008 (US1): snapshot funnel + placeholder + reviewState isolation ──
+  // หมายเหตุ: snapshot assertion จริง (ocrText → ocrTextBak) อยู่ใน
+  // migration.service.spec.ts เพราะ updateQueueEnrichment ถูก mock ที่นี่ —
+  // describe นี้พิสูจน์ว่าทุก write path ไหลผ่าน funnel เดียวกัน (updateQueueEnrichment)
+  // ใช้ NO_PDF_OCR_PLACEHOLDER constant เดียวกัน และไม่มี path ใดส่ง reviewState
+  // หรือ source_file_path/fieldResolutions ผ่าน details ไปให้ MigrationService
+  describe('ADR-054 T008: legacy enrichment write-path contract (snapshot funnel)', () => {
+    const makeEnrichmentJob = (
+      data: Record<string, unknown>
+    ): Job<AiBatchJobData> =>
+      ({
+        id: 'job-adr054',
+        data: { jobType: 'legacy-ai-enrichment', ...data },
+      }) as unknown as Job<AiBatchJobData>;
+
+    it('no-PDF path เขียน NO_PDF_OCR_PLACEHOLDER (single-source constant) ผ่าน updateQueueEnrichment', async () => {
+      const job = makeEnrichmentJob({
+        queueId: 5001,
+        queuePublicId: 'queue-uuid-5001',
+        documentNumber: 'DOC-NOPDF',
+        // ไม่มี pdfPath → hasPdf=false → placeholder เขียนทับ ocrText
+        projectPublicId: 'proj-uuid-456',
+      });
+      await processor.process(job);
+      expect(mockMigrationService.updateQueueEnrichment).toHaveBeenCalledWith(
+        5001,
+        expect.objectContaining({
+          ocrText: NO_PDF_OCR_PLACEHOLDER,
+          aiStatus: 'FAILED',
+          aiFailed: true,
+          aiIssues: expect.arrayContaining([
+            expect.objectContaining({ type: 'NO_PDF' }),
+          ]),
+        })
+      );
+    });
+
+    it('failure path (catch) เขียน NO_PDF_OCR_PLACEHOLDER เดียวกัน — ไม่ใช่ empty string — เพื่อให้ snapshot rule ข้ามได้', async () => {
+      // ทำให้ persist (call ที่ 2) ล้มเหลว → catch block mark ai_failed ด้วย placeholder
+      mockMigrationService.updateQueueEnrichment
+        .mockResolvedValueOnce(undefined) // RUNNING mark
+        .mockRejectedValueOnce(new Error('DB write failed')) // persist ล้ม
+        .mockResolvedValueOnce(undefined); // catch-block mark
+      const job = makeEnrichmentJob({
+        queueId: 5002,
+        queuePublicId: 'queue-uuid-5002',
+        documentNumber: 'DOC-DBFAIL',
+        pdfPath: '/files/test.pdf',
+        projectPublicId: 'proj-uuid-456',
+      });
+      await expect(processor.process(job)).rejects.toThrow('DB write failed');
+      const calls = mockMigrationService.updateQueueEnrichment.mock.calls;
+      const lastCall = calls[calls.length - 1] as [
+        number,
+        Record<string, unknown>,
+      ];
+      expect(lastCall[0]).toBe(5002);
+      expect(lastCall[1]).toMatchObject({
+        ocrText: NO_PDF_OCR_PLACEHOLDER,
+        aiFailed: true,
+        aiStatus: 'FAILED',
+      });
+    });
+
+    it('batch phase-1 interim write (WAITING) ใช้ NO_PDF_OCR_PLACEHOLDER เดียวกันเมื่อไม่มี pdfPath', async () => {
+      const job = {
+        id: 'job-batch-nopdf',
+        data: {
+          jobType: 'legacy-ocr-batch-phase',
+          items: [
+            {
+              queueId: 5003,
+              queuePublicId: 'queue-uuid-5003',
+              documentNumber: 'DOC-BNOPDF',
+              // ไม่มี pdfPath
+              projectId: 2,
+              projectPublicId: 'proj-uuid-456',
+            },
+          ],
+        },
+      } as unknown as Job<AiBatchJobData>;
+      await processor.process(job);
+      expect(mockMigrationService.updateQueueEnrichment).toHaveBeenCalledWith(
+        5003,
+        expect.objectContaining({
+          ocrText: NO_PDF_OCR_PLACEHOLDER,
+          aiStatus: 'WAITING',
+        })
+      );
+      // phase-2 enqueue ได้รับ hasPdf=false เพื่อให้ persist ปลายทางรู้ว่าเป็น NO_PDF
+      expect(
+        mockMigrationService.enqueueLegacyAiMetadataOnly
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({ queueId: 5003 }),
+        expect.objectContaining({ hasPdf: false })
+      );
+    });
+
+    it('persistLegacyEnrichmentResult ไม่ส่ง reviewState / source_file_path / fieldResolutions ผ่าน updateQueueEnrichment เลย (FR-003/FR-004)', async () => {
+      mockAiPromptsService.getActive.mockImplementation((t: string) =>
+        t === 'ocr_extraction'
+          ? Promise.resolve({
+              id: 1,
+              promptType: 'ocr_extraction',
+              versionNumber: 2,
+              template: 'OCR {{ocr_text}}',
+              isActive: true,
+              contextConfig: { filter: {} },
+            })
+          : Promise.resolve(null)
+      );
+      mockOllamaService.generate.mockResolvedValueOnce(
+        JSON.stringify({
+          ocrQuality: { confidence: 0.9, issues: [] },
+          metadata: {
+            summary: 'สรุปเอกสาร',
+            correspondenceType: 'LETTER',
+            tags: [],
+            confidence: { summary: 0.9, correspondenceType: 0.85, tags: 0.8 },
+          },
+        })
+      );
+      const job = makeEnrichmentJob({
+        queueId: 5004,
+        queuePublicId: 'queue-uuid-5004',
+        documentNumber: 'DOC-REVIEWSTATE',
+        pdfPath: '/files/test.pdf',
+        projectPublicId: 'proj-uuid-456',
+        projectId: 2,
+      });
+      try {
+        await processor.process(job);
+      } finally {
+        // คืน default getActive implementation เสมอ (mockImplementation เป็นแบบถาวร)
+        mockAiPromptsService.getActive.mockImplementation(
+          (promptType: string) => {
+            if (promptType === 'migration_compare') {
+              return Promise.resolve({
+                id: 2,
+                promptType: 'migration_compare',
+                versionNumber: 1,
+                template:
+                  'Compare OCR text {{ocr_text}} with register {{excel_metadata}} truncated {{ocr_truncated}}',
+                isActive: true,
+                contextConfig: { filter: {} },
+              });
+            }
+            return Promise.resolve({
+              id: 1,
+              promptType: 'ocr_extraction',
+              versionNumber: 2,
+              template:
+                'Resolved test prompt with OCR text {{ocr_text}} and context {{master_data_context}}',
+              isActive: true,
+              contextConfig: { filter: {} },
+            });
+          }
+        );
+      }
+      // ทุก call ของ updateQueueEnrichment (RUNNING mark + persist) ห้ามมี reviewState
+      const calls = mockMigrationService.updateQueueEnrichment.mock
+        .calls as Array<[number, Record<string, unknown>]>;
+      expect(calls.length).toBeGreaterThanOrEqual(2);
+      for (const [, payload] of calls) {
+        expect(payload).not.toHaveProperty('reviewState');
+        const details = (payload.details ?? {}) as Record<string, unknown>;
+        expect(details).not.toHaveProperty('source_file_path');
+        expect(details).not.toHaveProperty('fieldResolutions');
+      }
+      // success path: details มีเฉพาะ AI output (ocrQuality + metadata)
+      const persistCall = calls[calls.length - 1][1];
+      expect(persistCall.aiStatus).toBe('DONE');
+      expect(persistCall.details).toEqual(
+        expect.objectContaining({
+          ocrQuality: expect.objectContaining({ confidence: 0.9 }),
+          metadata: expect.objectContaining({ correspondenceType: 'LETTER' }),
+        })
+      );
     });
   });
 });

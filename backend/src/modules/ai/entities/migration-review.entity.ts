@@ -1,7 +1,10 @@
-// File: src/modules/ai/entities/migration-review.entity.ts
+// File: backend/src/modules/ai/entities/migration-review.entity.ts
 // Change Log
 // - 2026-05-14: เพิ่ม entity staging queue สำหรับ Unified AI Architecture.
 // - 2026-05-15: เพิ่ม column สำหรับ ADR-023A migration_review_queue schema.
+// - 2026-09-14: ADR-054 T002 (FR-014) — entity นี้ map ตาราง migration_review_queue
+//   เดียวกับ MigrationReviewQueue (migration module) — เพิ่ม column mappings ใหม่
+//   (ocr_text_bak, review_state_json, imported_correspondence_public_id) ให้ตรงกัน
 import {
   Column,
   CreateDateColumn,
@@ -12,6 +15,7 @@ import {
   VersionColumn,
 } from 'typeorm';
 import { UuidBaseEntity } from '../../../common/entities/uuid-base.entity';
+import type { MigrationReviewState } from '../../migration/types/ai-extraction-details.type';
 
 export enum MigrationReviewRecordStatus {
   PENDING = 'PENDING',
@@ -69,6 +73,23 @@ export class MigrationReviewRecord extends UuidBaseEntity {
 
   @Column({ name: 'ai_metadata_json', type: 'json', nullable: true })
   aiMetadataJson?: Record<string, unknown>;
+
+  /** ADR-054 D5: สำเนา ocr_text จริงล่าสุดก่อนถูกเขียนทับ (column ชื่อเดียวกับ MigrationReviewQueue.ocrTextBak) */
+  @Column({ name: 'ocr_text_bak', type: 'longtext', nullable: true })
+  ocrTextBak?: string | null;
+
+  /** ADR-054 D9: review state ของมนุษย์ (fieldResolutions + fieldAcknowledgments) — AI pipeline ห้ามเขียน */
+  @Column({ name: 'review_state_json', type: 'json', nullable: true })
+  reviewState?: MigrationReviewState | null;
+
+  /** ADR-054 D10: audit link ไปยัง correspondences.public_id ที่สร้างตอน import (UUID string — ADR-019) */
+  @Column({
+    name: 'imported_correspondence_public_id',
+    type: 'varchar',
+    length: 36,
+    nullable: true,
+  })
+  importedCorrespondencePublicId?: string | null;
 
   @Column({
     name: 'confidence_score',

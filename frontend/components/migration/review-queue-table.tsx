@@ -1,5 +1,7 @@
 // File: components/migration/review-queue-table.tsx
 // Change Log:
+// - 2026-09-14: T023 (ADR-054) — compareResult ย้ายลง details (ai_metadata_json);
+//   badge อ่าน mismatch count ผ่าน getCompareResult helper แทน top-level read ที่ always-undefined
 // - 2026-08-31: T032/T033/T034 — เพิ่ม requiresHumanReview badge, OCR quality indicator, needs-review filter, sort-by-OCR-quality, legacy re-extract (ADR-050)
 // - 2026-05-22: Initial creation of ReviewQueueTable component for US2 (T024)
 // - 2026-05-22: Integrated hybrid identifiers and Radix Sheet panel with zero blank lines inside function bodies (T024)
@@ -35,7 +37,7 @@ import {
 } from '@/components/ui/select';
 import { useCommitMigrationReview, useRejectMigrationReview, useStartExtractQueueItem } from '@/hooks/use-migration-review';
 import { useProjects, useOrganizations } from '@/hooks/use-master-data';
-import { MigrationReviewQueueItem, MigrationReviewStatus, CompareStatus } from '@/types/migration';
+import { MigrationReviewQueueItem, MigrationReviewStatus, CompareStatus, CompareResult } from '@/types/migration';
 import { Loader2, Calendar, Tag, AlertCircle, Edit, Check, X, Plus, GitCompare, RefreshCw, ShieldAlert } from 'lucide-react';
 import aiMessages from '@/public/locales/th/ai.json';
 
@@ -83,6 +85,15 @@ const getTagLabel = (tag: Record<string, unknown>): string =>
 
 const getIssueText = (issue: Record<string, unknown>): string =>
   getStringField(issue, 'description') ?? getStringField(issue, 'message') ?? '';
+
+/** ADR-054 (T023): ดึง compareResult จาก details อย่างปลอดภัย
+ *  (AI output ใน ai_metadata_json — ไม่ใช่ top-level field ของ item อีกต่อไป) */
+const getCompareResult = (item: MigrationReviewQueueItem): CompareResult | undefined => {
+  if (!item.details || typeof item.details !== 'object') return undefined;
+  const compareResult = (item.details as Record<string, unknown>).compareResult;
+  if (!compareResult || typeof compareResult !== 'object') return undefined;
+  return compareResult as CompareResult;
+};
 
 /** ADR-050 (T034): ตรวจสอบ legacy item — details ไม่มี metadata.confidence (pre-refactor shape) */
 const isLegacyItem = (item: MigrationReviewQueueItem): boolean => {
@@ -425,7 +436,7 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
                       {getOcrQualityConfidenceDisplay(item)}
                     </TableCell>
                     <TableCell className="text-center">
-                      {getCompareStatusBadge(item.compareStatus, item.compareResult?.mismatches.length)}
+                      {getCompareStatusBadge(item.compareStatus, getCompareResult(item)?.mismatches.length)}
                     </TableCell>
                     <TableCell className="text-center">
                       {getRequiresHumanReviewBadge(item)}

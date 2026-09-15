@@ -31,6 +31,15 @@
 // - 2026-09-08: Bugfix — commitRecord status gate ปฏิเสธ PENDING_REVIEW ทั้งที่เป็นสถานะ
 //   ที่ถูกต้องหลัง AI extraction (ai-batch.processor.ts ตั้งเป็น PENDING_REVIEW) —
 //   เปลี่ยนเงื่อนไขให้ยอมรับทั้ง PENDING และ PENDING_REVIEW (mirror approveQueueItemByPublicId)
+// - 2026-09-14: ADR-054 T013 (FR-006) — updateQueueOcr snapshot ocr_text→ocr_text_bak
+//   ก่อน manual overwrite (ข้าม known failure placeholder ผ่าน isOcrFailurePlaceholder)
+// - 2026-09-14: ADR-054 T020 (FR-003, D9) — commitRecord persist
+//   dto.fieldResolutions/fieldAcknowledgments ลง queueItem.reviewState
+//   (review_state_json) ใน tx เดียวกับ queue item save — ห้ามเขียนลง details
+//   (revision audit trail field_resolutions เดิมคงไว้ไม่แตะ)
+// - 2026-09-14: ADR-054 US3 (T026c, FR-008) — commitRecord ตั้ง
+//   queueItem.importedCorrespondencePublicId = correspondence.publicId
+//   ใน tx เดียวกับ queue item save (audit link + retain row)
 
 import { Injectable, Logger } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
@@ -77,6 +86,7 @@ import {
   CORRESPONDENCE_STATUS_DRAFT,
   BATCH_ID_HUMAN_REVIEW,
   IMPORT_TX_STATUS_SUCCESS,
+  isOcrFailurePlaceholder,
 } from './constants/migration.constants';
 import { linkAttachmentsToRevision } from './utils/attachment-linking.util';
 import { FileStorageService } from '../../common/file-storage/file-storage.service';
@@ -170,6 +180,17 @@ export class MigrationReviewService {
 
     if (!queueItem) {
       throw new NotFoundException('MigrationReviewQueue', publicId);
+    }
+
+    // ADR-054 D5 (FR-006, T013): manual OCR edit ต้อง snapshot ocr_text จริงล่าสุดไป
+    // ocr_text_bak ก่อนเขียนทับ — กฎเดียวกับ extraction overwrite (ข้ามเมื่อค่าปัจจุบัน
+    // ว่าง/null หรือเป็น known failure placeholder เพื่อให้ bak เก็บข้อความจริงเสมอ)
+    if (
+      queueItem.ocrText &&
+      queueItem.ocrText.trim().length > 0 &&
+      !isOcrFailurePlaceholder(queueItem.ocrText)
+    ) {
+      queueItem.ocrTextBak = queueItem.ocrText;
     }
 
     queueItem.ocrText = dto.ocrText;
@@ -859,6 +880,23 @@ export class MigrationReviewService {
       queueItem.status = MigrationReviewStatus.IMPORTED;
       queueItem.reviewedBy = userId.toString();
       queueItem.reviewedAt = new Date();
+      // ADR-054 US3 (T026c, FR-008): durable audit link → correspondences.uuid
+      // ของเอกสารที่ commit สร้าง/พบ — อยู่ใน tx เดียวกับ queue item save
+      // (UUIDv7 string ตาม ADR-019 ห้าม convert เป็น number)
+      queueItem.importedCorrespondencePublicId = correspondence.publicId;
+      // ADR-054 D9 (FR-003, T020): persist การตัดสินใจของผู้ตรวจสอบลง review_state_json
+      // ใน tx เดียวกับ queue item save — merge กับ reviewState เดิมและข้าม key ที่ dto
+      // ไม่ได้ส่งมา; ห้ามเขียนลง details/ai_metadata_json เด็ดขาด
+      // (revision.details.field_resolutions ด้านบนยังเป็น audit trail ของ import อยู่ตามเดิม)
+      queueItem.reviewState = {
+        ...(queueItem.reviewState ?? {}),
+        ...(dto.fieldResolutions !== undefined && {
+          fieldResolutions: dto.fieldResolutions,
+        }),
+        ...(dto.fieldAcknowledgments !== undefined && {
+          fieldAcknowledgments: dto.fieldAcknowledgments,
+        }),
+      };
       await queryRunner.manager.save(queueItem);
       await queryRunner.commitTransaction();
 

@@ -1,5 +1,7 @@
 // File: app/(admin)/admin/migration/page.tsx
 // Change Log:
+// - 2026-09-14: T023 (ADR-054) — sourceFilePath อ่านจาก item.storageTempPath (first-class column)
+//   แทน details.source_file_path ที่ถูกย้ายออกจาก details payload แล้ว (FR-010)
 // - 2026-08-23: Batch commit ส่ง sourceFilePath และ disciplineId จาก queue item details
 // - 2026-08-23: Legacy Review Queue - column-header filters, delete all/selected with BullMQ cleanup
 // - 2026-08-25: D161 — ลบ AI Migration Logs tab + AiMigrationTab component (dead UI — migration_logs ไม่ถูกเขียนตั้งแต่ ADR-023/023A เปลี่ยนไป BullMQ)
@@ -168,10 +170,11 @@ function LegacyManagementTab() {
             // ADR-019: ส่ง publicId (UUID) สำหรับ sender/receiver
             senderPublicId: item.senderOrganizationPublicId || undefined,
             receiverPublicId: item.receiverOrganizationPublicId || undefined,
-            // อ่าน canonical path และ disciplineId จาก details ที่ ingestion / AI เก็บไว้
+            // ADR-054 (FR-010): canonical path อ่านจาก storageTempPath column
+            // (details.source_file_path ถูกย้ายออกแล้ว), disciplineId ยังอยู่ใน details
             sourceFilePath:
-              typeof item.details?.source_file_path === 'string'
-                ? item.details.source_file_path
+              typeof item.storageTempPath === 'string' && item.storageTempPath.length > 0
+                ? item.storageTempPath
                 : undefined,
             disciplineId:
               typeof item.details?.disciplineId === 'number'

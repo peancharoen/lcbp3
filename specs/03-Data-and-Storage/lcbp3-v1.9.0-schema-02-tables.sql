@@ -1594,6 +1594,9 @@ CREATE TABLE migration_review_queue (
     'FAILED'
   ) NULL DEFAULT 'PENDING' COMMENT 'สถานะ BullMQ AI job (ADR-047) — WAITING = enqueue แล้วรอ worker',
   ai_metadata_json LONGTEXT NULL COMMENT 'AI suggestion payload เต็มสำหรับ human review (JSON payload)' CHECK (json_valid(`ai_metadata_json`)),
+  -- ADR-054 columns (added 2026-09-14, delta: 2026-09-14-adr-054-migration-metadata-separation.sql)
+  review_state_json LONGTEXT NULL COMMENT 'ADR-054 D9: human review state เท่านั้น (fieldResolutions + fieldAcknowledgments) — เขียนโดย MigrationReviewService เท่านั้น ห้าม reset ตอน re-extract' CHECK (json_valid(`review_state_json`)),
+  imported_correspondence_public_id VARCHAR(36) NULL COMMENT 'ADR-054 D10: audit link queue→correspondence — publicId (correspondences.uuid) ของ correspondence ที่ import สำเร็จ',
   confidence_score DECIMAL(5, 4) NULL COMMENT 'AI confidence score 0.0000-1.0000 (nullable — entity เก่าไม่ได้ใช้)',
   ocr_used TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'ระบุว่าใช้ OCR path หรือไม่',
   STATUS ENUM(
@@ -1630,6 +1633,7 @@ CREATE TABLE migration_review_queue (
   ai_summary TEXT NULL COMMENT 'สรุปเนื้อหาจาก AI (4-5 บรรทัด)',
   extracted_tags JSON NULL COMMENT 'Tag ที่ AI นำเสนอหรือจับคู่ได้',
   ocr_text LONGTEXT NULL COMMENT 'ข้อความ OCR 3 หน้าแรก (ADR-042/047)',
+  ocr_text_bak LONGTEXT NULL COMMENT 'ADR-054 D5: snapshot ของ ocr_text ก่อนถูกเขียนทับ — เก็บข้อความจริงล่าสุด',
   ai_failed TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Edge Case 4: AI enrichment failed after retries',
   -- ADR-050 columns (added 2026-08-31, delta: 2026-08-31-migration-review-queue-human-review-flags.sql)
   requires_human_review TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'ADR-050: server-computed จาก min(confidence ทั้งหมด) < threshold — ไม่เชื่อค่าที่ LLM ส่งมา',

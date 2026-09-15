@@ -11,6 +11,17 @@
 //     migration-review.service.ts change log same date)
 //   - add new describe blocks: legacy-shape guard, per-field commit gate, category allow-list,
 //     tagDecisions accept/reject + ai_audit_logs audit trail
+// - 2026-09-14: ADR-054 US1 (T009/T013) — updateQueueOcr snapshot tests
+//   (ocrText→ocrTextBak ก่อน manual overwrite, skip เมื่อ placeholder/empty);
+//   fixture อัปเดตจาก details.source_file_path → storageTempPath column
+// - 2026-09-14: ADR-054 US2 (T018/T020) — commitRecord review state tests:
+//   dto.fieldResolutions + dto.fieldAcknowledgments ต้อง persist ลง
+//   reviewState (review_state_json) merge กับค่าเดิมและข้าม undefined keys,
+//   ห้ามไหลเข้า details/ai_metadata_json; revision audit trail
+//   field_resolutions เดิมต้องคงอยู่
+// - 2026-09-14: ADR-054 US3 (T025/T026c, FR-008) — commitRecord ต้องตั้ง
+//   importedCorrespondencePublicId = correspondence.publicId ใน tx เดียวกัน
+//   และ retain queue row (status IMPORTED + reviewedBy/reviewedAt)
 
 jest.mock('fs-extra', () => ({
   ensureDir: jest.fn(),
@@ -53,6 +64,7 @@ import { Tag } from '../tags/entities/tag.entity';
 import { CorrespondenceTag } from '../tags/entities/correspondence-tag.entity';
 import { CommitMigrationReviewDto } from './dto/commit-migration-review.dto';
 import type { MigrationAiExtractionDetails } from './types/ai-extraction-details.type';
+import { NO_PDF_OCR_PLACEHOLDER } from './constants/migration.constants';
 import {
   BusinessException,
   ConflictException,
@@ -393,7 +405,8 @@ describe('MigrationReviewService', () => {
         publicId: '019505a1-7c3e-7000-8000-queue001',
         projectId: 5,
         ocrText: 'old ocr text',
-        details: { source_file_path: '/share/np-dms/staging_ai/doc.pdf' },
+        // ADR-054 D1: file location อยู่ที่ column ไม่ใช่ details bag
+        storageTempPath: '/share/np-dms/staging_ai/doc.pdf',
       };
       mockQueueRepo.findOne.mockResolvedValue(mockItem);
 
@@ -408,6 +421,68 @@ describe('MigrationReviewService', () => {
       expect(mockItem.ocrText).toBe('new corrected OCR text');
       expect(mockQueueRepo.save).toHaveBeenCalledWith(mockItem);
       expect(mockRagBatchService.enqueueRagPrepare).not.toHaveBeenCalled();
+    });
+
+    // ── ADR-054 D5/FR-006 (T013): manual OCR edit snapshots ก่อน overwrite ──
+    it('snapshots current non-placeholder ocrText to ocrTextBak before manual overwrite', async () => {
+      const mockItem = {
+        id: 2,
+        publicId: '019505a1-7c3e-7000-8000-queue002',
+        projectId: 5,
+        ocrText: 'previous real ocr text',
+        ocrTextBak: null,
+      };
+      mockQueueRepo.findOne.mockResolvedValue(mockItem);
+
+      await service.updateQueueOcr(
+        '019505a1-7c3e-7000-8000-queue002',
+        { ocrText: 'manually corrected OCR' },
+        2
+      );
+
+      expect(mockItem.ocrTextBak).toBe('previous real ocr text');
+      expect(mockItem.ocrText).toBe('manually corrected OCR');
+      expect(mockQueueRepo.save).toHaveBeenCalledWith(mockItem);
+    });
+
+    it('does NOT snapshot when current ocrText is a known failure placeholder', async () => {
+      const mockItem = {
+        id: 3,
+        publicId: '019505a1-7c3e-7000-8000-queue003',
+        projectId: 5,
+        ocrText: NO_PDF_OCR_PLACEHOLDER,
+        ocrTextBak: 'last real ocr',
+      };
+      mockQueueRepo.findOne.mockResolvedValue(mockItem);
+
+      await service.updateQueueOcr(
+        '019505a1-7c3e-7000-8000-queue003',
+        { ocrText: 'manually typed OCR' },
+        2
+      );
+
+      expect(mockItem.ocrTextBak).toBe('last real ocr');
+      expect(mockItem.ocrText).toBe('manually typed OCR');
+    });
+
+    it('does NOT snapshot when current ocrText is empty/null', async () => {
+      const mockItem = {
+        id: 4,
+        publicId: '019505a1-7c3e-7000-8000-queue004',
+        projectId: 5,
+        ocrText: null,
+        ocrTextBak: 'existing bak',
+      };
+      mockQueueRepo.findOne.mockResolvedValue(mockItem);
+
+      await service.updateQueueOcr(
+        '019505a1-7c3e-7000-8000-queue004',
+        { ocrText: 'first manual OCR' },
+        2
+      );
+
+      expect(mockItem.ocrTextBak).toBe('existing bak');
+      expect(mockItem.ocrText).toBe('first manual OCR');
     });
   });
 
@@ -685,6 +760,59 @@ describe('MigrationReviewService', () => {
           call[0].includes('correspondence_recipients')
       );
       expect(recipientQuery).toBeDefined();
+    });
+  });
+
+  // ── commitRecord — importedCorrespondencePublicId (ADR-054 US3, T025/FR-008) ──
+
+  describe('commitRecord — importedCorrespondencePublicId audit link', () => {
+    it('sets importedCorrespondencePublicId to the created correspondence publicId and retains the queue row', async () => {
+      const queueItem = makeQueueItem();
+      const qr = createMockQueryRunner({ correspondence: null, queueItem });
+      dataSource.createQueryRunner.mockReturnValue(qr);
+
+      const res = await service.commitRecord(makeDto(), 7, 'idem-us3-001');
+
+      expect(res.success).toBe(true);
+      // publicId ของ Correspondence ที่ create mock จำลอง @BeforeInsert ให้
+      const createdCorrespondence = qr.manager.create.mock.results
+        .map((r) => r.value as Record<string, unknown>)
+        .find((v) => typeof v?.correspondenceNumber === 'string');
+      expect(createdCorrespondence?.publicId).toBeDefined();
+      // ADR-054 D10: audit link ต้องเป็น correspondences.public_id (UUID string)
+      expect(queueItem.importedCorrespondencePublicId).toBe(
+        createdCorrespondence?.publicId
+      );
+      expect(queueItem.status).toBe(MigrationReviewStatus.IMPORTED);
+      expect(queueItem.reviewedBy).toBe('7');
+      expect(queueItem.reviewedAt).toBeInstanceOf(Date);
+      // queue row retained — save ใน tx เดียวกัน ไม่ถูกลบ
+      expect(qr.manager.save).toHaveBeenCalledWith(queueItem);
+      expect(res.status).toBe(MigrationReviewStatus.IMPORTED);
+    });
+
+    it('links to the existing correspondence publicId on the dedupe path', async () => {
+      const existingCorr = {
+        id: 50,
+        publicId: 'corr-uuid-existing',
+        correspondenceNumber: 'DOC-001',
+        projectId: 5,
+        originatorId: 99,
+      };
+      const queueItem = makeQueueItem();
+      const qr = createMockQueryRunner({
+        correspondence: existingCorr,
+        queueItem,
+      });
+      dataSource.createQueryRunner.mockReturnValue(qr);
+
+      const res = await service.commitRecord(makeDto(), 7, 'idem-us3-002');
+
+      expect(res.success).toBe(true);
+      expect(queueItem.importedCorrespondencePublicId).toBe(
+        'corr-uuid-existing'
+      );
+      expect(qr.manager.save).toHaveBeenCalledWith(queueItem);
     });
   });
 
@@ -1480,6 +1608,91 @@ describe('MigrationReviewService', () => {
         qr.manager,
         expect.any(Number),
         [10, 20]
+      );
+    });
+  });
+
+  // ── commitRecord — review state (ADR-054 D9, FR-003, T020) ──────────────────
+
+  describe('commitRecord — review state (ADR-054 D9, FR-003)', () => {
+    it('persists dto.fieldResolutions + dto.fieldAcknowledgments to reviewState (review_state_json) — never into details/ai_metadata_json', async () => {
+      const queueItem = makeQueueItem({
+        details: {
+          original_row_index: 3,
+          ocrQuality: { confidence: 0.9, issues: [] },
+        },
+      });
+      const qr = createMockQueryRunner({ queueItem });
+      dataSource.createQueryRunner.mockReturnValue(qr);
+
+      const fieldResolutions = [
+        { field: 'subject', source: 'DOCUMENT', finalValue: 'Chosen Subject' },
+      ] as const;
+      const res = await service.commitRecord(
+        makeDto({
+          fieldResolutions: [...fieldResolutions],
+          fieldAcknowledgments: ['ocrQuality'],
+        }),
+        1,
+        'idem-key-rs-001'
+      );
+
+      expect(res.success).toBe(true);
+      // การตัดสินใจของผู้ตรวจสอบต้องลง review_state_json ใน tx เดียวกับ queue item save
+      expect(queueItem.reviewState).toEqual({
+        fieldResolutions: [...fieldResolutions],
+        fieldAcknowledgments: ['ocrQuality'],
+      });
+      expect(qr.manager.save).toHaveBeenCalledWith(queueItem);
+      // ห้ามไหลเข้า details (ai_metadata_json) เด็ดขาด
+      expect(queueItem.details).not.toHaveProperty('fieldResolutions');
+      expect(queueItem.details).not.toHaveProperty('fieldAcknowledgments');
+    });
+
+    it('merges into existing reviewState and skips keys not provided in dto', async () => {
+      const existingResolutions = [
+        { field: 'subject', source: 'EXCEL', finalValue: 'Old Subject' },
+      ];
+      const queueItem = makeQueueItem({
+        reviewState: { fieldResolutions: existingResolutions },
+      });
+      const qr = createMockQueryRunner({ queueItem });
+      dataSource.createQueryRunner.mockReturnValue(qr);
+
+      await service.commitRecord(
+        makeDto({ fieldAcknowledgments: ['tags'] }),
+        1,
+        'idem-key-rs-002'
+      );
+
+      // key ที่ dto ไม่ได้ส่งต้องคงค่าเดิม (merge ไม่ทับ), key ที่ส่งต้องถูกเขียน
+      expect(queueItem.reviewState).toEqual({
+        fieldResolutions: existingResolutions,
+        fieldAcknowledgments: ['tags'],
+      });
+    });
+
+    it('keeps the revision audit-trail write of field_resolutions unchanged', async () => {
+      const qr = createMockQueryRunner();
+      dataSource.createQueryRunner.mockReturnValue(qr);
+
+      const fieldResolutions = [
+        { field: 'summary', source: 'MANUAL', finalValue: 'v' },
+      ];
+      await service.commitRecord(
+        makeDto({ fieldResolutions }),
+        1,
+        'idem-key-rs-003'
+      );
+
+      // audit trail เดิมใน revision.details.field_resolutions ต้องยังถูกเขียนเหมือนเดิม
+      expect(qr.manager.create).toHaveBeenCalledWith(
+        CorrespondenceRevision,
+        expect.objectContaining({
+          details: expect.objectContaining({
+            field_resolutions: fieldResolutions,
+          }),
+        })
       );
     });
   });

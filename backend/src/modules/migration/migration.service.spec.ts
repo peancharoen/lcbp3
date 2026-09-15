@@ -8,6 +8,22 @@
 // - 2026-08-26: Added regression tests — importStagingFile ต้องได้ issueDate จาก dto.documentDate
 // - 2026-08-30: เพิ่ม tests สำหรับ reExtractQueueItem
 // - 2026-08-27: Expand coverage to 80%+ — tests for all uncovered methods
+// - 2026-09-14: ADR-054 US1 (T009) — tests สำหรับ ocrText→ocrTextBak snapshot
+//   (updateQueueEnrichment + reExtractQueueItem), resolveQueuePdfPath fallback,
+//   details whitelist reset, restoreOcrText (MIGRATION_NO_BACKUP), และ
+//   enqueueRecord details whitelist (reviewer hardening); fixtures อัปเดตจาก
+//   details.source_file_path → storageTempPath column ตาม contract ใหม่
+// - 2026-09-14: ADR-054 US2 (T018/T021) — tests สำหรับ review state isolation:
+//   re-extract ต้องเหลือ reviewState byte-identical (same reference), updateQueueEnrichment
+//   ต้อง populate confidence ครบ 3 stores (FR-009) โดยไม่แตะ reviewState, queue-item
+//   detail response expose first-class fields (storageTempPath/originalFilename/
+//   reviewState/ocrTextBak/importedCorrespondencePublicId) โดย details ไม่มี
+//   source_file_path/fieldResolutions; + reviewer folds — startExtractQueueItem
+//   ต้อง strip transient attachments[] ก่อน persist, getReviewQueue list ต้องตัด
+//   ocrTextBak ออกแล้ว expose hasOcrTextBak flag แทน
+// - 2026-09-14: ADR-054 US3 (T025/T026a-b, FR-008) — approveQueueItem /
+//   approveQueueItemByPublicId ต้องตั้ง importedCorrespondencePublicId เป็น
+//   publicId ของ correspondence ที่ import สร้าง + retain queue row (ไม่ delete)
 
 jest.mock('fs', () => {
   const actual: Record<string, unknown> = jest.requireActual('fs');
@@ -64,6 +80,7 @@ import {
 } from '../../common/exceptions';
 import { createReadStream, existsSync, readdirSync } from 'fs';
 import * as path from 'path';
+import { NO_PDF_OCR_PLACEHOLDER } from './constants/migration.constants';
 
 const mockedExistsSync = jest.mocked(existsSync);
 const mockedCreateReadStream = jest.mocked(createReadStream);
@@ -1325,6 +1342,49 @@ describe('MigrationService', () => {
       expect(existing.tempAttachmentIds).toEqual([42]);
     });
 
+    it('persists only whitelisted dto.details keys into ai_metadata_json (ADR-054 hardening)', async () => {
+      const existing = {
+        id: 8,
+        documentNumber: 'DOC-DETAILS',
+        status: MigrationReviewStatus.PENDING,
+        details: { original_row_index: 5 },
+      };
+      mockReviewQueueRepo.findOne.mockResolvedValue(existing);
+      mockReviewQueueRepo.save.mockImplementation((v: unknown) =>
+        Promise.resolve({ ...v, id: 8 })
+      );
+
+      const dto: EnqueueMigrationDto = {
+        documentNumber: 'DOC-DETAILS',
+        details: {
+          // keys ที่ processMigrateDocument ส่งจริง — ต้อง persist
+          disciplineCode: 'CIV',
+          disciplineId: 12,
+          compareResult: { mismatches: [], confidence: 0.9 },
+          compareStatus: CompareStatus.COMPARED,
+          capturedThresholds: { minConfidence: 0.6, maxMismatchFields: 3 },
+          // injected keys — ต้องถูก drop
+          source_file_path: '/etc/passwd',
+          fieldResolutions: [{ field: 'summary' }],
+          arbitraryInjected: 'x',
+        },
+      } as unknown as EnqueueMigrationDto;
+
+      await service.enqueueRecord(dto);
+
+      expect(existing.details).toEqual({
+        original_row_index: 5,
+        disciplineCode: 'CIV',
+        disciplineId: 12,
+        compareResult: { mismatches: [], confidence: 0.9 },
+        compareStatus: CompareStatus.COMPARED,
+        capturedThresholds: { minConfidence: 0.6, maxMismatchFields: 3 },
+      });
+      expect(existing.details).not.toHaveProperty('source_file_path');
+      expect(existing.details).not.toHaveProperty('fieldResolutions');
+      expect(existing.details).not.toHaveProperty('arbitraryInjected');
+    });
+
     it('does not set issuedDate when date string is invalid', async () => {
       mockReviewQueueRepo.findOne.mockResolvedValue(null);
       mockReviewQueueRepo.create.mockImplementation((v: unknown) => v);
@@ -1382,7 +1442,7 @@ describe('MigrationService', () => {
       expect(mockReviewQueueRepo.save).toHaveBeenCalled();
     });
 
-    it('merges details instead of overwriting to preserve source_file_path', async () => {
+    it('merges details instead of overwriting to preserve residual ingestion keys (ADR-054)', async () => {
       const item = {
         id: 1,
         ocrText: null,
@@ -1395,8 +1455,8 @@ describe('MigrationService', () => {
         aiStatus: null,
         status: MigrationReviewStatus.PENDING,
         details: {
-          source_file_path: '/mnt/legacy-staging/doc.pdf',
           original_row_index: 5,
+          original_document_number: 'DOC-ORIG',
         },
       };
       mockReviewQueueRepo.findOne.mockResolvedValue(item);
@@ -1410,11 +1470,151 @@ describe('MigrationService', () => {
       });
 
       expect(item.details).toEqual({
-        source_file_path: '/mnt/legacy-staging/doc.pdf',
         original_row_index: 5,
+        original_document_number: 'DOC-ORIG',
         aiFailureReason: 'LLM_CALL_FAILED',
       });
       expect(mockReviewQueueRepo.save).toHaveBeenCalled();
+    });
+
+    // ── ADR-054 D5/FR-006 (T009): snapshot ocr_text → ocr_text_bak ก่อนเขียนทับ ──
+    it('snapshots non-empty real ocrText to ocrTextBak before overwrite', async () => {
+      const item = {
+        id: 1,
+        ocrText: 'real ocr text v1',
+        ocrTextBak: null,
+        status: MigrationReviewStatus.PENDING,
+      };
+      mockReviewQueueRepo.findOne.mockResolvedValue(item);
+      mockReviewQueueRepo.save.mockResolvedValue(item);
+
+      await service.updateQueueEnrichment(1, { ocrText: 'real ocr text v2' });
+
+      expect(item.ocrTextBak).toBe('real ocr text v1');
+      expect(item.ocrText).toBe('real ocr text v2');
+      expect(mockReviewQueueRepo.save).toHaveBeenCalled();
+    });
+
+    it('does NOT snapshot when current ocrText is a known failure placeholder (bak keeps last real text)', async () => {
+      const item = {
+        id: 1,
+        ocrText: NO_PDF_OCR_PLACEHOLDER,
+        ocrTextBak: 'last real ocr text',
+        status: MigrationReviewStatus.PENDING,
+      };
+      mockReviewQueueRepo.findOne.mockResolvedValue(item);
+      mockReviewQueueRepo.save.mockResolvedValue(item);
+
+      await service.updateQueueEnrichment(1, { ocrText: 'new ocr text' });
+
+      expect(item.ocrTextBak).toBe('last real ocr text');
+      expect(item.ocrText).toBe('new ocr text');
+    });
+
+    it('does NOT snapshot when current ocrText is empty/null (nothing worth preserving)', async () => {
+      const item = {
+        id: 1,
+        ocrText: null,
+        ocrTextBak: 'existing bak',
+        status: MigrationReviewStatus.PENDING,
+      };
+      mockReviewQueueRepo.findOne.mockResolvedValue(item);
+      mockReviewQueueRepo.save.mockResolvedValue(item);
+
+      await service.updateQueueEnrichment(1, { ocrText: 'new ocr text' });
+
+      expect(item.ocrTextBak).toBe('existing bak');
+      expect(item.ocrText).toBe('new ocr text');
+    });
+
+    it('never writes reviewState from the extraction write path (FR-003)', async () => {
+      const reviewState = {
+        fieldResolutions: [{ field: 'summary', action: 'accepted' }],
+      };
+      const item = {
+        id: 1,
+        ocrText: null,
+        reviewState,
+        status: MigrationReviewStatus.PENDING,
+      };
+      mockReviewQueueRepo.findOne.mockResolvedValue(item);
+      mockReviewQueueRepo.save.mockResolvedValue(item);
+
+      await service.updateQueueEnrichment(1, {
+        ocrText: 'new ocr text',
+        aiStatus: MigrationAiStatus.DONE,
+        details: { aiFailureReason: 'LLM_CALL_FAILED' },
+      });
+
+      const savedItem = (
+        mockReviewQueueRepo.save.mock.calls as Record<string, unknown>[][]
+      )[0][0];
+      expect(savedItem.reviewState).toBe(reviewState);
+    });
+
+    // ── ADR-054 D7/D9 (T021, FR-003/FR-009): confidence stores + review state isolation ──
+    it('populates all three confidence stores per FR-009 and never touches reviewState', async () => {
+      const reviewState = {
+        fieldResolutions: [
+          { field: 'subject', source: 'DOCUMENT', finalValue: 'v' },
+        ],
+        fieldAcknowledgments: ['ocrQuality'],
+      };
+      const item = {
+        id: 1,
+        ocrText: null,
+        aiConfidence: null,
+        ocrQualityConfidence: null,
+        requiresHumanReview: false,
+        reviewState,
+        status: MigrationReviewStatus.PENDING,
+        details: { original_row_index: 2 },
+      };
+      mockReviewQueueRepo.findOne.mockResolvedValue(item);
+      mockReviewQueueRepo.save.mockResolvedValue(item);
+
+      await service.updateQueueEnrichment(1, {
+        aiStatus: MigrationAiStatus.DONE,
+        status: MigrationReviewStatus.PENDING_REVIEW,
+        details: {
+          ocrQuality: { confidence: 0.8, issues: [] },
+          metadata: {
+            summary: 'สรุปเอกสาร',
+            correspondenceType: 'LETTER',
+            tags: [],
+            confidence: {
+              summary: 0.9,
+              correspondenceType: 0.7,
+              tags: 0.5,
+            },
+          },
+        },
+      });
+
+      // FR-009 (D7): confidence ต้องคงอยู่ครบทั้ง 3 storage —
+      // (1) ai_confidence column (alias = min(metadata.confidence.*) = 0.5)
+      expect(item.aiConfidence).toBe(0.5);
+      // (2) ocr_quality_confidence column (sort/filter)
+      expect(item.ocrQualityConfidence).toBe(0.8);
+      // (3) per-field confidence ใน details JSON (review-UI source of truth)
+      const details = item.details as {
+        ocrQuality: { confidence: number };
+        metadata: { confidence: Record<string, number> };
+      };
+      expect(details.ocrQuality.confidence).toBe(0.8);
+      expect(details.metadata.confidence).toEqual({
+        summary: 0.9,
+        correspondenceType: 0.7,
+        tags: 0.5,
+      });
+      // residual ingestion keys ต้องรอดจาก merge
+      expect(item.details).toMatchObject({ original_row_index: 2 });
+      // review state ต้องไม่ถูกแตะ (reference เดิม — FR-003)
+      expect(item.reviewState).toBe(reviewState);
+      expect(item.details).not.toHaveProperty('fieldResolutions');
+      expect(item.details).not.toHaveProperty('fieldAcknowledgments');
+      // server-computed flag: min(0.8, 0.9, 0.7, 0.5) = 0.5 < 0.6 → true
+      expect(item.requiresHumanReview).toBe(true);
     });
 
     it('does nothing when queue item is not found', async () => {
@@ -1483,7 +1683,8 @@ describe('MigrationService', () => {
         aiJobId: null,
         projectId: 100,
         documentNumber: 'DOC-EXT',
-        details: { source_file_path: '/staging/doc.pdf' },
+        // ADR-054 D1: file location อยู่ที่ storageTempPath column (ไม่ใช่ details)
+        storageTempPath: '/staging/doc.pdf',
       });
       mockProjectRepo.findOne.mockResolvedValue({
         id: 100,
@@ -1499,6 +1700,90 @@ describe('MigrationService', () => {
       );
       expect(result.message).toBe('AI extraction started');
       expect(result.jobId).toBe('job-789');
+      // ADR-054 FR-002: job payload ต้องได้ pdfPath จาก storageTempPath
+      const jobPayload = (
+        mockAiBatchQueue.add.mock.calls as [string, { pdfPath?: string }][]
+      )[0][1];
+      expect(jobPayload.pdfPath).toBe('/staging/doc.pdf');
+    });
+
+    // ── ADR-054 FR-002 (T009): resolveQueuePdfPath — storageTempPath ก่อน ──
+    it('prefers storageTempPath over attachment fallback when both exist', async () => {
+      mockReviewQueueRepo.findOne.mockResolvedValue({
+        id: 6,
+        publicId: 'queue-uuid-006',
+        status: MigrationReviewStatus.PENDING,
+        aiStatus: null,
+        aiJobId: null,
+        projectId: null,
+        documentNumber: 'DOC-PATH-1',
+        storageTempPath: '/staging/preferred.pdf',
+        tempAttachmentIds: [42],
+      });
+      mockAiBatchQueue.add.mockResolvedValue({ id: 'job-path-1' });
+      mockReviewQueueRepo.save.mockResolvedValue({});
+
+      await service.startExtractQueueItem('queue-uuid-006', 'idem-6', 1);
+
+      const jobPayload = (
+        mockAiBatchQueue.add.mock.calls as [string, { pdfPath?: string }][]
+      )[0][1];
+      expect(jobPayload.pdfPath).toBe('/staging/preferred.pdf');
+    });
+
+    it('falls back to attachments.file_path via tempAttachmentIds[0] when storageTempPath missing', async () => {
+      mockReviewQueueRepo.findOne.mockResolvedValue({
+        id: 7,
+        publicId: 'queue-uuid-007',
+        status: MigrationReviewStatus.PENDING,
+        aiStatus: null,
+        aiJobId: null,
+        projectId: null,
+        documentNumber: 'DOC-PATH-2',
+        storageTempPath: null,
+        tempAttachmentIds: [42],
+      });
+      mockAttachmentFind.mockResolvedValue([]); // enrichWithAttachments
+      mockDataSource.manager.findOne.mockResolvedValue({
+        id: 42,
+        filePath: '/attachments/fallback.pdf',
+      });
+      mockAiBatchQueue.add.mockResolvedValue({ id: 'job-path-2' });
+      mockReviewQueueRepo.save.mockResolvedValue({});
+
+      await service.startExtractQueueItem('queue-uuid-007', 'idem-7', 1);
+
+      expect(mockDataSource.manager.findOne).toHaveBeenCalledWith(
+        Attachment,
+        expect.objectContaining({ where: { id: 42 } })
+      );
+      const jobPayload = (
+        mockAiBatchQueue.add.mock.calls as [string, { pdfPath?: string }][]
+      )[0][1];
+      expect(jobPayload.pdfPath).toBe('/attachments/fallback.pdf');
+    });
+
+    it('yields undefined pdfPath when both storageTempPath and attachment are missing', async () => {
+      mockReviewQueueRepo.findOne.mockResolvedValue({
+        id: 8,
+        publicId: 'queue-uuid-008',
+        status: MigrationReviewStatus.PENDING,
+        aiStatus: null,
+        aiJobId: null,
+        projectId: null,
+        documentNumber: 'DOC-PATH-3',
+        storageTempPath: null,
+        tempAttachmentIds: null,
+      });
+      mockAiBatchQueue.add.mockResolvedValue({ id: 'job-path-3' });
+      mockReviewQueueRepo.save.mockResolvedValue({});
+
+      await service.startExtractQueueItem('queue-uuid-008', 'idem-8', 1);
+
+      const jobPayload = (
+        mockAiBatchQueue.add.mock.calls as [string, { pdfPath?: string }][]
+      )[0][1];
+      expect(jobPayload.pdfPath).toBeUndefined();
     });
 
     it('starts extraction without projectId (uses default UUID)', async () => {
@@ -1522,6 +1807,47 @@ describe('MigrationService', () => {
       );
       expect(result.message).toBe('AI extraction started');
       expect(mockProjectRepo.findOne).not.toHaveBeenCalled();
+    });
+
+    // ── ADR-054 reviewer fold: transient attachments[] ห้าม persist ลง ai_metadata_json ──
+    it('strips transient attachments[] (injected by enrichWithAttachments) from details before save', async () => {
+      mockReviewQueueRepo.findOne.mockResolvedValue({
+        id: 9,
+        publicId: 'queue-uuid-009',
+        status: MigrationReviewStatus.PENDING,
+        aiStatus: null,
+        aiJobId: null,
+        projectId: null,
+        documentNumber: 'DOC-ATT',
+        storageTempPath: '/staging/att.pdf',
+        tempAttachmentIds: [42],
+        details: { original_row_index: 1 },
+      });
+      // enrichWithAttachments จะฉีด details.attachments เข้า item ที่ fetch มา
+      mockAttachmentFind.mockResolvedValue([
+        {
+          id: 42,
+          publicId: 'att-uuid-42',
+          originalFilename: 'att.pdf',
+          mimeType: 'application/pdf',
+          ocrText: 'x',
+        },
+      ]);
+      mockDataSource.manager.find.mockResolvedValue([]);
+      mockTypeRepo.find.mockResolvedValue([]);
+      mockAiBatchQueue.add.mockResolvedValue({ id: 'job-att' });
+      mockReviewQueueRepo.save.mockResolvedValue({});
+
+      await service.startExtractQueueItem('queue-uuid-009', 'idem-9', 1);
+
+      const savedItem = (
+        mockReviewQueueRepo.save.mock.calls as Record<string, unknown>[][]
+      )[0][0];
+      const savedDetails = savedItem.details as Record<string, unknown>;
+      // attachments[] เป็น transient serialization enrichment เท่านั้น — ห้าม persist
+      expect(savedDetails).not.toHaveProperty('attachments');
+      // residual ingestion keys ต้องยังอยู่
+      expect(savedDetails).toMatchObject({ original_row_index: 1 });
     });
   });
 
@@ -1569,7 +1895,9 @@ describe('MigrationService', () => {
           aiJobId: 'job-012',
           projectId: 100,
           documentNumber: 'DOC-RE',
-          details: { source_file_path: '/staging/doc.pdf' },
+          // ADR-054 D1: file location อยู่ที่ storageTempPath column
+          storageTempPath: '/staging/doc.pdf',
+          details: { original_row_index: 3 },
           ocrText: 'old ocr',
           aiSummary: 'old summary',
           aiSuggestedCorrespondenceType: 'LETTER',
@@ -1586,7 +1914,7 @@ describe('MigrationService', () => {
           aiJobId: null,
           projectId: 100,
           documentNumber: 'DOC-RE',
-          details: { source_file_path: '/staging/doc.pdf' },
+          storageTempPath: '/staging/doc.pdf',
         });
 
       mockProjectRepo.findOne.mockResolvedValue({
@@ -1623,6 +1951,326 @@ describe('MigrationService', () => {
           status: MigrationReviewStatus.PENDING,
         })
       );
+      // ADR-054 FR-002: re-extract ต้อง resolve pdfPath จาก storageTempPath
+      const jobPayload = (
+        mockAiBatchQueue.add.mock.calls as [string, { pdfPath?: string }][]
+      )[0][1];
+      expect(jobPayload.pdfPath).toBe('/staging/doc.pdf');
+    });
+
+    // ── ADR-054 D3/D5 (T009/T012): re-extract reset scope + snapshot ──
+    it('preserves ingestion columns + reviewState + residual details keys, clears AI output, snapshots ocrText→ocrTextBak', async () => {
+      const reviewState = {
+        fieldResolutions: [{ field: 'summary', action: 'accepted' }],
+        fieldAcknowledgments: ['ocrQuality'],
+      };
+      const firstItem = {
+        id: 13,
+        publicId: 'queue-uuid-013',
+        status: MigrationReviewStatus.PENDING_REVIEW,
+        aiStatus: MigrationAiStatus.DONE,
+        aiJobId: 'job-013',
+        projectId: 100,
+        documentNumber: 'DOC-PRESERVE',
+        // ingestion columns — ต้องไม่ถูกแตะ
+        storageTempPath: '/staging/preserve.pdf',
+        originalFilename: 'preserve.pdf',
+        tempAttachmentIds: [77],
+        reviewState,
+        ocrTextBak: 'even older bak',
+        ocrText: 'real ocr text',
+        aiSummary: 'old summary',
+        aiSuggestedCorrespondenceType: 'LETTER',
+        extractedTags: [{ name: 'old' }],
+        aiConfidence: 0.9,
+        aiIssues: [{ code: 'OLD' }],
+        aiFailed: false,
+        requiresHumanReview: true,
+        ocrQualityConfidence: 0.5,
+        reviewReason: 'low confidence',
+        details: {
+          // residual ingestion keys — ต้องรอด
+          original_row_index: 7,
+          unresolved_orgs: { sender: 'UNKNOWN' },
+          original_document_number: 'DOC-ORIG-013',
+          revision_number: 2,
+          // AI output keys — ต้องถูกล้าง
+          ocrQuality: { confidence: 0.9, issues: [] },
+          metadata: { summary: 's', correspondenceType: 'LETTER' },
+          compareResult: { mismatches: [] },
+          capturedThresholds: { minConfidence: 0.6 },
+          aiFailureReason: 'LLM_CALL_FAILED',
+        },
+      };
+      const secondItem = {
+        id: 13,
+        publicId: 'queue-uuid-013',
+        status: MigrationReviewStatus.PENDING,
+        aiStatus: MigrationAiStatus.PENDING,
+        aiJobId: null,
+        projectId: 100,
+        documentNumber: 'DOC-PRESERVE',
+        storageTempPath: '/staging/preserve.pdf',
+        tempAttachmentIds: [77],
+      };
+      mockReviewQueueRepo.findOne
+        .mockResolvedValueOnce(firstItem)
+        .mockResolvedValueOnce(secondItem);
+      mockProjectRepo.findOne.mockResolvedValue({
+        id: 100,
+        publicId: 'proj-uuid-013',
+      });
+      mockAiBatchQueue.remove.mockResolvedValue(undefined);
+      mockAiBatchQueue.add.mockResolvedValue({ id: 'job-1000' });
+      mockReviewQueueRepo.save.mockResolvedValue({});
+      mockAttachmentFind.mockResolvedValue([]);
+      mockDataSource.manager.find.mockResolvedValue([]);
+      mockTypeRepo.find.mockResolvedValue([]);
+
+      const result = await service.reExtractQueueItem(
+        'queue-uuid-013',
+        'idem-re-4',
+        1
+      );
+
+      expect(result.message).toBe('AI extraction started');
+      const savedItem = (
+        mockReviewQueueRepo.save.mock.calls as Record<string, unknown>[][]
+      )[0][0];
+      // AI output flat columns reset
+      expect(savedItem).toMatchObject({
+        aiStatus: MigrationAiStatus.PENDING,
+        aiJobId: null,
+        aiFailed: false,
+        ocrText: null,
+        aiSummary: null,
+        aiSuggestedCorrespondenceType: null,
+        extractedTags: null,
+        aiConfidence: null,
+        aiIssues: null,
+        requiresHumanReview: false,
+        ocrQualityConfidence: null,
+        reviewReason: null,
+        status: MigrationReviewStatus.PENDING,
+      });
+      // ingestion columns + review state untouched
+      expect(savedItem.storageTempPath).toBe('/staging/preserve.pdf');
+      expect(savedItem.originalFilename).toBe('preserve.pdf');
+      expect(savedItem.tempAttachmentIds).toEqual([77]);
+      expect(savedItem.reviewState).toEqual(reviewState);
+      // snapshot: real ocr text → ocrTextBak (ทับ bak เก่าเพราะ bak เก็บข้อความจริงล่าสุด)
+      expect(savedItem.ocrTextBak).toBe('real ocr text');
+      // details rebuilt ผ่าน whitelist — เหลือเฉพาะ residual ingestion keys
+      expect(savedItem.details).toEqual({
+        original_row_index: 7,
+        unresolved_orgs: { sender: 'UNKNOWN' },
+        original_document_number: 'DOC-ORIG-013',
+        revision_number: 2,
+      });
+    });
+
+    it('skips ocrText→ocrTextBak snapshot when current ocrText is a known failure placeholder', async () => {
+      const firstItem = {
+        id: 14,
+        publicId: 'queue-uuid-014',
+        status: MigrationReviewStatus.PENDING_REVIEW,
+        aiStatus: MigrationAiStatus.FAILED,
+        aiJobId: null,
+        projectId: null,
+        documentNumber: 'DOC-PLACEHOLDER',
+        storageTempPath: null,
+        ocrText: NO_PDF_OCR_PLACEHOLDER,
+        ocrTextBak: 'good bak text',
+        details: {},
+      };
+      const secondItem = {
+        id: 14,
+        publicId: 'queue-uuid-014',
+        status: MigrationReviewStatus.PENDING,
+        aiStatus: MigrationAiStatus.PENDING,
+        aiJobId: null,
+        projectId: null,
+        documentNumber: 'DOC-PLACEHOLDER',
+        storageTempPath: null,
+      };
+      mockReviewQueueRepo.findOne
+        .mockResolvedValueOnce(firstItem)
+        .mockResolvedValueOnce(secondItem);
+      mockAiBatchQueue.add.mockResolvedValue({ id: 'job-1001' });
+      mockReviewQueueRepo.save.mockResolvedValue({});
+      mockAttachmentFind.mockResolvedValue([]);
+      mockDataSource.manager.find.mockResolvedValue([]);
+      mockTypeRepo.find.mockResolvedValue([]);
+
+      await service.reExtractQueueItem('queue-uuid-014', 'idem-re-5', 1);
+
+      const savedItem = (
+        mockReviewQueueRepo.save.mock.calls as Record<string, unknown>[][]
+      )[0][0];
+      // placeholder ห้ามทับ bak — bak ต้องยังเป็นข้อความจริงล่าสุด
+      expect(savedItem.ocrTextBak).toBe('good bak text');
+      expect(savedItem.ocrText).toBeNull();
+    });
+
+    it('does not snapshot when ocrText is empty/null (nothing worth preserving)', async () => {
+      const firstItem = {
+        id: 15,
+        publicId: 'queue-uuid-015',
+        status: MigrationReviewStatus.PENDING_REVIEW,
+        aiStatus: MigrationAiStatus.DONE,
+        aiJobId: null,
+        projectId: null,
+        documentNumber: 'DOC-EMPTY-OCR',
+        storageTempPath: null,
+        ocrText: null,
+        ocrTextBak: null,
+        details: {},
+      };
+      const secondItem = {
+        id: 15,
+        publicId: 'queue-uuid-015',
+        status: MigrationReviewStatus.PENDING,
+        aiStatus: MigrationAiStatus.PENDING,
+        aiJobId: null,
+        projectId: null,
+        documentNumber: 'DOC-EMPTY-OCR',
+      };
+      mockReviewQueueRepo.findOne
+        .mockResolvedValueOnce(firstItem)
+        .mockResolvedValueOnce(secondItem);
+      mockAiBatchQueue.add.mockResolvedValue({ id: 'job-1002' });
+      mockReviewQueueRepo.save.mockResolvedValue({});
+      mockAttachmentFind.mockResolvedValue([]);
+      mockDataSource.manager.find.mockResolvedValue([]);
+      mockTypeRepo.find.mockResolvedValue([]);
+
+      await service.reExtractQueueItem('queue-uuid-015', 'idem-re-6', 1);
+
+      const savedItem = (
+        mockReviewQueueRepo.save.mock.calls as Record<string, unknown>[][]
+      )[0][0];
+      expect(savedItem.ocrTextBak).toBeNull();
+      expect(savedItem.ocrText).toBeNull();
+    });
+
+    // ── ADR-054 D9 (T018, FR-003/SC-004): review_state_json ต้องเหมือนเดิมทุก byte ──
+    it('leaves reviewState byte-identical (same reference — never rewritten) after re-extract', async () => {
+      const reviewState = {
+        fieldResolutions: [
+          { field: 'subject', source: 'DOCUMENT', finalValue: 'v' },
+        ],
+        fieldAcknowledgments: ['ocrQuality'],
+      };
+      const firstItem = {
+        id: 16,
+        publicId: 'queue-uuid-016',
+        status: MigrationReviewStatus.PENDING_REVIEW,
+        aiStatus: MigrationAiStatus.DONE,
+        aiJobId: null,
+        projectId: null,
+        documentNumber: 'DOC-RS',
+        storageTempPath: null,
+        reviewState,
+        ocrText: null,
+        details: {},
+      };
+      const secondItem = {
+        id: 16,
+        publicId: 'queue-uuid-016',
+        status: MigrationReviewStatus.PENDING,
+        aiStatus: MigrationAiStatus.PENDING,
+        aiJobId: null,
+        projectId: null,
+        documentNumber: 'DOC-RS',
+        storageTempPath: null,
+      };
+      mockReviewQueueRepo.findOne
+        .mockResolvedValueOnce(firstItem)
+        .mockResolvedValueOnce(secondItem);
+      mockAiBatchQueue.add.mockResolvedValue({ id: 'job-1003' });
+      mockReviewQueueRepo.save.mockResolvedValue({});
+      mockAttachmentFind.mockResolvedValue([]);
+      mockDataSource.manager.find.mockResolvedValue([]);
+      mockTypeRepo.find.mockResolvedValue([]);
+
+      await service.reExtractQueueItem('queue-uuid-016', 'idem-re-7', 1);
+
+      const savedItem = (
+        mockReviewQueueRepo.save.mock.calls as Record<string, unknown>[][]
+      )[0][0];
+      // reference เดิมเป๊ะ = column ไม่ถูกเขียนใหม่เลย → byte-identical เมื่อ persist
+      expect(savedItem.reviewState).toBe(reviewState);
+      expect(JSON.stringify(savedItem.reviewState)).toBe(
+        JSON.stringify(reviewState)
+      );
+    });
+  });
+
+  // ── restoreOcrText (ADR-054 D5/FR-007) ──────────────────────────────────────
+  describe('restoreOcrText', () => {
+    it('restores ocr_text_bak → ocr_text, retains bak, returns restored payload', async () => {
+      const item = {
+        id: 20,
+        publicId: 'queue-uuid-020',
+        ocrText: NO_PDF_OCR_PLACEHOLDER,
+        ocrTextBak: 'the real ocr text backup',
+      };
+      mockReviewQueueRepo.findOne.mockResolvedValue(item);
+      mockReviewQueueRepo.save.mockImplementation((v: unknown) =>
+        Promise.resolve(v)
+      );
+
+      const result = await service.restoreOcrText('queue-uuid-020', 9);
+
+      expect(result).toEqual({
+        publicId: 'queue-uuid-020',
+        ocrTextLength: 'the real ocr text backup'.length,
+        restored: true,
+      });
+      expect(item.ocrText).toBe('the real ocr text backup');
+      // restore เป็น non-destructive — bak ต้องคงอยู่
+      expect(item.ocrTextBak).toBe('the real ocr text backup');
+      expect(mockReviewQueueRepo.save).toHaveBeenCalledWith(item);
+    });
+
+    it('throws BusinessException MIGRATION_NO_BACKUP when ocrTextBak is empty', async () => {
+      mockReviewQueueRepo.findOne.mockResolvedValue({
+        id: 21,
+        publicId: 'queue-uuid-021',
+        ocrText: 'current',
+        ocrTextBak: null,
+      });
+
+      try {
+        await service.restoreOcrText('queue-uuid-021', 9);
+        throw new Error('should have thrown');
+      } catch (err) {
+        expect(err).toBeInstanceOf(BusinessException);
+        expect((err as BusinessException).code).toBe('MIGRATION_NO_BACKUP');
+      }
+      expect(mockReviewQueueRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('throws BusinessException MIGRATION_NO_BACKUP when ocrTextBak is blank string', async () => {
+      mockReviewQueueRepo.findOne.mockResolvedValue({
+        id: 22,
+        publicId: 'queue-uuid-022',
+        ocrText: 'current',
+        ocrTextBak: '   ',
+      });
+
+      await expect(
+        service.restoreOcrText('queue-uuid-022', 9)
+      ).rejects.toBeInstanceOf(BusinessException);
+      expect(mockReviewQueueRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFoundException for unknown publicId', async () => {
+      mockReviewQueueRepo.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.restoreOcrText('queue-uuid-unknown', 9)
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
   });
 
@@ -1835,6 +2483,43 @@ describe('MigrationService', () => {
         'DESC'
       );
     });
+
+    // ── ADR-054 reviewer fold: list rows ไม่ส่ง ocrTextBak (LONGTEXT) ──
+    it('omits ocrTextBak payload from list items and exposes hasOcrTextBak flag instead', async () => {
+      mockReviewQueueRepo.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([
+        [
+          {
+            id: 1,
+            documentNumber: 'DOC-1',
+            ocrTextBak: 'very long ocr backup text',
+          },
+          { id: 2, documentNumber: 'DOC-2', ocrTextBak: null },
+          { id: 3, documentNumber: 'DOC-3', ocrTextBak: '   ' },
+        ],
+        3,
+      ]);
+      mockAttachmentFind.mockResolvedValue([]);
+
+      const query: MigrationQueueQueryDto = {
+        page: 1,
+        limit: 10,
+      } as unknown as MigrationQueueQueryDto;
+
+      const result = await service.getReviewQueue(query);
+
+      expect(result.items).toHaveLength(3);
+      for (const row of result.items as Record<string, unknown>[]) {
+        // LONGTEXT payload ต้องไม่ติดไปกับ list response (detail path ยังส่งค่าเต็ม)
+        expect(row).not.toHaveProperty('ocrTextBak');
+        expect(row).toHaveProperty('hasOcrTextBak');
+      }
+      expect(
+        (result.items as { hasOcrTextBak: boolean }[]).map(
+          (r) => r.hasOcrTextBak
+        )
+      ).toEqual([true, false, false]);
+    });
   });
 
   // ── getQueueItemByPublicId ────────────────────────────────────────────────────
@@ -1865,6 +2550,72 @@ describe('MigrationService', () => {
       await expect(
         service.getQueueItemByPublicId('nonexistent-uuid')
       ).rejects.toThrow(NotFoundException);
+    });
+
+    // ── ADR-054 (T018, FR-010): detail response exposes moved fields first-class ──
+    it('exposes storageTempPath/originalFilename/reviewState/ocrTextBak/importedCorrespondencePublicId as first-class fields; details has no source_file_path/fieldResolutions', async () => {
+      const item = {
+        id: 30,
+        publicId: 'queue-uuid-200',
+        documentNumber: 'DOC-200',
+        aiStatus: MigrationAiStatus.DONE,
+        // ingestion metadata → first-class columns
+        storageTempPath: '/staging/doc-200.pdf',
+        originalFilename: 'doc-200.pdf',
+        // review state → first-class (D9)
+        reviewState: {
+          fieldResolutions: [
+            { field: 'subject', source: 'MANUAL', finalValue: 'v' },
+          ],
+          fieldAcknowledgments: ['tags'],
+        },
+        // OCR backup → first-class (D5)
+        ocrTextBak: 'previous real ocr text',
+        // audit link → first-class (D10)
+        importedCorrespondencePublicId: 'corr-uuid-999',
+        // details = AI output + residual ingestion keys เท่านั้น (ไม่มี
+        // source_file_path/fieldResolutions หลัง separation)
+        details: {
+          ocrQuality: { confidence: 0.9, issues: [] },
+          metadata: {
+            summary: 's',
+            correspondenceType: 'LETTER',
+            tags: [],
+            confidence: { summary: 0.9, correspondenceType: 0.8, tags: 0.7 },
+          },
+          original_row_index: 4,
+        },
+        tempAttachmentIds: null,
+        tempAttachmentId: null,
+        senderOrganizationId: null,
+        receiverOrganizationId: null,
+        aiSuggestedCorrespondenceType: 'LETTER',
+      } as unknown as MigrationReviewQueue;
+      mockReviewQueueRepo.findOne.mockResolvedValue(item);
+      mockAttachmentFind.mockResolvedValue([]);
+      mockDataSource.manager.findOne.mockResolvedValue(null);
+      mockDataSource.manager.find.mockResolvedValue([]);
+      mockTypeRepo.find.mockResolvedValue([]);
+
+      const result = (await service.getQueueItemByPublicId(
+        'queue-uuid-200'
+      )) as unknown as Record<string, unknown>;
+
+      expect(result.storageTempPath).toBe('/staging/doc-200.pdf');
+      expect(result.originalFilename).toBe('doc-200.pdf');
+      expect(result.reviewState).toEqual({
+        fieldResolutions: [
+          { field: 'subject', source: 'MANUAL', finalValue: 'v' },
+        ],
+        fieldAcknowledgments: ['tags'],
+      });
+      expect(result.ocrTextBak).toBe('previous real ocr text');
+      expect(result.importedCorrespondencePublicId).toBe('corr-uuid-999');
+      const details = result.details as Record<string, unknown>;
+      expect(details).not.toHaveProperty('source_file_path');
+      expect(details).not.toHaveProperty('fieldResolutions');
+      // residual ingestion keys ยังอยู่ใน details ตาม contract
+      expect(details).toMatchObject({ original_row_index: 4 });
     });
   });
 
@@ -2076,6 +2827,9 @@ describe('MigrationService', () => {
         remarks: 'remarks',
         tempAttachmentId: null,
         tempAttachmentIds: null,
+        importedCorrespondencePublicId: null as string | null,
+        reviewedBy: null as string | null,
+        reviewedAt: null as Date | null,
       };
       mockReviewQueueRepo.findOne.mockResolvedValue(queueItem);
       // Mock importCorrespondence internals
@@ -2088,10 +2842,12 @@ describe('MigrationService', () => {
       mockProjectRepo.findOne.mockResolvedValue({ id: 100, publicId: 'proj' });
       mockDataSource.manager.findOne.mockResolvedValue(null);
       mockQueryRunner.manager.findOne.mockResolvedValue(null);
+      // จำลอง @BeforeInsert generatePublicId ของ UuidBaseEntity ให้ Correspondence
       mockQueryRunner.manager.create.mockImplementation(
-        (_e: unknown, v: unknown) => ({
+        (entity: unknown, v: unknown) => ({
           ...(v as Record<string, unknown>),
           id: 1,
+          ...(entity === Correspondence ? { publicId: 'corr-uuid-imp-1' } : {}),
         })
       );
       mockQueryRunner.manager.save.mockResolvedValue({ id: 1 });
@@ -2110,6 +2866,12 @@ describe('MigrationService', () => {
       const result = await service.approveQueueItem(1, dto, 'idem-appr', 1);
       expect(result.message).toBe('Import successful');
       expect(queueItem.status).toBe(MigrationReviewStatus.IMPORTED);
+      // ADR-054 US3 (FR-008): durable audit link → correspondences.uuid + retain row
+      expect(queueItem.importedCorrespondencePublicId).toBe('corr-uuid-imp-1');
+      expect(queueItem.reviewedBy).toBe('1');
+      expect(queueItem.reviewedAt).toBeInstanceOf(Date);
+      expect(mockReviewQueueRepo.save).toHaveBeenCalledWith(queueItem);
+      expect(mockReviewQueueRepo.delete).not.toHaveBeenCalled();
     });
   });
 
@@ -2157,6 +2919,9 @@ describe('MigrationService', () => {
         remarks: null,
         tempAttachmentId: null,
         tempAttachmentIds: null,
+        importedCorrespondencePublicId: null as string | null,
+        reviewedBy: null as string | null,
+        reviewedAt: null as Date | null,
       };
       mockReviewQueueRepo.findOne.mockResolvedValue(queueItem);
       mockTransactionRepo.findOne.mockResolvedValue(null);
@@ -2168,10 +2933,12 @@ describe('MigrationService', () => {
       mockProjectRepo.findOne.mockResolvedValue({ id: 100, publicId: 'proj' });
       mockDataSource.manager.findOne.mockResolvedValue(null);
       mockQueryRunner.manager.findOne.mockResolvedValue(null);
+      // จำลอง @BeforeInsert generatePublicId ของ UuidBaseEntity ให้ Correspondence
       mockQueryRunner.manager.create.mockImplementation(
-        (_e: unknown, v: unknown) => ({
+        (entity: unknown, v: unknown) => ({
           ...(v as Record<string, unknown>),
           id: 1,
+          ...(entity === Correspondence ? { publicId: 'corr-uuid-imp-2' } : {}),
         })
       );
       mockQueryRunner.manager.save.mockResolvedValue({ id: 1 });
@@ -2195,6 +2962,12 @@ describe('MigrationService', () => {
       );
       expect(result.message).toBe('Import successful');
       expect(queueItem.status).toBe(MigrationReviewStatus.IMPORTED);
+      // ADR-054 US3 (FR-008): durable audit link → correspondences.uuid + retain row
+      expect(queueItem.importedCorrespondencePublicId).toBe('corr-uuid-imp-2');
+      expect(queueItem.reviewedBy).toBe('1');
+      expect(queueItem.reviewedAt).toBeInstanceOf(Date);
+      expect(mockReviewQueueRepo.save).toHaveBeenCalledWith(queueItem);
+      expect(mockReviewQueueRepo.delete).not.toHaveBeenCalled();
     });
   });
 
@@ -2413,7 +3186,7 @@ describe('MigrationService', () => {
       mockedCreateReadStream.mockReturnValue({} as never);
 
       // Act: เรียกด้วย path ที่อยู่ใน legacyNasPath แต่ไฟล์อยู่ใน subdirectory
-      // (เหมือนข้อมูลเดิมที่ source_file_path เก็บ path ที่ root แต่ไฟล์จริงอยู่ใน subdirectory)
+      // (เหมือนข้อมูลที่ storageTempPath เก็บ path ที่ root แต่ไฟล์จริงอยู่ใน subdirectory)
       const stream = service.getStagingFileStream(
         path.join(legacyNasPath, 'DOC-001.pdf')
       );

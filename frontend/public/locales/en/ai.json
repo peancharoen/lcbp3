@@ -155,7 +155,13 @@
     "sort_desc": "High to Low",
     "legacy_reextract_badge": "Re-extract Required",
     "legacy_reextract_button": "Re-extract",
-    "tag_suggestions_title": "AI-Suggested Tags"
+    "tag_suggestions_title": "AI-Suggested Tags",
+    "restore_ocr_button": "Restore Original OCR",
+    "restore_ocr_tooltip": "Revert the OCR text to the last pre-edit version (the backup is retained)",
+    "restore_ocr_note": "The backup is retained after restore",
+    "restore_ocr_confirm": "Restore the original OCR text? Your current edits will be replaced.",
+    "restore_ocr_success": "Original OCR text restored",
+    "restore_ocr_error": "Failed to restore OCR text"
   },
   "rag": {
     "ingestion_status": {

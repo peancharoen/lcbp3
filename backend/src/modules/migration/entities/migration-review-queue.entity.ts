@@ -7,6 +7,9 @@
 // - 2026-08-23: ขยาย ai_job_id เป็น VARCHAR(150) — custom BullMQ jobId ยาวกว่า UUID เปล่า (Bugfix ADR-047)
 // - 2026-08-31: ADR-050 — เพิ่ม requiresHumanReview (promoted จาก server-computed confidence gate)
 //   และ ocrQualityConfidence (promoted จาก details.ocrQuality.confidence) สำหรับ filter/sort คิว
+// - 2026-09-14: ADR-054 T002 — map column ที่มีอยู่แล้วแต่ยังไม่ได้ใช้ (storage_temp_path,
+//   original_filename) + column ใหม่ (ocr_text_bak, review_state_json,
+//   imported_correspondence_public_id) ตาม metadata separation contract
 
 import {
   Entity,
@@ -19,6 +22,7 @@ import { Exclude } from 'class-transformer';
 
 import { UuidBaseEntity } from '../../../common/entities/uuid-base.entity';
 import { MIGRATION_AI_JOB_ID_MAX_LENGTH } from '../constants/migration.constants';
+import type { MigrationReviewState } from '../types/ai-extraction-details.type';
 
 /** สถานะ lifecycle ของ migration review queue (ต้องตรงกับ DB enum) */
 export enum MigrationReviewStatus {
@@ -148,15 +152,68 @@ export class MigrationReviewQueue extends UuidBaseEntity {
   ocrText?: string | null;
 
   /**
+   * ADR-054 D5: สำเนา `ocr_text` จริงล่าสุดก่อนถูกเขียนทับ (re-extract หรือ manual edit)
+   * — snapshot เฉพาะเมื่อค่าปัจจุบันไม่ว่างและไม่ตรง OCR failure placeholder
+   * (`isOcrFailurePlaceholder`) เพื่อให้ bak เก็บข้อความจริงเสมอ
+   */
+  @Column({ name: 'ocr_text_bak', type: 'longtext', nullable: true })
+  ocrTextBak?: string | null;
+
+  /**
+   * ADR-054 D1: path ของไฟล์ PDF บน staging disk ตอน ingestion (อาจเป็น bare filename
+   * ที่ resolver ขยายเป็น full path ผ่าน recursive search — D330) — แยกออกจาก
+   * `details.source_file_path` เดิมเพื่อให้ reset AI output ไม่ทำลาย file location
+   */
+  @Column({
+    name: 'storage_temp_path',
+    type: 'varchar',
+    length: 1000,
+    nullable: true,
+  })
+  storageTempPath?: string | null;
+
+  /** ADR-054 D2: ชื่อไฟล์ต้นฉบับจาก legacy source (basename ของ storageTempPath) */
+  @Column({
+    name: 'original_filename',
+    type: 'varchar',
+    length: 500,
+    nullable: true,
+  })
+  originalFilename?: string | null;
+
+  /**
    * Feature 242: JSON metadata เก็บ compareResult, capturedThresholds, attachments[] (FR-005, FR-007, FR-010c)
-   * ADR-050: หลัง extraction ยังเก็บ `ocrQuality`/`metadata.confidence`/`fieldResolutions` ตาม
-   * `MigrationAiExtractionDetails` (`../types/ai-extraction-details.type.ts`) — คง type ระดับ entity
-   * เป็น bag กว้างๆ เพราะ column เดียวกันถูกใช้เก็บ key อื่นที่ไม่เกี่ยวกับ AI extraction ด้วย
-   * (attachments[], compareResult ฯลฯ) ใช้ type แคบ (`MigrationAiExtractionDetails`) เฉพาะตอน cast
-   * ที่ service layer แทน
+   * ADR-050: หลัง extraction ยังเก็บ `ocrQuality`/`metadata.confidence` ตาม
+   * `MigrationAiExtractionDetails` (`../types/ai-extraction-details.type.ts`)
+   * ADR-054: แคบลงเหลือ **AI extraction output + whitelisted residual ingestion keys**
+   * (`original_row_index`, `unresolved_orgs`, `original_document_number`, `revision_number`)
+   * + transient `attachments[]` ที่ `enrichWithAttachments` ฉีดตอน serialize (ไม่ persist) —
+   * `source_file_path`/`attachment_ids`/`fieldResolutions` ย้ายออกแล้ว (D1/D9)
+   * คง type ระดับ entity เป็น bag กว้างๆ ใช้ type แคบ (`MigrationAiExtractionDetails`)
+   * เฉพาะตอน cast ที่ service layer แทน
    */
   @Column({ name: 'ai_metadata_json', type: 'json', nullable: true })
   details?: Record<string, unknown> | null;
+
+  /**
+   * ADR-054 D9: review state ของมนุษย์ (`fieldResolutions` + `fieldAcknowledgments`)
+   * แยกจาก `details` เด็ดขาด — AI pipeline ห้ามเขียน column นี้ (FR-003) และ
+   * re-extract ต้องไม่แตะต้อง
+   */
+  @Column({ name: 'review_state_json', type: 'json', nullable: true })
+  reviewState?: MigrationReviewState | null;
+
+  /**
+   * ADR-054 D10: audit link ไปยัง `correspondences.public_id` ที่สร้างตอน import
+   * (UUID string ตาม ADR-019 — ห้าม parseInt/Number) เขียนโดยทุก IMPORTED path
+   */
+  @Column({
+    name: 'imported_correspondence_public_id',
+    type: 'varchar',
+    length: 36,
+    nullable: true,
+  })
+  importedCorrespondencePublicId?: string | null;
 
   /** @deprecated ใช้ tempAttachmentIds แทน — retained for backward compatibility (R4) */
   @Column({ name: 'temp_attachment_id', type: 'int', nullable: true })

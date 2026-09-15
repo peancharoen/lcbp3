@@ -2491,6 +2491,9 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 | `ocr_text`                   | LONGTEXT           | YES      | ข้อความ OCR 3 หน้าแรก (ADR-042/047) — แก้ไขได้โดย Admin                        |
 | `requires_human_review`      | TINYINT(1)         | NO       | ADR-050: server-computed จาก min(confidence ทั้งหมด) < threshold — ไม่เชื่อค่าที่ LLM ส่งมา (default 0) |
 | `ocr_quality_confidence`     | DECIMAL(4,3)       | YES      | ADR-050: promote จาก details.ocrQuality.confidence (0.000-1.000) สำหรับ sort/filter |
+| `review_state_json`          | LONGTEXT (JSON)    | YES      | ADR-054 D9: human review state เท่านั้น (`fieldResolutions` + `fieldAcknowledgments`) — เขียนโดย MigrationReviewService เท่านั้น ห้าม reset ตอน re-extract (AiBatchProcessor ไม่แตะ column นี้) — CHECK json_valid |
+| `imported_correspondence_public_id` | VARCHAR(36) | YES      | ADR-054 D10: audit link queue→correspondence — publicId (correspondences.uuid) ของ correspondence ที่ import สำเร็จ — record ไม่ถูกลบหลัง import (audit trail) |
+| `ocr_text_bak`               | LONGTEXT           | YES      | ADR-054 D5: snapshot ของ `ocr_text` ก่อนถูกเขียนทับ — เก็บข้อความจริงล่าสุดไว้กู้คืนถ้า re-extract/manual edit เขียนทับผิดพลาด (เขียนเฉพาะตอน ocr_text ไม่ว่างและไม่ใช่ failure placeholder) |
 | `created_at`                 | DATETIME           | NO       | วันที่สร้าง                                                                     |
 | `updated_at`                 | DATETIME           | NO       | วันที่แก้ไขล่าสุด                                                               |
 

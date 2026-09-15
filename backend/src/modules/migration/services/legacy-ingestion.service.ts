@@ -2,6 +2,9 @@
 // Change Log:
 // - 2026-08-20: สร้าง Native Ingestion Engine สำหรับอ่าน Excel ขนาดใหญ่ (Streaming) และนำเข้าสู่ Staging Queue (ADR-047)
 // - 2026-08-25: ลบ auto-enqueue BullMQ ออกจาก Ingestion — ผู้ใช้ต้องกด Start Extract เอง (D156)
+// - 2026-09-14: ADR-054 T005 (FR-001) — เขียน file path/filename ลง storage_temp_path +
+//   original_filename columns แทน details.source_file_path; details เหลือเฉพาะ residual
+//   ingestion keys (unresolved_orgs, original_row_index, original_document_number, revision_number)
 
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -402,8 +405,17 @@ export class LegacyIngestionService {
               queueItem.tempAttachmentIds = [attachmentIdForQueue];
               queueItem.tempAttachmentId = attachmentIdForQueue;
             }
+            // ADR-054 D1/D2 (FR-001): ingestion metadata ลง column จริง ไม่ใส่ details bag
+            // — storageTempPath เก็บ resolved path หรือ rawFileName (bare filename ให้
+            // resolver ขยายผ่าน recursive search ตอน extract — D330 fallback ยังทำงานอยู่)
+            queueItem.storageTempPath =
+              resolvedPdfPath || rawFileName || undefined;
+            queueItem.originalFilename = resolvedPdfPath
+              ? path.basename(resolvedPdfPath)
+              : rawFileName || undefined;
+            // details เหลือเฉพาะ residual ingestion keys ที่ไม่มี dedicated column
+            // (ADR-054 D3 preservedFields) — AI output จะถูก merge เข้ามาตอน extraction
             queueItem.details = {
-              source_file_path: resolvedPdfPath || rawFileName || undefined,
               unresolved_orgs:
                 Object.keys(unresolvedOrgs).length > 0
                   ? unresolvedOrgs
@@ -419,8 +431,8 @@ export class LegacyIngestionService {
 
             // ADR-047: ห้าม auto-enqueue BullMQ ในขั้นตอน Ingestion
             // ผู้ใช้ต้องกด "Start Extract" เองเพื่อส่งงานเข้า BullMQ (D156)
-            // Ingestion เก็บเฉพาะ source_file_path ใน details เพื่อให้ Start Extract ใช้ภายหลัง
-            // aiStatus คงเป็น PENDING (ค่าเริ่มต้น) จนกว่าผู้ใช้จะกด Start Extract
+            // Ingestion เก็บ file path ใน storage_temp_path column (ADR-054 D1) ให้
+            // Start Extract ใช้ภายหลัง — aiStatus คงเป็น PENDING จนกว่าผู้ใช้จะกด Start Extract
 
             // บันทึก Checkpoint ทุก 50 แถว
             if (currentRowIndex % 50 === 0) {

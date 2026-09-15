@@ -61,6 +61,13 @@ Every delta should have a reversible companion (`YYYY-MM-DD-descriptive-name.rol
 where physically possible. Dropping `NOT NULL` columns with existing data is explicitly
 irreversible — document in the delta header when rollback is impossible.
 
+## Bulk / Destructive Operations (D8)
+
+Deltas that discard or mutate data (TRUNCATE, bulk UPDATE/DELETE >10 rows) MUST be run
+by a DBA following the D8 protocol — backup table → preflight inspection → single-row
+canary → verify → bulk → logged scope → defined rollback path. Canonical runbook:
+[`specs/200-fullstacks/256-queue-metadata-separation/quickstart.md` "D8 Bulk-Operation Protocol"](../../200-fullstacks/256-queue-metadata-separation/quickstart.md).
+
 ## References
 
 - [ADR-009 Database Migration Strategy](../../06-Decision-Records/ADR-009-database-migration-strategy.md)

@@ -1,5 +1,7 @@
 // File: frontend/components/migration/__tests__/review-queue-table.test.tsx
 // Change Log:
+// - 2026-09-14: T019 (ADR-054) — migrate fixtures to new contract: ตัด fieldResolutions ออกจาก details,
+//   legacy item ใช้ storageTempPath first-class field แทน details.source_file_path
 // - 2026-08-31: T028 — added tests for requiresHumanReview badge, needs-review filter, OCR quality, legacy re-extract
 // - 2026-05-22: Initial creation of ReviewQueueTable component tests (T024)
 import React from 'react';
@@ -78,8 +80,9 @@ describe('ReviewQueueTable', () => {
           tags: [{ name: 'Urgent', isNew: false, evidence: 'text' }],
           confidence: { summary: 0.9, correspondenceType: 0.85, tags: 0.8 },
         },
-        fieldResolutions: {},
       },
+      // ADR-054: review state เป็น first-class field (fieldResolutions ไม่อยู่ใน details อีก)
+      reviewState: { fieldResolutions: [] },
     },
     {
       id: 2,
@@ -99,7 +102,6 @@ describe('ReviewQueueTable', () => {
           tags: [],
           confidence: { summary: 0.92, correspondenceType: 0.88, tags: 0.9 },
         },
-        fieldResolutions: {},
       },
     },
     {
@@ -110,8 +112,10 @@ describe('ReviewQueueTable', () => {
       aiSuggestedCorrespondenceType: 'Correspondence',
       aiConfidence: 0.70,
       status: MigrationReviewStatus.PENDING,
-      // Legacy item — details lacks metadata.confidence (pre-refactor shape)
-      details: { source_file_path: '/legacy/path' },
+      // ADR-054: path ไฟล์ staging เป็น first-class field (ไม่ใช่ details.source_file_path)
+      storageTempPath: '/legacy/path',
+      // Legacy item — details ไม่มี metadata.confidence (pre-refactor shape)
+      details: null,
     },
   ];
 
@@ -331,7 +335,6 @@ describe('ReviewQueueTable', () => {
             tags: [],
             confidence: { summary: 0.95, correspondenceType: 0.95, tags: 0.95 },
           },
-          fieldResolutions: {},
         },
       },
     ];
