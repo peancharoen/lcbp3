@@ -1062,7 +1062,7 @@ Phase 5 (Security & RBAC)      ← P2 ความปลอดภัย
 
 | รายการ | สถานะ |
 |--------|-------|
-| 3C.2 Incident replay (formal bulk-reset scenario) | ⏳ ยังไม่ได้รัน — QC-0001 แสดง protection สด ๆ แล้ว (bak รอดจาก placeholder overwrite) แต่ยังไม่ได้จัดลำดับ replay เต็มรูปแบบ |
+| 3C.2 Incident replay (SC-005) | ✅ **PASS** — replay incident เดิมบน QC-0001: `UPDATE ai_metadata_json=NULL` → re-extract → **3 ชั้นป้องกันพิสูจน์แล้ว**: (1) `storage_temp_path` รอดจาก bulk reset (เป็น column ไม่ใช่ JSON), (2) extractor resolve PDF จาก column → log `np-dms-ocr processing: /mnt/legacy-staging/.../QC-0001.pdf` → OCR จริง 15,087 chars (ไม่ใช่ placeholder), (3) `ocr_text_bak`=14,291 snapshot OCR จริงก่อนทับ — แม้ extract พลาดก็กู้ได้; `review_state_json` byte-identical ข้าม re-extract (SC-004), `ai_metadata_json` repopulate shape `{ocrQuality,metadata}` ไม่มี path ซ้อนใน JSON |
 | 3C.7 review-commit → import link | ✅ PASS หลัง fix (คคง.) |
 | Item 4 (`CHEC-LCP-C2-O-24-0002`) | PENDING — เหลือรายการเดียวสำหรับ test ต่อไป |
 | Item 5 (`CHEC-LCP-C2-O-24-0004`) | ✅ IMPORTED via live API หลัง deploy (commit โดยไม่มี fieldResolutions → `review_state_json` = `{}` — merge code persist empty object, harmless) |
