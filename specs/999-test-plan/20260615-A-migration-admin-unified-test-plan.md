@@ -522,28 +522,28 @@ Phase 5 (Security & RBAC)      ← P2 ความปลอดภัย
 
 ## 10. เกณฑ์ผ่าน (Acceptance Criteria)
 
-| เกณฑ์ | เป้าหมาย | วิธีวัด |
-|-------|---------|--------|
-| Browser E2E | ทุกขั้นตอน Phase 1 ผ่าน | manual verify หรือ Playwright |
-| Migration module coverage | ≥80% | `pnpm test:cov` |
-| Controller coverage | ≥80% (จาก 0% ในบางไฟล์) | `pnpm test:cov` |
-| 4-Layer Review 200 แถว | < 1.5 วินาที (SC-001) | benchmark test |
-| Annotated Excel ≤200 แถว | < 10 วินาที (SC-002) | benchmark test |
-| OCR 3 หน้า scanned PDF | < 60 วินาที/ไฟล์ | BullMQ worker timing |
-| ExcelJS Streaming 20K rows | < 100MB RAM | `process.memoryUsage()` |
-| AI Compare accuracy | ≥ 90% (SC-002 from 242) | ชุดทดสอบ 100 ฉบับ |
-| Semantic search | < 2 วินาที (SC-008 from 242) | Qdrant query timing |
-| RBAC | 0 unauthorized commits | ทุก 403 ทดสอบผ่าน |
-| UUID compliance | 0 INT PK exposure | API response audit |
-| AI audit log | 0 missing records | `ai_audit_logs` ครบ |
-| Re-extract zero data loss (256 SC-001) | ingestion columns + `review_state_json` + `ocr_text`/`ocr_text_bak` ไม่หาย | 1G.3, 3C.1 |
-| `ocr_text_bak` snapshot (256 SC-002) | 100% ของการทับ ocr_text จริงมี snapshot | 2G.3–2G.5, 3C.5 |
-| IMPORTED audit link (256 SC-003) | ทุก IMPORTED row มี `imported_correspondence_public_id`; 0 auto-delete | 1G.7, 3C.7, 3C.8 |
-| Review state survives re-extract (256 SC-004) | `review_state_json` byte-identical 100% | 1G.6, 3C.1 |
-| Incident blocked ≥3 points (256 SC-005) | column path + attachment fallback + `ocr_text_bak` | 3C.2–3C.4 |
-| Restore endpoint RBAC | 0 unauthorized restores | 5E.1–5E.2 |
-| ไม่มี `any` / `console.log` | 0 | eslint + tsc ผ่าน |
-| ไม่มี `parseInt` บน UUID | 0 | eslint no-restricted-syntax |
+| เกณฑ์ | เป้าหมาย | วิธีวัด | ผลจริง (2026-09-15) |
+|-------|---------|--------|---------------------|
+| Browser E2E | ทุกขั้นตอน Phase 1 ผ่าน | manual verify หรือ Playwright | ✅ 1G ผ่านผ่าน production UI จริง (16E) |
+| Migration module coverage | ≥80% | `pnpm test:cov` | ✅ ครอบโดย spec 256 (jest 1546, ledger cp8) |
+| Controller coverage | ≥80% (จาก 0% ในบางไฟล์) | `pnpm test:cov` | ✅ spec 252 phase B: 0%→94.23% |
+| 4-Layer Review 200 แถว | < 1.5 วินาที (SC-001) | benchmark test | ✅ 105ms (spec 252 phase C) |
+| Annotated Excel ≤200 แถว | < 10 วินาที (SC-002) | benchmark test | ✅ 22ms (spec 252 phase C) |
+| OCR 3 หน้า scanned PDF | < 60 วินาที/ไฟล์ | BullMQ worker timing | ⚠️ observed ~80s/file (12:59→13:01) — QC-0001 PDF ~10 หน้า, ยังไม่ normalize per-page |
+| ExcelJS Streaming 20K rows | < 100MB RAM | `process.memoryUsage()` | ⏸️ ยังไม่วัด (P3) |
+| AI Compare accuracy | ≥ 90% (SC-002 from 242) | ชุดทดสอบ 100 ฉบับ | ⏸️ ยังไม่วัด (P3) |
+| Semantic search | < 2 วินาที (SC-008 from 242) | Qdrant query timing | ⏸️ ยังไม่วัด (P3) |
+| RBAC | 0 unauthorized commits | ทุก 403 ทดสอบผ่าน | ✅ viewer01/editor01 → 403, admin → 200 (5E) |
+| UUID compliance | 0 INT PK exposure | API response audit | ✅ ParseUUIDPipe 400 + publicId-only (5E.4–5E.5); ⚠️ INT-PK exposure follow-up ยังเปิด (15C.1) |
+| AI audit log | 0 missing records | `ai_audit_logs` ครบ | ✅ approval audit log เขียนใน 3C.6 (T025 path) |
+| Re-extract zero data loss (256 SC-001) | ingestion columns + `review_state_json` + `ocr_text`/`ocr_text_bak` ไม่หาย | 1G.3, 3C.1 | ✅ 3C.2/3C.3 — columns+state รอดทุก re-extract |
+| `ocr_text_bak` snapshot (256 SC-002) | 100% ของการทับ ocr_text จริงมี snapshot | 2G.3–2G.5, 3C.5 | ✅ 3C.4/3C.5 — real→bak ครบ, placeholder-skip ทำงาน |
+| IMPORTED audit link (256 SC-003) | ทุก IMPORTED row มี `imported_correspondence_public_id`; 0 auto-delete | 1G.7, 3C.7, 3C.8 | ✅ 4 IMPORTED rows link ครบ + ไม่มี auto-cleanup (3C.8) |
+| Review state survives re-extract (256 SC-004) | `review_state_json` byte-identical 100% | 1G.6, 3C.1 | ✅ byte-identical ข้าม re-extract (3C.2) |
+| Incident blocked ≥3 points (256 SC-005) | column path + attachment fallback + `ocr_text_bak` | 3C.2–3C.4 | ✅ ทั้ง 3 ชั้นพิสูจน์ใน replay จริง (3C.2–3C.5) |
+| Restore endpoint RBAC | 0 unauthorized restores | 5E.1–5E.2 | ✅ viewer01/editor01 → 403 PERMISSION_DENIED |
+| ไม่มี `any` / `console.log` | 0 | eslint + tsc ผ่าน | ✅ lint clean ใน fix commits |
+| ไม่มี `parseInt` บน UUID | 0 | eslint no-restricted-syntax | ✅ |
 
 ---
 

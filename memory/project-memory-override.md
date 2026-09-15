@@ -422,16 +422,18 @@ QDRANT_URL
 #### C. Ops / Infra (ต้องการ user หรือทีม)
 
 - [ ] Rotate Uptime Kuma push tokens 5 ตัว (อยู่ใน git history) + JWT/password หลัง workflow stable
-- [ ] n8n: `Route Poll Status` failedReason terminal condition, webhook-form test, PostgreSQL 16→17, binary storage migration (ก่อน n8n 3.0), workflow E2E + dry run Excel จริง (blocked)
+- [ ] ~~n8n: `Route Poll Status` failedReason terminal condition, webhook-form test, PostgreSQL 16→17, binary storage migration (ก่อน n8n 3.0), workflow E2E + dry run Excel จริง~~ — **SUPERSEDED: n8n retired (D332)** เหลือแค่ remnants cleanup + LINE channel (ดู item ด้านบน)
 - [ ] **ADR-044/045 team review** + ปิด Gitea issue #2 (backend/DBA + DevOps — ส่วน "ไม่มี TypeORM migrations" verify ผ่านแล้ว)
-- [ ] SC-002 E2E accuracy test (Chat Q&A ≥80%) — **in progress** (re-extraction 183 records กำลังทำงาน, ~3 ชม.)
+- [ ] SC-002 E2E accuracy test (Chat Q&A ≥80%) — **stale**: 183 records เดิมถูก TRUNCATE ตาม ADR-054 แล้ว; golden set ต้อง re-map กับ queue ใหม่ (`BATCH-ADR054-E2E-001`)
 - [x] **Feature 256 ADR-054 COMPLETE + pushed** — implement (34 tasks, `97dcc0d5`) + 110-review folds (`27598ba1`: entity drift reconcile ผ่าน INFORMATION_SCHEMA verify, restoreOcrText swap, compareStatus UNAVAILABLE reset, reviewedBy int FK, hasOcrTextBak flag+badge, whitelist trim, replay warn) + 111-validate PASS 14/14 FR + rollouts `0546eb43`; SQL delta **applied แล้วบน real DB** (INFORMATION_SCHEMA confirmed); lock D338-D341 — ✅ 2026-09-15
 - [ ] Sync `.claude/skills/` กับ `.devin/skills/` เมื่อมี skill เปลี่ยน (กฎต่อเนื่อง — หมายเหตุ: ตอนนี้ `.claude/skills/` เป็น symlink → `.devin/skills/` ตาม D338 ไม่ต้อง sync manual แล้ว)
 - [ ] Patch `2git.sh` — lint-staged stash fails on symlink paths (D341): เพิ่ม `--no-verify` fallback หรือปิด lint-staged backup
 - [ ] Legacy import responses expose INT-PK (ADR-019 hardening pass — pre-existing, non-blocking)
 - [ ] ADR-055 draft review — production-doc re-OCR + `attachments.ocr_text` backup (ต่อจาก ADR-054)
-
----
+- [x] **ADR-054 E2E verification COMPLETE (unified test plan Phase 1/3/5)** — re-ingest `BATCH-ADR054-E2E-001` หลัง TRUNCATE; พบ+แก้ review-commit 3 defects ซ้อน (MariaDB DATE→string `toISOString`, `save(Tag,plainObj)` ไม่ fire BeforeInsert, `correspondence_tags` drift) commit `fc633ab3` deployed image `fc633ab38a20`; live: 3C.1–3C.8 ครบ (incident replay SC-005 = 3 ชั้นป้องกัน, fallback chain, NO_PDF+restore, placeholder-skip, ai-ingest approve, IMPORTED retention), 1G browser restore production UI, 5E security 9 ข้อ; session log `session-2026-09-15-adr054-e2e-verification.md` — ✅ 2026-09-15
+- [ ] **n8n remnants cleanup — ต้องทำเป็น spec + ADR amendment** (user defer 2026-09-15): dead `POST /api/ai/legacy-migration/ingest` (ServiceAccountGuard, token unset → 401 เสมอ), checkpoint/queue-record/errors endpoints + `MigrationCheckpointService`, `folder-watcher.json`, `AI_N8N_*` env vars — กระทบ API surface + ADR-023A/047
+- [ ] **LINE notification channel ทดแทน** — LINE ยังใช้งานอยู่ (user confirm) แต่ `N8N_LINE_WEBHOOK_URL`/`N8N_WEBHOOK_URL` unset → `sendLine*` no-op เงียบ ๆ; ตัวเลือก: LINE Messaging API ตรง / webhook service อื่น / คง n8n เฉพาะ LINE — คู่กับ n8n amendment
+- [ ] Migration test plan Phase 4 (performance, P3) — ExcelJS streaming 20K rows RAM, AI compare accuracy, semantic search <2s — ยังไม่วัด
 
 ### 🚨 SC-002 Accuracy Test — In Progress (Session 2026-09-14)
 
