@@ -178,9 +178,13 @@ describe('DSLEditor (T054)', () => {
     const testButton = screen.getByRole('button', { name: /test/i });
     await userEvent.click(testButton);
 
-    await waitFor(() => {
-      expect(screen.getByText(/Workflow simulation completed successfully/i)).toBeInTheDocument();
-    });
+    // component จำลอง delay 1000ms — ต้องกำหนด timeout มากกว่านั้นเพื่อกัน flaky test
+    await waitFor(
+      () => {
+        expect(screen.getByText(/Workflow simulation completed successfully/i)).toBeInTheDocument();
+      },
+      { timeout: 3000 }
+    );
   });
 
   it('updates internal state when initialValue prop changes', () => {
