@@ -193,7 +193,9 @@
     "restore_ocr_note": "สำเนาสำรองยังคงถูกเก็บไว้หลังกู้คืน",
     "restore_ocr_confirm": "ต้องการกู้คืนข้อความ OCR กลับเป็นเวอร์ชันเดิมหรือไม่? ข้อความที่แก้ไขอยู่จะถูกแทนที่",
     "restore_ocr_success": "กู้คืนข้อความ OCR เดิมเรียบร้อยแล้ว",
-    "restore_ocr_error": "กู้คืนข้อความ OCR ไม่สำเร็จ"
+    "restore_ocr_error": "กู้คืนข้อความ OCR ไม่สำเร็จ",
+    "has_ocr_backup": "มี OCR สำรอง",
+    "has_ocr_backup_tooltip": "รายการนี้มีสำเนาข้อความ OCR สำรอง (ocr_text_bak) — กู้คืนได้ในหน้ารายละเอียด"
   },
   "rag": {
     "ingestion_status": {

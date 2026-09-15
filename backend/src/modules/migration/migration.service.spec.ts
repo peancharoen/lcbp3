@@ -1361,8 +1361,9 @@ describe('MigrationService', () => {
           disciplineCode: 'CIV',
           disciplineId: 12,
           compareResult: { mismatches: [], confidence: 0.9 },
-          compareStatus: CompareStatus.COMPARED,
           capturedThresholds: { minConfidence: 0.6, maxMismatchFields: 3 },
+          // compareStatus/compareUnavailableReason มี dedicated columns — ไม่ duplicate ลง details
+          compareStatus: CompareStatus.COMPARED,
           // injected keys — ต้องถูก drop
           source_file_path: '/etc/passwd',
           fieldResolutions: [{ field: 'summary' }],
@@ -1377,9 +1378,9 @@ describe('MigrationService', () => {
         disciplineCode: 'CIV',
         disciplineId: 12,
         compareResult: { mismatches: [], confidence: 0.9 },
-        compareStatus: CompareStatus.COMPARED,
         capturedThresholds: { minConfidence: 0.6, maxMismatchFields: 3 },
       });
+      expect(existing.details).not.toHaveProperty('compareStatus');
       expect(existing.details).not.toHaveProperty('source_file_path');
       expect(existing.details).not.toHaveProperty('fieldResolutions');
       expect(existing.details).not.toHaveProperty('arbitraryInjected');
@@ -2233,6 +2234,27 @@ describe('MigrationService', () => {
       expect(mockReviewQueueRepo.save).toHaveBeenCalledWith(item);
     });
 
+    it('swaps current real ocr_text into ocr_text_bak (toggle) — never discards real text', async () => {
+      const item = {
+        id: 21,
+        publicId: 'queue-uuid-021',
+        // manual edit ที่เขียนหลัง backup ล่าสุด — ไม่เคยถูก snapshot
+        ocrText: 'manually edited real text',
+        ocrTextBak: 'the real ocr text backup',
+      };
+      mockReviewQueueRepo.findOne.mockResolvedValue(item);
+      mockReviewQueueRepo.save.mockImplementation((v: unknown) =>
+        Promise.resolve(v)
+      );
+
+      const result = await service.restoreOcrText('queue-uuid-021', 9);
+
+      expect(result.ocrTextLength).toBe('the real ocr text backup'.length);
+      expect(item.ocrText).toBe('the real ocr text backup');
+      // current real text ต้องไม่สูญหาย — swap เข้า bak แทน (restore ซ้ำ = toggle กลับ)
+      expect(item.ocrTextBak).toBe('manually edited real text');
+    });
+
     it('throws BusinessException MIGRATION_NO_BACKUP when ocrTextBak is empty', async () => {
       mockReviewQueueRepo.findOne.mockResolvedValue({
         id: 21,
@@ -2828,7 +2850,7 @@ describe('MigrationService', () => {
         tempAttachmentId: null,
         tempAttachmentIds: null,
         importedCorrespondencePublicId: null as string | null,
-        reviewedBy: null as string | null,
+        reviewedBy: null as number | null,
         reviewedAt: null as Date | null,
       };
       mockReviewQueueRepo.findOne.mockResolvedValue(queueItem);
@@ -2868,7 +2890,7 @@ describe('MigrationService', () => {
       expect(queueItem.status).toBe(MigrationReviewStatus.IMPORTED);
       // ADR-054 US3 (FR-008): durable audit link → correspondences.uuid + retain row
       expect(queueItem.importedCorrespondencePublicId).toBe('corr-uuid-imp-1');
-      expect(queueItem.reviewedBy).toBe('1');
+      expect(queueItem.reviewedBy).toBe(1);
       expect(queueItem.reviewedAt).toBeInstanceOf(Date);
       expect(mockReviewQueueRepo.save).toHaveBeenCalledWith(queueItem);
       expect(mockReviewQueueRepo.delete).not.toHaveBeenCalled();
@@ -2920,7 +2942,7 @@ describe('MigrationService', () => {
         tempAttachmentId: null,
         tempAttachmentIds: null,
         importedCorrespondencePublicId: null as string | null,
-        reviewedBy: null as string | null,
+        reviewedBy: null as number | null,
         reviewedAt: null as Date | null,
       };
       mockReviewQueueRepo.findOne.mockResolvedValue(queueItem);
@@ -2964,7 +2986,7 @@ describe('MigrationService', () => {
       expect(queueItem.status).toBe(MigrationReviewStatus.IMPORTED);
       // ADR-054 US3 (FR-008): durable audit link → correspondences.uuid + retain row
       expect(queueItem.importedCorrespondencePublicId).toBe('corr-uuid-imp-2');
-      expect(queueItem.reviewedBy).toBe('1');
+      expect(queueItem.reviewedBy).toBe(1);
       expect(queueItem.reviewedAt).toBeInstanceOf(Date);
       expect(mockReviewQueueRepo.save).toHaveBeenCalledWith(queueItem);
       expect(mockReviewQueueRepo.delete).not.toHaveBeenCalled();

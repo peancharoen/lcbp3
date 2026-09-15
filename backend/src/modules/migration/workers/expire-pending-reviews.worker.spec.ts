@@ -110,9 +110,14 @@ describe('ExpirePendingReviewsWorker (Phase 2F.4)', () => {
       expect.objectContaining({
         status: MigrationReviewStatus.REJECTED,
         remarks: 'EXPIRED',
-        reviewedBy: 'SYSTEM_AUTO_EXPIRATION',
       })
     );
+    // reviewed_by เป็น INT FK → users.user_id — system sentinel string ใส่ไม่ได้
+    // (จะ FK violation) เลยไม่ถูกเขียน; marker อยู่ที่ remarks='EXPIRED'
+    const saveCalls = mockReviewQueueRepo.save.mock.calls as unknown as [
+      { reviewedBy?: number },
+    ][];
+    expect(saveCalls[0][0].reviewedBy).toBeUndefined();
   });
 
   it('ควรลบ temp attachment file และ record เมื่อ tempAttachmentId มีอยู่', async () => {

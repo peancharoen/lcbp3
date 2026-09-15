@@ -194,7 +194,7 @@ export class MigrationReviewService {
     }
 
     queueItem.ocrText = dto.ocrText;
-    queueItem.reviewedBy = userId.toString();
+    queueItem.reviewedBy = userId;
     queueItem.reviewedAt = new Date();
     await queueRepo.save(queueItem);
 
@@ -878,7 +878,7 @@ export class MigrationReviewService {
       });
       await queryRunner.manager.save(transaction);
       queueItem.status = MigrationReviewStatus.IMPORTED;
-      queueItem.reviewedBy = userId.toString();
+      queueItem.reviewedBy = userId;
       queueItem.reviewedAt = new Date();
       // ADR-054 US3 (T026c, FR-008): durable audit link → correspondences.uuid
       // ของเอกสารที่ commit สร้าง/พบ — อยู่ใน tx เดียวกับ queue item save

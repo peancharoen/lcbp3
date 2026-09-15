@@ -2,6 +2,8 @@
 // Change Log:
 // - 2026-09-14: T023 (ADR-054) — compareResult ย้ายลง details (ai_metadata_json);
 //   badge อ่าน mismatch count ผ่าน getCompareResult helper แทน top-level read ที่ always-undefined
+// - 2026-09-15: ADR-054 review fold — เพิ่ม OCR backup indicator (hasOcrTextBak)
+//   ใน status cell พร้อม i18n keys (has_ocr_backup*)
 // - 2026-08-31: T032/T033/T034 — เพิ่ม requiresHumanReview badge, OCR quality indicator, needs-review filter, sort-by-OCR-quality, legacy re-extract (ADR-050)
 // - 2026-05-22: Initial creation of ReviewQueueTable component for US2 (T024)
 // - 2026-05-22: Integrated hybrid identifiers and Radix Sheet panel with zero blank lines inside function bodies (T024)
@@ -38,7 +40,7 @@ import {
 import { useCommitMigrationReview, useRejectMigrationReview, useStartExtractQueueItem } from '@/hooks/use-migration-review';
 import { useProjects, useOrganizations } from '@/hooks/use-master-data';
 import { MigrationReviewQueueItem, MigrationReviewStatus, CompareStatus, CompareResult } from '@/types/migration';
-import { Loader2, Calendar, Tag, AlertCircle, Edit, Check, X, Plus, GitCompare, RefreshCw, ShieldAlert } from 'lucide-react';
+import { Loader2, Calendar, Tag, AlertCircle, Edit, Check, X, Plus, GitCompare, RefreshCw, ShieldAlert, History } from 'lucide-react';
 import aiMessages from '@/public/locales/th/ai.json';
 
 /** ADR-050: i18n helper สำหรับ migration_review namespace จาก ai.json */
@@ -441,7 +443,22 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
                     <TableCell className="text-center">
                       {getRequiresHumanReviewBadge(item)}
                     </TableCell>
-                    <TableCell>{getStatusBadge(item.status)}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        {getStatusBadge(item.status)}
+                        {/* ADR-054: มี OCR text สำรอง (ocr_text_bak) — กู้คืนได้ในหน้า detail */}
+                        {item.hasOcrTextBak && (
+                          <Badge
+                            variant="secondary"
+                            className="text-xs"
+                            title={migrationReviewT('has_ocr_backup_tooltip')}
+                          >
+                            <History className="h-3 w-3 mr-1" />
+                            {migrationReviewT('has_ocr_backup')}
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-right">
                       <Button
                         variant={item.status === MigrationReviewStatus.PENDING ? 'default' : 'outline'}

@@ -1549,7 +1549,7 @@ export class AiBatchProcessor extends WorkerHost {
       issuedDate: excelMeta.documentDate || undefined,
       receivedDate: excelMeta.documentDate || undefined,
       extractedTags: mappedTags,
-      tempAttachmentId: attachment.id,
+      tempAttachmentIds: [attachment.id],
       isValid,
       confidence,
       aiJobId: String(job.id),

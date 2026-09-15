@@ -46,6 +46,11 @@
 //   correspondencePublicId (success + idempotent replay resolve จาก
 //   document_number+project_id); approveQueueItem/approveQueueItemByPublicId
 //   ตั้ง importedCorrespondencePublicId เป็น audit link และ retain queue row
+// - 2026-09-15: ADR-054 review-fold fixes — restoreOcrText swap semantics (current
+//   real text เข้า bak แทนถูกเขียนทับ); re-extract reset compareStatus→UNAVAILABLE
+//   (column NOT NULL + badge ต้องไม่โชว์ COMPARED ขณะ data ถูกล้าง); reviewedBy
+//   varchar→int ตาม schema จริง; detail paths expose hasOcrTextBak; replay miss warn;
+//   whitelist trim compareStatus/compareUnavailableReason (มี column แล้ว)
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -84,6 +89,7 @@ import {
   MigrationReviewQueue,
   MigrationReviewStatus,
   MigrationAiStatus,
+  CompareStatus,
 } from './entities/migration-review-queue.entity';
 import { MigrationError } from './entities/migration-error.entity';
 import { MigrationQueueQueryDto } from './dto/migration-queue-query.dto';
@@ -127,17 +133,16 @@ const STAGING_DIR_FALLBACK = path.join(process.cwd(), STAGING_DIR_DEFAULT);
  * `ai_metadata_json` เท่านั้น (ตรงกับสิ่งที่ `processMigrateDocument` ส่งจริง)
  * กัน caller ที่ authorized ฉีด `source_file_path`/`fieldResolutions`/key อื่นๆ เข้า
  * bag ที่ถูก narrow แล้ว (AI output + residual ingestion keys เท่านั้น)
- * หมายเหตุ: disciplineCode/disciplineId/recipientsList/compareStatus/
- * compareUnavailableReason เป็น compare/ingestion metadata จาก processMigrateDocument
- * (ไม่ใช่ AI output ตาม FR-010) — เก็บใน details เพราะยังไม่มี column เฉพาะ
+ * หมายเหตุ: disciplineCode/disciplineId/recipientsList เป็น compare/ingestion metadata
+ * จาก processMigrateDocument (ไม่ใช่ AI output ตาม FR-010) — เก็บใน details เพราะยังไม่มี
+ * column เฉพาะ; compareStatus/compareUnavailableReason มี dedicated columns แล้ว
+ * (map จาก flat dto fields) จึงไม่ duplicate ลง details
  */
 const ALLOWED_ENQUEUE_DETAILS_KEYS: readonly string[] = [
   'disciplineCode',
   'disciplineId',
   'recipientsList',
   'compareResult',
-  'compareStatus',
-  'compareUnavailableReason',
   'capturedThresholds',
 ];
 
@@ -224,6 +229,13 @@ export class MigrationService {
             select: ['id', 'publicId'],
           }
         );
+        if (!replayedCorrespondence) {
+          // replay resolve ไม่เจอ — projectId mismatch กับ import เดิม หรือ correspondence
+          // ถูกลบทิ้งแล้ว: audit link จะเป็น null — log ไว้ให้ตรวจสอบย้อนหลังได้
+          this.logger.warn(
+            `Idempotent replay resolved no correspondence for doc=${existingTransaction.documentNumber} projectId=${dto.projectId} — imported_correspondence_public_id will be NULL`
+          );
+        }
         return {
           message: 'Already processed',
           transaction: existingTransaction,
@@ -875,7 +887,10 @@ export class MigrationService {
     queueItem.remarks = dto.remarks;
     queueItem.aiSummary = dto.aiSummary;
     queueItem.extractedTags = dto.extractedTags;
-    queueItem.tempAttachmentId = dto.tempAttachmentId;
+    // temp_attachment_id (singular column ยังคงใช้เป็น fallback read path) — derive
+    // จาก tempAttachmentIds[0] เมื่อ caller ส่ง array-only (deprecate singular field)
+    queueItem.tempAttachmentId =
+      dto.tempAttachmentId ?? dto.tempAttachmentIds?.[0];
     queueItem.status = autoStatus;
     queueItem.aiJobId = dto.aiJobId;
 
@@ -1353,6 +1368,12 @@ export class MigrationService {
     // review_reason column nullable แต่ entity type เป็น string|undefined —
     // reset เป็น NULL ผ่าน Record view (undefined จะไม่ถูก persist โดย TypeORM)
     (queueItem as unknown as Record<string, unknown>)['reviewReason'] = null;
+    // compare_result ถูกล้างพร้อม details — compare_status NOT NULL เลยต้องเป็น
+    // UNAVAILABLE (ไม่ใช่ NULL) พร้อมเหตุผล เพื่อไม่ให้ list badge แสดง "เปรียบเทียบแล้ว"
+    // ทั้งที่ไม่มี compare data เหลืออยู่
+    queueItem.compareStatus = CompareStatus.UNAVAILABLE;
+    queueItem.compareUnavailableReason =
+      'ข้อมูลเปรียบเทียบถูกรีเซ็ตระหว่าง re-extract — ระบบจะเปรียบเทียบใหม่เมื่อ extraction สำเร็จ';
     queueItem.details = preservedDetails;
     queueItem.status = MigrationReviewStatus.PENDING;
     // ห้ามแตะ: storageTempPath, originalFilename, tempAttachmentIds, reviewState,
@@ -1692,6 +1713,13 @@ export class MigrationService {
     }
     // Feature 242: enrich single item with attachments[] (FR-005)
     const enriched = await this.enrichWithAttachments([item]);
+    // ADR-054: expose hasOcrTextBak flag เหมือน list endpoint (detail คงส่ง ocrTextBak
+    // เต็มตาม contract — frontend ใช้ flag ตัดสินแสดงปุ่ม restore)
+    (
+      enriched[0] as MigrationReviewQueue & { hasOcrTextBak: boolean }
+    ).hasOcrTextBak =
+      typeof enriched[0].ocrTextBak === 'string' &&
+      enriched[0].ocrTextBak.trim().length > 0;
     return enriched[0];
   }
 
@@ -1709,6 +1737,13 @@ export class MigrationService {
     }
     let enriched = await this.enrichWithAttachments([item]);
     enriched = await this.enrichWithReferenceData(enriched);
+    // ADR-054: expose hasOcrTextBak flag เหมือน list endpoint (detail คงส่ง ocrTextBak
+    // เต็มตาม contract — frontend ใช้ flag ตัดสินแสดงปุ่ม restore)
+    (
+      enriched[0] as MigrationReviewQueue & { hasOcrTextBak: boolean }
+    ).hasOcrTextBak =
+      typeof enriched[0].ocrTextBak === 'string' &&
+      enriched[0].ocrTextBak.trim().length > 0;
     return enriched[0];
   }
 
@@ -1764,14 +1799,25 @@ export class MigrationService {
         ]
       );
     }
+    // ADR-054 D5 hardening: ถ้า ocr_text ปัจจุบันเป็นข้อความจริงที่ไม่เคยถูก snapshot
+    // (เช่น manual edit หลัง backup ล่าสุด) — swap เข้า ocr_text_bak แทนการเขียนทับทิ้ง
+    // ทำให้ restore เป็น toggle ระหว่างข้อความจริง 2 เวอร์ชัน และไม่มี real text สูญหาย
+    const previousOcrText = queueItem.ocrText;
     queueItem.ocrText = queueItem.ocrTextBak;
+    if (
+      previousOcrText &&
+      previousOcrText.trim().length > 0 &&
+      !isOcrFailurePlaceholder(previousOcrText)
+    ) {
+      queueItem.ocrTextBak = previousOcrText;
+    }
     await this.reviewQueueRepo.save(queueItem);
     this.logger.log(
-      `User ${userId} restored OCR text backup for queue ${publicId} (ocrTextLength=${queueItem.ocrTextBak.length})`
+      `User ${userId} restored OCR text backup for queue ${publicId} (ocrTextLength=${queueItem.ocrText.length})`
     );
     return {
       publicId,
-      ocrTextLength: queueItem.ocrTextBak.length,
+      ocrTextLength: queueItem.ocrText.length,
       restored: true,
     };
   }
@@ -1963,7 +2009,7 @@ export class MigrationService {
 
     // If successful, update the queue item status
     queueItem.status = MigrationReviewStatus.IMPORTED;
-    queueItem.reviewedBy = userId.toString();
+    queueItem.reviewedBy = userId;
     queueItem.reviewedAt = new Date();
     // ADR-054 US3 (T026b, FR-008): durable audit link → correspondences.uuid
     // ของเอกสารที่ import สร้าง; queue row ต้อง retained (ลบได้เฉพาะ scoped delete)
@@ -2019,7 +2065,7 @@ export class MigrationService {
     );
 
     queueItem.status = MigrationReviewStatus.IMPORTED;
-    queueItem.reviewedBy = userId.toString();
+    queueItem.reviewedBy = userId;
     queueItem.reviewedAt = new Date();
     // ADR-054 US3 (T026b, FR-008): durable audit link → correspondences.uuid
     // ของเอกสารที่ import สร้าง; queue row ต้อง retained (ลบได้เฉพาะ scoped delete)
@@ -2087,7 +2133,7 @@ export class MigrationService {
     }
 
     queueItem.status = MigrationReviewStatus.REJECTED;
-    queueItem.reviewedBy = userId.toString();
+    queueItem.reviewedBy = userId;
     queueItem.reviewedAt = new Date();
     await this.reviewQueueRepo.save(queueItem);
 
@@ -2109,7 +2155,7 @@ export class MigrationService {
     }
 
     queueItem.status = MigrationReviewStatus.REJECTED;
-    queueItem.reviewedBy = userId.toString();
+    queueItem.reviewedBy = userId;
     queueItem.reviewedAt = new Date();
     await this.reviewQueueRepo.save(queueItem);
 

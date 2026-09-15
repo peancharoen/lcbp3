@@ -38,8 +38,7 @@ import {
 export interface MigrationReviewResponse {
   publicId: string;
   batchId: string;
-  originalFileName: string;
-  sourceAttachmentPublicId?: string;
+  originalFileName?: string;
   extractedMetadata?: Record<string, unknown>;
   confidenceScore?: number;
   status: MigrationReviewRecordStatus;
@@ -103,12 +102,9 @@ export class AiIngestService {
       createdRecords.push(
         this.reviewRepo.create({
           batchId: dto.batchId,
-          originalFileName: recordInput.originalFileName ?? file.originalname,
-          // ADR-054 D1/D2: ingestion metadata ลง column จริง (แยกจาก originalFileName
-          // ซึ่ง map คนละ column `original_file_name` — ใช้โดย toResponse)
-          originalFilename: file.originalname,
+          // ADR-054 D1/D2: ingestion metadata ลง column จริง (original_filename)
+          originalFilename: recordInput.originalFileName ?? file.originalname,
           storageTempPath: attachment.filePath,
-          sourceAttachmentPublicId: attachment.publicId,
           tempAttachmentId: attachment.id,
           extractedMetadata: recordInput.extractedMetadata,
           confidenceScore: recordInput.confidenceScore,
@@ -123,11 +119,10 @@ export class AiIngestService {
         createdRecords.push(
           this.reviewRepo.create({
             batchId: dto.batchId,
-            originalFileName:
-              recordInput.originalFileName ?? `${dto.batchId}-record.json`,
             // ADR-054 D2: record-only branch ไม่มีไฟล์จริง — storageTempPath คง NULL
             // แต่ยังเก็บ original_filename จาก metadata ถ้ามี
-            originalFilename: recordInput.originalFileName,
+            originalFilename:
+              recordInput.originalFileName ?? `${dto.batchId}-record.json`,
             extractedMetadata: recordInput.extractedMetadata,
             confidenceScore: recordInput.confidenceScore,
             status: this.deriveStatus(recordInput),
@@ -380,8 +375,7 @@ export class AiIngestService {
     return {
       publicId: record.publicId,
       batchId: record.batchId,
-      originalFileName: record.originalFileName,
-      sourceAttachmentPublicId: record.sourceAttachmentPublicId,
+      originalFileName: record.originalFilename,
       extractedMetadata: record.extractedMetadata,
       confidenceScore:
         record.confidenceScore === undefined

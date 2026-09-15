@@ -169,7 +169,7 @@ export interface MigrationReviewQueueItem {
   status: MigrationReviewStatus;
   aiStatus?: MigrationAiStatus;
   aiJobId?: string | null;
-  reviewedBy?: string;
+  reviewedBy?: number;
   reviewedAt?: string;
   createdAt: string;
   projectId?: number | string; // ADR-019: Accept UUID

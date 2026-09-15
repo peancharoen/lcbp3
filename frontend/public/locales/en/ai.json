@@ -161,7 +161,9 @@
     "restore_ocr_note": "The backup is retained after restore",
     "restore_ocr_confirm": "Restore the original OCR text? Your current edits will be replaced.",
     "restore_ocr_success": "Original OCR text restored",
-    "restore_ocr_error": "Failed to restore OCR text"
+    "restore_ocr_error": "Failed to restore OCR text",
+    "has_ocr_backup": "OCR backup",
+    "has_ocr_backup_tooltip": "This item has a backed-up OCR text (ocr_text_bak) — restorable from the detail page"
   },
   "rag": {
     "ingestion_status": {

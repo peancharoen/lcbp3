@@ -37,7 +37,7 @@ describe('MigrationService', () => {
     idempotencyKey: 'idem-key-001',
     originalFilename: 'INV-2026-001.pdf',
     storageTempPath: 'temp/migration/batch-1/INV-001.pdf',
-    aiMetadataJson: {},
+    extractedMetadata: {},
     confidenceScore: 0,
     ocrUsed: false,
     status: MigrationReviewRecordStatus.PENDING,
@@ -123,7 +123,7 @@ describe('MigrationService', () => {
         originalFilename: mockDto.filename,
         storageTempPath: mockDto.tempPath,
         status: MigrationReviewRecordStatus.PENDING,
-        aiMetadataJson: {},
+        extractedMetadata: {},
         confidenceScore: 0,
       });
       expect(aiBatchQueue.add).toHaveBeenCalledWith(

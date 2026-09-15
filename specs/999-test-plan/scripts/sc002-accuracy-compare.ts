@@ -1,7 +1,7 @@
 // File: specs/999-test-plan/scripts/sc002-accuracy-compare.ts
 // Change Log:
 // - 2026-09-14: สร้าง script เปรียบเทียบ AI output กับ golden set สำหรับ SC-002 accuracy test
-// - รองรับทั้ง golden set (5 docs) และ full migration population (267 docs)
+// - รองรับทั้ง golden set (5 docs) และ full migration population (265 records — C22024-265.xlsx)
 
 import * as fs from 'fs';
 import * as path from 'path';

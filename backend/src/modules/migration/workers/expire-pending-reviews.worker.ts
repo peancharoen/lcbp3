@@ -69,7 +69,8 @@ export class ExpirePendingReviewsWorker {
           record.status = MigrationReviewStatus.REJECTED;
           record.remarks = 'EXPIRED';
           record.reviewedAt = new Date();
-          record.reviewedBy = 'SYSTEM_AUTO_EXPIRATION';
+          // reviewed_by เป็น INT FK → users.user_id — ไม่มี system user sentinel
+          // เลยคง NULL ไว้; system marker อยู่ที่ remarks='EXPIRED' อยู่แล้ว
           await this.reviewQueueRepository.save(record);
           expiredCount++;
         } catch (error) {

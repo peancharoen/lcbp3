@@ -5,6 +5,11 @@
 // - 2026-09-14: ADR-054 T002 (FR-014) — entity นี้ map ตาราง migration_review_queue
 //   เดียวกับ MigrationReviewQueue (migration module) — เพิ่ม column mappings ใหม่
 //   (ocr_text_bak, review_state_json, imported_correspondence_public_id) ให้ตรงกัน
+// - 2026-09-15: reconcile entity กับ real DB schema (INFORMATION_SCHEMA verify) —
+//   ลบ dead columns ที่ไม่มีจริงใน DB (original_file_name, source_attachment_public_id,
+//   extracted_metadata, error_reason) แล้ว remap ไปยัง column จริง
+//   (original_filename, ai_metadata_json, review_reason, document_number) —
+//   ก่อนหน้านี้ save() ผ่าน entity นี้ throw "Unknown column" เสมอ
 import {
   Column,
   CreateDateColumn,
@@ -43,9 +48,6 @@ export class MigrationReviewRecord extends UuidBaseEntity {
   })
   idempotencyKey?: string;
 
-  @Column({ name: 'original_file_name', type: 'varchar', length: 255 })
-  originalFileName!: string;
-
   @Column({
     name: 'original_filename',
     type: 'varchar',
@@ -55,6 +57,14 @@ export class MigrationReviewRecord extends UuidBaseEntity {
   originalFilename?: string;
 
   @Column({
+    name: 'document_number',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
+  documentNumber?: string;
+
+  @Column({
     name: 'storage_temp_path',
     type: 'varchar',
     length: 1000,
@@ -62,17 +72,12 @@ export class MigrationReviewRecord extends UuidBaseEntity {
   })
   storageTempPath?: string;
 
-  @Column({ name: 'source_attachment_public_id', type: 'uuid', nullable: true })
-  sourceAttachmentPublicId?: string;
-
   @Column({ name: 'temp_attachment_id', type: 'int', nullable: true })
   tempAttachmentId?: number;
 
-  @Column({ name: 'extracted_metadata', type: 'json', nullable: true })
-  extractedMetadata?: Record<string, unknown>;
-
+  /** AI output metadata bag — column จริงใน DB คือ ai_metadata_json (ไม่มี extracted_metadata) */
   @Column({ name: 'ai_metadata_json', type: 'json', nullable: true })
-  aiMetadataJson?: Record<string, unknown>;
+  extractedMetadata?: Record<string, unknown>;
 
   /** ADR-054 D5: สำเนา ocr_text จริงล่าสุดก่อนถูกเขียนทับ (column ชื่อเดียวกับ MigrationReviewQueue.ocrTextBak) */
   @Column({ name: 'ocr_text_bak', type: 'longtext', nullable: true })
@@ -94,8 +99,8 @@ export class MigrationReviewRecord extends UuidBaseEntity {
   @Column({
     name: 'confidence_score',
     type: 'decimal',
-    precision: 4,
-    scale: 3,
+    precision: 5,
+    scale: 4,
     nullable: true,
   })
   confidenceScore?: number;
@@ -111,7 +116,13 @@ export class MigrationReviewRecord extends UuidBaseEntity {
   })
   status!: MigrationReviewRecordStatus;
 
-  @Column({ name: 'error_reason', type: 'text', nullable: true })
+  /** เหตุผลที่ต้อง review/ถูก reject — map ไป review_reason (ไม่มี column error_reason จริง) */
+  @Column({
+    name: 'review_reason',
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
   errorReason?: string;
 
   @Column({ name: 'reviewed_by', type: 'int', nullable: true })

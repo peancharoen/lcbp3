@@ -132,7 +132,7 @@ export class AiMigrationCheckpointService {
     const record = existing ?? this.reviewRepo.create({ idempotencyKey });
 
     record.batchId = dto.batchId;
-    record.originalFileName = dto.documentNumber;
+    record.documentNumber = dto.documentNumber;
     if (dto.tempAttachmentId) {
       if (typeof dto.tempAttachmentId === 'number') {
         record.tempAttachmentId = dto.tempAttachmentId;

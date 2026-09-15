@@ -57,7 +57,7 @@ export class MigrationService {
       originalFilename: dto.filename,
       storageTempPath: dto.tempPath,
       status: MigrationReviewRecordStatus.PENDING,
-      aiMetadataJson: {}, // Will be updated by AI processor
+      extractedMetadata: {}, // Will be updated by AI processor
       confidenceScore: 0,
     });
 

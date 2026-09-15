@@ -10,6 +10,8 @@
 // - 2026-09-14: ADR-054 T002 — map column ที่มีอยู่แล้วแต่ยังไม่ได้ใช้ (storage_temp_path,
 //   original_filename) + column ใหม่ (ocr_text_bak, review_state_json,
 //   imported_correspondence_public_id) ตาม metadata separation contract
+// - 2026-09-15: reviewedBy varchar(100)→int ให้ตรง schema จริง (reviewed_by INT FK →
+//   users.user_id) — เดิมเขียน userId.toString() ซึ่ง MariaDB coerce ได้แต่ type drift
 
 import {
   Entity,
@@ -117,8 +119,9 @@ export class MigrationReviewQueue extends UuidBaseEntity {
   })
   status!: MigrationReviewStatus;
 
-  @Column({ name: 'reviewed_by', length: 100, nullable: true })
-  reviewedBy?: string;
+  /** users.user_id ของผู้ review — schema จริงเป็น INT FK (fk_migration_review_reviewed_by) */
+  @Column({ name: 'reviewed_by', type: 'int', nullable: true })
+  reviewedBy?: number;
 
   @Column({ name: 'reviewed_at', type: 'timestamp', nullable: true })
   reviewedAt?: Date;

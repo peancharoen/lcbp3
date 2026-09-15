@@ -784,7 +784,7 @@ describe('MigrationReviewService', () => {
         createdCorrespondence?.publicId
       );
       expect(queueItem.status).toBe(MigrationReviewStatus.IMPORTED);
-      expect(queueItem.reviewedBy).toBe('7');
+      expect(queueItem.reviewedBy).toBe(7);
       expect(queueItem.reviewedAt).toBeInstanceOf(Date);
       // queue row retained — save ใน tx เดียวกัน ไม่ถูกลบ
       expect(qr.manager.save).toHaveBeenCalledWith(queueItem);
