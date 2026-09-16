@@ -1650,3 +1650,14 @@ cd /opt/np-dms/03-application && sudo docker compose --env-file ../.env up -d ba
 - **Full-document OCR (ไม่มี maxPages) ยังติด limit** — ถ้าต้อง OCR เต็มเล่มไฟล์ใหญ่ ต้องเลือก: (a) ยก limit + ประเมิน RAM, (b) mount storage ให้ sidecar แล้วใช้ `/ocr` path-based, (c) chunk per page-range
 - Sidecar **ไม่มี volume mount เลย** — `/ocr` path-based endpoint ใช้ไม่ได้จนกว่าจะเพิ่ม mount
 - รายละเอียดเต็ม: ADR-040 §"Known Limitation — 50MB Upload Limit"
+
+---
+
+## Migration Queue — BullMQ jobId `:` + Replace File (Session 2026-09-16) — ข้อควรระวัง
+
+- **BullMQ custom `jobId` ห้ามมี `:`** — `Job.validateOptions` throw `Custom Id cannot contain :` → HTTP 500 หลัง side-effect เสร็จ (false-negative: frontend แจ้งล้ม แต่งานทำแล้ว) — caller-supplied idempotencyKey ต้อง sanitize ก่อนต่อใน jobId — fix `a1bb37d6`
+- **ยังไม่แก้**: `rag-batch.service.ts` ใช้ jobId `rag-prepare:${docPublicId}:${revision}` มี `:` อยู่ — ถ้า path นั้นถูกเรียกจะ crash เดียวกัน (pending fix)
+- **Replace file endpoints**: `GET /migration/legacy-folder-files?path=` (migration.view) + `PATCH /migration/queue/:publicId/file` (migration.import + Idempotency-Key บังคับ) — staging path XOR `tempAttachmentPublicId`, auto re-extract, audit ใน `reviewState.fileReplacements[]`, replay คืนสถานะเดิม
+- **Re-extract บน item ที่ IMPORTED แล้ว** จะ reset status→PENDING_REVIEW แต่ค้าง `imported_correspondence_public_id` — ต้องตัดสินใจภายหลัง: block re-extract เมื่อ IMPORTED หรือ preserve status (ยังไม่ได้ตัดสินใจ)
+- **Bulk commit UX gap**: frontend `/admin/migration` toast.success เสมอโดยไม่ดู `result.failed` — flagged items (requiresHumanReview/aiFailed) โดน `MIGRATION_REQUIRES_MANUAL_REVIEW` fail เงียบๆ ต้องเช็คคิวเอง (ยังไม่แก้)
+- **Commit gate semantics**: bulk path ไม่ผ่าน fieldAcknowledgments — commit ใช้ `ai_suggested_correspondence_type` column (แก้ได้ด้วย SQL prefix rules) ไม่ใช่ `details.metadata.correspondenceType`
