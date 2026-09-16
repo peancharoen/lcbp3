@@ -279,6 +279,16 @@ export class MigrationReviewService {
         unresolved.push(field);
       }
     }
+    // AI hard-failure (OCR/LLM ล้มเหลวจน aiFailed=true): ไอเทมถูก flag requiresHumanReview
+    // แต่ไม่มี confidence ใด ๆ ให้ field loop ประเมิน — บังคับให้ reviewer acknowledge
+    // ocrQuality ก่อน commit เพื่อไม่ให้เอกสารที่ AI อ่านไม่ได้ถูก import โดยไม่ผ่านสายตามนุษย์
+    if (
+      queueItem.aiFailed === true &&
+      !acknowledged.has('ocrQuality') &&
+      !unresolved.includes('ocrQuality')
+    ) {
+      unresolved.push('ocrQuality');
+    }
     return unresolved;
   }
 

@@ -5,19 +5,14 @@
 
 # แผนการทดสอบรวม: AI Classification Accuracy E2E (C4 — SC-002)
 
-**วันที่ร่าง**: 2026-09-12 | **ปรับปรุงล่าสุด**: 2026-09-15
-**ขอบเขต**: ทุกกระบวนการ AI ในระบบ — Intent Classification (224) → RAG Prepare/Embed (234/254) → Vector Store (Qdrant) → Retrieval/Rerank → LLM Answer → Migration Compare (242) → Metadata Extraction (250) → Runtime Policy (235) → Engine Control (248) ครอบคลุม BullMQ queues: `ai-realtime`, `ai-batch`, `ai-rag-query`, `ai-rag-ingest`, `ai-rag-metadata-sync`, `ai-rag-generation-cleanup`, `ai-rag-generation-retention`, `ai-vector-deletion`
-**หมายเหตุ**: ไม่ทับซ้ำกับ `rag-admin-console-unified-test-plan.md` (ซึ่งครอบคลุมเฉพาะ UI `/admin/ai/rag-console`) — แผนนี้เน้น **ความแม่นยำของผล AI และความถูกต้องของ pipeline ต้นทางจนถึงปลายทาง**
-**Artifacts ที่ใช้**: golden set `fixtures/sc002-golden-set.json` (v2.0.0), compare script `scripts/sc002-accuracy-compare.ts`, ผลทดสอบรอบแรก `sc002-execution-report.md` (2026-09-14)
-**ADR อ้างอิง**: ADR-023/023A (AI Boundary), ADR-024 (Intent Classification), ADR-029 (Dynamic Prompts), ADR-040 (OCR Sidecar — ยกเลิก Tesseract fallback), ADR-041 (Server Consolidation), ADR-042 (OCR Persistence), ADR-043 (AI Architecture Current State), ADR-048 (Engine Control), ADR-050 (Metadata Contract — ข้อ 2 ถูก supersede โดย ADR-054), ADR-054 (Migration Metadata Separation + OCR Text Protection — เกิดจาก data-loss incident ตอน SC-002), ADR-019 (UUID), ADR-016 (RBAC), ADR-008 (BullMQ), ADR-007 (Error Handling)
-**ทดสอบบน production**: https://lcbp3.np-dms.work
-**Login Credentials:**
-```
-username:superadmin password:Center2025
-username:admin password:Center2025
-username:editor01 password:Center2025
-username:viewer01 password:Center2025
-```
+* **วันที่ร่าง**: 2026-09-12 | **ปรับปรุงล่าสุด**: 2026-09-15
+* **ขอบเขต**: ทุกกระบวนการ AI ในระบบ — Intent Classification (224) → RAG Prepare/Embed (234/254) → Vector Store (Qdrant) → Retrieval/Rerank → LLM Answer → Migration Compare (242) → Metadata Extraction (250) → Runtime Policy (235) → Engine Control (248) ครอบคลุม BullMQ queues: `ai-realtime`, `ai-batch`, `ai-rag-query`, `ai-rag-ingest`, `ai-rag-metadata-sync`, `ai-rag-generation-cleanup`, `ai-rag-generation-retention`, `ai-vector-deletion`
+* **หมายเหตุ**: ไม่ทับซ้ำกับ `rag-admin-console-unified-test-plan.md` (ซึ่งครอบคลุมเฉพาะ UI `/admin/ai/rag-console`) — แผนนี้เน้น **ความแม่นยำของผล AI และความถูกต้องของ pipeline ต้นทางจนถึงปลายทาง**
+* **Artifacts ที่ใช้**: golden set `fixtures/sc002-golden-set.json` (v2.0.0), compare script `scripts/sc002-accuracy-compare.ts`, ผลทดสอบรอบแรก `sc002-execution-report.md` (2026-09-14)
+* **ADR อ้างอิง**: ADR-023/023A (AI Boundary), ADR-024 (Intent Classification), ADR-029 (Dynamic Prompts), ADR-040 (OCR Sidecar — ยกเลิก Tesseract fallback), ADR-041 (Server Consolidation), ADR-042 (OCR Persistence), ADR-043 (AI Architecture Current State), ADR-048 (Engine Control), ADR-050 (Metadata Contract — ข้อ 2 ถูก supersede โดย ADR-054), ADR-054 (Migration Metadata Separation + OCR Text Protection — เกิดจาก data-loss incident ตอน SC-002), ADR-019 (UUID), ADR-016 (RBAC), ADR-008 (BullMQ), ADR-007 (Error Handling)
+* **ทดสอบบน production**: https://lcbp3.np-dms.work
+* **Login Credentials**: อยู่ใน /opt/np-dms-lcbp3/specs/999-test-plan/.env
+* **Test Data**:: อยู่ใน /opt/np-dms-lcbp3/specs/999-test-plan/.env
 
 ---
 
@@ -372,7 +367,7 @@ username:viewer01 password:Center2025
 ### 4B. Latency Benchmarks
 
 | Test | เกณฑ์ | วิธีวัด | SC |
-|------|-------|--------|----|
+|------|-------|--------|----|2
 | 4B.1 | LLM Fallback latency < 2000ms (Pattern + LLM) | 50 คำถาม LLM fallback → วัด p95 latency | 224 SC-002 |
 | 4B.2 | Pattern match latency < 10ms | 50 คำถาม pattern hit → วัด p95 | 224 SC-001 |
 | 4B.3 | `rag-prepare` ไม่ delay workflow submit > 500ms | วัดเวลาตั้งแต่กด submit จน response กลับ | 234 SC-004 |

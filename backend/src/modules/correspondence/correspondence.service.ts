@@ -1,5 +1,9 @@
 // File: src/modules/correspondence/correspondence.service.ts
 // Change Log:
+// 2026-09-16 | Fix prod 500: ย้าย fileStorageService.commit() ออกมาก่อน startTransaction
+//             ทั้ง create() และ update() — commit อัปเดต attachments ผ่าน global repo
+//             (autocommit) กลาง TX ทำให้ FK check ของ correspondence_revision_attachments
+//             ชน InnoDB error 1020 (Record has changed since last read)
 // 2026-06-17 | Refactor: Extract UUID resolution helpers; wrap update() in transaction;
 //             fix fire-and-forget with .catch(); fix cancel notification status (REJECTED→PENDING);
 //             add Partial<T> types; add workflow fields to findOne(); cache permission check;
@@ -348,6 +352,24 @@ export class CorrespondenceService {
       }
     }
 
+    // Phase 2: Commit attachments Temp → Permanent ก่อนเริ่ม transaction —
+    // การย้ายไฟล์ rollback ไม่ได้อยู่แล้ว และ commit() อัปเดต attachments ผ่าน
+    // global repository (autocommit) ถ้าทำกลาง transaction จะทำให้ FK check ของ
+    // correspondence_revision_attachments ชน InnoDB error 1020
+    // (Record has changed since last read) เพราะ parent row ถูก modify หลัง snapshot
+    let committedAttachments: Attachment[] = [];
+    if (createDto.attachmentTempIds?.length) {
+      const issueDate = createDto.issuedDate
+        ? new Date(createDto.issuedDate)
+        : createDto.documentDate
+          ? new Date(createDto.documentDate)
+          : undefined;
+      committedAttachments = await this.fileStorageService.commit(
+        createDto.attachmentTempIds,
+        { issueDate, documentType: 'Correspondence' }
+      );
+    }
+
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -440,32 +462,16 @@ export class CorrespondenceService {
       }
 
       // Commit attachments from Temp → Permanent (Two-Phase Storage)
-      if (createDto.attachmentTempIds?.length) {
-        const issueDate = createDto.issuedDate
-          ? new Date(createDto.issuedDate)
-          : createDto.documentDate
-            ? new Date(createDto.documentDate)
-            : undefined;
-
-        // [FIX v1.8.1] commit ได้ Attachment records กลับมา → บันทึก junction
-        const committed = await this.fileStorageService.commit(
-          createDto.attachmentTempIds,
-          { issueDate, documentType: 'Correspondence' }
+      // (commit จริงทำก่อน startTransaction แล้ว — ที่นี่แค่บันทึก junction links)
+      if (committedAttachments.length > 0) {
+        const links = committedAttachments.map((att, idx) =>
+          queryRunner.manager.create(CorrespondenceRevisionAttachment, {
+            correspondenceRevisionId: revision.id,
+            attachmentId: att.id,
+            isMainDocument: idx === 0, // ไฟล์แรกเป็น main document
+          })
         );
-
-        if (committed.length > 0) {
-          const links = committed.map((att, idx) =>
-            queryRunner.manager.create(CorrespondenceRevisionAttachment, {
-              correspondenceRevisionId: revision.id,
-              attachmentId: att.id,
-              isMainDocument: idx === 0, // ไฟล์แรกเป็น main document
-            })
-          );
-          await queryRunner.manager.save(
-            CorrespondenceRevisionAttachment,
-            links
-          );
-        }
+        await queryRunner.manager.save(CorrespondenceRevisionAttachment, links);
       }
 
       await queryRunner.commitTransaction();
@@ -525,6 +531,13 @@ export class CorrespondenceService {
       };
     } catch (err) {
       await queryRunner.rollbackTransaction();
+      if (committedAttachments.length > 0) {
+        // Attachments ที่ commit ไปก่อน transaction จะกลายเป็น orphan
+        // (is_temporary=0 แต่ไม่ผูก revision) — file cleanup job จัดการภายหลัง
+        this.logger.warn(
+          `Correspondence create failed after attachment commit — ${committedAttachments.length} orphaned attachment(s): ${committedAttachments.map((a) => a.publicId).join(', ')}`
+        );
+      }
       this.logger.error(
         `Failed to create correspondence: ${(err as Error).message}`
       );
@@ -913,6 +926,25 @@ export class CorrespondenceService {
       }
     }
 
+    // Phase 2: Commit attachments Temp → Permanent ก่อนเริ่ม transaction —
+    // เหตุผลเดียวกับ create(): commit() อัปเดต attachments ผ่าน global repository
+    // ถ้าทำกลาง transaction จะชน InnoDB 1020 ตอน FK check ของ junction table
+    let updCommittedAttachments: Attachment[] = [];
+    if (updateDto.attachmentTempIds?.length) {
+      const issueDate = updateDto.issuedDate
+        ? new Date(updateDto.issuedDate)
+        : updateDto.documentDate
+          ? new Date(updateDto.documentDate)
+          : revision.issuedDate || revision.documentDate || undefined;
+      updCommittedAttachments = await this.fileStorageService.commit(
+        updateDto.attachmentTempIds,
+        {
+          issueDate: issueDate ? new Date(issueDate) : undefined,
+          documentType: 'Correspondence',
+        }
+      );
+    }
+
     // 4. Wrap all mutations in a transaction
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -961,34 +993,16 @@ export class CorrespondenceService {
       }
 
       // 4c. Commit new attachments from Temp → Permanent
-      if (updateDto.attachmentTempIds?.length) {
-        const issueDate = updateDto.issuedDate
-          ? new Date(updateDto.issuedDate)
-          : updateDto.documentDate
-            ? new Date(updateDto.documentDate)
-            : revision.issuedDate || revision.documentDate || undefined;
-
-        const committed = await this.fileStorageService.commit(
-          updateDto.attachmentTempIds,
-          {
-            issueDate: issueDate ? new Date(issueDate) : undefined,
-            documentType: 'Correspondence',
-          }
+      // (commit จริงทำก่อน startTransaction แล้ว — ที่นี่แค่บันทึก junction links)
+      if (updCommittedAttachments.length > 0) {
+        const links = updCommittedAttachments.map((att) =>
+          queryRunner.manager.create(CorrespondenceRevisionAttachment, {
+            correspondenceRevisionId: revision.id,
+            attachmentId: att.id,
+            isMainDocument: false,
+          })
         );
-
-        if (committed.length > 0) {
-          const links = committed.map((att) =>
-            queryRunner.manager.create(CorrespondenceRevisionAttachment, {
-              correspondenceRevisionId: revision.id,
-              attachmentId: att.id,
-              isMainDocument: false,
-            })
-          );
-          await queryRunner.manager.save(
-            CorrespondenceRevisionAttachment,
-            links
-          );
-        }
+        await queryRunner.manager.save(CorrespondenceRevisionAttachment, links);
       }
 
       // 4d. Update Recipients if provided
@@ -1010,6 +1024,11 @@ export class CorrespondenceService {
       await queryRunner.commitTransaction();
     } catch (err) {
       await queryRunner.rollbackTransaction();
+      if (updCommittedAttachments.length > 0) {
+        this.logger.warn(
+          `Correspondence update failed after attachment commit — ${updCommittedAttachments.length} orphaned attachment(s): ${updCommittedAttachments.map((a) => a.publicId).join(', ')}`
+        );
+      }
       this.logger.error(
         `Failed to update correspondence ${id}: ${(err as Error).message}`
       );

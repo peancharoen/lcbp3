@@ -30,7 +30,7 @@ export class IntentAnalyticsController {
     const fromDate = from ? new Date(from) : undefined;
     const toDate = to ? new Date(to) : undefined;
 
-    const data = await this.analyticsService.getAnalytics(fromDate, toDate);
-    return { data };
+    // คืนค่าแบบ flat — frontend extractData แกะ TransformInterceptor wrapper เพียงชั้นเดียว
+    return this.analyticsService.getAnalytics(fromDate, toDate);
   }
 }

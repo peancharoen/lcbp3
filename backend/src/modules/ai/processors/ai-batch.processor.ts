@@ -1,5 +1,8 @@
 // File: backend/src/modules/ai/processors/ai-batch.processor.ts
 // Change Log
+// - 2026-09-16: FR-012a (spec 242) — migrate-document: OCR text ว่าง/สั้นเกินไป และ
+//   LLM compare ล้มเหลวบน attempt สุดท้าย → compareStatus=UNAVAILABLE เข้าคิวตรวจสอบ
+//   แทนการทิ้งรายการไว้ใน error log เพียงอย่างเดียว (non-final attempt ยัง throw เพื่อ retry)
 // - 2026-06-08: แก้ไขปัญหา LLM JSON response truncated โดยการเพิ่ม num_ctx เป็น 16384 ใน sandbox-extract, sandbox-ai-extract และ migrate-document (แก้ไขโดย AGY Gemini 3.5 Flash (Medium))
 // - 2026-06-14: เพิ่ม case sandbox-rag-prep และ processSandboxRagPrep (T035)
 // - 2026-05-15: เพิ่ม processor สำหรับ ai-batch queue ตาม ADR-023A.
@@ -156,6 +159,12 @@ export interface AiBatchJobData {
 
 /** OCR text สูงสุดที่ส่งเข้า LLM prompt — ป้องกัน context overflow (num_ctx 8192, Thai ~3 chars/token) */
 const MAX_OCR_TEXT_CHARS = 15000;
+/**
+ * FR-012a (spec 242): OCR text ที่สั้นกว่าระดับนี้ถือว่า "ไม่มีข้อความอ่านได้"
+ * → compare_status = UNAVAILABLE แทนการรายงานว่าทุกช่องไม่ตรงกัน
+ * (หนังสือราชการจริงมีหลายร้อยตัวอักษร — ผลลัพธ์ต่ำกว่า 20 คือเอกสารว่าง/อ่านไม่ได้)
+ */
+const MIN_COMPARE_OCR_CHARS = 20;
 const MAX_JSON_PARSE_ATTEMPTS = 2;
 const removeControlCharacters = (
   value: string,
@@ -1352,6 +1361,15 @@ export class AiBatchProcessor extends WorkerHost {
       this.logger.warn(
         `processMigrateDocument: ${documentPublicId} is DWG — compare unavailable`
       );
+    } else if (ocrResult.text.trim().length < MIN_COMPARE_OCR_CHARS) {
+      // FR-012a: ข้อความว่างเปล่าหรือสั้นเกินไป → ข้ามการเปรียบเทียบ เข้าคิวตรวจสอบ
+      // พร้อมสถานะ "เปรียบเทียบไม่ได้" แทนการรายงานว่าทุกช่องไม่ตรงกัน
+      compareStatus = CompareStatus.UNAVAILABLE;
+      compareUnavailableReason =
+        'ข้อความจาก OCR ว่างเปล่าหรือสั้นเกินไป ไม่สามารถเปรียบเทียบกับทะเบียนได้';
+      this.logger.warn(
+        `processMigrateDocument: ${documentPublicId} OCR text too short (${ocrResult.text.trim().length} chars) — compare unavailable`
+      );
     } else {
       // FR-006, FR-007: เรียก migration_compare prompt เพื่อเปรียบเทียบทะเบียนกับเอกสารจริง
       const activePrompt =
@@ -1371,7 +1389,11 @@ export class AiBatchProcessor extends WorkerHost {
         .replace('{{excel_metadata}}', JSON.stringify(excelMetadata, null, 2))
         .replace('{{ocr_truncated}}', ocrTruncated);
 
-      let aiResponse: string;
+      // FR-012a: เมื่อ retry หมดแล้ว (attempt สุดท้าย) ต้องนำรายการเข้าคิวตรวจสอบพร้อม
+      // สถานะ "เปรียบเทียบไม่ได้" — MUST NOT ทิ้งรายการไว้ในบันทึกข้อผิดพลาดเพียงอย่างเดียว
+      const isFinalAttempt = job.attemptsMade + 1 >= (job.opts?.attempts ?? 1);
+      let aiResponse: string | null = null;
+      let compareErrorMsg: string | null = null;
       try {
         const snapshotParams = job.data.snapshotParams;
         const generateOptions: OllamaGenerateOptions = {
@@ -1396,50 +1418,63 @@ export class AiBatchProcessor extends WorkerHost {
           generateOptions
         );
       } catch (err: unknown) {
-        const errMsg = err instanceof Error ? err.message : String(err);
-        this.logger.error(`การเปรียบเทียบของ AI ล้มเหลว: ${errMsg}`);
+        compareErrorMsg = err instanceof Error ? err.message : String(err);
+        this.logger.error(`การเปรียบเทียบของ AI ล้มเหลว: ${compareErrorMsg}`);
         await this.migrationService.createError({
           batchId: batchId || 'unknown',
           documentNumber: docNumber,
           errorType: MigrationErrorType.API_ERROR,
-          errorMessage: errMsg,
+          errorMessage: compareErrorMsg,
         });
         await this.saveAiAuditLog({
           documentPublicId,
           aiModel: modelUsed ?? this.ollamaService.getMainModelName(),
           status: AiAuditStatus.FAILED,
-          errorMessage: errMsg,
+          errorMessage: compareErrorMsg,
           processingTimeMs: Date.now() - startTime,
           effectiveProfile: job.data.effectiveProfile,
           canonicalModel: job.data.canonicalModel,
           snapshotParamsJson: job.data.snapshotParams,
         });
-        throw err;
+        if (!isFinalAttempt) {
+          throw err;
+        }
       }
 
-      // FR-007, FR-008: parse compare result ด้วย typed parser guard
-      compareResult = parseCompareResult(aiResponse);
-      if (!compareResult) {
-        const errMsg = `ไม่สามารถแปลงผลลัพธ์การเปรียบเทียบเป็น JSON ที่ถูกต้องได้: ${aiResponse.substring(0, 200)}`;
-        this.logger.error(errMsg);
-        await this.migrationService.createError({
-          batchId: batchId || 'unknown',
-          documentNumber: docNumber,
-          errorType: MigrationErrorType.AI_PARSE_ERROR,
-          errorMessage: errMsg,
-          rawAiResponse: aiResponse,
-        });
-        await this.saveAiAuditLog({
-          documentPublicId,
-          aiModel: modelUsed ?? this.ollamaService.getMainModelName(),
-          status: AiAuditStatus.FAILED,
-          errorMessage: errMsg,
-          processingTimeMs: Date.now() - startTime,
-          effectiveProfile: job.data.effectiveProfile,
-          canonicalModel: job.data.canonicalModel,
-          snapshotParamsJson: job.data.snapshotParams,
-        });
-        throw new Error(errMsg);
+      if (aiResponse !== null) {
+        // FR-007, FR-008: parse compare result ด้วย typed parser guard
+        compareResult = parseCompareResult(aiResponse);
+        if (!compareResult) {
+          compareErrorMsg = `ไม่สามารถแปลงผลลัพธ์การเปรียบเทียบเป็น JSON ที่ถูกต้องได้: ${aiResponse.substring(0, 200)}`;
+          this.logger.error(compareErrorMsg);
+          await this.migrationService.createError({
+            batchId: batchId || 'unknown',
+            documentNumber: docNumber,
+            errorType: MigrationErrorType.AI_PARSE_ERROR,
+            errorMessage: compareErrorMsg,
+            rawAiResponse: aiResponse,
+          });
+          await this.saveAiAuditLog({
+            documentPublicId,
+            aiModel: modelUsed ?? this.ollamaService.getMainModelName(),
+            status: AiAuditStatus.FAILED,
+            errorMessage: compareErrorMsg,
+            processingTimeMs: Date.now() - startTime,
+            effectiveProfile: job.data.effectiveProfile,
+            canonicalModel: job.data.canonicalModel,
+            snapshotParamsJson: job.data.snapshotParams,
+          });
+          if (!isFinalAttempt) {
+            throw new Error(compareErrorMsg);
+          }
+        }
+      }
+
+      // FR-012a: attempt สุดท้ายล้มเหลว → ยังคงนำเข้าคิวตรวจสอบด้วยสถานะ UNAVAILABLE
+      if (compareErrorMsg !== null) {
+        compareStatus = CompareStatus.UNAVAILABLE;
+        compareUnavailableReason =
+          'ระบบเปรียบเทียบไม่ตอบกลับหรือตอบในรูปแบบที่อ่านไม่ได้';
       }
     }
 

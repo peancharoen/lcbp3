@@ -1,6 +1,7 @@
 // File: backend/src/modules/ai/intent-classifier/services/intent-pattern-cache.service.spec.ts
 // Change Log:
 // - 2026-06-15: สร้าง unit test สำหรับ IntentPatternCacheService ครอบคลุม cache-aside pattern (ADR-024)
+// - 2026-09-16: เพิ่ม test thundering herd — concurrent cache miss ต้อง query DB ครั้งเดียว (spec 224 Edge Case 1, FR-005)
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
@@ -180,6 +181,30 @@ describe('IntentPatternCacheService', () => {
         300,
         '[]'
       );
+    });
+
+    // spec 224 Edge Case 1 / FR-005: cache หมดอายุระหว่าง query พร้อมกันหลายรายการ
+    // → ต้อง query DB ครั้งเดียวแล้ว update cache (single-flight) ไม่ให้เกิด thundering herd
+    it('ควร query DB ครั้งเดียวเมื่อ cache miss พร้อมกันหลาย request (thundering herd)', async () => {
+      mockRedis.get.mockResolvedValue(null);
+      // ทำให้ DB query ช้าลงเล็กน้อย เพื่อให้ concurrent calls ทับซ้อนกันแน่นอน
+      patternRepo.find.mockImplementation(
+        () =>
+          new Promise<IntentPattern[]>((resolve) =>
+            setTimeout(() => resolve(mockPatterns), 20)
+          )
+      );
+      mockRedis.setex.mockResolvedValue('OK');
+
+      const results = await Promise.all(
+        Array.from({ length: 10 }, () => service.getActivePatterns())
+      );
+
+      // ทุก caller ต้องได้ผลลัพธ์ชุดเดียวกัน และ DB ถูก query แค่ครั้งเดียว
+      for (const result of results) {
+        expect(result).toHaveLength(2);
+      }
+      expect(patternRepo.find).toHaveBeenCalledTimes(1);
     });
   });
 

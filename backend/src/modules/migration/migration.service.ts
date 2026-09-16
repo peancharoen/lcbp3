@@ -977,6 +977,10 @@ export class MigrationService {
       metadataConfidence?.tags,
     ].filter((v): v is number => typeof v === 'number');
     if (values.length < 4) return true;
+    // spec 250 FR-010: confidence ใด ๆ นอกช่วง [0,1] (รวม NaN — NaN ผ่าน typeof check
+    // แต่ comparison ทั้งสองข้างเป็น false เสมอ) = AI output ผิดสัญญา ต้อง flag
+    // manual attention แทนการ silent-accept
+    if (values.some((v) => !(v >= 0 && v <= 1))) return true;
     return Math.min(...values) < minConfidence;
   }
 
@@ -1093,8 +1097,9 @@ export class MigrationService {
         // คำนวณ promoted columns + ai_confidence alias เสมอ ฝั่ง backend เท่านั้น
         const extraction = this.parseExtractionDetails(data.details);
         const metadataConfidence = extraction?.metadata?.confidence;
+        // spec 250 FR-002/Edge Case: ขาด ocrQuality (OCR ไม่ผลิตข้อความ) ต้องยังคง
+        // คำนวณ flag — computeRequiresHumanReview ให้ true เมื่อ confidence ครบ <4 ตัว
         if (
-          extraction?.ocrQuality &&
           metadataConfidence &&
           typeof metadataConfidence.summary === 'number' &&
           typeof metadataConfidence.correspondenceType === 'number' &&
@@ -1102,14 +1107,13 @@ export class MigrationService {
         ) {
           const thresholds = await this.reviewThresholdService.getThresholds();
           queueItem.requiresHumanReview = this.computeRequiresHumanReview(
-            extraction.ocrQuality.confidence,
+            extraction?.ocrQuality?.confidence,
             metadataConfidence,
             thresholds.minConfidence
           );
+          const ocrConfidence = extraction?.ocrQuality?.confidence;
           queueItem.ocrQualityConfidence =
-            typeof extraction.ocrQuality.confidence === 'number'
-              ? extraction.ocrQuality.confidence
-              : null;
+            typeof ocrConfidence === 'number' ? ocrConfidence : null;
           const aliasConfidence =
             this.computeAiConfidenceAlias(metadataConfidence);
           if (aliasConfidence !== undefined) {
@@ -1968,6 +1972,26 @@ export class MigrationService {
     return result.map((r) => r.batchId).filter(Boolean);
   }
 
+  /**
+   * ADR-050 human-in-the-loop: รายการที่ AI ตั้ง requiresHumanReview (confidence ต่ำกว่า
+   * threshold หรือ extraction ล้มเหลว) ต้อง commit ผ่าน commitRecord (POST /ai/migration/review)
+   * เท่านั้น เพราะ path นั้นบังคับ per-field gate + fieldAcknowledgments — endpoint
+   * /migration/queue/:id/approve ไม่มีช่องทางให้ reviewer resolve field จึง block ไว้ตรงนี้
+   */
+  private assertNotFlaggedForReview(queueItem: MigrationReviewQueue): void {
+    if (queueItem.requiresHumanReview === true || queueItem.aiFailed === true) {
+      throw new BusinessException(
+        'MIGRATION_REQUIRES_MANUAL_REVIEW',
+        `Queue item ${queueItem.publicId} is flagged for human review and cannot be imported via this endpoint`,
+        'รายการนี้ถูก flag ให้ตรวจสอบด้วยมนุษย์ — กรุณาเปิดหน้า Review เพื่อตรวจสอบและยืนยันแต่ละ field ก่อนนำเข้า',
+        [
+          'เปิดหน้า Review Detail ของรายการนี้',
+          'ตรวจสอบ confidence ของแต่ละ field แล้วกดยืนยัน/แก้ไขก่อน commit',
+        ]
+      );
+    }
+  }
+
   async approveQueueItem(
     id: number,
     dto: ImportCorrespondenceDto,
@@ -1986,6 +2010,11 @@ export class MigrationService {
         'รายการนี้ต้องอยู่ในสถานะ PENDING_REVIEW ก่อน Execute Import'
       );
     }
+
+    // ADR-050: รายการที่ถูก flag requiresHumanReview (confidence ต่ำ / AI hard-failure)
+    // ต้องผ่าน commit gate ที่ /ai/migration/review (commitRecord) เท่านั้น — endpoint นี้
+    // ไม่มี fieldAcknowledgments/tagDecisions ให้ reviewer resolve field จึง block ตรง ๆ
+    this.assertNotFlaggedForReview(queueItem);
 
     // Attempt the import
     const importDto = {
@@ -2044,6 +2073,9 @@ export class MigrationService {
         'รายการนี้ต้องอยู่ในสถานะ PENDING_REVIEW ก่อน Execute Import'
       );
     }
+
+    // ADR-050: ดู assertNotFlaggedForReview — /approve เป็น commit path ที่ bypass ได้ก่อนหน้านี้
+    this.assertNotFlaggedForReview(queueItem);
 
     const importDto = {
       ...dto,

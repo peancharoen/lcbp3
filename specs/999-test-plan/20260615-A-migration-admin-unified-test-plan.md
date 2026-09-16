@@ -6,24 +6,12 @@
 //   บันทึก unit coverage ที่ implement แล้ว (validation PASS 14/14 FR)
 
 # แผนการทดสอบรวม: การนำเข้าข้อมูลเก่า (/admin/migration)
-
-**วันที่ร่าง**: 2026-09-11 | **อัปเดตล่าสุด**: 2026-09-15 (เพิ่ม Spec 256 / ADR-054)
-**ขอบเขต**: หน้าจอ `/admin/migration` + `/admin/import-review` และ Backend Migration Module ทั้งหมด + ADR-054 storage separation (`migration_review_queue`)
-**ADR อ้างอิง**: ADR-028, ADR-042, ADR-047, ADR-050 (ข้อ 2 superseded โดย ADR-054), ADR-052, ADR-054, ADR-023A, ADR-019, ADR-016, ADR-008, ADR-044
-**ทดสอบบน production**: https://lcbp3.np-dms.work
-**Login Credentials:**
-```
-username:superadmin password:Center2025
-username:admin password:Center2025
-username:editor01 password:Center2025
-username:viewer01 password:Center2025
-```
-**Test Data**: ให้ใช้โดยเลือก
- - ไฟล์ Excel (.xlsx)=เลือกจาก NAS ที่มีอยู่แล้ว
- - เลือกไฟล์จาก NAS=C2024-5.xlsx (13KB)
- - โฟลเดอร์ Staging PDF บน NAS=\incoming\08C.2\2567
- - ชื่อโครงการ *=LCBP-C2
----
+* **วันที่ร่าง**: 2026-09-11 | **อัปเดตล่าสุด**: 2026-09-15 (เพิ่ม Spec 256 / ADR-054)
+* **ขอบเขต**: หน้าจอ `/admin/migration` + `/admin/import-review` และ Backend Migration Module ทั้งหมด + ADR-054 storage separation (`migration_review_queue`)
+* **ADR อ้างอิง**: ADR-028, ADR-042, ADR-047, ADR-050 (ข้อ 2 superseded โดย ADR-054), ADR-052, ADR-054, ADR-023A, ADR-019, ADR-016, ADR-008, ADR-044
+* **ทดสอบบน production**: https://lcbp3.np-dms.work
+* **Login Credentials**: อยู่ใน /opt/np-dms-lcbp3/specs/999-test-plan/.env
+* **Test Data**:: อยู่ใน /opt/np-dms-lcbp3/specs/999-test-plan/.env
 
 ## 1. สเปคใน 200-fullstacks ที่เกี่ยวข้อง
 

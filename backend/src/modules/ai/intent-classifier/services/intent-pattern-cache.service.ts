@@ -1,6 +1,8 @@
 // File: src/modules/ai/intent-classifier/services/intent-pattern-cache.service.ts
 // Change Log
 // - 2026-05-19: สร้าง Redis cache service สำหรับ Intent Patterns (ADR-024).
+// - 2026-09-16: เพิ่ม single-flight สำหรับ cache-miss load (spec 224 Edge Case 1 —
+//   query พร้อมกันหลายรายการต้อง hit DB ครั้งเดียว ไม่ให้เกิด thundering herd)
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -22,6 +24,11 @@ const CACHE_KEY = 'ai:intent:patterns:active';
 export class IntentPatternCacheService {
   private readonly logger = new Logger(IntentPatternCacheService.name);
   private readonly ttlSeconds: number;
+  /**
+   * In-flight DB load ที่กำลังดำเนินการอยู่ — ใช้ dedupe concurrent cache misses
+   * (single-flight: caller ที่มาทีหลังรอผลของ promise เดิมแทนการ query ซ้ำ)
+   */
+  private inflightLoad: Promise<CachedPattern[]> | null = null;
 
   constructor(
     @InjectRedis() private readonly redis: Redis,
@@ -68,8 +75,20 @@ export class IntentPatternCacheService {
     }
   }
 
-  /** โหลด patterns จาก DB แล้ว set ใน Redis */
+  /** โหลด patterns จาก DB แล้ว set ใน Redis (dedupe ผ่าน inflightLoad) */
   private async loadAndCache(): Promise<CachedPattern[]> {
+    // ถ้ามี load ที่กำลังทำอยู่ให้รอผลเดียวกัน — กัน thundering herd ตอน cache หมดอายุพร้อมกัน
+    if (this.inflightLoad) {
+      return this.inflightLoad;
+    }
+    this.inflightLoad = this.doLoadAndCache().finally(() => {
+      this.inflightLoad = null;
+    });
+    return this.inflightLoad;
+  }
+
+  /** ทำงานจริงของการโหลด patterns จาก DB แล้วเขียนลง Redis */
+  private async doLoadAndCache(): Promise<CachedPattern[]> {
     const patterns = await this.patternRepo.find({
       where: { isActive: true },
       order: { priority: 'ASC' },

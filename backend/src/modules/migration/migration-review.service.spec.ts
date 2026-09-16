@@ -1329,6 +1329,50 @@ describe('MigrationReviewService', () => {
       expect(res.success).toBe(true);
       expect(qr.commitTransaction).toHaveBeenCalled();
     });
+
+    it('blocks commit for AI hard-failure item (aiFailed + requiresHumanReview, no confidence data) until ocrQuality is acknowledged', async () => {
+      const qr = createMockQueryRunner({
+        queueItem: makeQueueItem({
+          aiFailed: true,
+          requiresHumanReview: true,
+          aiStatus: 'FAILED',
+          details: { original_row_index: 58 },
+        }),
+      });
+      dataSource.createQueryRunner.mockReturnValue(qr);
+
+      const error = await service
+        .commitRecord(makeDto(), 1, 'idem-key-gate-006')
+        .catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(UnresolvedFieldsException);
+      expect((error as UnresolvedFieldsException).unresolvedFields).toEqual([
+        'ocrQuality',
+      ]);
+      expect(qr.rollbackTransaction).toHaveBeenCalled();
+      expect(qr.commitTransaction).not.toHaveBeenCalled();
+    });
+
+    it('allows commit for AI hard-failure item after ocrQuality acknowledgment', async () => {
+      const qr = createMockQueryRunner({
+        queueItem: makeQueueItem({
+          aiFailed: true,
+          requiresHumanReview: true,
+          aiStatus: 'FAILED',
+          details: { original_row_index: 58 },
+        }),
+      });
+      dataSource.createQueryRunner.mockReturnValue(qr);
+
+      const res = await service.commitRecord(
+        makeDto({ fieldAcknowledgments: ['ocrQuality'] }),
+        1,
+        'idem-key-gate-007'
+      );
+
+      expect(res.success).toBe(true);
+      expect(qr.commitTransaction).toHaveBeenCalled();
+    });
   });
 
   // ── commitRecord — T018/T026: tagDecisions accept/reject + audit trail ───────
@@ -1473,6 +1517,41 @@ describe('MigrationReviewService', () => {
         )
       ).rejects.toThrow(ValidationException);
       expect(qr.rollbackTransaction).toHaveBeenCalled();
+    });
+
+    // spec 250 SC: ชื่อ tag ที่ต่างกันเฉพาะตัวพิมพ์/ช่องว่างต้องถือเป็น suggestion
+    // เดิม — ไม่ reject เหมือน forged name
+    it('treats case/whitespace-variant tagDecisions names as matching the AI suggestion', async () => {
+      const qr = createMockQueryRunner({
+        queueItem: makeQueueItem({
+          details: {
+            ocrQuality: { confidence: 0.95, issues: [] },
+            metadata: {
+              summary: 'summary',
+              correspondenceType: 'LETTER',
+              tags: [{ name: 'real-suggestion', isNew: false, evidence: 'ev' }],
+              confidence: {
+                summary: 0.95,
+                correspondenceType: 0.95,
+                tags: 0.95,
+              },
+            },
+          },
+        }),
+      });
+      dataSource.createQueryRunner.mockReturnValue(qr);
+
+      await expect(
+        service.commitRecord(
+          makeDto({
+            correspondenceType: 'LETTER',
+            tagDecisions: [{ name: '  REAL-SUGGESTION  ', accepted: true }],
+          }),
+          1,
+          'idem-key-audit-004'
+        )
+      ).resolves.toBeDefined();
+      expect(qr.commitTransaction).toHaveBeenCalled();
     });
   });
 

@@ -228,6 +228,13 @@ describe('AiBatchProcessor', () => {
     heartbeatOcrBatchLock: jest.fn().mockResolvedValue(undefined),
     releaseOcrBatchLock: jest.fn().mockResolvedValue(undefined),
   };
+  // Feature 242: ReviewThresholdService — expose เพื่อให้ test ควบคุมค่า
+  // threshold ต่อ call ได้ (FR-010c snapshot semantics)
+  const mockReviewThresholdService = {
+    getThresholds: jest
+      .fn()
+      .mockResolvedValue({ maxMismatchFields: 3, minConfidence: 0.7 }),
+  };
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -261,11 +268,7 @@ describe('AiBatchProcessor', () => {
         // Feature 242: ReviewThresholdService required by AiBatchProcessor
         {
           provide: ReviewThresholdService,
-          useValue: {
-            getThresholds: jest
-              .fn()
-              .mockResolvedValue({ maxMismatchFields: 3, minConfidence: 0.7 }),
-          },
+          useValue: mockReviewThresholdService,
         },
       ],
     }).compile();
@@ -1675,6 +1678,161 @@ describe('AiBatchProcessor', () => {
       const capturedThresholds = { maxMismatchFields: 3, minConfidence: 0.7 };
       const isValid = mismatchCount <= capturedThresholds.maxMismatchFields;
       expect(isValid).toBe(false);
+    });
+
+    /** Helper: สร้าง migrate-document job พร้อม attempt fields ของ BullMQ */
+    const makeMigrateJob = (
+      overrides: {
+        jobId?: string;
+        documentNumber?: string;
+        attemptsMade?: number;
+        maxAttempts?: number;
+      } = {}
+    ): Job<AiBatchJobData> =>
+      ({
+        id: overrides.jobId ?? 'job-migrate-fr012a',
+        attemptsMade: overrides.attemptsMade ?? 0,
+        opts: { attempts: overrides.maxAttempts ?? 3 },
+        data: {
+          jobType: 'migrate-document',
+          documentPublicId: 'doc-uuid-123',
+          projectPublicId: 'proj-uuid-456',
+          payload: {
+            documentNumber: overrides.documentNumber ?? 'LEGACY-FR012A',
+            title: 'FR-012a test title',
+          },
+          idempotencyKey: 'idem-fr012a',
+          batchId: 'batch-fr012a',
+        },
+      }) as unknown as Job<AiBatchJobData>;
+
+    // FR-012a (spec 242 Edge Case): OCR text ว่าง → ข้าม compare เข้าคิวด้วย UNAVAILABLE
+    it('sets compareStatus=UNAVAILABLE and skips LLM when OCR text is empty (FR-012a)', async () => {
+      mockOcrService.detectAndExtract.mockResolvedValueOnce({ text: '' });
+
+      await processor.process(makeMigrateJob({ jobId: 'job-empty-ocr' }));
+
+      expect(ollamaService.generate).not.toHaveBeenCalled();
+      expect(mockMigrationService.enqueueRecord).toHaveBeenCalledWith(
+        expect.objectContaining({
+          compareStatus: 'UNAVAILABLE',
+          compareUnavailableReason: expect.any(String),
+        })
+      );
+    });
+
+    it('sets compareStatus=UNAVAILABLE when OCR text is too short to compare (FR-012a)', async () => {
+      mockOcrService.detectAndExtract.mockResolvedValueOnce({
+        text: 'abc', // < MIN_COMPARE_OCR_CHARS (20)
+      });
+
+      await processor.process(makeMigrateJob({ jobId: 'job-short-ocr' }));
+
+      expect(ollamaService.generate).not.toHaveBeenCalled();
+      expect(mockMigrationService.enqueueRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ compareStatus: 'UNAVAILABLE' })
+      );
+    });
+
+    // FR-012a: compare system ไม่ตอบกลับ → รายการต้องเข้าคิวด้วย UNAVAILABLE
+    // (MUST NOT ทิ้งไว้ใน error log เพียงอย่างเดียว) เมื่อ retry หมดแล้ว
+    it('enqueues UNAVAILABLE on final-attempt LLM compare failure instead of dropping (FR-012a)', async () => {
+      mockOllamaService.generate.mockRejectedValueOnce(
+        new Error('Ollama timeout')
+      );
+
+      await processor.process(
+        makeMigrateJob({
+          jobId: 'job-llm-final',
+          attemptsMade: 2,
+          maxAttempts: 3,
+        })
+      );
+
+      expect(mockMigrationService.createError).toHaveBeenCalledWith(
+        expect.objectContaining({ errorType: 'API_ERROR' })
+      );
+      expect(mockMigrationService.enqueueRecord).toHaveBeenCalledWith(
+        expect.objectContaining({
+          compareStatus: 'UNAVAILABLE',
+          isValid: false,
+        })
+      );
+    });
+
+    it('rethrows on non-final-attempt LLM compare failure so BullMQ retries', async () => {
+      mockOllamaService.generate.mockRejectedValueOnce(
+        new Error('Ollama timeout')
+      );
+
+      await expect(
+        processor.process(
+          makeMigrateJob({
+            jobId: 'job-llm-retry',
+            attemptsMade: 0,
+            maxAttempts: 3,
+          })
+        )
+      ).rejects.toThrow('Ollama timeout');
+
+      expect(mockMigrationService.enqueueRecord).not.toHaveBeenCalled();
+    });
+
+    it('enqueues UNAVAILABLE on final-attempt compare JSON parse failure (FR-012a)', async () => {
+      mockOllamaService.generate.mockResolvedValueOnce('not valid json at all');
+
+      await processor.process(
+        makeMigrateJob({
+          jobId: 'job-parse-final',
+          attemptsMade: 2,
+          maxAttempts: 3,
+        })
+      );
+
+      expect(mockMigrationService.createError).toHaveBeenCalledWith(
+        expect.objectContaining({ errorType: 'AI_PARSE_ERROR' })
+      );
+      expect(mockMigrationService.enqueueRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ compareStatus: 'UNAVAILABLE' })
+      );
+    });
+
+    // FR-010c: แต่ละรายการต้อง snapshot threshold ของตัวเอง — เปลี่ยน threshold
+    // ระหว่างประมวลผลต้องกระทบเฉพาะรายการถัดไป ไม่แก้ย้อนหลัง
+    it('captures thresholds per item — a runtime change affects only subsequent items (FR-010c)', async () => {
+      const firstThresholds = { maxMismatchFields: 3, minConfidence: 0.7 };
+      const secondThresholds = { maxMismatchFields: 5, minConfidence: 0.9 };
+      // เซ็ต impl ให้ deterministic (mockResolvedValueOnce ที่ค้างจาก test อื่น
+      // จะถูก consume ก่อน — เลยต้อง flush once-queue ออกให้หมดก่อน)
+      const defaultCompareJson = JSON.stringify({
+        fieldResults: [
+          {
+            field: 'documentNumber',
+            excelValue: 'LCBP3-CIV-001',
+            ocrValue: 'LCBP3-CIV-001',
+            match: true,
+            foundInDocument: true,
+          },
+        ],
+        mismatches: [],
+        confidence: 0.95,
+      });
+      mockOllamaService.generate.mockReset();
+      mockOllamaService.generate.mockResolvedValue(defaultCompareJson);
+      mockReviewThresholdService.getThresholds
+        .mockResolvedValueOnce(firstThresholds)
+        .mockResolvedValueOnce(secondThresholds);
+
+      await processor.process(makeMigrateJob({ jobId: 'job-th-1' }));
+      await processor.process(makeMigrateJob({ jobId: 'job-th-2' }));
+
+      const calls = mockMigrationService.enqueueRecord.mock.calls as Record<
+        string,
+        unknown
+      >[][];
+      expect(calls[0][0].capturedThresholds).toEqual(firstThresholds);
+      expect(calls[1][0].capturedThresholds).toEqual(secondThresholds);
+      // mockResolvedValue ข้างบนคงอยู่เป็น default impl สำหรับ test ถัดไปอยู่แล้ว
     });
   });
 

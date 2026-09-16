@@ -1623,6 +1623,99 @@ describe('MigrationService', () => {
       await service.updateQueueEnrichment(999, { ocrText: 'text' });
       expect(mockReviewQueueRepo.save).not.toHaveBeenCalled();
     });
+
+    // ── spec 250 FR-010: confidence นอก valid range [0,1] → flag manual attention ──
+    // ไม่ silent-accept ข้อมูลที่ผิดสัญญา (เช่น 1.5, -0.3, NaN)
+    it('flags requiresHumanReview when a confidence value is out of range (FR-010)', async () => {
+      const item = {
+        id: 1,
+        ocrText: null,
+        requiresHumanReview: false,
+        status: MigrationReviewStatus.PENDING,
+      };
+      mockReviewQueueRepo.findOne.mockResolvedValue(item);
+      mockReviewQueueRepo.save.mockResolvedValue(item);
+
+      await service.updateQueueEnrichment(1, {
+        aiStatus: MigrationAiStatus.DONE,
+        details: {
+          ocrQuality: { confidence: 1.5, issues: [] }, // นอก [0,1]
+          metadata: {
+            summary: 'สรุป',
+            correspondenceType: 'LETTER',
+            tags: [],
+            confidence: {
+              summary: 0.9,
+              correspondenceType: 0.9,
+              tags: 0.9,
+            },
+          },
+        },
+      });
+
+      expect(item.requiresHumanReview).toBe(true);
+    });
+
+    it('flags requiresHumanReview when a confidence value is negative or NaN (FR-010)', async () => {
+      const item = {
+        id: 1,
+        ocrText: null,
+        requiresHumanReview: false,
+        status: MigrationReviewStatus.PENDING,
+      };
+      mockReviewQueueRepo.findOne.mockResolvedValue(item);
+      mockReviewQueueRepo.save.mockResolvedValue(item);
+
+      await service.updateQueueEnrichment(1, {
+        aiStatus: MigrationAiStatus.DONE,
+        details: {
+          ocrQuality: { confidence: 0.9, issues: [] },
+          metadata: {
+            summary: 'สรุป',
+            correspondenceType: 'LETTER',
+            tags: [],
+            confidence: {
+              summary: -0.3, // นอก [0,1]
+              correspondenceType: 0.9,
+              tags: 0.9,
+            },
+          },
+        },
+      });
+
+      expect(item.requiresHumanReview).toBe(true);
+    });
+
+    // ── spec 250 Edge Case "no readable text at all → flagged by default" ──
+    // details ที่ขาด ocrQuality (OCR ไม่ผลิตข้อความ) ต้อง flag ไม่ใช่ข้ามเงียบ ๆ
+    it('flags requiresHumanReview when details lack ocrQuality (OCR produced nothing)', async () => {
+      const item = {
+        id: 1,
+        ocrText: null,
+        requiresHumanReview: false,
+        status: MigrationReviewStatus.PENDING,
+      };
+      mockReviewQueueRepo.findOne.mockResolvedValue(item);
+      mockReviewQueueRepo.save.mockResolvedValue(item);
+
+      await service.updateQueueEnrichment(1, {
+        aiStatus: MigrationAiStatus.DONE,
+        details: {
+          metadata: {
+            summary: 'สรุป',
+            correspondenceType: 'LETTER',
+            tags: [],
+            confidence: {
+              summary: 0.9,
+              correspondenceType: 0.9,
+              tags: 0.9,
+            },
+          },
+        },
+      });
+
+      expect(item.requiresHumanReview).toBe(true);
+    });
   });
 
   // ── startExtractQueueItem ─────────────────────────────────────────────────────
@@ -2895,6 +2988,46 @@ describe('MigrationService', () => {
       expect(mockReviewQueueRepo.save).toHaveBeenCalledWith(queueItem);
       expect(mockReviewQueueRepo.delete).not.toHaveBeenCalled();
     });
+
+    it('blocks import when queue item is flagged requiresHumanReview (ADR-050 — must use gated /ai/migration/review)', async () => {
+      mockReviewQueueRepo.findOne.mockResolvedValue({
+        id: 1,
+        publicId: 'queue-uuid-flagged',
+        status: MigrationReviewStatus.PENDING_REVIEW,
+        requiresHumanReview: true,
+        aiFailed: false,
+      });
+      const dto: ImportCorrespondenceDto = {
+        documentNumber: 'DOC-1',
+        subject: 'Test',
+        correspondenceType: 'Letter',
+        migratedBy: 'SYSTEM_IMPORT',
+        projectId: 100,
+      };
+      await expect(
+        service.approveQueueItem(1, dto, 'idem-flagged', 1)
+      ).rejects.toThrow(BusinessException);
+    });
+
+    it('blocks import when queue item is aiFailed even if requiresHumanReview is false', async () => {
+      mockReviewQueueRepo.findOne.mockResolvedValue({
+        id: 1,
+        publicId: 'queue-uuid-failed',
+        status: MigrationReviewStatus.PENDING_REVIEW,
+        requiresHumanReview: false,
+        aiFailed: true,
+      });
+      const dto: ImportCorrespondenceDto = {
+        documentNumber: 'DOC-1',
+        subject: 'Test',
+        correspondenceType: 'Letter',
+        migratedBy: 'SYSTEM_IMPORT',
+        projectId: 100,
+      };
+      await expect(
+        service.approveQueueItem(1, dto, 'idem-aifailed', 1)
+      ).rejects.toThrow(BusinessException);
+    });
   });
 
   // ── approveQueueItemByPublicId ────────────────────────────────────────────────
@@ -2990,6 +3123,27 @@ describe('MigrationService', () => {
       expect(queueItem.reviewedAt).toBeInstanceOf(Date);
       expect(mockReviewQueueRepo.save).toHaveBeenCalledWith(queueItem);
       expect(mockReviewQueueRepo.delete).not.toHaveBeenCalled();
+    });
+
+    it('blocks import by publicId when queue item is flagged requiresHumanReview (ADR-050)', async () => {
+      mockReviewQueueRepo.findOne.mockResolvedValue({
+        id: 1,
+        publicId: 'uuid-flagged',
+        status: MigrationReviewStatus.PENDING_REVIEW,
+        requiresHumanReview: true,
+        aiFailed: true,
+      });
+      const dto: ImportCorrespondenceDto = {
+        documentNumber: 'DOC-1',
+        subject: 'Test',
+        correspondenceType: 'Letter',
+        migratedBy: 'SYSTEM_IMPORT',
+        projectId: 100,
+      };
+      await expect(
+        service.approveQueueItemByPublicId('uuid-flagged', dto, 'idem-fl', 1)
+      ).rejects.toThrow(BusinessException);
+      expect(mockReviewQueueRepo.save).not.toHaveBeenCalled();
     });
   });
 
