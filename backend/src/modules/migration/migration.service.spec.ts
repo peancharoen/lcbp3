@@ -32,6 +32,7 @@ jest.mock('fs', () => {
     createReadStream: jest.fn(),
     existsSync: jest.fn(),
     readdirSync: jest.fn(),
+    statSync: jest.fn(),
   };
 });
 
@@ -78,13 +79,14 @@ import {
   SystemException,
   BusinessException,
 } from '../../common/exceptions';
-import { createReadStream, existsSync, readdirSync } from 'fs';
+import { createReadStream, existsSync, readdirSync, statSync } from 'fs';
 import * as path from 'path';
 import { NO_PDF_OCR_PLACEHOLDER } from './constants/migration.constants';
 
 const mockedExistsSync = jest.mocked(existsSync);
 const mockedCreateReadStream = jest.mocked(createReadStream);
 const mockedReaddirSync = jest.mocked(readdirSync);
+const mockedStatSync = jest.mocked(statSync);
 
 describe('MigrationService', () => {
   let service: MigrationService;
@@ -2297,6 +2299,323 @@ describe('MigrationService', () => {
       expect(JSON.stringify(savedItem.reviewState)).toBe(
         JSON.stringify(reviewState)
       );
+    });
+  });
+
+  // ── replaceQueueItemFile (เปลี่ยนไฟล์ต้นฉบับ + auto re-extract) ─────────────
+  describe('replaceQueueItemFile', () => {
+    const makePendingItem = () => ({
+      id: 30,
+      publicId: 'queue-uuid-030',
+      status: MigrationReviewStatus.PENDING_REVIEW,
+      aiStatus: MigrationAiStatus.FAILED,
+      aiJobId: null,
+      storageTempPath: '/staging/old.pdf',
+      tempAttachmentIds: [1],
+      tempAttachmentId: 1,
+      reviewState: null,
+      details: {},
+    });
+
+    it('rejects when both or neither file source is provided', async () => {
+      mockReviewQueueRepo.findOne.mockResolvedValue(makePendingItem());
+      mockAttachmentFind.mockResolvedValue([]); // enrichWithAttachments
+      await expect(
+        service.replaceQueueItemFile('queue-uuid-030', {}, 'idem-rf-1', 1)
+      ).rejects.toThrow(ValidationException);
+      await expect(
+        service.replaceQueueItemFile(
+          'queue-uuid-030',
+          {
+            storageTempPath: '/staging/a.pdf',
+            tempAttachmentPublicId: 'att-uuid-1',
+          },
+          'idem-rf-1',
+          1
+        )
+      ).rejects.toThrow(ValidationException);
+    });
+
+    it('throws ConflictException when status is not PENDING/PENDING_REVIEW', async () => {
+      mockAttachmentFind.mockResolvedValue([]); // enrichWithAttachments
+      mockReviewQueueRepo.findOne.mockResolvedValue({
+        ...makePendingItem(),
+        status: MigrationReviewStatus.IMPORTED,
+      });
+      await expect(
+        service.replaceQueueItemFile(
+          'queue-uuid-030',
+          { tempAttachmentPublicId: 'att-uuid-1' },
+          'idem-rf-2',
+          1
+        )
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('throws ConflictException when extraction is RUNNING (file swap mid-flight)', async () => {
+      mockAttachmentFind.mockResolvedValue([]); // enrichWithAttachments
+      mockReviewQueueRepo.findOne.mockResolvedValue({
+        ...makePendingItem(),
+        aiStatus: MigrationAiStatus.RUNNING,
+      });
+      await expect(
+        service.replaceQueueItemFile(
+          'queue-uuid-030',
+          { tempAttachmentPublicId: 'att-uuid-1' },
+          'idem-rf-3',
+          1
+        )
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('blocks path traversal outside staging/legacy roots', async () => {
+      mockReviewQueueRepo.findOne.mockResolvedValue(makePendingItem());
+      mockAttachmentFind.mockResolvedValue([]); // enrichWithAttachments
+      await expect(
+        service.replaceQueueItemFile(
+          'queue-uuid-030',
+          { storageTempPath: '/etc/passwd' },
+          'idem-rf-4',
+          1
+        )
+      ).rejects.toThrow(ValidationException);
+    });
+
+    it('rejects staging path that does not exist or is not a PDF', async () => {
+      mockReviewQueueRepo.findOne.mockResolvedValue(makePendingItem());
+      mockAttachmentFind.mockResolvedValue([]); // enrichWithAttachments
+      // stagingDir = <cwd>/uploads/staging — path ใต้ root แต่ไฟล์ไม่มี
+      mockedExistsSync.mockReturnValue(false);
+      await expect(
+        service.replaceQueueItemFile(
+          'queue-uuid-030',
+          { storageTempPath: 'uploads/staging/missing.pdf' },
+          'idem-rf-5',
+          1
+        )
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('staging mode: find-or-create attachment, bind to queue, audit + auto re-extract', async () => {
+      const item = makePendingItem();
+      // call 1: replaceQueueItemFile fetch; call 2: reExtractQueueItem fetch (หลัง reset)
+      mockReviewQueueRepo.findOne
+        .mockResolvedValueOnce(item)
+        // fetch ครั้งที่ 2-3 (reExtractQueueItem → startExtractQueueItem):
+        // state หลัง reset เป็น PENDING + PENDING แล้ว
+        .mockResolvedValue({
+          ...item,
+          status: MigrationReviewStatus.PENDING,
+          aiStatus: MigrationAiStatus.PENDING,
+          projectId: 100,
+        });
+      const stagingPath = path.resolve('uploads/staging/new.pdf');
+      mockedExistsSync.mockReturnValue(true);
+      mockedStatSync.mockReturnValue({
+        isFile: () => true,
+        size: 1234,
+      } as ReturnType<typeof statSync>);
+      // ไม่มี attachment เดิมสำหรับ path นี้ → create ใหม่
+      mockAttachmentRepo.findOne.mockResolvedValue(null);
+      mockAttachmentRepo.create.mockImplementation((v: unknown) => v);
+      mockAttachmentRepo.save.mockImplementation((v: unknown) =>
+        Promise.resolve({ ...(v as object), id: 77, publicId: 'att-new-uuid' })
+      );
+      mockReviewQueueRepo.save.mockImplementation((v: unknown) =>
+        Promise.resolve(v)
+      );
+      mockAiBatchQueue.add.mockResolvedValue({ id: 'job-rf' });
+      mockProjectRepo.findOne.mockResolvedValue({ id: 1, publicId: 'p-1' });
+      mockAttachmentFind.mockResolvedValue([]);
+      mockDataSource.manager.find.mockResolvedValue([]);
+      mockTypeRepo.find.mockResolvedValue([]);
+
+      const result = await service.replaceQueueItemFile(
+        'queue-uuid-030',
+        { storageTempPath: stagingPath },
+        'idem-rf-6',
+        42
+      );
+
+      // ผูก attachment ใหม่ + path ใหม่เข้า queue item
+      const bound = (
+        mockReviewQueueRepo.save.mock.calls as Record<string, unknown>[][]
+      )[0][0];
+      expect(bound.tempAttachmentIds).toEqual([77]);
+      expect(bound.tempAttachmentId).toBe(77);
+      expect(bound.storageTempPath).toBe(stagingPath);
+      expect(bound.originalFilename).toBe('new.pdf');
+      // audit record ใน reviewState.fileReplacements
+      const reviewState = bound.reviewState as {
+        fileReplacements: Record<string, unknown>[];
+      };
+      expect(reviewState.fileReplacements).toHaveLength(1);
+      expect(reviewState.fileReplacements[0]).toMatchObject({
+        idempotencyKey: 'idem-rf-6',
+        userId: 42,
+        source: 'STAGING',
+        previousPath: '/staging/old.pdf',
+        newPath: stagingPath,
+        attachmentPublicId: 'att-new-uuid',
+      });
+      // auto re-extract ถูกเรียก (ai-batch job ถูก enqueue)
+      expect(mockAiBatchQueue.add).toHaveBeenCalled();
+      expect(result.source).toBe('STAGING');
+      expect(result.attachmentPublicId).toBe('att-new-uuid');
+    });
+
+    it('staging mode: reuses existing attachment row for the same filePath (dedup)', async () => {
+      const item = makePendingItem();
+      mockReviewQueueRepo.findOne
+        .mockResolvedValueOnce(item)
+        // fetch ครั้งที่ 2-3 (reExtractQueueItem → startExtractQueueItem):
+        // state หลัง reset เป็น PENDING + PENDING แล้ว
+        .mockResolvedValue({
+          ...item,
+          status: MigrationReviewStatus.PENDING,
+          aiStatus: MigrationAiStatus.PENDING,
+          projectId: 100,
+        });
+      const stagingPath = path.resolve('uploads/staging/existing.pdf');
+      mockedExistsSync.mockReturnValue(true);
+      mockedStatSync.mockReturnValue({
+        isFile: () => true,
+        size: 100,
+      } as ReturnType<typeof statSync>);
+      mockAttachmentRepo.findOne.mockResolvedValue({
+        id: 55,
+        publicId: 'att-existing',
+        filePath: stagingPath,
+        originalFilename: 'existing.pdf',
+      });
+      mockReviewQueueRepo.save.mockImplementation((v: unknown) =>
+        Promise.resolve(v)
+      );
+      mockAiBatchQueue.add.mockResolvedValue({ id: 'job-rf' });
+      mockProjectRepo.findOne.mockResolvedValue({ id: 1, publicId: 'p-1' });
+      mockAttachmentFind.mockResolvedValue([]);
+      mockDataSource.manager.find.mockResolvedValue([]);
+      mockTypeRepo.find.mockResolvedValue([]);
+
+      await service.replaceQueueItemFile(
+        'queue-uuid-030',
+        { storageTempPath: stagingPath },
+        'idem-rf-7',
+        42
+      );
+
+      expect(mockAttachmentRepo.create).not.toHaveBeenCalled();
+      const bound = (
+        mockReviewQueueRepo.save.mock.calls as Record<string, unknown>[][]
+      )[0][0];
+      expect(bound.tempAttachmentIds).toEqual([55]);
+    });
+
+    it('upload mode: binds temporary attachment by publicId and re-extracts', async () => {
+      const item = makePendingItem();
+      mockReviewQueueRepo.findOne
+        .mockResolvedValueOnce(item)
+        // fetch ครั้งที่ 2-3 (reExtractQueueItem → startExtractQueueItem):
+        // state หลัง reset เป็น PENDING + PENDING แล้ว
+        .mockResolvedValue({
+          ...item,
+          status: MigrationReviewStatus.PENDING,
+          aiStatus: MigrationAiStatus.PENDING,
+          projectId: 100,
+        });
+      mockAttachmentRepo.findOne.mockResolvedValue({
+        id: 88,
+        publicId: 'att-upload-uuid',
+        filePath: '/data/uploads/tmp/up.pdf',
+        originalFilename: 'up.pdf',
+        isTemporary: true,
+      });
+      mockReviewQueueRepo.save.mockImplementation((v: unknown) =>
+        Promise.resolve(v)
+      );
+      mockAiBatchQueue.add.mockResolvedValue({ id: 'job-rf' });
+      mockProjectRepo.findOne.mockResolvedValue({ id: 1, publicId: 'p-1' });
+      mockAttachmentFind.mockResolvedValue([]);
+      mockDataSource.manager.find.mockResolvedValue([]);
+      mockTypeRepo.find.mockResolvedValue([]);
+
+      const result = await service.replaceQueueItemFile(
+        'queue-uuid-030',
+        { tempAttachmentPublicId: 'att-upload-uuid' },
+        'idem-rf-8',
+        42
+      );
+
+      const bound = (
+        mockReviewQueueRepo.save.mock.calls as Record<string, unknown>[][]
+      )[0][0];
+      expect(bound.tempAttachmentIds).toEqual([88]);
+      expect(bound.storageTempPath).toBe('/data/uploads/tmp/up.pdf');
+      const reviewState = bound.reviewState as {
+        fileReplacements: Record<string, unknown>[];
+      };
+      expect(reviewState.fileReplacements[0].source).toBe('UPLOAD');
+      expect(result.source).toBe('UPLOAD');
+    });
+
+    it('upload mode: rejects non-existent or non-temporary attachment', async () => {
+      mockReviewQueueRepo.findOne.mockResolvedValue(makePendingItem());
+      mockAttachmentFind.mockResolvedValue([]); // enrichWithAttachments
+      mockAttachmentRepo.findOne.mockResolvedValue(null);
+      await expect(
+        service.replaceQueueItemFile(
+          'queue-uuid-030',
+          { tempAttachmentPublicId: 'missing-att' },
+          'idem-rf-9',
+          1
+        )
+      ).rejects.toThrow(NotFoundException);
+
+      mockAttachmentRepo.findOne.mockResolvedValue({
+        id: 90,
+        publicId: 'att-perm',
+        isTemporary: false,
+      });
+      await expect(
+        service.replaceQueueItemFile(
+          'queue-uuid-030',
+          { tempAttachmentPublicId: 'att-perm' },
+          'idem-rf-10',
+          1
+        )
+      ).rejects.toThrow(ValidationException);
+    });
+
+    it('idempotent replay: same Idempotency-Key returns without re-binding or re-enqueue', async () => {
+      mockAttachmentFind.mockResolvedValue([]); // enrichWithAttachments
+      mockReviewQueueRepo.findOne.mockResolvedValue({
+        ...makePendingItem(),
+        reviewState: {
+          fileReplacements: [
+            {
+              idempotencyKey: 'idem-rf-11',
+              at: '2026-09-16T00:00:00.000Z',
+              userId: 1,
+              source: 'STAGING',
+              previousPath: null,
+              newPath: '/staging/x.pdf',
+              filename: 'x.pdf',
+              attachmentPublicId: 'att-x',
+            },
+          ],
+        },
+      });
+
+      const result = await service.replaceQueueItemFile(
+        'queue-uuid-030',
+        { storageTempPath: 'uploads/staging/x.pdf' },
+        'idem-rf-11',
+        1
+      );
+
+      expect(result.idempotentReplay).toBe(true);
+      expect(mockReviewQueueRepo.save).not.toHaveBeenCalled();
+      expect(mockAiBatchQueue.add).not.toHaveBeenCalled();
     });
   });
 

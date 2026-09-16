@@ -195,7 +195,24 @@
     "restore_ocr_success": "กู้คืนข้อความ OCR เดิมเรียบร้อยแล้ว",
     "restore_ocr_error": "กู้คืนข้อความ OCR ไม่สำเร็จ",
     "has_ocr_backup": "มี OCR สำรอง",
-    "has_ocr_backup_tooltip": "รายการนี้มีสำเนาข้อความ OCR สำรอง (ocr_text_bak) — กู้คืนได้ในหน้ารายละเอียด"
+    "has_ocr_backup_tooltip": "รายการนี้มีสำเนาข้อความ OCR สำรอง (ocr_text_bak) — กู้คืนได้ในหน้ารายละเอียด",
+    "replace_file_button": "เปลี่ยนไฟล์",
+    "replace_file_title": "เปลี่ยนไฟล์ต้นฉบับ",
+    "replace_file_current": "ไฟล์ปัจจุบัน",
+    "replace_file_no_current": "รายการนี้ยังไม่มีไฟล์ต้นฉบับ",
+    "replace_file_tab_staging": "เลือกจาก Legacy Staging",
+    "replace_file_tab_upload": "อัปโหลดจากเครื่อง",
+    "replace_file_loading": "กำลังโหลด...",
+    "replace_file_no_folders": "ไม่พบโฟลเดอร์ใน staging",
+    "replace_file_select_folder_hint": "เลือกโฟลเดอร์ทางซ้ายเพื่อดูไฟล์ PDF",
+    "replace_file_no_files": "ไม่พบไฟล์ PDF ในโฟลเดอร์นี้",
+    "replace_file_confirm": "ใช้ไฟล์นี้และ Re-extract",
+    "replace_file_upload_hint": "เลือกไฟล์ PDF จากเครื่องของคุณ (สูงสุด 50MB)",
+    "replace_file_upload_confirm": "อัปโหลดและ Re-extract",
+    "replace_file_success": "เปลี่ยนไฟล์สำเร็จ — ระบบกำลัง Re-extract อัตโนมัติ",
+    "replace_file_error": "เปลี่ยนไฟล์ไม่สำเร็จ",
+    "replace_file_tree_error": "โหลดรายการโฟลเดอร์ไม่สำเร็จ",
+    "replace_file_list_error": "โหลดรายการไฟล์ไม่สำเร็จ"
   },
   "rag": {
     "ingestion_status": {

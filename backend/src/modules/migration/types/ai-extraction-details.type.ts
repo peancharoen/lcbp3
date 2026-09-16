@@ -95,6 +95,31 @@ export interface MigrationReviewState {
   fieldResolutions?: FieldResolutionDto[];
   /** field ที่ผู้ตรวจสอบรับทราบ confidence ต่ำโดยไม่แก้ไขค่า (ADR-050 §4) */
   fieldAcknowledgments?: AcknowledgeableField[];
+  /** audit trail การเปลี่ยนไฟล์ต้นฉบับโดยผู้ตรวจสอบ (replaceQueueItemFile) */
+  fileReplacements?: MigrationFileReplacement[];
+}
+
+/**
+ * Audit record ของการเปลี่ยนไฟล์ต้นฉบับบน queue item — บันทึกใน review_state_json
+ * เพราะเป็นการกระทำของมนุษย์ (AI pipeline ห้ามเขียน column นี้) และ re-extract ต้องไม่ลบ
+ */
+export interface MigrationFileReplacement {
+  /** Idempotency-Key ของ request — ใช้เป็น replay guard */
+  idempotencyKey: string;
+  /** เวลาที่เปลี่ยนไฟล์ (ISO 8601) */
+  at: string;
+  /** user id ของผู้เปลี่ยนไฟล์ */
+  userId: number;
+  /** แหล่งไฟล์ใหม่: STAGING = เลือกจาก Legacy NAS staging, UPLOAD = อัปโหลดจากเครื่องผู้ตรวจ */
+  source: 'STAGING' | 'UPLOAD';
+  /** storageTempPath เดิมก่อนเปลี่ยน (null ถ้าไม่เคยมี) */
+  previousPath: string | null;
+  /** path ใหม่ที่ผูกเข้ากับ queue item */
+  newPath: string;
+  /** ชื่อไฟล์ใหม่ */
+  filename: string;
+  /** publicId (UUIDv7) ของ attachment row ที่ผูกกับ queue item */
+  attachmentPublicId: string;
 }
 
 /**

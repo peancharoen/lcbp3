@@ -1,5 +1,8 @@
 // File: backend/src/modules/migration/migration.controller.ts
 // Change Log:
+// - 2026-09-16: เพิ่ม `GET legacy-folder-files` (list PDF ในโฟลเดอร์ staging,
+//   path-traversal guarded) + `PATCH queue/:publicId/file` (เปลี่ยนไฟล์ต้นฉบับ
+//   จาก staging path หรือ uploaded attachment + auto re-extract)
 // - 2026-08-06: Initial creation with resolution & review endpoints
 // - 2026-08-30: เพิ่ม `POST queue/:publicId/re-extract` สำหรับ re-extract ก่อน Execute Import
 // - 2026-08-20: Added Streaming Legacy Ingestion & OCR sync endpoints (ADR-047)
@@ -56,6 +59,7 @@ import { ResolveBatchDto } from './dto/resolve-batch.dto';
 import { TriggerRagBatchDto } from './dto/trigger-rag-batch.dto';
 import { StartIngestDto } from './dto/start-ingest.dto';
 import { UpdateQueueOcrDto } from './dto/update-queue-ocr.dto';
+import { ReplaceQueueFileDto } from './dto/replace-queue-file.dto';
 import { StartExtractBatchDto } from './dto/start-extract.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../common/guards/rbac.guard';
@@ -788,5 +792,105 @@ export class MigrationController {
       this.logger.error(`Failed to list legacy folders: ${errMsg}`);
       return { tree: [] };
     }
+  }
+
+  /**
+   * List ไฟล์ PDF ในโฟลเดอร์ที่เลือกจาก legacy-folders tree — ใช้คู่กับ
+   * PATCH queue/:publicId/file สำหรับเปลี่ยนไฟล์ต้นฉบับของ queue item
+   * ที่ไฟล์ MISSING/ว่าง (non-recursive — tree endpoint ใช้ navigate โฟลเดอร์)
+   */
+  @Get('legacy-folder-files')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @RequirePermission('migration.view')
+  @ApiOperation({
+    summary:
+      'List PDF files inside a selected Legacy NAS folder (path-traversal guarded)',
+  })
+  @ApiQuery({ name: 'path', required: true, type: String })
+  listLegacyFolderFiles(@Query('path') folderPath: string) {
+    const basePath = path.resolve(
+      process.env[ENV_LEGACY_NAS_PATH] || LEGACY_NAS_PATH_DEFAULT
+    );
+    if (!folderPath) {
+      throw new ValidationException('path query parameter is required');
+    }
+    // ADR-016: path traversal guard — folder ต้อง resolve อยู่ใต้ basePath เสมอ
+    const resolvedFolder = path.resolve(folderPath);
+    const relative = path.relative(basePath, resolvedFolder);
+    if (relative.startsWith('..') || path.isAbsolute(relative)) {
+      this.logger.warn(
+        `Path traversal blocked on legacy-folder-files: "${folderPath}"`
+      );
+      throw new ValidationException(
+        'Invalid folder path — access denied (path traversal guard)'
+      );
+    }
+    if (
+      !fs.existsSync(resolvedFolder) ||
+      !fs.statSync(resolvedFolder).isDirectory()
+    ) {
+      return { files: [] };
+    }
+
+    try {
+      const MAX_FILES = 500;
+      const entries = fs.readdirSync(resolvedFolder, { withFileTypes: true });
+      const files = entries
+        .filter(
+          (entry) => entry.isFile() && entry.name.toLowerCase().endsWith('.pdf')
+        )
+        .slice(0, MAX_FILES)
+        .map((entry) => {
+          const fullPath = path.join(resolvedFolder, entry.name);
+          const stats = fs.statSync(fullPath);
+          return {
+            filename: entry.name,
+            fullPath,
+            size: stats.size,
+            modifiedAt: stats.mtime.toISOString(),
+          };
+        })
+        .sort((a, b) => a.filename.localeCompare(b.filename));
+      return { files };
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`Failed to list legacy folder files: ${errMsg}`);
+      return { files: [] };
+    }
+  }
+
+  /**
+   * เปลี่ยนไฟล์ต้นฉบับของ queue item — สำหรับ item ที่ไฟล์ MISSING/ว่างหรือ scan ผิด
+   * รองรับ 2 แหล่ง: เลือก PDF จาก staging/Legacy NAS (storageTempPath) หรือ
+   * attachment ที่อัปโหลดผ่าน POST /files/upload (tempAttachmentPublicId)
+   * หลังผูกไฟล์จะ re-extract อัตโนมัติเพื่อกัน commit ข้อมูล AI ค้างจากไฟล์เก่า
+   */
+  @Patch('queue/:publicId/file')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @RequirePermission('migration.import')
+  @ApiOperation({
+    summary:
+      'Replace the source file of a queued migration item (staging path or uploaded attachment), then auto re-extract',
+  })
+  @ApiParam({ name: 'publicId', type: String, format: 'uuid' })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    required: true,
+    description: 'Unique key per file-replacement request (ADR-016)',
+  })
+  async replaceQueueItemFile(
+    @Param('publicId', ParseUUIDPipe) publicId: string,
+    @Body() dto: ReplaceQueueFileDto,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @CurrentUser() user: User
+  ) {
+    requireIdempotencyKey(idempotencyKey);
+    const userId = requireUserId(user);
+    return this.migrationService.replaceQueueItemFile(
+      publicId,
+      dto,
+      idempotencyKey!,
+      userId
+    );
   }
 }

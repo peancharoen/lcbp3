@@ -1,5 +1,9 @@
 // File: app/(admin)/admin/migration/review/[id]/page.tsx
 // Change Log:
+// - 2026-09-16: เพิ่มปุ่ม "เปลี่ยนไฟล์" + ReplaceFileDialog (เลือกจาก staging /
+//   อัปโหลดจากเครื่อง → PATCH /migration/queue/:publicId/file → auto re-extract)
+//   และส่ง attachmentPublicId ให้ StagingFileViewer เป็น fallback สำหรับไฟล์
+//   ที่อยู่นอก staging root
 // - 2026-09-14: T023 (ADR-054) — ส่ง compareResult/capturedThresholds จาก item.details ให้
 //   CompareResultTable (top-level reads เดิม always-undefined — AI output อยู่ใน ai_metadata_json)
 // - 2026-09-14: T016 — เพิ่มปุ่ม "กู้คืน OCR เดิม" (restore-ocr-text endpoint, ADR-054 FR-007)
@@ -52,13 +56,14 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeftIcon, CheckCircleIcon, XCircleIcon, RefreshCwIcon, ShieldAlertIcon, AlertTriangleIcon, RotateCcwIcon } from 'lucide-react';
+import { ArrowLeftIcon, CheckCircleIcon, XCircleIcon, RefreshCwIcon, ShieldAlertIcon, AlertTriangleIcon, RotateCcwIcon, FileUpIcon } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { CompareResultTable } from '@/components/migration/compare-result-table';
 import { OcrTextEditor } from '@/components/migration/ocr-text-editor';
 import { StagingFileViewer } from '@/components/migration/staging-file-viewer';
+import { ReplaceFileDialog } from '@/components/migration/replace-file-dialog';
 import aiMessages from '@/public/locales/th/ai.json';
 
 /** ADR-050: i18n helper สำหรับ migration_review namespace จาก ai.json (เดียวกับ review-queue-table.tsx) */
@@ -85,6 +90,20 @@ const getOcrQuality = (details: MigrationReviewQueueItem['details']): MigrationO
   const ocrQuality = (details as Record<string, unknown>).ocrQuality;
   if (!ocrQuality || typeof ocrQuality !== 'object') return null;
   return ocrQuality as MigrationOcrQualityAssessment;
+};
+
+/** ดึง publicId ของ attachment หลัก (index 0) ที่ enrichWithAttachments ฉีดใน details —
+ *  ใช้เป็น fallback viewer source สำหรับไฟล์ที่เปลี่ยนใหม่ผ่าน /files/upload */
+const getPrimaryAttachmentPublicId = (
+  details: MigrationReviewQueueItem['details']
+): string | null => {
+  if (!details || typeof details !== 'object') return null;
+  const attachments = (details as Record<string, unknown>).attachments;
+  if (!Array.isArray(attachments) || attachments.length === 0) return null;
+  const first = attachments[0];
+  if (!first || typeof first !== 'object') return null;
+  const publicId = (first as Record<string, unknown>).publicId;
+  return typeof publicId === 'string' ? publicId : null;
 };
 
 /** ดึง metadata.confidence จาก details อย่างปลอดภัย */
@@ -180,6 +199,8 @@ export default function MigrationReviewPage() {
     unresolvedFields?: string[];
     correspondenceTypeError?: string;
   } | null>(null);
+  // dialog เปลี่ยนไฟล์ต้นฉบับ (staging picker / local upload)
+  const [replaceFileOpen, setReplaceFileOpen] = useState(false);
   // ADR-050 (T039): commit hook — POST /ai/migration/review (new contract path)
   const commitMutation = useCommitMigrationReview();
   // ADR-047: re-extract hook — POST /migration/queue/:publicId/re-extract
@@ -470,6 +491,9 @@ export default function MigrationReviewPage() {
   // ADR-054 (FR-010): source file path เป็น first-class field — อ่านจาก storageTempPath
   // (details.source_file_path ถูกย้ายออกจาก details payload แล้ว)
   const sourceFilePath = item.storageTempPath ?? null;
+  // attachment publicId สำหรับ viewer fallback — ไฟล์ที่เปลี่ยนใหม่ผ่าน
+  // /files/upload อยู่นอก staging root (staging-file endpoint จะ 403)
+  const primaryAttachmentPublicId = getPrimaryAttachmentPublicId(item.details);
 
   // ADR-050 (T037): ดึง diagnostic data จาก details
   const ocrQuality = getOcrQuality(item.details);
@@ -508,7 +532,10 @@ export default function MigrationReviewPage() {
         <div className="flex-1 hidden md:flex flex-col gap-4 overflow-hidden">
           <Card className="flex-1 flex flex-col overflow-hidden border-2 border-primary/10 shadow-md">
             <CardContent className="p-0 flex-1 relative bg-slate-100">
-              <StagingFileViewer sourceFilePath={sourceFilePath} />
+              <StagingFileViewer
+                sourceFilePath={sourceFilePath}
+                attachmentPublicId={primaryAttachmentPublicId}
+              />
             </CardContent>
           </Card>
           {/* Feature 242: Compare Result Table (FR-007, FR-011, FR-012c)
@@ -981,6 +1008,21 @@ export default function MigrationReviewPage() {
                     <XCircleIcon className="w-4 h-4 mr-2" />
                     Reject
                   </Button>
+                  {(item.status === MigrationReviewStatus.PENDING ||
+                    item.status === MigrationReviewStatus.PENDING_REVIEW) &&
+                    item.aiStatus !== MigrationAiStatus.RUNNING &&
+                    item.aiStatus !== MigrationAiStatus.WAITING && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => setReplaceFileOpen(true)}
+                        disabled={submitting}
+                      >
+                        <FileUpIcon className="w-4 h-4 mr-2" />
+                        {migrationReviewT('replace_file_button')}
+                      </Button>
+                    )}
                   {item.status === MigrationReviewStatus.PENDING &&
                     item.aiStatus !== MigrationAiStatus.RUNNING &&
                     item.aiStatus !== MigrationAiStatus.DONE &&
@@ -1029,6 +1071,17 @@ export default function MigrationReviewPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Dialog เปลี่ยนไฟล์ต้นฉบับ — backend auto re-extract หลังผูกไฟล์ใหม่ */}
+      <ReplaceFileDialog
+        open={replaceFileOpen}
+        onOpenChange={setReplaceFileOpen}
+        queuePublicId={item.publicId}
+        currentFilePath={sourceFilePath}
+        onReplaced={() => {
+          if (item.publicId) void fetchItem(item.publicId);
+        }}
+      />
     </div>
   );
 }

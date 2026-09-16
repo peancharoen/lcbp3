@@ -1,5 +1,7 @@
 // File: frontend/lib/services/migration.service.ts
 // Change Log:
+// - 2026-09-16: เพิ่ม listLegacyFolderFiles + replaceQueueFile สำหรับเปลี่ยนไฟล์ต้นฉบับ
+//   ของ queue item (staging path / uploaded attachment)
 // - 2026-09-16: เพิ่ม correspondenceType, confidenceBucket params ใน getReviewQueue
 // - 2026-09-14: T016 — เพิ่ม restoreQueueOcrText (POST /migration/queue/:publicId/restore-ocr-text) (ADR-054, FR-007)
 // - 2026-08-31: T030 — เพิ่ม requiresHumanReview, sortBy, sortOrder params ใน getReviewQueue (ADR-050)
@@ -34,6 +36,24 @@ export interface RestoreQueueOcrTextResponse {
   publicId: string;
   ocrTextLength: number;
   restored: boolean;
+}
+
+/** ไฟล์ PDF ในโฟลเดอร์ staging (GET /migration/legacy-folder-files) */
+export interface LegacyFolderFile {
+  filename: string;
+  fullPath: string;
+  size: number;
+  modifiedAt: string;
+}
+
+/** response ของ PATCH /migration/queue/:publicId/file */
+export interface ReplaceQueueFileResponse {
+  message: string;
+  publicId: string;
+  attachmentPublicId?: string;
+  source?: 'STAGING' | 'UPLOAD';
+  idempotentReplay?: boolean;
+  reExtract?: { message?: string; jobId?: string | null };
 }
 
 const extractNestedData = <T>(value: unknown): T => {
@@ -259,6 +279,42 @@ export const migrationService = {
     const { data } = await api.get('/migration/legacy-folders');
     const result = data?.data ?? data;
     return Array.isArray(result?.tree) ? result.tree : [];
+  },
+
+  /**
+   * List ไฟล์ PDF ในโฟลเดอร์ staging ที่เลือก (non-recursive) —
+   * ใช้คู่กับ listLegacyFolders สำหรับ dialog เปลี่ยนไฟล์ต้นฉบับ
+   */
+  listLegacyFolderFiles: async (
+    folderPath: string
+  ): Promise<LegacyFolderFile[]> => {
+    const { data } = await api.get('/migration/legacy-folder-files', {
+      params: { path: folderPath },
+    });
+    const result = data?.data ?? data;
+    return Array.isArray(result?.files) ? result.files : [];
+  },
+
+  /**
+   * เปลี่ยนไฟล์ต้นฉบับของ queue item (PATCH /migration/queue/:publicId/file)
+   * รองรับ 2 แหล่ง: storageTempPath (staging/NAS) หรือ tempAttachmentPublicId
+   * (attachment จาก POST /files/upload) — backend จะ auto re-extract หลังผูกไฟล์
+   */
+  replaceQueueFile: async (
+    publicId: string,
+    payload: { storageTempPath?: string; tempAttachmentPublicId?: string },
+    idempotencyKey: string
+  ): Promise<ReplaceQueueFileResponse> => {
+    const { data } = await api.patch(
+      `/migration/queue/${publicId}/file`,
+      payload,
+      {
+        headers: {
+          'idempotency-key': idempotencyKey,
+        },
+      }
+    );
+    return (data?.data ?? data) as ReplaceQueueFileResponse;
   },
 
   // ADR-047: รายการ batchId จาก Review Queue สำหรับ filter dropdown

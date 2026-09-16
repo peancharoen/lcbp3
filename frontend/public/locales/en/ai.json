@@ -163,7 +163,24 @@
     "restore_ocr_success": "Original OCR text restored",
     "restore_ocr_error": "Failed to restore OCR text",
     "has_ocr_backup": "OCR backup",
-    "has_ocr_backup_tooltip": "This item has a backed-up OCR text (ocr_text_bak) — restorable from the detail page"
+    "has_ocr_backup_tooltip": "This item has a backed-up OCR text (ocr_text_bak) — restorable from the detail page",
+    "replace_file_button": "Replace File",
+    "replace_file_title": "Replace Source File",
+    "replace_file_current": "Current file",
+    "replace_file_no_current": "This item has no source file yet",
+    "replace_file_tab_staging": "From Legacy Staging",
+    "replace_file_tab_upload": "Upload from Computer",
+    "replace_file_loading": "Loading...",
+    "replace_file_no_folders": "No folders found in staging",
+    "replace_file_select_folder_hint": "Select a folder on the left to list PDF files",
+    "replace_file_no_files": "No PDF files in this folder",
+    "replace_file_confirm": "Use this file & Re-extract",
+    "replace_file_upload_hint": "Choose a PDF file from your computer (max 50MB)",
+    "replace_file_upload_confirm": "Upload & Re-extract",
+    "replace_file_success": "File replaced — re-extraction started automatically",
+    "replace_file_error": "Failed to replace file",
+    "replace_file_tree_error": "Failed to load folder tree",
+    "replace_file_list_error": "Failed to load files"
   },
   "rag": {
     "ingestion_status": {

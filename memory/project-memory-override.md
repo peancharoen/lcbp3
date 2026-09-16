@@ -1640,3 +1640,13 @@ cd /opt/np-dms/03-application && sudo docker compose --env-file ../.env up -d ba
 - **หลังแก้ live ต้อง sync กลับ repo ทันที** — `cp /opt/np-dms/<layer>/docker-compose.yml /opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/<layer>/`
 - **หลัง rebuild image ต้อง `up -d` ไม่ใช่ `start`** — `start` ใช้ container เดิม, `up -d` สร้างใหม่จาก image ใหม่
 - **Backend image build จาก repo root** — `cd /opt/np-dms-lcbp3 && docker build -f backend/Dockerfile -t lcbp3-backend:latest .` (Dockerfile context = workspace root)
+
+---
+
+## OCR Sidecar 50MB Upload Limit (Session 2026-09-16) — ข้อควรระวัง
+
+- `/ocr-upload` ตีกลับ **413 เมื่อไฟล์ >50MB** (`MAX_FILE_SIZE_BYTES` hard-coded ใน `app.py`)
+- **แก้แล้วเฉพาะ caller-side**: `OcrService.loadPdfBufferForUpload()` slice เหลือ `maxPages` หน้าแรก (pdf-lib) เมื่อไฟล์ >45MB — ใช้ได้เฉพาะ caller ที่ส่ง `maxPages` (classification = 3 หน้า) — commit `495d8417`
+- **Full-document OCR (ไม่มี maxPages) ยังติด limit** — ถ้าต้อง OCR เต็มเล่มไฟล์ใหญ่ ต้องเลือก: (a) ยก limit + ประเมิน RAM, (b) mount storage ให้ sidecar แล้วใช้ `/ocr` path-based, (c) chunk per page-range
+- Sidecar **ไม่มี volume mount เลย** — `/ocr` path-based endpoint ใช้ไม่ได้จนกว่าจะเพิ่ม mount
+- รายละเอียดเต็ม: ADR-040 §"Known Limitation — 50MB Upload Limit"

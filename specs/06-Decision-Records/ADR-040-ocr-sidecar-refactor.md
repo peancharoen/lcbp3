@@ -240,6 +240,21 @@ Sidecar ทำหน้าที่เป็น compute worker เท่าน�
 
 ---
 
+## ⚠️ Known Limitation — 50MB Upload Limit (บันทึก 2026-09-16)
+
+`/ocr-upload` มี SEC-3 guard ตีกลับ **413 เมื่อไฟล์ >50MB** (`MAX_FILE_SIZE_BYTES` ใน `app.py` — ตรงกับ `MAX_FILE_SIZE` backend whitelist)
+
+**จุดที่ต้องระวังในอนาคต:**
+
+- **Caller-side slice แก้แล้วเฉพาะ path ที่มี `maxPages`** — `OcrService.loadPdfBufferForUpload()` slice เหลือ maxPages หน้าแรกด้วย pdf-lib เมื่อไฟล์ >45MB (classification ใช้ 3 หน้า → output identical)
+- **Full-document OCR (ไม่ส่ง maxPages) ยังโดน 50MB เต็ม ๆ** — ถ้าอนาคตต้อง OCR ทั้งเล่มของไฟล์ใหญ่ ต้องตัดสินใจแยก:
+  1. ยก limit ที่ sidecar (+ ประเมิน RAM — `/ocr-upload` อ่านไฟล์เข้า memory ทั้งก้อน)
+  2. เพิ่ม shared mount ให้ sidecar แล้วใช้ `/ocr` (path-based endpoint ที่มีอยู่แล้ว — ปัจจุบัน sidecar ไม่มี mount เลย)
+  3. Chunk เป็นหลาย request ตามช่วงหน้า
+- **Incident เดิม**: migration batch BATCH-C2-2567-005 มี ~9 ไฟล์ >50MB (สูงสุด 161MB) ล้ม 413 ทั้งที่ต้องการแค่ 3 หน้า — fixed in commit `495d8417`
+
+---
+
 ## 🔄 Rollback Plan
 
 - Revert `app.py` ไปเวอร์ชันก่อน refactor

@@ -1,5 +1,9 @@
 // File: backend/src/modules/migration/migration.service.ts
 // Change Log:
+// - 2026-09-16: เพิ่ม replaceQueueItemFile (PATCH /migration/queue/:publicId/file) —
+//   เปลี่ยนไฟล์ต้นฉบับจาก staging/Legacy NAS (path-traversal guarded, find-or-create
+//   attachment) หรือ attachment จาก /files/upload + audit ใน reviewState.fileReplacements
+//   + auto re-extract กัน commit ข้อมูล AI ค้างจากไฟล์เก่า
 // - 2026-08-23: ใช้ disciplineId (INT) โดยตรง, แก้ recipient lookup ให้แยก recipientType: TO
 // - 2026-08-22: Persist IMPORTED after approve-and-import to match the database enum
 // - 2026-08-30: เพิ่ม reExtractQueueItem สำหรับ re-extract ก่อน Execute Import
@@ -93,8 +97,9 @@ import {
 } from './entities/migration-review-queue.entity';
 import { MigrationError } from './entities/migration-error.entity';
 import { MigrationQueueQueryDto } from './dto/migration-queue-query.dto';
+import { ReplaceQueueFileDto } from './dto/replace-queue-file.dto';
 import { Attachment } from '../../common/file-storage/entities/attachment.entity';
-import { createReadStream, existsSync, readdirSync } from 'fs';
+import { createReadStream, existsSync, readdirSync, statSync } from 'fs';
 import { createHash } from 'crypto';
 import * as path from 'path';
 import { v7 as uuidv7 } from 'uuid';
@@ -105,6 +110,7 @@ import { AiQueueService } from '../ai/ai-queue.service';
 import type {
   MigrationAiExtractionDetails,
   MetadataConfidence,
+  MigrationFileReplacement,
 } from './types/ai-extraction-details.type';
 import { Rfa } from '../rfa/entities/rfa.entity';
 import { RfaRevision } from '../rfa/entities/rfa-revision.entity';
@@ -1390,6 +1396,190 @@ export class MigrationService {
     );
 
     return this.startExtractQueueItem(publicId, idempotencyKey, userId);
+  }
+
+  /**
+   * เปลี่ยนไฟล์ต้นฉบับของ queue item แล้ว re-extract อัตโนมัติ (PATCH /migration/queue/:publicId/file)
+   *
+   * รองรับ 2 แหล่งไฟล์ (ส่งอย่างใดอย่างหนึ่งใน DTO):
+   * - `storageTempPath` — PDF บน staging/Legacy NAS: validate ใต้ allowed roots
+   *   (path-traversal guard ชุดเดียวกับ getStagingFileStream) แล้ว find-or-create
+   *   attachment row แบบเดียวกับ legacy ingestion (isTemporary=false)
+   * - `tempAttachmentPublicId` — attachment ชั่วคราวจาก POST /files/upload
+   *   (isTemporary=true — commit จะย้ายเข้า permanent ผ่าน two-phase ปกติ)
+   *
+   * ทุกกรณี: ผูก attachment เข้า tempAttachmentIds, อัปเดต storageTempPath/
+   * originalFilename, บันทึก audit record ลง reviewState.fileReplacements
+   * (column ของมนุษย์ — re-extract ไม่ลบ) แล้วเรียก reExtractQueueItem เพื่อ
+   * snapshot OCR เดิม + reset AI fields + enqueue extraction กับไฟล์ใหม่
+   * — ป้องกัน commit ข้อมูล AI ค้างจากไฟล์เก่าโดยไม่ได้ extract ใหม่
+   *
+   * @param publicId UUIDv7 ของ queue item
+   * @param dto แหล่งไฟล์ใหม่ (storageTempPath XOR tempAttachmentPublicId)
+   * @param idempotencyKey Idempotency-Key (ADR-016) — replay จะคืนสถานะปัจจุบันโดยไม่ re-enqueue
+   * @param userId id ผู้ใช้ที่เปลี่ยนไฟล์
+   */
+  async replaceQueueItemFile(
+    publicId: string,
+    dto: ReplaceQueueFileDto,
+    idempotencyKey: string,
+    userId: number
+  ) {
+    const queueItem = await this.fetchQueueItemByPublicId(publicId);
+
+    const hasStagingPath = !!dto.storageTempPath?.trim();
+    const hasAttachment = !!dto.tempAttachmentPublicId;
+    if (hasStagingPath === hasAttachment) {
+      throw new ValidationException(
+        'Provide exactly one of storageTempPath or tempAttachmentPublicId'
+      );
+    }
+
+    if (
+      queueItem.status !== MigrationReviewStatus.PENDING &&
+      queueItem.status !== MigrationReviewStatus.PENDING_REVIEW
+    ) {
+      throw new ConflictException(
+        'MIGRATION_INVALID_STATE',
+        `Queue item ${publicId} is ${queueItem.status}`,
+        'รายการนี้ไม่อยู่ในสถานะที่สามารถเปลี่ยนไฟล์ได้'
+      );
+    }
+    // ห้ามเปลี่ยนไฟล์กลาง extraction — race กับ worker ที่กำลังอ่าน path เดิม
+    if (queueItem.aiStatus === MigrationAiStatus.RUNNING) {
+      throw new ConflictException(
+        'MIGRATION_EXTRACTION_RUNNING',
+        `Queue item ${publicId} extraction is running`,
+        'กำลังประมวลผล AI อยู่ ไม่สามารถเปลี่ยนไฟล์ได้ — รอให้เสร็จก่อน'
+      );
+    }
+
+    // ADR-016: idempotent replay — ถ้า key นี้ถูกบันทึกใน audit แล้ว คืนสถานะเดิม
+    const previousReplacements = queueItem.reviewState?.fileReplacements ?? [];
+    const alreadyApplied = previousReplacements.some(
+      (r) => r.idempotencyKey === idempotencyKey
+    );
+    if (alreadyApplied) {
+      return {
+        message: 'File replacement already applied',
+        publicId: queueItem.publicId,
+        idempotentReplay: true,
+      };
+    }
+
+    const previousPath = queueItem.storageTempPath ?? null;
+    let resolvedPath: string;
+    let attachment: Attachment;
+    let source: MigrationFileReplacement['source'];
+
+    if (hasStagingPath) {
+      // โหมด A: เลือกจาก staging/Legacy NAS — guard ชุดเดียวกับ getStagingFileStream
+      source = 'STAGING';
+      resolvedPath = path.resolve(dto.storageTempPath!.trim());
+      const allowedRoots = [
+        path.resolve(this.stagingDir),
+        path.resolve(this.legacyNasPath),
+      ];
+      const isWithinAllowed = allowedRoots.some(
+        (root) =>
+          resolvedPath === root || resolvedPath.startsWith(root + path.sep)
+      );
+      if (!isWithinAllowed) {
+        this.logger.warn(
+          `Path traversal blocked on replaceQueueItemFile: "${dto.storageTempPath}" resolves outside allowed dirs`
+        );
+        throw new ValidationException(
+          'Invalid file path — access denied (path traversal guard)'
+        );
+      }
+      if (
+        !existsSync(resolvedPath) ||
+        !statSync(resolvedPath).isFile() ||
+        !resolvedPath.toLowerCase().endsWith('.pdf')
+      ) {
+        throw new NotFoundException('PDF file', resolvedPath);
+      }
+      // find-or-create attachment row (dedup by filePath — pattern เดียวกับ legacy ingestion)
+      const existing = await this.attachmentRepo.findOne({
+        where: { filePath: resolvedPath },
+      });
+      if (existing) {
+        attachment = existing;
+      } else {
+        const fileStats = statSync(resolvedPath);
+        const baseName = path.basename(resolvedPath);
+        attachment = await this.attachmentRepo.save(
+          this.attachmentRepo.create({
+            originalFilename: baseName,
+            storedFilename: baseName,
+            filePath: resolvedPath,
+            mimeType: 'application/pdf',
+            fileSize: fileStats.size,
+            isTemporary: false,
+            uploadedByUserId: userId,
+            aiProcessingStatus: 'PENDING',
+            classification: 'INTERNAL',
+            effectiveClassification: 'INTERNAL',
+          })
+        );
+      }
+    } else {
+      // โหมด B: attachment ชั่วคราวจาก POST /files/upload (ADR-019: รับ publicId เท่านั้น)
+      source = 'UPLOAD';
+      const uploaded = await this.attachmentRepo.findOne({
+        where: { publicId: dto.tempAttachmentPublicId },
+      });
+      if (!uploaded) {
+        throw new NotFoundException('Attachment', dto.tempAttachmentPublicId);
+      }
+      if (!uploaded.isTemporary) {
+        throw new ValidationException(
+          'Attachment is not a temporary upload — cannot bind to migration queue'
+        );
+      }
+      attachment = uploaded;
+      resolvedPath = uploaded.filePath;
+    }
+
+    queueItem.tempAttachmentIds = [attachment.id];
+    queueItem.tempAttachmentId = attachment.id;
+    queueItem.storageTempPath = resolvedPath;
+    queueItem.originalFilename =
+      attachment.originalFilename || path.basename(resolvedPath);
+
+    const replacement: MigrationFileReplacement = {
+      idempotencyKey,
+      at: new Date().toISOString(),
+      userId,
+      source,
+      previousPath,
+      newPath: resolvedPath,
+      filename: path.basename(resolvedPath),
+      attachmentPublicId: attachment.publicId,
+    };
+    queueItem.reviewState = {
+      ...(queueItem.reviewState ?? {}),
+      fileReplacements: [...previousReplacements, replacement],
+    };
+    await this.reviewQueueRepo.save(queueItem);
+
+    this.logger.log(
+      `User ${userId} replaced file for queue ${publicId} (${source}): ${previousPath} -> ${resolvedPath}`
+    );
+
+    // Auto re-extract — reset AI fields ที่ stale จากไฟล์เก่า + enqueue กับไฟล์ใหม่
+    const reExtract = await this.reExtractQueueItem(
+      publicId,
+      `${idempotencyKey}:reextract`,
+      userId
+    );
+    return {
+      message: 'File replaced — re-extraction started',
+      publicId: queueItem.publicId,
+      attachmentPublicId: attachment.publicId,
+      source,
+      reExtract,
+    };
   }
 
   /**
