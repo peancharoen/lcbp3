@@ -27,6 +27,9 @@
 //   - ยก auto-fallback timeout 90s → 300s (OCR_AUTO_FALLBACK_TIMEOUT_MS)
 //   - เพิ่ม OcrDetectionInput.timeoutMs (granular override ตาม job type) และ OcrDetectionInput.maxPages
 //   - ส่ง maxPages form field ไปยัง sidecar /ocr-upload เพื่อจำกัดจำนวนหน้า (ADR-034/040 classification ใช้ 3 หน้าแรก)
+// - 2026-09-16: Bugfix — PDF >50MB โดน sidecar 413 Payload Too Large ทั้งที่ maxPages=3
+//   (sidecar OCR เฉพาะ N หน้าแรกอยู่แล้วแต่ยัง upload ทั้งไฟล์) — slice หน้าแรกด้วย pdf-lib
+//   ก่อน upload เมื่อไฟล์ใหญ่เกิน limit ผลลัพธ์ OCR เหมือนเดิมทุกประการ
 
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -36,6 +39,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, EntityManager } from 'typeorm';
 import axios from 'axios';
 import * as fs from 'fs';
+import { PDFDocument } from 'pdf-lib';
 import {
   OcrEngineConfiguration,
   OcrEngineType,
@@ -101,6 +105,17 @@ const OCR_REQUIRED_VRAM_MB = 4000;
 // (incident 2026-08-29: CHEC-LCP-C2-O-24-0002 ใช้เวลา >300s จน timeout ที่ 120s/90s)
 const OCR_NP_DMS_OCR_TIMEOUT_MS = 600_000; // 600s — engine หลัก
 const OCR_AUTO_FALLBACK_TIMEOUT_MS = 300_000; // 300s — fallback path
+
+// sidecar /ocr-upload ตีกลับ 413 เมื่อไฟล์ >50MB (MAX_FILE_SIZE_BYTES ใน app.py)
+// slice หน้าแรกก่อน upload เมื่อเกิน threshold นี้ — เผื่อ multipart overhead
+const OCR_UPLOAD_SLICE_THRESHOLD_BYTES = 45 * 1024 * 1024;
+
+/** Buffer/Uint8Array → ArrayBuffer ตรง ๆ (Blob Part ต้องการ ArrayBuffer ไม่ใช่ ArrayBufferLike) */
+const toArrayBuffer = (buf: Buffer): ArrayBuffer =>
+  buf.buffer.slice(
+    buf.byteOffset,
+    buf.byteOffset + buf.byteLength
+  ) as ArrayBuffer;
 
 const FAST_PATH_ENGINE: OcrEngineConfiguration = {
   engineId: FAST_PATH_ENGINE_ID,
@@ -335,6 +350,49 @@ export class OcrService {
   }
 
   /**
+   * อ่าน PDF สำหรับ upload ไป sidecar — ถ้าไฟล์เกิน upload limit และ caller ระบุ
+   * maxPages จะ slice เหลือเฉพาะ maxPages หน้าแรกด้วย pdf-lib ก่อนส่ง
+   * (sidecar OCR เฉพาะ maxPages หน้าแรกอยู่แล้ว — ผลลัพธ์เหมือนเดิม แก้ 413 บน PDF ใหญ่)
+   * ถ้า slice ไม่สำเร็จ (PDF เสีย/เข้ารหัส) fallback เป็นไฟล์เต็ม ให้ sidecar ตัดสินเอง
+   */
+  private async loadPdfBufferForUpload(
+    pdfPath: string,
+    maxPages?: number
+  ): Promise<Buffer> {
+    const fileBuffer = fs.readFileSync(pdfPath);
+    if (
+      !maxPages ||
+      maxPages <= 0 ||
+      fileBuffer.length <= OCR_UPLOAD_SLICE_THRESHOLD_BYTES
+    ) {
+      return fileBuffer;
+    }
+    try {
+      const srcDoc = await PDFDocument.load(fileBuffer, {
+        ignoreEncryption: true,
+      });
+      const pageCount = srcDoc.getPageCount();
+      if (pageCount <= maxPages) return fileBuffer;
+      const slicedDoc = await PDFDocument.create();
+      const pages = await slicedDoc.copyPages(
+        srcDoc,
+        Array.from({ length: maxPages }, (_, i) => i)
+      );
+      for (const page of pages) slicedDoc.addPage(page);
+      const sliced = Buffer.from(await slicedDoc.save());
+      this.logger.log(
+        `Sliced ${pdfPath} ${fileBuffer.length}B/${pageCount}p → ${sliced.length}B/${maxPages}p for OCR upload (413 guard)`
+      );
+      return sliced;
+    } catch (err: unknown) {
+      this.logger.warn(
+        `PDF slice failed for ${pdfPath}, uploading full file: ${err instanceof Error ? err.message : String(err)}`
+      );
+      return fileBuffer;
+    }
+  }
+
+  /**
    * Fallback เมื่อ np-dms-ocr ไม่พร้อม (VRAM ไม่พอ หรือ error)
    * ส่ง engine='auto' ให้ sidecarลอง PyMuPDF text layer (CPU) ก่อน → ถ้าไม่ได้ text จะวิ่ง np-dms-ocr อีกครั้ง
    * ใช้เฉพาะกรณี fallback — ไม่ใช่ engine หลัก (ADR-040 D1)
@@ -345,11 +403,14 @@ export class OcrService {
     const startTime = Date.now();
     try {
       this.logger.debug(`Auto fallback processing: ${input.pdfPath}`);
-      const fileBuffer = fs.readFileSync(input.pdfPath!);
+      const fileBuffer = await this.loadPdfBufferForUpload(
+        input.pdfPath!,
+        input.maxPages
+      );
       const form = new FormData();
       form.append(
         'file',
-        new Blob([fileBuffer], { type: 'application/pdf' }),
+        new Blob([toArrayBuffer(fileBuffer)], { type: 'application/pdf' }),
         'upload.pdf'
       );
       form.append('engine', 'auto');
@@ -468,11 +529,14 @@ export class OcrService {
       }
 
       this.logger.debug(`np-dms-ocr processing: ${input.pdfPath}`);
-      const fileBuffer = fs.readFileSync(input.pdfPath!);
+      const fileBuffer = await this.loadPdfBufferForUpload(
+        input.pdfPath!,
+        input.maxPages
+      );
       const form = new FormData();
       form.append(
         'file',
-        new Blob([fileBuffer], { type: 'application/pdf' }),
+        new Blob([toArrayBuffer(fileBuffer)], { type: 'application/pdf' }),
         'upload.pdf'
       );
       form.append('engine', 'np-dms-ocr');
