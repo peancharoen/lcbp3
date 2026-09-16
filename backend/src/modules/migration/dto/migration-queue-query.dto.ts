@@ -1,5 +1,7 @@
 // File: backend/src/modules/migration/dto/migration-queue-query.dto.ts
 // Change Log:
+// - 2026-09-16: เพิ่ม correspondenceType filter และ confidenceBucket filter
+//   (low/mid/high/missing ตามเกณฑ์ badge ของหน้า Legacy Review Queue)
 // - 2026-08-23: เพิ่ม batchId filter สำหรับ getReviewQueue
 // - 2026-08-31: ADR-050/FR-003/FR-004 — เพิ่ม requiresHumanReview filter และ
 //   sortBy=ocrQualityConfidence + sortOrder สำหรับ GET /migration/queue (T019)
@@ -59,6 +61,23 @@ export class MigrationQueueQueryDto extends PaginationDto {
   @Type(() => Boolean)
   @IsBoolean()
   requiresHumanReview?: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      'Filter by AI-suggested correspondence type code (เช่น RFA, LETTER, TRANSMITTAL)',
+  })
+  @IsOptional()
+  @IsString()
+  correspondenceType?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Filter by aiConfidence bucket — low (<0.5), mid (0.5-0.8), high (>0.8), missing (NULL)',
+    enum: ['low', 'mid', 'high', 'missing'],
+  })
+  @IsOptional()
+  @IsIn(['low', 'mid', 'high', 'missing'])
+  confidenceBucket?: 'low' | 'mid' | 'high' | 'missing';
 
   @ApiPropertyOptional({
     description: 'ADR-050/FR-004 — sort key',

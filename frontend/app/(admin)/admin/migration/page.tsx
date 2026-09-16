@@ -1,5 +1,8 @@
 // File: app/(admin)/admin/migration/page.tsx
 // Change Log:
+// - 2026-09-16: เพิ่ม filter ที่ column Correspondence Type + Confidence, pagination
+//   แบบเลขหน้า (กระโดดข้ามได้), reset page=1 เมื่อเปลี่ยน filter, และแก้ bug header
+//   หายเมื่อ filter ไม่พบข้อมูล (render TableHeader เสมอ ย้าย empty state เข้า TableBody)
 // - 2026-09-14: T023 (ADR-054) — sourceFilePath อ่านจาก item.storageTempPath (first-class column)
 //   แทน details.source_file_path ที่ถูกย้ายออกจาก details payload แล้ว (FR-010)
 // - 2026-08-23: Batch commit ส่ง sourceFilePath และ disciplineId จาก queue item details
@@ -23,8 +26,31 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getApiErrorMessage } from '@/types/api-error';
 import { LegacyIngestionCard } from '@/components/migration/legacy-ingestion-card';
+import { masterDataService } from '@/lib/services/master-data.service';
+import { CorrespondenceType } from '@/types/master-data';
 
 // --- Legacy Management Tab (ระบบ Migration เดิม) ---
+
+/** ช่วง confidence ที่ตรงกับเกณฑ์ badge — ส่งไป backend ผ่าน confidenceBucket param */
+type ConfidenceBucket = 'low' | 'mid' | 'high' | 'missing';
+
+/** สร้างลำดับเลขหน้าสำหรับ pagination — แสดงหน้าแรก/สุดท้าย + window ±2 รอบหน้าปัจจุบัน คั่นด้วย ellipsis */
+const getPageNumbers = (page: number, totalPages: number): (number | 'ellipsis')[] => {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+  const pages = new Set<number>([1, totalPages]);
+  for (let p = page - 2; p <= page + 2; p += 1) {
+    if (p >= 1 && p <= totalPages) pages.add(p);
+  }
+  const sorted = Array.from(pages).sort((a, b) => a - b);
+  const result: (number | 'ellipsis')[] = [];
+  for (let i = 0; i < sorted.length; i += 1) {
+    if (i > 0 && sorted[i] - sorted[i - 1] > 1) result.push('ellipsis');
+    result.push(sorted[i]);
+  }
+  return result;
+};
 
 function LegacyManagementTab() {
   const [items, setItems] = useState<MigrationReviewQueueItem[]>([]);
@@ -35,6 +61,9 @@ function LegacyManagementTab() {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [aiStatusFilter, setAiStatusFilter] = useState<string>('ALL');
   const [batchFilter, setBatchFilter] = useState<string>('ALL');
+  const [correspondenceTypeFilter, setCorrespondenceTypeFilter] = useState<string>('ALL');
+  const [confidenceBucketFilter, setConfidenceBucketFilter] = useState<string>('ALL');
+  const [correspondenceTypeOptions, setCorrespondenceTypeOptions] = useState<CorrespondenceType[]>([]);
   const [batchOptions, setBatchOptions] = useState<string[]>([]);
   // ADR-019: ใช้ publicId (string) สำหรับ selection ห้ามใช้ INT id
   const [selectedPublicIds, setSelectedPublicIds] = useState<string[]>([]);
@@ -53,6 +82,12 @@ function LegacyManagementTab() {
         status: statusFilter === 'ALL' ? undefined : (statusFilter as MigrationReviewStatus),
         aiStatus: aiStatusFilter === 'ALL' ? undefined : (aiStatusFilter as MigrationAiStatus),
         batchId: batchFilter === 'ALL' ? undefined : batchFilter,
+        correspondenceType:
+          correspondenceTypeFilter === 'ALL' ? undefined : correspondenceTypeFilter,
+        confidenceBucket:
+          confidenceBucketFilter === 'ALL'
+            ? undefined
+            : (confidenceBucketFilter as ConfidenceBucket),
         page,
         limit: pageSize,
       });
@@ -67,7 +102,7 @@ function LegacyManagementTab() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, aiStatusFilter, batchFilter, page]);
+  }, [statusFilter, aiStatusFilter, batchFilter, correspondenceTypeFilter, confidenceBucketFilter, page]);
 
   // ADR-047: โหลด batch options สำหรับ filter dropdown
   const fetchBatches = useCallback(async () => {
@@ -86,6 +121,20 @@ function LegacyManagementTab() {
   useEffect(() => {
     fetchBatches();
   }, [fetchBatches]);
+
+  // โหลด correspondence types สำหรับ column filter — ไม่ block หน้าถ้าโหลดไม่ได้
+  useEffect(() => {
+    masterDataService
+      .getCorrespondenceTypes()
+      .then((types) => setCorrespondenceTypeOptions(types ?? []))
+      .catch(() => setCorrespondenceTypeOptions([]));
+  }, []);
+
+  // เปลี่ยน filter แล้วต้องกลับไปหน้า 1 เสมอ — ไม่อย่างนั้น filter ใหม่อาจตกหน้าว่าง
+  const applyFilter = (setter: (value: string) => void) => (value: string) => {
+    setter(value);
+    setPage(1);
+  };
 
   // ADR-019: toggle โดยใช้ publicId (string)
   // ADR-047: "Select All" เลือกรายการทั้งหมดในหน้าปัจจุบัน แต่ละ action จะ filter ตามสถานะเอง
@@ -261,7 +310,7 @@ function LegacyManagementTab() {
                 <FileXIcon className="mr-2 h-4 w-4" /> View Errors
               </Button>
             </Link>
-            <Select value={batchFilter} onValueChange={setBatchFilter}>
+            <Select value={batchFilter} onValueChange={applyFilter(setBatchFilter)}>
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Batch" />
               </SelectTrigger>
@@ -293,64 +342,107 @@ function LegacyManagementTab() {
             {errorMessage}
           </div>
         )}
-        {loading ? (
-          <div className="py-10 text-center">Loading queue...</div>
-        ) : items.length === 0 ? (
-          <div className="py-10 text-center text-muted-foreground">No items in the queue.</div>
-        ) : (
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
+        {/* ตาราง + header ต้อง render เสมอ — filter Selects อยู่ใน TableHead
+            ถ้าซ่อนทั้งตารางตอนไม่มีข้อมูล user จะเปลี่ยน filter กลับไม่ได้ (ต้อง reload) */}
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[50px]" />
+                <TableHead>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      checked={items.length > 0 && selectedPublicIds.length === items.length}
+                      onCheckedChange={handleToggleSelectAll}
+                      aria-label="เลือกรายการทั้งหมดในหน้านี้"
+                    />
+                    <span>Document No.</span>
+                  </div>
+                </TableHead>
+                <TableHead>
+                  <Select
+                    value={correspondenceTypeFilter}
+                    onValueChange={applyFilter(setCorrespondenceTypeFilter)}
+                  >
+                    <SelectTrigger className="h-8 w-[150px] text-xs">
+                      <SelectValue placeholder="Correspondence Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">ทุก Type</SelectItem>
+                      {correspondenceTypeOptions.map((ct) => (
+                        <SelectItem key={ct.typeCode} value={ct.typeCode}>
+                          {ct.typeCode}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TableHead>
+                <TableHead>Issued Date</TableHead>
+                <TableHead>Received Date</TableHead>
+                <TableHead>Sender</TableHead>
+                <TableHead>Receiver</TableHead>
+                <TableHead>
+                  <Select
+                    value={confidenceBucketFilter}
+                    onValueChange={applyFilter(setConfidenceBucketFilter)}
+                  >
+                    <SelectTrigger className="h-8 w-[130px] text-xs">
+                      <SelectValue placeholder="Confidence" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">ทุก Confidence</SelectItem>
+                      <SelectItem value="high">&gt; 80%</SelectItem>
+                      <SelectItem value="mid">50–80%</SelectItem>
+                      <SelectItem value="low">≤ 50%</SelectItem>
+                      <SelectItem value="missing">N/A</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </TableHead>
+                <TableHead>
+                  <Select value={aiStatusFilter} onValueChange={applyFilter(setAiStatusFilter)}>
+                    <SelectTrigger className="h-8 w-[130px] text-xs">
+                      <SelectValue placeholder="AI Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">ทุก AI Status</SelectItem>
+                      {Object.values(MigrationAiStatus).map((s) => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TableHead>
+                <TableHead>
+                  <Select value={statusFilter} onValueChange={applyFilter(setStatusFilter)}>
+                    <SelectTrigger className="h-8 w-[130px] text-xs">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">ทุก Status</SelectItem>
+                      {Object.values(MigrationReviewStatus).map((s) => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TableHead>
+                <TableHead>Created At</TableHead>
+                <TableHead className="text-right">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
                 <TableRow>
-                  <TableHead className="w-[50px]" />
-                  <TableHead>
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        checked={items.length > 0 && selectedPublicIds.length === items.length}
-                        onCheckedChange={handleToggleSelectAll}
-                        aria-label="เลือกรายการทั้งหมดในหน้านี้"
-                      />
-                      <span>Document No.</span>
-                    </div>
-                  </TableHead>
-                  <TableHead>Correspondence Type</TableHead>
-                  <TableHead>Issued Date</TableHead>
-                  <TableHead>Received Date</TableHead>
-                  <TableHead>Sender</TableHead>
-                  <TableHead>Receiver</TableHead>
-                  <TableHead>Confidence</TableHead>
-                  <TableHead>
-                    <Select value={aiStatusFilter} onValueChange={setAiStatusFilter}>
-                      <SelectTrigger className="h-8 w-[130px] text-xs">
-                        <SelectValue placeholder="AI Status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ALL">ทุก AI Status</SelectItem>
-                        {Object.values(MigrationAiStatus).map((s) => (
-                          <SelectItem key={s} value={s}>{s}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </TableHead>
-                  <TableHead>
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                      <SelectTrigger className="h-8 w-[130px] text-xs">
-                        <SelectValue placeholder="Status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ALL">ทุก Status</SelectItem>
-                        {Object.values(MigrationReviewStatus).map((s) => (
-                          <SelectItem key={s} value={s}>{s}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </TableHead>
-                  <TableHead>Created At</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
+                  <TableCell colSpan={10} className="h-32 text-center text-muted-foreground">
+                    Loading queue...
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {items.map((item) => (
+              ) : items.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={10} className="h-32 text-center text-muted-foreground">
+                    No items in the queue.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                items.map((item) => (
                   // ADR-019: ใช้ publicId เป็น key
                   <TableRow key={item.publicId}>
                     <TableCell>
@@ -428,17 +520,17 @@ function LegacyManagementTab() {
                       </Link>
                     </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-        {/* Pagination + row count */}
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+        {/* Pagination + row count — เลขหน้ากระโดดข้ามได้ (window ±2 รอบหน้าปัจจุบัน) */}
         <div className="flex items-center justify-between mt-4 pt-4 border-t">
           <div className="text-sm text-muted-foreground">
             ทั้งหมด {totalRows} รายการ (หน้า {page}/{totalPages})
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <Button
               variant="outline"
               size="sm"
@@ -447,6 +539,24 @@ function LegacyManagementTab() {
             >
               ก่อนหน้า
             </Button>
+            {getPageNumbers(page, totalPages).map((p, idx) =>
+              p === 'ellipsis' ? (
+                <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">
+                  …
+                </span>
+              ) : (
+                <Button
+                  key={p}
+                  variant={p === page ? 'default' : 'outline'}
+                  size="sm"
+                  className="min-w-[36px]"
+                  disabled={loading}
+                  onClick={() => setPage(p)}
+                >
+                  {p}
+                </Button>
+              )
+            )}
             <Button
               variant="outline"
               size="sm"

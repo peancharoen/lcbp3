@@ -1,5 +1,6 @@
 // File: frontend/lib/services/migration.service.ts
 // Change Log:
+// - 2026-09-16: เพิ่ม correspondenceType, confidenceBucket params ใน getReviewQueue
 // - 2026-09-14: T016 — เพิ่ม restoreQueueOcrText (POST /migration/queue/:publicId/restore-ocr-text) (ADR-054, FR-007)
 // - 2026-08-31: T030 — เพิ่ม requiresHumanReview, sortBy, sortOrder params ใน getReviewQueue (ADR-050)
 // - 2026-06-13: Add support for direct array response in normalizePaginatedResponse and add file header
@@ -111,6 +112,8 @@ export const migrationService = {
     aiStatus?: MigrationAiStatus;
     batchId?: string;
     requiresHumanReview?: boolean;
+    correspondenceType?: string;
+    confidenceBucket?: 'low' | 'mid' | 'high' | 'missing';
     sortBy?: 'ocrQualityConfidence';
     sortOrder?: 'asc' | 'desc';
   }): Promise<PaginatedResponse<MigrationReviewQueueItem>> => {

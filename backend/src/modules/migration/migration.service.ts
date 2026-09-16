@@ -1532,6 +1532,8 @@ export class MigrationService {
       aiStatus,
       batchId,
       requiresHumanReview,
+      correspondenceType,
+      confidenceBucket,
       sortBy,
       sortOrder = 'asc',
     } = query;
@@ -1553,6 +1555,29 @@ export class MigrationService {
         'queue.requiresHumanReview = :requiresHumanReview',
         { requiresHumanReview }
       );
+    }
+    // filter ตามประเภทเอกสารที่ AI แนะนำ (type_code เช่น RFA, LETTER)
+    if (correspondenceType) {
+      queryBuilder.andWhere(
+        'queue.aiSuggestedCorrespondenceType = :correspondenceType',
+        { correspondenceType }
+      );
+    }
+    // filter ตามช่วง aiConfidence — เกณฑ์เดียวกับ badge บนหน้า Legacy Review Queue
+    // (badge: <=0.5 = destructive, 0.5<x<=0.8 = secondary, >0.8 = default, NULL = N/A)
+    if (confidenceBucket === 'low') {
+      queryBuilder.andWhere('queue.aiConfidence <= :confLow', { confLow: 0.5 });
+    } else if (confidenceBucket === 'mid') {
+      queryBuilder.andWhere(
+        'queue.aiConfidence > :confMidMin AND queue.aiConfidence <= :confMidMax',
+        { confMidMin: 0.5, confMidMax: 0.8 }
+      );
+    } else if (confidenceBucket === 'high') {
+      queryBuilder.andWhere('queue.aiConfidence > :confHigh', {
+        confHigh: 0.8,
+      });
+    } else if (confidenceBucket === 'missing') {
+      queryBuilder.andWhere('queue.aiConfidence IS NULL');
     }
 
     // ADR-050/FR-004 (T019): sort by ocrQualityConfidence when requested,

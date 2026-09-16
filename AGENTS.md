@@ -1,6 +1,6 @@
 # NAP-DMS Project Context & Rules
 
-- For: Windsurf Cascade (and compatible: Codex CLI, opencode, Amp, Antigravity, AGENTS.md tools)
+- For: Windsurf Cascade (and compatible: Claude, opencode, Amp, Antigravity, AGENTS.md tools)
 - Version: 1.9.17 | Last synced from repo: 2026-09-02
 - Repo: [https://git.np-dms.work/np-dms/lcbp3](https://git.np-dms.work/np-dms/lcbp3)
 - Skill pack: `.agents/skills/` ↔ `.devin/skills/` (v1.9.0, 35 skills) — see [`skills/README.md`](./.agents/skills/README.md) + [`skills/_LCBP3-CONTEXT.md`](./.agents/skills/_LCBP3-CONTEXT.md)
