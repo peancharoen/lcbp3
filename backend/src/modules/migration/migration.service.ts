@@ -1228,7 +1228,8 @@ export class MigrationService {
         projectId: queueItem.projectId,
       },
       {
-        jobId: `legacy-enrich-${queueItem.publicId}-${idempotencyKey}`,
+        // BullMQ ห้าม ':' ใน custom jobId — sanitize idempotencyKey ที่มาจาก caller
+        jobId: `legacy-enrich-${queueItem.publicId}-${idempotencyKey.replace(/:/g, '-')}`,
         attempts: 3,
         backoff: { type: 'exponential', delay: 5000 },
         removeOnComplete: 1000,
@@ -1570,7 +1571,7 @@ export class MigrationService {
     // Auto re-extract — reset AI fields ที่ stale จากไฟล์เก่า + enqueue กับไฟล์ใหม่
     const reExtract = await this.reExtractQueueItem(
       publicId,
-      `${idempotencyKey}:reextract`,
+      `${idempotencyKey}-reextract`,
       userId
     );
     return {
@@ -1688,7 +1689,7 @@ export class MigrationService {
         items,
       },
       {
-        jobId: `legacy-ocr-batch-${idempotencyKey}`,
+        jobId: `legacy-ocr-batch-${idempotencyKey.replace(/:/g, '-')}`,
         attempts: 3,
         backoff: { type: 'exponential', delay: 10000 },
         removeOnComplete: 100,

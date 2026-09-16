@@ -2464,6 +2464,55 @@ describe('MigrationService', () => {
       expect(result.attachmentPublicId).toBe('att-new-uuid');
     });
 
+    it('auto re-extract jobId must not contain ":" (BullMQ rejects it)', async () => {
+      // Regression: prod 2026-09-16 — PATCH /queue/:id/file ตอบ 500
+      // "Custom Id cannot contain :" เพราะ re-extract key ต่อท้ายด้วย ':reextract'
+      const item = makePendingItem();
+      mockReviewQueueRepo.findOne
+        .mockResolvedValueOnce(item)
+        .mockResolvedValue({
+          ...item,
+          status: MigrationReviewStatus.PENDING,
+          aiStatus: MigrationAiStatus.PENDING,
+          projectId: 100,
+        });
+      const stagingPath = path.resolve('uploads/staging/new.pdf');
+      mockedExistsSync.mockReturnValue(true);
+      mockedStatSync.mockReturnValue({
+        isFile: () => true,
+        size: 1234,
+      } as ReturnType<typeof statSync>);
+      mockAttachmentRepo.findOne.mockResolvedValue(null);
+      mockAttachmentRepo.create.mockImplementation((v: unknown) => v);
+      mockAttachmentRepo.save.mockImplementation((v: unknown) =>
+        Promise.resolve({ ...(v as object), id: 77, publicId: 'att-new-uuid' })
+      );
+      mockReviewQueueRepo.save.mockImplementation((v: unknown) =>
+        Promise.resolve(v)
+      );
+      mockAiBatchQueue.add.mockResolvedValue({ id: 'job-rf' });
+      mockProjectRepo.findOne.mockResolvedValue({ id: 1, publicId: 'p-1' });
+      mockAttachmentFind.mockResolvedValue([]);
+      mockDataSource.manager.find.mockResolvedValue([]);
+      mockTypeRepo.find.mockResolvedValue([]);
+
+      await service.replaceQueueItemFile(
+        'queue-uuid-030',
+        { storageTempPath: stagingPath },
+        'idem-rf-colon',
+        42
+      );
+
+      const addCalls = mockAiBatchQueue.add.mock.calls as [
+        string,
+        unknown,
+        { jobId?: string } | undefined,
+      ][];
+      for (const call of addCalls) {
+        expect(call[2]?.jobId ?? '').not.toContain(':');
+      }
+    });
+
     it('staging mode: reuses existing attachment row for the same filePath (dedup)', async () => {
       const item = makePendingItem();
       mockReviewQueueRepo.findOne
