@@ -1,5 +1,9 @@
 'use client';
 
+// File: frontend/app/(dashboard)/correspondences/[uuid]/page.tsx
+// Change Log:
+// - 2026-09-17: รองรับ action query จาก list และ full edit policy สำหรับ Admin/Superadmin
+
 import { useState } from 'react';
 import { CorrespondenceDetail } from '@/components/correspondences/detail';
 import { IntegratedBanner } from '@/components/workflow/integrated-banner';
@@ -50,11 +54,14 @@ export default function CorrespondenceDetailPage() {
     setUnavailableIds((prev) => [...new Set([...prev, publicId])]);
 
   // Feature 253 T061: Metadata Edit Dialog (DC edit metadata after submit)
-  const [showMetaEdit, setShowMetaEdit] = useState(false);
-  const [showCancel, setShowCancel] = useState(false);
+  const requestedAction = searchParams.get('action');
+  const [showMetaEdit, setShowMetaEdit] = useState(
+    requestedAction === 'edit-metadata'
+  );
+  const [showCancel, setShowCancel] = useState(requestedAction === 'cancel');
   const t = useTranslations();
   const router = useRouter();
-  const hasPermission = useAuthStore((s) => s.hasPermission);
+  const { user, hasPermission } = useAuthStore();
   const corrActionConfig = getDocumentActionConfig('CORRESPONDENCE');
   const { metadataPatch, isPatching, hardDelete, isHardDeleting, cancel, isCancelling } = useDocumentActions({
     config: corrActionConfig,
@@ -63,7 +70,9 @@ export default function CorrespondenceDetailPage() {
     },
   });
   // Feature 253 T073: Hard-Delete Dialog (Superadmin only)
-  const [showHardDelete, setShowHardDelete] = useState(false);
+  const [showHardDelete, setShowHardDelete] = useState(
+    requestedAction === 'hard-delete'
+  );
   const canHardDelete = hasPermission('system.manage_all') || hasPermission('correspondence.delete');
   const canCancel = hasPermission('correspondence.cancel') || hasPermission('document.cancel') || hasPermission('system.manage_all');
 
@@ -99,8 +108,19 @@ export default function CorrespondenceDetailPage() {
   const status = currentRevision?.status?.statusCode ?? '';
 
   // Feature 253: metadata fields สำหรับ Edit Dialog (Tier 1 แก้ได้ทันที)
-  const canEditMetadata = hasPermission('correspondence.edit') && status !== 'CANCELLED';
-  const canEditContent = hasPermission('correspondence.edit') && status === 'DRAFT';
+  const normalizedRole = (user?.role ?? '').toUpperCase().replace(/\s+/g, '_');
+  const isPrivilegedEditRole = [
+    'SUPERADMIN',
+    'SUPER_ADMIN',
+    'ADMIN',
+    'DC',
+    'DOCUMENT_CONTROL',
+  ].includes(normalizedRole);
+  const canEditMetadata =
+    (hasPermission('correspondence.edit') || isPrivilegedEditRole) &&
+    status !== 'CANCELLED';
+  const canEditContent =
+    canEditMetadata && (status === 'DRAFT' || isPrivilegedEditRole);
   const metaFields: MetadataField[] = [
     { key: 'subject', label: 'Subject', value: currentRevision?.subject ?? '', tier: 1 },
     { key: 'description', label: 'Description', value: currentRevision?.description ?? '', tier: 1 },

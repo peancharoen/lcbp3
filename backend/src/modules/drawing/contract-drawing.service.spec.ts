@@ -227,6 +227,30 @@ describe('ContractDrawingService', () => {
       );
       expect(mockQB.andWhere).toHaveBeenCalledWith(expect.any(Brackets));
     });
+
+    it('ควรกรองเลขที่และวันที่สร้าง พร้อมเรียงตาม allow-list', async () => {
+      mockQB.getManyAndCount.mockResolvedValue([[], 0]);
+      mockDrawingRepo.createQueryBuilder.mockReturnValue(mockQB);
+
+      await service.findAll({
+        projectUuid: 'uuid-001',
+        projectId: 1,
+        documentNumber: 'CD-01',
+        createdDate: '2026-09-17',
+        sortBy: 'createdAt',
+        sortOrder: 'DESC',
+      });
+
+      expect(mockQB.andWhere).toHaveBeenCalledWith(
+        'drawing.contractDrawingNo LIKE :documentNumber',
+        { documentNumber: '%CD-01%' }
+      );
+      expect(mockQB.andWhere).toHaveBeenCalledWith(
+        'DATE(drawing.createdAt) = :createdDate',
+        { createdDate: '2026-09-17' }
+      );
+      expect(mockQB.orderBy).toHaveBeenCalledWith('drawing.createdAt', 'DESC');
+    });
   });
 
   describe('findOne', () => {

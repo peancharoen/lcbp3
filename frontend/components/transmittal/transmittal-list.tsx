@@ -10,6 +10,7 @@ import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { DocumentRowActions } from '@/components/documents/document-row-actions';
 import { getDocumentActionConfig } from '@/components/documents/document-action-strategy';
+import { DocumentListHeader } from '@/components/documents/common/document-list-header';
 
 interface TransmittalListProps {
   data: Transmittal[];
@@ -17,20 +18,24 @@ interface TransmittalListProps {
   onRowSelectionChange?: (value: Record<string, boolean>) => void;
 }
 
-export function TransmittalList({
-  data,
-  rowSelection,
-  onRowSelectionChange,
-}: TransmittalListProps) {
+export function TransmittalList({ data, rowSelection, onRowSelectionChange }: TransmittalListProps) {
   if (!data) return null;
 
   const columns: ColumnDef<Transmittal>[] = [
     {
       id: 'transmittalNo',
-      header: 'Transmittal No.',
+      header: () => <DocumentListHeader title="Document No." field="documentNumber" filter="text" />,
       cell: ({ row }) => {
         const no = row.original.correspondence?.correspondenceNumber || row.original.transmittalNo || '-';
         return <span className="font-medium">{no}</span>;
+      },
+    },
+    {
+      id: 'revision',
+      header: () => <DocumentListHeader title="Rev" field="revision" filter="text" />,
+      cell: ({ row }) => {
+        const revision = row.original.correspondence?.revisions?.find((item) => item.isCurrent);
+        return revision?.revisionLabel || revision?.revisionNumber || '-';
       },
     },
     {
@@ -61,11 +66,26 @@ export function TransmittalList({
     },
     {
       id: 'createdAt',
-      header: 'Date',
+      header: () => <DocumentListHeader title="Created" field="createdAt" filter="date" />,
       cell: ({ row }) => {
         const dateStr = row.original.correspondence?.createdAt || row.original.createdAt;
         if (!dateStr) return '-';
         return format(new Date(dateStr), 'dd MMM yyyy');
+      },
+    },
+    {
+      id: 'status',
+      header: () => (
+        <DocumentListHeader
+          title="Status"
+          field="status"
+          filter="status"
+          statusOptions={['DRAFT', 'IN_REVIEW', 'APPROVED', 'CANCELLED']}
+        />
+      ),
+      cell: ({ row }) => {
+        const revision = row.original.correspondence?.revisions?.find((item) => item.isCurrent);
+        return <Badge variant="outline">{revision?.status?.statusCode || '-'}</Badge>;
       },
     },
     {
@@ -81,9 +101,15 @@ export function TransmittalList({
             </Link>
             <DocumentRowActions
               config={getDocumentActionConfig('TRANSMITTAL')}
-              onCancel={() => {/* TODO: open cancel dialog */}}
-              onHardDelete={() => {/* TODO: open hard-delete dialog */}}
-              onMetadataEdit={() => {/* TODO: open metadata edit dialog */}}
+              onCancel={() => {
+                /* TODO: open cancel dialog */
+              }}
+              onHardDelete={() => {
+                /* TODO: open hard-delete dialog */
+              }}
+              onMetadataEdit={() => {
+                /* TODO: open metadata edit dialog */
+              }}
             />
           </div>
         );

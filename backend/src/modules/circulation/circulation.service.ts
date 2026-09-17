@@ -161,8 +161,33 @@ export class CirculationService {
       query.andWhere('c.statusCode = :status', { status });
     }
 
+    if (searchDto.documentNumber) {
+      query.andWhere(
+        '(c.circulationNo LIKE :documentNumber OR correspondence.correspondenceNumber LIKE :documentNumber)',
+        { documentNumber: `%${searchDto.documentNumber}%` }
+      );
+    }
+    if (searchDto.createdDate) {
+      const createdDateEnd = new Date(`${searchDto.createdDate}T00:00:00.000Z`);
+      createdDateEnd.setUTCDate(createdDateEnd.getUTCDate() + 1);
+      query.andWhere(
+        'c.createdAt >= :createdDate AND c.createdAt < :createdDateEnd',
+        {
+          createdDate: searchDto.createdDate,
+          createdDateEnd: createdDateEnd.toISOString(),
+        }
+      );
+    }
+    const sortColumns = {
+      documentNumber: 'c.circulationNo',
+      createdAt: 'c.createdAt',
+      status: 'c.statusCode',
+    } as const;
+    const sortBy = searchDto.sortBy ?? 'createdAt';
+    const sortOrder = searchDto.sortOrder ?? 'DESC';
+
     query
-      .orderBy('c.createdAt', 'DESC')
+      .orderBy(sortColumns[sortBy], sortOrder)
       .skip((page - 1) * limit)
       .take(limit);
 

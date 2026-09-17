@@ -221,6 +221,11 @@ export class ShopDrawingService {
       mainCategoryId,
       // subCategoryId, // Unused
       search,
+      documentNumber,
+      revision,
+      createdDate,
+      sortBy = 'createdAt',
+      sortOrder = 'DESC',
       page = 1,
       limit = 20,
     } = searchDto;
@@ -242,7 +247,32 @@ export class ShopDrawingService {
       });
     }
 
-    query.orderBy('sd.updatedAt', 'DESC');
+    if (documentNumber) {
+      query.andWhere('sd.drawingNumber LIKE :documentNumber', {
+        documentNumber: `%${documentNumber}%`,
+      });
+    }
+
+    if (revision) {
+      query.andWhere(
+        `(SELECT latest.revision_label FROM shop_drawing_revisions latest
+          WHERE latest.shop_drawing_id = sd.id
+          ORDER BY latest.revision_number DESC LIMIT 1) LIKE :revision`,
+        { revision: `%${revision}%` }
+      );
+    }
+
+    if (createdDate) {
+      query.andWhere('DATE(sd.createdAt) = :createdDate', { createdDate });
+    }
+
+    const sortColumns = {
+      documentNumber: 'sd.drawingNumber',
+      revision: `(SELECT MAX(latest.revision_number) FROM shop_drawing_revisions latest
+        WHERE latest.shop_drawing_id = sd.id)`,
+      createdAt: 'sd.createdAt',
+    } as const;
+    query.orderBy(sortColumns[sortBy], sortOrder);
 
     const skip = (page - 1) * limit;
     query.skip(skip).take(limit);

@@ -50,7 +50,13 @@ export interface Transmittal {
     correspondenceNumber: string;
     projectId: number;
     createdAt?: string;
-    revisions?: { title?: string; isCurrent?: boolean }[];
+    revisions?: {
+      title?: string;
+      isCurrent?: boolean;
+      revisionNumber?: number;
+      revisionLabel?: string;
+      status?: { statusCode?: string };
+    }[];
   };
 }
 

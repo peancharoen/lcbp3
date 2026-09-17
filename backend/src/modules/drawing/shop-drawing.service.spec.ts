@@ -333,6 +333,28 @@ describe('ShopDrawingService', () => {
         { search: '%SD%' }
       );
     });
+
+    it('ควรกรอง revision ล่าสุดและเรียงตาม revision number', async () => {
+      mockQB.getManyAndCount.mockResolvedValue([[], 0]);
+      mockShopDrawingRepo.createQueryBuilder.mockReturnValue(mockQB);
+
+      await service.findAll({
+        projectUuid: 'uuid-001',
+        projectId: 1,
+        revision: 'A',
+        sortBy: 'revision',
+        sortOrder: 'ASC',
+      });
+
+      expect(mockQB.andWhere).toHaveBeenCalledWith(
+        expect.stringContaining('shop_drawing_revisions'),
+        { revision: '%A%' }
+      );
+      expect(mockQB.orderBy).toHaveBeenCalledWith(
+        expect.stringContaining('MAX(latest.revision_number)'),
+        'ASC'
+      );
+    });
   });
 
   describe('findOne', () => {

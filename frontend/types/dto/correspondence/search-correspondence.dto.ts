@@ -7,6 +7,11 @@ export interface SearchCorrespondenceDto {
   statusId?: number | string; // ADR-019: Accept UUID - กรองตามสถานะ (จาก Revision ปัจจุบัน)
   status?: string; // กรองตามสถานะ code string (เช่น DRAFT, IN_REVIEW)
   revisionStatus?: 'CURRENT' | 'ALL' | 'OLD'; // กรองตามสถานะ Revision
+  documentNumber?: string;
+  revision?: string;
+  createdDate?: string;
+  sortBy?: 'documentNumber' | 'revision' | 'createdAt' | 'status';
+  sortOrder?: 'ASC' | 'DESC';
 
   // เพิ่มเติมสำหรับการแบ่งหน้า (Pagination)
   page?: number;

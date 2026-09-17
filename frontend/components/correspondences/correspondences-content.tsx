@@ -55,31 +55,36 @@ export function CorrespondencesContent() {
   const typeFilter = (searchParams.get('type') || '').toUpperCase();
   const search = searchParams.get('search') || undefined;
   const revisionStatus = (searchParams.get('revisionStatus') as 'CURRENT' | 'ALL' | 'OLD') || 'CURRENT';
+  const documentNumber = searchParams.get('documentNumber') || undefined;
+  const revision = searchParams.get('revision') || undefined;
+  const createdDate = searchParams.get('createdDate') || undefined;
+  const sortBy = searchParams.get('sortBy') as 'documentNumber' | 'revision' | 'createdAt' | 'status' | null;
+  const sortOrder = searchParams.get('sortOrder') as 'ASC' | 'DESC' | null;
 
   const [searchInput, setSearchInput] = useState(search || '');
   const [exporting, setExporting] = useState(false);
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showTagDialog, setShowTagDialog] = useState(false);
-  const [bulkResult, setBulkResult] = useState<{ open: boolean; total: number; success: number; failed: number; failedItems?: string[] }>({
+  const [bulkResult, setBulkResult] = useState<{
+    open: boolean;
+    total: number;
+    success: number;
+    failed: number;
+    failedItems?: string[];
+  }>({
     open: false,
     total: 0,
     success: 0,
     failed: 0,
   });
 
-  const { data: correspondenceTypesData, isLoading: isLoadingTypeOptions } =
-    useCorrespondenceTypes();
-  const correspondenceTypes = extractArrayData<CorrespondenceType>(
-    correspondenceTypesData
-  );
+  const { data: correspondenceTypesData, isLoading: isLoadingTypeOptions } = useCorrespondenceTypes();
+  const correspondenceTypes = extractArrayData<CorrespondenceType>(correspondenceTypesData);
   const resolvedTypeId = typeFilter
-    ? correspondenceTypes.find(
-        (type) => type.typeCode?.toUpperCase() === typeFilter
-      )?.id
+    ? correspondenceTypes.find((type) => type.typeCode?.toUpperCase() === typeFilter)?.id
     : undefined;
-  const shouldWaitForTypeResolution =
-    Boolean(typeFilter) && isLoadingTypeOptions;
+  const shouldWaitForTypeResolution = Boolean(typeFilter) && isLoadingTypeOptions;
 
   const handleExportCsv = async () => {
     setExporting(true);
@@ -106,21 +111,26 @@ export function CorrespondencesContent() {
     }
   };
 
-  const { data, isLoading, isError } = useCorrespondences({
-    page,
-    search,
-    status: statusFilter || undefined,
-    typeId: resolvedTypeId,
-    revisionStatus,
-    limit: 10,
-  }, {
-    enabled: !shouldWaitForTypeResolution,
-  });
-
-  const selectedIds = useMemo(
-    () => Object.keys(rowSelection).filter((key) => rowSelection[key]),
-    [rowSelection]
+  const { data, isLoading, isError } = useCorrespondences(
+    {
+      page,
+      search,
+      status: statusFilter || undefined,
+      typeId: resolvedTypeId,
+      revisionStatus,
+      documentNumber,
+      revision,
+      createdDate,
+      sortBy: sortBy ?? undefined,
+      sortOrder: sortOrder ?? undefined,
+      limit: 10,
+    },
+    {
+      enabled: !shouldWaitForTypeResolution,
+    }
   );
+
+  const selectedIds = useMemo(() => Object.keys(rowSelection).filter((key) => rowSelection[key]), [rowSelection]);
 
   const { bulkCancel, bulkTag, bulkExport, isBulkCancelling } = useBulkActions({
     documentType: 'CORRESPONDENCE',
@@ -136,15 +146,18 @@ export function CorrespondencesContent() {
     },
   });
 
-  const buildUrl = useCallback((updates: Record<string, string>) => {
-    const params = new URLSearchParams(searchParams.toString());
-    Object.entries(updates).forEach(([k, v]) => {
-      if (v) params.set(k, v);
-      else params.delete(k);
-    });
-    params.set('page', '1');
-    return `${pathname}?${params.toString()}`;
-  }, [searchParams, pathname]);
+  const buildUrl = useCallback(
+    (updates: Record<string, string>) => {
+      const params = new URLSearchParams(searchParams.toString());
+      Object.entries(updates).forEach(([k, v]) => {
+        if (v) params.set(k, v);
+        else params.delete(k);
+      });
+      params.set('page', '1');
+      return `${pathname}?${params.toString()}`;
+    },
+    [searchParams, pathname]
+  );
 
   const handleSearch = () => {
     router.push(buildUrl({ search: searchInput }));
@@ -173,11 +186,7 @@ export function CorrespondencesContent() {
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <div className="flex gap-1 bg-muted p-1 rounded-md">
           <Link key="type-all" href={buildUrl({ type: '' })}>
-            <Button
-              variant={!typeFilter ? 'default' : 'ghost'}
-              size="sm"
-              className="text-xs px-3 h-7"
-            >
+            <Button variant={!typeFilter ? 'default' : 'ghost'} size="sm" className="text-xs px-3 h-7">
               All Types
             </Button>
           </Link>
@@ -186,10 +195,7 @@ export function CorrespondencesContent() {
             .map((type) => {
               const normalizedTypeCode = type.typeCode?.toUpperCase();
               return (
-                <Link
-                  key={`type-${type.typeCode}`}
-                  href={buildUrl({ type: normalizedTypeCode || '' })}
-                >
+                <Link key={`type-${type.typeCode}`} href={buildUrl({ type: normalizedTypeCode || '' })}>
                   <Button
                     variant={typeFilter === normalizedTypeCode ? 'default' : 'ghost'}
                     size="sm"
@@ -222,18 +228,16 @@ export function CorrespondencesContent() {
               </button>
             )}
           </div>
-          <Button size="sm" onClick={handleSearch} className="h-9">Search</Button>
+          <Button size="sm" onClick={handleSearch} className="h-9">
+            Search
+          </Button>
         </div>
 
         {/* Status filter */}
         <div className="flex gap-1 bg-muted p-1 rounded-md">
           {STATUS_FILTERS.map(({ value, label }) => (
             <Link key={value} href={buildUrl({ status: value })}>
-              <Button
-                variant={statusFilter === value ? 'default' : 'ghost'}
-                size="sm"
-                className="text-xs px-3 h-7"
-              >
+              <Button variant={statusFilter === value ? 'default' : 'ghost'} size="sm" className="text-xs px-3 h-7">
                 {label}
               </Button>
             </Link>
@@ -244,11 +248,7 @@ export function CorrespondencesContent() {
         <div className="flex gap-1 bg-muted p-1 rounded-md">
           {(['CURRENT', 'ALL', 'OLD'] as const).map((rs) => (
             <Link key={rs} href={buildUrl({ revisionStatus: rs })}>
-              <Button
-                variant={revisionStatus === rs ? 'default' : 'ghost'}
-                size="sm"
-                className="text-xs px-3 h-7"
-              >
+              <Button variant={revisionStatus === rs ? 'default' : 'ghost'} size="sm" className="text-xs px-3 h-7">
                 {rs === 'CURRENT' ? 'Latest' : rs === 'OLD' ? 'Previous' : 'All'}
               </Button>
             </Link>
@@ -256,29 +256,15 @@ export function CorrespondencesContent() {
         </div>
 
         {/* Export */}
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-9 gap-1.5"
-          onClick={handleExportCsv}
-          disabled={exporting}
-        >
-          {exporting ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Download className="h-3.5 w-3.5" />
-          )}
+        <Button variant="outline" size="sm" className="h-9 gap-1.5" onClick={handleExportCsv} disabled={exporting}>
+          {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
           Export CSV
         </Button>
 
         <CorrespondenceUxFlowDialog />
       </div>
 
-      <CorrespondenceList
-        data={data?.data || []}
-        rowSelection={rowSelection}
-        onRowSelectionChange={setRowSelection}
-      />
+      <CorrespondenceList data={data?.data || []} rowSelection={rowSelection} onRowSelectionChange={setRowSelection} />
       <div className="mt-4">
         <Pagination
           currentPage={data?.meta?.page || 1}

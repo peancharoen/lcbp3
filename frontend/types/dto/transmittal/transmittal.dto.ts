@@ -36,6 +36,12 @@ export interface SearchTransmittalDto {
 
   /** ค้นหาจากเลขที่เอกสาร หรือ remarks */
   search?: string;
+  documentNumber?: string;
+  revision?: string;
+  createdDate?: string;
+  status?: string;
+  sortBy?: 'documentNumber' | 'revision' | 'createdAt' | 'status';
+  sortOrder?: 'ASC' | 'DESC';
 
   /** หน้าปัจจุบัน (Default: 1) */
   page?: number;

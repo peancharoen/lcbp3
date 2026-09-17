@@ -6,15 +6,25 @@ import { circulationService } from '@/lib/services/circulation.service';
 import { Button } from '@/components/ui/button';
 import { Plus, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { CirculationListResponse } from '@/types/circulation';
 
 /**
  * Circulation list page - displays circulations for the current user's organization
  */
 export default function CirculationPage() {
+  const searchParams = useSearchParams();
+  const query = {
+    documentNumber: searchParams.get('documentNumber') || undefined,
+    createdDate: searchParams.get('createdDate') || undefined,
+    status: searchParams.get('status') || undefined,
+    sortBy: (searchParams.get('sortBy') || undefined) as 'documentNumber' | 'createdAt' | 'status' | undefined,
+    sortOrder: (searchParams.get('sortOrder') || undefined) as 'ASC' | 'DESC' | undefined,
+    page: Number(searchParams.get('page') || '1'),
+  };
   const { data, isLoading, error, refetch } = useQuery<CirculationListResponse>({
-    queryKey: ['circulations'],
-    queryFn: () => circulationService.getAll(),
+    queryKey: ['circulations', query],
+    queryFn: () => circulationService.getAll(query),
   });
 
   return (

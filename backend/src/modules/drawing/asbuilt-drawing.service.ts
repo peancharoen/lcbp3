@@ -221,6 +221,11 @@ export class AsBuiltDrawingService {
       mainCategoryId,
       subCategoryId,
       search,
+      documentNumber,
+      revision,
+      createdDate,
+      sortBy = 'createdAt',
+      sortOrder = 'DESC',
       page = 1,
       limit = 20,
     } = searchDto;
@@ -248,7 +253,32 @@ export class AsBuiltDrawingService {
       });
     }
 
-    query.orderBy('abd.updatedAt', 'DESC');
+    if (documentNumber) {
+      query.andWhere('abd.drawingNumber LIKE :documentNumber', {
+        documentNumber: `%${documentNumber}%`,
+      });
+    }
+
+    if (revision) {
+      query.andWhere(
+        `(SELECT latest.revision_label FROM asbuilt_drawing_revisions latest
+          WHERE latest.asbuilt_drawing_id = abd.id
+          ORDER BY latest.revision_number DESC LIMIT 1) LIKE :revision`,
+        { revision: `%${revision}%` }
+      );
+    }
+
+    if (createdDate) {
+      query.andWhere('DATE(abd.createdAt) = :createdDate', { createdDate });
+    }
+
+    const sortColumns = {
+      documentNumber: 'abd.drawingNumber',
+      revision: `(SELECT MAX(latest.revision_number) FROM asbuilt_drawing_revisions latest
+        WHERE latest.asbuilt_drawing_id = abd.id)`,
+      createdAt: 'abd.createdAt',
+    } as const;
+    query.orderBy(sortColumns[sortBy], sortOrder);
 
     const skip = (page - 1) * limit;
     query.skip(skip).take(limit);

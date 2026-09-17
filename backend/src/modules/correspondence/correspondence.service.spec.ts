@@ -9,7 +9,6 @@ import { getRedisConnectionToken } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import { DataSource, Repository } from 'typeorm';
 import {
-  BusinessException,
   PermissionException,
   ValidationException,
 } from '../../common/exceptions';
@@ -348,18 +347,26 @@ describe('CorrespondenceService', () => {
       ).rejects.toThrow(PermissionException);
     });
 
-    it('should reject non-DRAFT content edits even with cancel permission (T104)', async () => {
+    it('should allow Admin/Superadmin content edits after submit (policy override)', async () => {
       const mockUser = {
         user_id: 1,
         primaryOrganizationId: 10,
       } as unknown as User;
 
+      const mockCorr = {
+        id: 2,
+        publicId: 'corr-uuid-2',
+        correspondenceNumber: 'CORR-002',
+        projectId: 1,
+        createdAt: new Date(),
+        recipients: [],
+      };
       const mockRevision = {
         id: 101,
         correspondenceId: 2,
         isCurrent: true,
         statusId: 23,
-        correspondence: { id: 2, recipients: [] },
+        correspondence: mockCorr,
       };
 
       jest
@@ -378,10 +385,14 @@ describe('CorrespondenceService', () => {
       (userService.getUserPermissions as jest.Mock).mockResolvedValue([
         'correspondence.cancel',
       ]);
+      jest.spyOn(correspondenceRepo, 'findOne').mockResolvedValue({
+        ...mockCorr,
+        revisions: [],
+      } as unknown as Correspondence);
 
       await expect(
-        service.update(2, { subject: 'Should Fail' }, mockUser)
-      ).rejects.toThrow(BusinessException);
+        service.update(2, { subject: 'Admin correction' }, mockUser)
+      ).resolves.toBeDefined();
     });
 
     it('should allow non-DRAFT metadata-only edits via update (T104)', async () => {

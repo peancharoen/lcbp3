@@ -1,5 +1,6 @@
 // File: frontend/components/correspondences/list.test.tsx
 // Change Log:
+// - 2026-09-17: เพิ่ม regression test ว่า metadata row action ต้อง navigate ไป dialog จริง
 // - 2026-06-13: Initial creation - test coverage for CorrespondenceList component
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -7,6 +8,14 @@ import { render, screen } from '@testing-library/react';
 import { CorrespondenceList } from './list';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { CorrespondenceRevision } from '@/types/correspondence';
+import userEvent from '@testing-library/user-event';
+
+const mockRouterPush = vi.hoisted(() => vi.fn());
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: mockRouterPush }),
+  usePathname: () => '/correspondences',
+  useSearchParams: () => new URLSearchParams(),
+}));
 
 vi.mock('@/lib/stores/auth-store', () => ({
   useAuthStore: vi.fn(),
@@ -122,6 +131,21 @@ describe('CorrespondenceList Component', () => {
     render(<CorrespondenceList data={mockRevisions} />);
     const editButtons = screen.getAllByTitle('Edit');
     expect(editButtons.length).toBeGreaterThan(0);
+  });
+
+  it('ควรเปิดหน้า metadata edit เมื่อกด row action', async () => {
+    const user = userEvent.setup();
+    render(<CorrespondenceList data={[mockRevisions[0]]} />);
+
+    const actionButtons = screen.getAllByRole('button');
+    await user.click(actionButtons[actionButtons.length - 1]);
+    await user.click(
+      await screen.findByText(/แก้ไขข้อมูลกำกับ|Edit Metadata|document\.metadata\.title/i)
+    );
+
+    expect(mockRouterPush).toHaveBeenCalledWith(
+      '/correspondences/019505a1-7c3e-7000-8000-corr1111111?revId=019505a1-7c3e-7000-8000-rev111111111&action=edit-metadata'
+    );
   });
 
   it('ควรซ่อนปุ่มแก้ไขหากผู้ใช้ไม่มีสิทธิ์แก้ไข', () => {

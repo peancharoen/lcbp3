@@ -35,6 +35,10 @@ export interface SearchContractDrawingDto {
   volumeId?: number | string; // ADR-019: Accept UUID
   mapCatId?: number | string; // ADR-019: Accept UUID
   search?: string; // ค้นหาจาก Title หรือ Number
+  documentNumber?: string;
+  createdDate?: string;
+  sortBy?: 'documentNumber' | 'createdAt';
+  sortOrder?: 'ASC' | 'DESC';
 
   page?: number; // Default: 1
   limit?: number; // Default: 20

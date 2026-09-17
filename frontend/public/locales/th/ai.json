@@ -169,6 +169,8 @@
     "requires_human_review_badge": "ต้องตรวจสอบ",
     "ocr_quality_title": "คุณภาพ OCR",
     "ocr_quality_confidence": "ความมั่นใจ OCR",
+    "ocr_quality_unavailable": "ไม่มีผลลัพธ์",
+    "ocr_hard_failure_guidance": "AI ไม่สามารถประเมินคุณภาพ OCR ได้ กรุณาตรวจเอกสารและข้อความ OCR ด้วยตนเอง แล้วกดรับทราบก่อน Execute Import",
     "ocr_quality_issues": "ปัญหาการอ่านข้อความ",
     "tag_is_new_badge": "ใหม่",
     "tag_evidence_tooltip": "ข้อความตัวอย่างจากเอกสารที่สนับสนุนแท็กนี้",

@@ -137,6 +137,8 @@
     "requires_human_review_badge": "Needs Review",
     "ocr_quality_title": "OCR Quality",
     "ocr_quality_confidence": "OCR Confidence",
+    "ocr_quality_unavailable": "Unavailable",
+    "ocr_hard_failure_guidance": "AI could not assess OCR quality. Review the document and OCR text manually, then acknowledge before Execute Import.",
     "ocr_quality_issues": "Readability Issues",
     "tag_is_new_badge": "New",
     "tag_evidence_tooltip": "Excerpt from the document supporting this tag suggestion",

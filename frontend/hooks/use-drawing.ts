@@ -63,7 +63,7 @@ export function useDrawings(type: DrawingType, params: DrawingSearchParams) {
             publicId: d.publicId || (d as unknown as { id: string }).id,
             type: 'SHOP',
             title: d.currentRevision?.title || 'Untitled',
-            revision: d.currentRevision?.revisionNumber,
+            revision: d.currentRevision?.revisionLabel ?? d.currentRevision?.revisionNumber,
             currentRevisionPublicId: d.currentRevision?.publicId,
             legacyDrawingNumber: d.currentRevision?.legacyDrawingNumber,
           }));
@@ -79,7 +79,7 @@ export function useDrawings(type: DrawingType, params: DrawingSearchParams) {
             publicId: d.publicId || (d as unknown as { id: string }).id,
             type: 'AS_BUILT',
             title: d.currentRevision?.title || 'Untitled',
-            revision: d.currentRevision?.revisionNumber,
+            revision: d.currentRevision?.revisionLabel ?? d.currentRevision?.revisionNumber,
             currentRevisionPublicId: d.currentRevision?.publicId,
           }));
           // Re-wrap to preserve meta

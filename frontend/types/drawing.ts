@@ -2,6 +2,7 @@
 export interface DrawingRevision {
   publicId: string; // ADR-019: public identifier
   revisionNumber: string;
+  revisionLabel?: string;
   title?: string; // Added
   legacyDrawingNumber?: string; // Added
   revisionDate: string;

@@ -1,5 +1,9 @@
 'use client';
 
+// File: frontend/components/correspondences/list.tsx
+// Change Log:
+// - 2026-09-17: เชื่อม row actions เข้าหน้า detail dialogs และเปิด full edit หลัง submit สำหรับ Admin/Superadmin
+
 import { CorrespondenceRevision } from '@/types/correspondence';
 import { DataTable } from '@/components/common/data-table';
 import { ColumnDef } from '@tanstack/react-table';
@@ -7,10 +11,12 @@ import { StatusBadge } from '@/components/common/status-badge';
 import { Button } from '@/components/ui/button';
 import { Eye, Edit } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { DocumentRowActions } from '@/components/documents/document-row-actions';
 import { getDocumentActionConfig } from '@/components/documents/document-action-strategy';
+import { DocumentListHeader } from '@/components/documents/common/document-list-header';
 
 interface CorrespondenceListProps {
   data: CorrespondenceRevision[];
@@ -18,23 +24,19 @@ interface CorrespondenceListProps {
   onRowSelectionChange?: (value: Record<string, boolean>) => void;
 }
 
-export function CorrespondenceList({
-  data,
-  rowSelection,
-  onRowSelectionChange,
-}: CorrespondenceListProps) {
+export function CorrespondenceList({ data, rowSelection, onRowSelectionChange }: CorrespondenceListProps) {
   const { user, hasPermission } = useAuthStore();
-  const privilegedEditableStatuses = ['SUBCSC', 'SUBOWN', 'IN_REVIEW_CSC'];
+  const router = useRouter();
 
   const columns: ColumnDef<CorrespondenceRevision>[] = [
     {
       accessorKey: 'correspondence.correspondenceNumber',
-      header: 'Document No.',
+      header: () => <DocumentListHeader title="Document No." field="documentNumber" filter="text" />,
       cell: ({ row }) => <span className="font-medium">{row.original.correspondence?.correspondenceNumber}</span>,
     },
     {
       accessorKey: 'revisionLabel',
-      header: 'Rev',
+      header: () => <DocumentListHeader title="Rev" field="revision" filter="text" />,
       cell: ({ row }) => (
         <span className="font-medium">{row.original.revisionLabel || row.original.revisionNumber}</span>
       ),
@@ -68,7 +70,9 @@ export function CorrespondenceList({
       accessorKey: 'correspondence.project.projectCode',
       header: 'Project',
       cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground">{row.original.correspondence?.project?.projectCode || '-'}</span>
+        <span className="text-sm text-muted-foreground">
+          {row.original.correspondence?.project?.projectCode || '-'}
+        </span>
       ),
     },
     {
@@ -87,12 +91,19 @@ export function CorrespondenceList({
     },
     {
       accessorKey: 'createdAt',
-      header: 'Created',
+      header: () => <DocumentListHeader title="Created" field="createdAt" filter="date" />,
       cell: ({ row }) => format(new Date(row.getValue('createdAt')), 'dd MMM yyyy'),
     },
     {
       accessorKey: 'status.statusName',
-      header: 'Status',
+      header: () => (
+        <DocumentListHeader
+          title="Status"
+          field="status"
+          filter="status"
+          statusOptions={['DRAFT', 'IN_REVIEW', 'APPROVED', 'CANCELLED']}
+        />
+      ),
       cell: ({ row }) => <StatusBadge status={row.original.status?.statusCode || 'UNKNOWN'} />,
     },
     {
@@ -109,11 +120,7 @@ export function CorrespondenceList({
         const isPrivilegedEditRole = ['SUPERADMIN', 'SUPER_ADMIN', 'ADMIN', 'DC', 'DOCUMENT_CONTROL'].includes(
           normalizedRole
         );
-        const canEditInStatus =
-          statusCode === 'DRAFT' ||
-          (typeof statusCode === 'string' &&
-            privilegedEditableStatuses.includes(statusCode) &&
-            isPrivilegedEditRole);
+        const canEditInStatus = statusCode !== 'CANCELLED' && (statusCode === 'DRAFT' || isPrivilegedEditRole);
         const canEdit = canEditInStatus && (hasPermission('correspondence.edit') || isPrivilegedEditRole);
 
         if (!docUuid) {
@@ -136,9 +143,9 @@ export function CorrespondenceList({
             )}
             <DocumentRowActions
               config={getDocumentActionConfig('CORRESPONDENCE')}
-              onCancel={() => {/* TODO: open cancel dialog */}}
-              onHardDelete={() => {/* TODO: open hard-delete dialog */}}
-              onMetadataEdit={() => {/* TODO: open metadata edit dialog */}}
+              onCancel={() => router.push(`/correspondences/${docUuid}?action=cancel`)}
+              onHardDelete={() => router.push(`/correspondences/${docUuid}?action=hard-delete`)}
+              onMetadataEdit={() => router.push(`/correspondences/${docUuid}?revId=${revId}&action=edit-metadata`)}
             />
           </div>
         );

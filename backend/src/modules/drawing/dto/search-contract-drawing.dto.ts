@@ -1,4 +1,11 @@
-import { IsInt, IsOptional, IsString, IsUUID } from 'class-validator';
+import {
+  IsDateString,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class SearchContractDrawingDto {
@@ -17,7 +24,6 @@ export class SearchContractDrawingDto {
 
   @IsOptional()
   @IsInt()
-  @IsOptional()
   mapCatId?: number; // Optional: ใส่ ?
 
   @IsOptional()
@@ -37,4 +43,20 @@ export class SearchContractDrawingDto {
   @IsOptional()
   @IsString()
   type?: string;
+
+  @IsOptional()
+  @IsString()
+  documentNumber?: string;
+
+  @IsOptional()
+  @IsDateString()
+  createdDate?: string;
+
+  @IsOptional()
+  @IsIn(['documentNumber', 'createdAt'])
+  sortBy?: 'documentNumber' | 'createdAt';
+
+  @IsOptional()
+  @IsIn(['ASC', 'DESC'])
+  sortOrder?: 'ASC' | 'DESC';
 }

@@ -356,6 +356,7 @@ export class TransmittalService {
         'revision.isCurrent = :isCurrent',
         { isCurrent: true }
       )
+      .leftJoinAndSelect('revision.status', 'status')
       .leftJoinAndSelect('transmittal.items', 'items')
       .leftJoinAndSelect('items.itemCorrespondence', 'itemCorrespondence');
 
@@ -379,8 +380,47 @@ export class TransmittalService {
       );
     }
 
+    if (query.documentNumber) {
+      queryBuilder.andWhere(
+        'correspondence.correspondenceNumber LIKE :documentNumber',
+        { documentNumber: `%${query.documentNumber}%` }
+      );
+    }
+    if (query.revision) {
+      queryBuilder.andWhere(
+        'CAST(revision.revisionNumber AS CHAR) = :revision',
+        {
+          revision: query.revision,
+        }
+      );
+    }
+    if (query.createdDate) {
+      const createdDateEnd = new Date(`${query.createdDate}T00:00:00.000Z`);
+      createdDateEnd.setUTCDate(createdDateEnd.getUTCDate() + 1);
+      queryBuilder.andWhere(
+        'correspondence.createdAt >= :createdDate AND correspondence.createdAt < :createdDateEnd',
+        {
+          createdDate: query.createdDate,
+          createdDateEnd: createdDateEnd.toISOString(),
+        }
+      );
+    }
+    if (query.status) {
+      queryBuilder.andWhere('status.statusCode = :status', {
+        status: query.status,
+      });
+    }
+    const sortColumns = {
+      documentNumber: 'correspondence.correspondenceNumber',
+      revision: 'revision.revisionNumber',
+      createdAt: 'correspondence.createdAt',
+      status: 'status.statusCode',
+    } as const;
+    const sortBy = query.sortBy ?? 'createdAt';
+    const sortOrder = query.sortOrder ?? 'DESC';
+
     const [items, total] = await queryBuilder
-      .orderBy('correspondence.createdAt', 'DESC')
+      .orderBy(sortColumns[sortBy], sortOrder)
       .skip(skip)
       .take(limit)
       .getManyAndCount();

@@ -9,6 +9,10 @@ export interface SearchCirculationDto {
 
   /** กรองตาม correspondence publicId (ADR-019) */
   correspondencePublicId?: string;
+  documentNumber?: string;
+  createdDate?: string;
+  sortBy?: 'documentNumber' | 'createdAt' | 'status';
+  sortOrder?: 'ASC' | 'DESC';
 
   page?: number;
 

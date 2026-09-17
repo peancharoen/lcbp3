@@ -1,4 +1,11 @@
-import { IsInt, IsOptional, IsString, IsUUID } from 'class-validator';
+import {
+  IsDateString,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class SearchShopDrawingDto {
@@ -33,4 +40,24 @@ export class SearchShopDrawingDto {
   @IsInt()
   @Type(() => Number)
   limit: number = 20; // มีค่า Default
+
+  @IsOptional()
+  @IsString()
+  documentNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  revision?: string;
+
+  @IsOptional()
+  @IsDateString()
+  createdDate?: string;
+
+  @IsOptional()
+  @IsIn(['documentNumber', 'revision', 'createdAt'])
+  sortBy?: 'documentNumber' | 'revision' | 'createdAt';
+
+  @IsOptional()
+  @IsIn(['ASC', 'DESC'])
+  sortOrder?: 'ASC' | 'DESC';
 }

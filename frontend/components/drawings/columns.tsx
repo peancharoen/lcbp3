@@ -3,7 +3,7 @@
 import { ColumnDef } from '@tanstack/react-table';
 import { Drawing } from '@/types/drawing';
 import { Button } from '@/components/ui/button';
-import { ArrowUpDown, MoreHorizontal, Pencil, Upload } from 'lucide-react';
+import { MoreHorizontal, Pencil, Upload } from 'lucide-react';
 import Link from 'next/link';
 import {
   DropdownMenu,
@@ -15,18 +15,13 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { DocumentRowActions } from '@/components/documents/document-row-actions';
 import { getDocumentActionConfig } from '@/components/documents/document-action-strategy';
+import { DocumentListHeader } from '@/components/documents/common/document-list-header';
 
-export const columns: ColumnDef<Drawing>[] = [
+export function createDrawingColumns(type: 'CONTRACT' | 'SHOP' | 'AS_BUILT'): ColumnDef<Drawing>[] {
+  return [
   {
     accessorKey: 'drawingNumber',
-    header: ({ column }) => {
-      return (
-        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-          Drawing No.
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      );
-    },
+    header: () => <DocumentListHeader title="Drawing No." field="documentNumber" filter="text" />,
   },
   {
     accessorKey: 'title',
@@ -34,8 +29,10 @@ export const columns: ColumnDef<Drawing>[] = [
   },
   {
     accessorKey: 'revision',
-    header: 'Revision',
-    cell: ({ row }) => row.original.revision || '-',
+    header: () => type === 'CONTRACT'
+      ? <span>Revision</span>
+      : <DocumentListHeader title="Revision" field="revision" filter="text" />,
+    cell: ({ row }) => type === 'CONTRACT' ? '-' : row.original.revision || '-',
   },
   {
     accessorKey: 'legacyDrawingNumber',
@@ -43,12 +40,17 @@ export const columns: ColumnDef<Drawing>[] = [
     cell: ({ row }) => row.original.legacyDrawingNumber || '-',
   },
   {
-    accessorKey: 'updatedAt',
-    header: 'Last Updated',
+    accessorKey: 'createdAt',
+    header: () => <DocumentListHeader title="Created" field="createdAt" filter="date" />,
     cell: ({ row }) => {
-      const date = new Date(row.original.updatedAt || '');
+      const date = new Date(row.original.createdAt || '');
       return isNaN(date.getTime()) ? '-' : date.toLocaleDateString();
     },
+  },
+  {
+    id: 'status',
+    header: 'Status',
+    cell: () => '-',
   },
   {
     id: 'actions',
@@ -97,4 +99,5 @@ export const columns: ColumnDef<Drawing>[] = [
       );
     },
   },
-];
+  ];
+}

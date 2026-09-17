@@ -138,6 +138,10 @@ export class ContractDrawingService {
       volumeId,
       mapCatId,
       search,
+      documentNumber,
+      createdDate,
+      sortBy = 'documentNumber',
+      sortOrder = 'ASC',
       page = 1,
       limit = 20,
     } = searchDto;
@@ -170,7 +174,21 @@ export class ContractDrawingService {
       );
     }
 
-    query.orderBy('drawing.contractDrawingNo', 'ASC');
+    if (documentNumber) {
+      query.andWhere('drawing.contractDrawingNo LIKE :documentNumber', {
+        documentNumber: `%${documentNumber}%`,
+      });
+    }
+
+    if (createdDate) {
+      query.andWhere('DATE(drawing.createdAt) = :createdDate', { createdDate });
+    }
+
+    const sortColumns = {
+      documentNumber: 'drawing.contractDrawingNo',
+      createdAt: 'drawing.createdAt',
+    } as const;
+    query.orderBy(sortColumns[sortBy], sortOrder);
 
     const skip = (page - 1) * limit;
     query.skip(skip).take(limit);

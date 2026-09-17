@@ -1,5 +1,6 @@
 // File: frontend/components/migration/__tests__/review-detail-page.test.tsx
 // Change Log:
+// - 2026-09-17: เพิ่ม regression test สำหรับ aiFailed ที่ไม่มี ocrQuality แต่ต้อง acknowledge ก่อน import
 // - 2026-09-14: T019/T023 (ADR-054) — migrate fixtures to new contract: reviewState.* first-class
 //   (fieldResolutions ย้ายออกจาก details), storageTempPath แทน details.source_file_path และ
 //   เพิ่ม test ว่า CompareResultTable ได้รับ compareResult/capturedThresholds จาก details
@@ -387,6 +388,24 @@ describe('MigrationReviewPage — detail page diagnostics', () => {
     // The Select trigger is a button with role="combobox"
     const categoryCombobox = screen.getByRole('combobox', { name: /Category/i });
     expect(categoryCombobox).toBeInTheDocument();
+  });
+
+  it('shows OCR acknowledgment for AI hard-failure even when ocrQuality details are absent', async () => {
+    mockGetQueueItem.mockResolvedValueOnce({
+      ...mockItem,
+      documentNumber: 'LCBP3-C2-MAT-OTH-MAT-0002-A',
+      aiFailed: true,
+      aiSuggestedCorrespondenceType: null,
+      details: { aiFailureReason: 'SCHEMA_VALIDATION_FAILED' },
+    });
+
+    render(<MigrationReviewPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/LCBP3-C2-MAT-OTH-MAT-0002-A/)).toBeInTheDocument();
+    });
+    expect(screen.getByTestId('ocr-quality-section')).toBeInTheDocument();
+    expect(screen.getByTestId('acknowledge-ocrQuality')).toBeInTheDocument();
   });
 
   // --- T041-T045: Tag accept/reject UI (US3) ---

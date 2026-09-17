@@ -1,5 +1,6 @@
 // File: app/(admin)/admin/migration/review/[id]/page.tsx
 // Change Log:
+// - 2026-09-17: แสดง OCR hard-failure acknowledgment แม้ไม่มี ocrQuality เพื่อให้ manual review commit ผ่าน gate ได้
 // - 2026-09-16: เพิ่มปุ่ม "เปลี่ยนไฟล์" + ReplaceFileDialog (เลือกจาก staging /
 //   อัปโหลดจากเครื่อง → PATCH /migration/queue/:publicId/file → auto re-extract)
 //   และส่ง attachmentPublicId ให้ StagingFileViewer เป็น fallback สำหรับไฟล์
@@ -786,7 +787,7 @@ export default function MigrationReviewPage() {
 
                 {/* ADR-050 (T037): OCR Quality section — "hard to read" diagnostic (FR-004)
                     distinct block จาก metadata.confidence และ aiIssues (FR-009, /106 finding I1) */}
-                {ocrQuality && (
+                {(ocrQuality || item.aiFailed) && (
                   <div
                     data-testid="ocr-quality-section"
                     className="mt-4 p-3 rounded-md border border-blue-200 bg-blue-50/50 dark:border-blue-900 dark:bg-blue-950/40 space-y-2"
@@ -796,11 +797,21 @@ export default function MigrationReviewPage() {
                         <ShieldAlertIcon className="h-4 w-4" />
                         {migrationReviewT('ocr_quality_title')}
                       </h3>
-                      <span className={`font-mono text-sm font-semibold ${getConfidenceColor(ocrQuality.confidence)}`}>
-                        {migrationReviewT('ocr_quality_confidence')}: {formatConfidence(ocrQuality.confidence)}
+                      <span
+                        className={`font-mono text-sm font-semibold ${ocrQuality ? getConfidenceColor(ocrQuality.confidence) : 'text-red-600 dark:text-red-400'}`}
+                      >
+                        {migrationReviewT('ocr_quality_confidence')}:{' '}
+                        {ocrQuality
+                          ? formatConfidence(ocrQuality.confidence)
+                          : migrationReviewT('ocr_quality_unavailable')}
                       </span>
                     </div>
-                    {ocrQuality.issues.length > 0 && (
+                    {!ocrQuality && item.aiFailed && (
+                      <p className="text-xs text-red-700 dark:text-red-300">
+                        {migrationReviewT('ocr_hard_failure_guidance')}
+                      </p>
+                    )}
+                    {ocrQuality && ocrQuality.issues.length > 0 && (
                       <div className="space-y-1.5">
                         <p className="text-xs font-medium text-muted-foreground">
                           {migrationReviewT('ocr_quality_issues')}

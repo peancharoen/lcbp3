@@ -16,6 +16,7 @@ import { ForceCloseDialog } from '@/components/circulation/force-close-dialog';
 import { circulationService } from '@/lib/services/circulation.service';
 import { useTranslations } from '@/hooks/use-translations';
 import { parseApiError } from '@/lib/api/client';
+import { DocumentListHeader } from '@/components/documents/common/document-list-header';
 import { AxiosError } from 'axios';
 import { toast } from 'sonner';
 
@@ -76,7 +77,7 @@ export function CirculationList({ data }: CirculationListProps) {
   const columns: ColumnDef<Circulation>[] = [
     {
       accessorKey: 'circulationNo',
-      header: 'Circulation No.',
+      header: () => <DocumentListHeader title="Document No." field="documentNumber" filter="text" />,
       cell: ({ row }) => <span className="font-medium">{row.getValue('circulationNo')}</span>,
     },
     {
@@ -98,7 +99,14 @@ export function CirculationList({ data }: CirculationListProps) {
     },
     {
       accessorKey: 'statusCode',
-      header: 'Status',
+      header: () => (
+        <DocumentListHeader
+          title="Status"
+          field="status"
+          filter="status"
+          statusOptions={['DRAFT', 'ACTIVE', 'IN_PROGRESS', 'COMPLETED', 'CLOSED']}
+        />
+      ),
       cell: ({ row }) => {
         const status = row.getValue('statusCode') as string;
         return <Badge variant={getStatusVariant(status)}>{status}</Badge>;
@@ -125,7 +133,7 @@ export function CirculationList({ data }: CirculationListProps) {
     },
     {
       accessorKey: 'createdAt',
-      header: 'Created',
+      header: () => <DocumentListHeader title="Created" field="createdAt" filter="date" />,
       cell: ({ row }) => format(new Date(row.getValue('createdAt')), 'dd MMM yyyy'),
     },
     {
@@ -145,8 +153,12 @@ export function CirculationList({ data }: CirculationListProps) {
                 setForceCloseItem(item);
                 setShowForceClose(true);
               }}
-              onHardDelete={() => {/* TODO: open hard-delete dialog */}}
-              onMetadataEdit={() => {/* TODO: open metadata edit dialog */}}
+              onHardDelete={() => {
+                /* TODO: open hard-delete dialog */
+              }}
+              onMetadataEdit={() => {
+                /* TODO: open metadata edit dialog */
+              }}
             />
           </div>
         );

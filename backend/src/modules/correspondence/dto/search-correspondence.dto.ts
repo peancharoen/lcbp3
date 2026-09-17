@@ -1,4 +1,14 @@
-import { IsOptional, IsString, IsInt } from 'class-validator';
+// File: backend/src/modules/correspondence/dto/search-correspondence.dto.ts
+// Change Log:
+// - 2026-09-17: เพิ่ม server-side document list filters และ allow-listed sorting
+
+import {
+  IsOptional,
+  IsString,
+  IsInt,
+  IsIn,
+  IsDateString,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -42,6 +52,26 @@ export class SearchCorrespondenceDto {
   @IsOptional()
   @IsString()
   revisionStatus?: 'CURRENT' | 'ALL' | 'OLD';
+
+  @IsOptional()
+  @IsString()
+  documentNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  revision?: string;
+
+  @IsOptional()
+  @IsDateString()
+  createdDate?: string;
+
+  @IsOptional()
+  @IsIn(['documentNumber', 'revision', 'createdAt', 'status'])
+  sortBy?: 'documentNumber' | 'revision' | 'createdAt' | 'status';
+
+  @IsOptional()
+  @IsIn(['ASC', 'DESC'])
+  sortOrder?: 'ASC' | 'DESC';
 
   @ApiPropertyOptional({ description: 'Page number (default 1)', default: 1 })
   @IsOptional()

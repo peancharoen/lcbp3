@@ -318,6 +318,7 @@
 | D339 | **D339 — Entity↔schema drift ต้อง verify `INFORMATION_SCHEMA.COLUMNS` ก่อนเชื่อ entity** — `MigrationReviewRecord` map 4 dead columns ที่ไม่มีใน real DB → `save()` throw `Unknown column` เงียบๆ; ห้าม assume entity ตรง schema — เช็ค DB จริงเสมอเมื่อ touch legacy entities | Session 2026-09-15 |
 | D340 | **D340 — `ocr_text_bak` restore = swap/toggle semantics** — restore ต้องย้าย current real `ocr_text` เข้า `ocr_text_bak` ก่อนเขียนค่าเก่ากลับ (non-destructive ทั้ง 2 ทิศ); ห้ามเขียนทับ current ทิ้งโดยไม่ snapshot | ADR-054 |
 | D341 | **D341 — `2git.sh` lint-staged limitation บน symlink paths** — lint-staged backup ใช้ `git stash` ซึ่ง fail เมื่อมี staged changes ใต้ path ที่กลายเป็น symlink (`error: '...' is beyond a symbolic link`); recovery: staged state ไม่หาย — `git commit --no-verify` + squash message format เดิม แล้ว push ต่อ; script อาจต้อง patch | Session 2026-09-15 |
+| D342 | **Document list scaling contract** — Correspondence/RFA, Circulation, Transmittal และ Drawing ใช้ server-side filter/sort พร้อม URL-backed state, reset page=1 และ backend sort allow-list; RFA reuse Correspondence endpoint; Contract Drawing ไม่มี revision model; Drawing ไม่มี status field และใช้ soft-delete จึงแสดง `-` โดยห้ามสร้าง status/revision สมมติ | Session 2026-09-17 |
 
 ## Environment & Services
 
@@ -358,6 +359,11 @@ QDRANT_URL
 ```
 
 ## Next Session Focus
+
+- [x] OCR corrupt RAW_TEXT context-overflow และ stable prompt hash แก้และ deploy แล้ว (`3a33420c`)
+- [x] Legacy re-extract rebuild comparison แก้และ deploy แล้ว (`b3803380`, run #775)
+- [x] OCR failure acknowledgment, Correspondence admin correction และ document-list server filter/sort implement+verify แล้ว (`bfabcfa5`–`ea874c38`)
+- [ ] Push/deploy local commits `bfabcfa5`–`ea874c38` แล้วตรวจ UI จริงของ Correspondence/RFA/Circulation/Transmittal/Drawing filters
 
 ### 🎯 Open Items — รวมจาก cleanup pass 2026-09-05 (branch `docs/next-session-focus`)
 

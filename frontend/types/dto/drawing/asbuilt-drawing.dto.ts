@@ -34,6 +34,11 @@ export interface CreateAsBuiltDrawingRevisionDto {
 export interface SearchAsBuiltDrawingDto {
   projectUuid: string;
   search?: string;
+  documentNumber?: string;
+  revision?: string;
+  createdDate?: string;
+  sortBy?: 'documentNumber' | 'revision' | 'createdAt';
+  sortOrder?: 'ASC' | 'DESC';
 
   page?: number; // Default: 1
   limit?: number; // Default: 20

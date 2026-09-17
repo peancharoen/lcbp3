@@ -2,9 +2,10 @@
 
 import { useDrawings } from '@/hooks/use-drawing';
 import { useState } from 'react';
-import { PaginationState, SortingState } from '@tanstack/react-table';
+import { PaginationState, SortingState, Updater } from '@tanstack/react-table';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ServerDataTable } from '@/components/documents/common/server-data-table';
-import { columns } from './columns';
+import { createDrawingColumns } from './columns';
 
 import { SearchContractDrawingDto } from '@/types/dto/drawing/contract-drawing.dto';
 import { SearchShopDrawingDto } from '@/types/dto/drawing/shop-drawing.dto';
@@ -20,12 +21,33 @@ interface DrawingListProps {
 }
 
 export function DrawingList({ type, projectUuid, filters, onSelectionChange }: DrawingListProps) {
-  const [pagination, setPagination] = useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 20,
-  });
-  const [sorting, setSorting] = useState<SortingState>([]);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const page = Number(searchParams.get('page') ?? 1);
+  const limit = Number(searchParams.get('limit') ?? 20);
+  const sortBy = searchParams.get('sortBy');
+  const sortOrder = searchParams.get('sortOrder');
+  const pagination: PaginationState = { pageIndex: Math.max(page - 1, 0), pageSize: limit };
+  const sorting: SortingState = sortBy ? [{ id: sortBy, desc: sortOrder === 'DESC' }] : [];
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
+  const columns = createDrawingColumns(type);
+
+  const updateQuery = (changes: Record<string, string>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    Object.entries(changes).forEach(([key, value]) => params.set(key, value));
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const handlePaginationChange = (updater: Updater<PaginationState>) => {
+    const next = typeof updater === 'function' ? updater(pagination) : updater;
+    updateQuery({ page: String(next.pageIndex + 1), limit: String(next.pageSize) });
+  };
+
+  const handleSortingChange = (updater: Updater<SortingState>) => {
+    const next = typeof updater === 'function' ? updater(sorting) : updater;
+    if (next[0]) updateQuery({ sortBy: next[0].id, sortOrder: next[0].desc ? 'DESC' : 'ASC', page: '1' });
+  };
 
   const handleRowSelectionChange = (value: Record<string, boolean>) => {
     setRowSelection(value);
@@ -43,6 +65,11 @@ export function DrawingList({ type, projectUuid, filters, onSelectionChange }: D
   } = useDrawings(type, {
     projectUuid,
     ...filters,
+    documentNumber: searchParams.get('documentNumber') || undefined,
+    revision: type === 'CONTRACT' ? undefined : searchParams.get('revision') || undefined,
+    createdDate: searchParams.get('createdDate') || undefined,
+    sortBy: sortBy === 'revision' && type === 'CONTRACT' ? undefined : sortBy || undefined,
+    sortOrder: sortOrder === 'ASC' || sortOrder === 'DESC' ? sortOrder : undefined,
     page: pagination.pageIndex + 1, // API is 1-based
     limit: pagination.pageSize,
   } as DrawingSearchParams);
@@ -72,9 +99,9 @@ export function DrawingList({ type, projectUuid, filters, onSelectionChange }: D
         data={drawings}
         pageCount={meta.totalPages}
         pagination={pagination}
-        onPaginationChange={setPagination}
+        onPaginationChange={handlePaginationChange}
         sorting={sorting}
-        onSortingChange={setSorting}
+        onSortingChange={handleSortingChange}
         isLoading={isLoading}
         enableRowSelection
         rowSelection={rowSelection}

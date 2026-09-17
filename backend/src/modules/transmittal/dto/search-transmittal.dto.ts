@@ -1,4 +1,16 @@
-import { IsInt, IsOptional, IsString, IsEnum, IsUUID } from 'class-validator';
+// File: backend/src/modules/transmittal/dto/search-transmittal.dto.ts
+// Change Log:
+// - 2026-09-17: เพิ่ม server-side column filter/sort
+
+import {
+  IsInt,
+  IsOptional,
+  IsString,
+  IsEnum,
+  IsUUID,
+  IsIn,
+  IsDateString,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { TransmittalPurpose } from './create-transmittal.dto';
 
@@ -17,6 +29,15 @@ export class SearchTransmittalDto {
   @IsString()
   @IsOptional()
   search?: string; // ค้นหาจากเลขที่เอกสาร หรือ remarks
+
+  @IsOptional() @IsString() documentNumber?: string;
+  @IsOptional() @IsString() revision?: string;
+  @IsOptional() @IsDateString() createdDate?: string;
+  @IsOptional() @IsString() status?: string;
+  @IsOptional()
+  @IsIn(['documentNumber', 'revision', 'createdAt', 'status'])
+  sortBy?: 'documentNumber' | 'revision' | 'createdAt' | 'status';
+  @IsOptional() @IsIn(['ASC', 'DESC']) sortOrder?: 'ASC' | 'DESC';
 
   @IsOptional()
   @IsInt()

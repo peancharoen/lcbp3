@@ -47,9 +47,9 @@ describe('TransmittalList', () => {
     expect(screen.getByTestId('row-count')).toHaveTextContent('1 rows');
   });
 
-  it('ควร pass columns ถูกต้องให้ DataTable (6 columns)', () => {
+  it('ควร pass columns ถูกต้องให้ DataTable (8 columns)', () => {
     render(<TransmittalList data={[mockTransmittal]} />);
-    expect(screen.getByTestId('col-count')).toHaveTextContent('6 columns');
+    expect(screen.getByTestId('col-count')).toHaveTextContent('8 columns');
   });
 
   it('ควร return null เมื่อ data เป็น null/undefined', () => {

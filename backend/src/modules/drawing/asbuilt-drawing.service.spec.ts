@@ -310,6 +310,32 @@ describe('AsBuiltDrawingService', () => {
         { search: '%AB%' }
       );
     });
+
+    it('ควรกรองเลขที่ revision และวันที่สร้างจาก server query', async () => {
+      mockQB.getManyAndCount.mockResolvedValue([[], 0]);
+      mockAsBuiltRepo.createQueryBuilder.mockReturnValue(mockQB);
+
+      await service.findAll({
+        projectUuid: 'uuid-001',
+        projectId: 1,
+        documentNumber: 'AB-01',
+        revision: 'B',
+        createdDate: '2026-09-17',
+      });
+
+      expect(mockQB.andWhere).toHaveBeenCalledWith(
+        'abd.drawingNumber LIKE :documentNumber',
+        { documentNumber: '%AB-01%' }
+      );
+      expect(mockQB.andWhere).toHaveBeenCalledWith(
+        expect.stringContaining('asbuilt_drawing_revisions'),
+        { revision: '%B%' }
+      );
+      expect(mockQB.andWhere).toHaveBeenCalledWith(
+        'DATE(abd.createdAt) = :createdDate',
+        { createdDate: '2026-09-17' }
+      );
+    });
   });
 
   describe('findOne', () => {

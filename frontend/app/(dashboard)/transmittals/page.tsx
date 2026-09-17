@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { TransmittalListResponse } from '@/types/transmittal';
 import { TransmittalPurpose } from '@/types/dto/transmittal/transmittal.dto';
 import { BulkActionBar } from '@/components/documents/bulk-action-bar';
@@ -26,6 +27,21 @@ const PURPOSE_OPTIONS: { value: TransmittalPurpose | ''; label: string }[] = [
 ];
 
 export default function TransmittalPage() {
+  const searchParams = useSearchParams();
+  const listQuery = {
+    documentNumber: searchParams.get('documentNumber') || undefined,
+    revision: searchParams.get('revision') || undefined,
+    createdDate: searchParams.get('createdDate') || undefined,
+    status: searchParams.get('status') || undefined,
+    sortBy: (searchParams.get('sortBy') || undefined) as
+      | 'documentNumber'
+      | 'revision'
+      | 'createdAt'
+      | 'status'
+      | undefined,
+    sortOrder: (searchParams.get('sortOrder') || undefined) as 'ASC' | 'DESC' | undefined,
+    page: Number(searchParams.get('page') || '1'),
+  };
   // ADR-019: Dynamic project selection via UUID
   const [selectedProjectUuid, setSelectedProjectUuid] = useState<string>('');
   const [selectedPurpose, setSelectedPurpose] = useState<TransmittalPurpose | ''>('');
@@ -40,19 +56,17 @@ export default function TransmittalPage() {
   const projects = projectsData?.data || projectsData || [];
 
   const { data, isLoading, error, refetch } = useQuery<TransmittalListResponse>({
-    queryKey: ['transmittals', selectedProjectUuid, selectedPurpose],
+    queryKey: ['transmittals', selectedProjectUuid, selectedPurpose, listQuery],
     queryFn: () =>
       transmittalService.getAll({
         projectId: selectedProjectUuid,
         ...(selectedPurpose ? { purpose: selectedPurpose } : {}),
+        ...listQuery,
       }),
     enabled: !!selectedProjectUuid,
   });
 
-  const selectedIds = useMemo(
-    () => Object.keys(rowSelection).filter((key) => rowSelection[key]),
-    [rowSelection]
-  );
+  const selectedIds = useMemo(() => Object.keys(rowSelection).filter((key) => rowSelection[key]), [rowSelection]);
 
   const { bulkCancel, bulkTag, bulkExport, isBulkCancelling } = useBulkActions({
     documentType: 'TRANSMITTAL',
@@ -124,11 +138,7 @@ export default function TransmittalPage() {
           <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <TransmittalList
-          data={data?.data || []}
-          rowSelection={rowSelection}
-          onRowSelectionChange={setRowSelection}
-        />
+        <TransmittalList data={data?.data || []} rowSelection={rowSelection} onRowSelectionChange={setRowSelection} />
       )}
 
       <BulkActionBar

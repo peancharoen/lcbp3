@@ -34,6 +34,11 @@ export interface SearchShopDrawingDto {
   mainCategoryId?: number | string; // ADR-019: Accept UUID
   subCategoryId?: number | string; // ADR-019: Accept UUID
   search?: string;
+  documentNumber?: string;
+  revision?: string;
+  createdDate?: string;
+  sortBy?: 'documentNumber' | 'revision' | 'createdAt';
+  sortOrder?: 'ASC' | 'DESC';
 
   page?: number; // Default: 1
   limit?: number; // Default: 20

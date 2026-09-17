@@ -1,5 +1,6 @@
 // File: src/modules/correspondence/correspondence.service.ts
 // Change Log:
+// 2026-09-17 | อนุญาต Admin/Superadmin แก้ content หลัง submit โดยคง workflow state และ audit เดิม
 // 2026-09-16 | Fix prod 500: ย้าย fileStorageService.commit() ออกมาก่อน startTransaction
 //             ทั้ง create() และ update() — commit อัปเดต attachments ผ่าน global repo
 //             (autocommit) กลาง TX ทำให้ FK check ของ correspondence_revision_attachments
@@ -554,6 +555,11 @@ export class CorrespondenceService {
       projectId,
       statusId,
       status,
+      documentNumber,
+      revision,
+      createdDate,
+      sortBy = 'createdAt',
+      sortOrder = 'DESC',
       page = 1,
       limit = 10,
     } = searchDto;
@@ -600,9 +606,32 @@ export class CorrespondenceService {
         { search: `%${search}%` }
       );
     }
-
-    // Default Sort: Latest Created
-    query.orderBy('rev.createdAt', 'DESC').skip(skip).take(limit);
+    if (documentNumber) {
+      query.andWhere('corr.correspondenceNumber LIKE :documentNumber', {
+        documentNumber: `%${documentNumber}%`,
+      });
+    }
+    if (revision) {
+      query.andWhere(
+        '(rev.revisionLabel LIKE :revision OR CAST(rev.revisionNumber AS CHAR) = :revisionExact)',
+        { revision: `%${revision}%`, revisionExact: revision }
+      );
+    }
+    if (createdDate) {
+      const createdDateEnd = new Date(`${createdDate}T00:00:00.000Z`);
+      createdDateEnd.setUTCDate(createdDateEnd.getUTCDate() + 1);
+      query.andWhere(
+        'rev.createdAt >= :createdDate AND rev.createdAt < :createdDateEnd',
+        { createdDate, createdDateEnd: createdDateEnd.toISOString() }
+      );
+    }
+    const sortColumns = {
+      documentNumber: 'corr.correspondenceNumber',
+      revision: 'rev.revisionNumber',
+      createdAt: 'rev.createdAt',
+      status: 'status.statusCode',
+    } as const;
+    query.orderBy(sortColumns[sortBy], sortOrder).skip(skip).take(limit);
 
     const [items, total] = await query.getManyAndCount();
 
@@ -823,22 +852,10 @@ export class CorrespondenceService {
           throw new PermissionException('correspondence', 'edit non-draft');
         }
 
-        // non-DRAFT: ห้ามแก้ไข content fields (subject/body/description/details) ต้องใช้ metadata patch
-        const hasContentChanges =
-          updateDto.subject !== undefined ||
-          updateDto.body !== undefined ||
-          updateDto.description !== undefined ||
-          updateDto.details !== undefined;
-        if (hasContentChanges) {
-          throw new BusinessException(
-            'CONTENT_EDIT_AFTER_SUBMIT',
-            'Content fields cannot be edited after DRAFT status',
-            'เอกสารที่ไม่อยู่ในสถานะ DRAFT ไม่สามารถแก้ไขเนื้อหาได้',
-            [
-              'ใช้ PATCH /correspondences/:uuid/metadata สำหรับการแก้ไข metadata',
-            ]
-          );
-        }
+        // Admin/Superadmin ใช้ correspondence.cancel/system.manage_all เป็น policy override
+        // เพื่อแก้ข้อมูลผิดพลาดหลัง submit โดยไม่เปลี่ยน workflow state; @Audit ที่ controller
+        // บันทึกการแก้ไขทุกครั้ง ส่วนผู้ใช้อื่นถูกปฏิเสธโดย permission gate ด้านบนแล้ว
+        // (ผู้ใช้ทั่วไปยังแก้ content ได้เฉพาะ DRAFT)
       }
     }
 
