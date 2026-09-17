@@ -216,6 +216,13 @@ OCR_TIMEOUT = int(os.getenv("OCR_TIMEOUT", "360"))  # รองรับ cold-st
 OCR_SIDECAR_UPLOAD_BASE = os.getenv("OCR_SIDECAR_UPLOAD_BASE", "/mnt/uploads")
 OCR_ACTIVE_PROFILE = os.getenv("OCR_ACTIVE_PROFILE")
 
+# เพดานความยาวของ RAW_TEXT (text layer ที่ typhoon_ocr ดึงจาก PDF มาใส่ prompt เป็น hint)
+# PDF ที่ text layer เสีย — เช่น per-character position dump "[460x56]ส[489x56]ุ…"
+# จากการสแกน — อาจผลิตหลายพันตัวอักษรต่อหน้า รวมกับ image tokens (~3000+) แล้วเกิน
+# num_ctx (8192) → Ollama ตอบ 400 → OCR ล้มเหลวทั้งเอกสาร (incident 2026-09-17)
+# raw text เป็นเพียง hint เสริม image จึงตัดท้ายได้อย่างปลอดภัย
+OCR_RAW_TEXT_MAX_CHARS = int(os.getenv("OCR_RAW_TEXT_MAX_CHARS", "2000"))
+
 logger.info(f"OCR Sidecar initialized (model={OCR_MODEL}, ollama={OLLAMA_API_URL})")
 
 def filter_ocr_noise(text: str) -> str:
@@ -231,6 +238,41 @@ def filter_ocr_noise(text: str) -> str:
             continue
         filtered.append(line)
     return "\n".join(filtered)
+
+def _find_raw_text_bounds(prompt: str) -> 'tuple[int, int] | None':
+    """หา boundary ของเนื้อหา raw text ระหว่าง RAW_TEXT_START และ RAW_TEXT_END"""
+    if "RAW_TEXT_START" not in prompt or "RAW_TEXT_END" not in prompt:
+        return None
+    start = prompt.index("RAW_TEXT_START") + len("RAW_TEXT_START")
+    end = prompt.index("RAW_TEXT_END")
+    if end <= start:
+        return None
+    return (start, end)
+
+def truncate_raw_text_section(prompt: str) -> str:
+    """ตัดเนื้อหา RAW_TEXT ให้ไม่เกิน OCR_RAW_TEXT_MAX_CHARS — กัน prompt เกิน num_ctx"""
+    bounds = _find_raw_text_bounds(prompt)
+    if bounds is None:
+        return prompt
+    start, end = bounds
+    raw = prompt[start:end].strip()
+    if len(raw) <= OCR_RAW_TEXT_MAX_CHARS:
+        return prompt
+    logger.info(
+        f"RAW_TEXT section oversized ({len(raw)} chars) — truncating to "
+        f"{OCR_RAW_TEXT_MAX_CHARS} to fit num_ctx"
+    )
+    return f"{prompt[:start]}\n{raw[:OCR_RAW_TEXT_MAX_CHARS]}…[truncated]\n{prompt[end:]}"
+
+def strip_raw_text_section(prompt: str) -> str:
+    """ลบเนื้อหา RAW_TEXT ออกจาก prompt — ใช้เฉพาะตอนคำนวณ prompt hash
+    เพราะ raw text เป็น per-page content ไม่ใช่ prompt config (ถ้า hash รวมไว้
+    จะเปลี่ยนทุกหน้า → prompt cache สั่ง unload+reload model ทุกหน้าโดยไม่จำเป็น)"""
+    bounds = _find_raw_text_bounds(prompt)
+    if bounds is None:
+        return prompt
+    start, end = bounds
+    return f"{prompt[:start]}\n{prompt[end:]}"
 
 def validate_pdf_path(pdf_path: str) -> Path:
     """Canonicalize path และยืนยันว่าอยู่ใต้ OCR_SIDECAR_UPLOAD_BASE"""
@@ -448,6 +490,10 @@ async def _process_ocr_impl(
         elif item.get("type") == "text":
             base_user_prompt = item.get("text", "")
 
+    # จำกัดขนาด RAW_TEXT ก่อนใช้ทุก path — ทั้ง default prompt (else-branch ด้านล่าง)
+    # และ typhoon_raw_text ที่ inject เข้า backend user_prompt ล้วนมาจาก base_user_prompt
+    base_user_prompt = truncate_raw_text_section(base_user_prompt)
+
     # ADR-040 D2: เมื่อ backend ส่ง userPrompt มาเอง ให้ inject raw text (Page dimensions + Image info)
     # จาก typhoon_ocr ระหว่าง RAW_TEXT_START และ RAW_TEXT_END เพื่อให้ model มี image metadata
     # ไม่เช่นนั้น model จะ echo training prompt format เพราะเห็น prompt ว่างเปล่า
@@ -476,7 +522,10 @@ async def _process_ocr_impl(
     effective_system = (system_prompt or "").strip()
     if dms_text:
         effective_system = f"{effective_system}\n\n{dms_text}".strip() if effective_system else dms_text
-    effective_prompt = f"[SYSTEM]\n{effective_system}\n\n[USER]\n{chosen_user_prompt}"
+    # hash บน prompt ที่ strip RAW_TEXT ออก — raw text เป็น per-page content (text layer
+    # ของแต่ละหน้า) ไม่ใช่ prompt config ที่ admin เปลี่ยน ถ้า hash รวมไว้จะเปลี่ยนทุกหน้า
+    # → prompt cache สั่ง unload+reload model ทุกหน้า เสียเวลา ~3-5s/หน้า และเพิ่ม VRAM churn
+    effective_prompt = f"[SYSTEM]\n{effective_system}\n\n[USER]\n{strip_raw_text_section(chosen_user_prompt)}"
 
     # Feature-142: Prompt cache invalidation — ตรวจจับ prompt เปลี่ยน และ unload ก่อน inference
     # ทำหลัง residency calculation เพื่อให้ log แสดง keep_alive context (T015)

@@ -177,7 +177,8 @@ export class RagBatchService {
       );
       return;
     }
-    const jobId = `rag-prepare:${payload.documentPublicId}:${payload.revisionNumber}`;
+    // BullMQ ห้าม ':' ใน custom jobId (incident 2026-09-16 PATCH queue/:id/file 500)
+    const jobId = `rag-prepare-${payload.documentPublicId}-${payload.revisionNumber}`;
     try {
       await this.aiBatchQueue.add(
         'rag-prepare',

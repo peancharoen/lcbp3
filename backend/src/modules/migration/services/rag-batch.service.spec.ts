@@ -483,4 +483,43 @@ describe('RagBatchService (Feature 242)', () => {
       expect(result.enqueued).toBe(0);
     });
   });
+
+  describe('enqueueRagPrepare', () => {
+    const payload = {
+      documentPublicId: 'corr-uuid-1',
+      projectPublicId: 'proj-uuid-1',
+      correspondenceNumber: 'DOC-1',
+      docType: 'LETTER',
+      statusCode: 'CLBOWN',
+      revisionNumber: 3,
+      subject: 'Test',
+    };
+
+    it('enqueues with jobId without ":" (BullMQ rejects custom ids containing colon)', async () => {
+      // Regression 2026-09-17: jobId เดิม `rag-prepare:${id}:${rev}` ทำให้
+      // queue.add throw "Custom Id cannot contain :" แล้วถูก swallow เป็น log error
+      await service.enqueueRagPrepare(payload);
+
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        'rag-prepare',
+        expect.objectContaining({ jobType: 'rag-prepare' }),
+        expect.objectContaining({
+          jobId: 'rag-prepare-corr-uuid-1-3',
+        })
+      );
+      const addCalls = mockQueue.add.mock.calls as [
+        string,
+        unknown,
+        { jobId: string },
+      ][];
+      expect(addCalls[0][2].jobId).not.toContain(':');
+    });
+
+    it('does not throw when queue is not available', async () => {
+      (service as unknown as { aiBatchQueue: unknown }).aiBatchQueue =
+        undefined;
+      await expect(service.enqueueRagPrepare(payload)).resolves.toBeUndefined();
+      expect(mockQueue.add).not.toHaveBeenCalled();
+    });
+  });
 });

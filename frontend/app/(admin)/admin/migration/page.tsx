@@ -82,12 +82,8 @@ function LegacyManagementTab() {
         status: statusFilter === 'ALL' ? undefined : (statusFilter as MigrationReviewStatus),
         aiStatus: aiStatusFilter === 'ALL' ? undefined : (aiStatusFilter as MigrationAiStatus),
         batchId: batchFilter === 'ALL' ? undefined : batchFilter,
-        correspondenceType:
-          correspondenceTypeFilter === 'ALL' ? undefined : correspondenceTypeFilter,
-        confidenceBucket:
-          confidenceBucketFilter === 'ALL'
-            ? undefined
-            : (confidenceBucketFilter as ConfidenceBucket),
+        correspondenceType: correspondenceTypeFilter === 'ALL' ? undefined : correspondenceTypeFilter,
+        confidenceBucket: confidenceBucketFilter === 'ALL' ? undefined : (confidenceBucketFilter as ConfidenceBucket),
         page,
         limit: pageSize,
       });
@@ -138,13 +134,12 @@ function LegacyManagementTab() {
 
   // ADR-019: toggle โดยใช้ publicId (string)
   // ADR-047: "Select All" เลือกรายการทั้งหมดในหน้าปัจจุบัน แต่ละ action จะ filter ตามสถานะเอง
-  const isExecutable = (item: typeof items[number]) =>
-    item.status === MigrationReviewStatus.PENDING_REVIEW &&
-    item.aiStatus === MigrationAiStatus.DONE;
+  const isExecutable = (item: (typeof items)[number]) =>
+    item.status === MigrationReviewStatus.PENDING_REVIEW && item.aiStatus === MigrationAiStatus.DONE;
 
   // ADR-047: ห้าม re-extract รายการที่มี BullMQ job อยู่แล้ว (aiJobId != null)
   // ยกเว้น FAILED ที่อนุญาตให้ retry ได้ — ป้องกัน duplicate jobs ใน BullMQ
-  const isExtractable = (item: typeof items[number]) =>
+  const isExtractable = (item: (typeof items)[number]) =>
     item.status === MigrationReviewStatus.PENDING &&
     item.aiStatus !== MigrationAiStatus.RUNNING &&
     item.aiStatus !== MigrationAiStatus.DONE &&
@@ -167,9 +162,7 @@ function LegacyManagementTab() {
   // ADR-047: Batch start OCR/AI extract — ใช้ publicId สำหรับรายการ PENDING
   const handleBatchExtract = async () => {
     if (selectedPublicIds.length === 0) return;
-    const extractable = items.filter(
-      (i) => selectedPublicIds.includes(i.publicId) && isExtractable(i)
-    );
+    const extractable = items.filter((i) => selectedPublicIds.includes(i.publicId) && isExtractable(i));
     if (extractable.length === 0) {
       toast.warning('ไม่มีรายการทีสามารถเริ่ม Extract ได้');
       return;
@@ -225,10 +218,7 @@ function LegacyManagementTab() {
               typeof item.storageTempPath === 'string' && item.storageTempPath.length > 0
                 ? item.storageTempPath
                 : undefined,
-            disciplineId:
-              typeof item.details?.disciplineId === 'number'
-                ? item.details.disciplineId
-                : undefined,
+            disciplineId: typeof item.details?.disciplineId === 'number' ? item.details.disciplineId : undefined,
             details: { tags: item.extractedTags },
           },
         }));
@@ -237,8 +227,24 @@ function LegacyManagementTab() {
         return;
       }
       const batchId = `BATCH_UI_${Date.now()}`;
-      await migrationService.commitBatch({ items: batchItems, batchId }, batchId);
-      toast.success(`Execute Import ${batchItems.length} รายการเรียบร้อย`);
+      const result = await migrationService.commitBatch({ items: batchItems, batchId }, batchId);
+      // per-item failures ไม่ throw — ต้องอ่าน result.failed/errors เอง
+      // (flagged items โดน MIGRATION_REQUIRES_MANUAL_REVIEW ต้องเปิด review ทีละรายการ)
+      const failedCount = typeof result?.failed === 'number' ? result.failed : 0;
+      if (failedCount > 0) {
+        const failedIds = new Set(
+          (Array.isArray(result?.errors) ? result.errors : []).map((e: { queuePublicId?: string }) => e.queuePublicId)
+        );
+        const failedDocs = items.filter((i) => failedIds.has(i.publicId)).map((i) => i.documentNumber);
+        toast.warning(`Import สำเร็จ ${result?.processed ?? 0} / ล้มเหลว ${failedCount} รายการ`, {
+          description:
+            failedDocs.slice(0, 5).join(', ') +
+            (failedDocs.length > 5 ? ` +${failedDocs.length - 5} รายการ` : '') +
+            ' — รายการที่ถูก flag ต้องเปิดหน้า Review ทีละรายการ',
+        });
+      } else {
+        toast.success(`Execute Import ${batchItems.length} รายการเรียบร้อย`);
+      }
       await fetchData();
     } catch (_error) {
       toast.error('Batch import failed.');
@@ -274,301 +280,300 @@ function LegacyManagementTab() {
 
   return (
     <div className="space-y-6">
-      <LegacyIngestionCard onIngestionStarted={() => { fetchData(); fetchBatches(); }} />
+      <LegacyIngestionCard
+        onIngestionStarted={() => {
+          fetchData();
+          fetchBatches();
+        }}
+      />
 
       <Card>
         <CardHeader>
           <div className="flex flex-wrap justify-between items-center gap-4">
             <CardTitle>Legacy Review Queue</CardTitle>
-          <div className="flex items-center gap-3 flex-wrap">
-            {selectedPublicIds.length > 0 && (
-              <>
-                <Button
-                  variant="outline"
-                  onClick={handleBatchExtract}
-                  disabled={submitting}
-                >
-                  <RefreshCwIcon className="mr-2 h-4 w-4" />
-                  {submitting
-                    ? 'Processing...'
-                    : `Start Extract (${selectedPublicIds.length})`}
+            <div className="flex items-center gap-3 flex-wrap">
+              {selectedPublicIds.length > 0 && (
+                <>
+                  <Button variant="outline" onClick={handleBatchExtract} disabled={submitting}>
+                    <RefreshCwIcon className="mr-2 h-4 w-4" />
+                    {submitting ? 'Processing...' : `Start Extract (${selectedPublicIds.length})`}
+                  </Button>
+                  <Button variant="default" onClick={handleBatchExecuteImport} disabled={submitting}>
+                    <CheckCircleIcon className="mr-2 h-4 w-4" />
+                    {submitting
+                      ? 'Processing...'
+                      : `Execute Import (${items.filter(isExecutable).filter((i) => selectedPublicIds.includes(i.publicId)).length})`}
+                  </Button>
+                </>
+              )}
+              <Link href="/admin/migration/errors">
+                <Button variant="outline">
+                  <FileXIcon className="mr-2 h-4 w-4" /> View Errors
                 </Button>
-                <Button
-                  variant="default"
-                  onClick={handleBatchExecuteImport}
-                  disabled={submitting}
-                >
-                  <CheckCircleIcon className="mr-2 h-4 w-4" />
-                  {submitting
-                    ? 'Processing...'
-                    : `Execute Import (${items.filter(isExecutable).filter((i) => selectedPublicIds.includes(i.publicId)).length})`}
-                </Button>
-              </>
-            )}
-            <Link href="/admin/migration/errors">
-              <Button variant="outline">
-                <FileXIcon className="mr-2 h-4 w-4" /> View Errors
+              </Link>
+              <Select value={batchFilter} onValueChange={applyFilter(setBatchFilter)}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Batch" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All Batches</SelectItem>
+                  {batchOptions.map((b) => (
+                    <SelectItem key={b} value={b}>
+                      {b}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={deleting || (selectedPublicIds.length === 0 && items.length === 0)}
+                size="sm"
+              >
+                {deleting
+                  ? 'กำลังลบ...'
+                  : selectedPublicIds.length > 0
+                    ? `ลบที่เลือก (${selectedPublicIds.length})`
+                    : 'ลบทั้งหมด'}
               </Button>
-            </Link>
-            <Select value={batchFilter} onValueChange={applyFilter(setBatchFilter)}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Batch" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">All Batches</SelectItem>
-                {batchOptions.map((b) => (
-                  <SelectItem key={b} value={b}>{b}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleting || (selectedPublicIds.length === 0 && items.length === 0)}
-              size="sm"
-            >
-              {deleting
-                ? 'กำลังลบ...'
-                : selectedPublicIds.length > 0
-                  ? `ลบที่เลือก (${selectedPublicIds.length})`
-                  : 'ลบทั้งหมด'}
-            </Button>
+            </div>
           </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {errorMessage && (
-          <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-            {errorMessage}
-          </div>
-        )}
-        {/* ตาราง + header ต้อง render เสมอ — filter Selects อยู่ใน TableHead
+        </CardHeader>
+        <CardContent>
+          {errorMessage && (
+            <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+              {errorMessage}
+            </div>
+          )}
+          {/* ตาราง + header ต้อง render เสมอ — filter Selects อยู่ใน TableHead
             ถ้าซ่อนทั้งตารางตอนไม่มีข้อมูล user จะเปลี่ยน filter กลับไม่ได้ (ต้อง reload) */}
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[50px]" />
-                <TableHead>
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      checked={items.length > 0 && selectedPublicIds.length === items.length}
-                      onCheckedChange={handleToggleSelectAll}
-                      aria-label="เลือกรายการทั้งหมดในหน้านี้"
-                    />
-                    <span>Document No.</span>
-                  </div>
-                </TableHead>
-                <TableHead>
-                  <Select
-                    value={correspondenceTypeFilter}
-                    onValueChange={applyFilter(setCorrespondenceTypeFilter)}
-                  >
-                    <SelectTrigger className="h-8 w-[150px] text-xs">
-                      <SelectValue placeholder="Correspondence Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ALL">ทุก Type</SelectItem>
-                      {correspondenceTypeOptions.map((ct) => (
-                        <SelectItem key={ct.typeCode} value={ct.typeCode}>
-                          {ct.typeCode}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </TableHead>
-                <TableHead>Issued Date</TableHead>
-                <TableHead>Received Date</TableHead>
-                <TableHead>Sender</TableHead>
-                <TableHead>Receiver</TableHead>
-                <TableHead>
-                  <Select
-                    value={confidenceBucketFilter}
-                    onValueChange={applyFilter(setConfidenceBucketFilter)}
-                  >
-                    <SelectTrigger className="h-8 w-[130px] text-xs">
-                      <SelectValue placeholder="Confidence" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ALL">ทุก Confidence</SelectItem>
-                      <SelectItem value="high">&gt; 80%</SelectItem>
-                      <SelectItem value="mid">50–80%</SelectItem>
-                      <SelectItem value="low">≤ 50%</SelectItem>
-                      <SelectItem value="missing">N/A</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </TableHead>
-                <TableHead>
-                  <Select value={aiStatusFilter} onValueChange={applyFilter(setAiStatusFilter)}>
-                    <SelectTrigger className="h-8 w-[130px] text-xs">
-                      <SelectValue placeholder="AI Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ALL">ทุก AI Status</SelectItem>
-                      {Object.values(MigrationAiStatus).map((s) => (
-                        <SelectItem key={s} value={s}>{s}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </TableHead>
-                <TableHead>
-                  <Select value={statusFilter} onValueChange={applyFilter(setStatusFilter)}>
-                    <SelectTrigger className="h-8 w-[130px] text-xs">
-                      <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ALL">ทุก Status</SelectItem>
-                      {Object.values(MigrationReviewStatus).map((s) => (
-                        <SelectItem key={s} value={s}>{s}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </TableHead>
-                <TableHead>Created At</TableHead>
-                <TableHead className="text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={10} className="h-32 text-center text-muted-foreground">
-                    Loading queue...
-                  </TableCell>
-                </TableRow>
-              ) : items.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={10} className="h-32 text-center text-muted-foreground">
-                    No items in the queue.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                items.map((item) => (
-                  // ADR-019: ใช้ publicId เป็น key
-                  <TableRow key={item.publicId}>
-                    <TableCell>
+                  <TableHead className="w-[50px]" />
+                  <TableHead>
+                    <div className="flex items-center gap-2">
                       <Checkbox
-                        checked={selectedPublicIds.includes(item.publicId)}
-                        onCheckedChange={() => handleToggleSelect(item.publicId)}
-                        aria-label={`Select item ${item.publicId}`}
+                        checked={items.length > 0 && selectedPublicIds.length === items.length}
+                        onCheckedChange={handleToggleSelectAll}
+                        aria-label="เลือกรายการทั้งหมดในหน้านี้"
                       />
-                    </TableCell>
-                    <TableCell className="font-medium">{item.documentNumber}</TableCell>
-                    <TableCell>{item.aiSuggestedCorrespondenceTypeName || item.aiSuggestedCorrespondenceType || 'Unknown'}</TableCell>
-                    <TableCell>{item.issuedDate ? format(new Date(item.issuedDate), 'dd/MM/yyyy') : '—'}</TableCell>
-                    <TableCell>{item.receivedDate ? format(new Date(item.receivedDate), 'dd/MM/yyyy') : '—'}</TableCell>
-                    <TableCell>{item.senderOrganizationCode ?? '—'}</TableCell>
-                    <TableCell>{item.receiverOrganizationCode ?? '—'}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          !item.aiConfidence
-                            ? 'destructive'
-                            : item.aiConfidence > 0.8
-                              ? 'default'
-                              : item.aiConfidence > 0.5
-                                ? 'secondary'
-                                : 'destructive'
-                        }
-                      >
-                        {item.aiConfidence ? (item.aiConfidence * 100).toFixed(1) + '%' : 'N/A'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          item.aiStatus === 'DONE'
-                            ? 'default'
-                            : item.aiStatus === 'RUNNING'
-                              ? 'secondary'
-                              : item.aiStatus === 'FAILED'
-                                ? 'destructive'
-                                : item.aiStatus === 'WAITING'
-                                  ? 'secondary'
-                                  : 'outline'
-                        }
-                      >
-                        {item.aiStatus || 'PENDING'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          item.status === 'PENDING'
-                            ? 'outline'
-                            : item.status === 'PENDING_REVIEW'
-                              ? 'default'
-                              : item.status === 'IMPORTED'
-                                ? 'default'
-                                : 'destructive'
-                        }
-                      >
-                        {item.status}
-                      </Badge>
-                      {item.aiFailed && (
-                        <Badge variant="destructive" className="ml-1 text-xs">
-                          AI Failed
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>{format(new Date(item.createdAt), 'dd MMM yyyy, HH:mm')}</TableCell>
-                    <TableCell className="text-right">
-                      {/* ADR-019: ใช้ publicId ใน route */}
-                      <Link href={`/admin/migration/review/${item.publicId}`}>
-                        <Button size="sm" variant="ghost">
-                          <EyeIcon className="h-4 w-4 mr-2" /> Review
-                        </Button>
-                      </Link>
+                      <span>Document No.</span>
+                    </div>
+                  </TableHead>
+                  <TableHead>
+                    <Select value={correspondenceTypeFilter} onValueChange={applyFilter(setCorrespondenceTypeFilter)}>
+                      <SelectTrigger className="h-8 w-[150px] text-xs">
+                        <SelectValue placeholder="Correspondence Type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ALL">ทุก Type</SelectItem>
+                        {correspondenceTypeOptions.map((ct) => (
+                          <SelectItem key={ct.typeCode} value={ct.typeCode}>
+                            {ct.typeCode}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableHead>
+                  <TableHead>Issued Date</TableHead>
+                  <TableHead>Received Date</TableHead>
+                  <TableHead>Sender</TableHead>
+                  <TableHead>Receiver</TableHead>
+                  <TableHead>
+                    <Select value={confidenceBucketFilter} onValueChange={applyFilter(setConfidenceBucketFilter)}>
+                      <SelectTrigger className="h-8 w-[130px] text-xs">
+                        <SelectValue placeholder="Confidence" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ALL">ทุก Confidence</SelectItem>
+                        <SelectItem value="high">&gt; 80%</SelectItem>
+                        <SelectItem value="mid">50–80%</SelectItem>
+                        <SelectItem value="low">≤ 50%</SelectItem>
+                        <SelectItem value="missing">N/A</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </TableHead>
+                  <TableHead>
+                    <Select value={aiStatusFilter} onValueChange={applyFilter(setAiStatusFilter)}>
+                      <SelectTrigger className="h-8 w-[130px] text-xs">
+                        <SelectValue placeholder="AI Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ALL">ทุก AI Status</SelectItem>
+                        {Object.values(MigrationAiStatus).map((s) => (
+                          <SelectItem key={s} value={s}>
+                            {s}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableHead>
+                  <TableHead>
+                    <Select value={statusFilter} onValueChange={applyFilter(setStatusFilter)}>
+                      <SelectTrigger className="h-8 w-[130px] text-xs">
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ALL">ทุก Status</SelectItem>
+                        {Object.values(MigrationReviewStatus).map((s) => (
+                          <SelectItem key={s} value={s}>
+                            {s}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableHead>
+                  <TableHead>Created At</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="h-32 text-center text-muted-foreground">
+                      Loading queue...
                     </TableCell>
                   </TableRow>
-                ))
+                ) : items.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="h-32 text-center text-muted-foreground">
+                      No items in the queue.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  items.map((item) => (
+                    // ADR-019: ใช้ publicId เป็น key
+                    <TableRow key={item.publicId}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedPublicIds.includes(item.publicId)}
+                          onCheckedChange={() => handleToggleSelect(item.publicId)}
+                          aria-label={`Select item ${item.publicId}`}
+                        />
+                      </TableCell>
+                      <TableCell className="font-medium">{item.documentNumber}</TableCell>
+                      <TableCell>
+                        {item.aiSuggestedCorrespondenceTypeName || item.aiSuggestedCorrespondenceType || 'Unknown'}
+                      </TableCell>
+                      <TableCell>{item.issuedDate ? format(new Date(item.issuedDate), 'dd/MM/yyyy') : '—'}</TableCell>
+                      <TableCell>
+                        {item.receivedDate ? format(new Date(item.receivedDate), 'dd/MM/yyyy') : '—'}
+                      </TableCell>
+                      <TableCell>{item.senderOrganizationCode ?? '—'}</TableCell>
+                      <TableCell>{item.receiverOrganizationCode ?? '—'}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            !item.aiConfidence
+                              ? 'destructive'
+                              : item.aiConfidence > 0.8
+                                ? 'default'
+                                : item.aiConfidence > 0.5
+                                  ? 'secondary'
+                                  : 'destructive'
+                          }
+                        >
+                          {item.aiConfidence ? (item.aiConfidence * 100).toFixed(1) + '%' : 'N/A'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            item.aiStatus === 'DONE'
+                              ? 'default'
+                              : item.aiStatus === 'RUNNING'
+                                ? 'secondary'
+                                : item.aiStatus === 'FAILED'
+                                  ? 'destructive'
+                                  : item.aiStatus === 'WAITING'
+                                    ? 'secondary'
+                                    : 'outline'
+                          }
+                        >
+                          {item.aiStatus || 'PENDING'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            item.status === 'PENDING'
+                              ? 'outline'
+                              : item.status === 'PENDING_REVIEW'
+                                ? 'default'
+                                : item.status === 'IMPORTED'
+                                  ? 'default'
+                                  : 'destructive'
+                          }
+                        >
+                          {item.status}
+                        </Badge>
+                        {item.aiFailed && (
+                          <Badge variant="destructive" className="ml-1 text-xs">
+                            AI Failed
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>{format(new Date(item.createdAt), 'dd MMM yyyy, HH:mm')}</TableCell>
+                      <TableCell className="text-right">
+                        {/* ADR-019: ใช้ publicId ใน route */}
+                        <Link href={`/admin/migration/review/${item.publicId}`}>
+                          <Button size="sm" variant="ghost">
+                            <EyeIcon className="h-4 w-4 mr-2" /> Review
+                          </Button>
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          {/* Pagination + row count — เลขหน้ากระโดดข้ามได้ (window ±2 รอบหน้าปัจจุบัน) */}
+          <div className="flex items-center justify-between mt-4 pt-4 border-t">
+            <div className="text-sm text-muted-foreground">
+              ทั้งหมด {totalRows} รายการ (หน้า {page}/{totalPages})
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page <= 1 || loading}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                ก่อนหน้า
+              </Button>
+              {getPageNumbers(page, totalPages).map((p, idx) =>
+                p === 'ellipsis' ? (
+                  <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">
+                    …
+                  </span>
+                ) : (
+                  <Button
+                    key={p}
+                    variant={p === page ? 'default' : 'outline'}
+                    size="sm"
+                    className="min-w-[36px]"
+                    disabled={loading}
+                    onClick={() => setPage(p)}
+                  >
+                    {p}
+                  </Button>
+                )
               )}
-            </TableBody>
-          </Table>
-        </div>
-        {/* Pagination + row count — เลขหน้ากระโดดข้ามได้ (window ±2 รอบหน้าปัจจุบัน) */}
-        <div className="flex items-center justify-between mt-4 pt-4 border-t">
-          <div className="text-sm text-muted-foreground">
-            ทั้งหมด {totalRows} รายการ (หน้า {page}/{totalPages})
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages || loading}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                ถัดไป
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1 || loading}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-            >
-              ก่อนหน้า
-            </Button>
-            {getPageNumbers(page, totalPages).map((p, idx) =>
-              p === 'ellipsis' ? (
-                <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">
-                  …
-                </span>
-              ) : (
-                <Button
-                  key={p}
-                  variant={p === page ? 'default' : 'outline'}
-                  size="sm"
-                  className="min-w-[36px]"
-                  disabled={loading}
-                  onClick={() => setPage(p)}
-                >
-                  {p}
-                </Button>
-              )
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= totalPages || loading}
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            >
-              ถัดไป
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
     </div>
   );
 }

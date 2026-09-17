@@ -315,6 +315,7 @@ describe('MigrationReviewService', () => {
     isLegacyExtractionShape: jest.Mock;
     getAllowedCategoryCodes: jest.Mock;
     parseExtractionDetails: jest.Mock;
+    assertNotAlreadyImported: jest.Mock;
   };
   let mockReviewThresholdService: { getThresholds: jest.Mock };
   let mockSearchService: { indexDocument: jest.Mock };
@@ -357,6 +358,7 @@ describe('MigrationReviewService', () => {
           (raw: unknown) =>
             raw as Partial<MigrationAiExtractionDetails> | null | undefined
         ),
+      assertNotAlreadyImported: jest.fn(),
     };
 
     // ADR-050 T016 — default threshold เดียวกับ DEFAULT_REVIEW_THRESHOLDS (0.6)

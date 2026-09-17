@@ -469,6 +469,8 @@ export class MigrationReviewService {
           ['กรุณาตรวจสอบหน้า Review Queue อีกครั้งเพื่อความถูกต้อง']
         );
       }
+      // กัน re-import เมื่อ importedCorrespondencePublicId ค้างอยู่ (stale link case)
+      this.migrationService.assertNotAlreadyImported(queueItem);
       // ADR-050 T016 (FR-013/FR-014): commit gate — block ถ้ามี field confidence ต่ำกว่า
       // threshold ที่ยังไม่ resolved (แก้ไข/รับทราบ)
       const { minConfidence } =

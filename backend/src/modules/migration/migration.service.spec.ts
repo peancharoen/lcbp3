@@ -1963,6 +1963,22 @@ describe('MigrationService', () => {
       ).rejects.toThrow(ConflictException);
     });
 
+    it('throws ConflictException when importedCorrespondencePublicId is set (stale link — already imported)', async () => {
+      // Regression 2026-09-17: item ที่ import แล้วแต่ status ถูก reset กลับ
+      // PENDING_REVIEW ต้องไม่ถูก re-extract — ป้องกัน mismatch + duplicate import
+      mockReviewQueueRepo.findOne.mockResolvedValue({
+        id: 10,
+        publicId: 'queue-uuid-010',
+        status: MigrationReviewStatus.PENDING_REVIEW,
+        aiStatus: MigrationAiStatus.DONE,
+        importedCorrespondencePublicId: 'corr-uuid-010',
+      });
+
+      await expect(
+        service.reExtractQueueItem('queue-uuid-010', 'idem-re-stale', 1)
+      ).rejects.toThrow(ConflictException);
+    });
+
     it('returns currently running when aiStatus is RUNNING', async () => {
       mockReviewQueueRepo.findOne.mockResolvedValue({
         id: 11,
@@ -2363,6 +2379,22 @@ describe('MigrationService', () => {
           'queue-uuid-030',
           { tempAttachmentPublicId: 'att-uuid-1' },
           'idem-rf-3',
+          1
+        )
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('throws ConflictException when importedCorrespondencePublicId is set (stale link)', async () => {
+      mockAttachmentFind.mockResolvedValue([]); // enrichWithAttachments
+      mockReviewQueueRepo.findOne.mockResolvedValue({
+        ...makePendingItem(),
+        importedCorrespondencePublicId: 'corr-uuid-030',
+      });
+      await expect(
+        service.replaceQueueItemFile(
+          'queue-uuid-030',
+          { tempAttachmentPublicId: 'att-uuid-1' },
+          'idem-rf-stale',
           1
         )
       ).rejects.toThrow(ConflictException);
@@ -3491,6 +3523,28 @@ describe('MigrationService', () => {
       expect(queueItem.reviewedAt).toBeInstanceOf(Date);
       expect(mockReviewQueueRepo.save).toHaveBeenCalledWith(queueItem);
       expect(mockReviewQueueRepo.delete).not.toHaveBeenCalled();
+    });
+
+    it('blocks import by publicId when importedCorrespondencePublicId is already set (stale link — no duplicate Correspondence)', async () => {
+      // Regression 2026-09-17: stale link + reset status เคยทำให้ import ซ้ำได้
+      mockReviewQueueRepo.findOne.mockResolvedValue({
+        id: 1,
+        publicId: 'uuid-stale',
+        status: MigrationReviewStatus.PENDING_REVIEW,
+        requiresHumanReview: false,
+        aiFailed: false,
+        importedCorrespondencePublicId: 'corr-uuid-existing',
+      });
+      const dto: ImportCorrespondenceDto = {
+        documentNumber: 'DOC-STALE',
+        subject: 'Stale link',
+        correspondenceType: 'Letter',
+        migratedBy: 'SYSTEM_IMPORT',
+        projectId: 100,
+      };
+      await expect(
+        service.approveQueueItemByPublicId('uuid-stale', dto, 'idem-stale', 1)
+      ).rejects.toThrow(ConflictException);
     });
 
     it('blocks import by publicId when queue item is flagged requiresHumanReview (ADR-050)', async () => {

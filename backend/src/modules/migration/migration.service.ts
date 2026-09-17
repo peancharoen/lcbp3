@@ -1326,6 +1326,9 @@ export class MigrationService {
         jobId: queueItem.aiJobId,
       };
     }
+    // กัน re-extract item ที่ import แล้ว — status guard ข้างบนผ่านได้ถ้า link ค้าง
+    // จาก stale state (incident BATCH-ADR054-E2E-001)
+    this.assertNotAlreadyImported(queueItem);
 
     if (queueItem.aiJobId) {
       try {
@@ -1454,6 +1457,8 @@ export class MigrationService {
         'กำลังประมวลผล AI อยู่ ไม่สามารถเปลี่ยนไฟล์ได้ — รอให้เสร็จก่อน'
       );
     }
+    // กันเปลี่ยนไฟล์บน item ที่ import แล้ว — link ค้างอยู่แต่ status guard ผ่านได้
+    this.assertNotAlreadyImported(queueItem);
 
     // ADR-016: idempotent replay — ถ้า key นี้ถูกบันทึกใน audit แล้ว คืนสถานะเดิม
     const previousReplacements = queueItem.reviewState?.fileReplacements ?? [];
@@ -2208,6 +2213,22 @@ export class MigrationService {
     }
   }
 
+  /**
+   * Guard: queue item ที่ import ไปแล้ว (importedCorrespondencePublicId ค้างอยู่)
+   * ห้าม re-extract / replace file / re-import ทุก path — กัน duplicate Correspondence
+   * และกัน mismatch ที่ status กลับ PENDING_REVIEW ทั้งที่ link ยังชี้เอกสารเดิม
+   * (incident 2026-09-15: BATCH-ADR054-E2E-001 มี correspondence แล้วแต่ถูก import ซ้ำได้)
+   */
+  assertNotAlreadyImported(queueItem: MigrationReviewQueue): void {
+    if (queueItem.importedCorrespondencePublicId) {
+      throw new ConflictException(
+        'MIGRATION_ALREADY_IMPORTED',
+        `Queue item ${queueItem.publicId} already imported as correspondence ${queueItem.importedCorrespondencePublicId}`,
+        'รายการนี้ถูก import เป็น Correspondence ไปแล้ว — ไม่สามารถ re-extract เปลี่ยนไฟล์ หรือ import ซ้ำได้'
+      );
+    }
+  }
+
   async approveQueueItem(
     id: number,
     dto: ImportCorrespondenceDto,
@@ -2231,6 +2252,8 @@ export class MigrationService {
     // ต้องผ่าน commit gate ที่ /ai/migration/review (commitRecord) เท่านั้น — endpoint นี้
     // ไม่มี fieldAcknowledgments/tagDecisions ให้ reviewer resolve field จึง block ตรง ๆ
     this.assertNotFlaggedForReview(queueItem);
+    // กัน import ซ้ำเมื่อ link ค้างอยู่แต่ status ถูก reset กลับ (stale link case)
+    this.assertNotAlreadyImported(queueItem);
 
     // Attempt the import
     const importDto = {
@@ -2292,6 +2315,8 @@ export class MigrationService {
 
     // ADR-050: ดู assertNotFlaggedForReview — /approve เป็น commit path ที่ bypass ได้ก่อนหน้านี้
     this.assertNotFlaggedForReview(queueItem);
+    // กัน import ซ้ำเมื่อ link ค้างอยู่แต่ status ถูก reset กลับ (stale link case)
+    this.assertNotAlreadyImported(queueItem);
 
     const importDto = {
       ...dto,
