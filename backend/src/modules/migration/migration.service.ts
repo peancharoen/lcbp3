@@ -1,5 +1,6 @@
 // File: backend/src/modules/migration/migration.service.ts
 // Change Log:
+// - 2026-09-17: ADR-054 — ส่ง register snapshot เข้า legacy extraction และ persist compare state ใหม่
 // - 2026-09-16: เพิ่ม replaceQueueItemFile (PATCH /migration/queue/:publicId/file) —
 //   เปลี่ยนไฟล์ต้นฉบับจาก staging/Legacy NAS (path-traversal guarded, find-or-create
 //   attachment) หรือ attachment จาก /files/upload + audit ใน reviewState.fileReplacements
@@ -1061,6 +1062,8 @@ export class MigrationService {
       details?: Record<string, unknown> | null;
       requiresHumanReview?: boolean;
       ocrQualityConfidence?: number | null;
+      compareStatus?: CompareStatus;
+      compareUnavailableReason?: string | null;
     }
   ) {
     const queueItem = await this.reviewQueueRepo.findOne({
@@ -1093,6 +1096,10 @@ export class MigrationService {
       if (data.aiFailed !== undefined) queueItem.aiFailed = data.aiFailed;
       if (data.aiStatus !== undefined) queueItem.aiStatus = data.aiStatus;
       if (data.status !== undefined) queueItem.status = data.status;
+      if (data.compareStatus !== undefined)
+        queueItem.compareStatus = data.compareStatus;
+      if (data.compareUnavailableReason !== undefined)
+        queueItem.compareUnavailableReason = data.compareUnavailableReason;
       if (data.details !== undefined) {
         // รวมเข้ากับ details เดิมเสมอ เพื่อรักษา residual ingestion keys ที่ไม่มี
         // dedicated column (original_row_index, unresolved_orgs, original_document_number,
@@ -1218,6 +1225,30 @@ export class MigrationService {
         queuePublicId: queueItem.publicId,
         documentNumber: queueItem.documentNumber,
         pdfPath: pdfPath,
+        // Snapshot ข้อมูลทะเบียนก่อน re-extract เพื่อให้ worker rebuild compareResult
+        // จาก register values เดิม ไม่เปรียบเทียบกับ AI output ที่เพิ่งสร้างเอง
+        excelMetadata: {
+          documentNumber: queueItem.documentNumber,
+          subject: queueItem.subject ?? queueItem.originalSubject ?? '',
+          documentDate:
+            queueItem.issuedDate instanceof Date
+              ? queueItem.issuedDate.toISOString().slice(0, 10)
+              : queueItem.issuedDate
+                ? String(queueItem.issuedDate)
+                : '',
+          correspondenceType:
+            typeof queueItem.details?.['correspondence_type'] === 'string'
+              ? queueItem.details['correspondence_type']
+              : '',
+          discipline:
+            typeof queueItem.details?.['discipline'] === 'string'
+              ? queueItem.details['discipline']
+              : '',
+          revision:
+            typeof queueItem.details?.['revision_number'] === 'string'
+              ? queueItem.details['revision_number']
+              : '',
+        },
         projectPublicId: queueItem.projectId
           ? ((
               await this.projectRepo.findOne({
@@ -1271,6 +1302,7 @@ export class MigrationService {
       documentNumber: string;
       projectId: number | null;
       projectPublicId: string;
+      excelMetadata?: Record<string, unknown>;
     },
     ocrResult: { ocrText: string; ocrFailed: boolean; hasPdf: boolean }
   ): Promise<string> {
@@ -1283,6 +1315,7 @@ export class MigrationService {
         documentNumber: item.documentNumber,
         projectId: item.projectId,
         projectPublicId: item.projectPublicId,
+        excelMetadata: item.excelMetadata,
         ocrText: ocrResult.ocrText,
         ocrFailed: ocrResult.ocrFailed,
         hasPdf: ocrResult.hasPdf,
@@ -1634,6 +1667,7 @@ export class MigrationService {
       pdfPath?: string;
       projectId: number | null;
       projectPublicId: string;
+      excelMetadata: Record<string, unknown>;
     }> = [];
 
     for (const publicId of publicIds) {
@@ -1675,6 +1709,28 @@ export class MigrationService {
           pdfPath,
           projectId: queueItem.projectId ?? null,
           projectPublicId,
+          excelMetadata: {
+            documentNumber: queueItem.documentNumber,
+            subject: queueItem.subject ?? queueItem.originalSubject ?? '',
+            documentDate:
+              queueItem.issuedDate instanceof Date
+                ? queueItem.issuedDate.toISOString().slice(0, 10)
+                : queueItem.issuedDate
+                  ? String(queueItem.issuedDate)
+                  : '',
+            correspondenceType:
+              typeof queueItem.details?.['correspondence_type'] === 'string'
+                ? queueItem.details['correspondence_type']
+                : '',
+            discipline:
+              typeof queueItem.details?.['discipline'] === 'string'
+                ? queueItem.details['discipline']
+                : '',
+            revision:
+              typeof queueItem.details?.['revision_number'] === 'string'
+                ? queueItem.details['revision_number']
+                : '',
+          },
         });
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);

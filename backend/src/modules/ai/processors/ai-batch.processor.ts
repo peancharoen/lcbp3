@@ -1,5 +1,6 @@
 // File: backend/src/modules/ai/processors/ai-batch.processor.ts
 // Change Log
+// - 2026-09-17: ADR-054 — rebuild compareResult/capturedThresholds หลัง legacy re-extract สำเร็จ
 // - 2026-09-16: FR-012a (spec 242) — migrate-document: OCR text ว่าง/สั้นเกินไป และ
 //   LLM compare ล้มเหลวบน attempt สุดท้าย → compareStatus=UNAVAILABLE เข้าคิวตรวจสอบ
 //   แทนการทิ้งรายการไว้ใน error log เพียงอย่างเดียว (non-final attempt ยัง throw เพื่อ retry)
@@ -126,6 +127,7 @@ interface LegacyBatchItem {
   pdfPath?: string;
   projectId: number | null;
   projectPublicId: string;
+  excelMetadata?: Record<string, unknown>;
 }
 
 /** รายการ job types ที่ต้องใช้ np-dms-ocr model — จะ trigger model switching (ADR-034) */
@@ -2344,6 +2346,82 @@ export class AiBatchProcessor extends WorkerHost {
    * และ batch phase 2 (`processLegacyAiMetadataOnly`) — จุดเดียวที่ตัดสิน isHardFailure/
    * aiStatus สุดท้าย ไม่ duplicate logic ระหว่างสอง path
    */
+  /**
+   * คำนวณผลเปรียบเทียบทะเบียนใหม่หลัง legacy extraction สำเร็จ (ADR-054)
+   * ใช้ prompt และ parser ชุดเดียวกับ migrate-document; เมื่อ retry สุดท้ายล้มเหลว
+   * ให้เก็บ UNAVAILABLE แทนการปล่อยข้อความ reset ค้างถาวร
+   */
+  private async rebuildLegacyComparison(params: {
+    ocrText: string;
+    documentNumber: string;
+    excelMetadata: Record<string, unknown>;
+    isFinalAttempt: boolean;
+  }): Promise<{
+    compareResult: CompareResult | null;
+    compareStatus: CompareStatus;
+    compareUnavailableReason: string | null;
+  }> {
+    const { ocrText, documentNumber, excelMetadata, isFinalAttempt } = params;
+    if (ocrText.trim().length < MIN_COMPARE_OCR_CHARS) {
+      return {
+        compareResult: null,
+        compareStatus: CompareStatus.UNAVAILABLE,
+        compareUnavailableReason:
+          'ข้อความจาก OCR ว่างเปล่าหรือสั้นเกินไป ไม่สามารถเปรียบเทียบกับทะเบียนได้',
+      };
+    }
+
+    try {
+      const activePrompt =
+        await this.aiPromptsService.getActive('migration_compare');
+      if (!activePrompt) {
+        throw new Error('No active prompt found for migration_compare');
+      }
+      const resolvedPrompt = activePrompt.template
+        .replace('{{ocr_text}}', ocrText.slice(0, MAX_OCR_TEXT_CHARS))
+        .replace(
+          '{{excel_metadata}}',
+          JSON.stringify(
+            this.buildExcelMetadata({ excelMetadata }, documentNumber),
+            null,
+            2
+          )
+        )
+        .replace(
+          '{{ocr_truncated}}',
+          ocrText.length > MAX_OCR_TEXT_CHARS ? 'true' : 'false'
+        );
+      const aiResponse = await this.ollamaService.generate(resolvedPrompt, {
+        format: 'json',
+        timeoutMs: this.ollamaService.getBatchTimeoutMs(),
+        options: { num_ctx: 16384, num_predict: 4096 },
+      });
+      const compareResult = parseCompareResult(aiResponse);
+      if (!compareResult) {
+        throw new Error(
+          `ไม่สามารถแปลงผลลัพธ์การเปรียบเทียบเป็น JSON ที่ถูกต้องได้: ${aiResponse.substring(0, 200)}`
+        );
+      }
+      return {
+        compareResult,
+        compareStatus: CompareStatus.COMPARED,
+        compareUnavailableReason: null,
+      };
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      this.logger.error(
+        `Legacy comparison failed for ${documentNumber}: ${errorMessage}`
+      );
+      if (!isFinalAttempt) throw err;
+      return {
+        compareResult: null,
+        compareStatus: CompareStatus.UNAVAILABLE,
+        compareUnavailableReason:
+          'ระบบเปรียบเทียบไม่ตอบกลับหรือตอบในรูปแบบที่อ่านไม่ได้',
+      };
+    }
+  }
+
   private async persistLegacyEnrichmentResult(params: {
     queueId: number;
     documentNumber: string;
@@ -2353,6 +2431,13 @@ export class AiBatchProcessor extends WorkerHost {
     extraction: MigrationAiExtractionDetails | null;
     aiFailed: boolean;
     aiFailureReason: 'SCHEMA_VALIDATION_FAILED' | 'LLM_CALL_FAILED' | undefined;
+    compareResult: CompareResult | null;
+    compareStatus: CompareStatus;
+    compareUnavailableReason: string | null;
+    capturedThresholds: {
+      maxMismatchFields: number;
+      minConfidence: number;
+    };
   }): Promise<void> {
     const {
       queueId,
@@ -2363,6 +2448,10 @@ export class AiBatchProcessor extends WorkerHost {
       extraction,
       aiFailed,
       aiFailureReason,
+      compareResult,
+      compareStatus,
+      compareUnavailableReason,
+      capturedThresholds,
     } = params;
 
     // spec.md Edge Cases: ไม่มีข้อความอ่านได้ (no PDF / OCR ล้มเหลว) → ต้อง flag
@@ -2399,10 +2488,17 @@ export class AiBatchProcessor extends WorkerHost {
       requiresHumanReview: isHardFailure ? true : undefined,
       ocrQualityConfidence: isHardFailure ? 0 : undefined,
       details: extraction
-        ? { ocrQuality: extraction.ocrQuality, metadata: extraction.metadata }
+        ? {
+            ocrQuality: extraction.ocrQuality,
+            metadata: extraction.metadata,
+            compareResult: compareResult ?? undefined,
+            capturedThresholds,
+          }
         : aiFailureReason
           ? ({ aiFailureReason } as unknown as Record<string, unknown>)
           : undefined,
+      compareStatus,
+      compareUnavailableReason,
       aiStatus: isHardFailure
         ? MigrationAiStatus.FAILED
         : MigrationAiStatus.DONE,
@@ -2512,6 +2608,30 @@ export class AiBatchProcessor extends WorkerHost {
         ocrText = NO_PDF_OCR_PLACEHOLDER;
       }
 
+      const isHardFailure = !hasPdf || ocrFailed || aiFailed;
+      const comparison = isHardFailure
+        ? {
+            compareResult: null,
+            compareStatus: CompareStatus.UNAVAILABLE,
+            compareUnavailableReason:
+              'ไม่สามารถเปรียบเทียบได้เนื่องจาก OCR หรือ AI extraction ล้มเหลว',
+          }
+        : await this.rebuildLegacyComparison({
+            ocrText,
+            documentNumber,
+            excelMetadata:
+              data.excelMetadata &&
+              typeof data.excelMetadata === 'object' &&
+              !Array.isArray(data.excelMetadata)
+                ? (data.excelMetadata as Record<string, unknown>)
+                : { documentNumber },
+            // Metadata extraction สำเร็จแล้ว — compare failure ไม่ควรย้อนสถานะ extraction
+            // เป็น FAILED; เก็บ UNAVAILABLE ให้ reviewer retry/review ได้แทน
+            isFinalAttempt: true,
+          });
+      const capturedThresholds =
+        await this.reviewThresholdService.getThresholds();
+
       await this.persistLegacyEnrichmentResult({
         queueId,
         documentNumber,
@@ -2521,6 +2641,8 @@ export class AiBatchProcessor extends WorkerHost {
         extraction,
         aiFailed,
         aiFailureReason,
+        ...comparison,
+        capturedThresholds,
       });
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -2732,6 +2854,28 @@ export class AiBatchProcessor extends WorkerHost {
         aiFailureReason = res.aiFailureReason;
       }
 
+      const isHardFailure = !hasPdf || ocrFailed || aiFailed;
+      const comparison = isHardFailure
+        ? {
+            compareResult: null,
+            compareStatus: CompareStatus.UNAVAILABLE,
+            compareUnavailableReason:
+              'ไม่สามารถเปรียบเทียบได้เนื่องจาก OCR หรือ AI extraction ล้มเหลว',
+          }
+        : await this.rebuildLegacyComparison({
+            ocrText,
+            documentNumber,
+            excelMetadata:
+              data.excelMetadata &&
+              typeof data.excelMetadata === 'object' &&
+              !Array.isArray(data.excelMetadata)
+                ? (data.excelMetadata as Record<string, unknown>)
+                : { documentNumber },
+            isFinalAttempt: true,
+          });
+      const capturedThresholds =
+        await this.reviewThresholdService.getThresholds();
+
       await this.persistLegacyEnrichmentResult({
         queueId,
         documentNumber,
@@ -2741,6 +2885,8 @@ export class AiBatchProcessor extends WorkerHost {
         extraction,
         aiFailed,
         aiFailureReason,
+        ...comparison,
+        capturedThresholds,
       });
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);

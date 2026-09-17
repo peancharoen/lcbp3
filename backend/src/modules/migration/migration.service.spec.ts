@@ -1420,6 +1420,8 @@ describe('MigrationService', () => {
         aiFailed: false,
         aiStatus: null,
         status: MigrationReviewStatus.PENDING,
+        compareStatus: CompareStatus.UNAVAILABLE,
+        compareUnavailableReason: 'reset pending',
       };
       mockReviewQueueRepo.findOne.mockResolvedValue(item);
       mockReviewQueueRepo.save.mockResolvedValue(item);
@@ -1434,6 +1436,8 @@ describe('MigrationService', () => {
         aiFailed: false,
         aiStatus: MigrationAiStatus.DONE,
         status: MigrationReviewStatus.PENDING_REVIEW,
+        compareStatus: CompareStatus.COMPARED,
+        compareUnavailableReason: null,
       });
 
       expect(item.ocrText).toBe('OCR text');
@@ -1442,6 +1446,8 @@ describe('MigrationService', () => {
       expect(item.aiConfidence).toBe(0.85);
       expect(item.aiStatus).toBe(MigrationAiStatus.DONE);
       expect(item.status).toBe(MigrationReviewStatus.PENDING_REVIEW);
+      expect(item.compareStatus).toBe(CompareStatus.COMPARED);
+      expect(item.compareUnavailableReason).toBeNull();
       expect(mockReviewQueueRepo.save).toHaveBeenCalled();
     });
 

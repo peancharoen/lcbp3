@@ -808,6 +808,81 @@ describe('AiBatchProcessor', () => {
       );
     });
 
+    it('rebuilds and persists comparison after successful legacy re-extract (ADR-054)', async () => {
+      mockAiPromptsService.getActive.mockImplementation((promptType: string) =>
+        Promise.resolve({
+          template:
+            promptType === 'migration_compare'
+              ? 'Compare {{ocr_text}} with {{excel_metadata}} truncated={{ocr_truncated}}'
+              : legacyPromptTemplate,
+        })
+      );
+      mockOllamaService.generate
+        .mockResolvedValueOnce(
+          JSON.stringify({
+            ocrQuality: { confidence: 0.9, issues: [] },
+            metadata: {
+              summary: 'สรุปเอกสาร',
+              correspondenceType: 'LETTER',
+              tags: [],
+              confidence: {
+                summary: 0.9,
+                correspondenceType: 0.9,
+                tags: 0.9,
+              },
+            },
+          })
+        )
+        .mockResolvedValueOnce(
+          JSON.stringify({
+            fieldResults: [
+              {
+                field: 'documentNumber',
+                excelValue: 'DOC-COMPARE-001',
+                ocrValue: 'DOC-COMPARE-001',
+                match: true,
+                foundInDocument: true,
+              },
+            ],
+            mismatches: [],
+            confidence: 0.94,
+          })
+        );
+
+      await processor.process({
+        id: 'job-legacy-compare-rebuild',
+        data: {
+          jobType: 'legacy-ai-enrichment',
+          queueId: 3010,
+          queuePublicId: 'queue-uuid-3010',
+          documentNumber: 'DOC-COMPARE-001',
+          pdfPath: '/files/test-compare.pdf',
+          projectPublicId: 'proj-uuid-456',
+          projectId: 2,
+          excelMetadata: {
+            documentNumber: 'DOC-COMPARE-001',
+            subject: 'หัวข้อจากทะเบียน',
+          },
+        },
+      } as unknown as Job<AiBatchJobData>);
+
+      expect(mockAiPromptsService.getActive).toHaveBeenCalledWith(
+        'migration_compare'
+      );
+      expect(mockMigrationService.updateQueueEnrichment).toHaveBeenCalledWith(
+        3010,
+        expect.objectContaining({
+          aiStatus: 'DONE',
+          compareStatus: 'COMPARED',
+          compareUnavailableReason: null,
+          details: expect.objectContaining({
+            compareResult: expect.objectContaining({ confidence: 0.94 }),
+            capturedThresholds: expect.any(Object),
+          }),
+        })
+      );
+    });
+
     it('T022: sets aiFailed=true + details.aiFailureReason=SCHEMA_VALIDATION_FAILED when the LLM output fails schema validation (category outside allowed_categories)', async () => {
       mockOllamaService.generate.mockResolvedValueOnce(
         JSON.stringify({
@@ -956,7 +1031,12 @@ describe('AiBatchProcessor', () => {
       expect(payload).not.toHaveProperty('fieldAcknowledgments');
       // FR-004: details มีเฉพาะ AI output (ocrQuality + metadata) — ไม่มี review keys
       const details = payload['details'] as Record<string, unknown>;
-      expect(Object.keys(details).sort()).toEqual(['metadata', 'ocrQuality']);
+      expect(Object.keys(details).sort()).toEqual([
+        'capturedThresholds',
+        'compareResult',
+        'metadata',
+        'ocrQuality',
+      ]);
       expect(details).not.toHaveProperty('fieldResolutions');
       // FR-009: confidence values ต้องอยู่ใน details JSON (per-field store)
       const metadata = details['metadata'] as {
