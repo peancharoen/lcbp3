@@ -363,7 +363,8 @@ QDRANT_URL
 - [x] OCR corrupt RAW_TEXT context-overflow และ stable prompt hash แก้และ deploy แล้ว (`3a33420c`)
 - [x] Legacy re-extract rebuild comparison แก้และ deploy แล้ว (`b3803380`, run #775)
 - [x] OCR failure acknowledgment, Correspondence admin correction และ document-list server filter/sort implement+verify แล้ว (`bfabcfa5`–`ea874c38`)
-- [ ] Push/deploy local commits `bfabcfa5`–`ea874c38` แล้วตรวจ UI จริงของ Correspondence/RFA/Circulation/Transmittal/Drawing filters
+- [x] Push local commits `bfabcfa5`–`ea874c38` เป็น squash commit `240e9dd5` แล้ว — CI/deploy triggered
+- [ ] ตรวจ UI จริงหลัง deploy ของ Correspondence/RFA/Circulation/Transmittal/Drawing filters
 
 ### 🎯 Open Items — รวมจาก cleanup pass 2026-09-05 (branch `docs/next-session-focus`)
 
