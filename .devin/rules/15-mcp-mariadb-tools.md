@@ -40,6 +40,18 @@ MCP MariaDB server ให้เครื่องมือสำหรับต�
 2. เปรียบเทียบกับ spec และ data dictionary
 3. ตรวจสอบ foreign keys และ constraints
 
+## Direct CLI Access (เมื่อ MCP ไม่พอ — เช่น apply delta / DDL)
+
+- **❌ Host ไม่มี `mysql` client** — ห้ามเรียก `mysql` บน host โดยตรง (command not found เสมอ)
+- **✅ ใช้ MariaDB client ใน container `mariadb` เสมอ:**
+
+```bash
+docker exec mariadb mariadb -uroot -p"$MARIADB_ROOT_PASSWORD" lcbp3 -e "<SQL>"
+```
+
+- Binary ใน container ชื่อ `mariadb` (ไม่ใช่ `mysql`) — root password ดูจาก env `MARIADB_ROOT_PASSWORD` ใน container (`docker exec mariadb env | grep MARIADB`)
+- ใช้ช่องทางนี้สำหรับ apply SQL delta (DDL) เท่านั้น — SELECT/INSERT/UPDATE/DELETE ปกติใช้ MCP tools ด้านบน
+
 ## ข้อควรระวัง
 
 - **❌ ห้ามใช้ MCP MariaDB สำหรับ DDL operations** (CREATE/ALTER/DROP) โดยตรง — ต้องใช้ SQL delta ตาม ADR-044

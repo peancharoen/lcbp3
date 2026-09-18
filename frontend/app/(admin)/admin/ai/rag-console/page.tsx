@@ -1,5 +1,6 @@
 // File: frontend/app/(admin)/admin/ai/rag-console/page.tsx
 // Change Log:
+// - 2026-09-17: เพิ่มปุ่ม Re-ingest ต่อ row ใน Dashboard tab (ไม่ต้องเข้า Lifecycle tab)
 // - 2026-09-10: T024 — สร้าง RAG Admin Console page (single page + 5 tabs — Q23, Q24)
 
 'use client';
@@ -111,6 +112,21 @@ function DashboardTab({
     ...(statusFilter !== 'all' && { status: statusFilter as RagAdminStatus }),
   };
   const { data, isLoading, refetch, isFetching } = useRagAttachments(params);
+  const reingestMutation = useRagReingest();
+  const hasReingestPermission = useAuthStore((s) => s.hasPermission('rag.admin.write'));
+  const [reingestTarget, setReingestTarget] = useState<string | null>(null);
+
+  const handleReingest = async () => {
+    if (!reingestTarget) return;
+    const idempotencyKey = `reingest-${reingestTarget}-${Date.now()}`;
+    try {
+      await reingestMutation.mutateAsync({ attachmentPublicId: reingestTarget, idempotencyKey });
+    } catch {
+      // Error handled by toast (Q50) — 409 BUILDING_IN_PROGRESS ฯลฯ
+    } finally {
+      setReingestTarget(null);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -158,6 +174,7 @@ function DashboardTab({
                 <th className="p-2">{ragAdminT('dashboard.columns.chunk_count')}</th>
                 <th className="p-2">{ragAdminT('dashboard.columns.classification')}</th>
                 <th className="p-2">{ragAdminT('dashboard.columns.last_updated')}</th>
+                <th className="p-2">{ragAdminT('dashboard.columns.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -175,12 +192,41 @@ function DashboardTab({
                   <td className="p-2">
                     {item.lastUpdated ? new Date(item.lastUpdated).toLocaleString() : '-'}
                   </td>
+                  <td className="p-2">
+                    {hasReingestPermission && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setReingestTarget(item.attachmentPublicId)}
+                        disabled={item.ragStatus === 'BUILDING' || reingestMutation.isPending}
+                      >
+                        {ragAdminT('lifecycle.force_reingest')}
+                      </Button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
+
+      <Dialog open={reingestTarget !== null} onOpenChange={(open) => !open && setReingestTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{ragAdminT('lifecycle.force_reingest')}</DialogTitle>
+            <DialogDescription>{ragAdminT('lifecycle.confirm_reingest')}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReingestTarget(null)}>
+              {ragAdminT('common.cancel')}
+            </Button>
+            <Button onClick={handleReingest} disabled={reingestMutation.isPending}>
+              {ragAdminT('lifecycle.force_reingest')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -418,6 +464,14 @@ function LifecycleTab() {
 // Metrics Tab (US4) — T049
 // ==========================================================
 
+/** แปลง uptime (ms) เป็นข้อความสั้น เช่น "2h 15m" / "42m" */
+function formatUptimeMs(ms: number): string {
+  const totalMinutes = Math.floor(ms / 60000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+}
+
 function MetricsTab() {
   const ragAdminT = useRagAdminT();
   const { data, isLoading } = useRagMetrics();
@@ -444,7 +498,10 @@ function MetricsTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-muted-foreground">
+          {ragAdminT('metrics.since_process_start', { uptime: formatUptimeMs(data.uptimeMs) })}
+        </p>
         <Button
           variant="outline"
           onClick={() => setConfirmDialogOpen(true)}
@@ -500,6 +557,18 @@ function MetricsTab() {
             { label: ragAdminT('metrics.labels.retries'), value: data.cleanupRetryRate?.retries ?? 0 },
           ]}
         />
+        {data.lifetime && (
+          <MetricsCard
+            titleKey={ragAdminT('metrics.cards.lifetime')}
+            value={`${data.lifetime.generationsActivated}`}
+            details={[
+              { label: ragAdminT('metrics.labels.generations_activated'), value: data.lifetime.generationsActivated },
+              { label: ragAdminT('metrics.labels.total_chunks'), value: data.lifetime.totalChunks },
+              { label: ragAdminT('metrics.labels.total_queries'), value: data.lifetime.totalQueries },
+              { label: ragAdminT('metrics.labels.full_text_fallbacks'), value: data.lifetime.fullTextFallbacks },
+            ]}
+          />
+        )}
       </div>
 
       <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>

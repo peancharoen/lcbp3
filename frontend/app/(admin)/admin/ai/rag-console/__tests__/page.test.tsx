@@ -12,6 +12,7 @@ import RagAdminConsolePage from '../page';
 const mockUseRagAttachments = vi.fn();
 vi.mock('@/hooks/ai/use-rag-admin', () => ({
   useRagAttachments: (...args: unknown[]) => mockUseRagAttachments(...args),
+  useRagReingest: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
 // Mock sonner

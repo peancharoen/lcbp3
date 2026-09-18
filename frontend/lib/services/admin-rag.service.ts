@@ -140,6 +140,13 @@ export interface RagAdminMetricsSnapshot {
   fallbackRate: { fullTextFallbacks: number; totalQueries: number };
   cleanupRetryRate: { retries: number };
   uptimeMs: number;
+  /** Lifetime metrics จาก DB (all-time — ไม่ reset ตาม process restart) */
+  lifetime?: {
+    generationsActivated: number;
+    totalChunks: number;
+    totalQueries: number;
+    fullTextFallbacks: number;
+  };
 }
 
 // ==========================================================

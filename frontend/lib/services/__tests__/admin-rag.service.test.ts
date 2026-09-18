@@ -146,12 +146,12 @@ describe('adminRagService — NestJS envelope unwrapping (ISSUE-003)', () => {
   describe('getMetrics', () => {
     it('should unwrap response.data.data for metrics snapshot', async () => {
       const innerPayload = {
-        ingestionDuration: { totalMs: 0, count: 0, buckets: { '100': 0, '500': 0, '2000': 0 } },
-        chunkCount: { total: 0, ingestionCount: 0 },
-        vectorLatency: { totalMs: 0, count: 0 },
-        staleResultRate: { stale: 0, total: 0 },
-        fallbackRate: { fullTextFallback: 0, totalQueries: 0 },
-        cleanupRetryRate: { retries: 0, cleanups: 0 },
+        ingestionDuration: { count: 0, sumMs: 0, buckets: { '100': 0, '500': 0, '2000': 0 } },
+        chunkCount: { totalChunks: 0, ingestions: 0 },
+        vectorLatency: { count: 0, sumMs: 0, buckets: { '50': 0, '100': 0, '500': 0, '2000': 0 } },
+        staleResultRate: { filtered: 0, total: 0 },
+        fallbackRate: { fullTextFallbacks: 0, totalQueries: 0 },
+        cleanupRetryRate: { retries: 0 },
       };
       vi.mocked(api.get).mockResolvedValue({
         data: { statusCode: 200, message: 'Success', data: innerPayload },

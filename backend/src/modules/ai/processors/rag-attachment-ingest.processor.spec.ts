@@ -13,6 +13,7 @@ describe('RagAttachmentIngestProcessor', () => {
 
   const generationRepository = {
     findOne: jest.fn(),
+    count: jest.fn().mockResolvedValue(1),
   };
   const attachmentRepository = {
     findOne: jest.fn(),
@@ -47,6 +48,14 @@ describe('RagAttachmentIngestProcessor', () => {
   };
   const qdrantService = {
     upsert: jest.fn().mockResolvedValue(undefined),
+  };
+  const observabilityService = {
+    recordChunkCount: jest.fn(),
+    recordVectorLatency: jest.fn(),
+    recordIngestionDuration: jest.fn(),
+    recordSwapStarted: jest.fn(),
+    recordSwapCompleted: jest.fn(),
+    recordSwapRollback: jest.fn(),
   };
 
   const mockSegment: RagTextSegment = {
@@ -94,7 +103,8 @@ describe('RagAttachmentIngestProcessor', () => {
       chunkingService as never,
       attachmentSourceService as never,
       embeddingService as never,
-      qdrantService as never
+      qdrantService as never,
+      observabilityService as never
     );
   });
 
@@ -280,6 +290,79 @@ describe('RagAttachmentIngestProcessor', () => {
     expect(ingestionService.activate).toHaveBeenCalledWith('gen-1');
     expect(qdrantService.upsert.mock.invocationCallOrder[0]).toBeLessThan(
       ingestionService.activate.mock.invocationCallOrder[0]
+    );
+    // Observability: chunk count, vector latency, swap lifecycle, ingestion duration
+    expect(observabilityService.recordChunkCount).toHaveBeenCalledWith(
+      'att-1',
+      1
+    );
+    expect(observabilityService.recordVectorLatency).toHaveBeenCalledWith(
+      'upsert',
+      expect.any(Number)
+    );
+    expect(observabilityService.recordSwapStarted).toHaveBeenCalledWith(
+      'att-1'
+    );
+    expect(observabilityService.recordSwapCompleted).toHaveBeenCalledWith(
+      'att-1',
+      1
+    );
+    expect(observabilityService.recordIngestionDuration).toHaveBeenCalledWith(
+      'att-1',
+      expect.any(Number)
+    );
+  });
+
+  it('records swap rollback when activate throws', async () => {
+    generationRepository.findOne.mockResolvedValue({
+      generationUuid: 'gen-1',
+      attachmentUuid: 'att-1',
+      status: 'BUILDING',
+    });
+    attachmentRepository.findOne.mockResolvedValue({
+      publicId: 'att-1',
+      ocrText: 'sample text for chunking',
+      mimeType: 'application/pdf',
+      classification: 'INTERNAL',
+    });
+    attachmentSourceService.resolveFromAttachment.mockResolvedValue(
+      mockOwnerContext
+    );
+    textSegmentService.normalizeWholeDocument.mockReturnValue(mockSegment);
+    chunkingService.chunkSegment.mockReturnValue([mockDraft]);
+    embeddingService.embedChunk.mockResolvedValue(mockEmbedResult);
+    embeddingService.buildQdrantPoint.mockReturnValue({
+      id: mockDraft.chunkPublicId,
+      vector: {
+        bge_dense: mockEmbedResult.dense,
+        bge_sparse: mockEmbedResult.sparse,
+      },
+      payload: {},
+    });
+    ingestionService.activate.mockRejectedValue(
+      new Error('invalid generation state')
+    );
+
+    await processor.process(
+      makeJob({
+        attachmentPublicId: 'att-1',
+        attachmentChecksum: 'a'.repeat(64),
+        force: false,
+      })
+    );
+
+    expect(observabilityService.recordSwapStarted).toHaveBeenCalledWith(
+      'att-1'
+    );
+    expect(observabilityService.recordSwapRollback).toHaveBeenCalledWith(
+      'att-1',
+      'invalid generation state'
+    );
+    expect(observabilityService.recordSwapCompleted).not.toHaveBeenCalled();
+    expect(ingestionService.markFailed).toHaveBeenCalledWith(
+      'gen-1',
+      'INGESTION_ERROR',
+      'invalid generation state'
     );
   });
 

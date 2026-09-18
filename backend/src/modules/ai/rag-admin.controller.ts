@@ -124,9 +124,22 @@ export class RagAdminController {
   @Get('metrics')
   @RequirePermission('rag.manage')
   @ApiOperation({ summary: 'Get RAG observability metrics snapshot' })
-  public getMetrics(): RagAdminMetricsSnapshotDto {
+  public async getMetrics(): Promise<RagAdminMetricsSnapshotDto> {
+    // Lifetime metrics จาก DB (all-time) — failure ไม่ block snapshot หลัก
+    const lifetime = await this.ragAdminService
+      .getLifetimeMetrics()
+      .catch((err: unknown) => {
+        this.logger.warn(
+          `getMetrics: lifetime metrics unavailable — ${(err as Error).message}`
+        );
+        return undefined;
+      });
     try {
-      return this.observabilityService.getSnapshot() as unknown as RagAdminMetricsSnapshotDto;
+      const snapshot = await this.observabilityService.getSnapshot();
+      return {
+        ...snapshot,
+        lifetime,
+      } as unknown as RagAdminMetricsSnapshotDto;
     } catch (err) {
       // FR-018: คืน zero-value snapshot เมื่อ observability service ไม่พร้อม ไม่ throw 500
       this.logger.error(
@@ -146,22 +159,23 @@ export class RagAdminController {
           partialFailures: 0,
           totalPendingRetries: 0,
         },
-        cleanup: { processed: 0, succeeded: 0, failed: 0, durationMs: 0 },
+        cleanup: { processed: 0, succeeded: 0, failed: 0 },
         ingestionDuration: {
           count: 0,
           sumMs: 0,
-          buckets: { 100: 0, 500: 0, 2000: 0 },
+          buckets: { '100': 0, '500': 0, '2000': 0 },
         },
-        chunkCount: { total: 0, ingestionCount: 0 },
+        chunkCount: { totalChunks: 0, ingestions: 0 },
         vectorLatency: {
           count: 0,
           sumMs: 0,
-          buckets: { 100: 0, 500: 0, 2000: 0 },
+          buckets: { '50': 0, '100': 0, '500': 0, '2000': 0 },
         },
-        staleResultRate: { stale: 0, total: 0 },
-        fallbackRate: { fullTextFallback: 0, totalQueries: 0 },
-        cleanupRetryRate: { retries: 0, cleanups: 0 },
+        staleResultRate: { filtered: 0, total: 0 },
+        fallbackRate: { fullTextFallbacks: 0, totalQueries: 0 },
+        cleanupRetryRate: { retries: 0 },
         uptimeMs: 0,
+        lifetime,
       } as unknown as RagAdminMetricsSnapshotDto;
     }
   }
@@ -172,8 +186,8 @@ export class RagAdminController {
   @RequirePermission('rag.admin.write')
   @Audit('rag.admin.metrics_reset', 'rag_observability')
   @ApiOperation({ summary: 'Reset RAG metrics globally (no per-project)' })
-  public resetMetrics(): RagAdminMetricsResetResponseDto {
-    this.observabilityService.reset();
+  public async resetMetrics(): Promise<RagAdminMetricsResetResponseDto> {
+    await this.observabilityService.reset();
     return { reset: true, scope: 'global' };
   }
 

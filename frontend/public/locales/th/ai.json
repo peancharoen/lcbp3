@@ -270,6 +270,7 @@
           "classification": "การจัดหมวด",
           "override": "การ Override",
           "last_updated": "อัปเดตล่าสุด",
+          "actions": "การดำเนินการ",
           "error": "ข้อผิดพลาด"
         },
         "empty_state": {
@@ -324,6 +325,7 @@
         "title": "เมตริกการตรวจสอบ",
         "reset": "รีเซ็ตเมตริก",
         "confirm_reset": "คุณแน่ใจหรือไม่ที่จะรีเซ็ตเมตริกทั้งหมด? การกระทำนี้ไม่สามารถยกเลิกได้",
+        "since_process_start": "ตัวเลขนับตั้งแต่ backend เริ่มทำงานล่าสุด (uptime {{uptime}})",
         "reset_success": "รีเซ็ตเมตริกสำเร็จ",
         "cards": {
           "ingestion_duration": "ระยะเวลา Ingestion",
@@ -331,7 +333,8 @@
           "vector_latency": "ความหน่วง Vector",
           "stale_result_rate": "อัตราผลลัพธ์เก่า",
           "fallback_rate": "อัตรา Fallback",
-          "cleanup_retry_rate": "อัตรา Retry การทำความสะอาด"
+          "cleanup_retry_rate": "อัตรา Retry การทำความสะอาด",
+          "lifetime": "สะสมทั้งหมด (จาก DB)"
         },
         "labels": {
           "count": "จำนวน",
@@ -343,7 +346,8 @@
           "total_queries": "คำค้นทั้งหมด",
           "retries": "การ Retry",
           "total_chunks": "Chunk ทั้งหมด",
-          "ingestions": "การ Ingest"
+          "ingestions": "การ Ingest",
+          "generations_activated": "Generation ที่ Activate สำเร็จ"
         },
         "empty_state": {
           "no_data": "ยังไม่มี RAG activity เมตริกจะเริ่มบันทึกเมื่อมี ingestion"

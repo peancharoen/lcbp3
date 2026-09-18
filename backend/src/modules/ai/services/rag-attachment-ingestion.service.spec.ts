@@ -112,6 +112,51 @@ describe('RagAttachmentIngestionService', () => {
     expect(generationRepository.save).toHaveBeenCalled();
   });
 
+  // 4a. idempotent path — checksum ตรงกับ BUILDING generation ที่มีอยู่ → ใช้ generation เดิม
+  // Regression: ORPHANED_BUILDING — เอกสาร 2 ฉบับชี้ attachment เดียวกัน ingest ซ้ำ
+  // ต้องไม่สร้าง BUILDING ซ้ำ ไม่งั้น generation แรกจะค้างเป็น orphan เมื่อ job dedup
+  it('reuses existing BUILDING generation when checksum matches (idempotent path)', async () => {
+    const building = {
+      generationUuid: 'gen-building',
+      status: 'BUILDING',
+      attachmentChecksumSnapshot: 'd'.repeat(64),
+    };
+    attachmentRepository.findOne.mockResolvedValue({
+      publicId: 'att-1',
+      checksum: 'd'.repeat(64),
+    });
+    generationRepository.findOne.mockResolvedValue(building);
+
+    await expect(service.ingest('att-1')).resolves.toBe(building);
+    expect(generationRepository.create).not.toHaveBeenCalled();
+    expect(generationRepository.save).not.toHaveBeenCalled();
+    expect(lock.release).toHaveBeenCalled();
+  });
+
+  // 4b. force=true + BUILDING เดิม → ยังสร้าง BUILDING ใหม่ (reingest semantics)
+  it('creates new BUILDING when force=true even with BUILDING existing', async () => {
+    attachmentRepository.findOne.mockResolvedValue({
+      publicId: 'att-1',
+      checksum: 'd'.repeat(64),
+    });
+    generationRepository.findOne.mockResolvedValue({
+      generationUuid: 'gen-building',
+      status: 'BUILDING',
+      attachmentChecksumSnapshot: 'd'.repeat(64),
+    });
+    generationRepository.save.mockImplementation((value: unknown) =>
+      Promise.resolve(value)
+    );
+
+    const result = await service.ingest('att-1', true);
+
+    expect(result).toMatchObject({
+      attachmentUuid: 'att-1',
+      status: 'BUILDING',
+    });
+    expect(generationRepository.save).toHaveBeenCalled();
+  });
+
   // 4. idempotent path — checksum ตรงกับ ACTIVE generation ที่มีอยู่ → ใช้ generation เดิม
   it('reuses existing ACTIVE generation when checksum matches (idempotent path)', async () => {
     const active = {

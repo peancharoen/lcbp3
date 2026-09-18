@@ -1,5 +1,7 @@
 // File: backend/src/modules/ai/services/rag-attachment-ingestion.service.ts
 // Change Log:
+// - 2026-09-18: Bugfix ORPHANED_BUILDING — reuse BUILDING generation เมื่อ checksum ตรงกัน
+//   ป้องกัน duplicate generation เมื่อ attachment เดียวกันถูก ingest ซ้ำใน batch เดียว
 // - 2026-09-10: Delegate markVerified/activate/markFailed/getStatus to RagGenerationStateService (Feature 254 code review)
 // - 2026-09-14: T061 เพิ่ม ZIP validation + ClamAV scanning ผ่าน SecureArchiveService (Feature 254, Phase 6 US4)
 // - 2026-09-10: T027 extract ingestion logic จาก RagGenerationService มาเป็น RagAttachmentIngestionService (Feature 254)
@@ -95,7 +97,7 @@ export class RagAttachmentIngestionService {
         }
         if (
           !force &&
-          existing.status === 'ACTIVE' &&
+          (existing.status === 'ACTIVE' || existing.status === 'BUILDING') &&
           existing.attachmentChecksumSnapshot === attachment.checksum
         ) {
           return existing;

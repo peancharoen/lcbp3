@@ -238,6 +238,7 @@
           "classification": "Classification",
           "override": "Override",
           "last_updated": "Last Updated",
+          "actions": "Actions",
           "error": "Error"
         },
         "empty_state": {
@@ -292,6 +293,7 @@
         "title": "Observability Metrics",
         "reset": "Reset Metrics",
         "confirm_reset": "Are you sure you want to reset all metrics? This action cannot be undone.",
+        "since_process_start": "Counters since last backend start (uptime {{uptime}})",
         "reset_success": "Metrics reset successfully",
         "cards": {
           "ingestion_duration": "Ingestion Duration",
@@ -299,7 +301,8 @@
           "vector_latency": "Vector Latency",
           "stale_result_rate": "Stale Result Rate",
           "fallback_rate": "Fallback Rate",
-          "cleanup_retry_rate": "Cleanup Retry Rate"
+          "cleanup_retry_rate": "Cleanup Retry Rate",
+          "lifetime": "All-time (from DB)"
         },
         "labels": {
           "count": "Count",
@@ -311,7 +314,8 @@
           "total_queries": "Total Queries",
           "retries": "Retries",
           "total_chunks": "Total Chunks",
-          "ingestions": "Ingestions"
+          "ingestions": "Ingestions",
+          "generations_activated": "Generations Activated"
         },
         "empty_state": {
           "no_data": "No RAG activity yet. Metrics will be recorded when ingestion occurs."

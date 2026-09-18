@@ -308,8 +308,21 @@ export class RagAdminMetricsResetResponseDto {
 }
 
 /**
+ * Lifetime metrics ที่ derive จาก DB (all-time — ไม่ reset ตาม process)
+ * - generationsActivated: generations ที่เคย ACTIVE สำเร็จทั้งหมด
+ * - totalChunks: chunks ทั้งหมดใน rag_attachment_chunks
+ * - totalQueries / fullTextFallbacks: จาก ai_rag_query_logs.retrieval_mode (T040)
+ */
+export interface RagAdminMetricsLifetimeDto {
+  generationsActivated: number;
+  totalChunks: number;
+  totalQueries: number;
+  fullTextFallbacks: number;
+}
+
+/**
  * Metrics snapshot DTO สำหรับ GET /ai/admin/rag/metrics (US4)
- * Mirror RagObservabilityService.getSnapshot() shape
+ * Mirror RagObservabilityService.getSnapshot() shape + lifetime (DB-derived)
  */
 export interface RagAdminMetricsSnapshotDto {
   swap: {
@@ -345,4 +358,6 @@ export interface RagAdminMetricsSnapshotDto {
   fallbackRate: { fullTextFallbacks: number; totalQueries: number };
   cleanupRetryRate: { retries: number };
   uptimeMs: number;
+  /** Lifetime metrics จาก DB (all-time) — undefined เมื่อ DB query ล้มเหลว */
+  lifetime?: RagAdminMetricsLifetimeDto;
 }

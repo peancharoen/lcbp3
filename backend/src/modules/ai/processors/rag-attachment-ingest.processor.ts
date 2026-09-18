@@ -1,5 +1,7 @@
 // File: backend/src/modules/ai/processors/rag-attachment-ingest.processor.ts
 // Change Log:
+// - 2026-09-17: เชื่อม RagObservabilityService — ingestion duration, chunk count,
+//   vector upsert latency และ swap started/completed/rollback (metrics เดิมไม่เคยถูกเรียก)
 // - 2026-09-14: T061 เพิ่ม ZIP handling ผ่าน SecureArchiveService + sourceLocator fallback (Feature 254, Phase 6 US4)
 // - 2026-09-13: Bugfix — อัปเดต attachments.rag_status (PROCESSING → INDEXED/FAILED) หลัง ingestion (ADR-022)
 // - 2026-09-10: T024-T028 update imports สำหรับ renamed/new services (Feature 254)
@@ -21,6 +23,7 @@ import { RagTextSegmentService } from '../services/rag-text-segment.service';
 import { RagChunkingService } from '../services/rag-chunking.service';
 import { RagAttachmentSourceService } from '../services/rag-attachment-source.service';
 import { RagEmbeddingService } from '../services/rag-embedding.service';
+import { RagObservabilityService } from '../services/rag-observability.service';
 import { AiQdrantService } from '../qdrant.service';
 import { QUEUE_AI_RAG_INGEST } from '../../common/constants/queue.constants';
 import type { RagAttachmentIngestJobPayload } from '../ai-queue.service';
@@ -48,6 +51,7 @@ export class RagAttachmentIngestProcessor extends WorkerHost {
     private readonly attachmentSourceService: RagAttachmentSourceService,
     private readonly embeddingService: RagEmbeddingService,
     private readonly qdrantService: AiQdrantService,
+    @Optional() private readonly observabilityService?: RagObservabilityService,
     @Optional() private readonly secureArchiveService?: SecureArchiveService
   ) {
     super();
@@ -78,6 +82,8 @@ export class RagAttachmentIngestProcessor extends WorkerHost {
         { ragStatus: 'PROCESSING' as const }
       )
       .catch(() => {});
+
+    const startedAt = Date.now();
 
     try {
       const attachment = await this.attachmentRepository.findOne({
@@ -209,6 +215,10 @@ export class RagAttachmentIngestProcessor extends WorkerHost {
 
       // 5. Persist chunks
       await this.chunkRepository.save(chunkEntities);
+      this.observabilityService?.recordChunkCount(
+        attachmentPublicId,
+        chunkEntities.length
+      );
 
       // 6. Verify checksum
       await this.ingestionService.markVerified(
@@ -217,15 +227,43 @@ export class RagAttachmentIngestProcessor extends WorkerHost {
       );
 
       // 7. Upsert vectors to Qdrant ก่อน activate — ป้องกัน window ที่ ACTIVE แต่ยังไม่มี vectors
+      const upsertStartedAt = Date.now();
       await this.qdrantService.upsert(ownerContext.projectPublicId, points);
+      this.observabilityService?.recordVectorLatency(
+        'upsert',
+        Date.now() - upsertStartedAt
+      );
 
       // 8. Activate generation — vectors พร้อมแล้ว ปลอดภัยที่จะเปิดใช้งาน
-      await this.ingestionService.activate(generation.generationUuid);
+      this.observabilityService?.recordSwapStarted(attachmentPublicId);
+      try {
+        await this.ingestionService.activate(generation.generationUuid);
+      } catch (activateErr: unknown) {
+        this.observabilityService?.recordSwapRollback(
+          attachmentPublicId,
+          activateErr instanceof Error
+            ? activateErr.message
+            : String(activateErr)
+        );
+        throw activateErr;
+      }
+      const activeCount = await this.generationRepository.count({
+        where: { attachmentUuid: attachmentPublicId, status: 'ACTIVE' },
+      });
+      this.observabilityService?.recordSwapCompleted(
+        attachmentPublicId,
+        activeCount
+      );
 
       // ADR-022: อัปเดต rag_status = INDEXED เมื่อ ingestion สำเร็จ
       await this.attachmentRepository.update(
         { publicId: attachmentPublicId },
         { ragStatus: 'INDEXED' as const, ragLastError: null }
+      );
+
+      this.observabilityService?.recordIngestionDuration(
+        attachmentPublicId,
+        Date.now() - startedAt
       );
 
       this.logger.log(

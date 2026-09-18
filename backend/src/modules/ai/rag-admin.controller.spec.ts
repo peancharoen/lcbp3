@@ -37,6 +37,7 @@ describe('RagAdminController', () => {
       'reingest',
       'listFailedIngestions',
       'batchRetry',
+      'getLifetimeMetrics',
     ]);
     mockObservabilityService = createMockService(['getSnapshot', 'reset']);
     mockIngestionService = createMockService(['ingest']);
@@ -189,35 +190,44 @@ describe('RagAdminController', () => {
   });
 
   describe('GET /ai/admin/rag/metrics (T043)', () => {
-    it('should delegate to observabilityService.getSnapshot()', () => {
+    it('should merge observability snapshot with lifetime metrics', async () => {
       const mockSnapshot = { uptimeMs: 1000 };
-      mockObservabilityService.getSnapshot.mockReturnValue(mockSnapshot);
+      const mockLifetime = {
+        generationsActivated: 230,
+        totalChunks: 4842,
+        totalQueries: 120,
+        fullTextFallbacks: 15,
+      };
+      mockObservabilityService.getSnapshot.mockResolvedValue(mockSnapshot);
+      mockRagAdminService.getLifetimeMetrics.mockResolvedValue(mockLifetime);
 
-      const result = controller.getMetrics();
+      const result = await controller.getMetrics();
 
       expect(mockObservabilityService.getSnapshot).toHaveBeenCalled();
-      expect(result).toEqual(mockSnapshot);
+      expect(mockRagAdminService.getLifetimeMetrics).toHaveBeenCalled();
+      expect(result).toEqual({ ...mockSnapshot, lifetime: mockLifetime });
     });
 
-    it('2D.1: should return zero-value snapshot when observability service throws (FR-018)', () => {
-      mockObservabilityService.getSnapshot.mockImplementation(() => {
-        throw new Error('Qdrant connection refused');
-      });
+    it('2D.1: should return zero-value snapshot when observability service throws (FR-018)', async () => {
+      mockObservabilityService.getSnapshot.mockRejectedValue(
+        new Error('Qdrant connection refused')
+      );
+      mockRagAdminService.getLifetimeMetrics.mockResolvedValue(undefined);
 
-      const result = controller.getMetrics();
+      const result = await controller.getMetrics();
 
       // Should not throw — should return zero-value snapshot
       expect(result).toBeDefined();
       expect(result.uptimeMs).toBe(0);
       expect(result.ingestionDuration.count).toBe(0);
-      expect(result.chunkCount.total).toBe(0);
+      expect(result.chunkCount.totalChunks).toBe(0);
       expect(result.vectorLatency.count).toBe(0);
     });
   });
 
   describe('POST /ai/admin/rag/metrics/reset (T044)', () => {
-    it('should call observabilityService.reset() and return global scope', () => {
-      const result = controller.resetMetrics();
+    it('should call observabilityService.reset() and return global scope', async () => {
+      const result = await controller.resetMetrics();
 
       expect(mockObservabilityService.reset).toHaveBeenCalled();
       expect(result).toEqual({ reset: true, scope: 'global' });

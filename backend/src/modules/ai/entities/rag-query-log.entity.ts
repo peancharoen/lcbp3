@@ -17,6 +17,13 @@ export enum RagQueryLogStatus {
   FAILED = 'failed',
 }
 
+/** โหมด retrieval ที่ใช้ผลิตคำตอบ (T040) — persist เพื่อ derive fallback metrics จาก DB */
+export enum RagQueryLogRetrievalMode {
+  VECTOR = 'VECTOR',
+  FULL_TEXT = 'FULL_TEXT',
+  HYBRID = 'HYBRID',
+}
+
 /**
  * Entity สำหรับตาราง ai_rag_query_logs
  * บันทึกประวัติ RAG query แบบถาวรทุกครั้งที่ processQuery() ถึง terminal state
@@ -54,6 +61,14 @@ export class RagQueryLog {
     default: 0,
   })
   usedFallbackModel!: boolean;
+
+  @Column({
+    name: 'retrieval_mode',
+    type: 'enum',
+    enum: RagQueryLogRetrievalMode,
+    nullable: true,
+  })
+  retrievalMode?: RagQueryLogRetrievalMode;
 
   @Column({ name: 'citations_json', type: 'json', nullable: true })
   citationsJson?: unknown;

@@ -11,6 +11,7 @@ import { AiQueueService } from '../ai-queue.service';
 import { Attachment } from '../../../common/file-storage/entities/attachment.entity';
 import { RagAttachmentGeneration } from '../entities/rag-attachment-generation.entity';
 import { RagAttachmentChunk } from '../entities/rag-attachment-chunk.entity';
+import { RagQueryLog } from '../entities/rag-query-log.entity';
 import { RagAdminPageSize } from '../dto/rag-admin.dto';
 import {
   NotFoundException,
@@ -37,6 +38,7 @@ type MockRepository = {
   createQueryBuilder: jest.Mock<MockQueryBuilder>;
   findOne: jest.Mock;
   find: jest.Mock;
+  count: jest.Mock;
   getCount: jest.Mock;
   getRawMany: jest.Mock;
   update: jest.Mock;
@@ -61,6 +63,7 @@ function createMockRepository(): MockRepository {
     createQueryBuilder: jest.fn().mockReturnValue(qb),
     findOne: jest.fn(),
     find: jest.fn(),
+    count: jest.fn(),
     getCount: jest.fn(),
     getRawMany: jest.fn(),
     update: jest.fn(),
@@ -72,6 +75,7 @@ describe('RagAdminService', () => {
   let mockAttachmentRepo: MockRepository;
   let mockGenerationRepo: MockRepository;
   let mockChunkRepo: MockRepository;
+  let mockQueryLogRepo: MockRepository;
   let mockIngestionService: Record<string, jest.Mock>;
   let mockAiQueueService: Record<string, jest.Mock>;
   let mockDataSource: Record<string, jest.Mock>;
@@ -80,6 +84,7 @@ describe('RagAdminService', () => {
     mockAttachmentRepo = createMockRepository();
     mockGenerationRepo = createMockRepository();
     mockChunkRepo = createMockRepository();
+    mockQueryLogRepo = createMockRepository();
     mockIngestionService = { ingest: jest.fn() };
     mockAiQueueService = { enqueueRagAttachmentIngestion: jest.fn() };
     mockDataSource = {};
@@ -98,6 +103,10 @@ describe('RagAdminService', () => {
         {
           provide: getRepositoryToken(RagAttachmentChunk),
           useValue: mockChunkRepo,
+        },
+        {
+          provide: getRepositoryToken(RagQueryLog),
+          useValue: mockQueryLogRepo,
         },
         {
           provide: RagAttachmentIngestionService,
@@ -223,6 +232,61 @@ describe('RagAdminService', () => {
       );
     });
 
+    it('should compute+persist checksum from file when missing (migrated attachments)', async () => {
+      mockAttachmentRepo.findOne.mockResolvedValue({
+        publicId: 'test-uuid',
+        checksum: null,
+        filePath: '/data/attachments/test.pdf',
+      });
+      const checksumSpy = jest
+        .spyOn(
+          service as unknown as {
+            computeFileChecksum: (p: string) => Promise<string | null>;
+          },
+          'computeFileChecksum'
+        )
+        .mockResolvedValue('c'.repeat(64));
+      mockGenerationRepo.findOne.mockResolvedValue(null);
+      mockIngestionService.ingest.mockResolvedValue({
+        attachmentChecksumSnapshot: 'c'.repeat(64),
+        status: 'BUILDING',
+      });
+      mockAiQueueService.enqueueRagAttachmentIngestion.mockResolvedValue(
+        'job-456'
+      );
+
+      const result = await service.reingest('test-uuid');
+
+      expect(checksumSpy).toHaveBeenCalledWith('/data/attachments/test.pdf');
+      expect(mockAttachmentRepo.update).toHaveBeenCalledWith(
+        { publicId: 'test-uuid' },
+        { checksum: 'c'.repeat(64) }
+      );
+      expect(result.status).toBe('BUILDING');
+      expect(result.jobId).toBe('job-456');
+    });
+
+    it('should still throw ValidationException when checksum cannot be computed from file', async () => {
+      mockAttachmentRepo.findOne.mockResolvedValue({
+        publicId: 'test-uuid',
+        checksum: null,
+        filePath: '/data/attachments/missing.pdf',
+      });
+      jest
+        .spyOn(
+          service as unknown as {
+            computeFileChecksum: (p: string) => Promise<string | null>;
+          },
+          'computeFileChecksum'
+        )
+        .mockResolvedValue(null);
+
+      await expect(service.reingest('test-uuid')).rejects.toThrow(
+        ValidationException
+      );
+      expect(mockIngestionService.ingest).not.toHaveBeenCalled();
+    });
+
     it('should delegate to ingestionService.ingest() with force=true (Q12)', async () => {
       mockAttachmentRepo.findOne.mockResolvedValue({
         publicId: 'test-uuid',
@@ -245,6 +309,25 @@ describe('RagAdminService', () => {
       );
       expect(result.status).toBe('BUILDING');
       expect(result.jobId).toBe('job-123');
+    });
+  });
+
+  describe('getLifetimeMetrics', () => {
+    it('should return DB-derived lifetime counts', async () => {
+      mockGenerationRepo.count.mockResolvedValue(230);
+      mockChunkRepo.count.mockResolvedValue(4842);
+      mockQueryLogRepo.count
+        .mockResolvedValueOnce(120) // totalQueries
+        .mockResolvedValueOnce(15); // fullTextFallbacks (FULL_TEXT + HYBRID)
+
+      const result = await service.getLifetimeMetrics();
+
+      expect(result).toEqual({
+        generationsActivated: 230,
+        totalChunks: 4842,
+        totalQueries: 120,
+        fullTextFallbacks: 15,
+      });
     });
   });
 

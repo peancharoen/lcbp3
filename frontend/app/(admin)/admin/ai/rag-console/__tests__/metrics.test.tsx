@@ -20,6 +20,7 @@ vi.mock('@/hooks/ai/use-rag-admin', () => ({
     mutateAsync: vi.fn(),
     isPending: false,
   }),
+  useRagReingest: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
 vi.mock('sonner', () => ({

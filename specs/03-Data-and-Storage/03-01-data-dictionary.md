@@ -2764,6 +2764,7 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 | `status`               | ENUM               | NO       | completed \| failed                                                              |
 | `confidence_score`     | FLOAT              | YES      | top-1 rerank score จาก finalResults[0].score                                     |
 | `used_fallback_model`  | TINYINT(1)         | NO       | 1 = ใช้ fallback message แทนคำตอบจาก LLM                                         |
+| `retrieval_mode`       | ENUM               | YES      | โหมด retrieval ที่ใช้ผลิตคำตอบ (T040): `VECTOR` \| `FULL_TEXT` \| `HYBRID` — NULL สำหรับ rows ก่อน 2026-09-17 delta |
 | `citations_json`       | JSON               | YES      | AiRagCitation[] — pointId, score, docType, docNumber, snippet                    |
 | `error_message`        | TEXT               | YES      | error message เมื่อ status = failed                                              |
 | `processing_time_ms`   | INT                | YES      | ระยะเวลาประมวลผลทั้ง pipeline (embed → search → rerank → generate)               |

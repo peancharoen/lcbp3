@@ -8,8 +8,10 @@
 // - 2026-09-14: Enrich vector results ด้วย chunk content จาก DB — Qdrant payload ของ
 //   generation-aware flow ไม่มี chunk_text/doc_type/doc_number (เก็บเฉพาะ metadata)
 //   ทำให้ buildContext สร้าง context ว่าง → LLM ตอบ "ไม่พบข้อมูล" แม้มี vectors สูง
+// - 2026-09-17: เชื่อม RagObservabilityService — rag query count, vector search latency,
+//   stale-result rate และ full-text fallback rate (metrics เดิมไม่เคยถูกเรียก)
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -20,9 +22,11 @@ import axios from 'axios';
 import { AiQdrantService, AiVectorSearchResult } from './qdrant.service';
 import { OcrService } from './services/ocr.service';
 import { RagRetrievalGuardService } from './services/rag-retrieval-guard.service';
+import { RagObservabilityService } from './services/rag-observability.service';
 import {
   RagQueryLog,
   RagQueryLogStatus,
+  RagQueryLogRetrievalMode,
 } from './entities/rag-query-log.entity';
 import { RagAttachmentChunk } from './entities/rag-attachment-chunk.entity';
 
@@ -84,7 +88,8 @@ export class AiRagService {
     @InjectRepository(RagQueryLog)
     private readonly ragQueryLogRepo: Repository<RagQueryLog>,
     @InjectRepository(RagAttachmentChunk)
-    private readonly chunkRepository: Repository<RagAttachmentChunk>
+    private readonly chunkRepository: Repository<RagAttachmentChunk>,
+    @Optional() private readonly observabilityService?: RagObservabilityService
   ) {
     this.ollamaUrl = this.configService.get<string>(
       'OLLAMA_URL',
@@ -245,11 +250,17 @@ export class AiRagService {
       }
 
       // 2. ค้นหา Qdrant ด้วย Hybrid search และกรองตาม project
+      this.observabilityService?.recordRagQuery();
+      const searchStartedAt = Date.now();
       const searchResults = await this.qdrantService.searchByProject(
         embedResult.dense,
         embedResult.sparse,
         projectPublicId,
         RAG_SEARCH_TOPK // topK=15 ตาม FR-014
+      );
+      this.observabilityService?.recordVectorLatency(
+        'search',
+        Date.now() - searchStartedAt
       );
 
       // ตรวจสอบ cancel หลัง search
@@ -267,6 +278,16 @@ export class AiRagService {
       //     อ้างอิงเนื้อหาที่ล้าสมัย (delegation ไป RagRetrievalGuardService, T039)
       const activeVectorResults =
         await this.guardService.filterActiveChunksFromResults(searchResults);
+      this.observabilityService?.recordVectorResultsExamined(
+        searchResults.length
+      );
+      for (
+        let i = 0;
+        i < searchResults.length - activeVectorResults.length;
+        i += 1
+      ) {
+        this.observabilityService?.recordStaleResultFiltered();
+      }
 
       // 2b.1 Enrich vector results ด้วย chunk content จาก DB
       //     Qdrant payload ของ generation-aware flow เก็บเฉพาะ metadata
@@ -389,6 +410,7 @@ export class AiRagService {
         status: RagQueryLogStatus.COMPLETED,
         confidenceScore: confidence,
         usedFallbackModel: usedFallback,
+        retrievalMode: retrievalMode as RagQueryLogRetrievalMode,
         citationsJson: citations,
         processingTimeMs: Date.now() - startTime,
       });
@@ -544,6 +566,7 @@ export class AiRagService {
       return { results: activeVectorResults, retrievalMode: 'VECTOR' };
     }
 
+    this.observabilityService?.recordFallbackInvocation();
     const fullTextResults = await this.fullTextSearch(
       projectPublicId,
       question,

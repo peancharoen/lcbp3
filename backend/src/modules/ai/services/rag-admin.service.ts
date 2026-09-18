@@ -1,10 +1,14 @@
 // File: backend/src/modules/ai/services/rag-admin.service.ts
 // Change Log:
+// - 2026-09-17: reingest() คำนวณ+persist checksum จากไฟล์บนดิสก์เมื่อ attachment
+//   ไม่มี checksum (attachments จาก migration) ทำให้ re-ingest รายการ NOT_STARTED ได้
 // - 2026-09-10: T011 — สร้าง RagAdminService สำหรับ Feature 255 RAG Admin Console
 
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, Not, IsNull, In } from 'typeorm';
+import { createHash } from 'crypto';
+import { createReadStream, existsSync } from 'fs';
 import {
   ConflictException,
   NotFoundException,
@@ -38,6 +42,11 @@ import {
 } from '../dto/rag-admin.dto';
 import { RagAttachmentIngestionService } from './rag-attachment-ingestion.service';
 import { AiQueueService } from '../ai-queue.service';
+import {
+  RagQueryLog,
+  RagQueryLogRetrievalMode,
+} from '../entities/rag-query-log.entity';
+import { RagAdminMetricsLifetimeDto } from '../dto/rag-admin.dto';
 
 /** Raw query result สำหรับ listAttachments (dashboard) */
 interface RawAttachmentRow {
@@ -106,6 +115,8 @@ export class RagAdminService {
     private readonly generationRepository: Repository<RagAttachmentGeneration>,
     @InjectRepository(RagAttachmentChunk)
     private readonly chunkRepository: Repository<RagAttachmentChunk>,
+    @InjectRepository(RagQueryLog)
+    private readonly ragQueryLogRepository: Repository<RagQueryLog>,
     private readonly ingestionService: RagAttachmentIngestionService,
     private readonly aiQueueService: AiQueueService,
     private readonly dataSource: DataSource
@@ -325,7 +336,8 @@ export class RagAdminService {
 
   /**
    * Force re-ingest attachment (US3, Q12)
-   * - ตรวจ checksum ก่อน (edge case — I2)
+   * - ตรวจ checksum ก่อน (edge case — I2): ถ้าไม่มี ให้คำนวณจากไฟล์บนดิสก์
+   *   และ persist กลับเข้า attachment (attachments จาก migration อาจไม่มี checksum)
    * - ตรวจ BUILDING status ก่อน delegate (Q13) → 409 Conflict
    * - Delegate ไป existing ingest() (Q12)
    */
@@ -339,9 +351,25 @@ export class RagAdminService {
       throw new NotFoundException('Attachment', attachmentPublicId);
     }
     if (!attachment.checksum) {
-      throw new ValidationException('Checksum is required for re-ingest', [
-        { field: 'checksum', message: 'ต้องมี checksum สำหรับ re-ingest' },
-      ]);
+      const computed = attachment.filePath
+        ? await this.computeFileChecksum(attachment.filePath)
+        : null;
+      if (!computed) {
+        throw new ValidationException('Checksum is required for re-ingest', [
+          {
+            field: 'checksum',
+            message: 'ไม่พบไฟล์ต้นฉบับสำหรับคำนวณ checksum',
+          },
+        ]);
+      }
+      attachment.checksum = computed;
+      await this.attachmentRepository.update(
+        { publicId: attachmentPublicId },
+        { checksum: computed }
+      );
+      this.logger.log(
+        `reingest: computed missing checksum for ${attachmentPublicId}`
+      );
     }
 
     // ตรวจ BUILDING status ก่อน (Q13)
@@ -391,6 +419,38 @@ export class RagAdminService {
       );
       throw err;
     }
+  }
+
+  /**
+   * Lifetime metrics ที่ derive จาก DB (all-time — ไม่ reset ตาม process)
+   * ใช้คู่กับ Redis counters ใน RagObservabilityService:
+   * - generationsActivated: generations ที่เคย ACTIVE สำเร็จทั้งหมด
+   * - totalChunks: chunks ทั้งหมดใน rag_attachment_chunks
+   * - totalQueries / fullTextFallbacks: จาก ai_rag_query_logs.retrieval_mode (T040)
+   */
+  public async getLifetimeMetrics(): Promise<RagAdminMetricsLifetimeDto> {
+    const [generationsActivated, totalChunks, totalQueries, fullTextFallbacks] =
+      await Promise.all([
+        this.generationRepository.count({
+          where: { activatedAt: Not(IsNull()) },
+        }),
+        this.chunkRepository.count(),
+        this.ragQueryLogRepository.count(),
+        this.ragQueryLogRepository.count({
+          where: {
+            retrievalMode: In([
+              RagQueryLogRetrievalMode.FULL_TEXT,
+              RagQueryLogRetrievalMode.HYBRID,
+            ]),
+          },
+        }),
+      ]);
+    return {
+      generationsActivated,
+      totalChunks,
+      totalQueries,
+      fullTextFallbacks,
+    };
   }
 
   /**
@@ -562,5 +622,25 @@ export class RagAdminService {
     });
 
     return jobId;
+  }
+
+  /** Compute SHA-256 checksum ของไฟล์แบบ streaming (สำหรับ attachments ที่ไม่มี checksum เช่นจาก migration) */
+  private async computeFileChecksum(filePath: string): Promise<string | null> {
+    try {
+      if (!existsSync(filePath)) {
+        this.logger.warn(`computeFileChecksum: file not found: ${filePath}`);
+        return null;
+      }
+      const hash = createHash('sha256');
+      const stream = createReadStream(filePath);
+      for await (const chunk of stream) {
+        hash.update(chunk as Buffer);
+      }
+      return hash.digest('hex');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`computeFileChecksum: failed for ${filePath}: ${msg}`);
+      return null;
+    }
   }
 }
