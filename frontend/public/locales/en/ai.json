@@ -241,6 +241,7 @@
           "actions": "Actions",
           "error": "Error"
         },
+        "no_ocr_hint": "No OCR text — cannot ingest (run OCR first)",
         "empty_state": {
           "no_data": "No attachments found",
           "no_match": "No attachments match the current filters",

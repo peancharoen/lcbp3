@@ -198,7 +198,12 @@ function DashboardTab({
                         variant="outline"
                         size="sm"
                         onClick={() => setReingestTarget(item.attachmentPublicId)}
-                        disabled={item.ragStatus === 'BUILDING' || reingestMutation.isPending}
+                        disabled={
+                          item.ragStatus === 'BUILDING' ||
+                          item.hasOcrText === false ||
+                          reingestMutation.isPending
+                        }
+                        title={item.hasOcrText === false ? ragAdminT('dashboard.no_ocr_hint') : undefined}
                       >
                         {ragAdminT('lifecycle.force_reingest')}
                       </Button>

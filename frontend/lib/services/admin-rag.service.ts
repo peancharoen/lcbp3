@@ -31,6 +31,7 @@ export interface RagAdminAttachmentItem {
   classificationOverride: ClassificationOverrideInfo | null;
   lastUpdated: string;
   errorMessage: string | null;
+  hasOcrText?: boolean;
 }
 
 export interface RagAdminAttachmentsResponse {

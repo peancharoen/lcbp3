@@ -170,6 +170,7 @@ export interface RagAdminAttachmentItem {
   classificationOverride: ClassificationOverrideInfo | null;
   lastUpdated: Date;
   errorMessage: string | null;
+  hasOcrText: boolean;
 }
 
 /**

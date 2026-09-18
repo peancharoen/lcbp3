@@ -1,5 +1,7 @@
 // File: backend/src/modules/ai/services/rag-admin.service.ts
 // Change Log:
+// - 2026-09-18: dashboard/classification list กรองเฉพาะ attachments ที่ผูกกับ
+//   document join table (ซ่อน staging orphans ที่ ingest ไม่ได้) + expose hasOcrText
 // - 2026-09-17: reingest() คำนวณ+persist checksum จากไฟล์บนดิสก์เมื่อ attachment
 //   ไม่มี checksum (attachments จาก migration) ทำให้ re-ingest รายการ NOT_STARTED ได้
 // - 2026-09-10: T011 — สร้าง RagAdminService สำหรับ Feature 255 RAG Admin Console
@@ -65,6 +67,7 @@ interface RawAttachmentRow {
   overrideReason: string | null;
   overrideActor: string | null;
   overrideAt: Date | null;
+  hasOcrText: number | null;
 }
 
 /** Raw query result สำหรับ listAttachmentsForClassification */
@@ -181,7 +184,18 @@ export class RagAdminService {
         'latest.errorCode AS errorCode',
         'latest.errorMessage AS errorMessage',
         'COALESCE(chunks.chunkCount, 0) AS chunkCount',
+        '(a.ocrText IS NOT NULL AND CHAR_LENGTH(a.ocrText) > 0) AS hasOcrText',
       ]);
+
+    // เฉพาะ attachments ที่ผูกกับเอกสารจริง — staging orphans (ไม่ถูกอ้างอิงจาก
+    // document join table ใดเลย) ไม่มี ocr_text และไม่ใช่ RAG corpus จึงซ่อน
+    qb.andWhere(
+      '(EXISTS (SELECT 1 FROM correspondence_revision_attachments l1 WHERE l1.attachment_id = a.id)' +
+        ' OR EXISTS (SELECT 1 FROM shop_drawing_revision_attachments l2 WHERE l2.attachment_id = a.id)' +
+        ' OR EXISTS (SELECT 1 FROM contract_drawing_attachments l3 WHERE l3.attachment_id = a.id)' +
+        ' OR EXISTS (SELECT 1 FROM circulation_attachments l4 WHERE l4.attachment_id = a.id)' +
+        ' OR EXISTS (SELECT 1 FROM asbuilt_drawing_revision_attachments l5 WHERE l5.attachment_id = a.id))'
+    );
 
     if (dto.status) {
       if (dto.status === RagAdminStatusFilter.NOT_STARTED) {
@@ -224,6 +238,7 @@ export class RagAdminService {
         classificationOverride: overrideInfo,
         lastUpdated: r.lastUpdated ?? r.createdAt ?? new Date(),
         errorMessage: r.errorMessage,
+        hasOcrText: Boolean(Number(r.hasOcrText)),
       };
     });
 
@@ -252,6 +267,16 @@ export class RagAdminService {
         'a.classificationOverrideActorUserPublicId AS overrideActor',
         'a.classificationOverriddenAt AS overrideAt',
       ]);
+
+    // เฉพาะ attachments ที่ผูกกับเอกสารจริง — staging orphans ไม่เกี่ยวกับ
+    // classification management จึงซ่อน (criteria เดียวกับ listAttachments)
+    qb.andWhere(
+      '(EXISTS (SELECT 1 FROM correspondence_revision_attachments l1 WHERE l1.attachment_id = a.id)' +
+        ' OR EXISTS (SELECT 1 FROM shop_drawing_revision_attachments l2 WHERE l2.attachment_id = a.id)' +
+        ' OR EXISTS (SELECT 1 FROM contract_drawing_attachments l3 WHERE l3.attachment_id = a.id)' +
+        ' OR EXISTS (SELECT 1 FROM circulation_attachments l4 WHERE l4.attachment_id = a.id)' +
+        ' OR EXISTS (SELECT 1 FROM asbuilt_drawing_revision_attachments l5 WHERE l5.attachment_id = a.id))'
+    );
 
     const total = await qb.getCount();
     const rows = await qb
