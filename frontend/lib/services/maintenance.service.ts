@@ -21,6 +21,7 @@ export interface NumberingGap {
 export interface VectorSyncItem {
   projectPublicId: string;
   documentPublicId: string;
+  attachmentPublicId?: string;
   action: string;
 }
 
