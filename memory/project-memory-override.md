@@ -319,6 +319,7 @@
 | D340 | **D340 — `ocr_text_bak` restore = swap/toggle semantics** — restore ต้องย้าย current real `ocr_text` เข้า `ocr_text_bak` ก่อนเขียนค่าเก่ากลับ (non-destructive ทั้ง 2 ทิศ); ห้ามเขียนทับ current ทิ้งโดยไม่ snapshot | ADR-054 |
 | D341 | **D341 — `2git.sh` lint-staged limitation บน symlink paths** — lint-staged backup ใช้ `git stash` ซึ่ง fail เมื่อมี staged changes ใต้ path ที่กลายเป็น symlink (`error: '...' is beyond a symbolic link`); recovery: staged state ไม่หาย — `git commit --no-verify` + squash message format เดิม แล้ว push ต่อ; script อาจต้อง patch | Session 2026-09-15 |
 | D342 | **Document list scaling contract** — Correspondence/RFA, Circulation, Transmittal และ Drawing ใช้ server-side filter/sort พร้อม URL-backed state, reset page=1 และ backend sort allow-list; RFA reuse Correspondence endpoint; Contract Drawing ไม่มี revision model; Drawing ไม่มี status field และใช้ soft-delete จึงแสดง `-` โดยห้ามสร้าง status/revision สมมติ | Session 2026-09-17 |
+| D343 | **Docker stack spec↔runtime sync convention** — spec dir `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/` = canonical source (ห้ามรัน `docker compose` จาก spec dir เด็ดขาด — container ได้ label path ผิด/split-brain); `/opt/np-dms/` = runtime เท่านั้น; แก้ไขได้ทั้งสองฝั่งแต่ต้อง sync เสมอ — spec→runtime ผ่าน `copy-env.sh` (ครอบ 00-basic…05-ci + ocr-sidecar recursive + `.env`), runtime hotfix ต้อง commit กลับ spec (D259); lifecycle scripts `docker{up,start,stop,down}.sh` + `copy-env.sh` อยู่ `/opt/np-dms/` เท่านั้น **ไม่อยู่ใน git**; ลำดับมาตรฐาน up = `00→01→02→04-ai→ocr-sidecar→03→05-ci`, down = exact reverse; formalized ใน rule `24-docker-stack-sync.md` | Session 2026-09-18 |
 
 ## Environment & Services
 
@@ -364,6 +365,7 @@ QDRANT_URL
 - [x] Legacy re-extract rebuild comparison แก้และ deploy แล้ว (`b3803380`, run #775)
 - [x] OCR failure acknowledgment, Correspondence admin correction และ document-list server filter/sort implement+verify แล้ว (`bfabcfa5`–`ea874c38`)
 - [x] Push local commits `bfabcfa5`–`ea874c38` เป็น squash commit `240e9dd5` แล้ว — CI/deploy triggered
+- [x] Docker stack spec↔runtime sync convention locked — rule `24-docker-stack-sync.md` + `copy-env.sh` ครอบ `05-ci` + lifecycle scripts fixed; runtime `WEBHOOK_URL`→`N8N_WEBHOOK_URL` synced (commit `e57b2e91` local)
 - [ ] ตรวจ UI จริงหลัง deploy ของ Correspondence/RFA/Circulation/Transmittal/Drawing filters
 
 ### 🎯 Open Items — รวมจาก cleanup pass 2026-09-05 (branch `docs/next-session-focus`)
@@ -982,7 +984,7 @@ D265-D271 ด้านบน
 - [x] Session log: `specs/88-logs/session-2026-08-19-n8n-v4-migration-workflow-fix.md`
 - [ ] **ทดสอบจาก browser จริง** ที่ `https://n8n.np-dms.work/webhook-form/2527e114-c0fe-4f46-8d8c-4974c22c4574`
 - [ ] **Rotate JWT/password** หลัง workflow stable
-- [ ] แปลง `WEBHOOK_URL` → `N8N_WEBHOOK_URL` (deprecated)
+- [x] แปลง `WEBHOOK_URL` → `N8N_WEBHOOK_URL` (deprecated) — ✅ 2026-09-18: runtime `/opt/np-dms/02-platform` synced ตาม spec แล้ว (มีผลหลัง `up -d` ครั้งถัดไป)
 - [ ] วางแผน PostgreSQL 16 → 17 upgrade (n8n recommends 17+)
 - [ ] วางแผน binary storage migration ก่อน n8n 3.0 (`binaryData` → `storage`)
 
