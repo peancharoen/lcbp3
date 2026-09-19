@@ -320,6 +320,9 @@
 | D341 | **D341 — `2git.sh` lint-staged limitation บน symlink paths** — lint-staged backup ใช้ `git stash` ซึ่ง fail เมื่อมี staged changes ใต้ path ที่กลายเป็น symlink (`error: '...' is beyond a symbolic link`); recovery: staged state ไม่หาย — `git commit --no-verify` + squash message format เดิม แล้ว push ต่อ; script อาจต้อง patch | Session 2026-09-15 |
 | D342 | **Document list scaling contract** — Correspondence/RFA, Circulation, Transmittal และ Drawing ใช้ server-side filter/sort พร้อม URL-backed state, reset page=1 และ backend sort allow-list; RFA reuse Correspondence endpoint; Contract Drawing ไม่มี revision model; Drawing ไม่มี status field และใช้ soft-delete จึงแสดง `-` โดยห้ามสร้าง status/revision สมมติ | Session 2026-09-17 |
 | D343 | **Docker stack spec↔runtime sync convention** — spec dir `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/` = canonical source (ห้ามรัน `docker compose` จาก spec dir เด็ดขาด — container ได้ label path ผิด/split-brain); `/opt/np-dms/` = runtime เท่านั้น; แก้ไขได้ทั้งสองฝั่งแต่ต้อง sync เสมอ — spec→runtime ผ่าน `copy-env.sh` (ครอบ 00-basic…05-ci + ocr-sidecar recursive + `.env`), runtime hotfix ต้อง commit กลับ spec (D259); lifecycle scripts `docker{up,start,stop,down}.sh` + `copy-env.sh` อยู่ `/opt/np-dms/` เท่านั้น **ไม่อยู่ใน git**; ลำดับมาตรฐาน up = `00→01→02→04-ai→ocr-sidecar→03→05-ci`, down = exact reverse; formalized ใน rule `24-docker-stack-sync.md` | Session 2026-09-18 |
+| D344 | **Canonical RAG path เดียว — generation-aware เท่านั้น** — Qdrant point ต้องมี `generation_uuid`+`attachment_public_id` (`filterActiveChunksFromResults` drop points ที่ไม่มี `generation_uuid`); ทุก re-embed/vector-sync ต้องผ่าน `RagAttachmentIngestionService` + BullMQ `ai-rag-ingest`; legacy `rag-prepare`/`EmbeddingService` (@deprecated, payload `doc_public_id`) ห้ามใช้สร้าง vectors ใหม่ — `VectorSyncService` migrated (commit `fce3e7a0`), 188 legacy points ถูกลบแล้ว | Session 2026-09-19 |
+| D345 | **Orphan/staging attachments policy** — RAG Admin list เฉพาะ linked attachments (EXISTS ครบ 5 join tables); rows ที่ไม่มี `ocr_text` = non-ingestable (`NO_OCR_TEXT` by design — ปุ่ม disabled via `hasOcrText`); ลบ orphan ต้อง backup `*_backup_YYYYMMDD` + FK order pages→gens→attachments + exclude queue-referenced (id 339/342 เก็บไว้); heal OCR ห้าม copy ข้าม attachment โดยไม่ verify sha256 identical | Session 2026-09-19 |
+| D346 | **Manual re-ingest recipe (ops)** — persist `ocr_text`+`CHECKSUM` → INSERT `rag_attachment_generations` BUILDING (uuidv7, `bge-m3`) → BullMQ `ai-rag-ingest` job `rag-attachment-ingest:{att}:{checksum}`; processor เป็นเจ้าของ `rag_status` PROCESSING→INDEXED/FAILED; backend container ใช้ `DB_ROOT_PASSWORD` + node `-w /app`; PDF malformed (no xref) ที่ sidecar อ่านไม่ได้ → fallback PyMuPDF extract | Session 2026-09-19 |
 
 ## Environment & Services
 
@@ -366,7 +369,13 @@ QDRANT_URL
 - [x] OCR failure acknowledgment, Correspondence admin correction และ document-list server filter/sort implement+verify แล้ว (`bfabcfa5`–`ea874c38`)
 - [x] Push local commits `bfabcfa5`–`ea874c38` เป็น squash commit `240e9dd5` แล้ว — CI/deploy triggered
 - [x] Docker stack spec↔runtime sync convention locked — rule `24-docker-stack-sync.md` + `copy-env.sh` ครอบ `05-ci` + lifecycle scripts fixed; runtime `WEBHOOK_URL`→`N8N_WEBHOOK_URL` synced (commit `e57b2e91` local)
+- [x] RAG Admin Console overhaul + durable metrics pushed+deployed (`7e97ea8f`) — Re-ingest per row, checksum heal, Redis `rag:metrics`, `retrieval_mode` column, lifetime metrics, BUILDING dedup
+- [x] Orphan attachments cleanup pushed+deployed (`71321edc`) — 249 rows deleted (backup `*_backup_20260918`), linked-only listing, no-ocr guard
+- [x] Vector Sync migrated → generation-aware pipeline (`fce3e7a0`, D344) — 188 legacy Qdrant points deleted; missing scan เช็ค ACTIVE gen; 2 stuck attachments (test-attach, AI-INGEST-E2E-001) healed+ingested, missing list = 0; deployed image `3dbea91d`
 - [ ] ตรวจ UI จริงหลัง deploy ของ Correspondence/RFA/Circulation/Transmittal/Drawing filters
+- [ ] Browser verify Vector Sync tab (missing=0, enqueue→ai-rag-ingest) + RAG Console metrics (lifetime card, Redis counters) หลัง deploy `3dbea91d`
+- [ ] `DROP TABLE *_backup_20260918` (3 tables) เมื่อมั่นใจ orphan cleanup ถูกต้อง — ต้อง user confirm
+- [ ] (optional) Re-ingest healed non-current-rev attachments `01a0a357-3952` (CHEC-0004), `01a0a7fc-169c` (CHEC-0011) ถ้าอยาก index เนื้อหา — ocr+checksum พร้อมแล้ว
 
 ### 🎯 Open Items — รวมจาก cleanup pass 2026-09-05 (branch `docs/next-session-focus`)
 
