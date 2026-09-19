@@ -9,6 +9,7 @@
 // - 2026-08-23: Legacy Review Queue - column-header filters, delete all/selected with BullMQ cleanup
 // - 2026-08-25: D161 — ลบ AI Migration Logs tab + AiMigrationTab component (dead UI — migration_logs ไม่ถูกเขียนตั้งแต่ ADR-023/023A เปลี่ยนไป BullMQ)
 // - 2026-09-19: URL-backed page+filters (useSearchParams) — กด Review แล้วย้อนกลับคงหน้า/filter เดิม
+// - 2026-09-19: page-size selector 10/20/50/100 (URL-backed ?limit=) — เปลี่ยน size แล้ว reset ไปหน้า 1
 
 'use client';
 
@@ -35,6 +36,10 @@ import { CorrespondenceType } from '@/types/master-data';
 
 /** ช่วง confidence ที่ตรงกับเกณฑ์ badge — ส่งไป backend ผ่าน confidenceBucket param */
 type ConfidenceBucket = 'low' | 'mid' | 'high' | 'missing';
+
+/** page size ที่เลือกได้ — ต้องไม่เกิน @Max(100) ของ backend DTO */
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
+const DEFAULT_PAGE_SIZE = 20;
 
 /** สร้างลำดับเลขหน้าสำหรับ pagination — แสดงหน้าแรก/สุดท้าย + window ±2 รอบหน้าปัจจุบัน คั่นด้วย ellipsis */
 const getPageNumbers = (page: number, totalPages: number): (number | 'ellipsis')[] => {
@@ -70,6 +75,9 @@ function LegacyManagementTab() {
   const confidenceBucketFilter = searchParams.get('conf') ?? 'ALL';
   const pageParam = Number(searchParams.get('page'));
   const page = Number.isInteger(pageParam) && pageParam >= 1 ? pageParam : 1;
+  // page size เป็น URL-backed เช่นเดียวกับ page/filters — ค่าที่ไม่ใช่ 10/20/50/100 fallback เป็น default
+  const limitParam = Number(searchParams.get('limit'));
+  const pageSize = (PAGE_SIZE_OPTIONS as readonly number[]).includes(limitParam) ? limitParam : DEFAULT_PAGE_SIZE;
   const [correspondenceTypeOptions, setCorrespondenceTypeOptions] = useState<CorrespondenceType[]>([]);
   const [batchOptions, setBatchOptions] = useState<string[]>([]);
   // ADR-019: ใช้ publicId (string) สำหรับ selection ห้ามใช้ INT id
@@ -77,7 +85,6 @@ function LegacyManagementTab() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [totalRows, setTotalRows] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const pageSize = 20;
 
   /** อัปเดต query params — ลบ param ที่เป็นค่า default/null ออกจาก URL; replace (ไม่ push) กัน history รก */
   const updateParams = useCallback(
@@ -94,6 +101,11 @@ function LegacyManagementTab() {
   );
   const setPage = useCallback(
     (p: number) => updateParams({ page: p > 1 ? String(p) : null }),
+    [updateParams]
+  );
+  // เปลี่ยน page size ต้องกลับไปหน้า 1 เสมอ — ไม่อย่างนั้นอาจตกหน้าว่าง (เช่นอยู่หน้า 13 ที่ size 20)
+  const setPageSize = useCallback(
+    (size: number) => updateParams({ limit: size === DEFAULT_PAGE_SIZE ? null : String(size), page: null }),
     [updateParams]
   );
 
@@ -121,7 +133,7 @@ function LegacyManagementTab() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, aiStatusFilter, batchFilter, correspondenceTypeFilter, confidenceBucketFilter, page]);
+  }, [statusFilter, aiStatusFilter, batchFilter, correspondenceTypeFilter, confidenceBucketFilter, page, pageSize]);
 
   // ADR-047: โหลด batch options สำหรับ filter dropdown
   const fetchBatches = useCallback(async () => {
@@ -553,9 +565,23 @@ function LegacyManagementTab() {
             </Table>
           </div>
           {/* Pagination + row count — เลขหน้ากระโดดข้ามได้ (window ±2 รอบหน้าปัจจุบัน) */}
-          <div className="flex items-center justify-between mt-4 pt-4 border-t">
-            <div className="text-sm text-muted-foreground">
-              ทั้งหมด {totalRows} รายการ (หน้า {page}/{totalPages})
+          <div className="flex flex-wrap items-center justify-between gap-3 mt-4 pt-4 border-t">
+            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              <span>
+                ทั้งหมด {totalRows} รายการ (หน้า {page}/{totalPages})
+              </span>
+              <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
+                <SelectTrigger className="h-8 w-[110px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAGE_SIZE_OPTIONS.map((s) => (
+                    <SelectItem key={s} value={String(s)}>
+                      {s} / หน้า
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex items-center gap-1">
               <Button

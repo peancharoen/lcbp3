@@ -58,7 +58,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeftIcon, CheckCircleIcon, XCircleIcon, RefreshCwIcon, ShieldAlertIcon, AlertTriangleIcon, RotateCcwIcon, FileUpIcon } from 'lucide-react';
-import Link from 'next/link';
 import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { CompareResultTable } from '@/components/migration/compare-result-table';
@@ -184,6 +183,15 @@ export default function MigrationReviewPage() {
   const router = useRouter();
   // ADR-019: ใช้ publicId (UUIDv7) จาก route param ห้ามแปลงเป็น number
   const publicId = Array.isArray(params.id) ? params.id[0] : params.id;
+
+  // กลับไปหน้า queue พร้อม page/filter เดิม (state ผูกกับ URL) — fallback เปิด /admin/migration ตรงๆ สำหรับ deep link ที่ไม่มี history
+  const handleBack = useCallback(() => {
+    if (window.history.length > 1) {
+      router.back();
+    } else {
+      router.push('/admin/migration');
+    }
+  }, [router]);
 
   const [item, setItem] = useState<MigrationReviewQueueItem | null>(null);
   const [loading, setLoading] = useState(true);
@@ -385,7 +393,7 @@ export default function MigrationReviewPage() {
       };
       await commitMutation.mutateAsync(commitPayload);
       // hook จัดการ toast.success + query invalidation เอง
-      router.push('/admin/migration');
+      handleBack();
     } catch (error: unknown) {
       // ADR-050 (T040): แยก error ตามประเภทเพื่อแสดง inline per-field warnings
       const err = error as {
@@ -464,7 +472,7 @@ export default function MigrationReviewPage() {
       const idempotencyKey = `reject-${item.publicId}-${Date.now()}`;
       await migrationService.rejectQueueItem(item.publicId, idempotencyKey);
       toast.success('Document rejected');
-      router.push('/admin/migration');
+      handleBack();
     } catch (_error: unknown) {
       toast.error('Failed to reject document');
     } finally {
@@ -510,11 +518,9 @@ export default function MigrationReviewPage() {
     <div className="flex flex-col h-[calc(100vh-6rem)] space-y-4">
       <div className="flex justify-between items-center shrink-0">
         <div className="flex items-center gap-4">
-          <Link href="/admin/migration">
-            <Button variant="outline" size="icon">
-              <ArrowLeftIcon className="h-4 w-4" />
-            </Button>
-          </Link>
+          <Button variant="outline" size="icon" onClick={handleBack}>
+            <ArrowLeftIcon className="h-4 w-4" />
+          </Button>
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Review Document: {item.documentNumber}</h1>
             <p className="text-sm text-muted-foreground flex items-center gap-2">

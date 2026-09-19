@@ -1,5 +1,6 @@
 // File: backend/src/modules/migration/dto/migration-queue-query.dto.ts
 // Change Log:
+// - 2026-09-19: เพิ่ม @Max(100) บน limit — รองรับ page-size selector ของหน้า queue + กัน query ใหญ่ผิดปกติ
 // - 2026-09-16: เพิ่ม correspondenceType filter และ confidenceBucket filter
 //   (low/mid/high/missing ตามเกณฑ์ badge ของหน้า Legacy Review Queue)
 // - 2026-08-23: เพิ่ม batchId filter สำหรับ getReviewQueue
@@ -11,6 +12,7 @@ import {
   IsEnum,
   IsInt,
   Min,
+  Max,
   IsString,
   IsBoolean,
   IsIn,
@@ -30,11 +32,12 @@ export class PaginationDto {
   @Min(1)
   page?: number = 1;
 
-  @ApiPropertyOptional({ default: 10 })
+  @ApiPropertyOptional({ default: 10, maximum: 100 })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  @Max(100)
   limit?: number = 10;
 }
 
