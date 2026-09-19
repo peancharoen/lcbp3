@@ -11,6 +11,7 @@ export {
   NotFoundException,
   PermissionException,
   ConflictException,
+  GoneException,
   WorkflowException,
   SystemException,
   DatabaseException,

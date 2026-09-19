@@ -21,6 +21,7 @@ import {
   QUEUE_AI_RAG_METADATA_SYNC,
   QUEUE_AI_RAG_GENERATION_CLEANUP,
   QUEUE_AI_RAG_GENERATION_RETENTION,
+  QUEUE_NP_DMS_OCR,
 } from '../common/constants/queue.constants';
 
 // ────────────────────────────────────────────────────────────────────────────────
@@ -138,6 +139,10 @@ describe('RAG Pipeline — Integration (SC-002 / Gap fixes)', () => {
           },
           {
             provide: getQueueToken(QUEUE_AI_RAG_GENERATION_RETENTION),
+            useValue: createMockQueue(),
+          },
+          {
+            provide: getQueueToken(QUEUE_NP_DMS_OCR),
             useValue: createMockQueue(),
           },
           {

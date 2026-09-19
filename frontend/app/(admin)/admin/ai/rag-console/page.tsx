@@ -1,5 +1,6 @@
 // File: frontend/app/(admin)/admin/ai/rag-console/page.tsx
 // Change Log:
+// - 2026-09-19: ADR-055 T027 — เพิ่มปุ่ม Re-OCR ต่อ row ใน Dashboard tab
 // - 2026-09-17: เพิ่มปุ่ม Re-ingest ต่อ row ใน Dashboard tab (ไม่ต้องเข้า Lifecycle tab)
 // - 2026-09-10: T024 — สร้าง RAG Admin Console page (single page + 5 tabs — Q23, Q24)
 
@@ -33,6 +34,7 @@ import { EmptyState } from '@/components/admin/ai/rag-console/EmptyState';
 import { GenerationTimeline } from '@/components/admin/ai/rag-console/GenerationTimeline';
 import { MetricsCard } from '@/components/admin/ai/rag-console/MetricsCard';
 import { RetryButton } from '@/components/admin/ai/rag-console/RetryButton';
+import { ReOcrButton } from '@/components/admin/ai/rag-console/ReOcrButton';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import type {
   RagAdminStatus,
@@ -192,7 +194,12 @@ function DashboardTab({
                   <td className="p-2">
                     {item.lastUpdated ? new Date(item.lastUpdated).toLocaleString() : '-'}
                   </td>
-                  <td className="p-2">
+                  <td className="flex gap-2 p-2">
+                    <ReOcrButton
+                      attachmentPublicId={item.attachmentPublicId}
+                      originalFilename={item.originalFilename}
+                      mimeType={item.mimeType}
+                    />
                     {hasReingestPermission && (
                       <Button
                         variant="outline"

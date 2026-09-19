@@ -454,6 +454,109 @@ describe('AuditLogInterceptor', () => {
       );
     });
 
+    it('should extract entityId from params.uuid when data has no id fields', async () => {
+      const auditMetadata: AuditMetadata = {
+        action: 'document.hard_delete',
+        entityType: 'document',
+      };
+      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(auditMetadata);
+
+      const user = createMockUser(1);
+      const context = createMockExecutionContext(auditMetadata, user, {
+        uuid: 'uuid-param-789',
+      });
+      const callHandler = createMockCallHandler({ success: true });
+
+      await lastValueFrom(interceptor.intercept(context, callHandler));
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(auditLogRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entityId: 'uuid-param-789',
+        })
+      );
+    });
+
+    it('should attach saved auditId to response when data has auditId property', async () => {
+      const auditMetadata: AuditMetadata = {
+        action: 'test.action',
+      };
+      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(auditMetadata);
+      jest
+        .spyOn(auditLogRepo, 'save')
+        .mockResolvedValue({ auditId: 'saved-audit-1' });
+
+      const user = createMockUser(1);
+      const context = createMockExecutionContext(auditMetadata, user);
+      const callHandler = createMockCallHandler({ auditId: null, id: 'doc-1' });
+
+      const result = await lastValueFrom(
+        interceptor.intercept(context, callHandler)
+      );
+
+      expect(result).toEqual({ auditId: 'saved-audit-1', id: 'doc-1' });
+    });
+
+    it('should return original data when auditId exists but data lacks auditId property', async () => {
+      const auditMetadata: AuditMetadata = {
+        action: 'test.action',
+      };
+      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(auditMetadata);
+      jest
+        .spyOn(auditLogRepo, 'save')
+        .mockResolvedValue({ auditId: 'saved-audit-2' });
+
+      const user = createMockUser(1);
+      const context = createMockExecutionContext(auditMetadata, user);
+      const callHandler = createMockCallHandler({ id: 'doc-2' });
+
+      const result = await lastValueFrom(
+        interceptor.intercept(context, callHandler)
+      );
+
+      expect(result).toEqual({ id: 'doc-2' });
+    });
+
+    it('should return data unchanged when auditId exists but data is null', async () => {
+      const auditMetadata: AuditMetadata = {
+        action: 'test.action',
+      };
+      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(auditMetadata);
+      jest
+        .spyOn(auditLogRepo, 'save')
+        .mockResolvedValue({ auditId: 'saved-audit-3' });
+
+      const user = createMockUser(1);
+      const context = createMockExecutionContext(auditMetadata, user);
+      const callHandler = createMockCallHandler(null);
+
+      const result = await lastValueFrom(
+        interceptor.intercept(context, callHandler)
+      );
+
+      expect(result).toBeNull();
+    });
+
+    it('should return data unchanged when auditId exists but data is not an object', async () => {
+      const auditMetadata: AuditMetadata = {
+        action: 'test.action',
+      };
+      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(auditMetadata);
+      jest
+        .spyOn(auditLogRepo, 'save')
+        .mockResolvedValue({ auditId: 'saved-audit-4' });
+
+      const user = createMockUser(1);
+      const context = createMockExecutionContext(auditMetadata, user);
+      const callHandler = createMockCallHandler('plain-string');
+
+      const result = await lastValueFrom(
+        interceptor.intercept(context, callHandler)
+      );
+
+      expect(result).toBe('plain-string');
+    });
+
     it('should handle array IP address', async () => {
       const auditMetadata: AuditMetadata = {
         action: 'test.action',

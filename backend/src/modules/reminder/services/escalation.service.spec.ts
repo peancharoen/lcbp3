@@ -5,6 +5,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
 
 import { Test, TestingModule } from '@nestjs/testing';
+import { Logger } from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { EscalationService } from './escalation.service';
 import { ReviewTask } from '../../review-team/entities/review-task.entity';
@@ -209,6 +210,40 @@ describe('EscalationService', () => {
       mockHistoryRepo.create.mockReturnValue({});
       await service.escalateLevel2('task-002');
       expect(mockNotificationService.send).toHaveBeenCalledTimes(1); // assignee only
+    });
+
+    it('ควร log error และแจ้ง assignee ต่อเมื่อ PM lookup ล้มเหลว', async () => {
+      const loggerSpy = jest.spyOn(Logger.prototype, 'error');
+      mockTaskRepo.findOne
+        .mockResolvedValueOnce(makeTask('task-003'))
+        .mockRejectedValueOnce(new Error('DB connection lost')); // PM lookup fails
+      mockHistoryRepo.count.mockResolvedValueOnce(0);
+      mockHistoryRepo.create.mockReturnValue({});
+      await service.escalateLevel2('task-003');
+      expect(loggerSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to find PM for task task-003')
+      );
+      expect(mockNotificationService.send).toHaveBeenCalledTimes(1); // assignee only
+    });
+
+    it('ควรแจ้ง PM เมื่อ task ไม่มี discipline (nullish fallback)', async () => {
+      const task = makeTask('task-004');
+      task.discipline = undefined;
+      mockTaskRepo.findOne.mockResolvedValueOnce(task).mockResolvedValueOnce({
+        rfaRevision: {
+          correspondenceRevision: {
+            correspondence: { projectId: 5 },
+          },
+        },
+      });
+      mockHistoryRepo.count.mockResolvedValueOnce(0);
+      mockAssignmentRepo.findOne.mockResolvedValueOnce({ userId: 99 }); // PM
+      mockHistoryRepo.create.mockReturnValue({});
+      await service.escalateLevel2('task-004');
+      expect(mockNotificationService.send).toHaveBeenCalledTimes(2);
+      expect(mockNotificationService.send.mock.calls[0][0].message).toContain(
+        'task-004 ()'
+      );
     });
   });
 

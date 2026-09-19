@@ -37,6 +37,7 @@ import {
   QUEUE_AI_RAG_METADATA_SYNC,
   QUEUE_AI_RAG_GENERATION_CLEANUP,
   QUEUE_AI_RAG_GENERATION_RETENTION,
+  QUEUE_NP_DMS_OCR,
   JOB_RAG_ATTACHMENT_INGEST,
   JOB_RAG_METADATA_SYNC,
   JOB_RAG_GENERATION_CLEANUP,
@@ -47,6 +48,7 @@ import {
   JOB_CLEAR_FAILED_JOBS,
 } from '../common/constants/queue.constants';
 import { QueueJobItemDto } from './dto/queue-jobs.dto';
+import type { NpDmsOcrJobData } from './processors/np-dms-ocr-processor';
 import { ServiceUnavailableException } from '../../common/exceptions';
 
 /** Redis key สำหรับ mutex lock ระหว่าง Ollama model Load/Unload (ADR-048) */
@@ -60,6 +62,16 @@ const REDIS_KEY_MODEL_TRANSITIONING = 'ai:model:transitioning';
 const REDIS_KEY_OCR_BATCH_ACTIVE = 'ai:ocr-batch:active';
 /** TTL ของ ai:ocr-batch:active — เป็น crash safety net เท่านั้น ต้อง heartbeat ต่ออายุก่อนหมด */
 const OCR_BATCH_LOCK_TTL_SECONDS = 30;
+/** ADR-055: ชื่อ job ของ re-OCR ใน QUEUE_NP_DMS_OCR */
+const JOB_RE_OCR_ATTACHMENT = 're-ocr-attachment';
+/** ADR-055 D14: worst-case ต่อ job = lockDuration ของ NpDmsOcrProcessor (180s) */
+const RE_OCR_JOB_LOCK_SECONDS = 180;
+
+/** ADR-055 D15: BullMQ jobId ของ re-OCR — ใช้ `-` เพราะ BullMQ ห้าม `:` ใน custom id */
+export const buildReOcrJobId = (
+  attachmentPublicId: string,
+  reOcrToken: string
+): string => `re-ocr-${attachmentPublicId}-${reOcrToken}`;
 
 /** Payload สำหรับงาน RAG Query ที่ต้องเข้าคิวบน Desk-5439 */
 export interface AiRagJobPayload {
@@ -140,6 +152,8 @@ export class AiQueueService {
     private readonly ragGenerationCleanupQueue: Queue<unknown>,
     @InjectQueue(QUEUE_AI_RAG_GENERATION_RETENTION)
     private readonly ragGenerationRetentionQueue: Queue<unknown>,
+    @InjectQueue(QUEUE_NP_DMS_OCR)
+    private readonly npDmsOcrQueue: Queue<NpDmsOcrJobData>,
     @InjectRedis() private readonly redis: Redis
   ) {
     // Map-based registry — แทน if-else chain เดิม รองรับทุก queue และป้องกัน
@@ -224,6 +238,37 @@ export class AiQueueService {
     if (currentToken === lockToken) {
       await this.redis.del(REDIS_KEY_OCR_BATCH_ACTIVE);
     }
+  }
+
+  /**
+   * ADR-055 D3/D15: ส่ง re-OCR job เข้า dedicated sequential OCR queue (concurrency=1, ไม่ใช้ priority)
+   * @idempotency `jobId = re-ocr-{attachmentPublicId}-{reOcrToken}` (ใช้ `-` ไม่ใช่ `:` ตาม BullMQ custom-id rule)
+   * @returns jobId + queuePosition (waiting count หลัง add) + estimatedWaitSeconds (worst-case × lockDuration 180s)
+   * @throws ServiceUnavailableException (503) ถ้าอยู่ระหว่าง OCR batch phase / model transition
+   */
+  async enqueueAttachmentReOcr(
+    data: NpDmsOcrJobData & { attachmentPublicId: string; reOcrToken: string }
+  ): Promise<{
+    jobId: string;
+    queuePosition: number;
+    estimatedWaitSeconds: number;
+  }> {
+    await this.checkAiUnavailableLocks();
+    const job = await this.npDmsOcrQueue.add(JOB_RE_OCR_ATTACHMENT, data, {
+      ...this.defaultOptions,
+      jobId: buildReOcrJobId(data.attachmentPublicId, data.reOcrToken),
+    });
+    const [waiting, active] = await Promise.all([
+      this.npDmsOcrQueue.getWaitingCount(),
+      this.npDmsOcrQueue.getActiveCount(),
+    ]);
+    const waitingAhead = Math.max(waiting - 1, 0);
+    return {
+      jobId: String(job.id),
+      queuePosition: waiting,
+      estimatedWaitSeconds:
+        (waitingAhead + (active > 0 ? 1 : 0)) * RE_OCR_JOB_LOCK_SECONDS,
+    };
   }
 
   /**

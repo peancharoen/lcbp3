@@ -1261,4 +1261,138 @@ describe('ExcelDataReviewService', () => {
       expect(stash.deleteSession).toHaveBeenCalledWith('session-1');
     });
   });
+
+  describe('edge branches (coverage follow-up)', () => {
+    const makeReadySession = (overrides: Record<string, unknown> = {}) => ({
+      reviewSessionPublicId: 'session-1',
+      projectPublicId: 'proj-uuid-1',
+      targetMode: 'DIRECT_IMPORT',
+      uploadedBy: 'user-1',
+      totalRows: 1,
+      passCount: 1,
+      warnCount: 0,
+      blockCount: 0,
+      aiSuggestCount: 0,
+      originalFileName: 'test.xlsx',
+      originalFilePath: '/tmp/test.xlsx',
+      annotatedFilePath: '',
+      failedRowsFilePath: '',
+      selectedAiProvider: 'LOCAL_OLLAMA',
+      status: 'READY',
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date().toISOString(),
+      ...overrides,
+    });
+
+    it('processCheck ข้ามเงียบเมื่อ session ไม่มีอยู่ (stash หมดอายุ)', async () => {
+      stash.getSession.mockResolvedValue(null);
+
+      await service.processCheck('missing-session');
+
+      expect(stash.updateStatus).not.toHaveBeenCalled();
+      expect(rowBuilder.buildFromWorkbook).not.toHaveBeenCalled();
+    });
+
+    it('processCheck ข้ามเมื่อ session status ไม่ใช่ PENDING', async () => {
+      const sessionId = await setupProcessCheck();
+      stash.getSession.mockResolvedValue(
+        makeReadySession({ reviewSessionPublicId: sessionId }) as never
+      );
+
+      await service.processCheck(sessionId);
+
+      expect(stash.updateStatus).not.toHaveBeenCalledWith(
+        sessionId,
+        'PROCESSING'
+      );
+      expect(rowBuilder.buildFromWorkbook).not.toHaveBeenCalled();
+    });
+
+    it('ZIP: ข้าม directory entries + whitespace filename + warn เมื่อมี .xlsx หลายไฟล์', async () => {
+      const xlsxBuf = await makeValidXlsxBuffer();
+      const zip = new AdmZip();
+      zip.addFile('register.xlsx', xlsxBuf);
+      zip.addFile('extra.xlsx', xlsxBuf); // xlsxCount > 1 → warn + ใช้ไฟล์แรก
+      zip.addFile('docs/', Buffer.alloc(0)); // directory entry → skip
+      zip.addFile(' ', Buffer.from('empty')); // whitespace name → sanitize fallback
+      const sessionId = await setupProcessCheck({
+        fileName: 'bundle.zip',
+        fileBuffer: zip.toBuffer(),
+      });
+      rowBuilder.buildFromWorkbook.mockResolvedValue(makeParsed([makeRow()]));
+
+      await service.processCheck(sessionId);
+
+      // extract สำเร็จ → pipeline ครบจน updateResult (ไม่ FAILED)
+      expect(businessRules.validate).toHaveBeenCalled();
+      expect(stash.updateResult).toHaveBeenCalledWith(
+        sessionId,
+        expect.objectContaining({ totalRows: 1 })
+      );
+      expect(stash.updateStatus).not.toHaveBeenCalledWith(
+        sessionId,
+        'FAILED',
+        expect.anything()
+      );
+    });
+
+    it('confirm: BadRequestException เมื่อ tryLockForConfirm แพ้ race', async () => {
+      stash.getSession.mockResolvedValue(makeReadySession() as never);
+      stash.tryLockForConfirm.mockResolvedValue(false);
+
+      await expect(
+        service.confirm({
+          reviewSessionPublicId: 'session-1',
+          confirmedBy: 'user-1',
+        })
+      ).rejects.toThrow(BadRequestException);
+      expect(projectRepo.findOne).not.toHaveBeenCalled();
+    });
+
+    it('confirm: BadRequestException เมื่อ project ถูกลบไปแล้ว', async () => {
+      stash.getSession.mockResolvedValue(makeReadySession() as never);
+      stash.tryLockForConfirm.mockResolvedValue(true);
+      projectRepo.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.confirm({
+          reviewSessionPublicId: 'session-1',
+          confirmedBy: 'user-1',
+        })
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('confirm: BadRequestException เมื่อ re-validation พบ BLOCK (canConfirm=false)', async () => {
+      const tmpFile = path.join(
+        os.tmpdir(),
+        `confirm-reval-${Date.now()}-${Math.random().toString(36).slice(2)}.xlsx`
+      );
+      await fs.promises.writeFile(tmpFile, Buffer.from('fake-xlsx'));
+      stash.getSession.mockResolvedValue(
+        makeReadySession({ originalFilePath: tmpFile }) as never
+      );
+      stash.tryLockForConfirm.mockResolvedValue(true);
+      const rowBlock: ReviewFinding = {
+        row: 2,
+        column: 'Document Number',
+        level: 'BLOCK',
+        message: 'ซ้ำใน DB',
+        originalValue: 'DOC-001',
+      };
+      const row = makeRow({ findings: [rowBlock] });
+      rowBuilder.buildFromWorkbook.mockResolvedValue(makeParsed([row]));
+      businessRules.validate.mockResolvedValue({
+        findings: [rowBlock],
+        rows: [row],
+      });
+
+      await expect(
+        service.confirm({
+          reviewSessionPublicId: 'session-1',
+          confirmedBy: 'user-1',
+        })
+      ).rejects.toThrow(BadRequestException);
+      expect(quarantine.prepareQuarantine).not.toHaveBeenCalled();
+    });
+  });
 });

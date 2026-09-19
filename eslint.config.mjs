@@ -12,6 +12,7 @@ export default [
       '**/build/**',
       '**/coverage/**',
       '**/.turbo/**',
+      '**/.claude/worktrees/**',
       '**/temp/**',
       '**/tmp/**',
       'specs/**',

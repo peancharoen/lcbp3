@@ -1,6 +1,7 @@
 // File: backend/src/modules/ai/ai-queue.service.spec.ts
 // Change Log:
 // - 2026-08-24: ADR-048 T020 — สร้าง unit tests สำหรับ AiQueueService
+// - 2026-09-19: ADR-055 T016 — enqueueAttachmentReOcr: jobId/attempts/no-priority/queue position + lock 503
 // - 2026-08-26: เพิ่ม regression test — jobId ของ vector deletion ใช้ `-` ไม่ใช่ `:` (Fix 15ff5d08)
 
 import { Test, TestingModule } from '@nestjs/testing';
@@ -15,6 +16,7 @@ import {
   QUEUE_AI_RAG_METADATA_SYNC,
   QUEUE_AI_RAG_GENERATION_CLEANUP,
   QUEUE_AI_RAG_GENERATION_RETENTION,
+  QUEUE_NP_DMS_OCR,
   JOB_RAG_ATTACHMENT_INGEST,
 } from '../common/constants/queue.constants';
 
@@ -90,6 +92,7 @@ describe('AiQueueService', () => {
       [QUEUE_AI_RAG_METADATA_SYNC]: createMockQueue(),
       [QUEUE_AI_RAG_GENERATION_CLEANUP]: createMockQueue(),
       [QUEUE_AI_RAG_GENERATION_RETENTION]: createMockQueue(),
+      [QUEUE_NP_DMS_OCR]: createMockQueue(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -128,6 +131,10 @@ describe('AiQueueService', () => {
           useValue: queues[QUEUE_AI_RAG_GENERATION_RETENTION],
         },
         {
+          provide: getQueueToken(QUEUE_NP_DMS_OCR),
+          useValue: queues[QUEUE_NP_DMS_OCR],
+        },
+        {
           provide: 'default_IORedisModuleConnectionToken',
           useValue: mockRedis,
         },
@@ -135,6 +142,50 @@ describe('AiQueueService', () => {
     }).compile();
 
     service = module.get<AiQueueService>(AiQueueService);
+  });
+
+  describe('enqueueAttachmentReOcr (ADR-055)', () => {
+    const jobData = {
+      pdfPath: '/files/a.pdf',
+      engineType: 'np-dms-ocr' as const,
+      idempotencyKey: 'tok-1',
+      documentPublicId: 'att-1',
+      attachmentPublicId: 'att-1',
+      reOcrToken: 'tok-1',
+      forceRefresh: true,
+    };
+    it('เพิ่ม job ลง QUEUE_NP_DMS_OCR ด้วย jobId re-ocr-{id}-{token}, attempts 3, ไม่มี priority', async () => {
+      queues[QUEUE_NP_DMS_OCR].getWaitingCount.mockResolvedValue(1);
+      queues[QUEUE_NP_DMS_OCR].getActiveCount.mockResolvedValue(0);
+      const result = await service.enqueueAttachmentReOcr(jobData);
+      const [, data, opts] = queues[QUEUE_NP_DMS_OCR].add.mock.calls[0] as [
+        string,
+        unknown,
+        Record<string, unknown>,
+      ];
+      expect(data).toEqual(jobData);
+      expect(opts.jobId).toBe('re-ocr-att-1-tok-1');
+      expect(opts.attempts).toBe(3);
+      expect(opts).not.toHaveProperty('priority');
+      expect(result.jobId).toBe('new-job');
+      expect(result.queuePosition).toBe(1);
+      expect(result.estimatedWaitSeconds).toBe(0);
+    });
+    it('estimatedWaitSeconds = (waitingAhead + active?1:0) × 180', async () => {
+      queues[QUEUE_NP_DMS_OCR].getWaitingCount.mockResolvedValue(3);
+      queues[QUEUE_NP_DMS_OCR].getActiveCount.mockResolvedValue(1);
+      const result = await service.enqueueAttachmentReOcr(jobData);
+      expect(result.queuePosition).toBe(3);
+      expect(result.estimatedWaitSeconds).toBe((2 + 1) * 180);
+    });
+    it.each(['ai:ocr-batch:active', 'ai:model:transitioning'])(
+      'lock %s → 503 AI_FEATURES_UNAVAILABLE และไม่ enqueue',
+      async (key) => {
+        store.set(key, 'x');
+        await expect(service.enqueueAttachmentReOcr(jobData)).rejects.toThrow();
+        expect(queues[QUEUE_NP_DMS_OCR].add).not.toHaveBeenCalled();
+      }
+    );
   });
 
   it('ควรสร้าง instance ได้', () => {

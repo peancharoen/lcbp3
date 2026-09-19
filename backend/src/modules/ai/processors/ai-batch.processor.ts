@@ -36,7 +36,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import { Attachment } from '../../../common/file-storage/entities/attachment.entity';
@@ -368,7 +368,14 @@ export class AiBatchProcessor extends WorkerHost {
       job.data.jobType === 'legacy-ocr-batch-phase' ||
       job.data.jobType === 'legacy-ai-metadata-only';
     if (!isSandbox && !isLegacy) {
-      await this.setAiProcessingStatus(job.data.documentPublicId, 'PROCESSING');
+      // ADR-055 D9.3: DONE เป็น terminal state — claim ไม่ได้ (0 แถว) = skip job ทั้งตัว
+      const claimed = await this.claimForProcessing(job.data.documentPublicId);
+      if (!claimed) {
+        this.logger.warn(
+          `Skip batch job — attachment ${job.data.documentPublicId} เป็น DONE แล้ว (หรือไม่พบ), jobType=${job.data.jobType}, jobId=${String(job.id)}`
+        );
+        return;
+      }
     }
     try {
       switch (job.data.jobType) {
@@ -602,6 +609,20 @@ export class AiBatchProcessor extends WorkerHost {
     } finally {
       this.abortControllers.delete(idempotencyKey);
     }
+  }
+
+  /**
+   * ตั้ง ai_processing_status='PROCESSING' แบบมีเงื่อนไข (ADR-055 D9.3)
+   * — เขียนได้เฉพาะเมื่อสถานะปัจจุบันไม่ใช่ DONE เพื่อไม่ให้ job ที่ค้างคิวมาทับผลที่ admin confirm แล้ว
+   * (PENDING/FAILED/PROCESSING ยัง retry ได้ตามปกติ)
+   * @returns true ถ้า claim สำเร็จ, false ถ้า attachment เป็น DONE หรือไม่พบ
+   */
+  private async claimForProcessing(documentPublicId: string): Promise<boolean> {
+    const result = await this.attachmentRepo.update(
+      { publicId: documentPublicId, aiProcessingStatus: Not('DONE') },
+      { aiProcessingStatus: 'PROCESSING' }
+    );
+    return (result.affected ?? 0) > 0;
   }
 
   private async setAiProcessingStatus(

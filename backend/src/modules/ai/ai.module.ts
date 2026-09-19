@@ -15,6 +15,8 @@
 //   (ai-rag-metadata-sync, ai-rag-generation-cleanup, ai-rag-generation-retention)
 // Module สำหรับ AI Gateway — ลงทะเบียน Services และ Controllers (ADR-023)
 
+import { AttachmentReOcrController } from '../../common/file-storage/attachment-re-ocr.controller';
+import { AttachmentReOcrService } from '../../common/file-storage/attachment-re-ocr.service';
 import { Logger, Module, OnModuleInit, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
@@ -248,8 +250,15 @@ import { SecureArchiveService } from '../../common/file-storage/secure-archive.s
     // CASL — AbilityFactory สำหรับ RagClassificationService + RagRetrievalGuardService
     CaslModule,
   ],
-  controllers: [AiController, RagAttachmentController, RagAdminController],
+  controllers: [
+    AiController,
+    RagAttachmentController,
+    RagAdminController,
+    // ADR-055: Attachment Manual Re-OCR (อยู่ใน file-storage แต่ register ที่นี่เพราะต้องใช้ AiEnabledGuard)
+    AttachmentReOcrController,
+  ],
   providers: [
+    AttachmentReOcrService, // ADR-055
     AiService,
     AiSettingsService,
     AiPolicyService,

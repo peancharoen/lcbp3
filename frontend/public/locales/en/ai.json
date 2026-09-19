@@ -366,6 +366,57 @@
       "common": {
         "loading": "Loading...",
         "cancel": "Cancel"
+      },
+      "re_ocr": {
+        "title": "Re-OCR attachment",
+        "action": "Re-OCR",
+        "action_hint": "Re-run OCR and compare before replacing",
+        "started_by": "Started by {{name}} at {{time}}",
+        "loading": "Checking status...",
+        "select": {
+          "heading": "Choose OCR engine",
+          "np_dms_ocr": "np-dms-ocr (recommended)",
+          "np_dms_ocr_desc": "Vision-model OCR for unclear text layers or hard-to-read scans. Uses the GPU; slower but more accurate.",
+          "auto": "auto",
+          "auto_desc": "System chooses automatically (PyMuPDF on CPU → np-dms-ocr). Best for files with a clear text layer.",
+          "start": "Start Re-OCR",
+          "note": "The existing text is not replaced until you review and confirm."
+        },
+        "waiting": {
+          "queued": "Queued",
+          "processing": "Processing",
+          "attempt": "Attempt {{n}}",
+          "queue_position": "Queue position: {{n}}",
+          "estimate": "Estimated wait (worst case): {{seconds}} s",
+          "hint": "You can close this window; the job continues and the result stays available for 72 hours."
+        },
+        "error": {
+          "heading": "Re-OCR failed",
+          "retry_np_dms_ocr": "Retry with np-dms-ocr",
+          "retry_auto": "Retry with auto"
+        },
+        "diff": {
+          "heading": "Compare results",
+          "current": "Current text",
+          "new": "New text ({{engine}})",
+          "pdf": "Original PDF",
+          "chars": "{{count}} characters",
+          "search": "Search in text",
+          "no_current": "No existing OCR text (previous extraction failed or never ran)",
+          "identical": "Result is identical to the current text — no replacement needed",
+          "much_shorter": "New text is much shorter than the current one (<50%) — verify against the PDF before confirming",
+          "confirm": "Confirm replacement",
+          "pdf_error": "Failed to load PDF"
+        },
+        "confirm_dialog": {
+          "title": "Permanently replace OCR text?",
+          "description": "This cannot be undone ({{old}} → {{new}} characters). The search index will be rebuilt from the new text.",
+          "confirm": "Replace permanently"
+        },
+        "toast": {
+          "confirmed": "OCR text replaced; re-indexing started",
+          "confirmed_no_reindex": "OCR text replaced, but re-indexing could not be queued; it will be repaired automatically"
+        }
       }
     }
   }

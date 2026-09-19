@@ -54,6 +54,8 @@ export const JOB_RAG_GENERATION_CLEANUP = 'rag-generation-cleanup';
 export const QUEUE_AI_RAG_METADATA_SYNC = 'ai-rag-metadata-sync';
 export const QUEUE_AI_RAG_GENERATION_CLEANUP = 'ai-rag-generation-cleanup';
 export const QUEUE_AI_RAG_GENERATION_RETENTION = 'ai-rag-generation-retention';
+/** ADR-032/ADR-055: dedicated sequential OCR queue (np-dms-ocr, concurrency=1) — อยู่ที่นี่เพื่อเลี่ยง circular import processor ↔ ai-queue.service */
+export const QUEUE_NP_DMS_OCR = 'np-dms-ocr';
 
 /** Job names สำหรับ ai-batch queue */
 export const JOB_OCR = 'ocr';

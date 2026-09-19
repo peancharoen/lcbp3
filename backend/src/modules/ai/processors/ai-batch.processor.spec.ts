@@ -11,6 +11,8 @@
 // - 2026-06-03: ADR-034 — เพิ่ม OCR_JOB_TYPES import, mock unloadModel/loadModel/getOcrModelName, อัปเดต getMainModelName เป็น typhoon2.5, เพิ่ม test ocr-extract model switching
 // - 2026-06-13: ADR-036 — อัปเดต model switching tests เป็น np-dms-ai/np-dms-ocr
 // - 2026-06-13: US5 — Mock AiPolicyService เพื่อให้ผ่านการทดสอบและรองรับ sandbox parameter injection
+// - 2026-09-19: ADR-055 D9.3 (T003) — DONE terminal-state guard: job ที่รันบน attachment
+//   ซึ่ง ai_processing_status='DONE' ต้อง skip ทั้งตัว; PENDING/FAILED ทำงานปกติ
 // - 2026-09-14: ADR-054 T008 (US1) — tests พิสูจน์ write-path contract ของ legacy
 //   enrichment: ทุก path ไหลผ่าน updateQueueEnrichment funnel เดียว, ใช้
 //   NO_PDF_OCR_PLACEHOLDER single-source constant และไม่มี path ใดส่ง reviewState/
@@ -18,7 +20,7 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
 import { Job } from 'bullmq';
 import {
   AiBatchProcessor,
@@ -355,13 +357,53 @@ describe('AiBatchProcessor', () => {
       'OCR text LCBP3-CIV-001 Civil'
     );
     expect(attachmentRepo.update).toHaveBeenCalledWith(
-      { publicId: 'doc-uuid-123' },
+      { publicId: 'doc-uuid-123', aiProcessingStatus: Not('DONE') },
       { aiProcessingStatus: 'PROCESSING' }
     );
     expect(attachmentRepo.update).toHaveBeenCalledWith(
       { publicId: 'doc-uuid-123' },
       { aiProcessingStatus: 'DONE' }
     );
+  });
+  describe('DONE terminal-state guard (ADR-055 D9.3)', () => {
+    const embedJob = {
+      id: 'job-embed-done',
+      data: {
+        jobType: 'embed-document',
+        documentPublicId: 'doc-uuid-123',
+        projectPublicId: 'proj-uuid-456',
+        payload: { pdfPath: '/files/test.pdf' },
+        idempotencyKey: 'idem-done',
+      },
+    } as unknown as Job<AiBatchJobData>;
+    it('skip job ทั้งตัวเมื่อ attachment เป็น DONE (claim ได้ 0 แถว) — ไม่ OCR/embed/เขียนสถานะใด ๆ', async () => {
+      ocrService.detectAndExtract.mockClear();
+      embeddingService.embedDocument.mockClear();
+      attachmentRepo.update.mockClear();
+      attachmentRepo.update.mockResolvedValueOnce({
+        affected: 0,
+        raw: [],
+        generatedMaps: [],
+      });
+      await processor.process(embedJob);
+      expect(attachmentRepo.update).toHaveBeenCalledTimes(1);
+      expect(attachmentRepo.update).toHaveBeenCalledWith(
+        { publicId: 'doc-uuid-123', aiProcessingStatus: Not('DONE') },
+        { aiProcessingStatus: 'PROCESSING' }
+      );
+      expect(ocrService.detectAndExtract).not.toHaveBeenCalled();
+      expect(embeddingService.embedDocument).not.toHaveBeenCalled();
+    });
+    it('ทำงานปกติเมื่อ claim สำเร็จ (PENDING/FAILED → PROCESSING → DONE)', async () => {
+      attachmentRepo.update.mockClear();
+      embeddingService.embedDocument.mockClear();
+      await processor.process(embedJob);
+      expect(embeddingService.embedDocument).toHaveBeenCalledTimes(1);
+      expect(attachmentRepo.update).toHaveBeenCalledWith(
+        { publicId: 'doc-uuid-123' },
+        { aiProcessingStatus: 'DONE' }
+      );
+    });
   });
   it('ควรประมวลผล sandbox-rag โดยการเรียก ragService.processQuery และข้ามการอัปเดต database', async () => {
     const job = {

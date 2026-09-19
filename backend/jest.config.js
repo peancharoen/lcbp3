@@ -29,21 +29,13 @@ module.exports = {
   ],
 
   // TypeScript transformation — ใช้ tsconfig.spec.json สำหรับ jest globals (describe, it, expect)
+  // NOTE: อย่าเพิ่ม per-file transform entries ที่ตั้งค่า tsconfig ต่างกัน —
+  // ts-jest cache ConfigSet ต่อ jest project config (ไม่ใช่ต่อ pattern) ทำให้
+  // transformer ตัวแรกที่ถูกใช้ "ชนะ" และ tsconfig ของมันกลายเป็นของทั้ง worker
+  // (dead config หรือ contamination แบบ nondeterministic) — decorator metadata
+  // branches (`typeof X === "function" ? X : Object` ใน design:paramtypes)
+  // จึง cover ไม่ได้ผ่าน test code และถือเป็นข้อจำกัดของ v8 coverage
   transform: {
-    // ปิด emitDecoratorMetadata สำหรับ service files ที่มี decorator metadata branches
-    // ที่ V8 coverage นับเป็น uncovered branches แต่ไม่สามารถ cover ได้ผ่าน test code
-    'bullmq-metrics\\.service\\.ts$': [
-      'ts-jest',
-      { tsconfig: 'tsconfig.no-metadata.json' },
-    ],
-    'manual-override\\.service\\.ts$': [
-      'ts-jest',
-      { tsconfig: 'tsconfig.no-metadata.json' },
-    ],
-    'consensus\\.service\\.ts$': [
-      'ts-jest',
-      { tsconfig: 'tsconfig.no-metadata.json' },
-    ],
     '^.+\\.(t|j)s$': ['ts-jest', { tsconfig: 'tsconfig.spec.json' }],
   },
 
@@ -95,12 +87,8 @@ module.exports = {
       lines: 80,
       statements: 80,
     },
-    './src/modules/*/services/*.spec.ts': {
-      branches: 80,
-      functions: 80,
-      lines: 80,
-      statements: 80,
-    },
+    // (ลบ '*.spec.ts' entry — spec files ไม่ถูก instrument โดย v8 provider
+    //  pattern จึง match ไฟล์ไม่ได้และทำให้ Jest รายงาน "coverage data not found")
     './src/common/guards/*.ts': {
       branches: 90,
       functions: 90,

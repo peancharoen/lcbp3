@@ -10,6 +10,7 @@ export enum ErrorType {
   PERMISSION_DENIED = 'PERMISSION_DENIED',
   NOT_FOUND = 'NOT_FOUND',
   CONFLICT = 'CONFLICT',
+  GONE = 'GONE', // 410 — ทรัพยากรเคยมีอยู่แต่ถูกลบ/หายไปแล้ว (เช่น ไฟล์ต้นฉบับหายจาก storage)
   INTERNAL_ERROR = 'INTERNAL_ERROR',
   DATABASE_ERROR = 'DATABASE_ERROR',
   EXTERNAL_SERVICE = 'EXTERNAL_SERVICE',
@@ -45,6 +46,8 @@ export function getStatusCode(type: ErrorType): number {
       return HttpStatus.NOT_FOUND;
     case ErrorType.CONFLICT:
       return HttpStatus.CONFLICT;
+    case ErrorType.GONE:
+      return HttpStatus.GONE;
     case ErrorType.INTERNAL_ERROR:
     case ErrorType.DATABASE_ERROR:
     case ErrorType.EXTERNAL_SERVICE:
@@ -174,6 +177,26 @@ export class PermissionException extends BaseException {
       ErrorSeverity.MEDIUM,
       { resource, action },
       ['ติดต่อผู้ดูแลระบบเพื่อขอสิทธิ์', 'ลองใช้บัญชีที่มีสิทธิ์']
+    );
+  }
+}
+
+// Gone Errors (410) - ทรัพยากรเคยมีอยู่แต่หายไปแล้ว (เช่น ไฟล์ต้นฉบับหายจาก disk)
+export class GoneException extends BaseException {
+  constructor(
+    code: string,
+    message: string,
+    userMessage?: string,
+    recoveryActions?: string[]
+  ) {
+    super(
+      ErrorType.GONE,
+      code,
+      message,
+      userMessage || 'ทรัพยากรที่ร้องขอไม่มีอยู่แล้ว',
+      ErrorSeverity.MEDIUM,
+      undefined,
+      recoveryActions || ['ติดต่อผู้ดูแลระบบ']
     );
   }
 }

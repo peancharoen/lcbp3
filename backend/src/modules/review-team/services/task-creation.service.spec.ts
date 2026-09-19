@@ -135,6 +135,23 @@ describe('TaskCreationService', () => {
       expect(result).toEqual([]);
     });
 
+    it('ควรคืนค่า empty array เมื่อ members relation ไม่ถูก load (members ?? [])', async () => {
+      mockReviewTeamRepo.findOne.mockResolvedValueOnce({
+        id: 1,
+        publicId: reviewTeamPublicId,
+        isActive: true,
+        // members: undefined — relation ไม่ถูก load
+      });
+      const result = await service.createParallelTasks(
+        rfaRevisionId,
+        rfaPublicId,
+        reviewTeamPublicId,
+        mockDueDate,
+        mockEntityManager as unknown as EntityManager
+      );
+      expect(result).toEqual([]);
+    });
+
     it('ควรสร้าง parallel review tasks ตาม disciplines และกรองลำดับ LEAD/REVIEWER (Happy Path)', async () => {
       const mockMembers: Partial<ReviewTeamMember>[] = [
         {
@@ -212,6 +229,49 @@ describe('TaskCreationService', () => {
         projectId: 50,
         documentTypeCode: 'SDW',
       });
+    });
+
+    it('ควร fallback ไปใช้ dueDate ที่ส่งเข้ามา เมื่อ saved.dueDate เป็น null (saved.dueDate ?? dueDate)', async () => {
+      const mockMembers: Partial<ReviewTeamMember>[] = [
+        {
+          id: 10,
+          userId: 1,
+          disciplineId: 101,
+          role: ReviewTeamMemberRole.LEAD,
+        },
+      ];
+      mockReviewTeamRepo.findOne.mockResolvedValueOnce({
+        id: 5,
+        projectId: 50,
+        publicId: reviewTeamPublicId,
+        isActive: true,
+        members: mockMembers as ReviewTeamMember[],
+      });
+      mockDelegationService.findActiveDelegate.mockResolvedValue(null);
+      const createdTask: Partial<ReviewTask> = {
+        id: 201,
+        publicId: 'task-uuid-201',
+        rfaRevisionId,
+        teamId: 5,
+        disciplineId: 101,
+        assignedToUserId: 1,
+        status: ReviewTaskStatus.PENDING,
+        dueDate: undefined, // DB คืน null/undefined → ใช้ dueDate ที่ส่งเข้ามา
+      };
+      mockEntityManager.create.mockReturnValueOnce(createdTask);
+      mockEntityManager.save.mockResolvedValueOnce(createdTask);
+      await service.createParallelTasks(
+        rfaRevisionId,
+        rfaPublicId,
+        reviewTeamPublicId,
+        mockDueDate,
+        mockEntityManager as unknown as EntityManager,
+        50,
+        'SDW'
+      );
+      expect(mockSchedulerService.scheduleForTask).toHaveBeenCalledWith(
+        expect.objectContaining({ dueDate: mockDueDate })
+      );
     });
 
     it('ควรดึงข้อมูล delegation เมื่อสมาชิกคนนั้นมี active delegate และเซ็ต assignedToUserId เป็นผู้รับมอบสิทธิ์', async () => {

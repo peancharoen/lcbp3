@@ -1,0 +1,74 @@
+// File: hooks/ai/use-re-ocr.ts
+// Change Log:
+// - 2026-09-19: ADR-055 T023 — TanStack Query hooks สำหรับ Attachment Manual Re-OCR
+
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { reOcrService } from '@/lib/services/re-ocr.service';
+import type {
+  ReOcrEngine,
+  ReOcrStatusResponse,
+} from '@/lib/services/re-ocr.service';
+
+/** poll ทุก 3 วินาที (ADR-055 D14) */
+export const RE_OCR_POLL_INTERVAL_MS = 3000;
+
+const reOcrKey = (attachmentPublicId: string) => ['re-ocr', attachmentPublicId] as const;
+
+/** สร้าง Idempotency-Key ใหม่ต่อการกด 1 ครั้ง */
+const newIdempotencyKey = (prefix: string, id: string): string =>
+  `${prefix}-${id}-${crypto.randomUUID()}`;
+
+/**
+ * อ่านสถานะ re-OCR — คืน null เมื่อไม่มี job; poll เฉพาะตอน queued/processing
+ * (หยุด poll เมื่อเจอ terminal state เพื่อดึง newText หนัก ๆ ครั้งเดียว)
+ */
+export function useReOcrStatus(attachmentPublicId: string | null, enabled: boolean) {
+  return useQuery<ReOcrStatusResponse | null>({
+    queryKey: reOcrKey(attachmentPublicId ?? ''),
+    queryFn: () => reOcrService.getStatus(attachmentPublicId as string),
+    enabled: enabled && !!attachmentPublicId,
+    staleTime: 0,
+    gcTime: 0,
+    retry: false,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      return status === 'queued' || status === 'processing' ? RE_OCR_POLL_INTERVAL_MS : false;
+    },
+  });
+}
+
+/** เริ่ม re-OCR ด้วย engine ที่เลือก */
+export function useReOcrTrigger(attachmentPublicId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (engineType: ReOcrEngine) =>
+      reOcrService.trigger(
+        attachmentPublicId,
+        engineType,
+        newIdempotencyKey('re-ocr-trigger', attachmentPublicId)
+      ),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: reOcrKey(attachmentPublicId) });
+    },
+  });
+}
+
+/** ยืนยันแทนที่ ocr_text — สำเร็จแล้ว refresh list (RagStatusBadge/GenerationTimeline แสดง re-index เอง) */
+export function useReOcrConfirm(attachmentPublicId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (reOcrToken: string) =>
+      reOcrService.confirm(
+        attachmentPublicId,
+        reOcrToken,
+        newIdempotencyKey('re-ocr-confirm', attachmentPublicId)
+      ),
+    onSuccess: () => {
+      queryClient.removeQueries({ queryKey: reOcrKey(attachmentPublicId) });
+      void queryClient.invalidateQueries({ queryKey: ['rag-admin', 'attachments'] });
+      void queryClient.invalidateQueries({
+        queryKey: ['rag-admin', 'generations', attachmentPublicId],
+      });
+    },
+  });
+}
