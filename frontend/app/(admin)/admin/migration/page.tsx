@@ -8,10 +8,12 @@
 // - 2026-08-23: Batch commit ส่ง sourceFilePath และ disciplineId จาก queue item details
 // - 2026-08-23: Legacy Review Queue - column-header filters, delete all/selected with BullMQ cleanup
 // - 2026-08-25: D161 — ลบ AI Migration Logs tab + AiMigrationTab component (dead UI — migration_logs ไม่ถูกเขียนตั้งแต่ ADR-023/023A เปลี่ยนไป BullMQ)
+// - 2026-09-19: URL-backed page+filters (useSearchParams) — กด Review แล้วย้อนกลับคงหน้า/filter เดิม
 
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { Suspense, useEffect, useState, useCallback } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { migrationService } from '@/lib/services/migration.service';
 import { MigrationReviewQueueItem, MigrationReviewStatus, MigrationAiStatus } from '@/types/migration';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -57,22 +59,43 @@ function LegacyManagementTab() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  // Filter สถานะทั้ง Status และ AI Status — ค่า 'ALL' คือไม่กรอง
-  const [statusFilter, setStatusFilter] = useState<string>('ALL');
-  const [aiStatusFilter, setAiStatusFilter] = useState<string>('ALL');
-  const [batchFilter, setBatchFilter] = useState<string>('ALL');
-  const [correspondenceTypeFilter, setCorrespondenceTypeFilter] = useState<string>('ALL');
-  const [confidenceBucketFilter, setConfidenceBucketFilter] = useState<string>('ALL');
+  // Filter+page เป็น URL-backed state — กด Review ไปหน้าอื่นแล้วย้อนกลับจะคงหน้า/filter เดิม
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
+  const statusFilter = searchParams.get('status') ?? 'ALL';
+  const aiStatusFilter = searchParams.get('aiStatus') ?? 'ALL';
+  const batchFilter = searchParams.get('batch') ?? 'ALL';
+  const correspondenceTypeFilter = searchParams.get('ctype') ?? 'ALL';
+  const confidenceBucketFilter = searchParams.get('conf') ?? 'ALL';
+  const pageParam = Number(searchParams.get('page'));
+  const page = Number.isInteger(pageParam) && pageParam >= 1 ? pageParam : 1;
   const [correspondenceTypeOptions, setCorrespondenceTypeOptions] = useState<CorrespondenceType[]>([]);
   const [batchOptions, setBatchOptions] = useState<string[]>([]);
   // ADR-019: ใช้ publicId (string) สำหรับ selection ห้ามใช้ INT id
   const [selectedPublicIds, setSelectedPublicIds] = useState<string[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  // Pagination
-  const [page, setPage] = useState(1);
   const [totalRows, setTotalRows] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const pageSize = 20;
+
+  /** อัปเดต query params — ลบ param ที่เป็นค่า default/null ออกจาก URL; replace (ไม่ push) กัน history รก */
+  const updateParams = useCallback(
+    (updates: Record<string, string | null>) => {
+      const params = new URLSearchParams(searchParams.toString());
+      for (const [key, value] of Object.entries(updates)) {
+        if (value === null || value === 'ALL') params.delete(key);
+        else params.set(key, value);
+      }
+      const qs = params.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    },
+    [searchParams, pathname, router]
+  );
+  const setPage = useCallback(
+    (p: number) => updateParams({ page: p > 1 ? String(p) : null }),
+    [updateParams]
+  );
 
   const fetchData = useCallback(async () => {
     try {
@@ -127,9 +150,8 @@ function LegacyManagementTab() {
   }, []);
 
   // เปลี่ยน filter แล้วต้องกลับไปหน้า 1 เสมอ — ไม่อย่างนั้น filter ใหม่อาจตกหน้าว่าง
-  const applyFilter = (setter: (value: string) => void) => (value: string) => {
-    setter(value);
-    setPage(1);
+  const applyFilter = (key: string) => (value: string) => {
+    updateParams({ [key]: value === 'ALL' ? null : value, page: null });
   };
 
   // ADR-019: toggle โดยใช้ publicId (string)
@@ -311,7 +333,7 @@ function LegacyManagementTab() {
                   <FileXIcon className="mr-2 h-4 w-4" /> View Errors
                 </Button>
               </Link>
-              <Select value={batchFilter} onValueChange={applyFilter(setBatchFilter)}>
+              <Select value={batchFilter} onValueChange={applyFilter('batch')}>
                 <SelectTrigger className="w-[200px]">
                   <SelectValue placeholder="Batch" />
                 </SelectTrigger>
@@ -363,7 +385,7 @@ function LegacyManagementTab() {
                     </div>
                   </TableHead>
                   <TableHead>
-                    <Select value={correspondenceTypeFilter} onValueChange={applyFilter(setCorrespondenceTypeFilter)}>
+                    <Select value={correspondenceTypeFilter} onValueChange={applyFilter('ctype')}>
                       <SelectTrigger className="h-8 w-[150px] text-xs">
                         <SelectValue placeholder="Correspondence Type" />
                       </SelectTrigger>
@@ -382,7 +404,7 @@ function LegacyManagementTab() {
                   <TableHead>Sender</TableHead>
                   <TableHead>Receiver</TableHead>
                   <TableHead>
-                    <Select value={confidenceBucketFilter} onValueChange={applyFilter(setConfidenceBucketFilter)}>
+                    <Select value={confidenceBucketFilter} onValueChange={applyFilter('conf')}>
                       <SelectTrigger className="h-8 w-[130px] text-xs">
                         <SelectValue placeholder="Confidence" />
                       </SelectTrigger>
@@ -396,7 +418,7 @@ function LegacyManagementTab() {
                     </Select>
                   </TableHead>
                   <TableHead>
-                    <Select value={aiStatusFilter} onValueChange={applyFilter(setAiStatusFilter)}>
+                    <Select value={aiStatusFilter} onValueChange={applyFilter('aiStatus')}>
                       <SelectTrigger className="h-8 w-[130px] text-xs">
                         <SelectValue placeholder="AI Status" />
                       </SelectTrigger>
@@ -411,7 +433,7 @@ function LegacyManagementTab() {
                     </Select>
                   </TableHead>
                   <TableHead>
-                    <Select value={statusFilter} onValueChange={applyFilter(setStatusFilter)}>
+                    <Select value={statusFilter} onValueChange={applyFilter('status')}>
                       <SelectTrigger className="h-8 w-[130px] text-xs">
                         <SelectValue placeholder="Status" />
                       </SelectTrigger>
@@ -540,7 +562,7 @@ function LegacyManagementTab() {
                 variant="outline"
                 size="sm"
                 disabled={page <= 1 || loading}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                onClick={() => setPage(page - 1)}
               >
                 ก่อนหน้า
               </Button>
@@ -566,7 +588,7 @@ function LegacyManagementTab() {
                 variant="outline"
                 size="sm"
                 disabled={page >= totalPages || loading}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                onClick={() => setPage(page + 1)}
               >
                 ถัดไป
               </Button>
@@ -590,7 +612,9 @@ export default function MigrationManagementPage() {
       {/* D160: ซ่อน AI Migration Logs tab — migration_logs เป็น dead table ตั้งแต่ ADR-023/023A
           เปลี่ยน migration pipeline ไปใช้ BullMQ + migration_review_queue แทน n8n orchestrator
           AiMigrationTab component ยังเก็บไว้เผื่อมีการ revive ในอนาคต แต่ไม่แสดงใน UI */}
-      <LegacyManagementTab />
+      <Suspense>
+        <LegacyManagementTab />
+      </Suspense>
     </div>
   );
 }
