@@ -198,6 +198,14 @@ _Avoid_: runtime model name, model tag, Ollama model name (ใช้ใน ops �
 Policy ที่ตัดสินว่า `np-dms-ocr` จะถูก unload ออกจาก VRAM หลัง job เสร็จทันที (`keep_alive: 0`) หรือเก็บไว้ช่วงหนึ่ง (`keep_alive > 0`) — คำนวณ dynamic จาก VRAM headroom ณ ขณะนั้น; ถ้า `deep-analysis` active หรือ VRAM pressure สูง → unload ทันทีเสมอ
 _Avoid_: OCR keep_alive setting, fixed keep_alive, OCR cache
 
+**Manual Re-OCR** _(ADR-055)_:
+การที่ admin (`rag.admin.write`) สั่งรัน OCR ใหม่บน Attachment ที่มีอยู่แล้ว — two-step human-in-the-loop: trigger → ผลลัพธ์จออยู่ใน Redis (tokenized, TTL 72h) → admin เห็น diff แล้ว confirm จึงแทนที่ `attachments.ocr_text` + re-embed ผ่าน generation lifecycle — ไม่มี automatic overwrite, confirm คือ final (ไม่มี rollback)
+_Avoid_: automatic re-OCR, scheduled re-OCR, `ocr_text_bak` column
+
+**Re-OCR Token**:
+UUIDv7 ที่ระบบออกตอน trigger — ผูก payload key `attachment:re-ocr:{publicId}:{token}`; confirm ต้องส่ง token มาด้วยเพื่อกันยืนยันผิด job — หมด TTL = implicit reject (ไม่มี reject endpoint)
+_Avoid_: re-ocr id, confirm id, session token
+
 **AI Tool Layer**:
 Bridge layer ระหว่าง AI Gateway กับ business modules — dispatch โดย AI Gateway หลังได้ Server-side Intent, enforce CASL ภายใน tool เอง (ADR-025)
 _Avoid_: LLM function calling, Tool plugin, LangChain tool
@@ -458,19 +466,19 @@ _Avoid_: BGE service, embed service, always-resident BGE
 
 ## ADRs ที่เกี่ยวข้องกับ AI Runtime Layer
 
-| ADR     | หัวข้อ                             | ตัดสินใจอะไร                                                                         | สถานะ          |
-| :------ | :--------------------------------- | :----------------------------------------------------------------------------------- | :------------- |
-| ADR-024 | Intent Classification Strategy     | Hybrid: Pattern First → LLM Fallback                                                 | ✅ Accepted    |
-| ADR-025 | AI Tool Layer Architecture         | Bridge pattern, CASL enforcement, response shape                                     | ✅ Accepted    |
-| ADR-026 | Document Chat UI Pattern           | Side-panel vs modal vs separate page                                                 | ✅ Accepted    |
-| ADR-027 | AI Admin Console & Dynamic Control | Admin Panel + dynamic model/prompt/intent control                                    | ✅ Accepted    |
-| ADR-028 | Migration Architecture Refactor    | Staging Queue & post-migration cleanup                                               | ✅ Active      |
-| ADR-029 | Dynamic Prompt Management          | `ai_prompts` table, versioned OCR extraction prompt                                  | ✅ Active      |
-| ADR-032 | Typhoon OCR Integration            | Typhoon OCR-3B + typhoon2.1-gemma3-4b on Admin Desktop                               | ✅ Active      |
-| ADR-033 | Active Model & OCR Management      | Synchronous Model switch, GPU VRAM Auto-release, Sidecar API Key protection          | ✅ Active      |
-| ADR-034 | Thai Model Stack                   | typhoon2.5-np-dms:latest (Main) + typhoon-np-dms-ocr:latest (OCR, keep_alive:0)      | ✅ Active      |
-| ADR-041 | Server Consolidation               | Co-locate ทุก services บน New Server (4 layers); NPM แยก QNAP; ASUSTOR = Primary NAS | ✅ Implemented |
-| ADR-053 | RAG Admin Console Architecture     | Route prefix `ai/admin/rag/...`; 4 permissions (rag.manage, rag.admin.write, document.classification_override, rag.retry); status enum จริง; metrics reset global-only; FAILED→RETIRED before retry; orphan scan Cron; frontend single page + 5 tabs; AiEnabledGuard method-level on operations | ✅ Accepted |
+| ADR     | หัวข้อ                             | ตัดสินใจอะไร                                                                                                                                                                                                                                                                                    | สถานะ          |
+| :------ | :--------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------- |
+| ADR-024 | Intent Classification Strategy     | Hybrid: Pattern First → LLM Fallback                                                                                                                                                                                                                                                            | ✅ Accepted    |
+| ADR-025 | AI Tool Layer Architecture         | Bridge pattern, CASL enforcement, response shape                                                                                                                                                                                                                                                | ✅ Accepted    |
+| ADR-026 | Document Chat UI Pattern           | Side-panel vs modal vs separate page                                                                                                                                                                                                                                                            | ✅ Accepted    |
+| ADR-027 | AI Admin Console & Dynamic Control | Admin Panel + dynamic model/prompt/intent control                                                                                                                                                                                                                                               | ✅ Accepted    |
+| ADR-028 | Migration Architecture Refactor    | Staging Queue & post-migration cleanup                                                                                                                                                                                                                                                          | ✅ Active      |
+| ADR-029 | Dynamic Prompt Management          | `ai_prompts` table, versioned OCR extraction prompt                                                                                                                                                                                                                                             | ✅ Active      |
+| ADR-032 | Typhoon OCR Integration            | Typhoon OCR-3B + typhoon2.1-gemma3-4b on Admin Desktop                                                                                                                                                                                                                                          | ✅ Active      |
+| ADR-033 | Active Model & OCR Management      | Synchronous Model switch, GPU VRAM Auto-release, Sidecar API Key protection                                                                                                                                                                                                                     | ✅ Active      |
+| ADR-034 | Thai Model Stack                   | typhoon2.5-np-dms:latest (Main) + typhoon-np-dms-ocr:latest (OCR, keep_alive:0)                                                                                                                                                                                                                 | ✅ Active      |
+| ADR-041 | Server Consolidation               | Co-locate ทุก services บน New Server (4 layers); NPM แยก QNAP; ASUSTOR = Primary NAS                                                                                                                                                                                                            | ✅ Implemented |
+| ADR-053 | RAG Admin Console Architecture     | Route prefix `ai/admin/rag/...`; 4 permissions (rag.manage, rag.admin.write, document.classification_override, rag.retry); status enum จริง; metrics reset global-only; FAILED→RETIRED before retry; orphan scan Cron; frontend single page + 5 tabs; AiEnabledGuard method-level on operations | ✅ Accepted    |
 
 **หมายเหตุ**: ADR-023A ยังคงเป็น canonical สำหรับ infrastructure — ADR-024/025/026/027 เพิ่ม runtime layer; ADR-028 ปรับ Migration Pipeline; ADR-033 จัดระบบโมเดลและ OCR
 

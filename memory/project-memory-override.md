@@ -323,6 +323,7 @@
 | D344 | **Canonical RAG path เดียว — generation-aware เท่านั้น** — Qdrant point ต้องมี `generation_uuid`+`attachment_public_id` (`filterActiveChunksFromResults` drop points ที่ไม่มี `generation_uuid`); ทุก re-embed/vector-sync ต้องผ่าน `RagAttachmentIngestionService` + BullMQ `ai-rag-ingest`; legacy `rag-prepare`/`EmbeddingService` (@deprecated, payload `doc_public_id`) ห้ามใช้สร้าง vectors ใหม่ — `VectorSyncService` migrated (commit `fce3e7a0`), 188 legacy points ถูกลบแล้ว | Session 2026-09-19 |
 | D345 | **Orphan/staging attachments policy** — RAG Admin list เฉพาะ linked attachments (EXISTS ครบ 5 join tables); rows ที่ไม่มี `ocr_text` = non-ingestable (`NO_OCR_TEXT` by design — ปุ่ม disabled via `hasOcrText`); ลบ orphan ต้อง backup `*_backup_YYYYMMDD` + FK order pages→gens→attachments + exclude queue-referenced (id 339/342 เก็บไว้); heal OCR ห้าม copy ข้าม attachment โดยไม่ verify sha256 identical | Session 2026-09-19 |
 | D346 | **Manual re-ingest recipe (ops)** — persist `ocr_text`+`CHECKSUM` → INSERT `rag_attachment_generations` BUILDING (uuidv7, `bge-m3`) → BullMQ `ai-rag-ingest` job `rag-attachment-ingest:{att}:{checksum}`; processor เป็นเจ้าของ `rag_status` PROCESSING→INDEXED/FAILED; backend container ใช้ `DB_ROOT_PASSWORD` + node `-w /app`; PDF malformed (no xref) ที่ sidecar อ่านไม่ได้ → fallback PyMuPDF extract | Session 2026-09-19 |
+| D347 | **In-app back navigation ต้อง `router.back()`** — detail page ที่เปิดจาก list ที่มี URL-backed state (D342) ต้องกลับด้วย `router.back()` (หรือส่ง return URL มา) ห้าม hardcode `<Link>`/`push` ไป bare list URL — user ใช้ปุ่ม `<-` ในหน้า ไม่ใช่ browser back; เสมอ fallback `push()` เมื่อ `window.history.length <= 1` (deep link/แท็บใหม่); page size ก็ URL-backed เช่นกัน (`?limit=`, reset หน้า 1 เมื่อเปลี่ยน) + backend ต้องมี `@Max` cap | Session 2026-09-19 |
 
 ## Environment & Services
 
@@ -372,8 +373,10 @@ QDRANT_URL
 - [x] RAG Admin Console overhaul + durable metrics pushed+deployed (`7e97ea8f`) — Re-ingest per row, checksum heal, Redis `rag:metrics`, `retrieval_mode` column, lifetime metrics, BUILDING dedup
 - [x] Orphan attachments cleanup pushed+deployed (`71321edc`) — 249 rows deleted (backup `*_backup_20260918`), linked-only listing, no-ocr guard
 - [x] Vector Sync migrated → generation-aware pipeline (`fce3e7a0`, D344) — 188 legacy Qdrant points deleted; missing scan เช็ค ACTIVE gen; 2 stuck attachments (test-attach, AI-INGEST-E2E-001) healed+ingested, missing list = 0; deployed image `3dbea91d`
+- [x] Migration queue URL-state fix pushed `5861b89e` + **browser verified** (page 3 + filter คงหลัง browser back)
+- [x] Review back button `router.back()` + page-size selector 10/20/50/100 + `@Max(100)` pushed `3055ad73` (D347) — pending deploy verify
 - [ ] ตรวจ UI จริงหลัง deploy ของ Correspondence/RFA/Circulation/Transmittal/Drawing filters
-- [ ] Browser verify Vector Sync tab (missing=0, enqueue→ai-rag-ingest) + RAG Console metrics (lifetime card, Redis counters) หลัง deploy `3dbea91d`
+- [ ] Browser verify `3055ad73`: ปุ่ม `<-` คง state + page-size selector + Vector Sync tab/RAG Console metrics
 - [ ] `DROP TABLE *_backup_20260918` (3 tables) เมื่อมั่นใจ orphan cleanup ถูกต้อง — ต้อง user confirm
 - [ ] (optional) Re-ingest healed non-current-rev attachments `01a0a357-3952` (CHEC-0004), `01a0a7fc-169c` (CHEC-0011) ถ้าอยาก index เนื้อหา — ocr+checksum พร้อมแล้ว
 
