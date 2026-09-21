@@ -2,6 +2,8 @@
 // Change Log:
 // - 2026-09-16: เพิ่ม listLegacyFolderFiles + replaceQueueFile สำหรับเปลี่ยนไฟล์ต้นฉบับ
 //   ของ queue item (staging path / uploaded attachment)
+// - 2026-09-21: listLegacyFolderFiles รองรับ q filter + คืน { files, total, truncated }
+//   (folder staging ที่มีไฟล์ >1,000 ต้องค้นฝั่ง server ก่อน cap)
 // - 2026-09-16: เพิ่ม correspondenceType, confidenceBucket params ใน getReviewQueue
 // - 2026-09-14: T016 — เพิ่ม restoreQueueOcrText (POST /migration/queue/:publicId/restore-ocr-text) (ADR-054, FR-007)
 // - 2026-08-31: T030 — เพิ่ม requiresHumanReview, sortBy, sortOrder params ใน getReviewQueue (ADR-050)
@@ -44,6 +46,13 @@ export interface LegacyFolderFile {
   fullPath: string;
   size: number;
   modifiedAt: string;
+}
+
+/** response ของ legacy-folder-files — total = จำนวนไฟล์ที่ match ทั้งหมด, truncated = เกิน cap */
+export interface LegacyFolderFileList {
+  files: LegacyFolderFile[];
+  total: number;
+  truncated: boolean;
 }
 
 /** response ของ PATCH /migration/queue/:publicId/file */
@@ -284,15 +293,22 @@ export const migrationService = {
   /**
    * List ไฟล์ PDF ในโฟลเดอร์ staging ที่เลือก (non-recursive) —
    * ใช้คู่กับ listLegacyFolders สำหรับ dialog เปลี่ยนไฟล์ต้นฉบับ
+   * q = กรองชื่อไฟล์ฝั่ง server (folder บางอันมีไฟล์ >1,000 — ต้อง filter ก่อน cap)
    */
   listLegacyFolderFiles: async (
-    folderPath: string
-  ): Promise<LegacyFolderFile[]> => {
+    folderPath: string,
+    q?: string
+  ): Promise<LegacyFolderFileList> => {
     const { data } = await api.get('/migration/legacy-folder-files', {
-      params: { path: folderPath },
+      params: { path: folderPath, ...(q?.trim() ? { q: q.trim() } : {}) },
     });
     const result = data?.data ?? data;
-    return Array.isArray(result?.files) ? result.files : [];
+    const files = Array.isArray(result?.files) ? result.files : [];
+    return {
+      files,
+      total: typeof result?.total === 'number' ? result.total : files.length,
+      truncated: Boolean(result?.truncated),
+    };
   },
 
   /**

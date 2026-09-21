@@ -8,6 +8,8 @@
 // - 2026-08-20: Added Streaming Legacy Ingestion & OCR sync endpoints (ADR-047)
 // - 2026-09-14: ADR-054 T015 — เพิ่ม `POST queue/:publicId/restore-ocr-text`
 //   (FR-007: กู้คืน ocr_text จาก ocr_text_bak, migration.commit permission + Idempotency-Key)
+// - 2026-09-21: legacy-folder-files — เพิ่ม `q` filename filter (ก่อน cap) + ยก MAX_FILES
+//   500→2000 + คืน { files, total, truncated } + realpath guard กัน symlink escape
 
 import {
   Controller,
@@ -807,7 +809,16 @@ export class MigrationController {
       'List PDF files inside a selected Legacy NAS folder (path-traversal guarded)',
   })
   @ApiQuery({ name: 'path', required: true, type: String })
-  listLegacyFolderFiles(@Query('path') folderPath: string) {
+  @ApiQuery({
+    name: 'q',
+    required: false,
+    type: String,
+    description: 'กรองชื่อไฟล์ (substring, case-insensitive) ก่อนตัด cap',
+  })
+  listLegacyFolderFiles(
+    @Query('path') folderPath: string,
+    @Query('q') q?: string
+  ) {
     const basePath = path.resolve(
       process.env[ENV_LEGACY_NAS_PATH] || LEGACY_NAS_PATH_DEFAULT
     );
@@ -815,8 +826,21 @@ export class MigrationController {
       throw new ValidationException('path query parameter is required');
     }
     // ADR-016: path traversal guard — folder ต้อง resolve อยู่ใต้ basePath เสมอ
+    // เทียบ realpath ทั้งคู่เพื่อกัน symlink escape (pattern เดียวกับ stageFileToTemp)
+    let realBase: string;
+    let realFolder: string;
+    try {
+      realBase = fs.realpathSync(basePath);
+    } catch {
+      realBase = basePath;
+    }
     const resolvedFolder = path.resolve(folderPath);
-    const relative = path.relative(basePath, resolvedFolder);
+    try {
+      realFolder = fs.realpathSync(resolvedFolder);
+    } catch {
+      return { files: [], total: 0, truncated: false };
+    }
+    const relative = path.relative(realBase, realFolder);
     if (relative.startsWith('..') || path.isAbsolute(relative)) {
       this.logger.warn(
         `Path traversal blocked on legacy-folder-files: "${folderPath}"`
@@ -825,23 +849,26 @@ export class MigrationController {
         'Invalid folder path — access denied (path traversal guard)'
       );
     }
-    if (
-      !fs.existsSync(resolvedFolder) ||
-      !fs.statSync(resolvedFolder).isDirectory()
-    ) {
-      return { files: [] };
+    if (!fs.existsSync(realFolder) || !fs.statSync(realFolder).isDirectory()) {
+      return { files: [], total: 0, truncated: false };
     }
 
     try {
-      const MAX_FILES = 500;
-      const entries = fs.readdirSync(resolvedFolder, { withFileTypes: true });
-      const files = entries
-        .filter(
-          (entry) => entry.isFile() && entry.name.toLowerCase().endsWith('.pdf')
-        )
+      // folder staging บางอันมีไฟล์ >1,000 — cap สูงพอให้เห็นครบ + รองรับ q filter
+      // (filter ก่อนตัด cap เสมอ เพื่อให้ค้นหาไฟล์ที่อยู่หลัง cap เจอ)
+      const MAX_FILES = 2000;
+      const needle = q?.trim().toLowerCase();
+      const entries = fs.readdirSync(realFolder, { withFileTypes: true });
+      const matched = entries.filter(
+        (entry) =>
+          entry.isFile() &&
+          entry.name.toLowerCase().endsWith('.pdf') &&
+          (!needle || entry.name.toLowerCase().includes(needle))
+      );
+      const files = matched
         .slice(0, MAX_FILES)
         .map((entry) => {
-          const fullPath = path.join(resolvedFolder, entry.name);
+          const fullPath = path.join(realFolder, entry.name);
           const stats = fs.statSync(fullPath);
           return {
             filename: entry.name,
@@ -851,11 +878,15 @@ export class MigrationController {
           };
         })
         .sort((a, b) => a.filename.localeCompare(b.filename));
-      return { files };
+      return {
+        files,
+        total: matched.length,
+        truncated: matched.length > files.length,
+      };
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
       this.logger.error(`Failed to list legacy folder files: ${errMsg}`);
-      return { files: [] };
+      return { files: [], total: 0, truncated: false };
     }
   }
 

@@ -33,6 +33,9 @@ import { UserService } from '../user/user.service';
 import { ImportCorrespondenceDto } from './dto/import-correspondence.dto';
 import { User } from '../user/entities/user.entity';
 import { ValidationException } from '../../common/exceptions';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 
 describe('MigrationController', () => {
   let controller: MigrationController;
@@ -906,6 +909,84 @@ describe('MigrationController', () => {
       const result = controller.listLegacyFolders();
 
       expect(result).toEqual({ tree: [] });
+    });
+  });
+
+  describe('listLegacyFolderFiles', () => {
+    let nasDir: string;
+    let folderDir: string;
+    const savedNasEnv = process.env.LEGACY_NAS_PATH;
+
+    const writePdfs = (names: string[]): void => {
+      for (const name of names) {
+        fs.writeFileSync(path.join(folderDir, name), '%PDF-1.4 test');
+      }
+    };
+
+    beforeEach(() => {
+      // ใช้ tmp dir จริงแทน fs mock — endpoint อ่าน filesystem ตรงผ่าน node fs
+      nasDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lcbp3-nas-'));
+      folderDir = path.join(nasDir, 'Outgoing', '2567');
+      fs.mkdirSync(folderDir, { recursive: true });
+      process.env.LEGACY_NAS_PATH = nasDir;
+    });
+
+    afterEach(() => {
+      fs.rmSync(nasDir, { recursive: true, force: true });
+      if (savedNasEnv === undefined) {
+        delete process.env.LEGACY_NAS_PATH;
+      } else {
+        process.env.LEGACY_NAS_PATH = savedNasEnv;
+      }
+    });
+
+    it('คืนไฟล์ PDF พร้อม total/truncated (ไม่นับไฟล์อื่น)', () => {
+      writePdfs(['b.pdf', 'a.pdf', 'not-pdf.txt']);
+      const res = controller.listLegacyFolderFiles(folderDir);
+      expect(res.files.map((f) => f.filename)).toEqual(['a.pdf', 'b.pdf']);
+      expect(res.total).toBe(2);
+      expect(res.truncated).toBe(false);
+    });
+
+    it('q filter กรองชื่อไฟล์แบบ case-insensitive ก่อน cap', () => {
+      writePdfs(['O672-0211-doc.pdf', 'O672-0231-other.pdf', 'x.pdf']);
+      const res = controller.listLegacyFolderFiles(folderDir, 'o672-02');
+      expect(res.files.map((f) => f.filename)).toEqual([
+        'O672-0211-doc.pdf',
+        'O672-0231-other.pdf',
+      ]);
+      expect(res.total).toBe(2);
+    });
+
+    it('folder เกิน cap → truncated=true และ total นับทั้งหมด', () => {
+      // cap = 2000 — สร้าง 2005 ไฟล์จริง (empty write เร็วพอสำหรับ unit test)
+      const names = Array.from(
+        { length: 2005 },
+        (_, i) => `f-${String(i).padStart(5, '0')}.pdf`
+      );
+      writePdfs(names);
+      const res = controller.listLegacyFolderFiles(folderDir);
+      expect(res.total).toBe(2005);
+      expect(res.files.length).toBe(2000);
+      expect(res.truncated).toBe(true);
+      // q filter ต้องหาไฟล์ที่อยู่หลัง cap เจอ
+      const filtered = controller.listLegacyFolderFiles(folderDir, 'f-02004');
+      expect(filtered.files.map((f) => f.filename)).toEqual(['f-02004.pdf']);
+      expect(filtered.truncated).toBe(false);
+    });
+
+    it('path นอก NAS root → ValidationException (path traversal guard)', () => {
+      // parent ของ nasDir มีจริงและอยู่นอก root → ต้อง reject (ไม่ใช่คืน empty)
+      expect(() =>
+        controller.listLegacyFolderFiles(path.dirname(nasDir))
+      ).toThrow(ValidationException);
+    });
+
+    it('folder ไม่มีจริง → คืน empty', () => {
+      const res = controller.listLegacyFolderFiles(
+        path.join(nasDir, 'not-exist')
+      );
+      expect(res).toEqual({ files: [], total: 0, truncated: false });
     });
   });
 });

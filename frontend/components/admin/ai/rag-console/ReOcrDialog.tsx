@@ -4,6 +4,10 @@
 //   + failed view (retry ด้วย engine ใดก็ได้ = trigger ใหม่ ไม่มี silent fallback) + AlertDialog confirm (D16)
 // - 2026-09-19: ADR-055 extension (D17–D22) — replace mode: link picker + candidate file picker
 //   (staging/upload) + filename-mismatch warning + PDF old/new toggle + confirm wording แบบ replace
+// - 2026-09-19: security-audit fix — confirm ใน replace mode ยิง POST /re-ocr/replace/confirm
+//   (dual permission) แทน /re-ocr/confirm
+// - 2026-09-21: UX fix — picker container ขยาย max-w-xl → max-w-4xl ใน replace mode
+//   (ชื่อไฟล์ยาวใน staging list อ่านไม่เห็น)
 
 'use client';
 
@@ -173,7 +177,11 @@ export function ReOcrDialog({
             {t('re_ocr.loading')}
           </div>
         ) : !status ? (
-          <div className="mx-auto w-full max-w-xl space-y-4 overflow-y-auto">
+          <div
+            className={`mx-auto w-full space-y-4 overflow-y-auto ${
+              replaceEnabled ? 'max-w-4xl' : 'max-w-xl'
+            }`}
+          >
             {replaceEnabled && (
               <>
                 {/* link picker — ซ่อนเมื่อ detail page preselect link แล้ว */}

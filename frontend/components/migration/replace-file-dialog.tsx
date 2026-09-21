@@ -5,6 +5,9 @@
 //   GET /migration/legacy-folders + legacy-folder-files), tab "upload"
 //   อัปโหลดจากเครื่องผ่าน POST /files/upload — ทั้งคู่ลงท้าย PATCH
 //   /migration/queue/:publicId/file (backend auto re-extract หลังผูกไฟล์)
+// - 2026-09-21: UX fix — dialog max-w-4xl, split pane 2:3, filename filter
+//   (debounce → server-side q param ก่อน cap), ชื่อไฟล์ wrap + title tooltip,
+//   แสดง "แสดง X/Y" + truncated hint (folder ที่มีไฟล์ >1,000 อ่าน/ค้นได้ครบ)
 
 'use client';
 
@@ -39,7 +42,7 @@ import {
 import aiMessages from '@/public/locales/th/ai.json';
 
 /** i18n helper — namespace migration_review ใน ai.json (pattern เดียวกับ review page) */
-const t = (key: string): string => {
+const t = (key: string, params?: Record<string, string | number>): string => {
   const parts = key.split('.');
   let current: unknown = (aiMessages as Record<string, unknown>)
     .migration_review;
@@ -47,7 +50,11 @@ const t = (key: string): string => {
     if (typeof current !== 'object' || current === null) return key;
     current = (current as Record<string, unknown>)[part];
   }
-  return typeof current === 'string' ? current : key;
+  if (typeof current !== 'string') return key;
+  if (!params) return current;
+  return current.replace(/\{\{(\w+)\}\}/g, (_, name: string) =>
+    String(params[name] ?? `{{${name}}}`)
+  );
 };
 
 interface UploadedFileResult {
@@ -157,6 +164,9 @@ export function ReplaceFileDialog({
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [folderFiles, setFolderFiles] = useState<LegacyFolderFile[]>([]);
+  const [filesTotal, setFilesTotal] = useState(0);
+  const [filesTruncated, setFilesTruncated] = useState(false);
+  const [fileFilter, setFileFilter] = useState('');
   const [filesLoading, setFilesLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<LegacyFolderFile | null>(
     null
@@ -186,19 +196,32 @@ export function ReplaceFileDialog({
     };
   }, [open]);
 
-  const loadFolderFiles = useCallback(async (folderPath: string) => {
+  const loadFolderFiles = useCallback(async (folderPath: string, q?: string) => {
     setFilesLoading(true);
-    setFolderFiles([]);
     setSelectedFile(null);
     try {
-      const files = await migrationService.listLegacyFolderFiles(folderPath);
-      setFolderFiles(files);
+      const result = await migrationService.listLegacyFolderFiles(
+        folderPath,
+        q
+      );
+      setFolderFiles(result.files);
+      setFilesTotal(result.total);
+      setFilesTruncated(result.truncated);
     } catch {
       toast.error(t('replace_file_list_error'));
     } finally {
       setFilesLoading(false);
     }
   }, []);
+
+  // debounce filter → reload ไฟล์ของ folder ที่เลือก (filter ฝั่ง server ก่อน cap)
+  useEffect(() => {
+    if (!open || !selectedFolder) return;
+    const timer = setTimeout(() => {
+      void loadFolderFiles(selectedFolder, fileFilter);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [open, fileFilter, selectedFolder, loadFolderFiles]);
 
   const handleToggleFolder = useCallback((folderPath: string) => {
     setExpanded((prev) => {
@@ -209,13 +232,14 @@ export function ReplaceFileDialog({
     });
   }, []);
 
-  const handleSelectFolder = useCallback(
-    (folderPath: string) => {
-      setSelectedFolder(folderPath);
-      void loadFolderFiles(folderPath);
-    },
-    [loadFolderFiles]
-  );
+  const handleSelectFolder = useCallback((folderPath: string) => {
+    setSelectedFolder(folderPath);
+    setFileFilter('');
+    setFolderFiles([]);
+    setFilesTotal(0);
+    setFilesTruncated(false);
+    // โหลดไฟล์ผ่าน debounce effect ด้านบน (ไม่เรียกตรงเพื่อกัน double-fetch)
+  }, []);
 
   const formatSize = (bytes: number): string => {
     if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
@@ -287,7 +311,7 @@ export function ReplaceFileDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>{t('replace_file_title')}</DialogTitle>
           <DialogDescription className="break-all">
@@ -309,7 +333,7 @@ export function ReplaceFileDialog({
 
           <TabsContent
             value="staging"
-            className="flex-1 min-h-0 grid grid-cols-2 gap-3 mt-3"
+            className="flex-1 min-h-0 grid grid-cols-[2fr_3fr] gap-3 mt-3"
           >
             <div className="border rounded-md overflow-y-auto max-h-[45vh] p-1">
               {treeLoading ? (
@@ -335,39 +359,64 @@ export function ReplaceFileDialog({
                 ))
               )}
             </div>
-            <div className="border rounded-md overflow-y-auto max-h-[45vh] p-1">
-              {filesLoading ? (
-                <div className="flex items-center justify-center py-8 text-muted-foreground">
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  {t('replace_file_loading')}
-                </div>
-              ) : !selectedFolder ? (
-                <p className="text-sm text-muted-foreground p-3">
-                  {t('replace_file_select_folder_hint')}
+            <div className="flex flex-col gap-1 min-w-0">
+              <Input
+                type="search"
+                value={fileFilter}
+                onChange={(e) => setFileFilter(e.target.value)}
+                placeholder={t('replace_file_filter_placeholder')}
+                disabled={!selectedFolder}
+                className="h-8 text-sm"
+              />
+              <div className="border rounded-md overflow-y-auto max-h-[45vh] p-1 flex-1">
+                {filesLoading ? (
+                  <div className="flex items-center justify-center py-8 text-muted-foreground">
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    {t('replace_file_loading')}
+                  </div>
+                ) : !selectedFolder ? (
+                  <p className="text-sm text-muted-foreground p-3">
+                    {t('replace_file_select_folder_hint')}
+                  </p>
+                ) : folderFiles.length === 0 ? (
+                  <p className="text-sm text-muted-foreground p-3">
+                    {t('replace_file_no_files')}
+                  </p>
+                ) : (
+                  folderFiles.map((file) => (
+                    <button
+                      key={file.fullPath}
+                      type="button"
+                      title={file.filename}
+                      className={`w-full flex items-start gap-2 px-2 py-1.5 text-left text-sm rounded hover:bg-muted ${
+                        selectedFile?.fullPath === file.fullPath
+                          ? 'bg-primary/10 font-medium'
+                          : ''
+                      }`}
+                      onClick={() => setSelectedFile(file)}
+                    >
+                      <FileTextIcon className="w-4 h-4 shrink-0 mt-0.5 text-muted-foreground" />
+                      {/* break-all — ชื่อไฟล์ยาวต้องอ่านได้ครบ (wrap แทน truncate) */}
+                      <span className="flex-1 min-w-0 break-all leading-snug">
+                        {file.filename}
+                      </span>
+                      <span className="text-xs text-muted-foreground shrink-0">
+                        {formatSize(file.size)}
+                      </span>
+                    </button>
+                  ))
+                )}
+              </div>
+              {selectedFolder && !filesLoading && filesTotal > 0 && (
+                <p className="text-xs text-muted-foreground px-1">
+                  {t('replace_file_showing', {
+                    shown: folderFiles.length,
+                    total: filesTotal,
+                  })}
+                  {filesTruncated
+                    ? ` — ${t('replace_file_truncated_hint')}`
+                    : ''}
                 </p>
-              ) : folderFiles.length === 0 ? (
-                <p className="text-sm text-muted-foreground p-3">
-                  {t('replace_file_no_files')}
-                </p>
-              ) : (
-                folderFiles.map((file) => (
-                  <button
-                    key={file.fullPath}
-                    type="button"
-                    className={`w-full flex items-center gap-2 px-2 py-1.5 text-left text-sm rounded hover:bg-muted ${
-                      selectedFile?.fullPath === file.fullPath
-                        ? 'bg-primary/10 font-medium'
-                        : ''
-                    }`}
-                    onClick={() => setSelectedFile(file)}
-                  >
-                    <FileTextIcon className="w-4 h-4 shrink-0 text-muted-foreground" />
-                    <span className="truncate flex-1">{file.filename}</span>
-                    <span className="text-xs text-muted-foreground shrink-0">
-                      {formatSize(file.size)}
-                    </span>
-                  </button>
-                ))
               )}
             </div>
             <div className="col-span-2">
