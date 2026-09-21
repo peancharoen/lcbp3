@@ -84,6 +84,51 @@
 - [x] T039 Sync spec docs: mark ADR-055 implementation status, update `specs/05-Engineering-Guidelines`/`memory` notes if needed; commit locally (no push without explicit user authorization)
 - [ ] T040 Finalize ledger terminal status in `ledger.md` before handoff/PR
 
+## Part 2 — Production File Replace (Extension, 2026-09-19)
+
+**Scope**: ADR-055 D17–D22 — replace the PDF file behind a production attachment *link* via the same compare-before-replace flow. Junction swap (never in-place), candidate = uniform temp attachment, dual-permission replace route, orphan de-index, queue annotation. **No schema change.**
+
+## Phase 8: Extension Setup & Contract Sync
+
+- [x] T041 [P] Update `contracts/re-ocr-api.md` (add `POST :publicId/re-ocr/replace` + `GET :publicId/re-ocr/links`, replace-mode status fields) and `data-model.md` (junction link, candidate temp attachment lifecycle, pointer/payload replace fields) per D17–D20
+- [x] T042 [P] Extend `B/common/file-storage/re-ocr.constants.ts` — `ReOcrPointer` + `ReOcrPayload` add optional replace fields (`mode:'replace'`, `targetCorrespondencePublicId`, `candidateAttachmentPublicId`, `candidateFilename`, `candidateSource:'STAGING'|'UPLOAD'`); add `ReOcrMode` type
+- [x] T043 [P] Add `TriggerReplaceFileDto` to `B/common/file-storage/dto/re-ocr.dto.ts` — `{ engineType?, targetCorrespondencePublicId: @IsUUID, storageTempPath?, tempAttachmentPublicId? }` (XOR enforced in service, not DTO — same as `ReplaceQueueFileDto` precedent)
+
+## Phase 9: User Story 5 — Production file replace, review, confirm (P1)
+
+**Goal**: pick link → pick candidate file → OCR candidate → compare → confirm → junction swap + re-index. **Independent Test**: shared attachment (2 links) — replace one link; other correspondence serves old file unchanged.
+
+### Tests (RED first)
+
+- [x] T044 [US5] RED `B/common/file-storage/attachment-re-ocr.service.spec.ts` — `triggerReplace()`: XOR source →400; staging path traversal →400; non-file/non-PDF →404/422; staging→`fs.copy` to tempDir + temp attachment (`isTemporary`,`expiresAt`) created and NAS file untouched; upload source validates `isTemporary`; candidate checksum == current →409; target link missing/non-current →404/409; mutex + in-flight guard reused; pointer carries replace fields
+- [x] T045 [US5] RED same spec — `listLinks()`: returns all junction links with correspondence publicId/number/revision/isCurrent; empty when unlinked
+- [x] T046 [US5] RED same spec — `confirmReplace()`: single tx swaps only selected junction row (`attachment_id`→candidate id), sets candidate `ocrText`/`DONE`/`PENDING`/`expiresAt=NULL`, old attachment row fields untouched; junction missing/moved →404; candidate temp gone →404; superseded token →409; post-commit: `commit()` invoked, new attachment reingested/indexed, orphan old (0 links) → vector-deletion enqueue + ragStatus update, shared old → untouched; queue item trace → `fileReplacements` appended (best-effort, failure does not fail confirm)
+- [x] T047 [P] [US5] RED `B/common/file-storage/attachment-re-ocr.controller.spec.ts` — `POST re-ocr/replace` requires BOTH `rag.admin.write` + `correspondence.edit` (each alone →403), `Idempotency-Key`→400, `@Throttle`/`@Audit`/`AiEnabledGuard`; `GET re-ocr/links` requires `rag.manage`
+- [x] T048 [P] [US5] RED `B/modules/ai/processors/np-dms-ocr-processor.spec.ts` — replace job OCRs the *candidate* `pdfPath` (temp copy), not the original attachment path; pointer/payload updates carry replace fields through
+
+### Implementation
+
+- [x] T049 [US5] `B/common/file-storage/attachment-re-ocr.service.ts` — implement `listLinks()`, `triggerReplace()` (resolve junction link via target correspondence current revision; staging copy via `fs.copy`→tempDir→temp row; checksum guard; pointer write with `mode:'replace'`; enqueue with candidate `pdfPath`), `confirmReplace()` (D20 ordering: tx swap+fields+clear `expiresAt` → `commit()` → reingest/index new → orphan de-index old → audit + queue annotation → `cleanupKeys`); `getStatus` returns replace fields. T044–T046 GREEN
+- [x] T050 [US5] `B/common/file-storage/attachment-re-ocr.controller.ts` — add `POST :publicId/re-ocr/replace` (dual `RequirePermission('rag.admin.write','correspondence.edit')`) + `GET :publicId/re-ocr/links` (`rag.manage`); T047 GREEN
+- [x] T051 [P] [US5] Frontend client `F/lib/services/re-ocr.service.ts` + `F/hooks/ai/use-re-ocr.ts` — `triggerReplace()`, `listLinks()` query, replace-mode status types (publicId only — ADR-019)
+- [x] T052 [P] [US5] i18n keys (th/en) for replace mode in `F/components/admin/ai/rag-console/rag-admin-i18n.ts` + correspondence detail namespace
+- [x] T053 [US5] `F/components/admin/ai/rag-console/ReOcrDialog.tsx` — replace mode: link picker (radio list, current-revision only, auto-select single link), file picker reusing staging browser/upload tabs pattern from `F/components/migration/replace-file-dialog.tsx`, filename-mismatch warning (non-blocking)
+- [x] T054 [US5] `F/components/admin/ai/rag-console/ReOcrDiffView.tsx` — PDF pane toggle เดิม/ใหม่ (default=ใหม่; candidate preview via temp attachment publicId)
+- [x] T055 [US5] `F/components/correspondences/detail.tsx` — Replace button on attachment row (gated `correspondence.edit` + `rag.admin.write` + PDF) opening ReOcrDialog with link preselected
+- [x] T056 [P] [US5] Frontend tests `F/components/admin/ai/__tests__/` + `F/components/correspondences/__tests__/` — link picker render/auto-select/disabled non-current, file tabs, PDF toggle default, mismatch warning shown, detail-page button gating
+- [x] T057 [US5] Update assurance ledger checkpoint after US5 in `ledger.md` (new bounded scope entry — do not rewrite prior checkpoints)
+
+**Checkpoint**: US5 acceptance scenarios 1–7 pass in unit/integration tests.
+
+## Phase 10: Extension Polish & Cross-Cutting
+
+- [x] T058 [P] Tier-2 conformance sweep on new/edited files (headers, JSDoc, explicit types, no `any`/`console.log`/`parseInt`/unary `+`)
+- [x] T059 [P] `pnpm --filter backend lint:ci && pnpm --filter backend build && pnpm --filter backend test` (full suite)
+- [x] T060 [P] `pnpm --filter lcbp3-frontend lint && pnpm --filter lcbp3-frontend test run && pnpm --filter lcbp3-frontend build`
+- [x] T061 Security review of extension — path-traversal guard reuse, NAS never touched by cleanup worker (staging copy), dual permission, temp-candidate expiry, junction-swap atomicity, audit completeness; recommend independent `/112-speckit-security-audit`
+- [ ] T062 Real-app verification: run the discovered production case (queue item 715 / correspondence `01a0b918-f8ef-713a-8027-c9e6e99cb9c9` / shared attachment 977) end-to-end per `check-real-app` — verify 725 unaffected; record in ledger
+- [ ] T063 Finalize ledger (`FINAL_STATUS`) for the extension scope
+
 ## Dependencies & Order
 
 - Phase 1 → Phase 2 (blocks all) → Phase 3 (US4 verify) → Phase 4 (US1/MVP) → Phase 5 (US2, extends US1 dialog) → Phase 6 (US3, verifies US1 service) → Phase 7.
@@ -91,6 +136,7 @@
 - T003 ∥ T004; T011–T013 share one spec file (write sequentially); T014, T015, T016 are separate files and parallel to it; T023 ∥ T024; T035 ∥ T036.
 - US4 (P2) intentionally precedes US1 (P1): it is a blocking prerequisite (DONE-guard + failure reporting).
 - Commit discipline: T006 (DONE-guard) and T007 (D10) in separate commits from feature work (ADR-055 notes).
+- **Part 2**: Phase 8 → Phase 9 (US5) → Phase 10. Within US5: T042 ∥ T043 ∥ T041; tests T044–T048 before T049–T050; T051 ∥ T052 ∥ T056 parallel with backend; T044–T046 share one spec file (sequential), T047 ∥ T048 separate files.
 
 ## Parallel Example (US1 tests)
 
@@ -107,4 +153,5 @@ T014 (np-dms-ocr-processor.spec.ts)  ∥  T015 (file-storage.controller.spec.ts)
 
 ## Summary
 
-- Total tasks: 40 numbered (T008 merged into T017, T034a added → 40 active): Setup 2, Foundational 6, US4 1, US1 19, US2 3, US3 2, Polish 7
+- Part 1 (re-OCR): 40 numbered tasks (T008 merged into T017, T034a added → 40 active): Setup 2, Foundational 6, US4 1, US1 19, US2 3, US3 2, Polish 7 — 38/40 done; T038 (real-app) + T040 (ledger finalize) pending
+- Part 2 (production file replace, D17–D22): 23 tasks T041–T063: Setup 3, US5 14, Polish 6

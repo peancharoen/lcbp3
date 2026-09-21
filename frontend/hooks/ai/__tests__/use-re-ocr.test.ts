@@ -9,7 +9,9 @@ import { createTestQueryClient } from '@/lib/test-utils';
 import {
   useReOcrStatus,
   useReOcrTrigger,
+  useReOcrReplaceTrigger,
   useReOcrConfirm,
+  useAttachmentLinks,
   RE_OCR_POLL_INTERVAL_MS,
 } from '../use-re-ocr';
 import { reOcrService } from '@/lib/services/re-ocr.service';
@@ -18,6 +20,8 @@ vi.mock('@/lib/services/re-ocr.service', () => ({
   reOcrService: {
     getStatus: vi.fn(),
     trigger: vi.fn(),
+    triggerReplace: vi.fn(),
+    listLinks: vi.fn(),
     confirm: vi.fn(),
   },
 }));
@@ -127,6 +131,75 @@ describe('use-re-ocr hooks', () => {
       });
       expect(invalidateSpy).toHaveBeenCalledWith({
         queryKey: ['rag-admin', 'generations', 'att-1'],
+      });
+    });
+  });
+
+  describe('useAttachmentLinks (ADR-055 D22)', () => {
+    it('ควรดึง links เมื่อ enabled', async () => {
+      const links = [
+        {
+          correspondencePublicId: 'corr-1',
+          correspondenceNumber: 'คคง.-สคฉ.3-03-21-0004-2567',
+          revisionPublicId: 'rev-1',
+          revisionNumber: 3,
+          isCurrent: true,
+          isMainDocument: true,
+        },
+      ];
+      vi.mocked(reOcrService.listLinks).mockResolvedValue(links);
+
+      const { wrapper } = createTestQueryClient();
+      const { result } = renderHook(() => useAttachmentLinks('att-1', true), {
+        wrapper,
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(result.current.data).toEqual(links);
+      expect(reOcrService.listLinks).toHaveBeenCalledWith('att-1');
+    });
+
+    it('ควรไม่ fetch เมื่อ enabled=false', () => {
+      const { wrapper } = createTestQueryClient();
+      const { result } = renderHook(() => useAttachmentLinks('att-1', false), {
+        wrapper,
+      });
+      expect(result.current.fetchStatus).toBe('idle');
+      expect(reOcrService.listLinks).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('useReOcrReplaceTrigger (ADR-055 D19)', () => {
+    it('ควรเรียก triggerReplace พร้อม body และ Idempotency-Key prefix re-ocr-replace', async () => {
+      vi.mocked(reOcrService.triggerReplace).mockResolvedValue({
+        reOcrToken: 'tok-2',
+        jobId: 'job-2',
+        status: 'queued',
+        queuePosition: 0,
+        estimatedWaitSeconds: 0,
+      });
+
+      const { wrapper, queryClient } = createTestQueryClient();
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+      const { result } = renderHook(() => useReOcrReplaceTrigger('att-1'), {
+        wrapper,
+      });
+
+      const body = {
+        engineType: 'np-dms-ocr' as const,
+        targetCorrespondencePublicId: 'corr-1',
+        tempAttachmentPublicId: 'cand-1',
+      };
+      result.current.mutate(body);
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(reOcrService.triggerReplace).toHaveBeenCalledWith(
+        'att-1',
+        body,
+        expect.stringMatching(/^re-ocr-replace-att-1-/)
+      );
+      expect(invalidateSpy).toHaveBeenCalledWith({
+        queryKey: ['re-ocr', 'att-1'],
       });
     });
   });

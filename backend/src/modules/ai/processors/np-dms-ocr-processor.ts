@@ -12,6 +12,8 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { QUEUE_NP_DMS_OCR } from '../../common/constants/queue.constants';
 import {
   RE_OCR_TTL_SECONDS,
+  ReOcrCandidateSource,
+  ReOcrMode,
   ReOcrPayload,
   ReOcrPointer,
   reOcrPayloadKey,
@@ -58,6 +60,17 @@ export interface NpDmsOcrJobData {
   triggeredByDisplayName?: string;
   /** เวลา trigger (ISO) */
   triggeredAt?: string;
+  // ── ADR-055 D17–D22: replace mode — processor copy fields เหล่านี้ลง payload ──
+  /** 'replace' = job นี้ OCR ไฟล์ candidate สำหรับ junction swap */
+  mode?: ReOcrMode;
+  /** correspondence เป้าหมายของ junction swap */
+  targetCorrespondencePublicId?: string;
+  /** temp attachment ของ candidate file ที่ OCR */
+  candidateAttachmentPublicId?: string;
+  /** ชื่อไฟล์ candidate */
+  candidateFilename?: string;
+  /** แหล่ง candidate (audit) */
+  candidateSource?: ReOcrCandidateSource;
 }
 
 // VRAM ที่ np-dms-ocr ต้องการ (MB) — ตาม ADR-032
@@ -285,6 +298,16 @@ export class NpDmsOcrProcessor extends WorkerHost {
       charCount: result.text.length,
       processingTimeMs: result.processingTimeMs,
       completedAt: new Date().toISOString(),
+      // replace mode (D17): copy context จาก job data ลง payload — confirm อ่านจาก payload อย่างเดียว
+      ...(job.data.mode === 'replace'
+        ? {
+            mode: 'replace' as const,
+            targetCorrespondencePublicId: job.data.targetCorrespondencePublicId,
+            candidateAttachmentPublicId: job.data.candidateAttachmentPublicId,
+            candidateFilename: job.data.candidateFilename,
+            candidateSource: job.data.candidateSource,
+          }
+        : {}),
     };
     await this.redis.setex(
       reOcrPayloadKey(attachmentPublicId, reOcrToken),

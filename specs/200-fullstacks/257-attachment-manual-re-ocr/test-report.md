@@ -92,3 +92,31 @@ v8 provider:
 ## Failed Tests
 
 ไม่มี — ทั้ง backend (3,201) และ frontend (1,184) ผ่านหมด
+
+---
+
+## Part 2 — Production File Replace (ADR-055 D17–D22, T041–T056)
+
+**Date:** 2026-09-19 | **Status:** PASS (unit/integration level)
+
+### Results
+
+| | Backend (Jest) | Frontend (Vitest) |
+|---|---|---|
+| Full sweep | **3,202 pass / 0 fail** (210 suites) | **1,196 pass / 0 fail** (169 files) |
+| Feature suites | attachment-re-ocr 61, np-dms-ocr-processor, file-storage 20 | ReOcr* 20, hooks 9, service 7 |
+| Build | `nest build` ✅ | `next build` ✅ (53 pages) |
+| Lint | `lint:ci` ✅ | eslint `--max-warnings 0` ✅ |
+| Typecheck | `tsc --noEmit` ✅ | `tsc --noEmit` ✅ |
+
+### New coverage (replace flow)
+
+- `triggerReplace`: XOR source, staging→`stageFileToTemp` (path-traversal/PDF/magic-bytes guards, copy-only NAS), upload temp validation, identical-checksum 409 (+temp copy discard), link must be current revision, shared mutex/in-flight guard with plain trigger
+- `listLinks`: all junction links with `isCurrent`/`isMainDocument` flags
+- `confirmReplace`: candidate ocr_text set before `commit()` (ingest sees new text — no duplicate enqueue), junction-swap tx scoped to `correspondenceRevisionId`, **idempotent retry** (affected=0 + already-swapped → success), orphan de-index via RETIRED generations + `enqueueRagGenerationCleanup` (skipped when projectPublicId unresolvable — left to Vector Health Check), `ai_audit_logs` (`attachment-re-ocr:replace`), migration queue `fileReplacements` append, Redis cleanup
+- Frontend: link picker (non-current disabled), preselected-link mode (detail page), retry-with-same-candidate, filename-mismatch warning, PDF old/new toggle (default new), dual-permission buttons (RAG console + correspondence detail)
+
+### Known gaps
+
+- Junction-swap tx verified via repository mocks only — no real-DB integration test
+- Real-app drill on attachment 977 (shared by revisions 359 + 369) pending deploy authorization

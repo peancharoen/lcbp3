@@ -359,4 +359,67 @@ describe('FileStorageService', () => {
       await expect(service.delete(1, 999)).rejects.toThrow(ForbiddenException);
     });
   });
+
+  describe('stageFileToTemp (ADR-055 D18)', () => {
+    const stagingPath = '/mnt/legacy-staging/O672-0221-doc.pdf';
+
+    it('ควร COPY ไฟล์เข้า tempDir และสร้าง temporary attachment', async () => {
+      (fs.copy as unknown as jest.Mock).mockResolvedValue(undefined);
+
+      const result = await service.stageFileToTemp(stagingPath, 1);
+
+      // ต้อง copy (ไม่ใช่ move) — ต้นฉบับบน NAS ต้องอยู่ครบ
+      expect(fs.copy as unknown as jest.Mock).toHaveBeenCalledWith(
+        stagingPath,
+        expect.stringContaining('uploads'),
+        { overwrite: false }
+      );
+      expect(fs.move as unknown as jest.Mock).not.toHaveBeenCalled();
+      expect(attachmentRepo.create as jest.Mock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          originalFilename: 'O672-0221-doc.pdf',
+          isTemporary: true,
+          mimeType: 'application/pdf',
+          uploadedByUserId: 1,
+        })
+      );
+      expect(result).toBeDefined();
+    });
+
+    it('ควร reject path ที่อยู่นอก allowed staging roots (path traversal guard)', async () => {
+      await expect(
+        service.stageFileToTemp('/etc/passwd-evil.pdf', 1)
+      ).rejects.toThrow(BadRequestException);
+      expect(fs.copy as unknown as jest.Mock).not.toHaveBeenCalled();
+    });
+
+    it('ควร reject relative-path traversal ที่ resolve ออกนอก root', async () => {
+      await expect(
+        service.stageFileToTemp('/mnt/legacy-staging/../../etc/evil.pdf', 1)
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('ควร throw NotFoundException เมื่อไฟล์ไม่มีบน staging', async () => {
+      (fs.pathExists as unknown as jest.Mock).mockResolvedValueOnce(false);
+      await expect(service.stageFileToTemp(stagingPath, 1)).rejects.toThrow(
+        NotFoundException
+      );
+    });
+
+    it('ควร reject ไฟล์ที่ไม่ใช่ .pdf', async () => {
+      await expect(
+        service.stageFileToTemp('/mnt/legacy-staging/doc.docx', 1)
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('ควร reject เมื่อ magic bytes ไม่ใช่ PDF', async () => {
+      (fs.readFile as unknown as jest.Mock).mockResolvedValueOnce(
+        Buffer.from('not a pdf at all')
+      );
+      await expect(service.stageFileToTemp(stagingPath, 1)).rejects.toThrow(
+        BadRequestException
+      );
+      expect(fs.copy as unknown as jest.Mock).not.toHaveBeenCalled();
+    });
+  });
 });

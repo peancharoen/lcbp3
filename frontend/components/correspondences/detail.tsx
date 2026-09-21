@@ -1,3 +1,7 @@
+// File: frontend/components/correspondences/detail.tsx
+// Change Log:
+// - 2026-09-19: ADR-055 D22 — ปุ่มเปลี่ยนไฟล์ PDF ต่อ attachment row (เปิด ReOcrDialog replace mode, link preselect)
+
 'use client';
 
 import { Correspondence } from '@/types/correspondence';
@@ -5,7 +9,7 @@ import { StatusBadge } from '@/components/common/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
-import { ArrowLeft, Download, FileText, Loader2, Send, CheckCircle, XCircle, Edit, Ban, AlertTriangle, Eye, Trash2 } from 'lucide-react';
+import { ArrowLeft, Download, FileText, Loader2, Send, CheckCircle, XCircle, Edit, Ban, AlertTriangle, Eye, Trash2, FileInput } from 'lucide-react';
 import Link from 'next/link';
 import { useSubmitCorrespondence, useProcessWorkflow, useCancelCorrespondence } from '@/hooks/use-correspondence';
 import { ReferenceSelector } from '@/components/correspondences/reference-selector';
@@ -20,6 +24,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { FilePreviewModal } from '@/components/common/file-preview-modal';
+import { ReOcrDialog } from '@/components/admin/ai/rag-console/ReOcrDialog';
+import { useRagAdminT } from '@/components/admin/ai/rag-console/rag-admin-i18n';
 import type { WorkflowAttachmentSummary } from '@/types/workflow';
 import { correspondenceService } from '@/lib/services/correspondence.service';
 import { useRouter } from 'next/navigation';
@@ -50,10 +56,13 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
   const [cancelReason, setCancelReason] = useState('');
   // ADR-021: state สำหรับ FilePreviewModal — แสดง PDF/Image preview ของ attachment
   const [previewAttachment, setPreviewAttachment] = useState<WorkflowAttachmentSummary | null>(null);
+  // ADR-055 D22: state สำหรับ ReOcrDialog replace mode — link ถูก preselect ด้วย correspondence นี้
+  const [replaceAttachment, setReplaceAttachment] = useState<WorkflowAttachmentSummary | null>(null);
   // Hard-delete state (Superadmin only)
   const [showHardDeleteConfirm, setShowHardDeleteConfirm] = useState(false);
   const [hardDeleteLoading, setHardDeleteLoading] = useState(false);
   const router = useRouter();
+  const ragAdminT = useRagAdminT();
 
   if (!data) return <div>No data found</div>;
 
@@ -426,6 +435,20 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
                           >
                             <Download className="h-4 w-4" />
                           </Button>
+                          {/* ADR-055 D19/D22: เปลี่ยนไฟล์ PDF ของ link นี้ — เฉพาะผู้ที่มีทั้งสองสิทธิ์ */}
+                          {file.mimeType === 'application/pdf' &&
+                            hasPermission('rag.admin.write') &&
+                            hasPermission('correspondence.edit') && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setReplaceAttachment(file)}
+                                aria-label={`Replace file ${file.originalFilename}`}
+                                title={ragAdminT('re_ocr.replace.action')}
+                              >
+                                <FileInput className="h-4 w-4" />
+                              </Button>
+                            )}
                         </div>
                       </div>
                     ))}
@@ -573,6 +596,17 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
         attachment={previewAttachment}
         onClose={() => setPreviewAttachment(null)}
       />
+      {/* ADR-055: replace flow — link preselect ด้วย correspondence ปัจจุบัน (D22) */}
+      {replaceAttachment?.publicId && (
+        <ReOcrDialog
+          attachmentPublicId={replaceAttachment.publicId}
+          originalFilename={replaceAttachment.originalFilename ?? ''}
+          open
+          onOpenChange={(o) => !o && setReplaceAttachment(null)}
+          replaceEnabled
+          replaceTargetCorrespondencePublicId={data.publicId}
+        />
+      )}
     </div>
   );
 }

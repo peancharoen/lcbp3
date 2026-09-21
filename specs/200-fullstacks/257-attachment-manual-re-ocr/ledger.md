@@ -9,8 +9,8 @@
 
 ## Authority and Boundary
 
-- Objective: Admin manual re-OCR of a single PDF attachment with compare-before-replace, plus D10 processor failure fix and D9.3 DONE-guard (ADR-055).
-- Acceptance criteria: spec.md FR-001..FR-031, SC-001..SC-008; ADR-055 test list.
+- Objective: Admin manual re-OCR of a single PDF attachment with compare-before-replace, plus D10 processor failure fix and D9.3 DONE-guard (ADR-055). Part 2 (D17–D22): production file replacement — junction-scoped swap of the PDF itself through the same compare-before-replace flow.
+- Acceptance criteria: spec.md FR-001..FR-045, SC-001..SC-010; ADR-055 test list.
 - Base state:
   - Branch: `257-attachment-manual-re-ocr`
   - Ref: `1b8452c0` (spec commit)
@@ -39,6 +39,7 @@
 | CP8 | Review hardening: trigger mutex (SET NX), confirm supersede/identical guards, scoped preview endpoint (rag.manage), idempotency comment, dropped wrong documentPublicId | 50/50 focused backend tests + 13/13 frontend ReOcr tests; tsc+lint clean; commit `7b276ecb` | tests added with fix (GREEN) | — | done |
 | CP9 | Coverage remediation: jest.config fix (dead `*.spec.ts` threshold + per-file tsconfig entries — ts-jest ConfigSet cache made them dead config); +15 tests → audit-log 94.11%, escalation 84.61%, task-creation 85.71%, excel-review 80.80% branches; frontend re-ocr service/hook tests | full jest 214 suites/3201 pass, 0 fail (exit 1 = pre-existing coverage debt on ~24 files + ctor-decorator artifacts); frontend 1184 pass; commit `3a80af7c` | n/a | 3 files structurally <80% branches (emitDecoratorMetadata ctor artifacts — v8 uncoverable); needs team threshold-policy decision | done |
 | CP10 | `/111-speckit-validate`: FR-001..031 + 11 edge cases + 14 acceptance scenarios verified against code/tests → validation-report.md | 31/31 FRs covered, 100%; tasks 38/40 | n/a | T038 real-app + T040 ledger finalize pending; SC-002/003/004 need live measurement; independent security audit recommended | done |
+| CP11 | Part 2 US5 (T041–T056): TriggerReplaceFileDto + constants replace fields; `stageFileToTemp` (copy-only NAS→temp); `triggerReplace`/`listLinks`/`confirmReplace` (junction-swap tx + orphan de-index + audit + queue annotation); controller `/re-ocr/replace` (dual perm) + `/re-ocr/links`; processor payload passthrough; frontend service/hooks/dialog link+file picker/PDF toggle/detail button/i18n. Self-review fixes: idempotent confirm retry (swap affected=0 + already-swapped → success, else 404); orphan de-index skips enqueue when projectPublicId unresolvable | backend full sweep 3,202 pass/0 fail (61 attachment-re-ocr incl. 3 new retry/orphan-guard tests, 20 file-storage incl. 6 stageFileToTemp); frontend 1,196 pass (20 ReOcr component tests incl. link picker, preselect, retry-candidate, filename-mismatch, PDF toggle); `nest build` + `next build` + `lint:ci` + frontend eslint + tsc both sides — clean | Backend RED-first (spec mocks extended before impl); frontend GREEN-only — flagged (same as CP6) | Real-app drill on attachment 977/revisions 359+369 pending (needs deploy); junction-swap exercised only via mocks — no integration test with real DB | done |
 
 ## Review Attempts
 
@@ -54,7 +55,7 @@
 
 ## Next Session Entry
 
-- Last action taken: `/111-speckit-validate` → validation-report.md (31/31 FRs PASS); review hardening + coverage remediation committed (`7b276ecb`, `3a80af7c`).
-- Next required action: T038 (deploy via user-authorized path, then `check-real-app` quickstart drill incl. SC-002/SC-003), run `/112-speckit-security-audit`, then T040 finalize ledger. DI boot of AiModule with the new controller has only been exercised by `nest build`/unit tests, not a running app.
+- Last action taken: Part 2 implementation (T041–T056) — production file replace per ADR-055 D17–D22; CP11 recorded. All focused checks green (141 backend + 16 frontend tests, build/lint/tsc clean).
+- Next required action: T058–T063 polish — full workspace test sweep, security review of new endpoints (path traversal, dual permission, XOR validation), real-app drill on attachment 977 (revisions 359+369) after user-authorized deploy, then T040 finalize ledger + commit. Junction-swap tx verified only via repository mocks — recommend integration verification on staging DB.
 - CAUTION: many backend files are CRLF (ai-batch.*, ai-queue.service.*, queue.constants.ts). Edit with `newline=''` / preserve CRLF or git diffs become whole-file rewrites.
 - Files/agent must not touch: `migration_review_queue` flow (ADR-054), schema SQL.

@@ -9,6 +9,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { ReOcrDiffView } from '../rag-console/ReOcrDiffView';
 import { ragAdminT } from '../rag-console/rag-admin-i18n';
 
+import apiClient from '@/lib/api/client';
+
 vi.mock('@/lib/api/client', () => ({
   default: { get: vi.fn(() => new Promise(() => undefined)) },
 }));
@@ -42,5 +44,39 @@ describe('ReOcrDiffView', () => {
     await userEvent.type(inputs[0], 'LCBP3');
     expect(screen.getAllByTestId('re-ocr-match')).toHaveLength(2);
     expect(screen.getByTestId('re-ocr-match-count')).toHaveTextContent('2');
+  });
+
+  it('ไม่มี candidatePublicId → ไม่แสดง PDF toggle (โหมด re-OCR ปกติ)', () => {
+    renderView('old', 'new');
+    expect(screen.queryByTestId('pdf-toggle-new')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('pdf-toggle-old')).not.toBeInTheDocument();
+  });
+
+  it('replace mode: default = ไฟล์ใหม่ (candidate) และ toggle ไปไฟล์เดิมได้ (D22/Q7)', async () => {
+    vi.mocked(apiClient.get).mockClear();
+    render(
+      <ReOcrDiffView
+        attachmentPublicId="att-1"
+        candidatePublicId="cand-1"
+        currentText="old"
+        newText="new"
+        engineUsed="np-dms-ocr"
+      />
+    );
+    // default = new → fetch candidate
+    expect(apiClient.get).toHaveBeenLastCalledWith(
+      '/files/cand-1/re-ocr/preview',
+      expect.any(Object)
+    );
+    await userEvent.click(screen.getByTestId('pdf-toggle-old'));
+    expect(apiClient.get).toHaveBeenLastCalledWith(
+      '/files/att-1/re-ocr/preview',
+      expect.any(Object)
+    );
+    await userEvent.click(screen.getByTestId('pdf-toggle-new'));
+    expect(apiClient.get).toHaveBeenLastCalledWith(
+      '/files/cand-1/re-ocr/preview',
+      expect.any(Object)
+    );
   });
 });

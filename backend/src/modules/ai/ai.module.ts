@@ -66,6 +66,9 @@ import { Attachment } from '../../common/file-storage/entities/attachment.entity
 import { Project } from '../project/entities/project.entity';
 import { Organization } from '../organization/entities/organization.entity';
 import { CorrespondenceType } from '../correspondence/entities/correspondence-type.entity';
+import { Correspondence } from '../correspondence/entities/correspondence.entity';
+import { CorrespondenceRevision } from '../correspondence/entities/correspondence-revision.entity';
+import { CorrespondenceRevisionAttachment } from '../correspondence/entities/correspondence-revision-attachment.entity';
 import { RbacGuard } from '../../common/guards/rbac.guard';
 import { IntentClassifierModule } from './intent-classifier/intent-classifier.module';
 import { AiToolModule } from './tool/ai-tool.module';
@@ -145,6 +148,10 @@ import { SecureArchiveService } from '../../common/file-storage/secure-archive.s
       RagAttachmentGeneration,
       RagAttachmentPage,
       RagAttachmentChunk,
+      // ADR-055 D17: junction swap + link resolution ของ re-OCR replace flow
+      Correspondence,
+      CorrespondenceRevision,
+      CorrespondenceRevisionAttachment,
     ]),
 
     BullModule.registerQueue(

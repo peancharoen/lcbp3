@@ -38,6 +38,13 @@
 //   `RE_OCR_SUPERSEDED` เมื่อ pointer เป็นของ token ใหม่กว่า และ `RE_OCR_IDENTICAL` เมื่อผลเท่าเดิม;
 //   (c) เพิ่ม `GET /files/:publicId/re-ocr/preview` (rag.manage) — preview เดิมต้อง document.view;
 //   (d) ตัด documentPublicId ออกจาก job payload (ส่ง attachment id ผิด semantic field)
+// - 2026-09-19: Scope extension — Production File Replace (grill รอบที่ 3, D17–D22): เจตนาจริงของ
+//   feature คือแก้เคส "correspondence ผูกไฟล์ PDF ผิด" บน production (พบจริง: queue item 715
+//   `คคง.-สคฉ.3-03-21-0004-2567` ถูก import ด้วยไฟล์ของ `ผรม.2-1-0007-2567` — attachment 977 ถูก share
+//   โดย 2 junction links เป็น main document ของทั้งคู่) — เพิ่ม replace-file mode เข้า flow เดิม:
+//   junction swap แทน in-place (D17), candidate = uniform temp attachment + staging copy เข้า
+//   tempDir (D18), route แยก + permission คู่ (D19), confirm tx = swap+commit+reindex+orphan
+//   de-index (D20), ไม่ re-extract metadata (D21), UI = 2 entry points + link picker + PDF toggle (D22)
 
 # ADR-055: Attachment Manual Re-OCR — Human-in-the-loop Compare-before-Replace
 
@@ -63,6 +70,8 @@
 
 **ความต้องการจริง**: บางครั้ง `attachments.ocr_text` ที่มีอยู่ในระบบมีคุณภาพไม่ดี (OCR engine เดิมตอน ingest อ่านผิด/อ่านไม่ครบ) และต้องการให้ admin สั่ง re-OCR ใหม่ด้วย engine ที่ดีกว่า/ใหม่กว่า แล้วเปรียบเทียบกับของเดิมก่อนตัดสินใจแทนที่
 
+**ขยาย 2026-09-19 — Production File Replace**: เจตนาที่แท้จริงของ feature นี้คือ remediation บน production — กรณีที่ **correspondence ถูกผูกกับไฟล์ PDF ผิดตั้งแต่ import** (ไม่ใช่แค่ OCR เพี้ยน) เคสจริงที่พบ: queue item 715 (`คคง.-สคฉ.3-03-21-0004-2567`, IMPORTED) ผูกกับ `O672-0221-คคง.-ผรม.2-1-0007-2567.pdf` ซึ่งเป็นไฟล์ของ queue item 725 — attachment 977 ถูก share เป็น `is_main_document` ของ correspondence **ทั้งสอง** `replaceQueueItemFile()` เดิม reject IMPORTED (state guard) จึงไม่มีทางแก้ผ่าน tooling — flow เดียวกับ re-OCR (trigger → OCR candidate → compare → confirm) ต้องรองรับ "เปลี่ยนไฟล์" ด้วย โดยยังคง guarantee เดิมทุกข้อ (ไม่แตะ production จน confirm, human decision, audit)
+
 ---
 
 ## Decision Drivers
@@ -72,6 +81,8 @@
 - **RAG consistency** — ถ้า `ocr_text` เปลี่ยน ข้อมูลใน Qdrant ต้อง sync ตาม ไม่ปล่อยให้ stale — ใช้ generation lifecycle (BUILDING → ACTIVE → RETIRED) ที่มีอยู่ ไม่ลบ vector เอง
 - **Reuse ของที่มีอยู่แล้ว** — OCR engine, BullMQ queue, `reingest` pattern, endpoint contract ที่มีอยู่แล้ว ไม่สร้างใหม่ซ้ำซ้อน
 - **จำกัดความเสี่ยง** — จำกัด RBAC และ scope ให้แคบที่สุดเท่าที่ยังใช้งานได้จริง (ลด blast radius ของ feature ใหม่)
+- **Referential integrity ของ shared attachment** *(เพิ่ม 2026-09-19)* — attachment row เดียวถูก link โดยหลาย correspondence revision ได้จริง (junction M:N) — การแก้ไฟล์ห้ามลอยไปแตะ consumer อื่น; unit of change ต้องเป็น junction link ไม่ใช่ attachment
+- **NAS เป็น source of truth** *(เพิ่ม 2026-09-19)* — ไฟล์ staging/Legacy NAS ห้ามถูก move/delete โดย flow นี้; temp-cleanup worker (`fs.remove(att.filePath)`) จะลบไฟล์ตาม path ของ temp attachment ทุกตัว → candidate จาก staging ต้องเป็น copy ใน tempDir เท่านั้น
 
 ---
 
@@ -378,6 +389,112 @@ export interface NpDmsOcrJobData {
 
 ---
 
+## Decisions — Production File Replace (extension, 2026-09-19)
+
+### D17: Unit of change = junction link — junction swap, ไม่ใช่ in-place mutation
+
+**Decision**: Replace mode ไม่แก้ `attachments.file_path`/`original_filename` ของ attachment เดิมเลย — confirm เปลี่ยน `correspondence_revision_attachments.attachment_id` ของ **link เดียวที่ admin เลือก** ไปชี้ attachment ใหม่แทน:
+
+- Trigger body รับ `targetCorrespondencePublicId` — service resolve หา junction row ที่ `(attachment_id = :att) AND (correspondence_revision เป็น is_current ของ correspondence นั้น)` — ไม่เจอ → reject
+- `is_main_document` คงเดิมโดยอัตโนมัติ (junction row เดิม เปลี่ยนแค่ FK)
+- **Shared attachment ไม่ใช่ blocker** — swap กระทบเฉพาะ junction row ที่เลือก; link อื่นของ attachment เดิม (เช่น 977↔725) ไม่ขยับ
+- Attachment row ถือเป็น immutable file record: publicId→file mapping คงที่ตลอดชีพ → audit/preview/RAG vectors ต่อ row สอดคล้องเสมอ
+- Revision เก่า (is_current=false) เป็น history — ห้ามแตะ (เลือกได้เฉพาะ link บน current revision)
+
+**Rationale**: หลักฐานจริง (attachment 977 เป็น main document ของ 2 correspondences) พิสูจน์ว่า in-place update จะ corrupt correspondence ที่ถูกต้องอยู่แล้ว — junction swap ทำให้ "ไฟล์เก่า" ยัง serve consumer เดิมได้ และ preserve attachment เดิมครบสำหรับ audit โดยไม่ต้องมี version table
+
+**Alternatives rejected**:
+- In-place `UPDATE attachments SET file_path=...` — corrupt ทุก link ที่ share attachment เดียวกัน + เสีย mapping ไฟล์เก่า
+- Block replace เมื่อ attachment shared — ทำให้เคสจริง (715) แก้ไม่ได้เลย
+- Attachment version table ใหม่ — schema change ไม่จำเป็นเมื่อ junction model รองรับอยู่แล้ว (ADR-044)
+
+### D18: Candidate = uniform temporary attachment — staging copy เข้า tempDir ตอน trigger
+
+**Decision**: ทุก candidate (ทั้ง `storageTempPath` และ `tempAttachmentPublicId`) กลายเป็น **temp attachment row มาตรฐาน** (`isTemporary=true`, `expiresAt` set, file อยู่ใน tempDir) ตอน trigger:
+
+- **Staging source**: path-traversal guard เดียวกับ `replaceQueueItemFile` (resolve แล้วต้องอยู่ใต้ stagingDir/legacyNasPath) + exists+isFile+`.pdf` → **`fs.copy` เข้า tempDir** → สร้าง temp attachment row ชี้ copy นั้น
+- **Upload source**: reuse temp attachment จาก `POST /files/upload` เดิม (validate isTemporary + PDF)
+- OCR job รันบน candidate filePath (temp copy) — pointer/payload reuse D4 keys เดิม พร้อม field เพิ่มใน pointer: `{ mode:'replace', targetCorrespondencePublicId, candidateAttachmentPublicId, candidateFilename, candidateSource:'STAGING'|'UPLOAD' }`
+- **Reject/expire** → temp-cleanup worker เดิมเก็บกวาด (ไฟล์ temp copy + row) — NAS ต้นฉบับปลอดภัยเพราะไม่เคยถูกอ้างถึงตรง ๆ
+- **Identical-file guard**: checksum (SHA-256) ของ candidate == checksum ของ attachment เดิม → **409** ก่อน enqueue (ไม่เผา GPU)
+
+**Rationale**: `cleanup-temp-files.worker` ทำ `fs.remove(att.filePath)` บน temp attachment ที่หมดอายุ — ถ้า row ชี้ NAS ตรง ๆ worker จะลบไฟล์ต้นฉบับบน NAS; copy เข้า tempDir ทำให้ทั้งสอง source มี pipeline เดียวกัน 100% (preview/OCR/commit/cleanup ไม่ต้องแยก branch)
+
+**Alternatives rejected**:
+- Temp row ชี้ NAS path ตรง ๆ — ต้องแก้ cleanup worker ให้ข้าม path นอก tempDir เสี่ยงและแตะ component ที่ทำงานอยู่
+- ไม่สร้าง attachment row เก็บ path ใน Redis + preview endpoint แบบ path-guard — เพิ่ม attack surface (arbitrary path read) และ code path พิเศษ
+- Commit เข้า permanent ตั้งแต่ trigger — reject แล้วต้องมี orphan-permanent cleanup ของตัวเอง
+
+### D19: Route แยก + permission คู่ — `POST /files/:publicId/re-ocr/replace`
+
+**Decision**:
+
+| Endpoint | Permission | หมายเหตุ |
+|---|---|---|
+| `POST /files/:publicId/re-ocr/replace` | `rag.admin.write` **AND** `correspondence.edit` | trigger replace — body: `{ engineType?, targetCorrespondencePublicId, storageTempPath? XOR tempAttachmentPublicId? }` + Idempotency-Key + `@Throttle` + `@Audit('attachment.re_ocr.replace','attachment')` + `AiEnabledGuard` |
+| `GET /files/:publicId/re-ocr/links` | `rag.manage` | คืน junction links ทั้งหมดของ attachment (`{ correspondencePublicId, correspondenceNumber, revisionLabel, isCurrent }[]`) สำหรับ link picker |
+| status / preview / confirm | เหมือนเดิม (`rag.manage` / `rag.admin.write`) | payload มี `mode:'replace'` → confirm แยก branch เอง |
+
+**Rationale**: replace แตะ junction ของ correspondence = แก้ข้อมูลเอกสาร production จริง ไม่ใช่แค่ OCR text — guard เป็น static per-route แยกตาม body ไม่ได้ จึงต้อง route แยก; permission คู่บังคับให้ผู้ทำมีสิทธิ์แก้ correspondence ด้วย (`RequirePermission` รองรับ AND อยู่แล้ว)
+
+**Alternatives rejected**:
+- Route เดียว + `rag.admin.write` เท่านั้น — admin RAG ที่ไม่มี correspondence-edit แก้ข้อมูลเอกสารได้ ข้าม permission boundary
+- `correspondence.edit` เท่านั้น — RAG admin ทั่วไปอาจไม่มี permission นี้ ทำให้ feature ใช้ไม่ได้จริง
+
+### D20: Confirm (replace mode) — tx swap + commit-to-permanent + reindex-new → de-index-orphan
+
+**Decision** — confirm เมื่อ payload เป็น `mode:'replace'`:
+
+1. **Pre-checks เดิมทั้งหมด** (payload exists, supersede guard) + junction row ยังอยู่และชี้ attachment เดิม (ไม่ใช่ → 404/410) + candidate temp attachment ยังอยู่
+2. **Dedup check**: ถ้ามี non-temp attachment อื่นที่ checksum เดียวกับ candidate อยู่แล้ว → ใช้ row นั้นเป็น target (ไม่สร้างซ้ำ)
+3. **DB transaction เดียว**:
+   - อัปเดต candidate row: `ocrText=newText`, `aiProcessingStatus='DONE'`, `ragStatus='PENDING'`, `ragLastError=NULL`, `expiresAt=NULL` (ป้องกัน temp-cleanup เผื่อขั้นถัดไปล้มเหลว)
+   - `UPDATE correspondence_revision_attachments SET attachment_id=:newId WHERE correspondence_revision_id=:rev AND attachment_id=:oldId` (affected=0 → 404)
+4. **Post-commit**: `fileStorageService.commit([tempId], { documentType, issueDate })` — move temp→permanent + `isTemporary=false` + auto RAG-ingest trigger (attachment มี ocr_text แล้ว → ingest ใช้ text นี้ ไม่ต้อง OCR ซ้ำ; junction swap commit ก่อนแล้วจึง resolve document context ได้)
+   - commit() ล้มเหลว → row ยังชี้ tempDir + `expiresAt` ถูก clear แล้วจึงไม่โดน worker ลบ — link ใช้งานได้ปกติ (file เดิมใน tempDir) + log error; retry ผ่าน flow ปกติ
+   - reingest **ไม่จำเป็น** สำหรับ attachment ใหม่ (ไม่มี ACTIVE generation เดิม — auto-ingest ของ commit พอ) แต่ยัง fire explicit reingest เป็น safety net ได้
+5. **Orphan de-index (ลำดับหลัง reindex ใหม่เสมอ)**: นับ junction rows ที่เหลือของ attachment เดิม — `=0` → enqueue vector deletion (RAG cleanup path ที่มีอยู่) + set `ragStatus` ตามผล; `>0` → ไม่แตะเลย
+6. **Audit**: `writeAuditLog` ปกติ + ถ้า trace queue item ได้ (`migration_review_queue.imported_correspondence_public_id` = target correspondence) → append `MigrationFileReplacement` เข้า `review_state_json.fileReplacements` (best-effort, ไม่ block confirm)
+7. `cleanupKeys` เดิม
+
+**Rationale**: swap+field updates อยู่ใน tx เดียว = atomic; file move เป็น fs operation ทำใน tx ไม่ได้จึงอยู่หลัง commit โดย `expiresAt=NULL` ใน tx ทำให้ failure window ปลอดภัย (row ไม่โดน reap แม้ move ยังไม่เกิด); de-index เก่าหลัง index ใหม่ = ไม่มี gap ใน RAG search
+
+**Alternatives rejected**:
+- De-index เก่าก่อน reindex ใหม่ — เอกสารหายจาก search ชั่วคราว
+- ลบ old attachment row+file เมื่อ orphan — เสีย audit trail และตัวเลือกย้อนกลับ
+- `importStagingFile()` ตอน confirm — ซ้ำซ้อน: temp row อยู่แล้ว `commit()` เดิมครอบทั้ง move+ingest trigger
+- Manual `QUEUE_AI_VECTOR_DELETION` บน attachment ใหม่ — เหมือน D6 (generation lifecycle จัดการเอง); vector deletion ใช้เฉพาะกับ **orphan attachment เดิม** เท่านั้น
+
+### D21: ไม่ re-extract metadata — filename-mismatch เตือนแต่ไม่บล็อก
+
+**Decision**: Replace mode เปลี่ยนเฉพาะไฟล์ + `ocr_text` + RAG index — correspondence metadata (`correspondence_number`, subject, type, tags, dates) ที่ผ่าน human review แล้วคงเดิมทั้งหมด **ห้าม** re-extract อัตโนมัติ แต่ UI แสดง non-blocking warning เมื่อเลขที่ใน filename ของ candidate ดูไม่ตรงกับ `correspondence_number` เป้าหมาย (filename ไม่ใช่ source of truth — เตือนให้ตรวจสอบเท่านั้น)
+
+**Rationale**: เคส 715 พิสูจน์ — `document_number` ถูกต้องอยู่แล้ว (admin review ตอน commit) ผิดแค่ไฟล์; auto re-extract จะเขียนทับข้อมูลที่คนตัดสินใจแล้ว ขัดหลัก human-in-the-loop เดียวกัน
+
+**Alternatives rejected**:
+- Auto re-extract + metadata compare step — เพิ่ม review phase ทั้งชุดสำหรับเคสส่วนน้อย
+- Block เมื่อ filename ไม่ตรง — filename convention ไม่ reliable พอที่จะเป็น hard gate
+
+### D22: UI — สอง entry points + link picker + file picker reuse + PDF toggle
+
+**Decision**:
+
+1. **Entry points 2 จุด**: (ก) Re-OCR dialog เดิมใน RAG console — เพิ่ม "replace file" mode (เห็นเฉพาะผู้มี `rag.admin.write` + `correspondence.edit`) (ข) ปุ่ม replace บน attachment row ในหน้า correspondence detail (`detail.tsx` ข้าง preview/delete) — context ผูก link ของ correspondence นั้นอัตโนมัติ ไม่ต้องเลือก
+2. **Link picker** (เฉพาะ entry จาก RAG console): `GET .../re-ocr/links` → dialog แสดง radio list ของ junction links (`correspondenceNumber + revisionLabel + isCurrent`) — unshared = auto-select เดียว; เลือกได้เฉพาะ link บน current revision
+3. **File picker**: reuse pattern ของ `frontend/components/migration/replace-file-dialog.tsx` — Tabs `staging` (Legacy NAS folder tree ผ่าน `listLegacyFolders`/`listLegacyFolderFiles`) + `upload` (two-phase `POST /files/upload`)
+4. **PDF pane toggle**: diff view เดิม 3 pane — pane ที่ 3 (PDF) มี toggle "ต้นฉบับเดิม / ไฟล์ใหม่" default=ใหม่; preview ผ่าน `GET /files/:publicId/re-ocr/preview` เดิมสำหรับไฟล์เก่า และ candidate temp attachment publicId สำหรับไฟล์ใหม่
+5. **Warning**: filename-mismatch badge ใน dialog (D21) — ไม่บล็อก confirm
+6. Confirm flow เดิมทั้งหมด (AlertDialog permanent + counts + toast + close) ใช้ได้กับ replace mode โดยข้อความปรับเป็น "แทนที่ไฟล์และ OCR text ถาวร"
+
+**Rationale**: จุดค้นพบปัญหาจริงคือหน้า correspondence ("เลขนี้ไฟล์ผิด") มากกว่า RAG console — แต่ console ยังต้องรองรับด้วย link picker เพราะ shared attachment เลือก link จาก context ไม่ได้
+
+**Alternatives rejected**:
+- Entry point เดียว (console เท่านั้น / detail เท่านั้น) — ขาดอีก workflow หนึ่ง
+- 4-pane diff (PDF เก่า+ใหม่แยก column) — แคบเกินบนจอทั่วไป toggle พอ
+- Replace ทุก link พร้อมกัน — ทำ correspondence ที่ถูกอยู่พัง (เคส 725)
+
+---
+
 ## Consequences
 
 ### Positive
@@ -388,6 +505,8 @@ export interface NpDmsOcrJobData {
 - Scope แคบ (single attachment, `rag.admin.write`) ลด blast radius ของ feature ใหม่
 - ซ่อม bug/ch่องโหว่เดิมของ codebase ไปด้วย: `NpDmsOcrProcessor` silent failure ทั้ง 2 path (D10), ingestion pipeline idempotency hole (DONE-guard, D9) — ทั้งสองอยู่ใน blast radius ของไฟล์ที่ต้องแตะอยู่แล้ว
 - DONE terminal-state guard ทำให้ `ai_processing_status` มี semantics ชัดขึ้น: เสร็จแล้วไม่มีใครเขียนทับ
+- *(2026-09-19)* แก้เคส wrong-file-on-production ได้โดยไม่แตะ consumer อื่น (junction swap per-link) — ปิด gap ที่ `replaceQueueItemFile` reject IMPORTED ทิ้งไว้
+- *(2026-09-19)* Old attachment เป็น immutable record — audit/ย้อนดูไฟล์เก่าได้เสมอ; NAS ต้นฉบับปลอดภัยจากทุก path (copy-only)
 
 ### Negative
 
@@ -395,6 +514,8 @@ export interface NpDmsOcrJobData {
 - Redis TTL 72 ชม. (3 วัน) — ถ้า admin ไม่ confirm ภายใน 3 วันต้อง trigger ใหม่ (เสีย GPU cycle ซ้ำ) แต่ครอบคลุม work cycle ปกติรวมถึงกรณีวันหยุดแล้ว
 - ไม่รองรับ batch — ถ้าต้องการ re-OCR หลายไฟล์ต้องทำทีละไฟล์ในรอบแรกนี้
 - แตะ `ai-batch.processor.ts` (shared ingestion path) สำหรับ DONE-guard — เพิ่ม conditional + early-skip ~10 บรรทัด ต้องมี test ว่า flow ปกติ (PENDING→PROCESSING→DONE, FAILED→retry) ไม่พัง
+- *(2026-09-19)* Replace mode ซับซ้อนกว่า re-OCR เดิม (junction swap + temp commit + orphan de-index) — failure window ระหว่าง tx-commit กับ file move มีอยู่แต่ปลอดภัย (D20 ข้อ 4)
+- *(2026-09-19)* Orphan attachment เดิมค้างเป็น row ที่ไม่มี link (เก็บไว้ตามเจตนา) — ไม่มี orphan-row cleanup สำหรับกรณีนี้; แสดงใน RAG console ต่อได้จนกว่าจะ de-indexed
 
 ### Neutral
 
@@ -408,6 +529,8 @@ export interface NpDmsOcrJobData {
 ## Schema Changes
 
 **ไม่มี** — ADR นี้ไม่เพิ่ม column/table ใหม่เลย ข้อมูลระหว่างรอ confirm อยู่ใน Redis (D4) ไม่มี rollback mechanism ที่ต้องพึ่ง column สำรอง (D8)
+
+*(ยืนยันอีกครั้ง 2026-09-19 สำหรับ file-replace extension)* — junction swap ใช้ `correspondence_revision_attachments` เดิม, candidate ใช้ `attachments.isTemporary`/`expiresAt`/`tempId` เดิม, queue annotation ใช้ `review_state_json.fileReplacements` เดิม — ไม่ต้อง schema change ใด ๆ (ADR-044 unaffected)
 
 ---
 
@@ -423,6 +546,12 @@ export interface NpDmsOcrJobData {
 | 6 | `backend/src/modules/ai/processors/ai-batch.processor.ts` | **[DONE-guard]** conditional `UPDATE ... WHERE ai_processing_status <> 'DONE'` ที่จุดเขียน `ocr_text`/PROCESSING → affected rows = 0 → skip job + log warn (D9 ข้อ 3) |
 | 7 | Frontend (RAG console + components ใหม่) | row action "Re-OCR" ใน attachments list (เฉพาะ `rag.admin.write`) → full-screen dialog 3 phase (engine select → wait+poll 3วิ → diff): resume-by-click ผ่าน `GET /status` ก่อนเสมอ, diff = side-by-side `<pre>` + PDF reference pane (reuse file-preview) + search-in-pane + charCount + shrink badge + `identical` disable, AlertDialog no-rollback ก่อน confirm, post-confirm toast + list invalidate — i18n keys ทั้งหมด (D16) |
 | 8 | `np-dms-ocr-processor.spec.ts` + `attachment-re-ocr.service.spec.ts` + controller spec + ai-batch spec | เพิ่ม tests ทั้ง bugfix, DONE-guard และ feature (ดู Tests ที่ต้องเพิ่ม) |
+| **Extension: Production File Replace (D17–D22)** | | |
+| 9 | `backend/src/common/file-storage/re-ocr.constants.ts` + `dto/re-ocr.dto.ts` | pointer เพิ่ม replace fields (`mode`, `targetCorrespondencePublicId`, `candidateAttachmentPublicId`, `candidateFilename`, `candidateSource`); `TriggerReplaceFileDto` (XOR source) |
+| 10 | `backend/src/common/file-storage/attachment-re-ocr.service.ts` | `triggerReplace()` (link resolve + path guard + staging copy→temp + checksum guard) + `confirmReplace()` (D20 tx + commit + orphan de-index + queue annotation) + `listLinks()`; `getStatus` pass-through replace fields |
+| 11 | `backend/src/common/file-storage/attachment-re-ocr.controller.ts` | `POST :publicId/re-ocr/replace` (dual permission) + `GET :publicId/re-ocr/links` (rag.manage) |
+| 12 | `backend/src/modules/ai/processors/np-dms-ocr-processor.ts` | re-OCR job รองรับ candidate `pdfPath` ที่ชี้ temp file (job data เดิมพอ — service ส่ง candidate path) |
+| 13 | Frontend | `ReOcrDialog` + link picker + file picker (reuse staging browser/upload tabs) + filename-mismatch warning; `ReOcrDiffView` PDF toggle เดิม/ใหม่; replace button ใน `components/correspondences/detail.tsx`; i18n |
 
 ### Tests ที่ต้องเพิ่ม
 
@@ -447,6 +576,22 @@ export interface NpDmsOcrJobData {
 - `newText` ว่างเปล่า → pointer `failed` (ไม่ใช่ completed) + errorMessage ชัด (D16)
 - `newText` สั้นกว่าเดิม <50% → status response มี `warning:'RESULT_MUCH_SHORTER'` (D16)
 - Frontend: action เรียก `GET /status` ก่อนเสมอ — pointer `completed` → เปิด diff phase โดยไม่ trigger ซ้ำ (resume-by-click) (D16)
+
+**File Replace (D17–D22)**:
+
+- Trigger replace: staging path นอก allowed roots → 400; path ไม่ใช่ไฟล์/ไม่ใช่ PDF → 422/404; source XOR ผิด (ส่งทั้งคู่/ไม่ส่งเลย) → 400
+- Staging candidate ถูก **copy** เข้า tempDir + temp attachment row (`isTemporary`, `expiresAt`) — ไฟล์ NAS ต้นฉบับไม่ถูกแตะ (assert mtime/exists หลัง trigger)
+- Link resolve: target correspondence ไม่มี junction กับ attachment บน current revision → 404/409; link บน non-current revision → reject
+- Candidate checksum == attachment เดิม → 409 (ไม่ enqueue)
+- OCR job ของ replace รันบน candidate filePath (temp copy) ไม่ใช่ไฟล์เดิม — assert `pdfPath` ใน job data
+- Confirm: tx เดียว — junction `attachment_id` เปลี่ยนเฉพาะ link ที่เลือก (assert link อื่นของ attachment เดิมไม่ขยับ), candidate row ได้ `ocrText`/`DONE`/`PENDING`/`expiresAt=NULL`, old attachment row ไม่ถูกแก้ field ใด
+- Post-commit: `commit()` move temp→permanent; orphan old (junction count=0) → vector deletion enqueue + ragStatus; shared old (count>0) → untouched
+- Junction หาย/ชี้ attachment อื่นแล้วระหว่าง trigger→confirm → 404/410 ไม่มี partial swap
+- Candidate temp attachment ถูก cleanup ก่อน confirm → confirm 404
+- Dedup: non-temp attachment checksum เดียวกันอยู่แล้ว → link ชี้ row เดิมนั้น ไม่สร้างซ้ำ
+- Queue annotation: queue item ที่ trace ได้ได้ `fileReplacements` entry (idempotencyKey, at, userId, source, paths); queue ไม่มี → audit ยังเขียนใน ai_audit_logs ปกติ
+- RBAC: replace route ต้องการ **ทั้ง** `rag.admin.write` และ `correspondence.edit` — ขาดตัวใดตัวหนึ่ง → 403
+- Frontend: link picker แสดงครบทุก link + auto-select เมื่อ link เดียว + เลือกได้เฉพาะ current revision; PDF pane toggle เดิม/ใหม่ default=ใหม่; filename-mismatch warning ไม่บล็อก confirm
 
 ---
 

@@ -101,4 +101,56 @@ describe('reOcrService', () => {
       expect(result).toEqual(innerPayload);
     });
   });
+
+  describe('triggerReplace (ADR-055 D19)', () => {
+    it('should POST /re-ocr/replace with body + Idempotency-Key and unwrap data.data', async () => {
+      const innerPayload = {
+        reOcrToken: 'tok-9',
+        jobId: 'job-9',
+        status: 'queued' as const,
+        queuePosition: 1,
+        estimatedWaitSeconds: 180,
+      };
+      vi.mocked(api.post).mockResolvedValue({
+        data: { statusCode: 202, message: 'Accepted', data: innerPayload },
+      });
+
+      const body = {
+        engineType: 'np-dms-ocr' as const,
+        targetCorrespondencePublicId: 'corr-1',
+        storageTempPath: '/staging/new.pdf',
+      };
+      const result = await reOcrService.triggerReplace('att-uuid-1', body, 'idem-9');
+
+      expect(api.post).toHaveBeenCalledWith(
+        '/files/att-uuid-1/re-ocr/replace',
+        body,
+        { headers: { 'Idempotency-Key': 'idem-9' } }
+      );
+      expect(result).toEqual(innerPayload);
+    });
+  });
+
+  describe('listLinks (ADR-055 D22)', () => {
+    it('should GET /re-ocr/links and unwrap data.data', async () => {
+      const links = [
+        {
+          correspondencePublicId: 'corr-1',
+          correspondenceNumber: 'คคง.-สคฉ.3-03-21-0004-2567',
+          revisionPublicId: 'rev-1',
+          revisionNumber: 3,
+          isCurrent: true,
+          isMainDocument: true,
+        },
+      ];
+      vi.mocked(api.get).mockResolvedValue({
+        data: { statusCode: 200, message: 'OK', data: links },
+      });
+
+      const result = await reOcrService.listLinks('att-uuid-1');
+
+      expect(api.get).toHaveBeenCalledWith('/files/att-uuid-1/re-ocr/links');
+      expect(result).toEqual(links);
+    });
+  });
 });

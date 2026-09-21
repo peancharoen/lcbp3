@@ -230,6 +230,39 @@ describe('NpDmsOcrProcessor — re-OCR branch (ADR-055 D15)', () => {
     });
   });
 
+  it('replace mode (D17): copy mode/link/candidate fields จาก job data ลง payload', async () => {
+    await processor.process(
+      reOcrJob({
+        mode: 'replace',
+        targetCorrespondencePublicId: 'corr-1',
+        candidateAttachmentPublicId: 'cand-1',
+        candidateFilename: 'new-file.pdf',
+        candidateSource: 'UPLOAD',
+      })
+    );
+    const payload = JSON.parse(store.get(PAYLOAD) ?? '{}') as Record<
+      string,
+      unknown
+    >;
+    expect(payload).toMatchObject({
+      mode: 'replace',
+      targetCorrespondencePublicId: 'corr-1',
+      candidateAttachmentPublicId: 'cand-1',
+      candidateFilename: 'new-file.pdf',
+      candidateSource: 'UPLOAD',
+    });
+  });
+
+  it('plain re-OCR (ไม่มี mode) → payload ไม่มี replace fields', async () => {
+    await processor.process(reOcrJob());
+    const payload = JSON.parse(store.get(PAYLOAD) ?? '{}') as Record<
+      string,
+      unknown
+    >;
+    expect(payload).not.toHaveProperty('mode');
+    expect(payload).not.toHaveProperty('candidateAttachmentPublicId');
+  });
+
   it('เริ่ม attempt: pointer = processing พร้อม attempt', async () => {
     let seen: Record<string, unknown> = {};
     engine.detectAndExtract.mockImplementationOnce(() => {

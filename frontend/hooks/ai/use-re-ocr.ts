@@ -1,11 +1,14 @@
 // File: hooks/ai/use-re-ocr.ts
 // Change Log:
 // - 2026-09-19: ADR-055 T023 — TanStack Query hooks สำหรับ Attachment Manual Re-OCR
+// - 2026-09-19: ADR-055 extension (D19/D22) — useAttachmentLinks + useReOcrReplaceTrigger
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { reOcrService } from '@/lib/services/re-ocr.service';
 import type {
+  AttachmentLink,
   ReOcrEngine,
+  ReOcrReplaceRequest,
   ReOcrStatusResponse,
 } from '@/lib/services/re-ocr.service';
 
@@ -46,6 +49,33 @@ export function useReOcrTrigger(attachmentPublicId: string) {
         attachmentPublicId,
         engineType,
         newIdempotencyKey('re-ocr-trigger', attachmentPublicId)
+      ),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: reOcrKey(attachmentPublicId) });
+    },
+  });
+}
+
+/** link ทั้งหมดของ attachment — สำหรับ link picker ของ replace flow (D22) */
+export function useAttachmentLinks(attachmentPublicId: string | null, enabled: boolean) {
+  return useQuery<AttachmentLink[]>({
+    queryKey: ['re-ocr-links', attachmentPublicId ?? ''],
+    queryFn: () => reOcrService.listLinks(attachmentPublicId as string),
+    enabled: enabled && !!attachmentPublicId,
+    staleTime: 30_000,
+    retry: false,
+  });
+}
+
+/** เริ่ม re-OCR แบบ replace — candidate file → เทียบ → confirm เพื่อ swap junction (D17–D20) */
+export function useReOcrReplaceTrigger(attachmentPublicId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: ReOcrReplaceRequest) =>
+      reOcrService.triggerReplace(
+        attachmentPublicId,
+        body,
+        newIdempotencyKey('re-ocr-replace', attachmentPublicId)
       ),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: reOcrKey(attachmentPublicId) });

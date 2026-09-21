@@ -416,6 +416,38 @@
         "toast": {
           "confirmed": "OCR text replaced; re-indexing started",
           "confirmed_no_reindex": "OCR text replaced, but re-indexing could not be queued; it will be repaired automatically"
+        },
+        "replace": {
+          "title": "Replace PDF file (Re-OCR + compare)",
+          "action": "Replace file",
+          "action_hint": "Pick a new file → OCR → compare before replacing (current file untouched until confirm)",
+          "link_picker": "Select the correspondence to replace (current revision only)",
+          "link_fixed": "Replacing the file for this correspondence (current revision)",
+          "main_doc": "main document",
+          "not_current": "historical revision — cannot replace",
+          "no_links": "This file is not linked to any correspondence",
+          "select_file": "Select new PDF file",
+          "tab_staging": "From Staging / NAS",
+          "tab_upload": "Upload from device",
+          "tree_error": "Failed to load staging folders",
+          "list_error": "Failed to load files",
+          "loading": "Loading...",
+          "no_folders": "No staging folders",
+          "select_folder_hint": "Select a folder on the left to view files",
+          "no_files": "No files in this folder",
+          "upload_hint": "Upload a PDF from your device (kept temporary until confirmed)",
+          "uploading": "Uploading...",
+          "upload_error": "File upload failed",
+          "select_note": "The new file will be OCRed for comparison — the current file and text stay unchanged until you confirm",
+          "start": "Start OCR on new file",
+          "candidate_label": "New file",
+          "filename_mismatch": "New filename ({{got}}) differs from current ({{expected}}) — review before confirming",
+          "pdf_new": "New file",
+          "pdf_old": "Current file",
+          "confirm": "Confirm file replacement",
+          "confirm_title": "Replace file permanently?",
+          "confirm_desc": "This cannot be undone — the document will point to the new file ({{new}}) instead of ({{old}}) and the search index will be rebuilt",
+          "confirm_action": "Replace permanently"
         }
       }
     }

@@ -1,6 +1,7 @@
 // File: frontend/components/admin/ai/rag-console/ReOcrDiffView.tsx
 // Change Log:
 // - 2026-09-19: ADR-055 T025 — side-by-side diff (ข้อความปัจจุบัน ↔ ใหม่) + PDF reference pane + search-in-pane (D14/D16)
+// - 2026-09-19: ADR-055 D22 — replace mode: PDF pane toggle เดิม/ใหม่ (default = ไฟล์ใหม่)
 
 'use client';
 
@@ -20,6 +21,8 @@ export interface ReOcrDiffViewProps {
   currentText: string;
   newText: string;
   engineUsed: string;
+  /** replace mode: temp attachment ของไฟล์ใหม่ — แสดง toggle PDF เดิม/ใหม่ (D22) */
+  candidatePublicId?: string;
 }
 
 /** แสดงข้อความเป็น <pre> พร้อม highlight คำค้น (ตัดที่ MAX_HIGHLIGHTS จุดแรก) */
@@ -157,11 +160,16 @@ export function ReOcrDiffView({
   currentText,
   newText,
   engineUsed,
+  candidatePublicId,
 }: ReOcrDiffViewProps) {
   const t = useRagAdminT();
   const leftRef = useRef<HTMLPreElement>(null);
   const rightRef = useRef<HTMLPreElement>(null);
   const syncing = useRef(false);
+  // replace mode: PDF pane เลือกดูไฟล์เดิม/ใหม่ได้ — default = ไฟล์ใหม่ (Q7)
+  const [pdfSource, setPdfSource] = useState<'old' | 'new'>('new');
+  const pdfPublicId =
+    candidatePublicId && pdfSource === 'new' ? candidatePublicId : attachmentPublicId;
 
   const sync = (source: RefObject<HTMLPreElement | null>, target: RefObject<HTMLPreElement | null>) =>
     (e: UIEvent<HTMLPreElement>) => {
@@ -179,7 +187,26 @@ export function ReOcrDiffView({
 
   return (
     <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-3">
-      <PdfReferencePane attachmentPublicId={attachmentPublicId} />
+      <div className="flex min-h-0 flex-col gap-2">
+        {candidatePublicId && (
+          <div className="flex shrink-0 gap-1" role="group" aria-label="PDF source">
+            {(['new', 'old'] as const).map((v) => (
+              <button
+                key={v}
+                type="button"
+                data-testid={`pdf-toggle-${v}`}
+                onClick={() => setPdfSource(v)}
+                className={`rounded border px-2 py-0.5 text-xs ${
+                  pdfSource === v ? 'bg-primary/10 font-medium' : 'text-muted-foreground'
+                }`}
+              >
+                {t(v === 'new' ? 're_ocr.replace.pdf_new' : 're_ocr.replace.pdf_old')}
+              </button>
+            ))}
+          </div>
+        )}
+        <PdfReferencePane attachmentPublicId={pdfPublicId} />
+      </div>
       <TextPane
         label={t('re_ocr.diff.current')}
         charCount={currentText.length}

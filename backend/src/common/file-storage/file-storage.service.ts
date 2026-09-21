@@ -13,6 +13,8 @@
 //   แบบ fire-and-forget (ADR-008 BullMQ, ADR-007 error swallowing — ถ้า enqueue ล้มเหลว
 //   commit ยังสำเร็จ ผู้ใช้ re-trigger ผ่าน POST /ingest ได้) ใช้ ModuleRef lazy lookup
 //   เพื่อหลีกเลี่ยง circular module dependency (AiModule นำเข้า FileStorageModule อยู่แล้ว)
+// - 2026-09-19: ADR-055 D18 — เพิ่ม stageFileToTemp() สำหรับ re-OCR replace flow
+//   (copy staging/NAS → tempDir เป็น temporary attachment; ต้นฉบับ NAS อยู่ครบ)
 import {
   Injectable,
   NotFoundException,
@@ -658,6 +660,89 @@ export class FileStorageService {
     if (options?.manager) {
       return options.manager.save(attachment);
     }
+    return this.attachmentRepository.save(attachment);
+  }
+
+  /**
+   * Stage ไฟล์จาก staging/Legacy NAS เข้า tempDir เป็น temporary attachment (ADR-055 D18)
+   * - ใช้สำหรับ re-OCR replace flow: candidate ต้องเป็น temp attachment จนกว่า admin จะ confirm
+   * - COPY เท่านั้น — ห้าม move/delete ต้นฉบับบน NAS (cleanup worker ลบ temp copy ได้ปลอดภัย)
+   * - Validation เดียวกับ importStagingFile: allowed roots, exists, magic bytes, SHA-256
+   * @param sourceFilePath path ไฟล์บน staging/NAS (ต้องอยู่ใต้ allowed roots)
+   * @param userId id ของผู้ใช้ที่ trigger (เป็น owner ของ temp attachment)
+   * @returns temp Attachment (isTemporary=true, tempId, expiresAt=+24h)
+   */
+  async stageFileToTemp(
+    sourceFilePath: string,
+    userId: number
+  ): Promise<Attachment> {
+    // ADR-016: Path Traversal Guard — roots เดียวกับ importStagingFile
+    const resolvedSource = path.resolve(sourceFilePath);
+    const allowedStagingRoots = [
+      path.resolve(this.tempDir),
+      path.resolve(
+        this.configService.get<string>('MIGRATION_STAGING_DIR') ||
+          path.join(process.cwd(), 'uploads', 'staging')
+      ),
+      path.resolve(
+        this.configService.get<string>('LEGACY_NAS_PATH') ||
+          '/mnt/legacy-staging'
+      ),
+    ];
+    const isWithinAllowed = allowedStagingRoots.some(
+      (root) =>
+        resolvedSource === root || resolvedSource.startsWith(root + path.sep)
+    );
+    if (!isWithinAllowed) {
+      this.logger.warn(
+        `Path traversal blocked in stageFileToTemp: "${sourceFilePath}" resolves outside allowed staging dirs`
+      );
+      throw new BadRequestException(
+        'Invalid staging file path — access denied (path traversal guard)'
+      );
+    }
+    if (!(await fs.pathExists(resolvedSource))) {
+      throw new NotFoundException(`Source file not found: ${resolvedSource}`);
+    }
+    const fileExt = path.extname(resolvedSource);
+    const originalFilename = path.basename(resolvedSource);
+    if (fileExt.toLowerCase() !== '.pdf') {
+      throw new BadRequestException(
+        `Staging file must be PDF (got "${fileExt}")`
+      );
+    }
+    const fileBuffer = await fs.readFile(resolvedSource);
+    const stats = await fs.stat(resolvedSource);
+    const fileTypeResult = validateFileType(
+      fileBuffer,
+      originalFilename,
+      'application/pdf'
+    );
+    if (!fileTypeResult.valid) {
+      this.logger.warn(
+        `Magic bytes validation failed for staged candidate "${originalFilename}": ${fileTypeResult.reason}`
+      );
+      throw new BadRequestException(
+        `Staging file type validation failed: ${fileTypeResult.reason}`
+      );
+    }
+    const checksum = this.calculateChecksum(fileBuffer);
+    const storedFilename = `${uuidv4()}${fileExt}`;
+    const tempPath = path.join(this.tempDir, storedFilename);
+    // COPY เท่านั้น — ต้นฉบับบน NAS ต้องอยู่ครบ (D18: cleanup worker ลบ temp copy ได้)
+    await fs.copy(resolvedSource, tempPath, { overwrite: false });
+    const attachment = this.attachmentRepository.create({
+      originalFilename,
+      storedFilename,
+      filePath: tempPath,
+      mimeType: 'application/pdf',
+      fileSize: stats.size,
+      isTemporary: true,
+      tempId: uuidv4(),
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      checksum,
+      uploadedByUserId: userId,
+    });
     return this.attachmentRepository.save(attachment);
   }
 

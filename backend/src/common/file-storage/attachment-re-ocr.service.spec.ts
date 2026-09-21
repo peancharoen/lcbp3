@@ -2,15 +2,21 @@
 // Change Log
 // - 2026-09-19: ADR-055 T011–T013 — trigger / status / confirm ของ AttachmentReOcrService
 // - 2026-09-19: review fix — trigger mutex (SET NX), confirm supersede/identical guards
+// - 2026-09-19: ADR-055 extension (D17–D22) — listLinks / triggerReplace / confirmReplace (junction swap)
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { getQueueToken } from '@nestjs/bullmq';
-import { access } from 'fs/promises';
+import { access, rm } from 'fs/promises';
 import { Attachment } from './entities/attachment.entity';
+import { CorrespondenceRevisionAttachment } from '../../modules/correspondence/entities/correspondence-revision-attachment.entity';
+import { RagAttachmentGeneration } from '../../modules/ai/entities/rag-attachment-generation.entity';
+import { MigrationReviewQueue } from '../../modules/migration/entities/migration-review-queue.entity';
+import { AiAuditLog } from '../../modules/ai/entities/ai-audit-log.entity';
 import { AttachmentReOcrService } from './attachment-re-ocr.service';
 import { AiQueueService } from '../../modules/ai/ai-queue.service';
 import { RagAdminService } from '../../modules/ai/services/rag-admin.service';
+import { FileStorageService } from './file-storage.service';
 import { QUEUE_NP_DMS_OCR } from '../../modules/common/constants/queue.constants';
 import {
   reOcrPayloadKey,
@@ -19,11 +25,14 @@ import {
   RE_OCR_TTL_SECONDS,
 } from './re-ocr.constants';
 
-jest.mock('fs/promises', () => ({ access: jest.fn() }));
+jest.mock('fs/promises', () => ({ access: jest.fn(), rm: jest.fn() }));
 
 const ATT = '019a0000-0000-7000-8000-000000000001';
 const TOKEN = '019a0000-0000-7000-8000-0000000000aa';
 const USER = { displayName: 'Admin A' };
+const REPLACE_USER = { displayName: 'Admin A', userId: 7 };
+const CORR = '019a0000-0000-7000-8000-0000000000bb';
+const CANDIDATE = '019a0000-0000-7000-8000-0000000000cc';
 const REDIS_TOKEN = 'default_IORedisModuleConnectionToken';
 
 describe('AttachmentReOcrService (ADR-055)', () => {
@@ -51,6 +60,8 @@ describe('AttachmentReOcrService (ADR-055)', () => {
   const txUpdate = jest.fn();
   const attachmentRepo = {
     findOne: jest.fn(),
+    update: jest.fn().mockResolvedValue({ affected: 1 }),
+    delete: jest.fn().mockResolvedValue({ affected: 1 }),
     manager: {
       transaction: jest.fn(
         (cb: (m: { update: jest.Mock }) => Promise<unknown>) =>
@@ -59,20 +70,36 @@ describe('AttachmentReOcrService (ADR-055)', () => {
     },
   };
   const ocrQueue = { getJob: jest.fn() };
-  const aiQueue = { enqueueAttachmentReOcr: jest.fn() };
+  const aiQueue = {
+    enqueueAttachmentReOcr: jest.fn(),
+    enqueueRagGenerationCleanup: jest.fn(),
+  };
   const ragAdmin = { reingest: jest.fn() };
+  const junctionRepo = {
+    find: jest.fn(),
+    findOne: jest.fn(),
+    count: jest.fn(),
+  };
+  const generationRepo = { find: jest.fn(), update: jest.fn() };
+  const reviewQueueRepo = { findOne: jest.fn(), save: jest.fn() };
+  const auditLogRepo = { create: jest.fn(), save: jest.fn() };
+  const fileStorage = { stageFileToTemp: jest.fn(), commit: jest.fn() };
   const baseAttachment = {
+    id: 977,
     publicId: ATT,
     mimeType: 'application/pdf',
     filePath: '/files/a.pdf',
     aiProcessingStatus: 'DONE',
     ocrText: 'old text that is fairly long',
+    checksum: 'old-checksum',
+    originalFilename: 'old.pdf',
   };
 
   beforeEach(async () => {
     jest.clearAllMocks();
     store.clear();
     (access as jest.Mock).mockResolvedValue(undefined);
+    (rm as jest.Mock).mockResolvedValue(undefined);
     attachmentRepo.findOne.mockResolvedValue({ ...baseAttachment });
     aiQueue.enqueueAttachmentReOcr.mockResolvedValue({
       jobId: 're-ocr-x',
@@ -81,14 +108,35 @@ describe('AttachmentReOcrService (ADR-055)', () => {
     });
     ragAdmin.reingest.mockResolvedValue({ status: 'BUILDING' });
     txUpdate.mockResolvedValue({ affected: 1 });
+    auditLogRepo.create.mockImplementation((v: unknown) => v);
+    auditLogRepo.save.mockResolvedValue({});
+    reviewQueueRepo.findOne.mockResolvedValue(null);
+    reviewQueueRepo.save.mockResolvedValue({});
+    fileStorage.commit.mockResolvedValue([]);
+    generationRepo.find.mockResolvedValue([]);
+    generationRepo.update.mockResolvedValue({ affected: 1 });
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AttachmentReOcrService,
         { provide: getRepositoryToken(Attachment), useValue: attachmentRepo },
+        {
+          provide: getRepositoryToken(CorrespondenceRevisionAttachment),
+          useValue: junctionRepo,
+        },
+        {
+          provide: getRepositoryToken(RagAttachmentGeneration),
+          useValue: generationRepo,
+        },
+        {
+          provide: getRepositoryToken(MigrationReviewQueue),
+          useValue: reviewQueueRepo,
+        },
+        { provide: getRepositoryToken(AiAuditLog), useValue: auditLogRepo },
         { provide: REDIS_TOKEN, useValue: redis },
         { provide: getQueueToken(QUEUE_NP_DMS_OCR), useValue: ocrQueue },
         { provide: AiQueueService, useValue: aiQueue },
         { provide: RagAdminService, useValue: ragAdmin },
+        { provide: FileStorageService, useValue: fileStorage },
       ],
     }).compile();
     service = module.get(AttachmentReOcrService);
@@ -409,6 +457,418 @@ describe('AttachmentReOcrService (ADR-055)', () => {
       });
       expect(txUpdate).not.toHaveBeenCalled();
       expect(ragAdmin.reingest).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── ADR-055 extension (D17–D22): Production File Replace ──
+  const junctionRow = {
+    correspondenceRevisionId: 55,
+    attachmentId: 977,
+    isMainDocument: true,
+    revision: {
+      id: 55,
+      publicId: 'rev-1',
+      revisionNumber: 3,
+      isCurrent: true,
+      correspondence: {
+        publicId: CORR,
+        correspondenceNumber: 'คคง.-สคฉ.3-03-21-0004-2567',
+        project: { publicId: 'proj-1' },
+      },
+    },
+  };
+  const candidateRow = {
+    id: 990,
+    publicId: CANDIDATE,
+    isTemporary: true,
+    tempId: 'temp-1',
+    filePath: '/tmp/candidate.pdf',
+    mimeType: 'application/pdf',
+    checksum: 'new-checksum',
+    originalFilename: '03-21-0004-2567.pdf',
+  };
+  const seedReplacePayload = (newText: string): void => {
+    store.set(
+      reOcrPayloadKey(ATT, TOKEN),
+      JSON.stringify({
+        newText,
+        engineUsed: 'np-dms-ocr',
+        charCount: newText.length,
+        processingTimeMs: 1200,
+        completedAt: '2026-09-19T00:05:00.000Z',
+        mode: 'replace',
+        targetCorrespondencePublicId: CORR,
+        candidateAttachmentPublicId: CANDIDATE,
+        candidateFilename: '03-21-0004-2567.pdf',
+        candidateSource: 'UPLOAD',
+      })
+    );
+  };
+  const mockAttachmentFindByPublicId = (): void => {
+    attachmentRepo.findOne.mockImplementation(
+      ({ where }: { where: { publicId: string } }) =>
+        Promise.resolve(
+          where.publicId === CANDIDATE
+            ? { ...candidateRow }
+            : { ...baseAttachment }
+        )
+    );
+  };
+
+  describe('listLinks', () => {
+    it('คืน links พร้อม isCurrent/isMainDocument; attachment ไม่พบ → 404', async () => {
+      junctionRepo.find.mockResolvedValue([junctionRow]);
+      const res = await service.listLinks(ATT);
+      expect(res).toEqual([
+        {
+          correspondencePublicId: CORR,
+          correspondenceNumber: 'คคง.-สคฉ.3-03-21-0004-2567',
+          revisionPublicId: 'rev-1',
+          revisionNumber: 3,
+          isCurrent: true,
+          isMainDocument: true,
+        },
+      ]);
+      attachmentRepo.findOne.mockResolvedValueOnce(null);
+      await expect(service.listLinks(ATT)).rejects.toMatchObject({
+        status: 404,
+      });
+    });
+  });
+
+  describe('triggerReplace', () => {
+    const dto = {
+      engineType: 'np-dms-ocr' as const,
+      targetCorrespondencePublicId: CORR,
+      tempAttachmentPublicId: CANDIDATE,
+    };
+    beforeEach(() => {
+      junctionRepo.find.mockResolvedValue([junctionRow]);
+      mockAttachmentFindByPublicId();
+    });
+
+    it('XOR: ส่งทั้งสอง source หรือไม่ส่งเลย → 400', async () => {
+      await expect(
+        service.triggerReplace(
+          ATT,
+          { ...dto, storageTempPath: '/staging/x.pdf' },
+          REPLACE_USER
+        )
+      ).rejects.toMatchObject({ status: 400 });
+      await expect(
+        service.triggerReplace(
+          ATT,
+          { engineType: 'auto', targetCorrespondencePublicId: CORR },
+          REPLACE_USER
+        )
+      ).rejects.toMatchObject({ status: 400 });
+      expect(aiQueue.enqueueAttachmentReOcr).not.toHaveBeenCalled();
+    });
+
+    it('link ไม่พบ → 404; link อยู่บน historical revision → 409', async () => {
+      junctionRepo.find.mockResolvedValueOnce([]);
+      await expect(
+        service.triggerReplace(ATT, dto, REPLACE_USER)
+      ).rejects.toMatchObject({ status: 404 });
+      junctionRepo.find.mockResolvedValueOnce([
+        {
+          ...junctionRow,
+          revision: { ...junctionRow.revision, isCurrent: false },
+        },
+      ]);
+      await expect(
+        service.triggerReplace(ATT, dto, REPLACE_USER)
+      ).rejects.toMatchObject({ status: 409 });
+    });
+
+    it('upload candidate: ไม่พบ/not temp → 404, non-PDF → 422', async () => {
+      attachmentRepo.findOne.mockImplementation(
+        ({ where }: { where: { publicId: string } }) =>
+          Promise.resolve(
+            where.publicId === CANDIDATE ? null : { ...baseAttachment }
+          )
+      );
+      await expect(
+        service.triggerReplace(ATT, dto, REPLACE_USER)
+      ).rejects.toMatchObject({ status: 404 });
+      attachmentRepo.findOne.mockImplementation(
+        ({ where }: { where: { publicId: string } }) =>
+          Promise.resolve(
+            where.publicId === CANDIDATE
+              ? { ...candidateRow, mimeType: 'image/png' }
+              : { ...baseAttachment }
+          )
+      );
+      await expect(
+        service.triggerReplace(ATT, dto, REPLACE_USER)
+      ).rejects.toMatchObject({ status: 422 });
+    });
+
+    it('checksum เดียวกับไฟล์เดิม → 409 RE_OCR_IDENTICAL_FILE ไม่ enqueue', async () => {
+      attachmentRepo.findOne.mockImplementation(
+        ({ where }: { where: { publicId: string } }) =>
+          Promise.resolve(
+            where.publicId === CANDIDATE
+              ? { ...candidateRow, checksum: 'old-checksum' }
+              : { ...baseAttachment }
+          )
+      );
+      await expect(
+        service.triggerReplace(ATT, dto, REPLACE_USER)
+      ).rejects.toMatchObject({ status: 409 });
+      expect(aiQueue.enqueueAttachmentReOcr).not.toHaveBeenCalled();
+    });
+
+    it('staging source → stageFileToTemp + checksum ซ้ำ → 409 พร้อมลบ temp copy ทิ้ง', async () => {
+      fileStorage.stageFileToTemp.mockResolvedValue({
+        ...candidateRow,
+        checksum: 'old-checksum',
+      });
+      await expect(
+        service.triggerReplace(
+          ATT,
+          {
+            ...dto,
+            tempAttachmentPublicId: undefined,
+            storageTempPath: '/nas/03-21.pdf',
+          },
+          REPLACE_USER
+        )
+      ).rejects.toMatchObject({ status: 409 });
+      expect(fileStorage.stageFileToTemp).toHaveBeenCalledWith(
+        '/nas/03-21.pdf',
+        7
+      );
+      expect(rm).toHaveBeenCalledWith('/tmp/candidate.pdf', { force: true });
+      expect(attachmentRepo.delete).toHaveBeenCalledWith({ id: 990 });
+    });
+
+    it('สำเร็จ → pointer มี mode/link/candidate fields และ job รัน OCR บน candidate file', async () => {
+      const res = await service.triggerReplace(ATT, dto, REPLACE_USER);
+      expect(res.status).toBe('queued');
+      expect(pointer()).toMatchObject({
+        status: 'queued',
+        mode: 'replace',
+        targetCorrespondencePublicId: CORR,
+        candidateAttachmentPublicId: CANDIDATE,
+        candidateFilename: '03-21-0004-2567.pdf',
+        candidateSource: 'UPLOAD',
+      });
+      expect(aiQueue.enqueueAttachmentReOcr).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pdfPath: '/tmp/candidate.pdf',
+          mode: 'replace',
+          targetCorrespondencePublicId: CORR,
+          candidateAttachmentPublicId: CANDIDATE,
+          forceRefresh: true,
+        })
+      );
+      // attachment เดิมไม่ถูกแตะ
+      expect(txUpdate).not.toHaveBeenCalled();
+    });
+
+    it('in-flight guard + mutex ใช้ร่วมกับ trigger เดิม', async () => {
+      seedPointer({ status: 'processing', jobId: 'j1' });
+      ocrQueue.getJob.mockResolvedValueOnce({
+        getState: jest.fn().mockResolvedValue('active'),
+      });
+      await expect(
+        service.triggerReplace(ATT, dto, REPLACE_USER)
+      ).rejects.toMatchObject({ status: 409 });
+      store.set(reOcrTriggerLockKey(ATT), 'other');
+      await expect(
+        service.triggerReplace(ATT, dto, REPLACE_USER)
+      ).rejects.toMatchObject({ status: 409 });
+    });
+  });
+
+  describe('confirm (replace mode)', () => {
+    beforeEach(() => {
+      seedPointer({ mode: 'replace', targetCorrespondencePublicId: CORR });
+      seedReplacePayload('brand new ocr text from candidate');
+      junctionRepo.find.mockResolvedValue([junctionRow]);
+      mockAttachmentFindByPublicId();
+    });
+
+    it('tx swap junction → commit candidate → audit + keys cleanup; isMainDocument คงเดิม (update เฉพาะ attachment_id)', async () => {
+      junctionRepo.count.mockResolvedValue(1); // ยังมี link อื่น (shared) → ไม่ de-index
+      const res = await service.confirm(ATT, TOKEN, REPLACE_USER);
+      expect(res).toMatchObject({ status: 'confirmed' });
+      // candidate ได้รับ ocrText ก่อน commit (ingest เห็น text ใหม่)
+      expect(attachmentRepo.update).toHaveBeenCalledWith(
+        { publicId: CANDIDATE },
+        expect.objectContaining({
+          ocrText: 'brand new ocr text from candidate',
+        })
+      );
+      expect(fileStorage.commit).toHaveBeenCalledWith(['temp-1'], {
+        documentType: 'Correspondence',
+      });
+      // swap เฉพาะ junction row ของ revision เป้าหมาย
+      expect(txUpdate).toHaveBeenCalledWith(
+        CorrespondenceRevisionAttachment,
+        { correspondenceRevisionId: 55, attachmentId: 977 },
+        { attachmentId: 990 }
+      );
+      // shared → ไม่ retire/de-index
+      expect(generationRepo.update).not.toHaveBeenCalled();
+      expect(aiQueue.enqueueRagGenerationCleanup).not.toHaveBeenCalled();
+      // audit + keys
+      expect(auditLogRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          modelType: 'attachment-re-ocr:replace',
+          confirmedByUserId: 7,
+        })
+      );
+      expect(store.has(reOcrPointerKey(ATT))).toBe(false);
+      expect(store.has(reOcrPayloadKey(ATT, TOKEN))).toBe(false);
+      // ไม่ใช้ reingest path ของ plain re-OCR
+      expect(ragAdmin.reingest).not.toHaveBeenCalled();
+    });
+
+    it('attachment เก่า orphan (ไม่มี link เหลือ) → retire ACTIVE generations + enqueue cleanup ต่อ generation', async () => {
+      junctionRepo.count.mockResolvedValue(0);
+      generationRepo.find.mockResolvedValue([
+        { generationUuid: 'gen-1' },
+        { generationUuid: 'gen-2' },
+      ]);
+      await service.confirm(ATT, TOKEN, REPLACE_USER);
+      expect(generationRepo.update).toHaveBeenCalledTimes(2);
+      expect(generationRepo.update).toHaveBeenCalledWith(
+        { generationUuid: 'gen-1' },
+        expect.objectContaining({ status: 'RETIRED' })
+      );
+      expect(aiQueue.enqueueRagGenerationCleanup).toHaveBeenCalledTimes(2);
+      expect(aiQueue.enqueueRagGenerationCleanup).toHaveBeenCalledWith({
+        generationUuid: 'gen-1',
+        attachmentPublicId: ATT,
+        projectPublicId: 'proj-1',
+      });
+    });
+
+    it('candidate commit ไปแล้ว (retry) → ข้าม commit แต่ swap สำเร็จ', async () => {
+      junctionRepo.count.mockResolvedValue(1);
+      attachmentRepo.findOne.mockImplementation(
+        ({ where }: { where: { publicId: string } }) =>
+          Promise.resolve(
+            where.publicId === CANDIDATE
+              ? { ...candidateRow, isTemporary: false, tempId: undefined }
+              : { ...baseAttachment }
+          )
+      );
+      const res = await service.confirm(ATT, TOKEN, REPLACE_USER);
+      expect(res.status).toBe('confirmed');
+      expect(fileStorage.commit).not.toHaveBeenCalled();
+      expect(txUpdate).toHaveBeenCalledWith(
+        CorrespondenceRevisionAttachment,
+        expect.any(Object),
+        { attachmentId: 990 }
+      );
+    });
+
+    it('candidate หาย (temp หมดอายุ) → 404 ก่อน swap; link ไม่ current แล้ว → 409', async () => {
+      attachmentRepo.findOne.mockImplementation(
+        ({ where }: { where: { publicId: string } }) =>
+          Promise.resolve(
+            where.publicId === CANDIDATE ? null : { ...baseAttachment }
+          )
+      );
+      await expect(
+        service.confirm(ATT, TOKEN, REPLACE_USER)
+      ).rejects.toMatchObject({ status: 404 });
+      expect(fileStorage.commit).not.toHaveBeenCalled();
+      junctionRepo.find.mockResolvedValueOnce([
+        {
+          ...junctionRow,
+          revision: { ...junctionRow.revision, isCurrent: false },
+        },
+      ]);
+      await expect(
+        service.confirm(ATT, TOKEN, REPLACE_USER)
+      ).rejects.toMatchObject({ status: 409 });
+    });
+
+    it('ข้าม identical-text guard (ไฟล์เปลี่ยนคือประเด็น) + supersede guard ยังทำงาน', async () => {
+      junctionRepo.count.mockResolvedValue(1);
+      seedReplacePayload(baseAttachment.ocrText); // text เหมือนเดิม — replace ยังยืนยันได้
+      const res = await service.confirm(ATT, TOKEN, REPLACE_USER);
+      expect(res.status).toBe('confirmed');
+      // supersede
+      seedReplacePayload('x');
+      seedPointer({ reOcrToken: 'other-token', mode: 'replace' });
+      await expect(
+        service.confirm(ATT, TOKEN, REPLACE_USER)
+      ).rejects.toMatchObject({ status: 409 });
+    });
+
+    it('retry หลัง swap ไปแล้ว (affected=0 + junction ชี้ candidate) → ถือว่าสำเร็จ (idempotent)', async () => {
+      junctionRepo.count.mockResolvedValue(1);
+      txUpdate.mockResolvedValueOnce({ affected: 0 });
+      junctionRepo.findOne.mockResolvedValue({
+        correspondenceRevisionId: 55,
+        attachmentId: 990,
+      });
+      const res = await service.confirm(ATT, TOKEN, REPLACE_USER);
+      expect(res.status).toBe('confirmed');
+      expect(auditLogRepo.save).toHaveBeenCalled();
+    });
+
+    it('swap affected=0 และ junction ไม่ได้ชี้ candidate → 404 (link หายจริง)', async () => {
+      txUpdate.mockResolvedValueOnce({ affected: 0 });
+      junctionRepo.findOne.mockResolvedValue(null);
+      await expect(
+        service.confirm(ATT, TOKEN, REPLACE_USER)
+      ).rejects.toMatchObject({ status: 404 });
+    });
+
+    it('orphan แต่ resolve projectPublicId ไม่ได้ → ข้าม enqueue cleanup (ปล่อยให้ health check)', async () => {
+      junctionRepo.count.mockResolvedValue(0);
+      generationRepo.find.mockResolvedValue([{ generationUuid: 'gen-1' }]);
+      junctionRepo.find.mockResolvedValue([
+        {
+          ...junctionRow,
+          revision: {
+            ...junctionRow.revision,
+            correspondence: {
+              ...junctionRow.revision.correspondence,
+              project: null,
+            },
+          },
+        },
+      ]);
+      await service.confirm(ATT, TOKEN, REPLACE_USER);
+      // retire ไม่เกิดเพราะไม่มี projectPublicId (enqueue ไม่ได้)
+      expect(generationRepo.update).not.toHaveBeenCalled();
+      expect(aiQueue.enqueueRagGenerationCleanup).not.toHaveBeenCalled();
+    });
+
+    it('queue row ที่ trace ได้ → append reviewState.fileReplacements', async () => {
+      junctionRepo.count.mockResolvedValue(1);
+      const queueItem = {
+        publicId: 'q-1',
+        importedCorrespondencePublicId: CORR,
+        reviewState: { fileReplacements: [] },
+      };
+      reviewQueueRepo.findOne.mockResolvedValue(queueItem);
+      await service.confirm(ATT, TOKEN, REPLACE_USER);
+      expect(reviewQueueRepo.findOne).toHaveBeenCalledWith({
+        where: { importedCorrespondencePublicId: CORR },
+      });
+      expect(reviewQueueRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          reviewState: expect.objectContaining({
+            fileReplacements: [
+              expect.objectContaining({
+                idempotencyKey: TOKEN,
+                userId: 7,
+                source: 'UPLOAD',
+                attachmentPublicId: CANDIDATE,
+                filename: '03-21-0004-2567.pdf',
+              }),
+            ],
+          }),
+        })
+      );
     });
   });
 });

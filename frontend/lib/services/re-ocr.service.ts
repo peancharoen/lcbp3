@@ -1,6 +1,7 @@
 // File: lib/services/re-ocr.service.ts
 // Change Log:
 // - 2026-09-19: ADR-055 T023 — API client สำหรับ Attachment Manual Re-OCR (trigger/status/confirm)
+// - 2026-09-19: ADR-055 extension (D17–D22) — triggerReplace + listLinks + replace fields บน status
 
 import axios from 'axios';
 import api from '@/lib/api/client';
@@ -8,8 +9,38 @@ import api from '@/lib/api/client';
 /** OCR engine ที่ admin เลือกได้ (ADR-055 D7) */
 export type ReOcrEngine = 'np-dms-ocr' | 'auto';
 
+/** แหล่งที่มาของ candidate file ของ replace flow (D18) */
+export type ReOcrCandidateSource = 'STAGING' | 'UPLOAD';
+
+/** fields ของ replace mode บน status response (มีค่าเฉพาะ job ที่ trigger ผ่าน /re-ocr/replace) */
+interface ReOcrReplaceFields {
+  mode?: 'replace';
+  targetCorrespondencePublicId?: string;
+  candidateAttachmentPublicId?: string;
+  candidateFilename?: string;
+  candidateSource?: ReOcrCandidateSource;
+}
+
+/** link ของ attachment ↔ correspondence revision — สำหรับ link picker (D22) */
+export interface AttachmentLink {
+  correspondencePublicId: string;
+  correspondenceNumber: string;
+  revisionPublicId: string;
+  revisionNumber: number;
+  isCurrent: boolean;
+  isMainDocument: boolean;
+}
+
+/** Body ของ POST /files/:id/re-ocr/replace — source เลือกได้ทางเดียว (XOR) */
+export interface ReOcrReplaceRequest {
+  engineType: ReOcrEngine;
+  targetCorrespondencePublicId: string;
+  storageTempPath?: string;
+  tempAttachmentPublicId?: string;
+}
+
 /** ข้อมูลผู้เริ่ม job — ใช้แสดง "เริ่มโดย …" */
-interface ReOcrStarter {
+interface ReOcrStarter extends ReOcrReplaceFields {
   reOcrToken: string;
   triggeredByDisplayName: string;
   triggeredAt: string;
@@ -93,5 +124,25 @@ export const reOcrService = {
       { headers: { 'Idempotency-Key': idempotencyKey } }
     );
     return response.data.data as ReOcrConfirmResponse;
+  },
+
+  /** POST /files/:id/re-ocr/replace — re-OCR candidate file เพื่อเทียบก่อน swap junction (D19) */
+  async triggerReplace(
+    attachmentPublicId: string,
+    body: ReOcrReplaceRequest,
+    idempotencyKey: string
+  ): Promise<ReOcrTriggerResponse> {
+    const response = await api.post(
+      `/files/${attachmentPublicId}/re-ocr/replace`,
+      body,
+      { headers: { 'Idempotency-Key': idempotencyKey } }
+    );
+    return response.data.data as ReOcrTriggerResponse;
+  },
+
+  /** GET /files/:id/re-ocr/links — link ทั้งหมดของ attachment (link picker ของ replace flow) */
+  async listLinks(attachmentPublicId: string): Promise<AttachmentLink[]> {
+    const response = await api.get(`/files/${attachmentPublicId}/re-ocr/links`);
+    return response.data.data as AttachmentLink[];
   },
 };

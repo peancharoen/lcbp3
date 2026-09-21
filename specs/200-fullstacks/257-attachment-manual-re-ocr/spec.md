@@ -3,8 +3,8 @@
 **Feature Branch**: `257-attachment-manual-re-ocr`
 **Created**: 2026-09-19
 **Status**: Draft
-**Governing ADR**: [ADR-055](../../06-Decision-Records/ADR-055-attachment-manual-re-ocr.md) (D1–D16, incl. 2026-09-19 grill revisions)
-**Input**: User description: "Attachment Manual Re-OCR — human-in-the-loop compare-before-replace. An admin re-runs OCR on a single PDF attachment from the RAG console, picks the engine, reviews a side-by-side comparison against the original PDF, and confirms to replace the stored OCR text and refresh search indexing. Includes fixing two existing silent-failure defects in the OCR pipeline."
+**Governing ADR**: [ADR-055](../../06-Decision-Records/ADR-055-attachment-manual-re-ocr.md) (D1–D22, incl. 2026-09-19 grill revisions + production file-replace extension)
+**Input**: User description: "Attachment Manual Re-OCR — human-in-the-loop compare-before-replace. An admin re-runs OCR on a single PDF attachment from the RAG console, picks the engine, reviews a side-by-side comparison against the original PDF, and confirms to replace the stored OCR text and refresh search indexing. Includes fixing two existing silent-failure defects in the OCR pipeline." — **Extended 2026-09-19**: "ข้อ B นี่คือจุดประสงค์ที่แท้จริง ของ ADR-055 ต้องสามารถทำงานกับ production ได้ด้วย" — the same compare-before-replace flow must also cover replacing the underlying **PDF file** of an already-imported/production correspondence attachment link (e.g., a migration item imported with the wrong PDF while the correct file exists on staging/NAS).
 
 ## User Scenarios & Testing _(mandatory)_
 
@@ -76,6 +76,26 @@ Two pre-existing defects are fixed because this feature depends on them: (a) OCR
 
 ---
 
+### User Story 5 - Replace the PDF file of a production attachment link (Priority: P1)
+
+An administrator discovers that an already-imported correspondence points to the wrong PDF file (e.g., a migration queue item was imported with a file belonging to a different document number). From the RAG console or the correspondence detail page, the admin picks the correct replacement file — from staging/Legacy NAS or a fresh upload — the system OCRs the candidate file, the admin compares the current and candidate text and PDFs, and only after explicit confirmation does the correspondence link switch to the new file. The original attachment record and file are never mutated; if other correspondences still reference it, they are completely unaffected.
+
+**Why this priority**: This is the true purpose of the feature per the product owner — remediating wrong-file imports on production data. The re-OCR-only flow (US1–US4) fixes bad text but cannot fix a wrong file.
+
+**Independent Test**: With a correspondence whose current revision links to a PDF that is also shared by another correspondence, run pick-file → OCR → compare → confirm, then verify: the selected correspondence now serves the new file, the other correspondence still serves the old file, and search results reflect the new file's text.
+
+**Acceptance Scenarios**:
+
+1. **Given** an admin with both RAG admin-write and correspondence-edit permissions and a PDF attachment linked to a production correspondence's current revision, **When** they start file replacement choosing a staging path or an uploaded temp file, **Then** the candidate is staged as a temporary attachment, an OCR job is queued against the candidate file, and neither the original attachment, its text, nor any junction link is touched.
+2. **Given** a candidate OCR completes, **When** the admin views the result, **Then** the comparison shows current text vs candidate text plus a PDF pane that can toggle between the original and the candidate PDF (defaulting to the candidate).
+3. **Given** an attachment linked by more than one correspondence, **When** the admin opens the replace flow, **Then** they must pick exactly which correspondence link to replace — the list shows each linked correspondence and only current-revision links are selectable.
+4. **Given** a confirmed replacement, **When** the transaction commits, **Then** the selected junction link points to a new permanent attachment holding the candidate file and its OCR text; the original attachment row and file remain intact, its search vectors are retired only if no other link references it, and the new file is indexed for search.
+5. **Given** a candidate whose content is byte-identical to the current file, **When** the admin starts replacement, **Then** the request is rejected with a conflict before any job is queued.
+6. **Given** an imported correspondence whose replacement is confirmed, **When** the operation completes, **Then** the audit trail records the acting user, both attachment identifiers, the target correspondence, and the file source; if the correspondence traces to a migration queue item, that item's review state gains a file-replacement entry.
+7. **Given** the admin never confirms, **Then** the temporary candidate expires and is cleaned up automatically; the production file, text, links, and index remain exactly as before.
+
+---
+
 ### Edge Cases
 
 - Attachment is not a PDF → start is rejected (unprocessable) before queuing.
@@ -90,6 +110,15 @@ Two pre-existing defects are fixed because this feature depends on them: (a) OCR
 - Confirm succeeds but re-indexing fails → attachment shows indexing failed in existing status views, and the existing periodic vector health check repairs it; stored text is already the confirmed text.
 - Checksum missing on migrated attachments → computed at re-index time.
 - Vision-model GPU capacity check applies only to the vision engine; "auto" is not blocked by GPU pressure.
+- **(File replace)** Attachment is linked by several correspondences/revisions → admin must select exactly one link; only links on the *current* revision of a correspondence are eligible.
+- **(File replace)** Candidate file is byte-identical to the current file (same checksum), or the selected link already resolves to an attachment for the same file → start is rejected (conflict); no GPU spent.
+- **(File replace)** Candidate source is a staging path outside the allowed staging/NAS roots, not a real file, or not a PDF → rejected before staging.
+- **(File replace)** Candidate temp attachment expires or is cleaned before confirm → confirm fails not-found/gone; the production link is unchanged.
+- **(File replace)** Junction link deleted (e.g., revision rework) between trigger and confirm → confirm fails not-found; no partial swap.
+- **(File replace)** A non-temporary attachment for the same file content already exists → the link may be switched to that existing attachment instead of creating a duplicate (dedup by checksum).
+- **(File replace)** Original attachment becomes orphaned after swap → its search vectors are retired and indexing status updated, but the row and file are kept for audit; shared attachments are never touched.
+- **(File replace)** Candidate filename looks like a different document number than the target correspondence → a non-blocking warning is shown in the dialog.
+- **(File replace)** Original file on staging/NAS MUST never be deleted or moved by the flow — staging candidates are copied into temp storage first so the automated temp-cleanup worker can never reach the NAS source.
 
 ## Requirements _(mandatory)_
 
@@ -144,12 +173,31 @@ Two pre-existing defects are fixed because this feature depends on them: (a) OCR
 - **FR-030**: After confirm the dialog closes with a success notice and the list refreshes; re-index progress is shown by the existing status badge/timeline. No new progress UI and no cancel-job action.
 - **FR-031**: All user-facing strings MUST use the project's i18n mechanism.
 
+**Production file replacement (US5)**
+
+- **FR-032**: File replacement MUST use a dedicated trigger endpoint separate from plain re-OCR, requiring both the RAG admin-write and correspondence-edit permissions, plus idempotency key, rate limiting, audit logging, and the AI-enabled switch.
+- **FR-033**: A replace request MUST name the target correspondence (public id) and exactly one candidate source: a staging/NAS path or an uploaded temporary attachment.
+- **FR-034**: The target correspondence's *current* revision MUST actually link the attachment being replaced; otherwise the request is rejected. Links on non-current (historical) revisions are never eligible.
+- **FR-035**: Every candidate — regardless of source — MUST be materialized as a temporary attachment in temp storage before processing; a staging candidate MUST be *copied* into temp storage (never moved/referenced in place) so cleanup can never touch the NAS original. Path-traversal, PDF, existence, and file-type validation apply before staging.
+- **FR-036**: A candidate byte-identical to the current file (checksum match) MUST be rejected at trigger without consuming a job slot.
+- **FR-037**: The replace flow MUST reuse the re-OCR job pipeline (pointer/payload keys, token, 72h TTL, trigger mutex, in-flight and superseded guards); the OCR job MUST run against the *candidate* file.
+- **FR-038**: Status responses for a replace job MUST carry mode, the candidate filename, a preview identifier for the candidate, and the target correspondence so the UI can render the correct comparison.
+- **FR-039**: Confirm on a replace result MUST atomically (one transaction) re-point only the selected junction link to the candidate attachment, store the candidate OCR text on it, mark processing done and indexing pending, and protect the candidate from expiry; the physical file is committed to permanent storage immediately after; the original attachment row MUST NOT be mutated.
+- **FR-040**: After confirm, search indexing MUST be rebuilt for the new attachment *before* the original attachment is de-indexed; the original MUST be de-indexed only when no remaining link references it — its row and file are always retained.
+- **FR-041**: Confirm MUST write an audit record identifying the acting user, old and new attachment identifiers, target correspondence, candidate source, and both filenames; when the target correspondence traces back to a migration queue item, a file-replacement entry MUST be appended to that item's review state.
+- **FR-042**: File replacement MUST NOT re-extract or modify correspondence metadata (document number, subject, type, tags); a non-blocking warning MUST be shown when the candidate filename appears to name a different document number.
+- **FR-043**: The comparison UI for replace mode MUST let the admin switch the PDF reference pane between the original file and the candidate file (candidate shown by default); text panes and per-pane search behave as in plain re-OCR.
+- **FR-044**: Entry points MUST include both the RAG console dialog (with a link picker when the attachment is shared) and a replace action on the correspondence detail page attachment list (link implied by context); both are gated on the permissions in FR-032 plus PDF-only.
+- **FR-045**: If the junction link disappears or the candidate temp attachment is gone between trigger and confirm, confirm MUST fail cleanly (not-found/gone) with no partial state change.
+
 ### Key Entities
 
 - **Attachment**: An uploaded file record with stored OCR text, an ingestion processing status (pending/processing/done/failed), and an indexing status. Re-OCR changes its text and statuses only at confirm.
 - **Re-OCR Job Status Record**: Temporary, one per attachment (latest job): state, result token, job id, engine, starter name and time, attempt/warning/error info. Lifetime 72h.
 - **Re-OCR Result Record**: Temporary, one per token: new text, engine used, character count, processing time, completion time. Lifetime 72h; removed on confirm.
 - **Index Generation**: Existing searchable-index version for an attachment; a new one is built on confirm and the old one retired.
+- **Correspondence-Revision Attachment Link**: The junction record binding one attachment to one revision (with a main-document flag); file replacement re-points this link — it is the unit of change, not the attachment itself.
+- **Candidate Attachment**: Temporary attachment record materialized at replace-trigger time (copy of a staging file or an admin upload); becomes the permanent production attachment only on confirm, and is reaped by normal temp cleanup otherwise.
 
 ## Success Criteria _(mandatory)_
 
@@ -163,6 +211,8 @@ Two pre-existing defects are fixed because this feature depends on them: (a) OCR
 - **SC-006**: A second admin can resume any in-progress or completed re-OCR from the console in one click, with no duplicate jobs created (0 duplicate active jobs per attachment).
 - **SC-007**: 100% of start/confirm actions are attributable to a named user in the audit trail.
 - **SC-008**: Existing ingestion behavior for pending/failed attachments is unchanged (existing regression suites pass with zero new failures).
+- **SC-009**: In 100% of file replacements, correspondences that share the replaced attachment other than the selected one are byte-for-byte unaffected (file, text, link, and search results).
+- **SC-010**: In 100% of aborted/expired file replacements, zero production state changes (attachment rows, links, files, index) and zero residue beyond what the existing temp-file cleanup already removes.
 
 ## Assumptions
 
@@ -172,4 +222,6 @@ Two pre-existing defects are fixed because this feature depends on them: (a) OCR
 - Existing permissions (RAG admin-write / RAG-manage) are reused; no new permissions.
 - Worst-case wait estimate is an approximation, not a guarantee; OCR options such as temperature are not exposed in this version.
 - Batch re-OCR, cancel-job, rollback, and a "pending confirm" list badge are explicitly out of scope for v1.
-- Governing decisions D1–D16 in ADR-055 take priority over this spec where they conflict.
+- File replacement changes only which file a link serves and its OCR text — correspondence metadata is never re-extracted (human-reviewed data stays); historical revisions are never modified.
+- File replacement applies to a single selected link per operation; deliberately re-pointing several links requires one operation each.
+- Governing decisions D1–D22 in ADR-055 take priority over this spec where they conflict.
