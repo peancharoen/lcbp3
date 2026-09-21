@@ -115,6 +115,10 @@ describe('FileStorageService', () => {
     );
     (fs.stat as unknown as jest.Mock).mockResolvedValue({ size: 1024 });
     (fs.ensureDir as unknown as jest.Mock).mockResolvedValue(undefined);
+    // realpath default = identity (ไม่มี symlink) — stageFileToTemp เทียบ path จริงกับ roots
+    (fs.realpath as unknown as jest.Mock).mockImplementation((p: string) =>
+      Promise.resolve(p)
+    );
   });
 
   it('should be defined', () => {
@@ -400,10 +404,25 @@ describe('FileStorageService', () => {
     });
 
     it('ควร throw NotFoundException เมื่อไฟล์ไม่มีบน staging', async () => {
-      (fs.pathExists as unknown as jest.Mock).mockResolvedValueOnce(false);
+      (fs.realpath as unknown as jest.Mock).mockRejectedValueOnce(
+        Object.assign(new Error('ENOENT'), { code: 'ENOENT' })
+      );
       await expect(service.stageFileToTemp(stagingPath, 1)).rejects.toThrow(
         NotFoundException
       );
+    });
+
+    it('ควร reject symlink ที่ resolve ออกนอก allowed roots (symlink escape)', async () => {
+      // path.resolve เห็นใน root แต่ realpath ชี้ออกไปนอก — ต้องเทียบ realpath เท่านั้น
+      (fs.realpath as unknown as jest.Mock).mockImplementation((p: string) =>
+        Promise.resolve(
+          p === '/mnt/legacy-staging/evil-link.pdf' ? '/etc/shadow-copy.pdf' : p
+        )
+      );
+      await expect(
+        service.stageFileToTemp('/mnt/legacy-staging/evil-link.pdf', 1)
+      ).rejects.toThrow(BadRequestException);
+      expect(fs.copy as unknown as jest.Mock).not.toHaveBeenCalled();
     });
 
     it('ควร reject ไฟล์ที่ไม่ใช่ .pdf', async () => {

@@ -458,6 +458,32 @@ describe('AttachmentReOcrService (ADR-055)', () => {
       expect(txUpdate).not.toHaveBeenCalled();
       expect(ragAdmin.reingest).not.toHaveBeenCalled();
     });
+
+    it('replace-mode payload ผ่าน confirm ธรรมดา → reject (ต้องใช้ /re-ocr/replace/confirm)', async () => {
+      // security: confirm ธรรมดามีแค่ rag.admin.write — junction swap ต้องผ่าน
+      // route ที่บังคับ correspondence.edit ด้วยเท่านั้น
+      store.set(
+        reOcrPayloadKey(ATT, TOKEN),
+        JSON.stringify({
+          newText: 'replacement text',
+          engineUsed: 'np-dms-ocr',
+          charCount: 16,
+          processingTimeMs: 1200,
+          completedAt: '2026-09-19T00:05:00.000Z',
+          mode: 'replace',
+          targetCorrespondencePublicId: 'corr-1',
+          candidateAttachmentPublicId: 'cand-1',
+        })
+      );
+      await expect(service.confirm(ATT, TOKEN)).rejects.toMatchObject({
+        response: expect.objectContaining({
+          error: expect.objectContaining({
+            code: 'RE_OCR_REPLACE_CONFIRM_REQUIRED',
+          }),
+        }),
+      });
+      expect(txUpdate).not.toHaveBeenCalled();
+    });
   });
 
   // ── ADR-055 extension (D17–D22): Production File Replace ──
@@ -486,6 +512,7 @@ describe('AttachmentReOcrService (ADR-055)', () => {
     mimeType: 'application/pdf',
     checksum: 'new-checksum',
     originalFilename: '03-21-0004-2567.pdf',
+    uploadedByUserId: 7,
   };
   const seedReplacePayload = (newText: string): void => {
     store.set(
@@ -604,6 +631,21 @@ describe('AttachmentReOcrService (ADR-055)', () => {
       ).rejects.toMatchObject({ status: 422 });
     });
 
+    it('upload candidate เป็นของ user อื่น → 403 (ownership guard)', async () => {
+      attachmentRepo.findOne.mockImplementation(
+        ({ where }: { where: { publicId: string } }) =>
+          Promise.resolve(
+            where.publicId === CANDIDATE
+              ? { ...candidateRow, uploadedByUserId: 99 }
+              : { ...baseAttachment }
+          )
+      );
+      await expect(
+        service.triggerReplace(ATT, dto, REPLACE_USER)
+      ).rejects.toMatchObject({ status: 403 });
+      expect(aiQueue.enqueueAttachmentReOcr).not.toHaveBeenCalled();
+    });
+
     it('checksum เดียวกับไฟล์เดิม → 409 RE_OCR_IDENTICAL_FILE ไม่ enqueue', async () => {
       attachmentRepo.findOne.mockImplementation(
         ({ where }: { where: { publicId: string } }) =>
@@ -692,7 +734,7 @@ describe('AttachmentReOcrService (ADR-055)', () => {
 
     it('tx swap junction → commit candidate → audit + keys cleanup; isMainDocument คงเดิม (update เฉพาะ attachment_id)', async () => {
       junctionRepo.count.mockResolvedValue(1); // ยังมี link อื่น (shared) → ไม่ de-index
-      const res = await service.confirm(ATT, TOKEN, REPLACE_USER);
+      const res = await service.confirmReplace(ATT, TOKEN, REPLACE_USER);
       expect(res).toMatchObject({ status: 'confirmed' });
       // candidate ได้รับ ocrText ก่อน commit (ingest เห็น text ใหม่)
       expect(attachmentRepo.update).toHaveBeenCalledWith(
@@ -732,7 +774,7 @@ describe('AttachmentReOcrService (ADR-055)', () => {
         { generationUuid: 'gen-1' },
         { generationUuid: 'gen-2' },
       ]);
-      await service.confirm(ATT, TOKEN, REPLACE_USER);
+      await service.confirmReplace(ATT, TOKEN, REPLACE_USER);
       expect(generationRepo.update).toHaveBeenCalledTimes(2);
       expect(generationRepo.update).toHaveBeenCalledWith(
         { generationUuid: 'gen-1' },
@@ -756,7 +798,7 @@ describe('AttachmentReOcrService (ADR-055)', () => {
               : { ...baseAttachment }
           )
       );
-      const res = await service.confirm(ATT, TOKEN, REPLACE_USER);
+      const res = await service.confirmReplace(ATT, TOKEN, REPLACE_USER);
       expect(res.status).toBe('confirmed');
       expect(fileStorage.commit).not.toHaveBeenCalled();
       expect(txUpdate).toHaveBeenCalledWith(
@@ -774,7 +816,7 @@ describe('AttachmentReOcrService (ADR-055)', () => {
           )
       );
       await expect(
-        service.confirm(ATT, TOKEN, REPLACE_USER)
+        service.confirmReplace(ATT, TOKEN, REPLACE_USER)
       ).rejects.toMatchObject({ status: 404 });
       expect(fileStorage.commit).not.toHaveBeenCalled();
       junctionRepo.find.mockResolvedValueOnce([
@@ -784,20 +826,20 @@ describe('AttachmentReOcrService (ADR-055)', () => {
         },
       ]);
       await expect(
-        service.confirm(ATT, TOKEN, REPLACE_USER)
+        service.confirmReplace(ATT, TOKEN, REPLACE_USER)
       ).rejects.toMatchObject({ status: 409 });
     });
 
     it('ข้าม identical-text guard (ไฟล์เปลี่ยนคือประเด็น) + supersede guard ยังทำงาน', async () => {
       junctionRepo.count.mockResolvedValue(1);
       seedReplacePayload(baseAttachment.ocrText); // text เหมือนเดิม — replace ยังยืนยันได้
-      const res = await service.confirm(ATT, TOKEN, REPLACE_USER);
+      const res = await service.confirmReplace(ATT, TOKEN, REPLACE_USER);
       expect(res.status).toBe('confirmed');
       // supersede
       seedReplacePayload('x');
       seedPointer({ reOcrToken: 'other-token', mode: 'replace' });
       await expect(
-        service.confirm(ATT, TOKEN, REPLACE_USER)
+        service.confirmReplace(ATT, TOKEN, REPLACE_USER)
       ).rejects.toMatchObject({ status: 409 });
     });
 
@@ -808,7 +850,7 @@ describe('AttachmentReOcrService (ADR-055)', () => {
         correspondenceRevisionId: 55,
         attachmentId: 990,
       });
-      const res = await service.confirm(ATT, TOKEN, REPLACE_USER);
+      const res = await service.confirmReplace(ATT, TOKEN, REPLACE_USER);
       expect(res.status).toBe('confirmed');
       expect(auditLogRepo.save).toHaveBeenCalled();
     });
@@ -817,7 +859,7 @@ describe('AttachmentReOcrService (ADR-055)', () => {
       txUpdate.mockResolvedValueOnce({ affected: 0 });
       junctionRepo.findOne.mockResolvedValue(null);
       await expect(
-        service.confirm(ATT, TOKEN, REPLACE_USER)
+        service.confirmReplace(ATT, TOKEN, REPLACE_USER)
       ).rejects.toMatchObject({ status: 404 });
     });
 
@@ -836,7 +878,7 @@ describe('AttachmentReOcrService (ADR-055)', () => {
           },
         },
       ]);
-      await service.confirm(ATT, TOKEN, REPLACE_USER);
+      await service.confirmReplace(ATT, TOKEN, REPLACE_USER);
       // retire ไม่เกิดเพราะไม่มี projectPublicId (enqueue ไม่ได้)
       expect(generationRepo.update).not.toHaveBeenCalled();
       expect(aiQueue.enqueueRagGenerationCleanup).not.toHaveBeenCalled();
@@ -850,7 +892,7 @@ describe('AttachmentReOcrService (ADR-055)', () => {
         reviewState: { fileReplacements: [] },
       };
       reviewQueueRepo.findOne.mockResolvedValue(queueItem);
-      await service.confirm(ATT, TOKEN, REPLACE_USER);
+      await service.confirmReplace(ATT, TOKEN, REPLACE_USER);
       expect(reviewQueueRepo.findOne).toHaveBeenCalledWith({
         where: { importedCorrespondencePublicId: CORR },
       });
@@ -869,6 +911,28 @@ describe('AttachmentReOcrService (ADR-055)', () => {
           }),
         })
       );
+    });
+
+    it('non-replace payload ผ่าน confirmReplace → reject (route นี้รับเฉพาะ replace mode)', async () => {
+      // เขียน payload ธรรมดาทับ replace payload ของ beforeEach
+      store.set(
+        reOcrPayloadKey(ATT, TOKEN),
+        JSON.stringify({
+          newText: 'plain ocr text',
+          engineUsed: 'np-dms-ocr',
+          charCount: 14,
+          processingTimeMs: 900,
+          completedAt: '2026-09-19T00:05:00.000Z',
+        })
+      );
+      await expect(
+        service.confirmReplace(ATT, TOKEN, REPLACE_USER)
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          error: expect.objectContaining({ code: 'RE_OCR_NOT_REPLACE' }),
+        }),
+      });
+      expect(txUpdate).not.toHaveBeenCalled();
     });
   });
 });

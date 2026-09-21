@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   triggerMutate: vi.fn(),
   replaceMutate: vi.fn(),
   confirmMutate: vi.fn(),
+  confirmReplaceMutate: vi.fn(),
   hasPermission: vi.fn(() => true),
   links: undefined as unknown,
 }));
@@ -29,6 +30,10 @@ vi.mock('@/hooks/ai/use-re-ocr', () => ({
     isPending: false,
   }),
   useReOcrConfirm: () => ({ mutate: mocks.confirmMutate, isPending: false }),
+  useReOcrReplaceConfirm: () => ({
+    mutate: mocks.confirmReplaceMutate,
+    isPending: false,
+  }),
   useAttachmentLinks: () => ({ data: mocks.links }),
 }));
 vi.mock('../rag-console/ReOcrDiffView', () => ({
@@ -288,6 +293,30 @@ describe('ReOcrDialog — replace mode (ADR-055 D17–D22)', () => {
     };
     renderReplace();
     expect(screen.queryByTestId('filename-mismatch')).not.toBeInTheDocument();
+  });
+
+  it('confirm ใน replace mode → ยิง confirmReplace (route แยก dual permission) ไม่ใช่ confirm ธรรมดา', async () => {
+    mocks.status = {
+      data: completed({
+        mode: 'replace',
+        candidateFilename: 'a.pdf',
+        candidateAttachmentPublicId: 'cand-1',
+        targetCorrespondencePublicId: 'corr-1',
+      }),
+      isLoading: false,
+    };
+    renderReplace();
+    await userEvent.click(
+      screen.getByRole('button', { name: ragAdminT('re_ocr.replace.confirm') })
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: ragAdminT('re_ocr.replace.confirm_action') })
+    );
+    expect(mocks.confirmReplaceMutate).toHaveBeenCalledWith(
+      'tok',
+      expect.any(Object)
+    );
+    expect(mocks.confirmMutate).not.toHaveBeenCalled();
   });
 });
 

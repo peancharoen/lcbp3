@@ -7,6 +7,8 @@
 //   เดิมต้องการ document.view ซึ่ง RAG admin อาจไม่มี → PDF reference pane จะ 403
 // - 2026-09-19: ADR-055 extension (D19) — POST re-ocr/replace (rag.admin.write + correspondence.edit)
 //   + GET re-ocr/links สำหรับ link picker เมื่อ attachment ถูก share หลาย correspondence
+// - 2026-09-19: security-audit fix — POST re-ocr/replace/confirm แยกจาก re-ocr/confirm
+//   (junction swap ต้องการ rag.admin.write + correspondence.edit ไม่ใช่ rag.admin.write เพียงอย่างเดียว)
 
 import {
   Body,
@@ -199,6 +201,29 @@ export class AttachmentReOcrController {
   async confirm(
     @Param('publicId', ParseUuidPipe) publicId: string,
     @Body() dto: ConfirmReOcrDto,
+    @Headers('Idempotency-Key') idempotencyKey: string | undefined
+  ): Promise<ReOcrConfirmResult> {
+    assertIdempotencyKey(idempotencyKey);
+    return this.reOcrService.confirm(publicId, dto.reOcrToken);
+  }
+
+  /**
+   * POST /files/:publicId/re-ocr/replace/confirm — confirm ของ replace mode (junction swap)
+   * ต้องการ rag.admin.write AND correspondence.edit เหมือน trigger (D19) —
+   * junction swap คือ mutation ของ production correspondence link จึงห้ามยืนยันด้วย rag.admin.write อย่างเดียว
+   */
+  @Post(':publicId/re-ocr/replace/confirm')
+  @HttpCode(HttpStatus.OK)
+  @RequirePermission('rag.admin.write', 'correspondence.edit')
+  @UseGuards(AiEnabledGuard)
+  @Throttle(RE_OCR_WRITE_THROTTLE)
+  @Audit('attachment.re_ocr.replace_confirm', 'attachment')
+  @ApiOperation({
+    summary: 'Confirm replace-mode re-OCR — swaps the attachment junction link',
+  })
+  async confirmReplace(
+    @Param('publicId', ParseUuidPipe) publicId: string,
+    @Body() dto: ConfirmReOcrDto,
     @Headers('Idempotency-Key') idempotencyKey: string | undefined,
     @Request() req: RequestWithUser
   ): Promise<ReOcrConfirmResult> {
@@ -206,7 +231,7 @@ export class AttachmentReOcrController {
     const { firstName, lastName, username, user_id } = req.user;
     const displayName =
       [firstName, lastName].filter(Boolean).join(' ').trim() || username;
-    return this.reOcrService.confirm(publicId, dto.reOcrToken, {
+    return this.reOcrService.confirmReplace(publicId, dto.reOcrToken, {
       displayName,
       userId: user_id,
     });

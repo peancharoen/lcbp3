@@ -8,6 +8,10 @@
 // - 2026-09-19: ADR-055 extension (D17–D22) — Production File Replace:
 //   triggerReplace (candidate staging/upload → temp attachment) + listLinks (link picker)
 //   + confirm branch → junction swap + orphan de-index + audit/queue annotation
+// - 2026-09-19: security-audit fix — (1) แยก confirmReplace route บังคับ
+//   rag.admin.write + correspondence.edit (junction swap ไม่ควรยืนยันด้วย rag.admin.write
+//   เพียงอย่างเดียว), confirm ปกติ reject replace payload, (2) ownership guard บน
+//   tempAttachmentPublicId candidate
 
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -50,6 +54,7 @@ import {
   ConflictException,
   GoneException,
   NotFoundException,
+  PermissionException,
   ValidationException,
 } from '../exceptions';
 
@@ -221,6 +226,17 @@ export class AttachmentReOcrService {
           dto.tempAttachmentPublicId
         );
       }
+      // Ownership guard — temp upload ของ user อื่นห้ามถูกนำมาเป็น replacement candidate
+      // (รูปแบบเดียวกับ FileStorageService.deleteTempFile ownership check)
+      if (uploaded.uploadedByUserId !== actor.userId) {
+        this.logger.warn(
+          `User ${actor.userId} tried to use temp attachment ${uploaded.publicId} owned by ${uploaded.uploadedByUserId} as replace candidate`
+        );
+        throw new PermissionException(
+          'temp attachment',
+          'use as replace candidate'
+        );
+      }
       if (uploaded.mimeType !== 'application/pdf') {
         throw new BusinessException(
           'RE_OCR_UNSUPPORTED_FILE_TYPE',
@@ -368,30 +384,20 @@ export class AttachmentReOcrService {
   /** ยืนยันแทนที่ ocr_text — final decision ไม่มี rollback (ADR-055 D8) */
   async confirm(
     attachmentPublicId: string,
-    reOcrToken: string,
-    actor?: ReOcrReplaceActor
+    reOcrToken: string
   ): Promise<ReOcrConfirmResult> {
-    const payload = await this.readPayload(attachmentPublicId, reOcrToken);
-    if (!payload) {
-      throw new NotFoundException('Re-OCR result', attachmentPublicId);
-    }
-    // ถ้า pointer ถูก supersede ด้วย trigger ใหม่กว่า → reject (กัน stale confirm มาแทนที่กลาง job ใหม่)
-    const pointer = await this.readPointer(attachmentPublicId);
-    if (pointer && pointer.reOcrToken !== reOcrToken) {
-      throw new ConflictException(
-        'RE_OCR_SUPERSEDED',
-        `Re-OCR result ${reOcrToken} was superseded by a newer trigger`,
-        'ผลลัพธ์นี้ถูกแทนด้วย Re-OCR รอบใหม่แล้ว',
-        ['เปิด Re-OCR อีกครั้งเพื่อดูผลล่าสุด']
-      );
-    }
-    // D17: replace mode → junction swap flow (ข้าม identical-text guard — ประเด็นคือไฟล์เปลี่ยน ไม่ใช่ text)
+    const payload = await this.loadConfirmablePayload(
+      attachmentPublicId,
+      reOcrToken
+    );
+    // D19: replace payload ต้อง confirm ผ่าน route แยกที่บังคับ correspondence.edit
+    // (junction swap = mutation ของ production correspondence — confirm ธรรมดามีแค่ rag.admin.write)
     if (payload.mode === 'replace') {
-      return this.confirmReplace(
-        attachmentPublicId,
-        reOcrToken,
-        payload,
-        actor
+      throw new BusinessException(
+        'RE_OCR_REPLACE_CONFIRM_REQUIRED',
+        `Re-OCR result ${reOcrToken} is a replace-mode payload — confirm via /re-ocr/replace/confirm`,
+        'ผลลัพธ์นี้เป็นโหมดเปลี่ยนไฟล์ — ต้องยืนยันผ่านช่องทางเปลี่ยนไฟล์เท่านั้น',
+        ['ใช้ปุ่มยืนยันในหน้าต่างเปลี่ยนไฟล์']
       );
     }
     // Server-side identical guard — ผลใหม่เท่าเดิมเป๊ะไม่มีประโยชน์ในการแทนที่ (กัน re-index churn)
@@ -445,7 +451,33 @@ export class AttachmentReOcrService {
   }
 
   /**
-   * Confirm ของ replace mode (D20) — final, ไม่มี rollback:
+   * อ่าน payload + กัน stale confirm — shared ระหว่าง confirm / confirmReplace
+   * @throws 404 payload ไม่มี/หมดอายุ, 409 RE_OCR_SUPERSEDED เมื่อ pointer ชี้ token ใหม่กว่า
+   */
+  private async loadConfirmablePayload(
+    attachmentPublicId: string,
+    reOcrToken: string
+  ): Promise<ReOcrPayload> {
+    const payload = await this.readPayload(attachmentPublicId, reOcrToken);
+    if (!payload) {
+      throw new NotFoundException('Re-OCR result', attachmentPublicId);
+    }
+    // ถ้า pointer ถูก supersede ด้วย trigger ใหม่กว่า → reject (กัน stale confirm มาแทนที่กลาง job ใหม่)
+    const pointer = await this.readPointer(attachmentPublicId);
+    if (pointer && pointer.reOcrToken !== reOcrToken) {
+      throw new ConflictException(
+        'RE_OCR_SUPERSEDED',
+        `Re-OCR result ${reOcrToken} was superseded by a newer trigger`,
+        'ผลลัพธ์นี้ถูกแทนด้วย Re-OCR รอบใหม่แล้ว',
+        ['เปิด Re-OCR อีกครั้งเพื่อดูผลล่าสุด']
+      );
+    }
+    return payload;
+  }
+
+  /**
+   * Confirm ของ replace mode (D19/D20) — final, ไม่มี rollback:
+   *   route แยกบังคับ rag.admin.write + correspondence.edit ก่อนเข้าถึง junction swap
    *   1) re-verify link ยังเป็น current revision + candidate temp attachment ยังอยู่
    *   2) ตั้ง ocr_text บน candidate ก่อน commit (ingest trigger ของ commit จะเห็น text ใหม่)
    *   3) commit() → ย้ายไฟล์เข้า permanent + auto-ingest (ถ้า candidate commit ไปแล้วจาก retry จะข้าม)
@@ -454,12 +486,23 @@ export class AttachmentReOcrService {
    *   6) ai_audit_logs + migration queue fileReplacements annotation (best-effort)
    * หมายเหตุ: commit ก่อน swap เสมอ — ถ้า commit พัง junction ยังชี้ไฟล์เดิม (production ไม่เสีย)
    */
-  private async confirmReplace(
+  async confirmReplace(
     attachmentPublicId: string,
     reOcrToken: string,
-    payload: ReOcrPayload,
     actor?: ReOcrReplaceActor
   ): Promise<ReOcrConfirmResult> {
+    const payload = await this.loadConfirmablePayload(
+      attachmentPublicId,
+      reOcrToken
+    );
+    if (payload.mode !== 'replace') {
+      throw new BusinessException(
+        'RE_OCR_NOT_REPLACE',
+        `Re-OCR result ${reOcrToken} is not a replace-mode payload`,
+        'ผลลัพธ์นี้ไม่ใช่โหมดเปลี่ยนไฟล์ — ใช้ปุ่มยืนยัน Re-OCR ปกติ',
+        ['ใช้ปุ่มยืนยันในหน้าต่าง Re-OCR']
+      );
+    }
     const attachment = await this.attachmentRepo.findOne({
       where: { publicId: attachmentPublicId },
     });

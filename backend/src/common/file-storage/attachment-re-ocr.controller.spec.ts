@@ -35,6 +35,7 @@ describe('AttachmentReOcrController (ADR-055 D11)', () => {
     listLinks: jest.fn().mockResolvedValue([]),
     getStatus: jest.fn().mockResolvedValue({ status: 'queued' }),
     confirm: jest.fn().mockResolvedValue({ status: 'confirmed' }),
+    confirmReplace: jest.fn().mockResolvedValue({ status: 'confirmed' }),
   };
   const fileStorage = {
     preview: jest.fn().mockResolvedValue({
@@ -71,6 +72,12 @@ describe('AttachmentReOcrController (ADR-055 D11)', () => {
       'attachment.re_ocr.replace',
       true,
     ],
+    [
+      'confirmReplace',
+      ['rag.admin.write', 'correspondence.edit'],
+      'attachment.re_ocr.replace_confirm',
+      true,
+    ],
     ['links', ['rag.admin.write', 'correspondence.edit'], undefined, false],
     ['status', ['rag.manage'], undefined, false],
   ] as const)(
@@ -89,8 +96,13 @@ describe('AttachmentReOcrController (ADR-055 D11)', () => {
     }
   );
 
-  it('trigger + confirm มี @Throttle metadata', () => {
-    for (const method of ['trigger', 'confirm'] as const) {
+  it('trigger + confirm + triggerReplace + confirmReplace มี @Throttle metadata', () => {
+    for (const method of [
+      'trigger',
+      'confirm',
+      'triggerReplace',
+      'confirmReplace',
+    ] as const) {
       const keys = Reflect.getMetadataKeys(proto[method] as unknown as object);
       expect(keys.some((k: string) => /THROTTLER/i.test(k))).toBe(true);
     }
@@ -114,15 +126,12 @@ describe('AttachmentReOcrController (ADR-055 D11)', () => {
     });
   });
 
-  it('confirm: ไม่มี/ว่าง Idempotency-Key → 400; มี → เรียก service พร้อม actor', async () => {
+  it('confirm: ไม่มี/ว่าง Idempotency-Key → 400; มี → เรียก service', async () => {
     await expect(
-      controller.confirm(ATT, { reOcrToken: TOKEN }, '  ', req)
+      controller.confirm(ATT, { reOcrToken: TOKEN }, '  ')
     ).rejects.toMatchObject({ status: 400 });
-    await controller.confirm(ATT, { reOcrToken: TOKEN }, 'idem-3', req);
-    expect(service.confirm).toHaveBeenCalledWith(ATT, TOKEN, {
-      displayName: 'Ada Min',
-      userId: 7,
-    });
+    await controller.confirm(ATT, { reOcrToken: TOKEN }, 'idem-3');
+    expect(service.confirm).toHaveBeenCalledWith(ATT, TOKEN);
   });
 
   it('triggerReplace: ไม่มี Idempotency-Key → 400 และไม่เรียก service', async () => {
@@ -154,6 +163,18 @@ describe('AttachmentReOcrController (ADR-055 D11)', () => {
       },
       { displayName: 'Ada Min', userId: 7 }
     );
+  });
+
+  it('confirmReplace: ไม่มี Idempotency-Key → 400; มี → เรียก service.confirmReplace พร้อม actor', async () => {
+    await expect(
+      controller.confirmReplace(ATT, { reOcrToken: TOKEN }, undefined, req)
+    ).rejects.toMatchObject({ status: 400 });
+    expect(service.confirmReplace).not.toHaveBeenCalled();
+    await controller.confirmReplace(ATT, { reOcrToken: TOKEN }, 'idem-4', req);
+    expect(service.confirmReplace).toHaveBeenCalledWith(ATT, TOKEN, {
+      displayName: 'Ada Min',
+      userId: 7,
+    });
   });
 
   it('links: delegate ไป service.listLinks', async () => {

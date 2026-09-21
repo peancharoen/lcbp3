@@ -31,6 +31,7 @@ import {
 import {
   useAttachmentLinks,
   useReOcrConfirm,
+  useReOcrReplaceConfirm,
   useReOcrReplaceTrigger,
   useReOcrStatus,
   useReOcrTrigger,
@@ -75,6 +76,7 @@ export function ReOcrDialog({
   const trigger = useReOcrTrigger(attachmentPublicId);
   const replaceTrigger = useReOcrReplaceTrigger(attachmentPublicId);
   const confirm = useReOcrConfirm(attachmentPublicId);
+  const confirmReplace = useReOcrReplaceConfirm(attachmentPublicId);
   const [engine, setEngine] = useState<ReOcrEngine>('np-dms-ocr');
   const [queueInfo, setQueueInfo] = useState<ReOcrTriggerResponse | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -119,7 +121,10 @@ export function ReOcrDialog({
 
   const handleConfirm = () => {
     if (status?.status !== 'completed') return;
-    confirm.mutate(status.reOcrToken, {
+    // replace mode ต้องยิง route แยก (dual permission — junction swap)
+    const mutation =
+      status.mode === 'replace' ? confirmReplace : confirm;
+    mutation.mutate(status.reOcrToken, {
       onSuccess: (res) => {
         toast.success(
           t(

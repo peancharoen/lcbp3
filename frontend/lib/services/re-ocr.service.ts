@@ -2,6 +2,7 @@
 // Change Log:
 // - 2026-09-19: ADR-055 T023 — API client สำหรับ Attachment Manual Re-OCR (trigger/status/confirm)
 // - 2026-09-19: ADR-055 extension (D17–D22) — triggerReplace + listLinks + replace fields บน status
+// - 2026-09-19: security-audit fix — แยก confirmReplace ไป POST /re-ocr/replace/confirm (dual permission)
 
 import axios from 'axios';
 import api from '@/lib/api/client';
@@ -120,6 +121,23 @@ export const reOcrService = {
   ): Promise<ReOcrConfirmResponse> {
     const response = await api.post(
       `/files/${attachmentPublicId}/re-ocr/confirm`,
+      { reOcrToken },
+      { headers: { 'Idempotency-Key': idempotencyKey } }
+    );
+    return response.data.data as ReOcrConfirmResponse;
+  },
+
+  /**
+   * POST /files/:id/re-ocr/replace/confirm — confirm ของ replace mode (junction swap)
+   * แยก route เพราะต้องการ rag.admin.write + correspondence.edit (D19)
+   */
+  async confirmReplace(
+    attachmentPublicId: string,
+    reOcrToken: string,
+    idempotencyKey: string
+  ): Promise<ReOcrConfirmResponse> {
+    const response = await api.post(
+      `/files/${attachmentPublicId}/re-ocr/replace/confirm`,
       { reOcrToken },
       { headers: { 'Idempotency-Key': idempotencyKey } }
     );

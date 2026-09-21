@@ -15,6 +15,8 @@
 //   เพื่อหลีกเลี่ยง circular module dependency (AiModule นำเข้า FileStorageModule อยู่แล้ว)
 // - 2026-09-19: ADR-055 D18 — เพิ่ม stageFileToTemp() สำหรับ re-OCR replace flow
 //   (copy staging/NAS → tempDir เป็น temporary attachment; ต้นฉบับ NAS อยู่ครบ)
+// - 2026-09-19: security-audit fix — stageFileToTemp เทียบ realpath ทั้ง source
+//   และ allowed roots (กัน symlink escape เมื่อ NAS mount เป็น symlink)
 import {
   Injectable,
   NotFoundException,
@@ -677,21 +679,34 @@ export class FileStorageService {
     userId: number
   ): Promise<Attachment> {
     // ADR-016: Path Traversal Guard — roots เดียวกับ importStagingFile
+    // ใช้ realpath ทั้ง source และ roots เพื่อกัน symlink escape
+    // (NAS mount อาจเป็น symlink/bind mount — เทียบ path จริงเท่านั้น)
     const resolvedSource = path.resolve(sourceFilePath);
-    const allowedStagingRoots = [
-      path.resolve(this.tempDir),
-      path.resolve(
-        this.configService.get<string>('MIGRATION_STAGING_DIR') ||
-          path.join(process.cwd(), 'uploads', 'staging')
-      ),
-      path.resolve(
-        this.configService.get<string>('LEGACY_NAS_PATH') ||
-          '/mnt/legacy-staging'
-      ),
+    let realSource: string;
+    try {
+      realSource = await fs.realpath(resolvedSource);
+    } catch {
+      throw new NotFoundException(`Source file not found: ${resolvedSource}`);
+    }
+    const candidateRoots = [
+      this.tempDir,
+      this.configService.get<string>('MIGRATION_STAGING_DIR') ||
+        path.join(process.cwd(), 'uploads', 'staging'),
+      this.configService.get<string>('LEGACY_NAS_PATH') ||
+        '/mnt/legacy-staging',
     ];
+    const allowedStagingRoots = await Promise.all(
+      candidateRoots.map(async (root) => {
+        const resolved = path.resolve(root);
+        try {
+          return await fs.realpath(resolved);
+        } catch {
+          return resolved;
+        }
+      })
+    );
     const isWithinAllowed = allowedStagingRoots.some(
-      (root) =>
-        resolvedSource === root || resolvedSource.startsWith(root + path.sep)
+      (root) => realSource === root || realSource.startsWith(root + path.sep)
     );
     if (!isWithinAllowed) {
       this.logger.warn(
@@ -701,18 +716,15 @@ export class FileStorageService {
         'Invalid staging file path — access denied (path traversal guard)'
       );
     }
-    if (!(await fs.pathExists(resolvedSource))) {
-      throw new NotFoundException(`Source file not found: ${resolvedSource}`);
-    }
-    const fileExt = path.extname(resolvedSource);
-    const originalFilename = path.basename(resolvedSource);
+    const fileExt = path.extname(realSource);
+    const originalFilename = path.basename(realSource);
     if (fileExt.toLowerCase() !== '.pdf') {
       throw new BadRequestException(
         `Staging file must be PDF (got "${fileExt}")`
       );
     }
-    const fileBuffer = await fs.readFile(resolvedSource);
-    const stats = await fs.stat(resolvedSource);
+    const fileBuffer = await fs.readFile(realSource);
+    const stats = await fs.stat(realSource);
     const fileTypeResult = validateFileType(
       fileBuffer,
       originalFilename,
@@ -730,7 +742,7 @@ export class FileStorageService {
     const storedFilename = `${uuidv4()}${fileExt}`;
     const tempPath = path.join(this.tempDir, storedFilename);
     // COPY เท่านั้น — ต้นฉบับบน NAS ต้องอยู่ครบ (D18: cleanup worker ลบ temp copy ได้)
-    await fs.copy(resolvedSource, tempPath, { overwrite: false });
+    await fs.copy(realSource, tempPath, { overwrite: false });
     const attachment = this.attachmentRepository.create({
       originalFilename,
       storedFilename,

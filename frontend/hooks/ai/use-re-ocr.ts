@@ -2,6 +2,7 @@
 // Change Log:
 // - 2026-09-19: ADR-055 T023 — TanStack Query hooks สำหรับ Attachment Manual Re-OCR
 // - 2026-09-19: ADR-055 extension (D19/D22) — useAttachmentLinks + useReOcrReplaceTrigger
+// - 2026-09-19: security-audit fix — useReOcrReplaceConfirm (route แยก dual permission)
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { reOcrService } from '@/lib/services/re-ocr.service';
@@ -99,6 +100,31 @@ export function useReOcrConfirm(attachmentPublicId: string) {
       void queryClient.invalidateQueries({
         queryKey: ['rag-admin', 'generations', attachmentPublicId],
       });
+    },
+  });
+}
+
+/**
+ * ยืนยันแทนที่ของ replace mode (junction swap) — route แยกเพราะต้องการ
+ * rag.admin.write + correspondence.edit (D19); ใช้เฉพาะ job ที่ status.mode === 'replace'
+ */
+export function useReOcrReplaceConfirm(attachmentPublicId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (reOcrToken: string) =>
+      reOcrService.confirmReplace(
+        attachmentPublicId,
+        reOcrToken,
+        newIdempotencyKey('re-ocr-replace-confirm', attachmentPublicId)
+      ),
+    onSuccess: () => {
+      queryClient.removeQueries({ queryKey: reOcrKey(attachmentPublicId) });
+      void queryClient.invalidateQueries({ queryKey: ['re-ocr-links'] });
+      void queryClient.invalidateQueries({ queryKey: ['rag-admin', 'attachments'] });
+      void queryClient.invalidateQueries({
+        queryKey: ['rag-admin', 'generations', attachmentPublicId],
+      });
+      void queryClient.invalidateQueries({ queryKey: ['correspondence'] });
     },
   });
 }
