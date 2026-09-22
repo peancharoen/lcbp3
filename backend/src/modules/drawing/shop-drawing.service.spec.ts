@@ -135,10 +135,10 @@ describe('ShopDrawingService', () => {
       );
     });
 
-    it('ควร commit attachments เมื่อมี attachmentIds', async () => {
+    it('ควร commit attachments เมื่อมี attachmentTempIds', async () => {
       const dtoWithAttachments: CreateShopDrawingDto = {
         ...dto,
-        attachmentIds: [1, 2],
+        attachmentTempIds: ['t1', 't2'],
       };
       mockShopDrawingRepo.findOne.mockResolvedValue(null);
       mockAttachmentRepo.findBy.mockResolvedValue([{ id: 1 }, { id: 2 }]);
@@ -158,7 +158,7 @@ describe('ShopDrawingService', () => {
       await service.create(dtoWithAttachments, mockUser as User);
 
       expect(mockFileStorageService.commit).toHaveBeenCalledWith(
-        ['1', '2'],
+        ['t1', 't2'],
         expect.objectContaining({ documentType: 'ShopDrawing' })
       );
     });
@@ -252,7 +252,7 @@ describe('ShopDrawingService', () => {
         revisionLabel: 'B',
         title: 'Rev B',
         contractDrawingIds: [5, 6],
-        attachmentIds: [1, 2],
+        attachmentTempIds: ['t1', 't2'],
       };
       mockShopDrawingRepo.findOneBy.mockResolvedValue({ id: 10 });
       mockRevisionRepo.findOne
@@ -272,7 +272,7 @@ describe('ShopDrawingService', () => {
 
       expect(mockContractDrawingRepo.findBy).toHaveBeenCalled();
       expect(mockFileStorageService.commit).toHaveBeenCalledWith(
-        ['1', '2'],
+        ['t1', 't2'],
         expect.objectContaining({ documentType: 'ShopDrawing' })
       );
     });

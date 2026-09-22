@@ -25,7 +25,7 @@ export const contractDrawingService = {
   /**
    * สร้างแบบสัญญาใหม่
    */
-  create: async (data: CreateContractDrawingDto | FormData) => {
+  create: async (data: CreateContractDrawingDto) => {
     const response = await apiClient.post('/drawings/contract', data);
     return response.data;
   },

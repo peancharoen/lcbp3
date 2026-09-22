@@ -26,7 +26,7 @@ export const asBuiltDrawingService = {
   /**
    * Create New As Built Drawing
    */
-  create: async (data: CreateAsBuiltDrawingDto | FormData) => {
+  create: async (data: CreateAsBuiltDrawingDto) => {
     const response = await apiClient.post('/drawings/asbuilt', data);
     return response.data;
   },

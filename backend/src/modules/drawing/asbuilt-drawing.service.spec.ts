@@ -134,10 +134,10 @@ describe('AsBuiltDrawingService', () => {
       );
     });
 
-    it('ควร commit attachments เมื่อมี attachmentIds', async () => {
+    it('ควร commit attachments เมื่อมี attachmentTempIds', async () => {
       const dtoWithAttachments: CreateAsBuiltDrawingDto = {
         ...dto,
-        attachmentIds: [1, 2],
+        attachmentTempIds: ['t1', 't2'],
       };
       mockAsBuiltRepo.findOne.mockResolvedValue(null);
       mockAttachmentRepo.findBy.mockResolvedValue([{ id: 1 }, { id: 2 }]);
@@ -157,7 +157,7 @@ describe('AsBuiltDrawingService', () => {
       await service.create(dtoWithAttachments, mockUser as User);
 
       expect(mockFileStorageService.commit).toHaveBeenCalledWith(
-        ['1', '2'],
+        ['t1', 't2'],
         expect.objectContaining({ documentType: 'AsBuiltDrawing' })
       );
     });

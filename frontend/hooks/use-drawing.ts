@@ -22,7 +22,7 @@ import { ContractDrawing, ShopDrawing, AsBuiltDrawing } from '@/types/drawing';
 
 type DrawingType = 'CONTRACT' | 'SHOP' | 'AS_BUILT';
 type DrawingSearchParams = SearchContractDrawingDto | SearchShopDrawingDto | SearchAsBuiltDrawingDto;
-type CreateDrawingData = CreateContractDrawingDto | CreateShopDrawingDto | CreateAsBuiltDrawingDto | FormData;
+type CreateDrawingData = CreateContractDrawingDto | CreateShopDrawingDto | CreateAsBuiltDrawingDto;
 
 export const drawingKeys = {
   all: ['drawings'] as const,

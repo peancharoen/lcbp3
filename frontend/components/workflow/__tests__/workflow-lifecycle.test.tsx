@@ -87,7 +87,9 @@ describe('WorkflowLifecycle', () => {
     const file = new File(['content'], 'uploaded.pdf', { type: 'application/pdf' });
     fireEvent.change(input, { target: { files: [file] } });
     await waitFor(() => {
-      expect(apiClient.post).toHaveBeenCalledWith('/files/upload', expect.any(FormData));
+      expect(apiClient.post).toHaveBeenCalledWith('/files/upload', expect.any(FormData), {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
     });
     expect(onAttachmentsChange).toHaveBeenCalledWith(['019505a1-7c3e-7000-8000-abc123def902']);
     await userEvent.click(screen.getByRole('button', { name: 'workflow.timeline.removeFile' }));

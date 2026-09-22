@@ -8,6 +8,9 @@
 // - 2026-09-21: UX fix — dialog max-w-4xl, split pane 2:3, filename filter
 //   (debounce → server-side q param ก่อน cap), ชื่อไฟล์ wrap + title tooltip,
 //   แสดง "แสดง X/Y" + truncated hint (folder ที่มีไฟล์ >1,000 อ่าน/ค้นได้ครบ)
+// - 2026-09-22: fix upload tab — เติม Content-Type: multipart/form-data (apiClient
+//   default เป็น application/json → axios serialize FormData เป็น JSON → backend
+//   400 "File is required")
 
 'use client';
 
@@ -282,7 +285,9 @@ export function ReplaceFileDialog({
       formData.append('file', localFile);
       const res = await apiClient.post<
         { data?: UploadedFileResult } & UploadedFileResult
-      >('/files/upload', formData);
+      >('/files/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
       const uploaded = res.data?.data ?? res.data;
       if (!uploaded?.publicId) {
         throw new Error('Upload response missing publicId');

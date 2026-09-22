@@ -22,6 +22,9 @@ export interface CreateContractDrawingDto {
 
   /** รายการ ID ของไฟล์แนบ (PDF/DWG) - ADR-019: Accept UUID */
   attachmentIds?: (number | string)[];
+
+  /** Temp IDs จาก two-phase upload (POST /files/upload → tempId) — ADR-016 */
+  attachmentTempIds?: string[];
 }
 
 // --- Update (Partial) ---

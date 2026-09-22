@@ -47,4 +47,15 @@ export class CreateAsBuiltDrawingRevisionDto {
   @IsArray()
   @IsOptional()
   attachmentIds?: number[];
+
+  /**
+   * ADR-016 Two-Phase Upload — tempId ของ attachment จาก POST /files/upload
+   */
+  @ApiPropertyOptional({
+    description: 'Attachment temp IDs (two-phase upload)',
+  })
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  attachmentTempIds?: string[];
 }

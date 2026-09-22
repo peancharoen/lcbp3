@@ -99,7 +99,8 @@ export function WorkflowLifecycle({
       try {
         const res = await apiClient.post<{ data?: UploadedAttachment } & UploadedAttachment>(
           '/files/upload',
-          formData
+          formData,
+          { headers: { 'Content-Type': 'multipart/form-data' } }
         );
         const att: UploadedAttachment = (res.data as { data?: UploadedAttachment }).data ?? (res.data as UploadedAttachment);
         if (att?.publicId) newUploaded.push(att);

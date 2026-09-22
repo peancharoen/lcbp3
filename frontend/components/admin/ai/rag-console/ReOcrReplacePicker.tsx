@@ -5,6 +5,8 @@
 //   pattern ตาม migration replace-file-dialog แต่ emit selection ให้ parent แทนการ PATCH เอง
 // - 2026-09-21: UX fix — เพิ่ม filename filter (debounce → server-side q param ก่อน cap),
 //   split pane 2:3, ชื่อไฟล์ wrap แทน truncate + title tooltip, แสดง "แสดง X/Y" + truncated hint
+// - 2026-09-22: fix upload — เติม Content-Type: multipart/form-data (apiClient default เป็น
+//   application/json → axios serialize FormData เป็น JSON → backend 400 "File is required")
 
 'use client';
 
@@ -225,7 +227,9 @@ export function ReOcrReplacePicker({ onChange }: ReOcrReplacePickerProps) {
       formData.append('file', file);
       const res = await apiClient.post<
         { data?: UploadedFileResult } & UploadedFileResult
-      >('/files/upload', formData);
+      >('/files/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
       const uploaded = res.data?.data ?? res.data;
       if (!uploaded?.publicId) {
         throw new Error('Upload response missing publicId');

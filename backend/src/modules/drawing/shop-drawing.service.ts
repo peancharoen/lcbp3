@@ -74,6 +74,15 @@ export class ShopDrawingService {
           id: In(createDto.attachmentIds),
         });
       }
+      // ADR-016 two-phase: attachmentTempIds คือ tempId จาก POST /files/upload
+      if (createDto.attachmentTempIds?.length) {
+        attachments.push(
+          ...(await this.attachmentRepo.findBy({
+            tempId: In(createDto.attachmentTempIds),
+            isTemporary: true,
+          }))
+        );
+      }
 
       // ADR-019: Resolve UUID→INT
       const internalProjectId = await this.uuidResolver.resolveProjectId(
@@ -105,12 +114,12 @@ export class ShopDrawingService {
       });
       await queryRunner.manager.save(revision);
 
-      // 5. Commit Files
-      if (createDto.attachmentIds?.length) {
-        await this.fileStorageService.commit(
-          createDto.attachmentIds.map(String),
-          { issueDate: revision.revisionDate, documentType: 'ShopDrawing' }
-        );
+      // 5. Commit Files (temp → permanent — commit ค้นด้วย tempId เท่านั้น)
+      if (createDto.attachmentTempIds?.length) {
+        await this.fileStorageService.commit(createDto.attachmentTempIds, {
+          issueDate: revision.revisionDate,
+          documentType: 'ShopDrawing',
+        });
       }
 
       await queryRunner.commitTransaction();
@@ -172,6 +181,14 @@ export class ShopDrawingService {
           id: In(createDto.attachmentIds),
         });
       }
+      if (createDto.attachmentTempIds?.length) {
+        attachments.push(
+          ...(await this.attachmentRepo.findBy({
+            tempId: In(createDto.attachmentTempIds),
+            isTemporary: true,
+          }))
+        );
+      }
 
       const latestRev = await this.revisionRepo.findOne({
         where: { shopDrawingId },
@@ -194,11 +211,11 @@ export class ShopDrawingService {
       });
       await queryRunner.manager.save(revision);
 
-      if (createDto.attachmentIds?.length) {
-        await this.fileStorageService.commit(
-          createDto.attachmentIds.map(String),
-          { issueDate: revision.revisionDate, documentType: 'ShopDrawing' }
-        );
+      if (createDto.attachmentTempIds?.length) {
+        await this.fileStorageService.commit(createDto.attachmentTempIds, {
+          issueDate: revision.revisionDate,
+          documentType: 'ShopDrawing',
+        });
       }
 
       await queryRunner.commitTransaction();

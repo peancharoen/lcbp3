@@ -119,10 +119,10 @@ describe('ContractDrawingService', () => {
       );
     });
 
-    it('ควร commit attachments เมื่อมี attachmentIds', async () => {
+    it('ควร commit attachments เมื่อมี attachmentTempIds', async () => {
       const dtoWithAttachments: CreateContractDrawingDto = {
         ...dto,
-        attachmentIds: [1, 2],
+        attachmentTempIds: ['t1', 't2'],
       };
       mockDrawingRepo.findOne.mockResolvedValue(null);
       mockAttachmentRepo.findBy.mockResolvedValue([{ id: 1 }, { id: 2 }]);
@@ -136,7 +136,7 @@ describe('ContractDrawingService', () => {
       await service.create(dtoWithAttachments, mockUser as User);
 
       expect(mockFileStorageService.commit).toHaveBeenCalledWith(
-        ['1', '2'],
+        ['t1', 't2'],
         expect.objectContaining({ documentType: 'ContractDrawing' })
       );
     });
@@ -156,7 +156,7 @@ describe('ContractDrawingService', () => {
     it('ควรใช้ current date เป็น fallback เมื่อไม่พบ contract', async () => {
       const dtoWithAttachments: CreateContractDrawingDto = {
         ...dto,
-        attachmentIds: [1],
+        attachmentTempIds: ['t1'],
       };
       mockDrawingRepo.findOne.mockResolvedValue(null);
       mockAttachmentRepo.findBy.mockResolvedValue([{ id: 1 }]);
@@ -168,7 +168,7 @@ describe('ContractDrawingService', () => {
       await service.create(dtoWithAttachments, mockUser as User);
 
       expect(mockFileStorageService.commit).toHaveBeenCalledWith(
-        ['1'],
+        ['t1'],
         expect.objectContaining({
           documentType: 'ContractDrawing',
           issueDate: expect.any(Date),
@@ -331,7 +331,7 @@ describe('ContractDrawingService', () => {
       expect(mockQueryRunner.commitTransaction).toHaveBeenCalled();
     });
 
-    it('ควรอัปเดต attachments เมื่อมี attachmentIds', async () => {
+    it('ควรอัปเดต attachments เมื่อมี attachmentTempIds', async () => {
       const drawing = {
         id: 1,
         contractDrawingNo: 'CD-001',
@@ -347,13 +347,13 @@ describe('ContractDrawingService', () => {
       mockManager.save.mockResolvedValue(drawing);
 
       const dto: UpdateContractDrawingDto = {
-        attachmentIds: [5],
+        attachmentTempIds: ['temp-5'],
       };
 
       await service.update(1, dto, mockUser as User);
 
       expect(mockFileStorageService.commit).toHaveBeenCalledWith(
-        ['5'],
+        ['temp-5'],
         expect.objectContaining({ documentType: 'ContractDrawing' })
       );
     });

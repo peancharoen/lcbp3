@@ -12,10 +12,10 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
  * DTO for creating a new AS Built Drawing with its first revision
  */
 export class CreateAsBuiltDrawingDto {
-  @ApiProperty({ description: 'Project ID' })
-  @IsNumber()
+  // ADR-019: รับได้ทั้ง INT และ UUID publicId — service resolve ผ่าน uuidResolver
+  @ApiProperty({ description: 'Project ID or UUID' })
   @IsNotEmpty()
-  projectId!: number;
+  projectId!: number | string;
 
   @ApiProperty({ description: 'AS Built Drawing Number (unique)' })
   @IsString()
@@ -69,4 +69,16 @@ export class CreateAsBuiltDrawingDto {
   @IsArray()
   @IsOptional()
   attachmentIds?: number[];
+
+  /**
+   * ADR-016 Two-Phase Upload — tempId ของ attachment จาก POST /files/upload
+   * (pattern เดียวกับ CreateCorrespondenceDto.attachmentTempIds)
+   */
+  @ApiPropertyOptional({
+    description: 'Attachment temp IDs (two-phase upload)',
+  })
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  attachmentTempIds?: string[];
 }

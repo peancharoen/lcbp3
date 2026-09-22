@@ -1,5 +1,8 @@
 // File: backend/src/modules/migration/migration.service.ts
 // Change Log:
+// - 2026-09-22: getStagingFileStream — bare filename (ไม่มี directory component)
+//   ไม่ถือเป็น traversal อีกต่อไป ให้ไหลเข้า D330 recursive search โดยตรง
+//   (เดิม resolve ไป cwd → โดน guard block ก่อนถึง fallback เสมอ)
 // - 2026-09-17: ADR-054 — ส่ง register snapshot เข้า legacy extraction และ persist compare state ใหม่
 // - 2026-09-16: เพิ่ม replaceQueueItemFile (PATCH /migration/queue/:publicId/file) —
 //   เปลี่ยนไฟล์ต้นฉบับจาก staging/Legacy NAS (path-traversal guarded, find-or-create
@@ -2521,7 +2524,13 @@ export class MigrationService {
         resolvedPath === root || resolvedPath.startsWith(root + path.sep)
     );
 
-    if (!isWithinAllowed) {
+    // Bare filename (ไม่มี directory component) จะ resolve ไปที่ cwd เสมอ →
+    // อยู่นอก allowed roots โดยนิยาม แต่ไม่ใช่ traversal — ให้ข้ามไปหา
+    // D330 recursive search ได้เลย (รองรับ storageTempPath ที่เก็บแค่ชื่อไฟล์)
+    const isBareName =
+      filePath === path.basename(filePath) && !filePath.includes('..');
+
+    if (!isWithinAllowed && !isBareName) {
       this.logger.warn(
         `Path traversal blocked: "${filePath}" resolves outside allowed dirs [${allowedRoots.join(', ')}]`
       );
@@ -2530,7 +2539,7 @@ export class MigrationService {
       );
     }
 
-    if (existsSync(resolvedPath)) {
+    if (isWithinAllowed && existsSync(resolvedPath)) {
       return createReadStream(resolvedPath);
     }
 

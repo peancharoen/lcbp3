@@ -7,9 +7,9 @@ import {
 } from 'class-validator';
 
 export class CreateContractDrawingDto {
-  @IsInt()
+  // ADR-019: รับได้ทั้ง INT และ UUID publicId — service resolve ผ่าน uuidResolver
   @IsNotEmpty()
-  projectId!: number; // ✅ ใส่ !
+  projectId!: number | string;
 
   @IsString()
   @IsNotEmpty()
@@ -35,4 +35,13 @@ export class CreateContractDrawingDto {
   @IsInt({ each: true })
   @IsOptional()
   attachmentIds?: number[]; // ✅ ใส่ ?
+
+  /**
+   * ADR-016 Two-Phase Upload — tempId ของ attachment จาก POST /files/upload
+   * (pattern เดียวกับ CreateCorrespondenceDto.attachmentTempIds)
+   */
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  attachmentTempIds?: string[];
 }

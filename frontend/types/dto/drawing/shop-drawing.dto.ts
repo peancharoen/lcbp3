@@ -15,6 +15,7 @@ export interface CreateShopDrawingDto {
   legacyDrawingNumber?: string; // Legacy number for the first revision
   contractDrawingIds?: (number | string)[]; // ADR-019: Accept UUID - อ้างอิงแบบสัญญา
   attachmentIds?: (number | string)[]; // ADR-019: Accept UUID
+  attachmentTempIds?: string[]; // ADR-016 two-phase upload (POST /files/upload → tempId)
 }
 
 // --- Create New Revision ---
@@ -26,6 +27,7 @@ export interface CreateShopDrawingRevisionDto {
   description?: string;
   contractDrawingIds?: (number | string)[]; // ADR-019: Accept UUID
   attachmentIds?: (number | string)[]; // ADR-019: Accept UUID
+  attachmentTempIds?: string[]; // ADR-016 two-phase upload
 }
 
 // --- Search ---

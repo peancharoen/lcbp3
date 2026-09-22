@@ -3811,6 +3811,44 @@ describe('MigrationService', () => {
         service.getStagingFileStream(path.join(stagingDir, 'nonexistent.pdf'))
       ).toThrow(NotFoundException);
     });
+
+    it('D330: bare filename (ไม่มี directory) ต้องไม่โดน traversal guard — ค้นหา recursive แทน', () => {
+      const legacyNasPath = '/mnt/legacy-staging';
+      mockedExistsSync.mockImplementation((p: unknown) => {
+        return String(p) === legacyNasPath;
+      });
+      mockedReaddirSync.mockImplementation((p: unknown) => {
+        if (String(p) === legacyNasPath) {
+          return [
+            {
+              name: 'DOC-001.pdf',
+              isFile: () => true,
+              isDirectory: () => false,
+            },
+          ];
+        }
+        return [];
+      });
+      mockedCreateReadStream.mockReturnValue({} as never);
+
+      // storageTempPath ที่เก็บแค่ชื่อไฟล์ — resolve ไป cwd → อยู่นอก allowed roots
+      // แต่ต้องไม่ถือเป็น traversal; recursive search ต้องเจอไฟล์ใน legacyNasPath
+      const stream = service.getStagingFileStream('DOC-001.pdf');
+
+      expect(stream).toBeDefined();
+      expect(mockedCreateReadStream).toHaveBeenCalledWith(
+        path.join(legacyNasPath, 'DOC-001.pdf')
+      );
+    });
+
+    it('bare filename ที่หาไม่เจอ → NotFoundException (ไม่ใช่ traversal 400)', () => {
+      mockedExistsSync.mockReturnValue(false);
+      mockedReaddirSync.mockReturnValue([]);
+
+      expect(() => service.getStagingFileStream('missing.pdf')).toThrow(
+        NotFoundException
+      );
+    });
   });
 
   // ── ADR-050 T007: getAllowedCategoryCodes ───────────────────────────────────────

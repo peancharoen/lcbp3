@@ -34,4 +34,10 @@ export class CreateShopDrawingRevisionDto {
   @IsInt({ each: true })
   @IsOptional()
   attachmentIds?: number[]; // Optional: ใส่ ?
+
+  // ADR-016 Two-Phase Upload — tempId ของ attachment จาก POST /files/upload
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  attachmentTempIds?: string[];
 }

@@ -24,6 +24,17 @@ import {
 import { useState, useEffect, useMemo } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
+import { filesApi } from '@/lib/api/files';
+import { toast } from 'sonner';
+import {
+  CreateContractDrawingDto,
+} from '@/types/dto/drawing/contract-drawing.dto';
+import {
+  CreateShopDrawingDto,
+} from '@/types/dto/drawing/shop-drawing.dto';
+import {
+  CreateAsBuiltDrawingDto,
+} from '@/types/dto/drawing/asbuilt-drawing.dto';
 
 // Base Schema
 const baseSchema = z.object({
@@ -128,43 +139,62 @@ export function DrawingUploadForm() {
     setSelectedProjectId(project?.publicId ?? project?.id ?? watchedProjectId);
   }, [watchedProjectId, projects]);
 
-  const onSubmit = (data: DrawingFormData) => {
-    const formData = new FormData();
+  const [isUploading, setIsUploading] = useState(false);
 
-    // Common fields
-    formData.append('projectId', String(data.projectId));
-    formData.append('file', data.file);
-
-    if (data.drawingType === 'CONTRACT') {
-      formData.append('contractDrawingNo', data.contractDrawingNo);
-      formData.append('title', data.title);
-      formData.append('mapCatId', data.mapCatId);
-      if (data.volumeId) formData.append('volumeId', data.volumeId);
-      if (data.volumePage) formData.append('volumePage', String(data.volumePage));
-    } else if (data.drawingType === 'SHOP') {
-      formData.append('drawingNumber', data.drawingNumber);
-      formData.append('mainCategoryId', data.mainCategoryId);
-      formData.append('subCategoryId', data.subCategoryId);
-      formData.append('revisionLabel', data.revisionLabel || '0');
-      formData.append('title', data.title); // Revision Title
-      if (data.legacyDrawingNumber) formData.append('legacyDrawingNumber', data.legacyDrawingNumber);
-      if (data.description) formData.append('description', data.description);
-      // Date default to now
-    } else if (data.drawingType === 'AS_BUILT') {
-      formData.append('drawingNumber', data.drawingNumber);
-      formData.append('mainCategoryId', data.mainCategoryId);
-      formData.append('subCategoryId', data.subCategoryId);
-      formData.append('revisionLabel', data.revisionLabel || '0');
-      formData.append('title', data.title);
-      if (data.legacyDrawingNumber) formData.append('legacyDrawingNumber', data.legacyDrawingNumber);
-      if (data.description) formData.append('description', data.description);
+  // Two-phase upload (ADR-016): อัปโหลดไฟล์เข้า temp ก่อน แล้วส่ง tempId
+  // ใน JSON DTO — ไม่ส่ง FormData ตรงๆ (backend create endpoints รับ @Body() JSON)
+  const onSubmit = async (data: DrawingFormData) => {
+    setIsUploading(true);
+    let attachmentTempIds: string[] | undefined;
+    try {
+      const uploaded = await filesApi.upload(data.file);
+      attachmentTempIds = [uploaded.tempId];
+    } catch {
+      toast.error('File upload failed');
+      setIsUploading(false);
+      return;
     }
+    setIsUploading(false);
 
-    createMutation.mutate(formData, {
-      onSuccess: () => {
-        router.push('/drawings');
-      },
-    });
+    const redirect = { onSuccess: () => router.push('/drawings') };
+    if (data.drawingType === 'CONTRACT') {
+      const payload: CreateContractDrawingDto = {
+        projectId: data.projectId,
+        contractDrawingNo: data.contractDrawingNo,
+        title: data.title,
+        mapCatId: data.mapCatId,
+        volumeId: data.volumeId || undefined,
+        volumePage: data.volumePage || undefined,
+        attachmentTempIds,
+      };
+      createMutation.mutate(payload, redirect);
+    } else if (data.drawingType === 'SHOP') {
+      const payload: CreateShopDrawingDto = {
+        projectId: data.projectId,
+        drawingNumber: data.drawingNumber,
+        mainCategoryId: data.mainCategoryId,
+        subCategoryId: data.subCategoryId,
+        revisionLabel: data.revisionLabel || '0',
+        title: data.title,
+        legacyDrawingNumber: data.legacyDrawingNumber || undefined,
+        description: data.description || undefined,
+        attachmentTempIds,
+      };
+      createMutation.mutate(payload, redirect);
+    } else {
+      const payload: CreateAsBuiltDrawingDto = {
+        projectId: data.projectId,
+        drawingNumber: data.drawingNumber,
+        mainCategoryId: data.mainCategoryId,
+        subCategoryId: data.subCategoryId,
+        revisionLabel: data.revisionLabel || '0',
+        title: data.title,
+        legacyDrawingNumber: data.legacyDrawingNumber || undefined,
+        description: data.description || undefined,
+        attachmentTempIds,
+      };
+      createMutation.mutate(payload, redirect);
+    }
   };
 
   return (
@@ -435,8 +465,8 @@ export function DrawingUploadForm() {
         <Button type="button" variant="outline" onClick={() => router.back()}>
           Cancel
         </Button>
-        <Button type="submit" disabled={createMutation.isPending}>
-          {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        <Button type="submit" disabled={createMutation.isPending || isUploading}>
+          {(createMutation.isPending || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Upload Drawing
         </Button>
       </div>

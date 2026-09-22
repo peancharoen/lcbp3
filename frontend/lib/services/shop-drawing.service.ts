@@ -26,7 +26,7 @@ export const shopDrawingService = {
   /**
    * สร้าง Shop Drawing ใหม่ (พร้อม Revision 0)
    */
-  create: async (data: CreateShopDrawingDto | FormData) => {
+  create: async (data: CreateShopDrawingDto) => {
     const response = await apiClient.post('/drawings/shop', data);
     return response.data;
   },

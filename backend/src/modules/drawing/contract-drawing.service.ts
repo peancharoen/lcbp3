@@ -88,6 +88,15 @@ export class ContractDrawingService {
           id: In(createDto.attachmentIds),
         });
       }
+      // ADR-016 two-phase: attachmentTempIds คือ tempId จาก POST /files/upload
+      if (createDto.attachmentTempIds?.length) {
+        attachments.push(
+          ...(await this.attachmentRepo.findBy({
+            tempId: In(createDto.attachmentTempIds),
+            isTemporary: true,
+          }))
+        );
+      }
 
       // 3. สร้าง Entity
       const drawing = queryRunner.manager.create(ContractDrawing, {
@@ -103,15 +112,14 @@ export class ContractDrawingService {
 
       const savedDrawing = await queryRunner.manager.save(drawing);
 
-      // 4. Commit Files (ย้ายไฟล์จริง)
-      if (createDto.attachmentIds?.length) {
-        // ✅ FIX TS2345: แปลง number[] เป็น string[] ก่อนส่ง
+      // 4. Commit Files (temp → permanent — commit ค้นด้วย tempId เท่านั้น)
+      if (createDto.attachmentTempIds?.length) {
         const issueDate =
           await this.resolveIssueDateByProject(internalProjectId);
-        await this.fileStorageService.commit(
-          createDto.attachmentIds.map(String),
-          { issueDate, documentType: 'ContractDrawing' }
-        );
+        await this.fileStorageService.commit(createDto.attachmentTempIds, {
+          issueDate,
+          documentType: 'ContractDrawing',
+        });
       }
 
       await queryRunner.commitTransaction();
@@ -260,22 +268,39 @@ export class ContractDrawingService {
       drawing.updatedBy = user.user_id;
 
       // Update Attachments (Replace logic)
-      if (updateDto.attachmentIds) {
-        const newAttachments = await this.attachmentRepo.findBy({
-          id: In(updateDto.attachmentIds),
-        });
+      if (
+        updateDto.attachmentIds !== undefined ||
+        updateDto.attachmentTempIds !== undefined
+      ) {
+        const newAttachments: Attachment[] = [];
+        if (updateDto.attachmentIds?.length) {
+          newAttachments.push(
+            ...(await this.attachmentRepo.findBy({
+              id: In(updateDto.attachmentIds),
+            }))
+          );
+        }
+        // ADR-016 two-phase: attachmentTempIds คือ tempId จาก POST /files/upload
+        if (updateDto.attachmentTempIds?.length) {
+          newAttachments.push(
+            ...(await this.attachmentRepo.findBy({
+              tempId: In(updateDto.attachmentTempIds),
+              isTemporary: true,
+            }))
+          );
+        }
         drawing.attachments = newAttachments;
 
-        // Commit new files
-
-        // ✅ FIX TS2345: แปลง number[] เป็น string[] ก่อนส่ง
-        const issueDate = await this.resolveIssueDateByProject(
-          drawing.projectId
-        );
-        await this.fileStorageService.commit(
-          updateDto.attachmentIds.map(String),
-          { issueDate, documentType: 'ContractDrawing' }
-        );
+        // Commit new files (temp → permanent — commit ค้นด้วย tempId เท่านั้น)
+        if (updateDto.attachmentTempIds?.length) {
+          const issueDate = await this.resolveIssueDateByProject(
+            drawing.projectId
+          );
+          await this.fileStorageService.commit(updateDto.attachmentTempIds, {
+            issueDate,
+            documentType: 'ContractDrawing',
+          });
+        }
       }
 
       const updatedDrawing = await queryRunner.manager.save(drawing);
