@@ -324,6 +324,11 @@
 | D345 | **Orphan/staging attachments policy** — RAG Admin list เฉพาะ linked attachments (EXISTS ครบ 5 join tables); rows ที่ไม่มี `ocr_text` = non-ingestable (`NO_OCR_TEXT` by design — ปุ่ม disabled via `hasOcrText`); ลบ orphan ต้อง backup `*_backup_YYYYMMDD` + FK order pages→gens→attachments + exclude queue-referenced (id 339/342 เก็บไว้); heal OCR ห้าม copy ข้าม attachment โดยไม่ verify sha256 identical | Session 2026-09-19 |
 | D346 | **Manual re-ingest recipe (ops)** — persist `ocr_text`+`CHECKSUM` → INSERT `rag_attachment_generations` BUILDING (uuidv7, `bge-m3`) → BullMQ `ai-rag-ingest` job `rag-attachment-ingest:{att}:{checksum}`; processor เป็นเจ้าของ `rag_status` PROCESSING→INDEXED/FAILED; backend container ใช้ `DB_ROOT_PASSWORD` + node `-w /app`; PDF malformed (no xref) ที่ sidecar อ่านไม่ได้ → fallback PyMuPDF extract | Session 2026-09-19 |
 | D347 | **In-app back navigation ต้อง `router.back()`** — detail page ที่เปิดจาก list ที่มี URL-backed state (D342) ต้องกลับด้วย `router.back()` (หรือส่ง return URL มา) ห้าม hardcode `<Link>`/`push` ไป bare list URL — user ใช้ปุ่ม `<-` ในหน้า ไม่ใช่ browser back; เสมอ fallback `push()` เมื่อ `window.history.length <= 1` (deep link/แท็บใหม่); page size ก็ URL-backed เช่นกัน (`?limit=`, reset หน้า 1 เมื่อเปลี่ยน) + backend ต้องมี `@Max` cap | Session 2026-09-19 |
+| D348 | **`[skip CI]` leak ใน squash** — `[skip CI]` ใน sub-commit subject ใดๆ จะ leak เข้า final squashed `head_commit.message` → skip ทั้ง CI pipeline; memory/docs commits ต้อง push แยกรอบจาก code commits เสมอ | Session 2026-09-22 |
+| D349 | **FormData POST ต้องตั้ง `Content-Type: multipart/form-data` ที่ call site** — apiClient default `application/json` ทำ axios serialize FormData เป็น JSON → multer "File is required"; ห้ามแก้ด้วย global interceptor (endpoints `@Body()` JSON จะพัง) | Session 2026-09-22 |
+| D350 | **Drawing upload contract = `attachmentTempIds`** — services ต้อง commit ด้วย temporary attachment public IDs ไม่ใช่ INT ids (commit() ค้นด้วย tempId → INT = no-op เงียบ); DTOs รับ `projectId: number\|string` | Session 2026-09-22 |
+| D351 | **Bare staging filename → D330 recursive search** — `storageTempPath` ที่เป็น bare filename (ไม่มี `/` หรือ `..`) bypass traversal guard → recursive search ใน staging/legacy roots; traversal จริงยัง 400, ไม่พบไฟล์ 404 | Session 2026-09-22 |
+| D352 | **rag-prepare pipeline retired — ไม่มี production caller เหลือ** — commitRecord/importCorrespondence ใช้ generation-aware path (D344); checksum compute ไม่ได้ → mark `ragStatus=FAILED` (ห้าม fallback ลง dead pipeline); status transition ไม่ต้อง re-index (status ไม่อยู่ใน vector payload); `enqueueRagPrepare` definitions เหลือเพื่อ drain jobs เก่าเท่านั้น; reconcile script: `backend/src/scripts/reconcile-rag-ingestion.ts` (`--dry-run`, `--path-map`) | Session 2026-09-22 |
 
 ## Environment & Services
 
@@ -383,6 +388,8 @@ QDRANT_URL
 - [x] Staging file picker fix pushed (`2bca9601` CI #797) — `q` filter + cap 2,000 + wrap filenames + max-w-4xl ทุก file list
 - [x] Upload bug class fix pushed (`f31dd69d` CI #798 queued) — multipart headers 3 call sites (D349), drawings two-phase `attachmentTempIds` (D350), bare-filename staging preview (D351)
 - [ ] Post-deploy verify CI #798: (1) `/admin/migration/review/` upload tab สำเร็จ, (2) `/drawings/upload` create พร้อมไฟล์ + attachment commit, (3) bare-filename queue items (เช่น id 246) preview → 404 สะอาด
+- [x] RAG NOT_STARTED reconcile เสร็จ — 59/59 → ACTIVE (NOT_STARTED=0); `commitRecord`/`importCorrespondence`/workflow trigger migrate → generation-aware (push `608a1226` CI pending); D352 locked
+- [ ] Post-deploy verify `608a1226`: commit ผ่าน review queue ใหม่ได้ generation ทันที (ไม่ต้อง reconcile); ถ้า queue drain แล้วพิจารณาลบ `enqueueRagPrepare` definitions ถาวร
 - [ ] T040: finalize assurance ledger (`FINAL_STATUS`) หลัง ADR-055 deploy verify ครบ
 - [ ] (optional) 6 queue items ที่ `storageTempPath` เป็น doc-number (เช่น `O672-0258-ผรม.2-คคง.-0100-2567`) — พิจารณา data repair/migration-review UX สำหรับ malformed paths
 
