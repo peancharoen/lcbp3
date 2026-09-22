@@ -379,6 +379,12 @@ QDRANT_URL
 - [ ] Browser verify `3055ad73`: ปุ่ม `<-` คง state + page-size selector + Vector Sync tab/RAG Console metrics
 - [ ] `DROP TABLE *_backup_20260918` (3 tables) เมื่อมั่นใจ orphan cleanup ถูกต้อง — ต้อง user confirm
 - [ ] (optional) Re-ingest healed non-current-rev attachments `01a0a357-3952` (CHEC-0004), `01a0a7fc-169c` (CHEC-0011) ถ้าอยาก index เนื้อหา — ocr+checksum พร้อมแล้ว
+- [x] **ADR-055 Part 2 T062 + security audit pushed+deployed** (`8d298dea` CI #796; retrigger `c908b299` CI #795 สำหรับ [skip CI] leak — D348) — junction swap จริงบน production สำเร็จ (rev 369→att 1035), SEV-001/002/003 fixed; **manual-review open:** audit write ใน confirmReplace เป็น best-effort (swap→audit order) — ต้องตัดสิน ADR-016 acceptability
+- [x] Staging file picker fix pushed (`2bca9601` CI #797) — `q` filter + cap 2,000 + wrap filenames + max-w-4xl ทุก file list
+- [x] Upload bug class fix pushed (`f31dd69d` CI #798 queued) — multipart headers 3 call sites (D349), drawings two-phase `attachmentTempIds` (D350), bare-filename staging preview (D351)
+- [ ] Post-deploy verify CI #798: (1) `/admin/migration/review/` upload tab สำเร็จ, (2) `/drawings/upload` create พร้อมไฟล์ + attachment commit, (3) bare-filename queue items (เช่น id 246) preview → 404 สะอาด
+- [ ] T040: finalize assurance ledger (`FINAL_STATUS`) หลัง ADR-055 deploy verify ครบ
+- [ ] (optional) 6 queue items ที่ `storageTempPath` เป็น doc-number (เช่น `O672-0258-ผรม.2-คคง.-0100-2567`) — พิจารณา data repair/migration-review UX สำหรับ malformed paths
 
 ### 🎯 Open Items — รวมจาก cleanup pass 2026-09-05 (branch `docs/next-session-focus`)
 
