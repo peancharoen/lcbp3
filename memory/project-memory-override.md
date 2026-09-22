@@ -329,6 +329,11 @@
 | D350 | **Drawing upload contract = `attachmentTempIds`** — services ต้อง commit ด้วย temporary attachment public IDs ไม่ใช่ INT ids (commit() ค้นด้วย tempId → INT = no-op เงียบ); DTOs รับ `projectId: number\|string` | Session 2026-09-22 |
 | D351 | **Bare staging filename → D330 recursive search** — `storageTempPath` ที่เป็น bare filename (ไม่มี `/` หรือ `..`) bypass traversal guard → recursive search ใน staging/legacy roots; traversal จริงยัง 400, ไม่พบไฟล์ 404 | Session 2026-09-22 |
 | D352 | **rag-prepare pipeline retired — ไม่มี production caller เหลือ** — commitRecord/importCorrespondence ใช้ generation-aware path (D344); checksum compute ไม่ได้ → mark `ragStatus=FAILED` (ห้าม fallback ลง dead pipeline); status transition ไม่ต้อง re-index (status ไม่อยู่ใน vector payload); `enqueueRagPrepare` definitions เหลือเพื่อ drain jobs เก่าเท่านั้น; reconcile script: `backend/src/scripts/reconcile-rag-ingestion.ts` (`--dry-run`, `--path-map`) | Session 2026-09-22 |
+| D353 | **Legacy discipline backfill recipe** — scope เฉพาะ rows ที่ join `migration_review_queue.imported_correspondence_public_id` ได้ (test/manual records ข้าม); snapshot JSON ก่อน UPDATE เสมอ (`backfill-audit/`); backfill 500 rows → GEN/LCBP3-C2 `discipline_id=64` (2026-09-22); เหลือ NULL 10 = test/manual ไม่แตะจนกว่า user สั่ง | Session 2026-09-22 |
+| D354 | **Correspondence↔Contract = via `discipline_id` เท่านั้น** — `correspondences` ไม่มี `contract_id`; `discipline_code` unique เฉพาะ `(contract_id, discipline_code)` (GEN/AQV/BIM ซ้ำข้าม C1/C2) → resolve ต้อง scope contract เสมอ; migration: contractCode→Contract (scope projectId) → discipline ภายใน contract; commit reject cross-contract ด้วย ValidationException; review UI filter dropdown ด้วย `details.contractId` | Session 2026-09-22 |
+| D355 | **Frontend API contract rules** — entity serialize ออก `publicId` ไม่ใช่ `uuid` (ADR-019); TransformInterceptor wrap `{statusCode,message,data}` → ต้อง unwrap `.data` ที่ service/component; query params ต้องตรง DTO whitelist เป๊ะ (`forbidNonWhitelisted:true` → param เกิน = 400 เงียบ — transmittals `projectId`→`projectUuid` คือตัวอย่าง) | Session 2026-09-22 |
+| D356 | **DataTable width = `columnDef.size` → style width** — TanStack auto-layout ไม่ใช้ `size` เอง; shared `data-table.tsx` apply size เป็น width บน TableHead/TableCell; ลดแค่ header `min-w` ไม่ได้ผล | Session 2026-09-22 |
+| D357 | **exceljs@4.4.0 pnpm patch — iterate-stream drain race** — unzipper `Parse` emit custom `'end'` ตอน writable-side finish เร็วกว่า buffered entries emit `'data'` → entry ท้าย zip (`xl/workbook.xml`) หลุด → `this.model.sheets` TypeError (flaky บน CI); patch `patches/exceljs@4.4.0.patch` loop ต่อจน `readableLength===0`; ทุก `pnpm patch` ต้องลง `patchedDependencies` (check-patches.sh gate) | Session 2026-09-22 |
 
 ## Environment & Services
 
@@ -390,6 +395,11 @@ QDRANT_URL
 - [ ] Post-deploy verify CI #798: (1) `/admin/migration/review/` upload tab สำเร็จ, (2) `/drawings/upload` create พร้อมไฟล์ + attachment commit, (3) bare-filename queue items (เช่น id 246) preview → 404 สะอาด
 - [x] RAG NOT_STARTED reconcile เสร็จ — 59/59 → ACTIVE (NOT_STARTED=0); `commitRecord`/`importCorrespondence`/workflow trigger migrate → generation-aware (push `608a1226` CI pending); D352 locked
 - [ ] Post-deploy verify `608a1226`: commit ผ่าน review queue ใหม่ได้ generation ทันที (ไม่ต้อง reconcile); ถ้า queue drain แล้วพิจารณาลบ `enqueueRagPrepare` definitions ถาวร
+- [ ] Post-deploy verify `87c8974a`: `/admin/migration` เลือก Contract Code → import → correspondences มี discipline/contract; Referenced Documents search ทำงาน
+- [ ] Post-deploy verify `b910fc91`: `/transmittals` โหลดได้; `/correspondences` back-state/page-size/Rev แคบ/Issued Date
+- [ ] Post-deploy verify `32529617`: rag-console filename filter + column widths
+- [ ] 10 NULL-discipline correspondences (test/manual, no queue link) — รอ user สั่ง mapping ถ้าต้องการ assign
+- [ ] เฝ้า CI ถัดไป — ถ้าเจอ `this.model.sheets` TypeError อีก = exceljs race ยังไม่หมด (D357 patch อาจต้องขยาย)
 - [ ] T040: finalize assurance ledger (`FINAL_STATUS`) หลัง ADR-055 deploy verify ครบ
 - [ ] (optional) 6 queue items ที่ `storageTempPath` เป็น doc-number (เช่น `O672-0258-ผรม.2-คคง.-0100-2567`) — พิจารณา data repair/migration-review UX สำหรับ malformed paths
 
