@@ -1,5 +1,6 @@
 // File: backend/src/modules/correspondence/dto/search-correspondence.dto.ts
 // Change Log:
+// - 2026-09-22: เพิ่ม documentDate filter + sortBy 'documentDate' (Issued Date column)
 // - 2026-09-17: เพิ่ม server-side document list filters และ allow-listed sorting
 
 import {
@@ -65,9 +66,21 @@ export class SearchCorrespondenceDto {
   @IsDateString()
   createdDate?: string;
 
+  @ApiPropertyOptional({
+    description: 'Filter by document issue date (YYYY-MM-DD)',
+  })
   @IsOptional()
-  @IsIn(['documentNumber', 'revision', 'createdAt', 'status'])
-  sortBy?: 'documentNumber' | 'revision' | 'createdAt' | 'status';
+  @IsDateString()
+  documentDate?: string;
+
+  @IsOptional()
+  @IsIn(['documentNumber', 'revision', 'createdAt', 'status', 'documentDate'])
+  sortBy?:
+    | 'documentNumber'
+    | 'revision'
+    | 'createdAt'
+    | 'status'
+    | 'documentDate';
 
   @IsOptional()
   @IsIn(['ASC', 'DESC'])

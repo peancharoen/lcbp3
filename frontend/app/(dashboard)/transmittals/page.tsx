@@ -59,7 +59,7 @@ export default function TransmittalPage() {
     queryKey: ['transmittals', selectedProjectUuid, selectedPurpose, listQuery],
     queryFn: () =>
       transmittalService.getAll({
-        projectId: selectedProjectUuid,
+        projectUuid: selectedProjectUuid,
         ...(selectedPurpose ? { purpose: selectedPurpose } : {}),
         ...listQuery,
       }),

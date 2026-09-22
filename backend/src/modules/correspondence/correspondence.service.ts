@@ -556,6 +556,7 @@ export class CorrespondenceService {
       documentNumber,
       revision,
       createdDate,
+      documentDate,
       sortBy = 'createdAt',
       sortOrder = 'DESC',
       page = 1,
@@ -623,11 +624,15 @@ export class CorrespondenceService {
         { createdDate, createdDateEnd: createdDateEnd.toISOString() }
       );
     }
+    if (documentDate) {
+      query.andWhere('rev.documentDate = :documentDate', { documentDate });
+    }
     const sortColumns = {
       documentNumber: 'corr.correspondenceNumber',
       revision: 'rev.revisionNumber',
       createdAt: 'rev.createdAt',
       status: 'status.statusCode',
+      documentDate: 'rev.documentDate',
     } as const;
     query.orderBy(sortColumns[sortBy], sortOrder).skip(skip).take(limit);
 

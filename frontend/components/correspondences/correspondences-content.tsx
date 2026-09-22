@@ -15,6 +15,7 @@ import { BulkResultDialog } from '@/components/documents/bulk-result-dialog';
 import { getDocumentActionConfig } from '@/components/documents/document-action-strategy';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Link from 'next/link';
 import { useCallback, useMemo, useState } from 'react';
 import apiClient from '@/lib/api/client';
@@ -51,6 +52,9 @@ export function CorrespondencesContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const page = Number(searchParams.get('page') || '1');
+  const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
+  const rawLimit = Number(searchParams.get('limit') || '10');
+  const limit = PAGE_SIZE_OPTIONS.includes(rawLimit) ? rawLimit : 10;
   const statusFilter = searchParams.get('status') || '';
   const typeFilter = (searchParams.get('type') || '').toUpperCase();
   const search = searchParams.get('search') || undefined;
@@ -58,7 +62,8 @@ export function CorrespondencesContent() {
   const documentNumber = searchParams.get('documentNumber') || undefined;
   const revision = searchParams.get('revision') || undefined;
   const createdDate = searchParams.get('createdDate') || undefined;
-  const sortBy = searchParams.get('sortBy') as 'documentNumber' | 'revision' | 'createdAt' | 'status' | null;
+  const documentDate = searchParams.get('documentDate') || undefined;
+  const sortBy = searchParams.get('sortBy') as 'documentNumber' | 'revision' | 'createdAt' | 'status' | 'documentDate' | null;
   const sortOrder = searchParams.get('sortOrder') as 'ASC' | 'DESC' | null;
 
   const [searchInput, setSearchInput] = useState(search || '');
@@ -121,9 +126,10 @@ export function CorrespondencesContent() {
       documentNumber,
       revision,
       createdDate,
+      documentDate,
       sortBy: sortBy ?? undefined,
       sortOrder: sortOrder ?? undefined,
-      limit: 10,
+      limit,
     },
     {
       enabled: !shouldWaitForTypeResolution,
@@ -265,12 +271,30 @@ export function CorrespondencesContent() {
       </div>
 
       <CorrespondenceList data={data?.data || []} rowSelection={rowSelection} onRowSelectionChange={setRowSelection} />
-      <div className="mt-4">
+      <div className="mt-4 flex items-center justify-between gap-4 flex-wrap">
         <Pagination
           currentPage={data?.meta?.page || 1}
           totalPages={data?.meta?.totalPages || 1}
           total={data?.meta?.total || 0}
         />
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Rows per page:</span>
+          <Select
+            value={String(limit)}
+            onValueChange={(v) => router.push(buildUrl({ limit: v }))}
+          >
+            <SelectTrigger className="h-8 w-[70px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PAGE_SIZE_OPTIONS.map((n) => (
+                <SelectItem key={n} value={String(n)}>
+                  {n}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <BulkActionBar

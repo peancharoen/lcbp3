@@ -2,6 +2,7 @@
 
 // File: frontend/components/documents/common/document-list-header.tsx
 // Change Log:
+// - 2026-09-22: เพิ่ม field 'documentDate' (Issued Date) + prop compact สำหรับคอลัมน์แคบ
 // - 2026-09-17: Shared URL-backed filter/sort header สำหรับ document lists
 
 import { useState } from 'react';
@@ -13,13 +14,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 interface DocumentListHeaderProps {
   title: string;
-  field: 'documentNumber' | 'revision' | 'createdAt' | 'status';
+  field: 'documentNumber' | 'revision' | 'createdAt' | 'status' | 'documentDate';
   filter?: 'text' | 'date' | 'status';
   statusOptions?: string[];
+  /** คอลัมน์แคบ (เช่น Rev) — ลด min-width ของ header */
+  compact?: boolean;
 }
 
 /** Header กลางที่เก็บ filter/sort ใน URL เพื่อให้ server query และ browser history ใช้ state เดียวกัน */
-export function DocumentListHeader({ title, field, filter, statusOptions = [] }: DocumentListHeaderProps) {
+export function DocumentListHeader({ title, field, filter, statusOptions = [], compact = false }: DocumentListHeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -44,7 +47,7 @@ export function DocumentListHeader({ title, field, filter, statusOptions = [] }:
   };
 
   return (
-    <div className="min-w-[120px] space-y-1">
+    <div className={`${compact ? 'min-w-[64px]' : 'min-w-[120px]'} space-y-1`}>
       <Button
         type="button"
         variant="ghost"

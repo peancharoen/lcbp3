@@ -101,7 +101,7 @@ export interface CreateTransmittalDto {
 export interface SearchTransmittalDto {
   page?: number;
   limit?: number;
-  projectId?: number | string; // ADR-019: Accept UUID
+  projectUuid?: string; // ADR-019: UUID เท่านั้น — backend resolve เป็น INT เอง
   purpose?: TransmittalPurpose; // v1.8.7: B3 purpose filter
   search?: string;
 }

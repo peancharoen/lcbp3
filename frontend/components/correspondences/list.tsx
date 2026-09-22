@@ -2,6 +2,7 @@
 
 // File: frontend/components/correspondences/list.tsx
 // Change Log:
+// - 2026-09-22: Rev column compact + เปลี่ยน Created → Issued Date (documentDate fallback issuedDate)
 // - 2026-09-17: เชื่อม row actions เข้าหน้า detail dialogs และเปิด full edit หลัง submit สำหรับ Admin/Superadmin
 
 import { CorrespondenceRevision } from '@/types/correspondence';
@@ -36,7 +37,8 @@ export function CorrespondenceList({ data, rowSelection, onRowSelectionChange }:
     },
     {
       accessorKey: 'revisionLabel',
-      header: () => <DocumentListHeader title="Rev" field="revision" filter="text" />,
+      size: 70,
+      header: () => <DocumentListHeader title="Rev" field="revision" filter="text" compact />,
       cell: ({ row }) => (
         <span className="font-medium">{row.original.revisionLabel || row.original.revisionNumber}</span>
       ),
@@ -90,9 +92,14 @@ export function CorrespondenceList({ data, rowSelection, onRowSelectionChange }:
       },
     },
     {
-      accessorKey: 'createdAt',
-      header: () => <DocumentListHeader title="Created" field="createdAt" filter="date" />,
-      cell: ({ row }) => format(new Date(row.getValue('createdAt')), 'dd MMM yyyy'),
+      accessorKey: 'documentDate',
+      header: () => <DocumentListHeader title="Issued Date" field="documentDate" filter="date" />,
+      cell: ({ row }) => {
+        // วันที่หนังสือ (document_date) — fallback เป็น issued_date ถ้าไม่มี
+        const d = row.original.documentDate ?? row.original.issuedDate;
+        if (!d) return <span className="text-muted-foreground">-</span>;
+        return format(new Date(d), 'dd MMM yyyy');
+      },
     },
     {
       accessorKey: 'status.statusName',

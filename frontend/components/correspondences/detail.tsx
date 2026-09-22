@@ -1,5 +1,6 @@
 // File: frontend/components/correspondences/detail.tsx
 // Change Log:
+// - 2026-09-22: ปุ่ม Back ใช้ router.back() — กลับหน้า list พร้อม page/filter/search state เดิม
 // - 2026-09-19: ADR-055 D22 — ปุ่มเปลี่ยนไฟล์ PDF ต่อ attachment row (เปิด ReOcrDialog replace mode, link preselect)
 
 'use client';
@@ -170,11 +171,10 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
       {/* Header / Actions */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/correspondences">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
+          {/* router.back() เพื่อกลับหน้า list พร้อม state เดิม (page/search/filters อยู่ใน URL) */}
+          <Button variant="ghost" size="icon" onClick={() => router.back()}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
           <div>
             <h1 className="text-2xl font-bold">{data.correspondenceNumber}</h1>
             <p className="text-muted-foreground">

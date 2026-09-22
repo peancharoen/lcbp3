@@ -10,7 +10,8 @@ export interface SearchCorrespondenceDto {
   documentNumber?: string;
   revision?: string;
   createdDate?: string;
-  sortBy?: 'documentNumber' | 'revision' | 'createdAt' | 'status';
+  documentDate?: string; // กรองตามวันที่เอกสาร (Issued Date, YYYY-MM-DD)
+  sortBy?: 'documentNumber' | 'revision' | 'createdAt' | 'status' | 'documentDate';
   sortOrder?: 'ASC' | 'DESC';
 
   // เพิ่มเติมสำหรับการแบ่งหน้า (Pagination)

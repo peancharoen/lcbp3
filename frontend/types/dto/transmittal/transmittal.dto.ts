@@ -29,8 +29,8 @@ export type UpdateTransmittalDto = Partial<CreateTransmittalDto>;
 
 // --- Search ---
 export interface SearchTransmittalDto {
-  /** บังคับระบุ Project */
-  projectId: number | string; // ADR-019: Accept UUID
+  /** บังคับระบุ Project — ส่งเป็น UUID เท่านั้น (backend resolve เป็น INT เอง) */
+  projectUuid: string;
 
   purpose?: TransmittalPurpose;
 
