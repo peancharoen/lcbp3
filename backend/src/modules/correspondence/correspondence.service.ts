@@ -65,7 +65,6 @@ import { NotificationService } from '../notification/notification.service';
 import { CirculationService } from '../circulation/circulation.service';
 import { Circulation } from '../circulation/entities/circulation.entity';
 import { CirculationRouting } from '../circulation/entities/circulation-routing.entity';
-import { AiQueueService } from '../ai/ai-queue.service';
 import { AiQdrantService } from '../ai/qdrant.service';
 import { PendingVectorDeletion } from '../ai/entities/pending-vector-deletion.entity';
 import { Attachment } from '../../common/file-storage/entities/attachment.entity';
@@ -170,7 +169,6 @@ export class CorrespondenceService {
     private revAttachRepo: Repository<CorrespondenceRevisionAttachment>,
     @Inject(forwardRef(() => CirculationService))
     private circulationService: CirculationService,
-    private readonly aiQueueService: AiQueueService,
     private readonly aiQdrantService: AiQdrantService,
     @InjectRepository(PendingVectorDeletion)
     private readonly pendingVectorDeletionRepo: Repository<PendingVectorDeletion>,

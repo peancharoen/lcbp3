@@ -59,6 +59,9 @@
 //   (column NOT NULL + badge ต้องไม่โชว์ COMPARED ขณะ data ถูกล้าง); reviewedBy
 //   varchar→int ตาม schema จริง; detail paths expose hasOcrTextBak; replay miss warn;
 //   whitelist trim compareStatus/compareUnavailableReason (มี column แล้ว)
+// - 2026-09-22: D344 — ตัด deprecated rag-prepare fallback ออกจาก post-import RAG;
+//   ไฟล์หาย/checksum ไม่ได้ → mark ragStatus FAILED (เห็นบน dashboard) แทน enqueue
+//   ลง pipeline ที่ถูก deprecate แล้ว; recovery ผ่าน Re-ingest หรือ reconcile script
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -107,7 +110,6 @@ import { createReadStream, existsSync, readdirSync, statSync } from 'fs';
 import { createHash } from 'crypto';
 import * as path from 'path';
 import { v7 as uuidv7 } from 'uuid';
-import { RagBatchService } from './services/rag-batch.service';
 import { ReviewThresholdService } from './services/review-threshold.service';
 import { RagAttachmentIngestionService } from '../ai/services/rag-attachment-ingestion.service';
 import { AiQueueService } from '../ai/ai-queue.service';
@@ -194,7 +196,7 @@ export class MigrationService {
     @InjectQueue('ai-batch')
     private readonly aiBatchQueue: Queue,
     private readonly fileStorageService: FileStorageService,
-    private readonly ragBatchService: RagBatchService,
+
     private readonly reviewThresholdService: ReviewThresholdService,
     private readonly ragIngestionService: RagAttachmentIngestionService,
     private readonly aiQueueService: AiQueueService
@@ -785,25 +787,20 @@ export class MigrationService {
                 `Post-import RAG ingestion enqueued for [${correspondence.publicId}] — generation=${generation.generationUuid}`
               );
             } else {
-              // Fallback: ถ้าไม่มีไฟล์ (checksum compute ไม่ได้) ใช้ rag-prepare เดิม
+              // ไม่มีไฟล์/compute checksum ไม่ได้ — ตัด deprecated rag-prepare ออก (D344):
+              // mark FAILED ให้เห็นบน RAG Admin Console แทนที่จะค้าง NOT_STARTED เงียบๆ
+              // recovery: admin Re-ingest (compute checksum ให้เองเมื่อไฟล์กลับมา)
+              //   หรือ backend/src/scripts/reconcile-rag-ingestion.ts --path-map
+              const reason = `Cannot compute checksum (filePath=${mainAttachment.filePath ?? 'null'})`;
               this.logger.warn(
-                `No file to compute checksum for ${mainAttachment.publicId} — falling back to rag-prepare`
+                `${reason} for attachment ${mainAttachment.publicId} — marking RAG FAILED`
               );
-              await this.ragBatchService.enqueueRagPrepare({
-                documentPublicId: correspondence.publicId,
-                projectPublicId: project.publicId,
-                correspondenceNumber: correspondence.correspondenceNumber,
-                docType: type?.typeCode || 'LETTER',
-                statusCode: status.statusCode,
-                revisionNumber: revision.revisionNumber,
-                subject: revision.subject,
-                documentDate: revision.documentDate
-                  ? revision.documentDate.toISOString().split('T')[0]
-                  : undefined,
-                cachedOcrText: dto.ocrText?.trim() || undefined,
-                attachmentPath: mainAttachment.filePath || undefined,
-                attachmentPublicId: mainAttachment.publicId,
-              });
+              await Promise.resolve(
+                this.attachmentRepo.update(
+                  { publicId: mainAttachment.publicId },
+                  { ragStatus: 'FAILED' as const, ragLastError: reason }
+                )
+              ).catch(() => {});
             }
           } catch (ragErr: unknown) {
             const ragMsg =
@@ -812,12 +809,12 @@ export class MigrationService {
               `Post-import RAG ingestion failed for [${correspondence.publicId}]: ${ragMsg}`
             );
             // ตั้ง rag_status = FAILED ถ้า ingestion ล้มเหลว
-            await this.attachmentRepo
-              .update(
+            await Promise.resolve(
+              this.attachmentRepo.update(
                 { publicId: mainAttachment.publicId },
                 { ragStatus: 'FAILED' as const, ragLastError: ragMsg }
               )
-              .catch(() => {});
+            ).catch(() => {});
           }
         }
       }

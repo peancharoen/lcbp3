@@ -28,7 +28,8 @@
     "test:e2e": "jest --config ./test/jest-e2e.json --forceExit",
     "test:perf": "jest --config jest.config.js --forceExit tests/performance",
     "seed": "ts-node -r tsconfig-paths/register src/database/seeds/run-seed.ts",
-    "migration:ingest": "ts-node -r tsconfig-paths/register src/scripts/legacy-ingest.ts"
+    "migration:ingest": "ts-node -r tsconfig-paths/register src/scripts/legacy-ingest.ts",
+    "rag:reconcile": "ts-node -r tsconfig-paths/register src/scripts/reconcile-rag-ingestion.ts"
   },
   "dependencies": {
     "@casl/ability": "6.8.0",

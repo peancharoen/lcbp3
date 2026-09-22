@@ -1,4 +1,8 @@
 // File: src/modules/correspondence/correspondence-workflow.service.ts
+// Change Log:
+// - 2026-09-22: D344 — ตัด triggerRagPrepare/skipRagPrepare ออกจาก status transition
+//   (deprecated rag-prepare pipeline — processor skip ทุก job; status ไม่ได้อยู่ใน
+//   vector payload เลยไม่มีอะไรต้อง re-index; การ ingest ครอบโดย commit-time trigger)
 
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -8,13 +12,9 @@ import { WorkflowTransitionDto } from '../workflow-engine/dto/workflow-transitio
 import { WorkflowEngineService } from '../workflow-engine/workflow-engine.service';
 import { CorrespondenceRevision } from './entities/correspondence-revision.entity';
 import { CorrespondenceStatus } from './entities/correspondence-status.entity';
-import { Correspondence } from './entities/correspondence.entity';
 import { CorrespondenceRecipient } from './entities/correspondence-recipient.entity';
-import { CorrespondenceRevisionAttachment } from './entities/correspondence-revision-attachment.entity';
 import { NotificationService } from '../notification/notification.service';
 import { UserService } from '../user/user.service';
-import { AiQueueService } from '../ai/ai-queue.service';
-import { Project } from '../project/entities/project.entity';
 
 @Injectable()
 export class CorrespondenceWorkflowService {
@@ -23,8 +23,6 @@ export class CorrespondenceWorkflowService {
 
   constructor(
     private readonly workflowEngine: WorkflowEngineService,
-    @InjectRepository(Correspondence)
-    private readonly correspondenceRepo: Repository<Correspondence>,
     @InjectRepository(CorrespondenceRevision)
     private readonly revisionRepo: Repository<CorrespondenceRevision>,
     @InjectRepository(CorrespondenceStatus)
@@ -33,8 +31,7 @@ export class CorrespondenceWorkflowService {
     private readonly recipientRepo: Repository<CorrespondenceRecipient>,
     private readonly dataSource: DataSource,
     private readonly notificationService: NotificationService,
-    private readonly userService: UserService,
-    private readonly aiQueueService: AiQueueService
+    private readonly userService: UserService
   ) {}
 
   async submitWorkflow(
@@ -92,24 +89,10 @@ export class CorrespondenceWorkflowService {
       await this.syncStatus(
         revision,
         transitionResult.statusProjection,
-        queryRunner,
-        true
+        queryRunner
       );
 
       await queryRunner.commitTransaction();
-
-      // After-commit: RAG preparation (fire-and-forget)
-      // ย้ายมาหลัง commit เพื่อป้องกัน job ถูก enqueue แต่ transaction rollback
-      try {
-        if (transitionResult.nextState !== 'DRAFT') {
-          await this.triggerRagPrepare(revision, transitionResult.nextState);
-        }
-      } catch (err: unknown) {
-        const errMsg = err instanceof Error ? err.message : String(err);
-        this.logger.warn(
-          `After-commit RAG preparation failed (non-critical): ${errMsg}`
-        );
-      }
 
       // Notify TO recipient org users (fire-and-forget)
       try {
@@ -196,8 +179,7 @@ export class CorrespondenceWorkflowService {
   private async syncStatus(
     revision: CorrespondenceRevision,
     statusProjection: Record<string, unknown> = {},
-    queryRunner?: import('typeorm').QueryRunner,
-    skipRagPrepare = false
+    queryRunner?: import('typeorm').QueryRunner
   ) {
     const targetCode = (statusProjection.correspondence as string) || 'DRAFT';
     const status = await this.statusRepo.findOne({
@@ -209,89 +191,6 @@ export class CorrespondenceWorkflowService {
         ? queryRunner.manager
         : this.revisionRepo.manager;
       await manager.save(revision);
-    }
-    // Await RAG preparation เพื่อให้ unit test assert ได้
-    // caller (submitWorkflow/processAction) ก็ยังคง await syncStatus ตามปกติ
-    if (!skipRagPrepare && targetCode !== 'DRAFT') {
-      await this.triggerRagPrepare(revision, targetCode);
-    }
-  }
-
-  /**
-   * triggerRagPrepare — รวบรวมข้อมูลจาก revision/correspondence แล้ว enqueue rag-prepare job
-   * คืน Promise เพื่อให้ test สามารถ await และ assert ได้ ส่วน production caller ก็ await ผ่าน syncStatus
-   */
-  private async triggerRagPrepare(
-    revision: CorrespondenceRevision,
-    statusCode: string
-  ): Promise<void> {
-    try {
-      let correspondence: Correspondence | null | undefined =
-        revision.correspondence;
-      if (!correspondence) {
-        correspondence = await this.correspondenceRepo.findOne({
-          where: { id: revision.correspondenceId },
-          relations: ['project', 'type'],
-        });
-      }
-      if (!correspondence) {
-        return;
-      }
-      let projectPublicId = '';
-      if (correspondence.project) {
-        projectPublicId = correspondence.project.publicId;
-      } else {
-        const proj = await this.correspondenceRepo.manager.findOne(Project, {
-          where: { id: correspondence.projectId },
-        });
-        if (proj) {
-          projectPublicId = proj.publicId;
-        }
-      }
-      const docType = correspondence.type?.typeCode || 'LETTER';
-      let attachmentPath: string | undefined;
-      let attachmentPublicId: string | undefined;
-      const attachments = await this.revisionRepo.manager.find(
-        CorrespondenceRevisionAttachment,
-        { where: { correspondenceRevisionId: revision.id } }
-      );
-      if (attachments && attachments.length > 0) {
-        const pdfAtt = attachments.find((att) => {
-          const ext =
-            att.attachment?.originalFilename?.split('.').pop()?.toLowerCase() ||
-            '';
-          return (
-            ext === 'pdf' ||
-            att.attachment?.filePath?.toLowerCase().endsWith('.pdf')
-          );
-        });
-        if (pdfAtt && pdfAtt.attachment) {
-          attachmentPath = pdfAtt.attachment.filePath;
-          attachmentPublicId = pdfAtt.attachment.publicId;
-        } else if (attachments[0].attachment) {
-          attachmentPath = attachments[0].attachment.filePath;
-          attachmentPublicId = attachments[0].attachment.publicId;
-        }
-      }
-      await this.aiQueueService.enqueueRagPrepare({
-        documentPublicId: correspondence.publicId,
-        projectPublicId: projectPublicId,
-        correspondenceNumber: correspondence.correspondenceNumber,
-        docType: docType,
-        statusCode: statusCode,
-        revisionNumber: revision.revisionNumber,
-        subject: revision.subject,
-        documentDate: revision.documentDate
-          ? revision.documentDate.toISOString().split('T')[0]
-          : undefined,
-        attachmentPath: attachmentPath,
-        attachmentPublicId: attachmentPublicId,
-      });
-    } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      this.logger.warn(
-        `Failed to enqueue RAG preparation for revision ${revision.id}: ${errMsg}`
-      );
     }
   }
 }

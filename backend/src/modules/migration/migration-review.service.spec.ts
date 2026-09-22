@@ -40,7 +40,8 @@ import {
   UnresolvedFieldsException,
 } from './migration-review.service';
 import { UuidResolverService } from '../../common/services/uuid-resolver.service';
-import { RagBatchService } from './services/rag-batch.service';
+import { RagAttachmentIngestionService } from '../ai/services/rag-attachment-ingestion.service';
+import { AiQueueService } from '../ai/ai-queue.service';
 import { FileStorageService } from '../../common/file-storage/file-storage.service';
 import { MigrationService } from './migration.service';
 import { ReviewThresholdService } from './services/review-threshold.service';
@@ -142,6 +143,8 @@ function createMockQueryRunner(
     mainAttachment: {
       publicId: 'att-uuid-001',
       filePath: '/permanent/file1.pdf',
+      checksum: 'a'.repeat(64),
+      ragStatus: 'PENDING',
     },
     ...findOneConfig,
   };
@@ -308,7 +311,8 @@ describe('MigrationReviewService', () => {
   let service: MigrationReviewService;
   let dataSource: jest.Mocked<DataSource>;
   let mockUuidResolver: jest.Mocked<UuidResolverService>;
-  let mockRagBatchService: jest.Mocked<RagBatchService>;
+  let mockRagIngestionService: jest.Mocked<RagAttachmentIngestionService>;
+  let mockAiQueueService: jest.Mocked<AiQueueService>;
   let mockFileStorageService: jest.Mocked<FileStorageService>;
   let mockQueueRepo: { findOne: jest.Mock; save: jest.Mock };
   let mockMigrationService: {
@@ -337,9 +341,13 @@ describe('MigrationReviewService', () => {
       resolveOrganizationId: jest.fn().mockResolvedValue(10),
     } as unknown as jest.Mocked<UuidResolverService>;
 
-    mockRagBatchService = {
-      enqueueRagPrepare: jest.fn().mockResolvedValue(undefined),
-    } as unknown as jest.Mocked<RagBatchService>;
+    mockRagIngestionService = {
+      ingest: jest.fn().mockResolvedValue({ generationUuid: 'gen-uuid-001' }),
+    } as unknown as jest.Mocked<RagAttachmentIngestionService>;
+
+    mockAiQueueService = {
+      enqueueRagAttachmentIngestion: jest.fn().mockResolvedValue('job-001'),
+    } as unknown as jest.Mocked<AiQueueService>;
 
     mockFileStorageService = {
       tempDir: '/tmp/uploads/temp',
@@ -387,7 +395,11 @@ describe('MigrationReviewService', () => {
         MigrationReviewService,
         { provide: DataSource, useValue: dataSource },
         { provide: UuidResolverService, useValue: mockUuidResolver },
-        { provide: RagBatchService, useValue: mockRagBatchService },
+        {
+          provide: RagAttachmentIngestionService,
+          useValue: mockRagIngestionService,
+        },
+        { provide: AiQueueService, useValue: mockAiQueueService },
         { provide: FileStorageService, useValue: mockFileStorageService },
         { provide: MigrationService, useValue: mockMigrationService },
         {
@@ -433,7 +445,9 @@ describe('MigrationReviewService', () => {
       expect(res.ocrTextLength).toBe('new corrected OCR text'.length);
       expect(mockItem.ocrText).toBe('new corrected OCR text');
       expect(mockQueueRepo.save).toHaveBeenCalledWith(mockItem);
-      expect(mockRagBatchService.enqueueRagPrepare).not.toHaveBeenCalled();
+      expect(
+        mockAiQueueService.enqueueRagAttachmentIngestion
+      ).not.toHaveBeenCalled();
     });
 
     // ── ADR-054 D5/FR-006 (T013): manual OCR edit snapshots ก่อน overwrite ──
@@ -1053,12 +1067,13 @@ describe('MigrationReviewService', () => {
       const updateCalls = qr.manager.update.mock.calls.filter(
         (call) => call[0] === Attachment
       );
-      // อย่างน้อย 1 ครั้งสำหรับ isTemporary=false
-      expect(updateCalls.length).toBeGreaterThan(0);
-      const lastUpdate = updateCalls[updateCalls.length - 1];
-      expect(lastUpdate[2]).toEqual(
-        expect.objectContaining({ isTemporary: false })
-      );
+      // อย่างน้อย 1 ครั้งสำหรับ isTemporary=false (post-commit อาจมี
+      // update ragStatus=PROCESSING ตามหลังจาก RAG ingestion trigger)
+      expect(
+        updateCalls.some(
+          (call) => (call[2] as Record<string, unknown>)?.isTemporary === false
+        )
+      ).toBe(true);
     });
   });
 
@@ -1557,24 +1572,31 @@ describe('MigrationReviewService', () => {
     });
   });
 
-  // ── commitRecord — RAG Embed ─────────────────────────────────────────────────
+  // ── commitRecord — RAG Ingestion (D344 generation-aware) ─────────────────────
 
-  describe('commitRecord — RAG embed', () => {
-    it('triggers RAG embed after commit when ocrText present', async () => {
+  describe('commitRecord — RAG ingestion', () => {
+    it('triggers RAG ingestion after commit when ocrText present', async () => {
       const qr = createMockQueryRunner();
       dataSource.createQueryRunner.mockReturnValue(qr);
 
       await service.commitRecord(makeDto(), 1, 'idem-key-rag-001');
 
-      expect(mockRagBatchService.enqueueRagPrepare).toHaveBeenCalledTimes(1);
-      expect(mockRagBatchService.enqueueRagPrepare).toHaveBeenCalledWith(
+      expect(mockRagIngestionService.ingest).toHaveBeenCalledTimes(1);
+      expect(mockRagIngestionService.ingest).toHaveBeenCalledWith(
+        'att-uuid-001'
+      );
+      expect(
+        mockAiQueueService.enqueueRagAttachmentIngestion
+      ).toHaveBeenCalledWith(
         expect.objectContaining({
-          cachedOcrText: 'OCR text content',
+          attachmentPublicId: 'att-uuid-001',
+          attachmentChecksum: 'a'.repeat(64),
+          force: false,
         })
       );
     });
 
-    it('does not trigger RAG embed when ocrText is empty', async () => {
+    it('does not trigger RAG ingestion when ocrText is empty', async () => {
       const qr = createMockQueryRunner({
         queueItem: makeQueueItem({ ocrText: '' }),
       });
@@ -1582,11 +1604,14 @@ describe('MigrationReviewService', () => {
 
       await service.commitRecord(makeDto(), 1, 'idem-key-rag-002');
 
-      expect(mockRagBatchService.enqueueRagPrepare).not.toHaveBeenCalled();
+      expect(mockRagIngestionService.ingest).not.toHaveBeenCalled();
+      expect(
+        mockAiQueueService.enqueueRagAttachmentIngestion
+      ).not.toHaveBeenCalled();
     });
 
-    it('does not throw when RAG embed fails (commit already succeeded)', async () => {
-      mockRagBatchService.enqueueRagPrepare.mockRejectedValue(
+    it('does not throw when RAG ingestion fails (commit already succeeded)', async () => {
+      mockRagIngestionService.ingest.mockRejectedValue(
         new Error('Qdrant connection failed')
       );
       const qr = createMockQueryRunner();
@@ -1598,13 +1623,36 @@ describe('MigrationReviewService', () => {
       expect(qr.commitTransaction).toHaveBeenCalled();
     });
 
-    it('does not trigger RAG embed when main attachment not found', async () => {
+    it('does not trigger RAG ingestion when main attachment not found', async () => {
       const qr = createMockQueryRunner({ mainAttachment: null });
       dataSource.createQueryRunner.mockReturnValue(qr);
 
       await service.commitRecord(makeDto(), 1, 'idem-key-rag-004');
 
-      expect(mockRagBatchService.enqueueRagPrepare).not.toHaveBeenCalled();
+      expect(mockRagIngestionService.ingest).not.toHaveBeenCalled();
+      expect(
+        mockAiQueueService.enqueueRagAttachmentIngestion
+      ).not.toHaveBeenCalled();
+    });
+
+    it('skips ingestion gracefully when checksum cannot be computed (file missing)', async () => {
+      const qr = createMockQueryRunner({
+        mainAttachment: {
+          publicId: 'att-uuid-001',
+          filePath: '/nonexistent/missing.pdf',
+          checksum: null,
+          ragStatus: 'PENDING',
+        },
+      });
+      dataSource.createQueryRunner.mockReturnValue(qr);
+
+      const res = await service.commitRecord(makeDto(), 1, 'idem-key-rag-005');
+
+      expect(res.success).toBe(true);
+      expect(mockRagIngestionService.ingest).not.toHaveBeenCalled();
+      expect(
+        mockAiQueueService.enqueueRagAttachmentIngestion
+      ).not.toHaveBeenCalled();
     });
   });
 

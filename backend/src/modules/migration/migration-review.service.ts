@@ -40,6 +40,10 @@
 // - 2026-09-14: ADR-054 US3 (T026c, FR-008) — commitRecord ตั้ง
 //   queueItem.importedCorrespondencePublicId = correspondence.publicId
 //   ใน tx เดียวกับ queue item save (audit link + retain row)
+// - 2026-09-22: D344 drift fix — commitRecord migrate จาก deprecated rag-prepare
+//   (processor skip → attachment ค้าง NOT_STARTED ถาวร) ไป generation-aware
+//   pipeline: compute checksum → RagAttachmentIngestionService.ingest() →
+//   AiQueueService.enqueueRagAttachmentIngestion (เหมือน importCorrespondence)
 
 import { Injectable, Logger } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
@@ -65,7 +69,8 @@ import {
 } from './dto/commit-migration-review.dto';
 import { UpdateQueueOcrDto } from './dto/update-queue-ocr.dto';
 import { UuidResolverService } from '../../common/services/uuid-resolver.service';
-import { RagBatchService } from './services/rag-batch.service';
+import { RagAttachmentIngestionService } from '../ai/services/rag-attachment-ingestion.service';
+import { AiQueueService } from '../ai/ai-queue.service';
 import { MigrationService } from './migration.service';
 import { ReviewThresholdService } from './services/review-threshold.service';
 import type { TagSuggestion } from './types/ai-extraction-details.type';
@@ -93,6 +98,8 @@ import { FileStorageService } from '../../common/file-storage/file-storage.servi
 import { SearchService } from '../search/search.service';
 import * as path from 'path';
 import * as fs from 'fs-extra';
+import { createHash } from 'crypto';
+import { createReadStream, existsSync } from 'fs';
 
 const readTagName = (value: Record<string, string>): string => {
   return value.name || value.tagName || '';
@@ -157,7 +164,8 @@ export class MigrationReviewService {
   constructor(
     private readonly dataSource: DataSource,
     private readonly uuidResolverService: UuidResolverService,
-    private readonly ragBatchService: RagBatchService,
+    private readonly ragIngestionService: RagAttachmentIngestionService,
+    private readonly aiQueueService: AiQueueService,
     private readonly fileStorageService: FileStorageService,
     private readonly migrationService: MigrationService,
     private readonly reviewThresholdService: ReviewThresholdService,
@@ -939,37 +947,70 @@ export class MigrationReviewService {
         )
       );
 
-      // FR-011: Trigger RAG re-embed หลัง commit เสร็จ (ADR-042/047)
-      // ใช้ rag-prepare pipeline เดียวกับเอกสารปกติ โดยส่ง ocrText ผ่าน cachedOcrText
+      // FR-011 (D344): Trigger generation-aware RAG ingestion หลัง commit เสร็จ
+      // แทน deprecated rag-prepare (legacy doc_public_id vectors ถูก retire แล้ว —
+      // processor skip งานประเภทนี้ทำให้ attachment ค้าง NOT_STARTED ถาวร)
+      // เส้นทางเดียวกับ importCorrespondence: compute checksum → ingest() → enqueue
       if (queueItem.ocrText && queueItem.ocrText.trim().length > 0) {
         const mainAttachment = await queryRunner.manager.findOne(Attachment, {
           where: { id: attachmentId },
-          select: ['publicId', 'filePath'],
+          select: ['publicId', 'filePath', 'checksum', 'ragStatus'],
         });
         if (mainAttachment) {
           try {
-            await this.ragBatchService.enqueueRagPrepare({
-              documentPublicId: correspondence.publicId,
-              projectPublicId: project.publicId,
-              correspondenceNumber: correspondence.correspondenceNumber,
-              docType: type?.typeCode || 'LETTER',
-              statusCode: status.statusCode,
-              revisionNumber: revision.revisionNumber,
-              subject: revision.subject,
-              documentDate: revision.documentDate
-                ? revision.documentDate.toISOString().split('T')[0]
-                : undefined,
-              cachedOcrText: queueItem.ocrText,
-              attachmentPath: mainAttachment.filePath || undefined,
-              attachmentPublicId: mainAttachment.publicId,
-            });
+            // Compute SHA-256 checksum ถ้ายังไม่มี (migration attachments มักเป็น NULL)
+            let checksum = mainAttachment.checksum ?? null;
+            if (!checksum && mainAttachment.filePath) {
+              checksum = await this.computeFileChecksum(
+                mainAttachment.filePath
+              );
+              if (checksum) {
+                await queryRunner.manager.update(
+                  Attachment,
+                  { publicId: mainAttachment.publicId },
+                  { checksum, ragStatus: 'PROCESSING' as const }
+                );
+              }
+            } else if (checksum) {
+              await queryRunner.manager.update(
+                Attachment,
+                { publicId: mainAttachment.publicId },
+                { ragStatus: 'PROCESSING' as const }
+              );
+            }
+            if (checksum) {
+              const generation = await this.ragIngestionService.ingest(
+                mainAttachment.publicId
+              );
+              await this.aiQueueService.enqueueRagAttachmentIngestion({
+                attachmentPublicId: mainAttachment.publicId,
+                attachmentChecksum: checksum,
+                force: false,
+              });
+              this.logger.log(
+                `Post-commit RAG ingestion enqueued for [${correspondence.publicId}] — generation=${generation.generationUuid}`
+              );
+            } else {
+              this.logger.warn(
+                `No file to compute checksum for ${mainAttachment.publicId} — RAG ingestion skipped`
+              );
+            }
           } catch (embedErr: unknown) {
             // ไม่ throw — commit สำเร็จแล้ว การ embed ล้มเหลวไม่ควร rollback
             const embedMsg =
               embedErr instanceof Error ? embedErr.message : String(embedErr);
             this.logger.warn(
-              `Post-commit RAG re-embed failed for [${queueItem.publicId}]: ${embedMsg}`
+              `Post-commit RAG ingestion failed for [${queueItem.publicId}]: ${embedMsg}`
             );
+            await Promise.resolve(
+              queryRunner.manager.update(
+                Attachment,
+                {
+                  publicId: mainAttachment.publicId,
+                },
+                { ragStatus: 'FAILED' as const, ragLastError: embedMsg }
+              )
+            ).catch(() => {});
           }
         }
       }
@@ -996,6 +1037,26 @@ export class MigrationReviewService {
       );
     } finally {
       await queryRunner.release();
+    }
+  }
+
+  /** Compute SHA-256 checksum ของไฟล์แบบ streaming (สำหรับ migration attachments ที่ไม่มี checksum) */
+  private async computeFileChecksum(filePath: string): Promise<string | null> {
+    try {
+      if (!existsSync(filePath)) {
+        this.logger.warn(`computeFileChecksum: file not found: ${filePath}`);
+        return null;
+      }
+      const hash = createHash('sha256');
+      const stream = createReadStream(filePath);
+      for await (const chunk of stream) {
+        hash.update(chunk as Buffer);
+      }
+      return hash.digest('hex');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`computeFileChecksum: failed for ${filePath}: ${msg}`);
+      return null;
     }
   }
 }

@@ -31,7 +31,6 @@ import { FileStorageService } from '../../common/file-storage/file-storage.servi
 import { UuidResolverService } from '../../common/services/uuid-resolver.service';
 import { NotificationService } from '../notification/notification.service';
 import { CirculationService } from '../circulation/circulation.service';
-import { AiQueueService } from '../ai/ai-queue.service';
 import { AiQdrantService } from '../ai/qdrant.service';
 import { PendingVectorDeletion } from '../ai/entities/pending-vector-deletion.entity';
 import { AuditLog } from '../../common/entities/audit-log.entity';
@@ -203,12 +202,6 @@ describe('CorrespondenceService', () => {
           provide: CirculationService,
           useValue: {
             forceClose: jest.fn().mockResolvedValue({ success: true }),
-          },
-        },
-        {
-          provide: AiQueueService,
-          useValue: {
-            enqueueVectorDeletion: jest.fn().mockResolvedValue('job-id'),
           },
         },
         {
