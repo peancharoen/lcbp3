@@ -7,6 +7,10 @@
 //   ingestion keys (unresolved_orgs, original_row_index, original_document_number, revision_number)
 // - 2026-09-15: SC-244 4A.1 fix — เปลี่ยน readFile()+eachRow (buffer ทั้ง workbook, peak 167MB
 //   @20K แถว) เป็น ExcelJS.stream.xlsx.WorkbookReader ทีละ row (peak 87.7MB < 100MB)
+// - 2026-09-22: Fix contractCode ที่ UI ส่งมาถูกทิ้ง — resolve Contract ภายใต้ project,
+//   อ่าน discipline column จาก Excel และ resolve disciplineId ภายใน contract ที่เลือก
+//   (discipline_code unique เฉพาะระดับ contract — GEN ซ้ำได้ข้าม C1/C2) แล้วเก็บ
+//   contractId/contractCode/disciplineCode/disciplineId ลง details ให้ commitRecord ใช้ต่อ
 
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -34,6 +38,8 @@ import {
 import { Project } from '../../project/entities/project.entity';
 import { Organization } from '../../organization/entities/organization.entity';
 import { CorrespondenceType } from '../../correspondence/entities/correspondence-type.entity';
+import { Contract } from '../../contract/entities/contract.entity';
+import { Discipline } from '../../master/entities/discipline.entity';
 import {
   NotFoundException,
   ValidationException,
@@ -75,6 +81,7 @@ interface ColumnMapping {
   correspondenceTypeIdCol: number;
   fileNameCol: number;
   remarksCol: number;
+  disciplineCol: number;
 }
 
 @Injectable()
@@ -96,6 +103,10 @@ export class LegacyIngestionService {
     private readonly correspondenceTypeRepo: Repository<CorrespondenceType>,
     @InjectRepository(Attachment)
     private readonly attachmentRepo: Repository<Attachment>,
+    @InjectRepository(Contract)
+    private readonly contractRepo: Repository<Contract>,
+    @InjectRepository(Discipline)
+    private readonly disciplineRepo: Repository<Discipline>,
     @InjectQueue('ai-batch')
     private readonly aiBatchQueue: Queue,
     private readonly headerDetector: ExcelHeaderDetectorService
@@ -108,7 +119,14 @@ export class LegacyIngestionService {
     dto: StartIngestDto,
     onProgress?: IngestProgressCallback
   ): Promise<IngestSummary> {
-    const { filePath, projectPublicId, sheetName, pdfFolderPath, resume } = dto;
+    const {
+      filePath,
+      projectPublicId,
+      contractCode,
+      sheetName,
+      pdfFolderPath,
+      resume,
+    } = dto;
 
     if (!fs.existsSync(filePath)) {
       throw new NotFoundException('Excel File', filePath);
@@ -128,6 +146,29 @@ export class LegacyIngestionService {
     });
     if (!project) {
       throw new NotFoundException('Project', projectPublicId);
+    }
+
+    // 1b. Resolve Contract จาก contractCode (scope ด้วย project — contract ผูกกับ project เสมอ)
+    // discipline_code unique เฉพาะระดับ contract (GEN ซ้ำได้ข้าม C1/C2) จึงต้องรู้ contract
+    // ตั้งแต่ ingestion เพื่อ resolve disciplineId ของแต่ละ row ให้ถูกสัญญา
+    let contract: Contract | null = null;
+    const disciplineByCode = new Map<string, Discipline>();
+    if (contractCode) {
+      contract = await this.contractRepo.findOne({
+        where: { contractCode: contractCode.trim(), projectId: project.id },
+      });
+      if (!contract) {
+        throw new NotFoundException(
+          'Contract',
+          `${contractCode} (project=${projectPublicId})`
+        );
+      }
+      const disciplines = await this.disciplineRepo.find({
+        where: { contractId: contract.id, isActive: true },
+      });
+      for (const d of disciplines) {
+        disciplineByCode.set(d.disciplineCode.trim().toUpperCase(), d);
+      }
     }
 
     // 2. โหลด Master Organizations ไว้ใน Memory Cache สำหรับ Lookup
@@ -275,6 +316,12 @@ export class LegacyIngestionService {
             const remarks = this.extractCellString(
               rawValues[columnMapping.remarksCol]
             );
+            const disciplineCode =
+              columnMapping.disciplineCol > 0
+                ? this.extractCellString(
+                    rawValues[columnMapping.disciplineCol]
+                  )?.trim()
+                : undefined;
 
             const rawSender = this.extractCellString(
               rawValues[columnMapping.fromCol]
@@ -424,7 +471,18 @@ export class LegacyIngestionService {
               : rawFileName || undefined;
             // details เหลือเฉพาะ residual ingestion keys ที่ไม่มี dedicated column
             // (ADR-054 D3 preservedFields) — AI output จะถูก merge เข้ามาตอน extraction
+            // contract/discipline เก็บที่นี่เพราะ migration_review_queue ไม่มี column
+            // เฉพาะ — commitRecord อ่านกลับมา resolve correspondence.disciplineId
+            // (correspondences ไม่มี contract_id — contract มาผ่าน discipline.contract_id)
+            const resolvedDiscipline =
+              disciplineCode && contract
+                ? disciplineByCode.get(disciplineCode.toUpperCase())
+                : undefined;
             queueItem.details = {
+              contractId: contract?.id,
+              contractCode: contract?.contractCode,
+              disciplineCode: disciplineCode || undefined,
+              disciplineId: resolvedDiscipline?.id,
               unresolved_orgs:
                 Object.keys(unresolvedOrgs).length > 0
                   ? unresolvedOrgs
@@ -531,6 +589,7 @@ export class LegacyIngestionService {
       correspondenceTypeIdCol: -1,
       fileNameCol: -1,
       remarksCol: -1,
+      disciplineCol: -1,
     };
 
     if (!Array.isArray(headerRows) || headerRows.length === 0) return mapping;
@@ -563,6 +622,7 @@ export class LegacyIngestionService {
     mapping.correspondenceTypeIdCol = detected.correspondenceTypeId ?? -1;
     mapping.fileNameCol = detected.fileName ?? -1;
     mapping.remarksCol = detected.remarks ?? -1;
+    mapping.disciplineCol = detected.discipline ?? -1;
 
     return mapping;
   }

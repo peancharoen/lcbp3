@@ -10,6 +10,8 @@
 //   ExcelImportReviewController + Discipline entity
 // - 2026-09-12: Async/polling pattern — เพิ่ม BullMQ queue import-review +
 //   ImportReviewProcessor สำหรับ background processing (ADR-008)
+// - 2026-09-22: เพิ่ม Contract entity ใน forFeature — LegacyIngestionService resolve
+//   contractCode → contract + disciplines ตอน ingestion (fix contractCode หลุด)
 
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -28,6 +30,7 @@ import { CorrespondenceStatus } from '../correspondence/entities/correspondence-
 import { Project } from '../project/entities/project.entity';
 import { Organization } from '../organization/entities/organization.entity';
 import { Discipline } from '../master/entities/discipline.entity';
+import { Contract } from '../contract/entities/contract.entity';
 import { FileStorageModule } from '../../common/file-storage/file-storage.module';
 import { Attachment } from '../../common/file-storage/entities/attachment.entity';
 import { User } from '../user/entities/user.entity';
@@ -82,6 +85,7 @@ import { SearchModule } from '../search/search.module';
       Project,
       Organization,
       Discipline,
+      Contract,
       Attachment,
       User,
       SystemSetting,

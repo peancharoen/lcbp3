@@ -6,6 +6,8 @@
 // - 2026-08-31: ADR-050 T015 — BREAKING CHANGE: แทนที่ `tags: string[]` ด้วย `tagDecisions[]`
 //   (accept/reject ต่อ tag พร้อม evidence, data-model.md §6) และเพิ่ม `fieldAcknowledgments`
 //   สำหรับรับทราบ field ที่ confidence ต่ำโดยไม่แก้ไขค่า (FR-013/FR-014)
+// - 2026-09-22: เพิ่ม disciplineId (INT) — reviewer เลือกสาขางานในหน้า review แล้ว commitRecord
+//   persist ลง correspondences.discipline_id (contract ของเอกสารมาจาก discipline.contract_id)
 
 import {
   IsString,
@@ -13,6 +15,7 @@ import {
   IsOptional,
   IsArray,
   IsBoolean,
+  IsInt,
   ValidateNested,
   IsIn,
 } from 'class-validator';
@@ -126,6 +129,17 @@ export class CommitMigrationReviewDto {
   @IsString()
   @IsOptional()
   receivedDate?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Discipline internal ID (INT) ที่ reviewer เลือกในหน้า review — ' +
+      'disciplines อยู่ใน ADR-019 Excluded Tables (Master/Lookup) จึงใช้ INT ได้ ' +
+      'contract ของเอกสาร derive จาก discipline.contract_id',
+  })
+  @IsInt()
+  @IsOptional()
+  @Type(() => Number)
+  disciplineId?: number;
 
   @ApiPropertyOptional({
     description:

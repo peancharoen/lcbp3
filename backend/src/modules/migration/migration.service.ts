@@ -1,5 +1,8 @@
 // File: backend/src/modules/migration/migration.service.ts
 // Change Log:
+// - 2026-09-22: whitelist contractId/contractCode/disciplineCode/disciplineId ใน
+//   ALLOWED_ENQUEUE_DETAILS_KEYS + REEXTRACT_PRESERVED_DETAILS_KEYS — ingestion context
+//   ต้องไม่หายตอน re-extract (fix contractCode ที่ UI เลือกแต่ไม่ถึง correspondence)
 // - 2026-09-22: getStagingFileStream — bare filename (ไม่มี directory component)
 //   ไม่ถือเป็น traversal อีกต่อไป ให้ไหลเข้า D330 recursive search โดยตรง
 //   (เดิม resolve ไป cwd → โดน guard block ก่อนถึง fallback เสมอ)
@@ -154,6 +157,8 @@ const STAGING_DIR_FALLBACK = path.join(process.cwd(), STAGING_DIR_DEFAULT);
 const ALLOWED_ENQUEUE_DETAILS_KEYS: readonly string[] = [
   'disciplineCode',
   'disciplineId',
+  'contractId',
+  'contractCode',
   'recipientsList',
   'compareResult',
   'capturedThresholds',
@@ -168,6 +173,10 @@ const REEXTRACT_PRESERVED_DETAILS_KEYS: readonly string[] = [
   'unresolved_orgs',
   'original_document_number',
   'revision_number',
+  'contractId',
+  'contractCode',
+  'disciplineCode',
+  'disciplineId',
 ];
 
 @Injectable()

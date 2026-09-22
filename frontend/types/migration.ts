@@ -1,5 +1,8 @@
 // File: types/migration.ts
 // Change Log:
+// - 2026-09-22: เพิ่ม typed fields contractId/contractCode/disciplineCode/disciplineId
+//   ใน MigrationAiExtractionDetails — ingestion context ที่ backend persist ลง
+//   ai_metadata_json (fix contractCode หลุดจาก /admin/migration)
 // - 2026-09-14: T022 — ADR-054 contract finish: ตัด fieldResolutions ออกจาก details
 //   (ย้ายไป reviewState.fieldResolutions), ย้าย compareResult/capturedThresholds ลง details
 //   (AI output — ไม่เคยเป็น top-level field), เพิ่ม hasOcrTextBak flag สำหรับ list response
@@ -142,6 +145,14 @@ export interface MigrationAiExtractionDetails {
   original_document_number?: string;
   /** ลำดับ revision ภายใน batch เดียวกัน (0 = ต้นฉบับ) */
   revision_number?: number;
+  /** Contract ที่เลือกตอน ingest (internal INT — contract lookup ผ่าน master API) */
+  contractId?: number;
+  /** รหัสคู่สัญญาที่เลือกตอน ingest เช่น LCBP3-C2 */
+  contractCode?: string;
+  /** discipline code จาก Excel column เช่น GEN/STR (resolve ภายใน contractId เท่านั้น) */
+  disciplineCode?: string;
+  /** Discipline internal ID ที่ resolve ได้ตอน ingestion */
+  disciplineId?: number;
   [key: string]: unknown;
 }
 

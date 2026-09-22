@@ -18,6 +18,8 @@
 // - 2026-08-31: T037-T040 — เพิ่ม ocrQuality section, metadata.confidence badges, acknowledge controls,
 //   422 unresolvedFields inline warnings, wire commit ผ่าน useCommitMigrationReview (ADR-050)
 // - 2026-08-23: อ่าน sourceFilePath/disciplineId จาก details, ส่ง disciplineId (INT), ใช้ item.projectId
+// - 2026-09-22: ส่ง disciplineId ใน commit payload (เดิมเลือกแล้วหลุด — ไม่เคยส่ง) +
+//   filter discipline dropdown ตาม details.contractId ที่เลือกตอน ingest
 // - 2026-05-22: Initial creation of Migration Review detail page (T024)
 // - 2026-08-06: เพิ่ม CompareResultTable และ fieldResolutions state สำหรับ Feature 242 (FR-011, FR-012c)
 // - 2026-08-22: เปลี่ยน Sender/Receiver/Discipline เป็น dropdown, แก้ date mapping
@@ -266,6 +268,16 @@ export default function MigrationReviewPage() {
           //                Received Date = receivedDate (excel received_date → received_date)
           const issues = (res.aiIssues || {}) as MigrationAiIssues;
           const details = res.details || {};
+          // ถ้า queue item มี contract ที่เลือกตอน ingest — โหลด disciplines เฉพาะ
+          // contract นั้น (discipline_code unique แค่ระดับ contract, GEN ซ้ำข้าม C1/C2 ได้)
+          const queueContractId =
+            typeof details.contractId === 'number' ? details.contractId : undefined;
+          if (queueContractId) {
+            masterDataService
+              .getDisciplines(queueContractId)
+              .then((d) => setDisciplines(d ?? []))
+              .catch(() => {});
+          }
           form.reset({
             documentNumber: res.documentNumber || '',
             subject: res.subject || res.originalSubject || '',
@@ -386,6 +398,7 @@ export default function MigrationReviewPage() {
         receivedDate: values.receivedDate || undefined,
         senderId: values.senderPublicId || undefined,
         receiverId: values.receiverPublicId || undefined,
+        disciplineId: values.disciplineId ? Number(values.disciplineId) : undefined,
         body: values.remarks || undefined,
         fieldAcknowledgments: fieldAcknowledgments.length > 0 ? fieldAcknowledgments : undefined,
         fieldResolutions: fieldResolutions.length > 0 ? fieldResolutions : undefined,

@@ -5,6 +5,8 @@
 //   ต้องส่งทั้ง accepted และ rejected entries)
 // - 2026-05-22: Initial creation for US2 - Staging Migration Review Commit Types
 // - 2026-05-22: Update to support hybrid ID (number | string) for projects and organizations per ADR-019
+// - 2026-09-22: เพิ่ม disciplineId (INT — disciplines เป็น ADR-019 excluded master/lookup table)
+//   reviewer เลือกสาขางานในหน้า review → persist ลง correspondences.discipline_id ตอน commit
 
 /** ADR-050 (data-model.md §6): การตัดสินใจของผู้ตรวจสอบต่อ tag suggestion แต่ละตัว */
 export interface TagDecision {
@@ -25,6 +27,8 @@ export interface CommitMigrationReviewDto {
   receiverId?: number | string;
   issuedDate?: string;
   receivedDate?: string;
+  /** Discipline internal ID (INT) — สาขางานที่ reviewer เลือก; contract ของเอกสาร derive จาก discipline.contractId */
+  disciplineId?: number;
   /** @deprecated ADR-050 breaking change — ใช้ tagDecisions แทน */
   tags?: string[];
   body?: string;

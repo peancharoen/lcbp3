@@ -1,3 +1,8 @@
+// File: frontend/components/correspondences/reference-selector.tsx
+// Change Log:
+// - 2026-09-22: Fix Referenced Documents — อ่าน publicId แทน uuid (ADR-019: entity serialize
+//   เป็น publicId) และ unwrap TransformInterceptor envelope สำหรับ getReferences
+
 'use client';
 
 import { useState } from 'react';
@@ -15,7 +20,7 @@ import {
 } from '@/hooks/use-correspondence';
 
 interface LinkedDoc {
-  uuid: string;
+  publicId: string;
   correspondenceNumber: string;
 }
 
@@ -26,7 +31,7 @@ interface RefItem {
 
 interface CorrespondenceRevisionItem {
   subject: string;
-  correspondence?: { uuid: string; correspondenceNumber: string };
+  correspondence?: { publicId: string; correspondenceNumber: string };
 }
 
 interface ReferenceSelectorProps {
@@ -43,22 +48,23 @@ export function ReferenceSelector({ uuid, canEdit }: ReferenceSelectorProps) {
   const removeMutation = useRemoveReference();
 
   const { data: searchResults, isFetching: isSearchFetching } = useCorrespondences(
-    isSearching && searchQuery.trim().length >= 2
-      ? { search: searchQuery.trim(), limit: 8 }
-      : { search: '', limit: 0 }
+    { search: searchQuery.trim(), limit: 8 },
+    { enabled: isSearching && searchQuery.trim().length >= 2 }
   );
 
-  const outgoing: RefItem[] = referencesData?.outgoing ?? [];
-  const incoming: RefItem[] = referencesData?.incoming ?? [];
+  // TransformInterceptor wrap response เป็น { data: { outgoing, incoming } }
+  const refsPayload = (referencesData as { data?: { outgoing?: RefItem[]; incoming?: RefItem[] } } | undefined)?.data;
+  const outgoing: RefItem[] = refsPayload?.outgoing ?? [];
+  const incoming: RefItem[] = refsPayload?.incoming ?? [];
   const totalCount = outgoing.length + incoming.length;
 
   const searchItems = Array.isArray(searchResults?.data)
     ? searchResults.data
     : [];
 
-  const existingRefUuids = new Set([
-    ...outgoing.map((r) => r.target?.uuid).filter(Boolean),
-    ...incoming.map((r) => r.source?.uuid).filter(Boolean),
+  const existingRefIds = new Set([
+    ...outgoing.map((r) => r.target?.publicId).filter(Boolean),
+    ...incoming.map((r) => r.source?.publicId).filter(Boolean),
   ]);
 
   const handleAdd = (targetUuid: string) => {
@@ -73,7 +79,7 @@ export function ReferenceSelector({ uuid, canEdit }: ReferenceSelectorProps) {
 
   const renderRef = (linked: LinkedDoc, direction: 'out' | 'in') => (
     <div
-      key={linked.uuid}
+      key={linked.publicId}
       className="flex items-center justify-between gap-2 p-2 bg-muted/40 rounded-md text-sm"
     >
       <div className="flex items-center gap-2 min-w-0">
@@ -81,14 +87,14 @@ export function ReferenceSelector({ uuid, canEdit }: ReferenceSelectorProps) {
           {direction === 'out' ? 'REF' : 'FROM'}
         </span>
         <Link
-          href={`/correspondences/${linked.uuid}`}
+          href={`/correspondences/${linked.publicId}`}
           className="font-mono font-medium hover:underline truncate text-xs"
         >
           {linked.correspondenceNumber}
         </Link>
       </div>
       <div className="flex items-center gap-1 shrink-0">
-        <Link href={`/correspondences/${linked.uuid}`} target="_blank">
+        <Link href={`/correspondences/${linked.publicId}`} target="_blank">
           <Button variant="ghost" size="icon" className="h-6 w-6">
             <ExternalLink className="h-3 w-3" />
           </Button>
@@ -98,7 +104,7 @@ export function ReferenceSelector({ uuid, canEdit }: ReferenceSelectorProps) {
             variant="ghost"
             size="icon"
             className="h-6 w-6 text-muted-foreground hover:text-destructive"
-            onClick={() => handleRemove(linked.uuid)}
+            onClick={() => handleRemove(linked.publicId)}
             disabled={removeMutation.isPending}
           >
             <X className="h-3 w-3" />
@@ -173,14 +179,14 @@ export function ReferenceSelector({ uuid, canEdit }: ReferenceSelectorProps) {
                     ) : (
                       searchItems
                         .filter((item: CorrespondenceRevisionItem) => {
-                          const itemUuid = item.correspondence?.uuid;
-                          return itemUuid && itemUuid !== uuid && !existingRefUuids.has(itemUuid);
+                          const itemId = item.correspondence?.publicId;
+                          return itemId && itemId !== uuid && !existingRefIds.has(itemId);
                         })
                         .map((item: CorrespondenceRevisionItem) => (
                           <button
-                            key={item.correspondence?.uuid}
+                            key={item.correspondence?.publicId}
                             className="w-full flex items-center justify-between gap-2 p-2.5 text-sm hover:bg-muted/60 transition-colors text-left"
-                            onClick={() => handleAdd(item.correspondence!.uuid)}
+                            onClick={() => handleAdd(item.correspondence!.publicId)}
                             disabled={addMutation.isPending}
                           >
                             <span className="font-mono font-medium text-xs">

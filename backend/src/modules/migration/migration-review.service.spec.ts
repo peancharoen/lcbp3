@@ -53,6 +53,7 @@ import {
 } from './entities/migration-review-queue.entity';
 import { ImportTransaction } from './entities/import-transaction.entity';
 import { Correspondence } from '../correspondence/entities/correspondence.entity';
+import { Discipline } from '../master/entities/discipline.entity';
 import { CorrespondenceRevision } from '../correspondence/entities/correspondence-revision.entity';
 import { CorrespondenceType } from '../correspondence/entities/correspondence-type.entity';
 import { CorrespondenceStatus } from '../correspondence/entities/correspondence-status.entity';
@@ -106,6 +107,7 @@ interface FindOneConfig {
   statusClbown: unknown;
   statusDraft: unknown;
   correspondence: unknown;
+  discipline: unknown;
   attachmentExists: unknown;
   attachmentRecord: unknown;
   mainAttachment: unknown;
@@ -134,6 +136,7 @@ function createMockQueryRunner(
     statusClbown: { id: 1, statusCode: 'CLBOWN' },
     statusDraft: null,
     correspondence: null,
+    discipline: null,
     attachmentExists: { id: 10 },
     attachmentRecord: {
       id: 10,
@@ -200,6 +203,8 @@ function createMockQueryRunner(
             return null;
           case Correspondence:
             return cfg.correspondence;
+          case Discipline:
+            return cfg.discipline;
           case Attachment:
             if (select.includes('publicId')) return cfg.mainAttachment;
             if (select.includes('storedFilename')) return cfg.attachmentRecord;
@@ -1653,6 +1658,104 @@ describe('MigrationReviewService', () => {
       expect(
         mockAiQueueService.enqueueRagAttachmentIngestion
       ).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── commitRecord — Discipline/Contract (contract มาจาก discipline.contract_id) ──
+
+  describe('commitRecord — discipline resolution', () => {
+    it('sets correspondence.disciplineId from dto.disciplineId (reviewer selection)', async () => {
+      const qr = createMockQueryRunner({
+        queueItem: makeQueueItem({
+          details: { contractId: 42 },
+        }),
+        discipline: { id: 77, contractId: 42, disciplineCode: 'GEN' },
+      });
+      dataSource.createQueryRunner.mockReturnValue(qr);
+
+      const res = await service.commitRecord(
+        makeDto({ disciplineId: 77 }),
+        1,
+        'idem-key-disc-001'
+      );
+
+      expect(res.success).toBe(true);
+      const corrCreate = qr.manager.create.mock.calls.find(
+        ([entity]: [unknown]) => entity === Correspondence
+      );
+      expect(corrCreate?.[1]).toMatchObject({ disciplineId: 77 });
+    });
+
+    it('falls back to details.disciplineId when dto.disciplineId is absent', async () => {
+      const qr = createMockQueryRunner({
+        queueItem: makeQueueItem({
+          details: { contractId: 42, disciplineId: 77, disciplineCode: 'GEN' },
+        }),
+        discipline: { id: 77, contractId: 42, disciplineCode: 'GEN' },
+      });
+      dataSource.createQueryRunner.mockReturnValue(qr);
+
+      const res = await service.commitRecord(makeDto(), 1, 'idem-key-disc-002');
+
+      expect(res.success).toBe(true);
+      const corrCreate = qr.manager.create.mock.calls.find(
+        ([entity]: [unknown]) => entity === Correspondence
+      );
+      expect(corrCreate?.[1]).toMatchObject({ disciplineId: 77 });
+    });
+
+    it('resolves details.disciplineCode within queue contractId when no disciplineId stored', async () => {
+      const qr = createMockQueryRunner({
+        queueItem: makeQueueItem({
+          details: { contractId: 42, disciplineCode: 'STR' },
+        }),
+        discipline: { id: 88, contractId: 42, disciplineCode: 'STR' },
+      });
+      dataSource.createQueryRunner.mockReturnValue(qr);
+
+      const res = await service.commitRecord(makeDto(), 1, 'idem-key-disc-003');
+
+      expect(res.success).toBe(true);
+      const corrCreate = qr.manager.create.mock.calls.find(
+        ([entity]: [unknown]) => entity === Correspondence
+      );
+      expect(corrCreate?.[1]).toMatchObject({ disciplineId: 88 });
+    });
+
+    it('rejects with ValidationException when discipline belongs to a different contract', async () => {
+      const qr = createMockQueryRunner({
+        queueItem: makeQueueItem({
+          details: { contractId: 42 },
+        }),
+        // GEN ของ C1 (contractId=3) — ไม่ตรงกับ contract ที่เลือกตอน ingest (42)
+        discipline: { id: 1, contractId: 3, disciplineCode: 'GEN' },
+      });
+      dataSource.createQueryRunner.mockReturnValue(qr);
+
+      await expect(
+        service.commitRecord(
+          makeDto({ disciplineId: 1 }),
+          1,
+          'idem-key-disc-004'
+        )
+      ).rejects.toThrow(ValidationException);
+      expect(qr.rollbackTransaction).toHaveBeenCalled();
+    });
+
+    it('throws NotFoundException when disciplineId does not exist', async () => {
+      const qr = createMockQueryRunner({
+        queueItem: makeQueueItem({ details: { contractId: 42 } }),
+        discipline: null,
+      });
+      dataSource.createQueryRunner.mockReturnValue(qr);
+
+      await expect(
+        service.commitRecord(
+          makeDto({ disciplineId: 999 }),
+          1,
+          'idem-key-disc-005'
+        )
+      ).rejects.toThrow(NotFoundException);
     });
   });
 

@@ -19,6 +19,8 @@ import { Project } from '../../project/entities/project.entity';
 import { Organization } from '../../organization/entities/organization.entity';
 import { CorrespondenceType } from '../../correspondence/entities/correspondence-type.entity';
 import { Attachment } from '../../../common/file-storage/entities/attachment.entity';
+import { Contract } from '../../contract/entities/contract.entity';
+import { Discipline } from '../../master/entities/discipline.entity';
 import {
   NotFoundException,
   ValidationException,
@@ -109,6 +111,14 @@ describe('LegacyIngestionService (ADR-047)', () => {
     save: jest
       .fn()
       .mockResolvedValue({ id: 73, ...(entity: unknown) => entity ?? {} }),
+  };
+
+  const mockContractRepo = {
+    findOne: jest.fn(),
+  };
+
+  const mockDisciplineRepo = {
+    find: jest.fn().mockResolvedValue([]),
   };
 
   const tempTestDir = path.join(__dirname, '__temp_test_ingest__');
@@ -203,6 +213,14 @@ describe('LegacyIngestionService (ADR-047)', () => {
         {
           provide: getRepositoryToken(Attachment),
           useValue: mockAttachmentRepo,
+        },
+        {
+          provide: getRepositoryToken(Contract),
+          useValue: mockContractRepo,
+        },
+        {
+          provide: getRepositoryToken(Discipline),
+          useValue: mockDisciplineRepo,
         },
         {
           provide: 'BullQueue_ai-batch',
@@ -1479,5 +1497,128 @@ describe('LegacyIngestionService (ADR-047)', () => {
       .map(([entity]: [MockEntity]) => entity.documentNumber)
       .filter((n: unknown): n is string => typeof n === 'string');
     expect(savedDocNumbers).toContain('LCBP3-C2-2024-001-R2');
+  });
+
+  describe('contractCode propagation (contract ↔ discipline fix)', () => {
+    it('ควร throw NotFoundException หาก contractCode ไม่พบใน project ที่เลือก', async () => {
+      mockProjectRepo.findOne.mockResolvedValue({
+        id: 5,
+        publicId: '019505a1-7c3e-7000-8000-proj12345678',
+        projectCode: 'LCBP3',
+      });
+      mockContractRepo.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.startIngestion({
+          filePath: tempExcelPath,
+          projectPublicId: '019505a1-7c3e-7000-8000-proj12345678',
+          contractCode: 'LCBP3-NOTEXIST',
+          pdfFolderPath: tempTestDir,
+        })
+      ).rejects.toThrow(NotFoundException);
+      // ค้นหาแบบ scope ด้วย project — contract ของ project อื่นต้องไม่ match
+      expect(mockContractRepo.findOne).toHaveBeenCalledWith({
+        where: { contractCode: 'LCBP3-NOTEXIST', projectId: 5 },
+      });
+    });
+
+    it('ควรเก็บ contractId/contractCode ลง details ของ queue item เมื่อเลือก contract', async () => {
+      mockProjectRepo.findOne.mockResolvedValue({
+        id: 5,
+        publicId: '019505a1-7c3e-7000-8000-proj12345678',
+        projectCode: 'LCBP3',
+      });
+      mockContractRepo.findOne.mockResolvedValue({
+        id: 42,
+        contractCode: 'LCBP3-C2',
+        projectId: 5,
+      });
+      mockReviewQueueRepo.findOne.mockResolvedValue(null);
+
+      await service.startIngestion({
+        filePath: tempExcelPath,
+        projectPublicId: '019505a1-7c3e-7000-8000-proj12345678',
+        contractCode: 'LCBP3-C2',
+        pdfFolderPath: tempTestDir,
+      });
+
+      const savedDetails = mockReviewQueueRepo.save.mock.calls.map(
+        ([entity]: [MockEntity]) => entity.details as Record<string, unknown>
+      );
+      for (const details of savedDetails) {
+        expect(details.contractId).toBe(42);
+        expect(details.contractCode).toBe('LCBP3-C2');
+      }
+    });
+
+    it('ควรทำงานได้ปกติเมื่อไม่เลือก contractCode (details ไม่มี contract keys)', async () => {
+      mockProjectRepo.findOne.mockResolvedValue({
+        id: 5,
+        publicId: '019505a1-7c3e-7000-8000-proj12345678',
+        projectCode: 'LCBP3',
+      });
+      mockReviewQueueRepo.findOne.mockResolvedValue(null);
+
+      await service.startIngestion({
+        filePath: tempExcelPath,
+        projectPublicId: '019505a1-7c3e-7000-8000-proj12345678',
+        pdfFolderPath: tempTestDir,
+      });
+
+      expect(mockContractRepo.findOne).not.toHaveBeenCalled();
+      const savedDetails = mockReviewQueueRepo.save.mock.calls.map(
+        ([entity]: [MockEntity]) => entity.details as Record<string, unknown>
+      );
+      for (const details of savedDetails) {
+        expect(details.contractId).toBeUndefined();
+        expect(details.disciplineId).toBeUndefined();
+      }
+    });
+
+    it('ควร resolve disciplineId ภายใน contract ที่เลือกเท่านั้นเมื่อ Excel มี discipline column', async () => {
+      // Excel พิเศษที่มีคอลัมน์ "สาขา" (discipline) — detector alias 'สาขา'
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet('Sheet1');
+      ws.addRow(['เลขที่เอกสาร', 'เรื่อง', 'จาก', 'ถึง', 'ชื่อไฟล์', 'สาขา']);
+      ws.addRow(['DOC-D1', 'เรื่อง A', 'ITD', 'TEAM', 'DOC-001.pdf', 'GEN']);
+      const excelWithDiscipline = path.join(
+        tempTestDir,
+        'with-discipline.xlsx'
+      );
+      await wb.xlsx.writeFile(excelWithDiscipline);
+
+      mockProjectRepo.findOne.mockResolvedValue({
+        id: 5,
+        publicId: '019505a1-7c3e-7000-8000-proj12345678',
+        projectCode: 'LCBP3',
+      });
+      mockContractRepo.findOne.mockResolvedValue({
+        id: 42,
+        contractCode: 'LCBP3-C2',
+        projectId: 5,
+      });
+      // GEN ของ C2 (id=77) — ต้องไม่ไปหยิบ GEN ของ C1 (id=1)
+      mockDisciplineRepo.find.mockResolvedValue([
+        { id: 77, contractId: 42, disciplineCode: 'GEN', isActive: true },
+      ]);
+      mockReviewQueueRepo.findOne.mockResolvedValue(null);
+
+      await service.startIngestion({
+        filePath: excelWithDiscipline,
+        projectPublicId: '019505a1-7c3e-7000-8000-proj12345678',
+        contractCode: 'LCBP3-C2',
+        pdfFolderPath: tempTestDir,
+      });
+
+      // disciplines ถูกโหลดเฉพาะ contract 42 เท่านั้น
+      expect(mockDisciplineRepo.find).toHaveBeenCalledWith({
+        where: { contractId: 42, isActive: true },
+      });
+      const saved = mockReviewQueueRepo.save.mock.calls.map(
+        ([entity]: [MockEntity]) => entity.details as Record<string, unknown>
+      );
+      expect(saved[0].disciplineCode).toBe('GEN');
+      expect(saved[0].disciplineId).toBe(77);
+    });
   });
 });

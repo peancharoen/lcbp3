@@ -44,6 +44,10 @@
 //   (processor skip → attachment ค้าง NOT_STARTED ถาวร) ไป generation-aware
 //   pipeline: compute checksum → RagAttachmentIngestionService.ingest() →
 //   AiQueueService.enqueueRagAttachmentIngestion (เหมือน importCorrespondence)
+// - 2026-09-22: Fix discipline หลุดตอน commit — commitRecord รับ dto.disciplineId
+//   (reviewer เลือก) หรือ resolve จาก queueItem.details (contractCode + disciplineCode
+//   ที่ ingestion เก็บไว้) แล้ว persist ลง correspondence.disciplineId — เพราะ
+//   correspondences ไม่มี contract_id, contract มาผ่าน discipline.contract_id เท่านั้น
 
 import { Injectable, Logger } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
@@ -56,6 +60,7 @@ import { Correspondence } from '../correspondence/entities/correspondence.entity
 import { CorrespondenceRevision } from '../correspondence/entities/correspondence-revision.entity';
 import { CorrespondenceType } from '../correspondence/entities/correspondence-type.entity';
 import { CorrespondenceStatus } from '../correspondence/entities/correspondence-status.entity';
+import { Discipline } from '../master/entities/discipline.entity';
 import { Project } from '../project/entities/project.entity';
 import { Attachment } from '../../common/file-storage/entities/attachment.entity';
 import { Rfa } from '../rfa/entities/rfa.entity';
@@ -591,12 +596,60 @@ export class MigrationReviewService {
       const resolvedReceiverId = rawReceiverId
         ? await this.uuidResolverService.resolveOrganizationId(rawReceiverId)
         : undefined;
+      // Resolve discipline: reviewer เลือกเอง (dto.disciplineId) > disciplineId ที่
+      // ingestion resolve ไว้ใน details > disciplineCode ใน details (resolve ภายใน
+      // contract ที่เลือกตอน ingest เท่านั้น — discipline_code unique แค่ระดับ contract)
+      const details = queueItem.details ?? {};
+      const queueContractId =
+        typeof details['contractId'] === 'number'
+          ? details['contractId']
+          : null;
+      let resolvedDisciplineId: number | undefined =
+        dto.disciplineId ??
+        (typeof details['disciplineId'] === 'number'
+          ? details['disciplineId']
+          : undefined);
+      if (
+        !resolvedDisciplineId &&
+        typeof details['disciplineCode'] === 'string'
+      ) {
+        const found = await queryRunner.manager.findOne(Discipline, {
+          where: queueContractId
+            ? {
+                disciplineCode: details['disciplineCode'],
+                contractId: queueContractId,
+                isActive: true,
+              }
+            : { disciplineCode: details['disciplineCode'], isActive: true },
+        });
+        resolvedDisciplineId = found?.id;
+      }
+      if (resolvedDisciplineId) {
+        const discipline = await queryRunner.manager.findOne(Discipline, {
+          where: { id: resolvedDisciplineId },
+        });
+        if (!discipline) {
+          throw new NotFoundException(
+            'Discipline',
+            String(resolvedDisciplineId)
+          );
+        }
+        // เลือก contract ตอน ingest แล้ว — discipline ต้องอยู่ภายใต้ contract นั้นเท่านั้น
+        if (queueContractId && discipline.contractId !== queueContractId) {
+          throw new ValidationException(
+            `Discipline ${resolvedDisciplineId} does not belong to the selected contract`,
+            undefined,
+            'สาขางานที่เลือกไม่ได้อยู่ภายใต้คู่สัญญาที่ระบุตอนนำเข้า — กรุณาเลือกสาขางานให้ตรงกับคู่สัญญา'
+          );
+        }
+      }
       if (!correspondence) {
         correspondence = queryRunner.manager.create(Correspondence, {
           correspondenceNumber: docNum,
           correspondenceTypeId: typeId,
           projectId: project.id,
           originatorId: resolvedSenderId || undefined,
+          disciplineId: resolvedDisciplineId,
           isInternal: false,
           createdBy: userId,
         });
@@ -631,6 +684,10 @@ export class MigrationReviewService {
         let hasChanges = false;
         if (resolvedSenderId && !correspondence.originatorId) {
           correspondence.originatorId = resolvedSenderId;
+          hasChanges = true;
+        }
+        if (resolvedDisciplineId && !correspondence.disciplineId) {
+          correspondence.disciplineId = resolvedDisciplineId;
           hasChanges = true;
         }
         if (hasChanges) {
