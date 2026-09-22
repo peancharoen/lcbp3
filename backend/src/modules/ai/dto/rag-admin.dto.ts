@@ -1,5 +1,6 @@
 // File: backend/src/modules/ai/dto/rag-admin.dto.ts
 // Change Log:
+// - 2026-09-22: เพิ่ม filename param ใน RagAdminListAttachmentsDto (dashboard filename search)
 // - 2026-09-10: T007 — เพิ่ม admin DTOs สำหรับ Feature 255 RAG Admin Console (8 endpoints)
 
 import {
@@ -7,6 +8,7 @@ import {
   IsEnum,
   IsInt,
   IsOptional,
+  IsString,
   IsUUID,
   ArrayMaxSize,
   ArrayMinSize,
@@ -61,6 +63,13 @@ export class RagAdminListAttachmentsDto {
   @IsOptional()
   @IsEnum(RagAdminStatusFilter)
   public status?: RagAdminStatusFilter;
+
+  @ApiPropertyOptional({
+    description: 'ค้นหาชื่อไฟล์ (partial match, case-insensitive)',
+  })
+  @IsOptional()
+  @IsString()
+  public filename?: string;
 
   @ApiPropertyOptional({ description: 'หน้าที่ (default: 1)', default: 1 })
   @IsOptional()

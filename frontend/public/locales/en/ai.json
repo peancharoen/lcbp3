@@ -229,6 +229,7 @@
         "refresh": "Refresh",
         "filter_project": "Filter by Project",
         "filter_status": "Filter by Status",
+        "filter_filename": "Search filename...",
         "all_projects": "All Projects",
         "all_statuses": "All Statuses",
         "columns": {

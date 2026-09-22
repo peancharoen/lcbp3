@@ -261,6 +261,7 @@
         "refresh": "รีเฟรช",
         "filter_project": "กรองตามโครงการ",
         "filter_status": "กรองตามสถานะ",
+        "filter_filename": "ค้นหาชื่อไฟล์...",
         "all_projects": "ทุกโครงการ",
         "all_statuses": "ทุกสถานะ",
         "columns": {

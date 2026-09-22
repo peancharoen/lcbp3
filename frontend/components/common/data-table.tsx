@@ -2,6 +2,8 @@
 
 // File: components/common/data-table.tsx
 // Change Log:
+// - 2026-09-22: apply columnDef.size เป็น width บน TableHead/TableCell — column sizing ทำงานจริง
+//   (เดิม size ถูก set แต่ไม่เคย render → Rev column กว้างตาม content เสมอ)
 // - 2026-09-07: Add controlled row selection support for bulk actions (Feature 253 T083-T086)
 
 import {
@@ -98,7 +100,14 @@ export function DataTable<TData, TValue>({
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => (
-                <TableHead key={header.id}>
+                <TableHead
+                  key={header.id}
+                  style={
+                    header.column.columnDef.size !== undefined
+                      ? { width: header.column.columnDef.size }
+                      : undefined
+                  }
+                >
                   {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                 </TableHead>
               ))}
@@ -110,7 +119,16 @@ export function DataTable<TData, TValue>({
             table.getRowModel().rows.map((row) => (
               <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
                 {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                  <TableCell
+                    key={cell.id}
+                    style={
+                      cell.column.columnDef.size !== undefined
+                        ? { width: cell.column.columnDef.size }
+                        : undefined
+                    }
+                  >
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </TableCell>
                 ))}
               </TableRow>
             ))

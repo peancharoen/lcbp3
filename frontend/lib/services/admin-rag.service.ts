@@ -1,5 +1,6 @@
 // File: lib/services/admin-rag.service.ts
 // Change Log:
+// - 2026-09-22: RagAdminListParams เพิ่ม filename (dashboard filename search)
 // - 2026-09-10: T008 — สร้าง API client สำหรับ Feature 255 RAG Admin Console (8 endpoints)
 
 import api from '@/lib/api/client';
@@ -156,6 +157,7 @@ export interface RagAdminMetricsSnapshot {
 
 export interface RagAdminListParams {
   status?: RagAdminStatus;
+  filename?: string;
   page?: number;
   pageSize?: RagAdminPageSize;
 }

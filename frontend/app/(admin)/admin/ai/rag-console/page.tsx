@@ -1,15 +1,17 @@
 // File: frontend/app/(admin)/admin/ai/rag-console/page.tsx
 // Change Log:
+// - 2026-09-22: Dashboard tab เพิ่ม filename search input (debounce 300ms → server-side LIKE)
 // - 2026-09-19: ADR-055 T027 — เพิ่มปุ่ม Re-OCR ต่อ row ใน Dashboard tab
 // - 2026-09-17: เพิ่มปุ่ม Re-ingest ต่อ row ใน Dashboard tab (ไม่ต้องเข้า Lifecycle tab)
 // - 2026-09-10: T024 — สร้าง RAG Admin Console page (single page + 5 tabs — Q23, Q24)
 
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
@@ -109,9 +111,18 @@ function DashboardTab({
   setStatusFilter: (v: string) => void;
 }) {
   const ragAdminT = useRagAdminT();
+  const [filenameInput, setFilenameInput] = useState('');
+  const [filenameSearch, setFilenameSearch] = useState('');
+
+  // Debounce filename search 300ms — กัน refetch ทุก keystroke (query มี polling 10s อยู่แล้ว)
+  useEffect(() => {
+    const timer = setTimeout(() => setFilenameSearch(filenameInput.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [filenameInput]);
 
   const params = {
     ...(statusFilter !== 'all' && { status: statusFilter as RagAdminStatus }),
+    ...(filenameSearch && { filename: filenameSearch }),
   };
   const { data, isLoading, refetch, isFetching } = useRagAttachments(params);
   const reingestMutation = useRagReingest();
@@ -132,7 +143,17 @@ function DashboardTab({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="relative w-[240px]">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={filenameInput}
+            onChange={(e) => setFilenameInput(e.target.value)}
+            placeholder={ragAdminT('dashboard.filter_filename')}
+            className="pl-8 h-9 text-sm"
+          />
+        </div>
+
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-[200px]">
             <SelectValue placeholder={ragAdminT('dashboard.filter_status')} />

@@ -1,5 +1,6 @@
 // File: backend/src/modules/ai/services/rag-admin.service.ts
 // Change Log:
+// - 2026-09-22: listAttachments รับ filename param — LIKE filter บน a.originalFilename
 // - 2026-09-18: dashboard/classification list กรองเฉพาะ attachments ที่ผูกกับ
 //   document join table (ซ่อน staging orphans ที่ ingest ไม่ได้) + expose hasOcrText
 // - 2026-09-17: reingest() คำนวณ+persist checksum จากไฟล์บนดิสก์เมื่อ attachment
@@ -206,6 +207,13 @@ export class RagAdminService {
           status: dto.status,
         });
       }
+    }
+
+    // ค้นหาชื่อไฟล์ (partial match — collation utf8mb4 เป็น case-insensitive อยู่แล้ว)
+    if (dto.filename) {
+      qb.andWhere('a.originalFilename LIKE :filename', {
+        filename: `%${dto.filename}%`,
+      });
     }
 
     const total = await qb.getCount();
