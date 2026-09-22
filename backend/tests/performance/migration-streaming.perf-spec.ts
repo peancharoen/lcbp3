@@ -3,6 +3,8 @@
 // - 2026-09-11: Initial creation — Performance benchmark tests สำหรับ
 //   Phase 4A (Spec 244 SC: ExcelJS streaming + batch approve timeout)
 //   Phase 4C (Spec 242 SC: Semantic search + AI compare accuracy)
+// - 2026-09-22: เพิ่ม ContractRepository provider รองรับ constructor ใหม่ของ
+//   LegacyIngestionService (contractCode → discipline propagation fix)
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
@@ -25,6 +27,7 @@ import { RagCitationService } from '../../src/modules/ai/services/rag-citation.s
 import { Project } from '../../src/modules/project/entities/project.entity';
 import { Organization } from '../../src/modules/organization/entities/organization.entity';
 import { Discipline } from '../../src/modules/master/entities/discipline.entity';
+import { Contract } from '../../src/modules/contract/entities/contract.entity';
 import { Correspondence } from '../../src/modules/correspondence/entities/correspondence.entity';
 import { CorrespondenceType } from '../../src/modules/correspondence/entities/correspondence-type.entity';
 import { CorrespondenceStatus } from '../../src/modules/correspondence/entities/correspondence-status.entity';
@@ -122,6 +125,7 @@ describe('Phase 4A: ExcelJS Streaming Performance (Spec 244)', () => {
   const correspondenceRepo = makeMockRepo<Correspondence>();
   const correspondenceStatusRepo = makeMockRepo<CorrespondenceStatus>();
   const disciplineRepo = makeMockRepo<Discipline>();
+  const contractRepo = makeMockRepo<Contract>();
 
   const mockDataSource = {
     getRepository: jest.fn(),
@@ -192,6 +196,10 @@ describe('Phase 4A: ExcelJS Streaming Performance (Spec 244)', () => {
         {
           provide: getRepositoryToken(Discipline),
           useValue: disciplineRepo,
+        },
+        {
+          provide: getRepositoryToken(Contract),
+          useValue: contractRepo,
         },
         { provide: FileStorageService, useValue: mockFileStorageService },
         { provide: 'BullQueue_ai-batch', useValue: mockAiBatchQueue },

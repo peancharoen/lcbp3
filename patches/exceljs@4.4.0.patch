@@ -1,0 +1,56 @@
+diff --git a/lib/utils/iterate-stream.js b/lib/utils/iterate-stream.js
+index 08b974e9a1425d85a96f30eb7869920ed8644b80..8b6f8e142a6fb82d08300421a9798be8a38cf829 100644
+--- a/lib/utils/iterate-stream.js
++++ b/lib/utils/iterate-stream.js
+@@ -1,27 +1,36 @@
+ module.exports = async function* iterateStream(stream) {
+   const contents = [];
+-  stream.on('data', data => contents.push(data));
++  stream.on("data", (data) => contents.push(data));
+ 
+   let resolveStreamEndedPromise;
+-  const streamEndedPromise = new Promise(resolve => (resolveStreamEndedPromise = resolve));
++  const streamEndedPromise = new Promise(
++    (resolve) => (resolveStreamEndedPromise = resolve),
++  );
+ 
+   let ended = false;
+-  stream.on('end', () => {
++  stream.on("end", () => {
+     ended = true;
+     resolveStreamEndedPromise();
+   });
+ 
+   let error = false;
+-  stream.on('error', err => {
++  stream.on("error", (err) => {
+     error = err;
+     resolveStreamEndedPromise();
+   });
+ 
+-  while (!ended || contents.length > 0) {
++  // unzipper's Parse emits a custom 'end' when its writable side finishes,
++  // which can precede delivery of entries already pushed to the readable
++  // buffer while the consumer was paused — drain them before exiting.
++  while (!ended || contents.length > 0 || (stream.readableLength || 0) > 0) {
+     if (contents.length === 0) {
+       stream.resume();
+       // eslint-disable-next-line no-await-in-loop
+-      await Promise.race([once(stream, 'data'), streamEndedPromise]);
++      await Promise.race([once(stream, "data"), streamEndedPromise]);
++      if (ended && contents.length === 0) {
++        // eslint-disable-next-line no-await-in-loop
++        await new Promise((resolve) => setImmediate(resolve));
++      }
+     } else {
+       stream.pause();
+       const data = contents.shift();
+@@ -34,7 +43,7 @@ module.exports = async function* iterateStream(stream) {
+ 
+ function once(eventEmitter, type) {
+   // TODO: Use require('events').once when node v10 is dropped
+-  return new Promise(resolve => {
++  return new Promise((resolve) => {
+     let fired = false;
+     const handler = () => {
+       if (!fired) {

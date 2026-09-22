@@ -241,6 +241,7 @@ overrides:
 
 patchedDependencies:
   '@nestjs/swagger': f022fb8a01eb9fa8d448eebbd944d11edae3f36f08a603ddfa7b25fb72a076df
+  exceljs@4.4.0: 78941b4bec375a90b75f4373fcdaf4bd536ad355e0872c9fb5631016e1931aff
 
 importers:
 
@@ -359,7 +360,7 @@ importers:
         version: 0.14.3
       exceljs:
         specifier: ^4.4.0
-        version: 4.4.0
+        version: 4.4.0(patch_hash=78941b4bec375a90b75f4373fcdaf4bd536ad355e0872c9fb5631016e1931aff)
       express:
         specifier: ^5.1.0
         version: 5.2.1(supports-color@8.1.1)
@@ -14097,7 +14098,7 @@ snapshots:
 
   events@3.3.0: {}
 
-  exceljs@4.4.0:
+  exceljs@4.4.0(patch_hash=78941b4bec375a90b75f4373fcdaf4bd536ad355e0872c9fb5631016e1931aff):
     dependencies:
       archiver: 5.3.2
       dayjs: 1.11.19
