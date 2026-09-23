@@ -130,12 +130,11 @@ import type {
 import { Rfa } from '../rfa/entities/rfa.entity';
 import { RfaRevision } from '../rfa/entities/rfa-revision.entity';
 import { linkAttachmentsToRevision } from './utils/attachment-linking.util';
-import {
-  findRevisionByLabel,
-  nextFreeRevisionNumber,
-  normalizeRevisionLabel,
-  pickCurrentRevision,
-} from './utils/revision-label.util';
+import { MigrationLockService } from './services/migration-lock.service';
+import { findRevisionByLabel } from './utils/find-revision-by-label.util';
+import { nextFreeRevisionNumber } from './utils/next-free-revision-number.util';
+import { normalizeRevisionLabel } from './utils/normalize-revision-label.util';
+import { applyCurrentRevision } from './utils/apply-current-revision.util';
 import {
   RFA_TYPE_CODE_GENERIC,
   RFA_STATUS_CODE_APPROVED,
@@ -221,7 +220,8 @@ export class MigrationService {
 
     private readonly reviewThresholdService: ReviewThresholdService,
     private readonly ragIngestionService: RagAttachmentIngestionService,
-    private readonly aiQueueService: AiQueueService
+    private readonly aiQueueService: AiQueueService,
+    private readonly migrationLock: MigrationLockService
   ) {
     this.stagingDir =
       this.configService.get<string>(ENV_STAGING_DIR) || STAGING_DIR_FALLBACK;
@@ -622,91 +622,97 @@ export class MigrationService {
       // revision ปัจจุบันแทน count() ที่อ่าน snapshot แล้ว race กับ concurrent tx
       // Note: uq_master_current (correspondence_id, is_current) constraint บังคับ
       // ให้มีได้แค่ 1 row ต่อ (correspondence_id, is_current) pair
-      const existingRevisions = await queryRunner.manager.find(
-        CorrespondenceRevision,
-        {
-          where: { correspondenceId: correspondence.id },
-          lock: { mode: 'pessimistic_write' },
-        }
+      //
+      // Redlock เพิ่มเติม (bugfix 2026-09-23): pessimistic_write ล็อกได้เฉพาะ
+      // row ที่มีอยู่แล้ว — กรณีสร้าง revision label ใหม่ (ยังไม่มี row ให้ล็อก)
+      // ไม่มีอะไรกันชนสอง transaction สร้าง label เดียวกันซ้ำพร้อมกัน
+      const revisionChainLock = await this.migrationLock.acquireRevisionChain(
+        correspondence.id
       );
-
-      // D159: body ใช้ AI summary (aiSummary) แทน OCR ดิบ (ocrText)
-      // ลำดับความสำคัญ: reviewer body > AI summary > undefined
-      const buildRevisionDetails = () => ({
-        ...dto.details,
-        ai_confidence: dto.aiConfidence,
-        ai_issues: dto.aiIssues as unknown,
-        source_file_path: dto.sourceFilePath,
-        attachment_id: attachmentId,
-        attachment_ids:
-          allAttachmentIds.length > 0 ? allAttachmentIds : undefined,
-      });
-
-      let revision: CorrespondenceRevision | undefined = targetRevision
-        ? findRevisionByLabel(existingRevisions, targetRevision.label)
-        : existingRevisions.find((r) => r.isCurrent);
-      if (revision) {
-        // upsert revision เดิม (label เดียวกัน / legacy current) — อัปเดต field
-        revision.subject = dto.subject;
-        revision.body = dto.body || dto.aiSummary || undefined;
-        revision.documentDate =
-          parseDateStr(dto.documentDate || dto.issuedDate) ??
-          revision.documentDate;
-        revision.receivedDate =
-          parseDateStr(dto.receivedDate) ?? revision.receivedDate;
-        revision.remarks = dto.remarks || undefined;
-        revision.details = buildRevisionDetails();
-        await queryRunner.manager.save(revision);
-      } else {
-        // revision ใหม่ — revision_number = rank ของ label ถ้าว่าง ไม่งั้นเลข
-        // ว่างถัดไป (label คือตัวเทียบลำดับจริง revision_number เป็น storage slot)
-        const revNum = nextFreeRevisionNumber(
-          existingRevisions.map((r) => r.revisionNumber),
-          targetRevision?.isValid
-            ? targetRevision.rank
-            : existingRevisions.length
+      let revision!: CorrespondenceRevision;
+      try {
+        const existingRevisions = await queryRunner.manager.find(
+          CorrespondenceRevision,
+          {
+            where: { correspondenceId: correspondence.id },
+            lock: { mode: 'pessimistic_write' },
+          }
         );
-        const revLabel =
-          targetRevision?.label ??
-          (existingRevisions.length === 0 ? '0' : revNum.toString());
-        revision = queryRunner.manager.create(CorrespondenceRevision, {
-          correspondenceId: correspondence.id,
-          revisionNumber: revNum,
-          revisionLabel: revLabel,
-          isCurrent: false,
-          statusId: status.id,
-          subject: dto.subject,
-          description: 'Migrated from legacy system via Auto Ingest',
-          // D159: body ใช้ AI summary (aiSummary) แทน OCR ดิบ (ocrText)
-          // ลำดับความสำคัญ: reviewer body > AI summary > undefined
-          body: dto.body || dto.aiSummary || undefined,
-          // Mapping: excel issued_date → document_date (วันที่ออกเอกสาร)
-          //          excel received_date → received_date (วันที่รับเอกสาร)
-          documentDate: parseDateStr(dto.documentDate || dto.issuedDate),
-          receivedDate: parseDateStr(dto.receivedDate),
-          remarks: dto.remarks || undefined,
-          details: buildRevisionDetails(),
-          schemaVersion: 1,
-          createdBy: userId,
+
+        // D159: body ใช้ AI summary (aiSummary) แทน OCR ดิบ (ocrText)
+        // ลำดับความสำคัญ: reviewer body > AI summary > undefined
+        const buildRevisionDetails = () => ({
+          ...dto.details,
+          ai_confidence: dto.aiConfidence,
+          ai_issues: dto.aiIssues as unknown,
+          source_file_path: dto.sourceFilePath,
+          attachment_id: attachmentId,
+          attachment_ids:
+            allAttachmentIds.length > 0 ? allAttachmentIds : undefined,
         });
-        await queryRunner.manager.save(revision);
+
+        const foundRevision: CorrespondenceRevision | undefined = targetRevision
+          ? findRevisionByLabel(existingRevisions, targetRevision.label)
+          : existingRevisions.find((r) => r.isCurrent);
+        if (foundRevision) {
+          // upsert revision เดิม (label เดียวกัน / legacy current) — อัปเดต field
+          revision = foundRevision;
+          revision.subject = dto.subject;
+          revision.body = dto.body || dto.aiSummary || undefined;
+          revision.documentDate =
+            parseDateStr(dto.documentDate || dto.issuedDate) ??
+            revision.documentDate;
+          revision.receivedDate =
+            parseDateStr(dto.receivedDate) ?? revision.receivedDate;
+          revision.remarks = dto.remarks || undefined;
+          revision.details = buildRevisionDetails();
+          await queryRunner.manager.save(revision);
+        } else {
+          // revision ใหม่ — revision_number = rank ของ label ถ้าว่าง ไม่งั้นเลข
+          // ว่างถัดไป (label คือตัวเทียบลำดับจริง revision_number เป็น storage slot)
+          const revNum = nextFreeRevisionNumber(
+            existingRevisions.map((r) => r.revisionNumber),
+            targetRevision?.isValid
+              ? targetRevision.rank
+              : existingRevisions.length
+          );
+          const revLabel =
+            targetRevision?.label ??
+            (existingRevisions.length === 0 ? '0' : revNum.toString());
+          revision = queryRunner.manager.create(CorrespondenceRevision, {
+            correspondenceId: correspondence.id,
+            revisionNumber: revNum,
+            revisionLabel: revLabel,
+            isCurrent: false,
+            statusId: status.id,
+            subject: dto.subject,
+            description: 'Migrated from legacy system via Auto Ingest',
+            // D159: body ใช้ AI summary (aiSummary) แทน OCR ดิบ (ocrText)
+            // ลำดับความสำคัญ: reviewer body > AI summary > undefined
+            body: dto.body || dto.aiSummary || undefined,
+            // Mapping: excel issued_date → document_date (วันที่ออกเอกสาร)
+            //          excel received_date → received_date (วันที่รับเอกสาร)
+            documentDate: parseDateStr(dto.documentDate || dto.issuedDate),
+            receivedDate: parseDateStr(dto.receivedDate),
+            remarks: dto.remarks || undefined,
+            details: buildRevisionDetails(),
+            schemaVersion: 1,
+            createdBy: userId,
+          });
+          await queryRunner.manager.save(revision);
+        }
+        // current = revision ลำดับสูงสุดตาม normalized label — order-independent
+        // (import 'A' ทีหลัง 'C' ก็ยังได้ 'C' เป็น current) — logic นี้ใช้ร่วมกับ
+        // migration-review.service.ts (commitRecord) ผ่าน shared util
+        await applyCurrentRevision(
+          queryRunner.manager,
+          correspondence.id,
+          existingRevisions,
+          revision
+        );
+      } finally {
+        await this.migrationLock.release(revisionChainLock);
       }
-      // current = revision ลำดับสูงสุดตาม normalized label — order-independent
-      // (import 'A' ทีหลัง 'C' ก็ยังได้ 'C' เป็น current)
-      const allRevisions = existingRevisions.some((r) => r.id === revision.id)
-        ? existingRevisions
-        : [...existingRevisions, revision];
-      const currentRevision = pickCurrentRevision(allRevisions);
-      await queryRunner.manager.update(
-        CorrespondenceRevision,
-        { correspondenceId: correspondence.id },
-        { isCurrent: false }
-      );
-      await queryRunner.manager.update(
-        CorrespondenceRevision,
-        { id: currentRevision.id },
-        { isCurrent: true }
-      );
 
       // Bugfix: เชื่อม attachments ทั้งหมดเข้ากับ revision ผ่าน junction table
       // (correspondence_revision_attachments) — เดิม importCorrespondence เก็บแค่

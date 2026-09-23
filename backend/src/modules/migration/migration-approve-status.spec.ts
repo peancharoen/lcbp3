@@ -27,6 +27,7 @@ import { ReviewThresholdService } from './services/review-threshold.service';
 import { Attachment } from '../../common/file-storage/entities/attachment.entity';
 import { RagAttachmentIngestionService } from '../ai/services/rag-attachment-ingestion.service';
 import { AiQueueService } from '../ai/ai-queue.service';
+import { MigrationLockService } from './services/migration-lock.service';
 
 describe('MigrationService approve-and-import status', () => {
   let service: MigrationService;
@@ -115,6 +116,15 @@ describe('MigrationService approve-and-import status', () => {
           provide: AiQueueService,
           useValue: {
             enqueueRagAttachmentIngestion: jest.fn().mockResolvedValue({}),
+          },
+        },
+        {
+          provide: MigrationLockService,
+          useValue: {
+            acquireDocumentNumber: jest.fn().mockResolvedValue({}),
+            acquireRevisionChain: jest.fn().mockResolvedValue({}),
+            acquireProjectImport: jest.fn().mockResolvedValue({}),
+            release: jest.fn().mockResolvedValue(undefined),
           },
         },
       ],

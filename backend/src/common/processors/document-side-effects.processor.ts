@@ -28,6 +28,7 @@ import {
 } from '../services/document-side-effects.service';
 import { SearchService } from '../../modules/search/search.service';
 import { AiQdrantService } from '../../modules/ai/qdrant.service';
+import { SEARCH_INDEXED_DOCUMENT_TYPES } from '../constants/search-indexed-document-types.constant';
 import { NotificationService } from '../../modules/notification/notification.service';
 import { Correspondence } from '../../modules/correspondence/entities/correspondence.entity';
 import { CorrespondenceRevision } from '../../modules/correspondence/entities/correspondence-revision.entity';
@@ -98,7 +99,7 @@ export class DocumentSideEffectsProcessor extends WorkerHost {
   private async handleSearchReindex(data: SearchReindexJobData): Promise<void> {
     // CORRESPONDENCE และ RFA ใช้ตาราง correspondences ร่วมกัน (RFA = CTI subtype,
     // shared PK) — indexDocument() resolve subtype จริงจากตาราง rfas เอง
-    if (!['CORRESPONDENCE', 'RFA'].includes(data.documentType)) {
+    if (!SEARCH_INDEXED_DOCUMENT_TYPES.includes(data.documentType)) {
       this.logger.warn(
         `SEARCH_REINDEX not implemented for documentType=${data.documentType} ` +
           `(no existing caller enqueues this type — see change log) — skipping publicId=${data.publicId}`

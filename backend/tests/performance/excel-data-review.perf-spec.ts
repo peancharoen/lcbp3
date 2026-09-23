@@ -24,6 +24,7 @@ import { AiReviewProviderFactory } from '../../src/modules/migration/services/ai
 import { ExcelAnnotatorService } from '../../src/modules/migration/services/excel-annotator.service';
 import { ExcelQuarantineService } from '../../src/modules/migration/services/excel-quarantine.service';
 import { ExcelDateParserService } from '../../src/modules/migration/services/excel-date-parser.service';
+import { MigrationLockService } from '../../src/modules/migration/services/migration-lock.service';
 import { QUEUE_IMPORT_REVIEW } from '../../src/modules/common/constants/queue.constants';
 import { ImportTransaction } from '../../src/modules/migration/entities/import-transaction.entity';
 import { Project } from '../../src/modules/project/entities/project.entity';
@@ -255,6 +256,15 @@ describe('SC-001: Layer 1+2 Performance (Feature 252)', () => {
           useValue: { add: jest.fn().mockResolvedValue({ id: 'job-1' }) },
         },
         { provide: 'REVIEW_STAGING_ROOT', useValue: stagingRoot },
+        {
+          provide: MigrationLockService,
+          useValue: {
+            acquireDocumentNumber: jest.fn().mockResolvedValue({}),
+            acquireRevisionChain: jest.fn().mockResolvedValue({}),
+            acquireProjectImport: jest.fn().mockResolvedValue({}),
+            release: jest.fn().mockResolvedValue(undefined),
+          },
+        },
       ],
     }).compile();
 

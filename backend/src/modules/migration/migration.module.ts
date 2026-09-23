@@ -12,6 +12,8 @@
 //   ImportReviewProcessor สำหรับ background processing (ADR-008)
 // - 2026-09-22: เพิ่ม Contract entity ใน forFeature — LegacyIngestionService resolve
 //   contractCode → contract + disciplines ตอน ingestion (fix contractCode หลุด)
+// - 2026-09-23: เพิ่ม MigrationLockService (Redlock, ADR-002) — กัน race condition
+//   บน document_number/revision label ระหว่าง concurrent import/confirm
 
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -48,6 +50,7 @@ import { ReviewThresholdService } from './services/review-threshold.service';
 import { MetadataResolutionService } from './services/metadata-resolution.service';
 import { RagBatchService } from './services/rag-batch.service';
 import { LegacyIngestionService } from './services/legacy-ingestion.service';
+import { MigrationLockService } from './services/migration-lock.service';
 import { ExcelDateParserService } from './services/excel-date-parser.service';
 import {
   ReviewSessionStashService,
@@ -118,6 +121,7 @@ import { SearchModule } from '../search/search.module';
     MetadataResolutionService,
     RagBatchService,
     LegacyIngestionService,
+    MigrationLockService,
     // Excel Import Review Pipeline (ADR-052)
     ExcelDateParserService,
     ReviewSessionStashService,

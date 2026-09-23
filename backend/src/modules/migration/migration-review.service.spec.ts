@@ -76,6 +76,7 @@ import {
 } from '../../common/exceptions';
 import * as fs from 'fs-extra';
 import { linkAttachmentsToRevision } from './utils/attachment-linking.util';
+import { MigrationLockService } from './services/migration-lock.service';
 
 /** typeCode ที่ mock ให้ "อนุญาต" เป็นค่า default สำหรับทุก happy-path test (T017 gate) —
  *  รวม 'Correspondence' (ค่า default ของ aiSuggestedCorrespondenceType ใน makeQueueItem) ไว้ด้วยเพื่อไม่ให้
@@ -387,6 +388,13 @@ describe('MigrationReviewService', () => {
       indexDocument: jest.fn().mockResolvedValue({ result: 'created' }),
     };
 
+    const mockMigrationLockService = {
+      acquireDocumentNumber: jest.fn().mockResolvedValue({}),
+      acquireRevisionChain: jest.fn().mockResolvedValue({}),
+      acquireProjectImport: jest.fn().mockResolvedValue({}),
+      release: jest.fn().mockResolvedValue(undefined),
+    };
+
     dataSource = {
       createQueryRunner: jest.fn(),
       getRepository: jest.fn().mockImplementation((entity) => {
@@ -412,6 +420,7 @@ describe('MigrationReviewService', () => {
           useValue: mockReviewThresholdService,
         },
         { provide: SearchService, useValue: mockSearchService },
+        { provide: MigrationLockService, useValue: mockMigrationLockService },
       ],
     }).compile();
 

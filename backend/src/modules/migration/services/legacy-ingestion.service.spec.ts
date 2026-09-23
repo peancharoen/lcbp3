@@ -9,6 +9,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { LegacyIngestionService } from './legacy-ingestion.service';
 import { ExcelHeaderDetectorService } from './excel-header-detector.service';
+import { MigrationLockService } from './migration-lock.service';
 import { MigrationReviewQueue } from '../entities/migration-review-queue.entity';
 import {
   MigrationProgress,
@@ -227,6 +228,15 @@ describe('LegacyIngestionService (ADR-047)', () => {
           useValue: mockAiBatchQueue,
         },
         ExcelHeaderDetectorService,
+        {
+          provide: MigrationLockService,
+          useValue: {
+            acquireDocumentNumber: jest.fn().mockResolvedValue({}),
+            acquireRevisionChain: jest.fn().mockResolvedValue({}),
+            acquireProjectImport: jest.fn().mockResolvedValue({}),
+            release: jest.fn().mockResolvedValue(undefined),
+          },
+        },
       ],
     }).compile();
 
@@ -1490,14 +1500,18 @@ describe('LegacyIngestionService (ADR-047)', () => {
 
   // ─── B11 Idempotency + Revision Loop Branch Coverage ──────────────────────
 
-  it('B11: ควร reuse tempAttachmentId เมื่อ queueItem มี tempAttachmentId และมี resolvedPdfPath', async () => {
+  it('B11 bugfix 2026-09-23: ไม่ reuse tempAttachmentId ข้าม revision ที่ต่างกัน — revision ใหม่ต้องได้ attachment ของตัวเอง', async () => {
     mockProjectRepo.findOne.mockResolvedValue({
       id: 5,
       publicId: '019505a1-7c3e-7000-8000-proj12345678',
       projectCode: 'LCBP3-C2',
     });
 
-    // queueItem มี tempAttachmentId อยู่แล้ว → ควร reuse ไม่สร้างใหม่
+    // แถวแรกใน batch เดียวกันชื่อเอกสารเดียวกันมีอยู่แล้ว (พร้อม tempAttachmentId
+    // ของ "revision" เดิม) → FR-007 branch ต้องสร้าง revision suffix ใหม่ (-R1)
+    // ให้แถวนี้ ซึ่งเป็นแถวคนละ revision กัน — bugfix เดิม (ก่อน 2026-09-23) เช็ค
+    // idempotency ก่อนคำนวณ finalDocNumber ทำให้หยิบ tempAttachmentId ของ
+    // revision เดิม (id 55) มาใช้ผิด แทนที่จะสร้าง attachment ใหม่ให้ revision นี้
     // ใช้ mockResolvedValueOnce (ไม่ใช่ mockResolvedValue) เพื่อป้องกัน persistent default
     // ที่จะทำให้ test ถัดไปติด infinite loop ใน revision while-loop
     mockReviewQueueRepo.findOne
@@ -1507,7 +1521,7 @@ describe('LegacyIngestionService (ADR-047)', () => {
         documentNumber: 'LCBP3-C2-2024-001',
         tempAttachmentId: 55,
       })
-      .mockResolvedValueOnce(null); // แถวที่ 2 ไม่ซ้ำ
+      .mockResolvedValueOnce(null); // แถวที่ 2 (-R1) ไม่ซ้ำ
 
     const result = await service.startIngestion({
       filePath: tempExcelPath,
@@ -1517,8 +1531,16 @@ describe('LegacyIngestionService (ADR-047)', () => {
     });
 
     expect(result.status).toBe('COMPLETED');
-    // ไม่ควรสร้าง attachment ใหม่ เพราะ reuse tempAttachmentId เดิม
-    expect(mockAttachmentRepo.save).not.toHaveBeenCalled();
+    // ต้องสร้าง attachment ใหม่ให้ revision นี้ ไม่ reuse id 55 ของ revision เดิม
+    expect(mockAttachmentRepo.save).toHaveBeenCalled();
+    const savedQueueItems = mockReviewQueueRepo.save.mock.calls.map(
+      (call: unknown[]) =>
+        call[0] as { documentNumber?: string; tempAttachmentId?: number }
+    );
+    const revisionRow = savedQueueItems.find(
+      (item) => item.documentNumber === 'LCBP3-C2-2024-001-R1'
+    );
+    expect(revisionRow?.tempAttachmentId).not.toBe(55);
   });
 
   it('ควร increment revision หลายครั้งเมื่อ -R1 และ -R2 มีอยู่แล้ว (revision loop)', async () => {

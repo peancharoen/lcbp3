@@ -37,6 +37,7 @@ import {
   BatchStrategy,
 } from '../types/excel-review.types';
 import { ExcelRowBuilderResult } from './excel-row-builder.service';
+import { MigrationLockService } from './migration-lock.service';
 
 /** Mock repository factory */
 const mockRepo = <T>(): jest.Mocked<Pick<T, 'findOne' | 'find'>> =>
@@ -328,6 +329,15 @@ describe('ExcelDataReviewService', () => {
         {
           provide: getQueueToken(QUEUE_IMPORT_REVIEW),
           useValue: { add: jest.fn().mockResolvedValue({ id: 'job-1' }) },
+        },
+        {
+          provide: MigrationLockService,
+          useValue: {
+            acquireDocumentNumber: jest.fn().mockResolvedValue({}),
+            acquireRevisionChain: jest.fn().mockResolvedValue({}),
+            acquireProjectImport: jest.fn().mockResolvedValue({}),
+            release: jest.fn().mockResolvedValue(undefined),
+          },
         },
       ],
     }).compile();

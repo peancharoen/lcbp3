@@ -23,7 +23,7 @@ import {
   ReviewTargetMode,
 } from '../types/excel-review.types';
 import { ExcelDateParserService } from './excel-date-parser.service';
-import { normalizeRevisionLabel } from '../utils/revision-label.util';
+import { normalizeRevisionLabel } from '../utils/normalize-revision-label.util';
 
 /**
  * Input สำหรับ Layer 2 validation

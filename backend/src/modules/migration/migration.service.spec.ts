@@ -82,6 +82,7 @@ import {
 import { createReadStream, existsSync, readdirSync, statSync } from 'fs';
 import * as path from 'path';
 import { NO_PDF_OCR_PLACEHOLDER } from './constants/migration.constants';
+import { MigrationLockService } from './services/migration-lock.service';
 
 const mockedExistsSync = jest.mocked(existsSync);
 const mockedCreateReadStream = jest.mocked(createReadStream);
@@ -201,6 +202,13 @@ describe('MigrationService', () => {
       .mockResolvedValue({ maxMismatchFields: 3, minConfidence: 0.6 }),
   };
 
+  const mockMigrationLockService = {
+    acquireDocumentNumber: jest.fn().mockResolvedValue({}),
+    acquireRevisionChain: jest.fn().mockResolvedValue({}),
+    acquireProjectImport: jest.fn().mockResolvedValue({}),
+    release: jest.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
     const module: TestingModule = await Test.createTestingModule({
@@ -269,6 +277,10 @@ describe('MigrationService', () => {
         {
           provide: AiQueueService,
           useValue: mockAiQueueService,
+        },
+        {
+          provide: MigrationLockService,
+          useValue: mockMigrationLockService,
         },
       ],
     }).compile();
@@ -1399,10 +1411,12 @@ describe('MigrationService', () => {
         CorrespondenceRevision,
         expect.objectContaining({ revisionLabel: 'A', revisionNumber: 1 })
       );
-      expect(mockQueryRunner.manager.update).toHaveBeenCalledWith(
+      // bugfix 2026-09-23: current ไม่เปลี่ยน (ยังเป็น 'C' id 11 เหมือนเดิม) —
+      // applyCurrentRevision() ข้าม UPDATE isCurrent ทั้งคู่เมื่อไม่จำเป็น
+      expect(mockQueryRunner.manager.update).not.toHaveBeenCalledWith(
         CorrespondenceRevision,
-        { id: 11 },
-        { isCurrent: true }
+        expect.anything(),
+        expect.objectContaining({ isCurrent: expect.anything() })
       );
     });
 

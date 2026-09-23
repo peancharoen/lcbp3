@@ -5,6 +5,10 @@
 //   เปลี่ยนเป็นรับ publicId ลบทั้งสอง prefix (แก้ bug ใช้ int id + ไม่มี caller),
 //   (3) เพิ่ม reconcileIndex() cron hourly — add missing / delete stale /
 //   update drifted docs
+// - 2026-09-23 (bugfix): deleteIndexKey เดิมกลืน error ที่ไม่ใช่ 404 ทำให้
+//   BullMQ SEARCH_DELETE job ไม่เคย retry จริง — เปลี่ยนเป็น throw ต่อ;
+//   fetchAllIndexedDocs เดิม fetch ครั้งเดียว size 10,000 (ตัดที่ ES
+//   max_result_window) — เปลี่ยนเป็น scroll API วนดึงทีละ page
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ElasticsearchService } from '@nestjs/elasticsearch';
@@ -15,8 +19,10 @@ import { SearchQueryDto } from './dto/search-query.dto';
 import { Correspondence } from '../correspondence/entities/correspondence.entity';
 import { Rfa } from '../rfa/entities/rfa.entity';
 
-/** ขนาดสูงสุดของ result window ตอน reconcile — เพียงพอกับจำนวนเอกสารทั้งระบบ */
-const RECONCILE_FETCH_SIZE = 10_000;
+/** ขนาด page ต่อรอบตอน scroll ผ่านเอกสารทั้งหมดใน index (reconcile) */
+const RECONCILE_PAGE_SIZE = 1_000;
+/** ระยะเวลาคง scroll context ไว้ระหว่างดึงแต่ละ page */
+const RECONCILE_SCROLL_TTL = '1m';
 
 /** รูปแบบ doc ที่ index เข้า Elasticsearch */
 type SearchIndexDoc = Record<string, unknown> & {
@@ -101,9 +107,18 @@ export class SearchService implements OnModuleInit {
    * resolve subtype จริงจากตาราง rfas (shared PK) เพื่อให้ ES doc id ตรงกับ
    * reindexAll() เสมอ ไม่เกิด duplicate key 'correspondence_<uuid>' กับ 'rfa_<uuid>'
    */
-  async indexDocument(doc: SearchIndexDoc) {
+  async indexDocument(
+    doc: SearchIndexDoc,
+    options?: { skipTypeResolution?: boolean }
+  ) {
     try {
-      const resolvedType = await this.resolveDocumentType(doc);
+      // skipTypeResolution: caller (buildExpectedDocs ผ่าน reindexAll/reconcileIndex)
+      // resolve RFA subtype ไว้แล้วจาก rfaIds Set เดียว — ข้าม query ซ้ำต่อ doc
+      // (bugfix 2026-09-23: เดิม resolveDocumentType ยิง existsBy ซ้ำทุก doc
+      // ทั้งที่ผลลัพธ์รู้อยู่แล้ว)
+      const resolvedType = options?.skipTypeResolution
+        ? doc.type
+        : await this.resolveDocumentType(doc);
       const resolvedDoc = { ...doc, type: resolvedType };
       return await this.esService.index({
         index: this.indexName,
@@ -165,7 +180,10 @@ export class SearchService implements OnModuleInit {
 
       // indexDocument() ไม่ throw เอง (catch + log ภายในแล้ว return undefined เมื่อ error)
       // จึงต้องเช็คจาก return value แทน try/catch เพื่อนับ failed ให้ถูกต้อง
-      const result = await this.indexDocument(doc);
+      // skipTypeResolution: buildExpectedDocs() resolve RFA subtype ไว้แล้ว
+      const result = await this.indexDocument(doc, {
+        skipTypeResolution: true,
+      });
       if (result) {
         indexed++;
       } else {
@@ -241,23 +259,37 @@ export class SearchService implements OnModuleInit {
 
       // ลบ stale docs ที่ไม่มีใน DB แล้ว (รวมถึง key prefix ผิด เช่น
       // correspondence_<uuid> ของ RFA ที่ถูก index ก่อนมี subtype resolution)
+      // deleteIndexKey ตอนนี้ throw เมื่อ ES ล้มเหลวจริง (ไม่ใช่ 404) — catch ต่อ
+      // ตัวเพื่อให้ reconcile ยังทำ doc ที่เหลือต่อได้แม้บาง doc ลบไม่สำเร็จ
       for (const esId of esDocs.keys()) {
         if (!expected.has(esId)) {
-          await this.deleteIndexKey(esId);
-          deleted++;
+          try {
+            await this.deleteIndexKey(esId);
+            deleted++;
+          } catch (err) {
+            this.logger.error(
+              `Reconcile: failed to delete stale doc ${esId}: ${(err as Error).message}`
+            );
+          }
         }
       }
 
       // index เอกสารที่หายไป หรือ field drift
+      // skipTypeResolution: buildExpectedDocs() resolve RFA subtype ไว้แล้วผ่าน
+      // rfaIds Set เดียว — ข้าม existsBy query ซ้ำต่อ doc (bugfix 2026-09-23)
       for (const [key, doc] of expected) {
         const existing = esDocs.get(key);
         if (!existing) {
-          const result = await this.indexDocument(doc);
+          const result = await this.indexDocument(doc, {
+            skipTypeResolution: true,
+          });
           if (result) added++;
           continue;
         }
         if (this.isDocDrifted(existing, doc)) {
-          const result = await this.indexDocument(doc);
+          const result = await this.indexDocument(doc, {
+            skipTypeResolution: true,
+          });
           if (result) updated++;
           continue;
         }
@@ -281,22 +313,47 @@ export class SearchService implements OnModuleInit {
 
   /**
    * ดึงเอกสารทั้งหมดใน index พร้อม _source — ใช้เทียบกับ DB ตอน reconcile
+   * ใช้ ES scroll API วน page ละ RECONCILE_PAGE_SIZE แทนการ fetch ครั้งเดียว
+   * (bugfix 2026-09-23: เดิม size: 10_000 ครั้งเดียว — ตัดที่ index.max_result_window
+   * เริ่มพลาด doc ที่เกิน window เมื่อจำนวนเอกสารทั้งระบบเกิน 10,000 เอกสาร)
    */
   private async fetchAllIndexedDocs(): Promise<
     Map<string, Record<string, unknown>>
   > {
-    const result = await this.esService.search<Record<string, unknown>>({
+    const map = new Map<string, Record<string, unknown>>();
+    let response = await this.esService.search<Record<string, unknown>>({
       index: this.indexName,
-      size: RECONCILE_FETCH_SIZE,
+      scroll: RECONCILE_SCROLL_TTL,
+      size: RECONCILE_PAGE_SIZE,
       _source: true,
       query: { match_all: {} },
     });
-    const map = new Map<string, Record<string, unknown>>();
-    for (const hit of result.hits.hits) {
-      if (hit._id && hit._source) {
-        map.set(hit._id, hit._source);
+
+    let scrollId = response._scroll_id;
+    while (response.hits.hits.length > 0) {
+      for (const hit of response.hits.hits) {
+        if (hit._id && hit._source) {
+          map.set(hit._id, hit._source);
+        }
+      }
+      if (!scrollId) break;
+      response = await this.esService.scroll<Record<string, unknown>>({
+        scroll_id: scrollId,
+        scroll: RECONCILE_SCROLL_TTL,
+      });
+      scrollId = response._scroll_id;
+    }
+
+    if (scrollId) {
+      try {
+        await this.esService.clearScroll({ scroll_id: scrollId });
+      } catch (err) {
+        this.logger.warn(
+          `Failed to clear ES scroll context: ${(err as Error).message}`
+        );
       }
     }
+
     return map;
   }
 
@@ -325,7 +382,12 @@ export class SearchService implements OnModuleInit {
     ]);
   }
 
-  /** ลบ doc ตาม ES key — 404 ถือว่าสำเร็จ (idempotent) */
+  /**
+   * ลบ doc ตาม ES key — 404 ถือว่าสำเร็จ (idempotent) error อื่นโยนต่อให้ caller
+   * (bugfix 2026-09-23: เดิม catch แล้ว log เฉยๆ ไม่ throw ทำให้ removeDocument()
+   * ที่เรียกจาก SEARCH_DELETE BullMQ job มองว่า job สำเร็จเสมอ — attempts/backoff
+   * retry ที่ตั้งไว้ไม่เคยทำงานจริงเมื่อ ES ล่ม/timeout ชั่วคราว)
+   */
   private async deleteIndexKey(key: string): Promise<void> {
     try {
       await this.esService.delete({
@@ -337,7 +399,7 @@ export class SearchService implements OnModuleInit {
       if (err.meta?.statusCode === 404) {
         return; // ไม่มี doc อยู่แล้ว — ไม่ใช่ error
       }
-      this.logger.error(`Failed to remove document ${key}: ${err.message}`);
+      throw err;
     }
   }
 

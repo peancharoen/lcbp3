@@ -459,10 +459,12 @@ describe('SearchService', () => {
       await expect(service.removeDocument('uuid-999')).resolves.not.toThrow();
     });
 
-    it('should handle removal errors gracefully', async () => {
+    it('should propagate non-404 errors so BullMQ can retry (bugfix 2026-09-23)', async () => {
       mockEsService.delete.mockRejectedValue(new Error('ES down'));
 
-      await expect(service.removeDocument('uuid-999')).resolves.not.toThrow();
+      await expect(service.removeDocument('uuid-999')).rejects.toThrow(
+        'ES down'
+      );
     });
   });
 

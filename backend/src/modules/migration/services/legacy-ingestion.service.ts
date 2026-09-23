@@ -55,7 +55,9 @@ import {
   LEGACY_NAS_PATH_DEFAULT,
 } from '../constants/migration.constants';
 import { ExcelHeaderDetectorService } from './excel-header-detector.service';
-import { normalizeRevisionLabel } from '../utils/revision-label.util';
+import { normalizeRevisionLabel } from '../utils/normalize-revision-label.util';
+import { findNextFreeDocumentNumber } from '../utils/find-next-free-document-number.util';
+import { MigrationLockService } from './migration-lock.service';
 
 export interface IngestSummary {
   batchId: string;
@@ -115,7 +117,8 @@ export class LegacyIngestionService {
     private readonly disciplineRepo: Repository<Discipline>,
     @InjectQueue('ai-batch')
     private readonly aiBatchQueue: Queue,
-    private readonly headerDetector: ExcelHeaderDetectorService
+    private readonly headerDetector: ExcelHeaderDetectorService,
+    private readonly migrationLock: MigrationLockService
   ) {}
 
   /**
@@ -392,164 +395,186 @@ export class LegacyIngestionService {
               }
             }
 
-            // B11 fix: สร้าง attachment record สำหรับ PDF ที่พบ และผูกกับ queue item
-            // ผ่าน tempAttachmentIds — เพื่อให้ Execute Import สามารถ commit ได้โดยไม่ต้อง
-            // สร้าง attachment ด้วยมือ
-            // Idempotency: ถ้า queue item มี tempAttachmentId อยู่แล้ว (resume) จะไม่สร้างใหม่
-            let attachmentIdForQueue: number | undefined;
-
-            // บันทึกหรืออัปเดตลง migration_review_queue
-            // FR-007: หากเลขที่เอกสารซ้ำใน Batch เดียวกัน ให้เพิ่ม revisionNumber
-            let queueItem = await this.reviewQueueRepo.findOne({
-              where: { documentNumber: docNumber },
-            });
-
-            // B11 idempotency: ถ้า queue item มี tempAttachmentId อยู่แล้ว (resume) ใช้ attachment เดิม
-            if (queueItem?.tempAttachmentId && resolvedPdfPath) {
-              attachmentIdForQueue = queueItem.tempAttachmentId;
-            } else if (resolvedPdfPath) {
-              try {
-                const fileStats = fs.statSync(resolvedPdfPath);
-                const baseName = path.basename(resolvedPdfPath);
-                const attachment = this.attachmentRepo.create({
-                  originalFilename: baseName,
-                  storedFilename: baseName,
-                  filePath: resolvedPdfPath,
-                  mimeType: 'application/pdf',
-                  fileSize: fileStats.size,
-                  isTemporary: false,
-                  uploadedByUserId: 2, // admin user — legacy ingestion
-                  aiProcessingStatus: 'PENDING',
-                  classification: 'INTERNAL',
-                  effectiveClassification: 'INTERNAL',
-                });
-                const saved = await this.attachmentRepo.save(attachment);
-                attachmentIdForQueue = saved.id;
-              } catch (attErr: unknown) {
-                const attMsg =
-                  attErr instanceof Error ? attErr.message : String(attErr);
-                this.logger.warn(
-                  `Failed to create attachment for ${docNumber}: ${attMsg}`
-                );
-              }
-            }
-
-            // ตรวจหา duplicate ใน batch เดียวกัน → สร้าง revision suffix
-            // - มี revision column (format ใหม่): document_number ของ queue =
-            //   base สำหรับ rev '0', `${base}-R${label}` สำหรับ revision อื่น
-            //   (label จริงเก็บใน details.revision_label — commit สร้าง
-            //   correspondence_revisions ใต้ Correspondence เดียวกัน)
-            // - ไม่มี revision column (format เดิม): FR-007 counter -R1,-R2,…
-            let finalDocNumber = docNumber;
-            let revisionNumber = 0;
-            if (revisionNorm) {
-              // มี revision column — queue document_number = base สำหรับ '0',
-              // `${base}-R${label}` สำหรับ revision อื่น (label จริงอยู่ใน details)
-              finalDocNumber =
-                revisionNorm.label === '0'
-                  ? docNumber
-                  : `${docNumber}-R${revisionNorm.label}`;
-              const existing = await this.reviewQueueRepo.findOne({
-                where: { documentNumber: finalDocNumber },
+            // ล็อกป้องกัน race condition บน document_number (ADR-002) — กันชน
+            // ตอนหาเลขที่/revision suffix ที่ไม่ซ้ำ เมื่อมีหลาย ingestion run
+            // พร้อมกันสำหรับเอกสารฐานเดียวกัน (bugfix 2026-09-23)
+            const docNumberLock =
+              await this.migrationLock.acquireDocumentNumber(docNumber);
+            try {
+              // บันทึกหรืออัปเดตลง migration_review_queue
+              // FR-007: หากเลขที่เอกสารซ้ำใน Batch เดียวกัน ให้เพิ่ม revisionNumber
+              let queueItem = await this.reviewQueueRepo.findOne({
+                where: { documentNumber: docNumber },
               });
-              if (existing && existing.batchId === batchId) {
-                // (doc,label) ซ้ำใน batch เดียวกัน — suffix -D{n} กันชน unique
-                // (แยกจาก -R{label} เพื่อบอกว่าเป็น duplicate row ไม่ใช่ revision)
-                revisionNumber = 1;
-                while (true) {
-                  const candidate = `${finalDocNumber}-D${revisionNumber}`;
-                  const dup = await this.reviewQueueRepo.findOne({
-                    where: { documentNumber: candidate },
-                  });
-                  if (!dup) {
-                    finalDocNumber = candidate;
-                    break;
-                  }
-                  revisionNumber++;
-                }
-                queueItem = null;
-              } else {
-                // ไม่มี item ที่ชื่อนี้ → สร้างใหม่; มีแต่คนละ batch → reuse เดิม
-                queueItem = existing;
-              }
-            } else if (queueItem && queueItem.batchId === batchId) {
-              // หา revision ถัดไปที่ไม่ซ้ำ
-              revisionNumber = 1;
-              while (true) {
-                finalDocNumber = `${docNumber}-R${revisionNumber}`;
+
+              // ตรวจหา duplicate ใน batch เดียวกัน → สร้าง revision suffix
+              // - มี revision column (format ใหม่): document_number ของ queue =
+              //   base สำหรับ rev '0', `${base}-R${label}` สำหรับ revision อื่น
+              //   (label จริงเก็บใน details.revision_label — commit สร้าง
+              //   correspondence_revisions ใต้ Correspondence เดียวกัน)
+              // - ไม่มี revision column (format เดิม): FR-007 counter -R1,-R2,…
+              let finalDocNumber = docNumber;
+              let revisionNumber = 0;
+              if (revisionNorm) {
+                // มี revision column — queue document_number = base สำหรับ '0',
+                // `${base}-R${label}` สำหรับ revision อื่น (label จริงอยู่ใน details)
+                finalDocNumber =
+                  revisionNorm.label === '0'
+                    ? docNumber
+                    : `${docNumber}-R${revisionNorm.label}`;
                 const existing = await this.reviewQueueRepo.findOne({
                   where: { documentNumber: finalDocNumber },
                 });
-                if (!existing) break;
-                revisionNumber++;
+                if (existing && existing.batchId === batchId) {
+                  // (doc,label) ซ้ำใน batch เดียวกัน — suffix -D{n} กันชน unique
+                  // (แยกจาก -R{label} เพื่อบอกว่าเป็น duplicate row ไม่ใช่ revision)
+                  const found = await findNextFreeDocumentNumber(
+                    finalDocNumber,
+                    async (candidate) =>
+                      Boolean(
+                        await this.reviewQueueRepo.findOne({
+                          where: { documentNumber: candidate },
+                        })
+                      ),
+                    (n) => `-D${n}`,
+                    { skipBaseCheck: true } // finalDocNumber ชนแน่นอนอยู่แล้ว (เข้า branch นี้เพราะ existing ตรง)
+                  );
+                  finalDocNumber = found.value;
+                  revisionNumber = found.suffixCount;
+                  queueItem = null;
+                } else if (existing) {
+                  // มี item ชื่อนี้จาก batch อื่นที่ยังไม่ commit — reuse แถวเดิมแต่ย้าย
+                  // ownership มาเป็น batch ปัจจุบัน กัน batchId ค้างอ้างอิง batch เก่า
+                  // (bugfix 2026-09-23: เดิมไม่อัปเดต batchId ทำให้ batch reporting/rollback
+                  // ของ batch เก่าอ้างถึงแถวที่ถูกเขียนทับไปแล้วอย่างผิดๆ)
+                  existing.batchId = batchId;
+                  queueItem = existing;
+                } else {
+                  queueItem = null;
+                }
+              } else if (queueItem && queueItem.batchId === batchId) {
+                // หา revision ถัดไปที่ไม่ซ้ำ
+                const found = await findNextFreeDocumentNumber(
+                  docNumber,
+                  async (candidate) =>
+                    Boolean(
+                      await this.reviewQueueRepo.findOne({
+                        where: { documentNumber: candidate },
+                      })
+                    ),
+                  (n) => `-R${n}`,
+                  { skipBaseCheck: true } // docNumber ชนแน่นอนอยู่แล้ว (เข้า branch นี้เพราะ queueItem ตรง batch เดียวกัน)
+                );
+                finalDocNumber = found.value;
+                revisionNumber = found.suffixCount;
+                queueItem = null; // สร้างรายการใหม่สำหรับ revision
               }
-              queueItem = null; // สร้างรายการใหม่สำหรับ revision
-            }
 
-            if (!queueItem) {
-              queueItem = this.reviewQueueRepo.create({
-                documentNumber: finalDocNumber,
-                batchId,
-              });
-            }
+              // B11 fix: สร้าง attachment record สำหรับ PDF ที่พบ และผูกกับ queue item
+              // ผ่าน tempAttachmentIds — เพื่อให้ Execute Import สามารถ commit ได้โดยไม่ต้อง
+              // สร้าง attachment ด้วยมือ
+              // Idempotency: เช็คกับ queueItem ที่ผูกกับ finalDocNumber ของแถวนี้แล้ว (ไม่ใช่
+              // docNumber ฐาน) — กัน attachment ของ revision หนึ่งไปผูกกับอีก revision ผิด
+              // (bugfix 2026-09-23: เดิมเช็คก่อนคำนวณ finalDocNumber ทำให้ทุก revision ที่
+              // ไม่ใช่ '0' หยิบ tempAttachmentId ของ revision '0' ไปใช้ผิด)
+              let attachmentIdForQueue: number | undefined;
+              if (queueItem?.tempAttachmentId && resolvedPdfPath) {
+                attachmentIdForQueue = queueItem.tempAttachmentId;
+              } else if (resolvedPdfPath) {
+                try {
+                  const fileStats = fs.statSync(resolvedPdfPath);
+                  const baseName = path.basename(resolvedPdfPath);
+                  const attachment = this.attachmentRepo.create({
+                    originalFilename: baseName,
+                    storedFilename: baseName,
+                    filePath: resolvedPdfPath,
+                    mimeType: 'application/pdf',
+                    fileSize: fileStats.size,
+                    isTemporary: false,
+                    uploadedByUserId: 2, // admin user — legacy ingestion
+                    aiProcessingStatus: 'PENDING',
+                    classification: 'INTERNAL',
+                    effectiveClassification: 'INTERNAL',
+                  });
+                  const saved = await this.attachmentRepo.save(attachment);
+                  attachmentIdForQueue = saved.id;
+                } catch (attErr: unknown) {
+                  const attMsg =
+                    attErr instanceof Error ? attErr.message : String(attErr);
+                  this.logger.warn(
+                    `Failed to create attachment for ${docNumber}: ${attMsg}`
+                  );
+                }
+              }
 
-            queueItem.subject = subject || undefined;
-            queueItem.originalSubject = subject || undefined;
-            queueItem.aiSuggestedCorrespondenceType =
-              resolvedCategory ?? category ?? undefined;
-            queueItem.projectId = project.id;
-            queueItem.senderOrganizationId = senderOrgId;
-            queueItem.receiverOrganizationId = receiverOrgId;
-            queueItem.issuedDate = issuedDate;
-            queueItem.receivedDate = receivedDate;
-            queueItem.remarks = remarks || undefined;
-            queueItem.status = MigrationReviewStatus.PENDING;
-            queueItem.aiStatus = MigrationAiStatus.PENDING;
-            queueItem.compareStatus = CompareStatus.COMPARED;
-            // B11 fix: ผูก attachment ที่สร้างใหม่เข้ากับ queue item
-            if (attachmentIdForQueue) {
-              queueItem.tempAttachmentIds = [attachmentIdForQueue];
-              queueItem.tempAttachmentId = attachmentIdForQueue;
-            }
-            // ADR-054 D1/D2 (FR-001): ingestion metadata ลง column จริง ไม่ใส่ details bag
-            // — storageTempPath เก็บ resolved path หรือ rawFileName (bare filename ให้
-            // resolver ขยายผ่าน recursive search ตอน extract — D330 fallback ยังทำงานอยู่)
-            queueItem.storageTempPath =
-              resolvedPdfPath || rawFileName || undefined;
-            queueItem.originalFilename = resolvedPdfPath
-              ? path.basename(resolvedPdfPath)
-              : rawFileName || undefined;
-            // details เหลือเฉพาะ residual ingestion keys ที่ไม่มี dedicated column
-            // (ADR-054 D3 preservedFields) — AI output จะถูก merge เข้ามาตอน extraction
-            // contract/discipline เก็บที่นี่เพราะ migration_review_queue ไม่มี column
-            // เฉพาะ — commitRecord อ่านกลับมา resolve correspondence.disciplineId
-            // (correspondences ไม่มี contract_id — contract มาผ่าน discipline.contract_id)
-            const resolvedDiscipline =
-              disciplineCode && contract
-                ? disciplineByCode.get(disciplineCode.toUpperCase())
-                : undefined;
-            queueItem.details = {
-              contractId: contract?.id,
-              contractCode: contract?.contractCode,
-              disciplineCode: disciplineCode || undefined,
-              disciplineId: resolvedDiscipline?.id,
-              unresolved_orgs:
-                Object.keys(unresolvedOrgs).length > 0
-                  ? unresolvedOrgs
-                  : undefined,
-              original_row_index: currentRowIndex,
-              // เลขฐานของเอกสาร — set เมื่อ queue document_number ต่างจากเลขจริง
-              // (revision suffix หรือ batch-dup) ให้ commit resolve กลับมาที่ base
-              original_document_number:
-                finalDocNumber !== docNumber ? docNumber : undefined,
-              revision_number: revisionNumber > 0 ? revisionNumber : undefined,
-              // Revision label จริงจากคอลัมน์ revision (normalize แล้ว) —
-              // commit paths อ่านค่านี้เพื่อสร้าง correspondence_revisions
-              revision_label: revisionNorm?.label,
-            };
+              if (!queueItem) {
+                queueItem = this.reviewQueueRepo.create({
+                  documentNumber: finalDocNumber,
+                  batchId,
+                });
+              }
 
-            await this.reviewQueueRepo.save(queueItem);
-            enqueuedCount++;
+              queueItem.subject = subject || undefined;
+              queueItem.originalSubject = subject || undefined;
+              queueItem.aiSuggestedCorrespondenceType =
+                resolvedCategory ?? category ?? undefined;
+              queueItem.projectId = project.id;
+              queueItem.senderOrganizationId = senderOrgId;
+              queueItem.receiverOrganizationId = receiverOrgId;
+              queueItem.issuedDate = issuedDate;
+              queueItem.receivedDate = receivedDate;
+              queueItem.remarks = remarks || undefined;
+              queueItem.status = MigrationReviewStatus.PENDING;
+              queueItem.aiStatus = MigrationAiStatus.PENDING;
+              queueItem.compareStatus = CompareStatus.COMPARED;
+              // B11 fix: ผูก attachment ที่สร้างใหม่เข้ากับ queue item
+              if (attachmentIdForQueue) {
+                queueItem.tempAttachmentIds = [attachmentIdForQueue];
+                queueItem.tempAttachmentId = attachmentIdForQueue;
+              }
+              // ADR-054 D1/D2 (FR-001): ingestion metadata ลง column จริง ไม่ใส่ details bag
+              // — storageTempPath เก็บ resolved path หรือ rawFileName (bare filename ให้
+              // resolver ขยายผ่าน recursive search ตอน extract — D330 fallback ยังทำงานอยู่)
+              queueItem.storageTempPath =
+                resolvedPdfPath || rawFileName || undefined;
+              queueItem.originalFilename = resolvedPdfPath
+                ? path.basename(resolvedPdfPath)
+                : rawFileName || undefined;
+              // details เหลือเฉพาะ residual ingestion keys ที่ไม่มี dedicated column
+              // (ADR-054 D3 preservedFields) — AI output จะถูก merge เข้ามาตอน extraction
+              // contract/discipline เก็บที่นี่เพราะ migration_review_queue ไม่มี column
+              // เฉพาะ — commitRecord อ่านกลับมา resolve correspondence.disciplineId
+              // (correspondences ไม่มี contract_id — contract มาผ่าน discipline.contract_id)
+              const resolvedDiscipline =
+                disciplineCode && contract
+                  ? disciplineByCode.get(disciplineCode.toUpperCase())
+                  : undefined;
+              queueItem.details = {
+                contractId: contract?.id,
+                contractCode: contract?.contractCode,
+                disciplineCode: disciplineCode || undefined,
+                disciplineId: resolvedDiscipline?.id,
+                unresolved_orgs:
+                  Object.keys(unresolvedOrgs).length > 0
+                    ? unresolvedOrgs
+                    : undefined,
+                original_row_index: currentRowIndex,
+                // เลขฐานของเอกสาร — set เมื่อ queue document_number ต่างจากเลขจริง
+                // (revision suffix หรือ batch-dup) ให้ commit resolve กลับมาที่ base
+                original_document_number:
+                  finalDocNumber !== docNumber ? docNumber : undefined,
+                revision_number:
+                  revisionNumber > 0 ? revisionNumber : undefined,
+                // Revision label จริงจากคอลัมน์ revision (normalize แล้ว) —
+                // commit paths อ่านค่านี้เพื่อสร้าง correspondence_revisions
+                revision_label: revisionNorm?.label,
+              };
+
+              await this.reviewQueueRepo.save(queueItem);
+              enqueuedCount++;
+            } finally {
+              await this.migrationLock.release(docNumberLock);
+            }
 
             // ADR-047: ห้าม auto-enqueue BullMQ ในขั้นตอน Ingestion
             // ผู้ใช้ต้องกด "Start Extract" เองเพื่อส่งงานเข้า BullMQ (D156)

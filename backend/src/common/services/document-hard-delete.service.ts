@@ -18,6 +18,7 @@ import { AiQdrantService } from '../../modules/ai/qdrant.service';
 import { PendingVectorDeletion } from '../../modules/ai/entities/pending-vector-deletion.entity';
 import { AuditLog } from '../entities/audit-log.entity';
 import { DocumentSideEffectsService } from './document-side-effects.service';
+import { SEARCH_INDEXED_DOCUMENT_TYPES } from '../constants/search-indexed-document-types.constant';
 
 /**
  * Input สำหรับ hard-delete
@@ -142,15 +143,26 @@ export class DocumentHardDeleteService {
         // 7b. Search index delete (post-commit, BullMQ retry) — เฉพาะ document
         //     family ที่อยู่ใน dms_documents (CORRESPONDENCE/RFA ใช้ตารางร่วมกัน)
         //     TRANSMITTAL ไม่ลบ root correspondence, DRAWING ไม่ได้อยู่ใน index
-        const isIndexedFamily = ['CORRESPONDENCE', 'RFA'].includes(
+        const isIndexedFamily = SEARCH_INDEXED_DOCUMENT_TYPES.includes(
           input.documentType.toUpperCase()
         );
-        const searchDeleted =
-          isIndexedFamily &&
-          (await (this.sideEffectsService?.enqueueSearchDelete({
-            publicId: input.publicId,
-            documentType: input.documentType,
-          }) ?? Promise.resolve(false)));
+        let searchDeleted = false;
+        if (isIndexedFamily) {
+          if (this.sideEffectsService) {
+            searchDeleted = await this.sideEffectsService.enqueueSearchDelete({
+              publicId: input.publicId,
+              documentType: input.documentType,
+            });
+          } else {
+            // bugfix 2026-09-23: เดิมข้าม enqueue แบบเงียบๆ ผ่าน `?? Promise.resolve(false)`
+            // ไม่มี log ใดๆ — ถ้า DI wiring เปลี่ยนในอนาคตจนไม่มี provider นี้ จะไม่มีทาง
+            // รู้ว่าทำไมเอกสารที่ hard-delete แล้วยังค้าง searchable อยู่
+            this.logger.warn(
+              `DocumentSideEffectsService not available — skipping SEARCH_DELETE for ${input.documentType}:${input.publicId}. ` +
+                `Document will remain searchable until the hourly reconcileIndex() sweep.`
+            );
+          }
+        }
 
         // 9. Return result
         return {

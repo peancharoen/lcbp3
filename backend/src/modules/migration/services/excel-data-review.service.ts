@@ -77,7 +77,9 @@ import {
   ENV_LEGACY_NAS_PATH,
   LEGACY_NAS_PATH_DEFAULT,
 } from '../constants/migration.constants';
-import { normalizeRevisionLabel } from '../utils/revision-label.util';
+import { normalizeRevisionLabel } from '../utils/normalize-revision-label.util';
+import { findNextFreeDocumentNumber } from '../utils/find-next-free-document-number.util';
+import { MigrationLockService } from './migration-lock.service';
 
 /**
  * Input สำหรับ check() — มาจาก controller หลังผ่าน DTO validation
@@ -225,7 +227,8 @@ export class ExcelDataReviewService {
     @InjectRedis()
     private readonly redis: Redis,
     @InjectQueue(QUEUE_IMPORT_REVIEW)
-    private readonly importReviewQueue: Queue
+    private readonly importReviewQueue: Queue,
+    private readonly migrationLock: MigrationLockService
   ) {}
 
   /**
@@ -779,87 +782,99 @@ export class ExcelDataReviewService {
     let quarantinedCount = 0;
     const batchId = quarantineResult.batchId;
 
-    await this.dataSource.transaction(async (txMgr) => {
-      if (quarantineResult.passedRows.length > 0) {
-        const queueRepo = txMgr.getRepository(MigrationReviewQueue);
-        const entities: MigrationReviewQueue[] = [];
-        // staging keys ที่ถูกจองไว้ใน batch นี้แล้ว — entities ยังไม่ถูก save
-        // จนกว่าจะครบ loop จึง findOne ใน DB ไม่เจอ ต้อง track เองกันชน
-        // unique constraint ตอน save
-        const claimedDocNumbers = new Set<string>();
-        for (const row of quarantineResult.passedRows) {
-          const item = new MigrationReviewQueue();
-          item.batchId = batchId;
-          // คอลัมน์ revision แยกจากเลขที่เอกสาร — queue document_number ต้อง unique:
-          // rev '0' ใช้เลขฐาน, revision อื่นใช้ `${base}-R${label}` (label จริงอยู่ใน
-          // details.revision_label — commitRecord อ่านเพื่อสร้าง revision chain)
-          const revNorm = normalizeRevisionLabel(row.revisionNumber);
-          const baseQueueDocNumber =
-            revNorm.label === '0'
-              ? row.documentNumber
-              : `${row.documentNumber}-R${revNorm.label}`;
-          let queueDocNumber = baseQueueDocNumber;
-          // กันชนกับ queue item เดิม (batch ก่อนหน้า/ชื่อเดียวกันโดยบังเอิญ)
-          // และกับแถวก่อนหน้าใน batch นี้ (claimedDocNumbers)
-          let dupCounter = 0;
-          while (
-            claimedDocNumbers.has(queueDocNumber) ||
-            (await queueRepo.findOne({
-              where: { documentNumber: queueDocNumber },
-            }))
-          ) {
-            dupCounter++;
-            queueDocNumber = `${baseQueueDocNumber}-D${dupCounter}`;
-          }
-          claimedDocNumbers.add(queueDocNumber);
-          item.documentNumber = queueDocNumber;
-          item.subject = row.subject;
-          item.originalSubject = row.subject;
-          item.status = MigrationReviewStatus.PENDING;
-          item.projectId = project.id;
-          item.receivedDate = row.receivedDate;
-          item.issuedDate = row.issuedDate;
-          item.remarks = row.remarks;
-          // residual ingestion keys (ADR-054 D3) — เลขฐาน + revision label ให้
-          // commitRecord resolve กลับมาที่ Correspondence เดียวกันและสร้าง revision ที่ถูกต้อง
-          item.details = {
-            original_row_index: row.rowIndex,
-            original_document_number:
-              queueDocNumber !== row.documentNumber
+    // ล็อกป้องกัน race condition บน document_number ระหว่าง confirm() ของ
+    // หลาย session พร้อมกันในโครงการเดียวกัน (ADR-002) — TOCTOU ระหว่าง
+    // findOne เช็คซ้ำกับ save() จริงตอนท้าย transaction (bugfix 2026-09-23)
+    const projectImportLock = await this.migrationLock.acquireProjectImport(
+      project.id
+    );
+    try {
+      await this.dataSource.transaction(async (txMgr) => {
+        if (quarantineResult.passedRows.length > 0) {
+          const queueRepo = txMgr.getRepository(MigrationReviewQueue);
+          const entities: MigrationReviewQueue[] = [];
+          // staging keys ที่ถูกจองไว้ใน batch นี้แล้ว — entities ยังไม่ถูก save
+          // จนกว่าจะครบ loop จึง findOne ใน DB ไม่เจอ ต้อง track เองกันชน
+          // unique constraint ตอน save
+          const claimedDocNumbers = new Set<string>();
+          for (const row of quarantineResult.passedRows) {
+            const item = new MigrationReviewQueue();
+            item.batchId = batchId;
+            // คอลัมน์ revision แยกจากเลขที่เอกสาร — queue document_number ต้อง unique:
+            // rev '0' ใช้เลขฐาน, revision อื่นใช้ `${base}-R${label}` (label จริงอยู่ใน
+            // details.revision_label — commitRecord อ่านเพื่อสร้าง revision chain)
+            const revNorm = normalizeRevisionLabel(row.revisionNumber);
+            const baseQueueDocNumber =
+              revNorm.label === '0'
                 ? row.documentNumber
-                : undefined,
-            revision_label: revNorm.label,
-          };
-          entities.push(item);
+                : `${row.documentNumber}-R${revNorm.label}`;
+            // กันชนกับ queue item เดิม (batch ก่อนหน้า/ชื่อเดียวกันโดยบังเอิญ)
+            // และกับแถวก่อนหน้าใน batch นี้ (claimedDocNumbers)
+            const { value: queueDocNumber } = await findNextFreeDocumentNumber(
+              baseQueueDocNumber,
+              async (candidate) =>
+                claimedDocNumbers.has(candidate) ||
+                Boolean(
+                  await queueRepo.findOne({
+                    where: { documentNumber: candidate },
+                  })
+                ),
+              (n) => `-D${n}`
+            );
+            claimedDocNumbers.add(queueDocNumber);
+            item.documentNumber = queueDocNumber;
+            item.subject = row.subject;
+            item.originalSubject = row.subject;
+            item.status = MigrationReviewStatus.PENDING;
+            item.projectId = project.id;
+            item.receivedDate = row.receivedDate;
+            item.issuedDate = row.issuedDate;
+            item.remarks = row.remarks;
+            // residual ingestion keys (ADR-054 D3) — เลขฐาน + revision label ให้
+            // commitRecord resolve กลับมาที่ Correspondence เดียวกันและสร้าง revision ที่ถูกต้อง
+            item.details = {
+              original_row_index: row.rowIndex,
+              original_document_number:
+                queueDocNumber !== row.documentNumber
+                  ? row.documentNumber
+                  : undefined,
+              revision_label: revNorm.label,
+            };
+            entities.push(item);
+          }
+          const saved = await queueRepo.save(entities);
+          enqueuedCount = saved.length;
         }
-        const saved = await queueRepo.save(entities);
-        enqueuedCount = saved.length;
-      }
 
-      if (quarantineResult.quarantinedRows.length > 0) {
-        const errorRepo = txMgr.getRepository(MigrationError);
-        const errors = quarantineResult.quarantinedRows.map((row) => {
-          const blockFindings = row.findings.filter((f) => f.level === 'BLOCK');
-          const messages = blockFindings.map((f) => f.message).join('; ');
-          const err = new MigrationError();
-          err.batchId = batchId;
-          err.documentNumber = row.documentNumber;
-          err.errorType = MigrationErrorType.UNKNOWN;
-          err.errorMessage = messages || 'BLOCK finding — ไม่ระบุสาเหตุ';
-          return err;
-        });
-        const saved = await errorRepo.save(errors);
-        quarantinedCount = saved.length;
-      }
+        if (quarantineResult.quarantinedRows.length > 0) {
+          const errorRepo = txMgr.getRepository(MigrationError);
+          const errors = quarantineResult.quarantinedRows.map((row) => {
+            const blockFindings = row.findings.filter(
+              (f) => f.level === 'BLOCK'
+            );
+            const messages = blockFindings.map((f) => f.message).join('; ');
+            const err = new MigrationError();
+            err.batchId = batchId;
+            err.documentNumber = row.documentNumber;
+            err.errorType = MigrationErrorType.UNKNOWN;
+            err.errorMessage = messages || 'BLOCK finding — ไม่ระบุสาเหตุ';
+            return err;
+          });
+          const saved = await errorRepo.save(errors);
+          quarantinedCount = saved.length;
+        }
 
-      // Audit trail (FR-017)
-      const importTx = new ImportTransaction();
-      importTx.idempotencyKey = `import-review-${session.reviewSessionPublicId}`;
-      importTx.batchId = batchId;
-      importTx.documentNumber = `${enqueuedCount}/${quarantineResult.passedRows.length + quarantineResult.quarantinedRows.length}`;
-      importTx.statusCode = 201;
-      await txMgr.getRepository(ImportTransaction).save(importTx);
-    });
+        // Audit trail (FR-017)
+        const importTx = new ImportTransaction();
+        importTx.idempotencyKey = `import-review-${session.reviewSessionPublicId}`;
+        importTx.batchId = batchId;
+        importTx.documentNumber = `${enqueuedCount}/${quarantineResult.passedRows.length + quarantineResult.quarantinedRows.length}`;
+        importTx.statusCode = 201;
+        await txMgr.getRepository(ImportTransaction).save(importTx);
+      });
+    } finally {
+      await this.migrationLock.release(projectImportLock);
+    }
 
     // ย้าย failed_rows.xlsx ไป quarantine area ก่อนลบ stash (FR-015 D6)
     let failedRowsDownloadUrl = '';

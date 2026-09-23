@@ -45,6 +45,7 @@ import { AiReviewProviderFactory } from '../../src/modules/migration/services/ai
 import { ExcelAnnotatorService } from '../../src/modules/migration/services/excel-annotator.service';
 import { ExcelQuarantineService } from '../../src/modules/migration/services/excel-quarantine.service';
 import { ExcelDateParserService } from '../../src/modules/migration/services/excel-date-parser.service';
+import { MigrationLockService } from '../../src/modules/migration/services/migration-lock.service';
 import { ImportTransaction } from '../../src/modules/migration/entities/import-transaction.entity';
 import { Project } from '../../src/modules/project/entities/project.entity';
 import type {
@@ -192,6 +193,15 @@ describe('Integration: Excel Import Review Pipeline (Feature 252, T026)', () => 
         {
           provide: 'REVIEW_STAGING_ROOT',
           useValue: path.join(os.tmpdir(), 'integration-stash-root'),
+        },
+        {
+          provide: MigrationLockService,
+          useValue: {
+            acquireDocumentNumber: jest.fn().mockResolvedValue({}),
+            acquireRevisionChain: jest.fn().mockResolvedValue({}),
+            acquireProjectImport: jest.fn().mockResolvedValue({}),
+            release: jest.fn().mockResolvedValue(undefined),
+          },
         },
       ],
     }).compile();

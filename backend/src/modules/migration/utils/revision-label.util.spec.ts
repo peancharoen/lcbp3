@@ -3,14 +3,12 @@
 // - 2026-09-23: Initial creation — unit test revision label normalization
 //   (FR-007 revision chain): numeric/alpha mapping, comparison, upsert helpers
 
-import {
-  compareRevisionLabels,
-  findRevisionByLabel,
-  nextFreeRevisionNumber,
-  normalizeRevisionLabel,
-  pickCurrentRevision,
-  revisionLabelOf,
-} from './revision-label.util';
+import { compareRevisionLabels } from './compare-revision-labels.util';
+import { findRevisionByLabel } from './find-revision-by-label.util';
+import { nextFreeRevisionNumber } from './next-free-revision-number.util';
+import { normalizeRevisionLabel } from './normalize-revision-label.util';
+import { pickCurrentRevision } from './pick-current-revision.util';
+import { revisionLabelOf } from './revision-label-of.util';
 
 describe('revision-label.util', () => {
   describe('normalizeRevisionLabel', () => {
