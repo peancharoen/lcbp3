@@ -1,5 +1,7 @@
 // File: types/migration.ts
 // Change Log:
+// - 2026-09-24: เพิ่ม typed field attachments ใน MigrationAiExtractionDetails
+//   (enrichWithAttachments ฉีดตอน serialize — ใช้แสดงชื่อไฟล์ในหน้า queue)
 // - 2026-09-24: เพิ่ม revision_label ใน MigrationAiExtractionDetails —
 //   revision-chain import เก็บ label จริงจาก Excel column "revision"
 //   (document_number เป็น staging key — เลขจริงใน original_document_number)
@@ -161,6 +163,16 @@ export interface MigrationAiExtractionDetails {
   disciplineCode?: string;
   /** Discipline internal ID ที่ resolve ได้ตอน ingestion */
   disciplineId?: number;
+  /** Feature 242 (FR-005): attachment metadata ที่ enrichWithAttachments ฉีด
+   *  ตอน serialize (ไม่ได้ persist ใน ai_metadata_json) — length > 0 =
+   *  พบไฟล์ต้นฉบับแล้วตอน ingestion */
+  attachments?: Array<{
+    publicId?: string;
+    originalFilename?: string;
+    mimeType?: string;
+    hasOcrText?: boolean;
+    isMainDocument?: boolean;
+  }>;
   [key: string]: unknown;
 }
 

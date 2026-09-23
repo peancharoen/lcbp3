@@ -1,5 +1,7 @@
 // File: app/(admin)/admin/migration/page.tsx
 // Change Log:
+// - 2026-09-24: เพิ่ม column File — ชื่อไฟล์ต้นฉบับ + สถานะพบ/ไม่พบไฟล์
+//   (QueueFileCell อ่าน details.attachments/originalFilename/storageTempPath)
 // - 2026-09-24: แสดงเลขเอกสารฐาน + revision badge ผ่าน QueueDocNumber และส่ง
 //   เลขฐานใน batch dto (queue document_number เป็น staging key ตั้งแต่
 //   revision-chain import — เลขจริงใน details.original_document_number)
@@ -33,6 +35,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getApiErrorMessage } from '@/types/api-error';
 import { LegacyIngestionCard } from '@/components/migration/legacy-ingestion-card';
 import { QueueDocNumber } from '@/components/migration/queue-doc-number';
+import { QueueFileCell } from '@/components/migration/queue-file-cell';
 import { getQueueBaseDocNumber, getQueueDocDisplayText } from '@/lib/utils/queue-doc-number';
 import { masterDataService } from '@/lib/services/master-data.service';
 import { CorrespondenceType } from '@/types/master-data';
@@ -403,6 +406,8 @@ function LegacyManagementTab() {
                       <span>Document No.</span>
                     </div>
                   </TableHead>
+                  {/* ชื่อไฟล์ต้นฉบับ + สถานะพบ/ไม่พบไฟล์ (details.attachments) */}
+                  <TableHead>File</TableHead>
                   <TableHead>
                     <Select value={correspondenceTypeFilter} onValueChange={applyFilter('ctype')}>
                       <SelectTrigger className="h-8 w-[150px] text-xs">
@@ -473,13 +478,13 @@ function LegacyManagementTab() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="h-32 text-center text-muted-foreground">
+                    <TableCell colSpan={13} className="h-32 text-center text-muted-foreground">
                       Loading queue...
                     </TableCell>
                   </TableRow>
                 ) : items.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="h-32 text-center text-muted-foreground">
+                    <TableCell colSpan={13} className="h-32 text-center text-muted-foreground">
                       No items in the queue.
                     </TableCell>
                   </TableRow>
@@ -496,6 +501,9 @@ function LegacyManagementTab() {
                       </TableCell>
                       <TableCell className="font-medium">
                         <QueueDocNumber item={item} />
+                      </TableCell>
+                      <TableCell>
+                        <QueueFileCell item={item} />
                       </TableCell>
                       <TableCell>
                         {item.aiSuggestedCorrespondenceTypeName || item.aiSuggestedCorrespondenceType || 'Unknown'}
