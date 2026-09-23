@@ -1,5 +1,8 @@
 // File: app/(admin)/admin/migration/review/[id]/page.tsx
 // Change Log:
+// - 2026-09-24: แสดงเลขเอกสารฐาน + revision badge จาก details — queue
+//   document_number เป็น staging key ตั้งแต่ revision-chain import
+//   (เลขจริงใน original_document_number / revision_label)
 // - 2026-09-17: แสดง OCR hard-failure acknowledgment แม้ไม่มี ocrQuality เพื่อให้ manual review commit ผ่าน gate ได้
 // - 2026-09-16: เพิ่มปุ่ม "เปลี่ยนไฟล์" + ReplaceFileDialog (เลือกจาก staging /
 //   อัปโหลดจากเครื่อง → PATCH /migration/queue/:publicId/file → auto re-extract)
@@ -66,6 +69,7 @@ import { CompareResultTable } from '@/components/migration/compare-result-table'
 import { OcrTextEditor } from '@/components/migration/ocr-text-editor';
 import { StagingFileViewer } from '@/components/migration/staging-file-viewer';
 import { ReplaceFileDialog } from '@/components/migration/replace-file-dialog';
+import { getQueueBaseDocNumber, getQueueRevisionLabel } from '@/lib/utils/queue-doc-number';
 import aiMessages from '@/public/locales/th/ai.json';
 
 /** ADR-050: i18n helper สำหรับ migration_review namespace จาก ai.json (เดียวกับ review-queue-table.tsx) */
@@ -279,7 +283,8 @@ export default function MigrationReviewPage() {
               .catch(() => {});
           }
           form.reset({
-            documentNumber: res.documentNumber || '',
+            // เลขฐานจริง — document_number เป็น staging key (เช่น DOC-RA)
+            documentNumber: getQueueBaseDocNumber(res),
             subject: res.subject || res.originalSubject || '',
             correspondenceType: res.aiSuggestedCorrespondenceType || '',
             documentDate: res.issuedDate
@@ -535,7 +540,14 @@ export default function MigrationReviewPage() {
             <ArrowLeftIcon className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Review Document: {item.documentNumber}</h1>
+            <h1 className="text-2xl font-bold tracking-tight">
+              Review Document: {getQueueBaseDocNumber(item)}
+              {getQueueRevisionLabel(item) !== undefined && (
+                <Badge variant="outline" className="ml-2 align-middle font-mono text-sm">
+                  {migrationReviewT('revision_badge')} {getQueueRevisionLabel(item)}
+                </Badge>
+              )}
+            </h1>
             <p className="text-sm text-muted-foreground flex items-center gap-2">
               Status: <span className="font-semibold text-primary">{item.status}</span>
               {' | '} Confidence:{' '}

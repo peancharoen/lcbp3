@@ -335,6 +335,61 @@ describe('Layer 2 — ExcelBusinessRulesService', () => {
       );
       expect(dup).toBeUndefined();
     });
+
+    it('BLOCK เมื่อ alpha revision ซ้ำ case-insensitive ("A" กับ "a" normalize เหมือนกัน)', async () => {
+      const rows = [
+        makeRow({
+          rowIndex: 2,
+          documentNumber: 'DOC-001',
+          revisionNumber: 'A',
+        }),
+        makeRow({
+          rowIndex: 3,
+          documentNumber: 'DOC-001',
+          revisionNumber: 'a',
+        }),
+      ];
+
+      const result = await service.validate({
+        rows,
+        projectPublicId: 'proj-uuid-1',
+        targetMode: 'DIRECT_IMPORT',
+        attachmentFileNames: [],
+      });
+
+      const block = result.findings.find(
+        (f) => f.level === 'BLOCK' && f.row === 3
+      );
+      expect(block).toBeDefined();
+      expect(block?.message).toContain('ซ้ำกับแถวที่ 2');
+    });
+
+    it('ผ่านเมื่อเลขเดียวกัน revision "A" กับ "B" (revision chain ต่าง label)', async () => {
+      const rows = [
+        makeRow({
+          rowIndex: 2,
+          documentNumber: 'DOC-001',
+          revisionNumber: 'A',
+        }),
+        makeRow({
+          rowIndex: 3,
+          documentNumber: 'DOC-001',
+          revisionNumber: 'B',
+        }),
+      ];
+
+      const result = await service.validate({
+        rows,
+        projectPublicId: 'proj-uuid-1',
+        targetMode: 'DIRECT_IMPORT',
+        attachmentFileNames: [],
+      });
+
+      const dup = result.findings.find(
+        (f) => f.level === 'BLOCK' && f.message.includes('ซ้ำกับแถว')
+      );
+      expect(dup).toBeUndefined();
+    });
   });
 
   describe('duplicate doc number + revision ใน DB', () => {
@@ -382,6 +437,125 @@ describe('Layer 2 — ExcelBusinessRulesService', () => {
           f.level === 'BLOCK' && f.message.includes('มีอยู่แล้วในฐานข้อมูล')
       );
       expect(block).toBeUndefined();
+    });
+
+    it('BLOCK เมื่อ DB มี revision_label "A" และ Excel ส่ง "a" (normalized match)', async () => {
+      corrRepo.find.mockResolvedValue([
+        {
+          id: 10,
+          correspondenceNumber: 'DOC-001',
+          revisions: [{ revisionNumber: 0, revisionLabel: 'A' }],
+        } as Partial<Correspondence> as Correspondence,
+      ]);
+
+      const result = await service.validate({
+        rows: [makeRow({ documentNumber: 'DOC-001', revisionNumber: 'a' })],
+        projectPublicId: 'proj-uuid-1',
+        targetMode: 'DIRECT_IMPORT',
+        attachmentFileNames: [],
+      });
+
+      const block = result.findings.find(
+        (f) =>
+          f.level === 'BLOCK' && f.message.includes('มีอยู่แล้วในฐานข้อมูล')
+      );
+      expect(block).toBeDefined();
+    });
+
+    it('ผ่านเมื่อ DB มี rev "A" แต่ Excel ส่ง "B" (revision ใหม่ใต้เลขเดิม)', async () => {
+      corrRepo.find.mockResolvedValue([
+        {
+          id: 10,
+          correspondenceNumber: 'DOC-001',
+          revisions: [{ revisionNumber: 0, revisionLabel: 'A' }],
+        } as Partial<Correspondence> as Correspondence,
+      ]);
+
+      const result = await service.validate({
+        rows: [makeRow({ documentNumber: 'DOC-001', revisionNumber: 'B' })],
+        projectPublicId: 'proj-uuid-1',
+        targetMode: 'DIRECT_IMPORT',
+        attachmentFileNames: [],
+      });
+
+      const block = result.findings.find(
+        (f) =>
+          f.level === 'BLOCK' && f.message.includes('มีอยู่แล้วในฐานข้อมูล')
+      );
+      expect(block).toBeUndefined();
+    });
+  });
+
+  describe('revision semantics (format + mixed scheme)', () => {
+    it('WARN เมื่อ revision label ไม่ตรงรูปแบบที่รู้จัก ("R1", "rev 2")', async () => {
+      const result = await service.validate({
+        rows: [makeRow({ documentNumber: 'DOC-001', revisionNumber: 'R1' })],
+        projectPublicId: 'proj-uuid-1',
+        targetMode: 'DIRECT_IMPORT',
+        attachmentFileNames: [],
+      });
+
+      const warn = result.findings.find(
+        (f) => f.level === 'WARN' && f.column === 'Revision'
+      );
+      expect(warn).toBeDefined();
+      expect(warn?.message).toContain('ไม่ตรงรูปแบบ');
+    });
+
+    it('WARN เมื่อ doc เดียวกันใช้ revision ผสม scheme ("0" กับ "A")', async () => {
+      const rows = [
+        makeRow({
+          rowIndex: 2,
+          documentNumber: 'DOC-001',
+          revisionNumber: '0',
+        }),
+        makeRow({
+          rowIndex: 3,
+          documentNumber: 'DOC-001',
+          revisionNumber: 'A',
+        }),
+      ];
+
+      const result = await service.validate({
+        rows,
+        projectPublicId: 'proj-uuid-1',
+        targetMode: 'DIRECT_IMPORT',
+        attachmentFileNames: [],
+      });
+
+      const warns = result.findings.filter(
+        (f) =>
+          f.level === 'WARN' &&
+          f.column === 'Revision' &&
+          f.message.includes('ผสม scheme')
+      );
+      // WARN ทั้งสองแถว (ทุกแถวของ doc ที่ผสม scheme)
+      expect(warns).toHaveLength(2);
+    });
+
+    it('ไม่ WARN เมื่อ doc ใช้ scheme เดียวกัน (numeric ล้วน)', async () => {
+      const rows = [
+        makeRow({
+          rowIndex: 2,
+          documentNumber: 'DOC-001',
+          revisionNumber: '0',
+        }),
+        makeRow({
+          rowIndex: 3,
+          documentNumber: 'DOC-001',
+          revisionNumber: '1',
+        }),
+      ];
+
+      const result = await service.validate({
+        rows,
+        projectPublicId: 'proj-uuid-1',
+        targetMode: 'DIRECT_IMPORT',
+        attachmentFileNames: [],
+      });
+
+      const revWarns = result.findings.filter((f) => f.column === 'Revision');
+      expect(revWarns).toHaveLength(0);
     });
   });
 

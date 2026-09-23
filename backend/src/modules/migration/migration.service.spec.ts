@@ -1251,6 +1251,210 @@ describe('MigrationService', () => {
     });
   });
 
+  // ── importCorrespondence: revision chain (Excel revision column, FR-007) ─────
+  describe('importCorrespondence — revision chain', () => {
+    const baseDto = (
+      overrides: Partial<ImportCorrespondenceDto> = {}
+    ): ImportCorrespondenceDto => ({
+      documentNumber: 'DOC-REV',
+      subject: 'Revision Test',
+      correspondenceType: 'Letter',
+      migratedBy: 'SYSTEM_IMPORT',
+      batchId: 'BATCH-REV',
+      projectId: 100,
+      ...overrides,
+    });
+
+    it('resolve base doc จาก details.original_document_number และสร้าง revision ตาม revision_label', async () => {
+      setupFullSuccessfulImport();
+
+      const dto = baseDto({
+        // staging key จาก queue (`${base}-R${label}`) — เลขจริงอยู่ใน details
+        documentNumber: 'DOC-REV-RA',
+        details: {
+          original_document_number: 'DOC-REV',
+          revision_label: 'A',
+        },
+      });
+      await service.importCorrespondence(dto, 'idem-revchain-1', 1);
+
+      // Correspondence สร้างด้วยเลขฐาน ไม่ใช่ staging key
+      expect(mockQueryRunner.manager.create).toHaveBeenCalledWith(
+        Correspondence,
+        expect.objectContaining({ correspondenceNumber: 'DOC-REV' })
+      );
+      // revision สร้างด้วย label 'A' (rank 0 → revision_number 0)
+      expect(mockQueryRunner.manager.create).toHaveBeenCalledWith(
+        CorrespondenceRevision,
+        expect.objectContaining({
+          revisionLabel: 'A',
+          revisionNumber: 0,
+        })
+      );
+      // transaction เก็บเลขฐาน (ไม่ใช่ staging key) เพื่อ replay resolve ถูก
+      expect(mockQueryRunner.manager.create).toHaveBeenCalledWith(
+        ImportTransaction,
+        expect.objectContaining({ documentNumber: 'DOC-REV' })
+      );
+    });
+
+    it('สร้าง revision ใหม่สำหรับ label ต่างกัน โดยไม่แตะ revision เดิม', async () => {
+      setupFullSuccessfulImport();
+      const existingCorr = {
+        id: 50,
+        publicId: 'corr-uuid',
+        correspondenceNumber: 'DOC-REV',
+      };
+      const existingRev = {
+        id: 10,
+        revisionNumber: 0,
+        revisionLabel: '0',
+        isCurrent: true,
+        subject: 'Original',
+      };
+      mockQueryRunner.manager.findOne.mockImplementation((entity: unknown) =>
+        entity === Correspondence ? existingCorr : null
+      );
+      mockQueryRunner.manager.find.mockResolvedValue([existingRev]);
+
+      const dto = baseDto({ revisionLabel: 'B', subject: 'Rev B subject' });
+      await service.importCorrespondence(dto, 'idem-revchain-2', 1);
+
+      // สร้าง revision ใหม่ label 'B' (rank 1) — ไม่ update rev '0' เดิม
+      expect(mockQueryRunner.manager.create).toHaveBeenCalledWith(
+        CorrespondenceRevision,
+        expect.objectContaining({
+          revisionLabel: 'B',
+          revisionNumber: 1,
+          correspondenceId: 50,
+        })
+      );
+      expect(existingRev.subject).toBe('Original'); // ไม่ถูกเขียนทับ
+      // 'B' rank สูงกว่า → เป็น current (update id=1 = created revision)
+      expect(mockQueryRunner.manager.update).toHaveBeenCalledWith(
+        CorrespondenceRevision,
+        { id: 1 },
+        { isCurrent: true }
+      );
+    });
+
+    it('update revision เดิมเมื่อ label ตรงกัน (idempotent re-commit)', async () => {
+      setupFullSuccessfulImport();
+      const existingCorr = {
+        id: 50,
+        publicId: 'corr-uuid',
+        correspondenceNumber: 'DOC-REV',
+      };
+      const existingRev = {
+        id: 10,
+        revisionNumber: 0,
+        revisionLabel: 'A',
+        isCurrent: true,
+        subject: 'Old subject',
+        details: {},
+      };
+      mockQueryRunner.manager.findOne.mockImplementation((entity: unknown) =>
+        entity === Correspondence ? existingCorr : null
+      );
+      mockQueryRunner.manager.find.mockResolvedValue([existingRev]);
+
+      const dto = baseDto({
+        revisionLabel: 'a', // case-insensitive match กับ 'A'
+        subject: 'New subject',
+      });
+      await service.importCorrespondence(dto, 'idem-revchain-3', 1);
+
+      // ไม่สร้าง CorrespondenceRevision ใหม่ — update entity เดิม
+      const createRevCalls = mockQueryRunner.manager.create.mock.calls.filter(
+        (c: unknown[]) => c[0] === CorrespondenceRevision
+      );
+      expect(createRevCalls).toHaveLength(0);
+      expect(existingRev.subject).toBe('New subject');
+    });
+
+    it('out-of-order: import "A" ทีหลัง "C" — current ยังเป็น "C"', async () => {
+      setupFullSuccessfulImport();
+      const existingCorr = {
+        id: 50,
+        publicId: 'corr-uuid',
+        correspondenceNumber: 'DOC-REV',
+      };
+      const revZero = { id: 10, revisionNumber: 0, revisionLabel: '0' };
+      const revC = {
+        id: 11,
+        revisionNumber: 2,
+        revisionLabel: 'C',
+        isCurrent: true,
+      };
+      mockQueryRunner.manager.findOne.mockImplementation((entity: unknown) =>
+        entity === Correspondence ? existingCorr : null
+      );
+      mockQueryRunner.manager.find.mockResolvedValue([revZero, revC]);
+
+      const dto = baseDto({ revisionLabel: 'A' });
+      await service.importCorrespondence(dto, 'idem-revchain-4', 1);
+
+      // 'A' สร้างใหม่ (revision_number = เลขว่าง = 1) แต่ current ยังเป็น 'C' (id 11)
+      expect(mockQueryRunner.manager.create).toHaveBeenCalledWith(
+        CorrespondenceRevision,
+        expect.objectContaining({ revisionLabel: 'A', revisionNumber: 1 })
+      );
+      expect(mockQueryRunner.manager.update).toHaveBeenCalledWith(
+        CorrespondenceRevision,
+        { id: 11 },
+        { isCurrent: true }
+      );
+    });
+
+    it('legacy queue row: details.revision_number ใช้เป็น label fallback', async () => {
+      setupFullSuccessfulImport();
+
+      const dto = baseDto({
+        documentNumber: 'DOC-REV-R2',
+        details: {
+          original_document_number: 'DOC-REV',
+          revision_number: 2,
+        },
+      });
+      await service.importCorrespondence(dto, 'idem-revchain-5', 1);
+
+      expect(mockQueryRunner.manager.create).toHaveBeenCalledWith(
+        CorrespondenceRevision,
+        expect.objectContaining({ revisionLabel: '2', revisionNumber: 2 })
+      );
+    });
+
+    it('ไม่มี revision metadata → พฤติกรรมเดิม (update current revision)', async () => {
+      setupFullSuccessfulImport();
+      const existingCorr = {
+        id: 50,
+        publicId: 'corr-uuid',
+        correspondenceNumber: 'DOC-REV',
+      };
+      const existingRev = {
+        id: 10,
+        revisionNumber: 0,
+        revisionLabel: '0',
+        isCurrent: true,
+        subject: 'Old',
+        details: {},
+      };
+      mockQueryRunner.manager.findOne.mockImplementation((entity: unknown) =>
+        entity === Correspondence ? existingCorr : null
+      );
+      mockQueryRunner.manager.find.mockResolvedValue([existingRev]);
+
+      const dto = baseDto({ subject: 'Updated' });
+      await service.importCorrespondence(dto, 'idem-revchain-6', 1);
+
+      expect(existingRev.subject).toBe('Updated');
+      const createRevCalls = mockQueryRunner.manager.create.mock.calls.filter(
+        (c: unknown[]) => c[0] === CorrespondenceRevision
+      );
+      expect(createRevCalls).toHaveLength(0);
+    });
+  });
+
   // ── enqueueRecord ─────────────────────────────────────────────────────────────
   describe('enqueueRecord', () => {
     it('throws ValidationException when documentNumber is missing', async () => {

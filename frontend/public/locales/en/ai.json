@@ -185,7 +185,8 @@
     "replace_file_success": "File replaced — re-extraction started automatically",
     "replace_file_error": "Failed to replace file",
     "replace_file_tree_error": "Failed to load folder tree",
-    "replace_file_list_error": "Failed to load files"
+    "replace_file_list_error": "Failed to load files",
+    "revision_badge": "Rev."
   },
   "rag": {
     "ingestion_status": {

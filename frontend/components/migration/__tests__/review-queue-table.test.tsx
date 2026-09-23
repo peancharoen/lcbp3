@@ -1,5 +1,7 @@
 // File: frontend/components/migration/__tests__/review-queue-table.test.tsx
 // Change Log:
+// - 2026-09-24: เพิ่ม test revision-chain display — เลขฐาน + revision badge
+//   จาก details (staging key ไม่แสดงเป็นข้อความ แต่อยู่ใน tooltip)
 // - 2026-09-14: T019 (ADR-054) — migrate fixtures to new contract: ตัด fieldResolutions ออกจาก details,
 //   legacy item ใช้ storageTempPath first-class field แทน details.source_file_path
 // - 2026-08-31: T028 — added tests for requiresHumanReview badge, needs-review filter, OCR quality, legacy re-extract
@@ -390,6 +392,67 @@ describe('ReviewQueueTable', () => {
         expect.objectContaining({ publicId: 'mig-3' })
       );
     });
+  });
+
+  // 2026-09-24: revision-chain display — base doc number + revision badge
+  // (queue document_number เป็น staging key; เลขจริงใน details)
+
+  it('renders base document number and revision badge for revision-chain items', () => {
+    const revItems: MigrationReviewQueueItem[] = [
+      {
+        id: 20,
+        publicId: 'mig-rev-a',
+        documentNumber: 'DOC-100-RA', // staging key — ห้ามแสดงเป็นเลขเอกสาร
+        subject: 'Revision A doc',
+        aiSuggestedCorrespondenceType: 'RFA',
+        aiConfidence: 0.9,
+        status: MigrationReviewStatus.PENDING_REVIEW,
+        details: {
+          ocrQuality: { confidence: 0.9, issues: [] },
+          metadata: {
+            summary: 'Summary',
+            correspondenceType: 'RFA',
+            tags: [],
+            confidence: { summary: 0.9, correspondenceType: 0.9, tags: 0.9 },
+          },
+          original_document_number: 'DOC-100',
+          revision_label: 'A',
+        },
+      },
+      {
+        id: 21,
+        publicId: 'mig-rev-0',
+        documentNumber: 'DOC-100', // rev '0' staging key = เลขฐานตรงๆ
+        subject: 'Revision 0 doc',
+        aiSuggestedCorrespondenceType: 'RFA',
+        aiConfidence: 0.9,
+        status: MigrationReviewStatus.PENDING_REVIEW,
+        details: {
+          ocrQuality: { confidence: 0.9, issues: [] },
+          metadata: {
+            summary: 'Summary',
+            correspondenceType: 'RFA',
+            tags: [],
+            confidence: { summary: 0.9, correspondenceType: 0.9, tags: 0.9 },
+          },
+          original_document_number: 'DOC-100',
+          revision_label: '0',
+        },
+      },
+    ];
+    render(<ReviewQueueTable items={revItems} isLoading={false} />);
+    // แสดงเลขฐานทั้ง 2 แถว ไม่แสดง staging key เป็นข้อความ
+    expect(screen.getAllByText('DOC-100')).toHaveLength(2);
+    expect(screen.queryByText('DOC-100-RA')).not.toBeInTheDocument();
+    // revision badges จาก i18n key migration_review.revision_badge ("ฉบับที่")
+    expect(
+      screen.getAllByText((_, el) => el?.textContent === 'ฉบับที่ A').length
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText((_, el) => el?.textContent === 'ฉบับที่ 0').length
+    ).toBeGreaterThan(0);
+    // staging key ยังเข้าถึงได้ผ่าน tooltip
+    expect(screen.getByTitle('DOC-100-RA')).toBeInTheDocument();
   });
 
   it('sorts by OCR quality confidence when sort control is changed', () => {

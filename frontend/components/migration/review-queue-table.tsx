@@ -1,5 +1,7 @@
 // File: components/migration/review-queue-table.tsx
 // Change Log:
+// - 2026-09-24: แสดงเลขเอกสารฐาน + revision badge ผ่าน QueueDocNumber —
+//   queue document_number เป็น staging key ตั้งแต่ revision-chain import
 // - 2026-09-14: T023 (ADR-054) — compareResult ย้ายลง details (ai_metadata_json);
 //   badge อ่าน mismatch count ผ่าน getCompareResult helper แทน top-level read ที่ always-undefined
 // - 2026-09-15: ADR-054 review fold — เพิ่ม OCR backup indicator (hasOcrTextBak)
@@ -41,6 +43,8 @@ import { useCommitMigrationReview, useRejectMigrationReview, useStartExtractQueu
 import { useProjects, useOrganizations } from '@/hooks/use-master-data';
 import { MigrationReviewQueueItem, MigrationReviewStatus, CompareStatus, CompareResult } from '@/types/migration';
 import { Loader2, Calendar, Tag, AlertCircle, Edit, Check, X, Plus, GitCompare, RefreshCw, ShieldAlert, History } from 'lucide-react';
+import { QueueDocNumber } from '@/components/migration/queue-doc-number';
+import { getQueueBaseDocNumber, getQueueRevisionLabel } from '@/lib/utils/queue-doc-number';
 import aiMessages from '@/public/locales/th/ai.json';
 
 /** ADR-050: i18n helper สำหรับ migration_review namespace จาก ai.json */
@@ -383,7 +387,9 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
                 if (isLegacyItem(item)) {
                   return (
                     <TableRow key={item.publicId} className="hover:bg-muted/50 transition-colors bg-amber-500/5">
-                      <TableCell className="font-mono text-sm font-semibold">{item.documentNumber}</TableCell>
+                      <TableCell className="font-mono text-sm font-semibold">
+                        <QueueDocNumber item={item} revisionPrefix={migrationReviewT('revision_badge')} />
+                      </TableCell>
                       <TableCell className="max-w-md truncate font-medium">
                         {item.subject || item.title || 'ไม่มีหัวข้อ'}
                       </TableCell>
@@ -424,7 +430,9 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
                 }
                 return (
                   <TableRow key={item.publicId} className="hover:bg-muted/50 transition-colors">
-                    <TableCell className="font-mono text-sm font-semibold">{item.documentNumber}</TableCell>
+                    <TableCell className="font-mono text-sm font-semibold">
+                      <QueueDocNumber item={item} revisionPrefix={migrationReviewT('revision_badge')} />
+                    </TableCell>
                     <TableCell className="max-w-md truncate font-medium">
                       {item.subject || item.title || 'ไม่มีหัวข้อ'}
                     </TableCell>
@@ -484,7 +492,10 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
             <SheetTitle className="text-xl font-bold flex items-center space-x-2">
               <span>รีวิวการย้ายข้อมูลเอกสาร</span>
               <Badge variant="outline" className="font-mono text-xs">
-                {selectedItem?.documentNumber}
+                {selectedItem ? getQueueBaseDocNumber(selectedItem) : ''}
+                {selectedItem && getQueueRevisionLabel(selectedItem) !== undefined
+                  ? ` · ${migrationReviewT('revision_badge')} ${getQueueRevisionLabel(selectedItem)}`
+                  : ''}
               </Badge>
             </SheetTitle>
             <SheetDescription>

@@ -65,6 +65,12 @@
 // - 2026-09-22: D344 — ตัด deprecated rag-prepare fallback ออกจาก post-import RAG;
 //   ไฟล์หาย/checksum ไม่ได้ → mark ragStatus FAILED (เห็นบน dashboard) แทน enqueue
 //   ลง pipeline ที่ถูก deprecate แล้ว; recovery ผ่าน Re-ingest หรือ reconcile script
+// - 2026-09-23: Revision chain import — Excel มี correspondence_number (เลขฐาน)
+//   + revision column แยก (0,1,2 / A,B,C): importCorrespondence resolve base doc
+//   จาก details.original_document_number (queue document_number เป็น staging key
+//   `${base}-R${label}`), upsert revision ตาม normalized label แทนเขียนทับ current
+//   revision, current = label ลำดับสูงสุด (order-independent); approve* merge
+//   queue residual details เข้า dto.details; DTO เพิ่ม revisionLabel field
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -125,6 +131,12 @@ import { Rfa } from '../rfa/entities/rfa.entity';
 import { RfaRevision } from '../rfa/entities/rfa-revision.entity';
 import { linkAttachmentsToRevision } from './utils/attachment-linking.util';
 import {
+  findRevisionByLabel,
+  nextFreeRevisionNumber,
+  normalizeRevisionLabel,
+  pickCurrentRevision,
+} from './utils/revision-label.util';
+import {
   RFA_TYPE_CODE_GENERIC,
   RFA_STATUS_CODE_APPROVED,
   CORRESPONDENCE_STATUS_CLBOWN,
@@ -173,6 +185,7 @@ const REEXTRACT_PRESERVED_DETAILS_KEYS: readonly string[] = [
   'unresolved_orgs',
   'original_document_number',
   'revision_number',
+  'revision_label',
   'contractId',
   'contractCode',
   'disciplineCode',
@@ -367,18 +380,43 @@ export class MigrationService {
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
+    // เลขที่ Correspondence จริง + revision เป้าหมาย — queue staging
+    // document_number อาจเป็น `${base}-R${label}` เมื่อ Excel มี revision column
+    // แยก (เลขจริงอยู่ใน details.original_document_number; label จริงอยู่ใน
+    // dto.revisionLabel / details.revision_label / details.revision_number legacy)
+    const importDetails = dto.details ?? {};
+    const baseDocNum =
+      typeof importDetails['original_document_number'] === 'string' &&
+      importDetails['original_document_number'].trim() !== ''
+        ? importDetails['original_document_number'].trim()
+        : dto.documentNumber;
+    const revisionLabelRaw =
+      dto.revisionLabel ??
+      (typeof importDetails['revision_label'] === 'string' &&
+      importDetails['revision_label'].trim() !== ''
+        ? importDetails['revision_label']
+        : undefined) ??
+      (typeof importDetails['revision_number'] === 'number' ||
+      typeof importDetails['revision_number'] === 'string'
+        ? String(importDetails['revision_number'])
+        : undefined);
+    const targetRevision =
+      revisionLabelRaw !== undefined
+        ? normalizeRevisionLabel(revisionLabelRaw)
+        : undefined;
+
     try {
-      // 3. Find or Create Correspondence
+      // 3. Find or Create Correspondence — key = base document number
       let correspondence = await queryRunner.manager.findOne(Correspondence, {
         where: {
-          correspondenceNumber: dto.documentNumber,
+          correspondenceNumber: baseDocNum,
           projectId: project.id,
         },
       });
 
       if (!correspondence) {
         correspondence = queryRunner.manager.create(Correspondence, {
-          correspondenceNumber: dto.documentNumber,
+          correspondenceNumber: baseDocNum,
           correspondenceTypeId: typeId,
           projectId: project.id,
           disciplineId: resolvedDisciplineId || undefined,
@@ -577,55 +615,65 @@ export class MigrationService {
         return parsed;
       };
 
-      // 5. Create or Update Revision
+      // 5. Create or Update Revision — revision chain support (revision column
+      // แยกใน Excel): มี revision metadata → upsert revision ที่ label ตรงกัน
+      // ไม่มี metadata (legacy caller) → พฤติกรรมเดิม update current revision
       // ADR-002: ป้องกัน revision race condition — ใช้ pessimistic lock ค้นหา
       // revision ปัจจุบันแทน count() ที่อ่าน snapshot แล้ว race กับ concurrent tx
       // Note: uq_master_current (correspondence_id, is_current) constraint บังคับ
-      // ให้มีได้แค่ 1 row ต่อ (correspondence_id, is_current) pair ดังนั้น
-      // ถ้า import ซ้ำให้ update revision ปัจจุบันแทนสร้างใหม่
-      const currentRevisions = await queryRunner.manager.find(
+      // ให้มีได้แค่ 1 row ต่อ (correspondence_id, is_current) pair
+      const existingRevisions = await queryRunner.manager.find(
         CorrespondenceRevision,
         {
           where: { correspondenceId: correspondence.id },
           lock: { mode: 'pessimistic_write' },
-          order: { revisionNumber: 'DESC' },
         }
       );
-      const revisionCount = currentRevisions.length;
-      const existingCurrent = currentRevisions.find((r) => r.isCurrent);
 
-      let revision: CorrespondenceRevision;
-      if (existingCurrent) {
-        // Update revision ปัจจุบันแทนการสร้างใหม่ (ป้องกัน uq_master_current conflict)
-        existingCurrent.subject = dto.subject;
-        // D159: body ใช้ AI summary (aiSummary) แทน OCR ดิบ (ocrText)
-        // ลำดับความสำคัญ: reviewer body > AI summary > undefined
-        existingCurrent.body = dto.body || dto.aiSummary || undefined;
-        existingCurrent.documentDate = parseDateStr(
-          dto.documentDate || dto.issuedDate
-        );
-        existingCurrent.receivedDate = parseDateStr(dto.receivedDate);
-        existingCurrent.remarks = dto.remarks || undefined;
-        existingCurrent.details = {
-          ...dto.details,
-          ai_confidence: dto.aiConfidence,
-          ai_issues: dto.aiIssues as unknown,
-          source_file_path: dto.sourceFilePath,
-          attachment_id: attachmentId,
-          attachment_ids:
-            allAttachmentIds.length > 0 ? allAttachmentIds : undefined,
-        };
-        revision = existingCurrent;
+      // D159: body ใช้ AI summary (aiSummary) แทน OCR ดิบ (ocrText)
+      // ลำดับความสำคัญ: reviewer body > AI summary > undefined
+      const buildRevisionDetails = () => ({
+        ...dto.details,
+        ai_confidence: dto.aiConfidence,
+        ai_issues: dto.aiIssues as unknown,
+        source_file_path: dto.sourceFilePath,
+        attachment_id: attachmentId,
+        attachment_ids:
+          allAttachmentIds.length > 0 ? allAttachmentIds : undefined,
+      });
+
+      let revision: CorrespondenceRevision | undefined = targetRevision
+        ? findRevisionByLabel(existingRevisions, targetRevision.label)
+        : existingRevisions.find((r) => r.isCurrent);
+      if (revision) {
+        // upsert revision เดิม (label เดียวกัน / legacy current) — อัปเดต field
+        revision.subject = dto.subject;
+        revision.body = dto.body || dto.aiSummary || undefined;
+        revision.documentDate =
+          parseDateStr(dto.documentDate || dto.issuedDate) ??
+          revision.documentDate;
+        revision.receivedDate =
+          parseDateStr(dto.receivedDate) ?? revision.receivedDate;
+        revision.remarks = dto.remarks || undefined;
+        revision.details = buildRevisionDetails();
         await queryRunner.manager.save(revision);
       } else {
-        // ไม่มี current revision — สร้างใหม่
-        const revNum =
-          revisionCount > 0 ? (currentRevisions[0].revisionNumber ?? 0) + 1 : 0;
+        // revision ใหม่ — revision_number = rank ของ label ถ้าว่าง ไม่งั้นเลข
+        // ว่างถัดไป (label คือตัวเทียบลำดับจริง revision_number เป็น storage slot)
+        const revNum = nextFreeRevisionNumber(
+          existingRevisions.map((r) => r.revisionNumber),
+          targetRevision?.isValid
+            ? targetRevision.rank
+            : existingRevisions.length
+        );
+        const revLabel =
+          targetRevision?.label ??
+          (existingRevisions.length === 0 ? '0' : revNum.toString());
         revision = queryRunner.manager.create(CorrespondenceRevision, {
           correspondenceId: correspondence.id,
           revisionNumber: revNum,
-          revisionLabel: revNum === 0 ? '0' : revNum.toString(),
-          isCurrent: true,
+          revisionLabel: revLabel,
+          isCurrent: false,
           statusId: status.id,
           subject: dto.subject,
           description: 'Migrated from legacy system via Auto Ingest',
@@ -637,20 +685,28 @@ export class MigrationService {
           documentDate: parseDateStr(dto.documentDate || dto.issuedDate),
           receivedDate: parseDateStr(dto.receivedDate),
           remarks: dto.remarks || undefined,
-          details: {
-            ...dto.details,
-            ai_confidence: dto.aiConfidence,
-            ai_issues: dto.aiIssues as unknown,
-            source_file_path: dto.sourceFilePath,
-            attachment_id: attachmentId,
-            attachment_ids:
-              allAttachmentIds.length > 0 ? allAttachmentIds : undefined,
-          },
+          details: buildRevisionDetails(),
           schemaVersion: 1,
           createdBy: userId,
         });
         await queryRunner.manager.save(revision);
       }
+      // current = revision ลำดับสูงสุดตาม normalized label — order-independent
+      // (import 'A' ทีหลัง 'C' ก็ยังได้ 'C' เป็น current)
+      const allRevisions = existingRevisions.some((r) => r.id === revision.id)
+        ? existingRevisions
+        : [...existingRevisions, revision];
+      const currentRevision = pickCurrentRevision(allRevisions);
+      await queryRunner.manager.update(
+        CorrespondenceRevision,
+        { correspondenceId: correspondence.id },
+        { isCurrent: false }
+      );
+      await queryRunner.manager.update(
+        CorrespondenceRevision,
+        { id: currentRevision.id },
+        { isCurrent: true }
+      );
 
       // Bugfix: เชื่อม attachments ทั้งหมดเข้ากับ revision ผ่าน junction table
       // (correspondence_revision_attachments) — เดิม importCorrespondence เก็บแค่
@@ -678,16 +734,23 @@ export class MigrationService {
             `RFA status codes not found ('${RFA_STATUS_CODE_APPROVED}' or 'FCO') — skipping RfaRevision creation for [${dto.documentNumber}]. DBA should add seed data to rfa_status_codes.`
           );
         } else {
-          const rfaRev = queryRunner.manager.create(RfaRevision, {
-            id: revision.id,
-            rfaStatusCodeId: rfaStatusRes[0].id,
-            details: {
-              // Keep drawingCount as 0 for migration stub
-              drawingCount: 0,
-            },
-            schemaVersion: 1,
-          });
-          await queryRunner.manager.save(RfaRevision, rfaRev);
+          // upsert path อาจเจอ revision เดิมที่มี RfaRevision อยู่แล้ว (shared PK)
+          const existingRfaRev = await queryRunner.manager.findOne(
+            RfaRevision,
+            { where: { id: revision.id } }
+          );
+          if (!existingRfaRev) {
+            const rfaRev = queryRunner.manager.create(RfaRevision, {
+              id: revision.id,
+              rfaStatusCodeId: rfaStatusRes[0].id,
+              details: {
+                // Keep drawingCount as 0 for migration stub
+                drawingCount: 0,
+              },
+              schemaVersion: 1,
+            });
+            await queryRunner.manager.save(RfaRevision, rfaRev);
+          }
         }
       }
 
@@ -737,10 +800,11 @@ export class MigrationService {
           );
         }
       }
-      // 6. Track Transaction
+      // 6. Track Transaction — document_number = base (ไม่ใช่ staging key
+      // `${base}-R${label}`) เพื่อให้ idempotent replay resolve correspondence ถูก
       const transaction = queryRunner.manager.create(ImportTransaction, {
         idempotencyKey,
-        documentNumber: dto.documentNumber,
+        documentNumber: baseDocNum,
         batchId: dto.batchId,
         statusCode: IMPORT_TX_STATUS_SUCCESS,
       });
@@ -855,7 +919,7 @@ export class MigrationService {
 
       const failedTransaction = this.importTransactionRepo.create({
         idempotencyKey,
-        documentNumber: dto.documentNumber,
+        documentNumber: baseDocNum,
         batchId: dto.batchId,
         statusCode: IMPORT_TX_STATUS_FAILED,
       });
@@ -2328,6 +2392,10 @@ export class MigrationService {
       aiSummary: dto.aiSummary ?? queueItem.aiSummary ?? undefined,
       // remarks: ใช้จาก dto ก่อน ถ้าไม่มีให้ fallback จาก queueItem (Excel import)
       remarks: dto.remarks ?? queueItem.remarks ?? undefined,
+      // ADR-054 D3: residual ingestion keys (original_document_number /
+      // revision_label / revision_number) อยู่ใน queue details — merge เข้า
+      // dto.details ให้ importCorrespondence resolve base doc + revision chain
+      details: { ...(queueItem.details ?? {}), ...(dto.details ?? {}) },
       // ADR-019: tempAttachmentId/tempAttachmentIds เป็น @Exclude ใน entity
       // ทำให้ frontend ไม่สามารถส่งค่านี้ได้ — ต้องดึงจาก queueItem โดยตรง
       tempAttachmentId:
@@ -2390,6 +2458,10 @@ export class MigrationService {
       aiSummary: dto.aiSummary ?? queueItem.aiSummary ?? undefined,
       // remarks: ใช้จาก dto ก่อน ถ้าไม่มีให้ fallback จาก queueItem (Excel import)
       remarks: dto.remarks ?? queueItem.remarks ?? undefined,
+      // ADR-054 D3: residual ingestion keys (original_document_number /
+      // revision_label / revision_number) อยู่ใน queue details — merge เข้า
+      // dto.details ให้ importCorrespondence resolve base doc + revision chain
+      details: { ...(queueItem.details ?? {}), ...(dto.details ?? {}) },
       // ADR-019: tempAttachmentId/tempAttachmentIds เป็น @Exclude ใน entity
       // ทำให้ frontend ไม่สามารถส่งค่านี้ได้ — ต้องดึงจาก queueItem โดยตรง
       tempAttachmentId:

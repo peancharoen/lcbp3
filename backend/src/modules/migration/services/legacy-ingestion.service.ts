@@ -11,6 +11,10 @@
 //   อ่าน discipline column จาก Excel และ resolve disciplineId ภายใน contract ที่เลือก
 //   (discipline_code unique เฉพาะระดับ contract — GEN ซ้ำได้ข้าม C1/C2) แล้วเก็บ
 //   contractId/contractCode/disciplineCode/disciplineId ลง details ให้ commitRecord ใช้ต่อ
+// - 2026-09-23: รองรับ revision column แยกจากเลขที่เอกสาร (0,1,2 / A,B,C) — queue
+//   document_number = base สำหรับ rev '0', `${base}-R${label}` สำหรับ revision อื่น,
+//   batch-dup ของ (doc,label) เดียวกันใช้ `-D{n}`; label จริงเก็บใน details.revision_label
+//   + original_document_number ให้ commitRecord สร้าง revision chain ใต้ Correspondence เดียว
 
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -51,6 +55,7 @@ import {
   LEGACY_NAS_PATH_DEFAULT,
 } from '../constants/migration.constants';
 import { ExcelHeaderDetectorService } from './excel-header-detector.service';
+import { normalizeRevisionLabel } from '../utils/revision-label.util';
 
 export interface IngestSummary {
   batchId: string;
@@ -82,6 +87,7 @@ interface ColumnMapping {
   fileNameCol: number;
   remarksCol: number;
   disciplineCol: number;
+  revisionCol: number;
 }
 
 @Injectable()
@@ -323,6 +329,15 @@ export class LegacyIngestionService {
                   )?.trim()
                 : undefined;
 
+            // Revision column (0,1,2 / A,B,C) — แยกจากเลขที่เอกสารตาม format ใหม่
+            // ถ้าไม่มี revision column ในไฟล์ → ใช้ FR-007 batch-dup counter เดิม
+            const hasRevisionColumn = columnMapping.revisionCol > 0;
+            const revisionNorm = hasRevisionColumn
+              ? normalizeRevisionLabel(
+                  this.extractCellString(rawValues[columnMapping.revisionCol])
+                )
+              : null;
+
             const rawSender = this.extractCellString(
               rawValues[columnMapping.fromCol]
             );
@@ -420,9 +435,44 @@ export class LegacyIngestionService {
             }
 
             // ตรวจหา duplicate ใน batch เดียวกัน → สร้าง revision suffix
+            // - มี revision column (format ใหม่): document_number ของ queue =
+            //   base สำหรับ rev '0', `${base}-R${label}` สำหรับ revision อื่น
+            //   (label จริงเก็บใน details.revision_label — commit สร้าง
+            //   correspondence_revisions ใต้ Correspondence เดียวกัน)
+            // - ไม่มี revision column (format เดิม): FR-007 counter -R1,-R2,…
             let finalDocNumber = docNumber;
             let revisionNumber = 0;
-            if (queueItem && queueItem.batchId === batchId) {
+            if (revisionNorm) {
+              // มี revision column — queue document_number = base สำหรับ '0',
+              // `${base}-R${label}` สำหรับ revision อื่น (label จริงอยู่ใน details)
+              finalDocNumber =
+                revisionNorm.label === '0'
+                  ? docNumber
+                  : `${docNumber}-R${revisionNorm.label}`;
+              const existing = await this.reviewQueueRepo.findOne({
+                where: { documentNumber: finalDocNumber },
+              });
+              if (existing && existing.batchId === batchId) {
+                // (doc,label) ซ้ำใน batch เดียวกัน — suffix -D{n} กันชน unique
+                // (แยกจาก -R{label} เพื่อบอกว่าเป็น duplicate row ไม่ใช่ revision)
+                revisionNumber = 1;
+                while (true) {
+                  const candidate = `${finalDocNumber}-D${revisionNumber}`;
+                  const dup = await this.reviewQueueRepo.findOne({
+                    where: { documentNumber: candidate },
+                  });
+                  if (!dup) {
+                    finalDocNumber = candidate;
+                    break;
+                  }
+                  revisionNumber++;
+                }
+                queueItem = null;
+              } else {
+                // ไม่มี item ที่ชื่อนี้ → สร้างใหม่; มีแต่คนละ batch → reuse เดิม
+                queueItem = existing;
+              }
+            } else if (queueItem && queueItem.batchId === batchId) {
               // หา revision ถัดไปที่ไม่ซ้ำ
               revisionNumber = 1;
               while (true) {
@@ -488,9 +538,14 @@ export class LegacyIngestionService {
                   ? unresolvedOrgs
                   : undefined,
               original_row_index: currentRowIndex,
+              // เลขฐานของเอกสาร — set เมื่อ queue document_number ต่างจากเลขจริง
+              // (revision suffix หรือ batch-dup) ให้ commit resolve กลับมาที่ base
               original_document_number:
-                revisionNumber > 0 ? docNumber : undefined,
+                finalDocNumber !== docNumber ? docNumber : undefined,
               revision_number: revisionNumber > 0 ? revisionNumber : undefined,
+              // Revision label จริงจากคอลัมน์ revision (normalize แล้ว) —
+              // commit paths อ่านค่านี้เพื่อสร้าง correspondence_revisions
+              revision_label: revisionNorm?.label,
             };
 
             await this.reviewQueueRepo.save(queueItem);
@@ -590,6 +645,7 @@ export class LegacyIngestionService {
       fileNameCol: -1,
       remarksCol: -1,
       disciplineCol: -1,
+      revisionCol: -1,
     };
 
     if (!Array.isArray(headerRows) || headerRows.length === 0) return mapping;
@@ -623,6 +679,7 @@ export class LegacyIngestionService {
     mapping.fileNameCol = detected.fileName ?? -1;
     mapping.remarksCol = detected.remarks ?? -1;
     mapping.disciplineCol = detected.discipline ?? -1;
+    mapping.revisionCol = detected.revision ?? -1;
 
     return mapping;
   }

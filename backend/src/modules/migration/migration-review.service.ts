@@ -48,6 +48,11 @@
 //   (reviewer เลือก) หรือ resolve จาก queueItem.details (contractCode + disciplineCode
 //   ที่ ingestion เก็บไว้) แล้ว persist ลง correspondence.disciplineId — เพราะ
 //   correspondences ไม่มี contract_id, contract มาผ่าน discipline.contract_id เท่านั้น
+// - 2026-09-23: Revision chain commit — commitRecord resolve base docNum จาก
+//   details.original_document_number (queue document_number เป็น staging key
+//   `${base}-R${label}`), upsert revision ตาม revision_label/revision_number ใน
+//   details แทน count-based label เดิม, current = label ลำดับสูงสุดผ่าน shared
+//   revision-label.util (order-independent), guard RfaRevision shared-PK บน update path
 
 import { Injectable, Logger } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
@@ -99,6 +104,12 @@ import {
   isOcrFailurePlaceholder,
 } from './constants/migration.constants';
 import { linkAttachmentsToRevision } from './utils/attachment-linking.util';
+import {
+  findRevisionByLabel,
+  nextFreeRevisionNumber,
+  normalizeRevisionLabel,
+  pickCurrentRevision,
+} from './utils/revision-label.util';
 import { FileStorageService } from '../../common/file-storage/file-storage.service';
 import { SearchService } from '../search/search.service';
 import * as path from 'path';
@@ -581,7 +592,29 @@ export class MigrationReviewService {
           'No default correspondence status found (missing CLBOWN/DRAFT)'
         );
       }
-      const docNum = queueItem.documentNumber;
+      // เลขที่ Correspondence จริง = base number — queue document_number อาจเป็น
+      // staging key `${base}-R${label}`/`${base}-R${label}-D{n}` เมื่อ Excel มี
+      // revision column แยก (เลขจริงเก็บใน details.original_document_number)
+      const details = queueItem.details ?? {};
+      const docNum =
+        typeof details['original_document_number'] === 'string' &&
+        details['original_document_number'].trim() !== ''
+          ? details['original_document_number'].trim()
+          : queueItem.documentNumber;
+      // Revision เป้าหมายจาก Excel — revision_label (format ใหม่) หรือ
+      // revision_number (legacy FR-007 dedup counter ใช้เป็น label)
+      const revisionLabelRaw =
+        typeof details['revision_label'] === 'string' &&
+        details['revision_label'].trim() !== ''
+          ? details['revision_label']
+          : typeof details['revision_number'] === 'number' ||
+              typeof details['revision_number'] === 'string'
+            ? String(details['revision_number'])
+            : undefined;
+      const targetRevision =
+        revisionLabelRaw !== undefined
+          ? normalizeRevisionLabel(revisionLabelRaw)
+          : undefined;
       let correspondence = await queryRunner.manager.findOne(Correspondence, {
         where: {
           correspondenceNumber: docNum,
@@ -599,7 +632,7 @@ export class MigrationReviewService {
       // Resolve discipline: reviewer เลือกเอง (dto.disciplineId) > disciplineId ที่
       // ingestion resolve ไว้ใน details > disciplineCode ใน details (resolve ภายใน
       // contract ที่เลือกตอน ingest เท่านั้น — discipline_code unique แค่ระดับ contract)
-      const details = queueItem.details ?? {};
+      // (details resolve ไว้ก่อนหน้าแล้ว — ใช้หา base docNum + revision เป้าหมาย)
       const queueContractId =
         typeof details['contractId'] === 'number'
           ? details['contractId']
@@ -815,50 +848,85 @@ export class MigrationReviewService {
         dto.issuedDate ?? toIsoDateString(queueItem.issuedDate);
       const receivedDateStr =
         dto.receivedDate ?? toIsoDateString(queueItem.receivedDate);
-      // ADR-002: ป้องกัน revision race condition — ใช้ pessimistic lock ค้นหา
-      // revision ปัจจุบันแทน count() ที่อ่าน snapshot แล้ว race กับ concurrent tx
-      const currentRevisions = await queryRunner.manager.find(
+      // ADR-002: ป้องกัน revision race condition — pessimistic lock เหมือนเดิม
+      const existingRevisions = await queryRunner.manager.find(
         CorrespondenceRevision,
         {
           where: { correspondenceId: correspondence.id },
           lock: { mode: 'pessimistic_write' },
-          order: { revisionNumber: 'DESC' },
         }
       );
-      const revisionCount = currentRevisions.length;
-      const revNum = revisionCount;
-      const revision = queryRunner.manager.create(CorrespondenceRevision, {
-        correspondenceId: correspondence.id,
-        revisionNumber: revNum,
-        revisionLabel: revNum === 0 ? '0' : revNum.toString(),
-        isCurrent: true,
-        statusId: status.id,
-        subject: finalSubject,
-        description: 'Migrated from legacy system via Human Reviewed Commit',
-        body: finalBody || undefined,
-        documentDate: parseDateStr(issuedDateStr),
-        issuedDate: parseDateStr(issuedDateStr),
-        receivedDate: parseDateStr(receivedDateStr),
-        details: {
-          ai_confidence: queueItem.aiConfidence,
-          ai_issues: queueItem.aiIssues,
-          attachment_id: attachmentId,
-          attachment_ids: attachmentIds,
-          // Feature 242: บันทึก fieldResolutions ของผู้ตรวจสอบใน audit trail (FR-011b, R7)
-          field_resolutions: dto.fieldResolutions,
-          compare_status: queueItem.compareStatus,
-        },
-        schemaVersion: 1,
-        createdBy: userId,
-      });
-      if (revisionCount > 0) {
-        await queryRunner.manager.update(
-          CorrespondenceRevision,
-          { correspondenceId: correspondence.id, isCurrent: true },
-          { isCurrent: false }
+      // Revision เป้าหมาย: มี revision_label จาก Excel → match ด้วย normalized
+      // label; queue เดิมไม่มี metadata → label = จำนวน rev เดิม (พฤติกรรมเดิม)
+      const targetLabel = targetRevision
+        ? targetRevision.label
+        : String(existingRevisions.length);
+      const revisionDetails = {
+        ai_confidence: queueItem.aiConfidence,
+        ai_issues: queueItem.aiIssues,
+        attachment_id: attachmentId,
+        attachment_ids: attachmentIds,
+        // Feature 242: บันทึก fieldResolutions ของผู้ตรวจสอบใน audit trail (FR-011b, R7)
+        field_resolutions: dto.fieldResolutions,
+        compare_status: queueItem.compareStatus,
+      };
+      let revision = findRevisionByLabel(existingRevisions, targetLabel);
+      if (revision) {
+        // commit ซ้ำ revision เดิม → update field เดิม (idempotent re-commit)
+        revision.subject = finalSubject;
+        revision.body = finalBody || undefined;
+        revision.documentDate =
+          parseDateStr(issuedDateStr) ?? revision.documentDate;
+        revision.issuedDate =
+          parseDateStr(issuedDateStr) ?? revision.issuedDate;
+        revision.receivedDate =
+          parseDateStr(receivedDateStr) ?? revision.receivedDate;
+        revision.details = revisionDetails;
+        await queryRunner.manager.save(revision);
+      } else {
+        // revision_number = rank ของ label ถ้าว่าง ไม่งั้นเลขว่างถัดไป —
+        // label คือตัวเทียบลำดับจริง revision_number เป็น storage slot
+        const revNum = nextFreeRevisionNumber(
+          existingRevisions.map((r) => r.revisionNumber),
+          targetRevision?.isValid
+            ? targetRevision.rank
+            : existingRevisions.length
         );
+        revision = queryRunner.manager.create(CorrespondenceRevision, {
+          correspondenceId: correspondence.id,
+          revisionNumber: revNum,
+          revisionLabel: targetLabel,
+          isCurrent: false,
+          statusId: status.id,
+          subject: finalSubject,
+          description: 'Migrated from legacy system via Human Reviewed Commit',
+          body: finalBody || undefined,
+          documentDate: parseDateStr(issuedDateStr),
+          issuedDate: parseDateStr(issuedDateStr),
+          receivedDate: parseDateStr(receivedDateStr),
+          details: revisionDetails,
+          schemaVersion: 1,
+          createdBy: userId,
+        });
+        await queryRunner.manager.save(revision);
       }
-      await queryRunner.manager.save(revision);
+      // current = revision ลำดับสูงสุดตาม normalized label — order-independent
+      // (commit 'A' ทีหลัง 'C' ก็ยังได้ 'C' เป็น current; uq_master_current
+      // constraint บังคับ current เดียวต่อ correspondence)
+      const allRevisions = existingRevisions.some((r) => r.id === revision.id)
+        ? existingRevisions
+        : [...existingRevisions, revision];
+      const currentRevision = pickCurrentRevision(allRevisions);
+      await queryRunner.manager.update(
+        CorrespondenceRevision,
+        { correspondenceId: correspondence.id },
+        { isCurrent: false }
+      );
+      await queryRunner.manager.update(
+        CorrespondenceRevision,
+        { id: currentRevision.id },
+        { isCurrent: true }
+      );
       // Feature 242: เชื่อม attachments ทั้งหมดเข้ากับ revision ผ่าน junction table (FR-001, FR-002, FR-003)
       // Bugfix: เดิมใช้ column name "revision_id" ซึ่งผิด (คอลัมน์จริงคือ "correspondence_revision_id")
       // ทำให้ INSERT ล้มเหลวเสมอ — เปลี่ยนไปใช้ shared utility เพื่อป้องกัน column name drift
@@ -886,13 +954,20 @@ export class MigrationReviewService {
             ]
           );
         }
-        const rfaRev = queryRunner.manager.create(RfaRevision, {
-          id: revision.id,
-          rfaStatusCodeId: rfaStatusRes[0].id,
-          details: { drawingCount: 0 },
-          schemaVersion: 1,
+        // upsert path อาจเจอ revision เดิมที่มี RfaRevision อยู่แล้ว (shared PK)
+        // — สร้างเฉพาะเมื่อยังไม่มีกันชน PK
+        const existingRfaRev = await queryRunner.manager.findOne(RfaRevision, {
+          where: { id: revision.id },
         });
-        await queryRunner.manager.save(RfaRevision, rfaRev);
+        if (!existingRfaRev) {
+          const rfaRev = queryRunner.manager.create(RfaRevision, {
+            id: revision.id,
+            rfaStatusCodeId: rfaStatusRes[0].id,
+            details: { drawingCount: 0 },
+            schemaVersion: 1,
+          });
+          await queryRunner.manager.save(RfaRevision, rfaRev);
+        }
       }
       // ADR-050 T018 (FR-006/FR-007/FR-008) — BREAKING CHANGE: แทนที่ dto.tags: string[] เดิม
       // ด้วย dto.tagDecisions[] — ผูกเฉพาะ tag ที่ accepted=true เข้าเอกสาร, บันทึก audit trail

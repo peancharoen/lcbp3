@@ -1,5 +1,8 @@
 // File: types/migration.ts
 // Change Log:
+// - 2026-09-24: เพิ่ม revision_label ใน MigrationAiExtractionDetails —
+//   revision-chain import เก็บ label จริงจาก Excel column "revision"
+//   (document_number เป็น staging key — เลขจริงใน original_document_number)
 // - 2026-09-22: เพิ่ม typed fields contractId/contractCode/disciplineCode/disciplineId
 //   ใน MigrationAiExtractionDetails — ingestion context ที่ backend persist ลง
 //   ai_metadata_json (fix contractCode หลุดจาก /admin/migration)
@@ -141,10 +144,15 @@ export interface MigrationAiExtractionDetails {
   original_row_index?: number;
   /** ชื่อองค์กรผู้ส่ง/ผู้รับจาก Excel ที่ resolve ไม่ได้ตอน ingestion */
   unresolved_orgs?: Record<string, string>;
-  /** เลขที่เอกสารดั้งเดิมก่อนถูกเติม revision suffix (-R1, -R2, …) */
+  /** เลขที่เอกสารฐานจริง (queue document_number เป็น staging key ที่อาจมี
+   *  suffix เช่น -RA/-R1/-D1 — revision-chain import ใช้ค่านี้เป็น
+   *  correspondenceNumber เสมอ) */
   original_document_number?: string;
-  /** ลำดับ revision ภายใน batch เดียวกัน (0 = ต้นฉบับ) */
+  /** ลำดับ revision ภายใน batch เดียวกัน (0 = ต้นฉบับ) — legacy dedup counter */
   revision_number?: number;
+  /** revision label จริงจาก Excel column "revision" ('0','1','2','A','B',…)
+   *  — ใช้ resolve CorrespondenceRevision ตอน commit (revision-chain import) */
+  revision_label?: string;
   /** Contract ที่เลือกตอน ingest (internal INT — contract lookup ผ่าน master API) */
   contractId?: number;
   /** รหัสคู่สัญญาที่เลือกตอน ingest เช่น LCBP3-C2 */

@@ -13,6 +13,7 @@ export const DOCUMENT_SIDE_EFFECTS_QUEUE = 'document-side-effects';
 /** Job types สำหรับ non-critical side effects */
 export enum SideEffectJobType {
   SEARCH_REINDEX = 'search-reindex',
+  SEARCH_DELETE = 'search-delete',
   NOTIFICATION = 'notification',
   VECTOR_DELETE = 'vector-delete',
 }
@@ -197,5 +198,49 @@ export class DocumentSideEffectsService {
     this.logger.log(
       `Dispatched ${jobs.length} non-critical side-effect jobs for ${input.documentType}:${input.publicId}`
     );
+  }
+
+  /**
+   * Enqueue SEARCH_DELETE job — ลบเอกสารออกจาก Elasticsearch index post-commit
+   * ใช้สำหรับ hard-delete path (เอกสารไม่มีอยู่แล้ว จึง reindex ไม่ได้ ต้อง delete)
+   * @returns true ถ้า enqueue สำเร็จ
+   */
+  async enqueueSearchDelete(input: {
+    publicId: string;
+    documentType: string;
+    auditId?: string;
+  }): Promise<boolean> {
+    if (!this.sideEffectsQueue) {
+      this.logger.warn(
+        `Side-effects queue not available — skipping search-delete for ${input.documentType}:${input.publicId}`
+      );
+      return false;
+    }
+    try {
+      await this.sideEffectsQueue.add(
+        SideEffectJobType.SEARCH_DELETE,
+        {
+          documentType: input.documentType,
+          publicId: input.publicId,
+          auditId: input.auditId,
+        },
+        {
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 2000 },
+          removeOnComplete: true,
+          removeOnFail: false,
+        }
+      );
+      this.logger.log(
+        `Enqueued search-delete for ${input.documentType}:${input.publicId}`
+      );
+      return true;
+    } catch (err) {
+      this.logger.error(
+        `Failed to enqueue search-delete for ${input.documentType}:${input.publicId}`,
+        err
+      );
+      return false;
+    }
   }
 }

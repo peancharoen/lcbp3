@@ -131,6 +131,15 @@ export class ImportCorrespondenceDto {
   remarks?: string;
 
   /**
+   * Revision label จากคอลัมน์ `revision` ใน Excel register ('0','1','A','B')
+   * — ระบุ revision เป้าหมายภายใต้ Correspondence เดียวกัน (FR-007 revision chain)
+   * ถ้าไม่ส่ง ระบบจะ fallback ไป details.revision_label / details.revision_number
+   */
+  @IsString()
+  @IsOptional()
+  revisionLabel?: string;
+
+  /**
    * ข้อความ OCR ดิบ 3 หน้าแรก — เก็บใน attachments.ocr_text และใช้เป็น cachedOcrText สำหรับ RAG (ADR-042/047)
    * ไม่ใช้สำหรับ correspondence_revisions.body (D159)
    */

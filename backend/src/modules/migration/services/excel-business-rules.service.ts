@@ -23,6 +23,7 @@ import {
   ReviewTargetMode,
 } from '../types/excel-review.types';
 import { ExcelDateParserService } from './excel-date-parser.service';
+import { normalizeRevisionLabel } from '../utils/revision-label.util';
 
 /**
  * Input สำหรับ Layer 2 validation
@@ -108,6 +109,9 @@ export class ExcelBusinessRulesService {
     // 3) ตรวจ duplicate doc number + revision ใน DB
     await this.checkDuplicateInDb(rows, project.id, allFindings);
 
+    // 3b) ตรวจ revision semantics — format ถูกต้อง + scheme ผสมกันใน doc เดียวกัน
+    this.checkRevisionSemantics(rows, allFindings);
+
     // 4) ตรวจ organization resolution
     await this.checkOrganizations(rows, allFindings, input.targetMode);
 
@@ -129,15 +133,16 @@ export class ExcelBusinessRulesService {
 
   // ---------- internals ----------
 
-  /** ตรวจ duplicate doc number + revision ภายในไฟล์เดียวกัน */
+  /** ตรวจ duplicate doc number + revision ภายในไฟล์เดียวกัน (normalize label ก่อนเทียบ) */
   private checkDuplicateWithinFile(
     rows: ExcelCorrespondenceRow[],
     findings: ReviewFinding[]
   ): void {
-    const seen = new Map<string, number>(); // key = "docNumber|revision"
+    const seen = new Map<string, number>(); // key = "docNumber|normalizedRevisionLabel"
 
     for (const row of rows) {
-      const key = `${row.documentNumber}|${row.revisionNumber}`;
+      const normLabel = normalizeRevisionLabel(row.revisionNumber).label;
+      const key = `${row.documentNumber}|${normLabel}`;
       const firstRow = seen.get(key);
       if (firstRow !== undefined) {
         const finding: ReviewFinding = {
@@ -177,19 +182,25 @@ export class ExcelBusinessRulesService {
       relations: ['revisions'],
     });
 
-    // สร้าง map: "docNumber|revisionNumber" → correspondenceId
+    // สร้าง map: "docNumber|normalizedRevisionLabel" → correspondenceId
+    // เทียบด้วย label ที่ normalize แล้วทั้งสองฝั่ง — DB เก็บ revision_label
+    // เป็น display string ('A','0','1') ส่วน row.revisionNumber คือ label จาก Excel
     const existingMap = new Map<string, number>();
     for (const corr of existingCorrespondences) {
       if (corr.revisions) {
         for (const rev of corr.revisions) {
-          const key = `${corr.correspondenceNumber}|${String(rev.revisionNumber)}`;
+          const dbLabel = normalizeRevisionLabel(
+            rev.revisionLabel ?? String(rev.revisionNumber)
+          ).label;
+          const key = `${corr.correspondenceNumber}|${dbLabel}`;
           existingMap.set(key, corr.id);
         }
       }
     }
 
     for (const row of rows) {
-      const key = `${row.documentNumber}|${row.revisionNumber}`;
+      const normLabel = normalizeRevisionLabel(row.revisionNumber).label;
+      const key = `${row.documentNumber}|${normLabel}`;
       if (existingMap.has(key)) {
         const finding: ReviewFinding = {
           row: row.rowIndex,
@@ -202,6 +213,51 @@ export class ExcelBusinessRulesService {
         findings.push(finding);
       }
       // หมายเหตุ: doc number เดิม + revision ใหม่ = อนุญาต (FR-007) ไม่ติด BLOCK
+    }
+  }
+
+  /**
+   * ตรวจ revision semantics (FR-007 ขยาย):
+   * - label format ไม่รู้จัก (ไม่ใช่ตัวเลข/ตัวอักษรล้วน เช่น 'R1', 'rev-2') → WARN
+   *   (commit จะใช้เลขลำดับถัดไปแทน)
+   * - doc เดียวกันใช้ scheme ผสม (ตัวเลข + ตัวอักษร เช่น '0' กับ 'A') → WARN
+   *   ลำดับ current อาจกำกวม — commit จะเรียงตัวเลขก่อนตัวอักษรเสมอ
+   */
+  private checkRevisionSemantics(
+    rows: ExcelCorrespondenceRow[],
+    findings: ReviewFinding[]
+  ): void {
+    const kindsByDoc = new Map<string, Set<string>>();
+    for (const row of rows) {
+      const norm = normalizeRevisionLabel(row.revisionNumber);
+      if (!norm.isValid) {
+        const finding: ReviewFinding = {
+          row: row.rowIndex,
+          column: 'Revision',
+          level: 'WARN',
+          message: `Revision "${row.revisionNumber}" ไม่ตรงรูปแบบที่รู้จัก (ควรเป็นเลข 0,1,2 หรือตัวอักษร A,B,C) — ระบบจะกำหนดลำดับให้อัตโนมัติ`,
+          originalValue: row.revisionNumber,
+        };
+        row.findings.push(finding);
+        findings.push(finding);
+      }
+      const kinds = kindsByDoc.get(row.documentNumber) ?? new Set<string>();
+      kinds.add(norm.kind);
+      kindsByDoc.set(row.documentNumber, kinds);
+    }
+    for (const row of rows) {
+      const kinds = kindsByDoc.get(row.documentNumber);
+      if (kinds && kinds.has('numeric') && kinds.has('alpha')) {
+        const finding: ReviewFinding = {
+          row: row.rowIndex,
+          column: 'Revision',
+          level: 'WARN',
+          message: `เลขที่เอกสาร "${row.documentNumber}" ใช้ Revision ผสม scheme (ตัวเลขกับตัวอักษร) — ระบบจะเรียงตัวเลขก่อนตัวอักษรเสมอ`,
+          originalValue: row.revisionNumber,
+        };
+        row.findings.push(finding);
+        findings.push(finding);
+      }
     }
   }
 

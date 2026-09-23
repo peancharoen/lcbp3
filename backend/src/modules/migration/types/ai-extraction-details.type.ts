@@ -140,8 +140,14 @@ export interface MigrationAiExtractionDetails extends Record<string, unknown> {
   original_row_index?: number;
   /** ชื่อองค์กรผู้ส่ง/ผู้รับจาก Excel ที่ resolve ไม่ได้ตอน ingestion */
   unresolved_orgs?: Record<string, string>;
-  /** เลขที่เอกสารดั้งเดิมก่อนถูกเติม revision suffix (-R1, -R2, …) */
+  /** เลขที่เอกสารดั้งเดิมก่อนถูกเติม revision suffix (-R1, -R2, …) หรือเลขฐานเมื่อแยกคอลัมน์ revision ใน Excel */
   original_document_number?: string;
-  /** ลำดับ revision ภายใน batch เดียวกัน (0 = ต้นฉบับ) */
+  /** ลำดับ revision ภายใน batch เดียวกัน (0 = ต้นฉบับ) — legacy counter จาก FR-007 */
   revision_number?: number;
+  /**
+   * Revision label จากคอลัมน์ `revision` ใน Excel register (เช่น '0','1','A','B')
+   * — commit paths ใช้ค่านี้สร้าง/อัปเดต correspondence_revisions ตรง ๆ
+   * (normalize: trim + uppercase สำหรับ alpha — ดู utils/revision-label.util.ts)
+   */
+  revision_label?: string;
 }

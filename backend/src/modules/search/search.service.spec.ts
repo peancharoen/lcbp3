@@ -27,7 +27,7 @@ describe('SearchService', () => {
   let mockEsService: MockEsService;
   let mockConfigService: Record<string, jest.Mock>;
   let mockCorrespondenceRepo: { find: jest.Mock };
-  let mockRfaRepo: { find: jest.Mock };
+  let mockRfaRepo: { find: jest.Mock; existsBy: jest.Mock };
 
   beforeEach(async () => {
     mockEsService = {
@@ -47,7 +47,10 @@ describe('SearchService', () => {
       }),
     };
     mockCorrespondenceRepo = { find: jest.fn().mockResolvedValue([]) };
-    mockRfaRepo = { find: jest.fn().mockResolvedValue([]) };
+    mockRfaRepo = {
+      find: jest.fn().mockResolvedValue([]),
+      existsBy: jest.fn().mockResolvedValue(false),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -153,6 +156,24 @@ describe('SearchService', () => {
         document: doc,
       });
       expect(result).toEqual({ result: 'created' });
+    });
+
+    it('should resolve RFA subtype and index with rfa_ prefix', async () => {
+      mockRfaRepo.existsBy.mockResolvedValue(true);
+      mockEsService.index.mockResolvedValue({ result: 'created' });
+
+      await service.indexDocument({
+        type: 'correspondence',
+        id: 7,
+        publicId: 'rfa-uuid-1',
+        title: 'Test RFA',
+      });
+
+      expect(mockEsService.index).toHaveBeenCalledWith({
+        index: 'dms_documents',
+        id: 'rfa_rfa-uuid-1',
+        document: expect.objectContaining({ type: 'rfa' }),
+      });
     });
 
     it('should index a document with numeric id when no publicId', async () => {
@@ -307,6 +328,105 @@ describe('SearchService', () => {
     });
   });
 
+  describe('reconcileIndex', () => {
+    beforeEach(async () => {
+      mockEsService.ping.mockResolvedValue(true);
+      mockEsService.indices.exists.mockResolvedValue(true);
+      await service.onModuleInit();
+    });
+
+    it('should return zeros when Elasticsearch is unavailable', async () => {
+      mockEsService.ping.mockRejectedValue(new Error('Connection refused'));
+      await service.onModuleInit();
+
+      const result = await service.reconcileIndex();
+
+      expect(result).toEqual({
+        added: 0,
+        updated: 0,
+        deleted: 0,
+        unchanged: 0,
+      });
+      expect(mockEsService.search).not.toHaveBeenCalled();
+    });
+
+    it('should add missing docs, delete stale, and update drifted fields', async () => {
+      mockCorrespondenceRepo.find.mockResolvedValue([
+        {
+          id: 1,
+          publicId: 'uuid-a',
+          correspondenceNumber: 'LTR-001',
+          projectId: 10,
+          createdAt: new Date('2026-01-01'),
+          revisions: [
+            {
+              isCurrent: true,
+              subject: 'Subject A',
+              status: { statusCode: 'SUBOWN' },
+            },
+          ],
+        },
+        {
+          id: 2,
+          publicId: 'uuid-b',
+          correspondenceNumber: 'LTR-002',
+          projectId: 10,
+          createdAt: new Date('2026-01-02'),
+          revisions: [],
+        },
+      ]);
+      mockRfaRepo.find.mockResolvedValue([]);
+      mockEsService.search.mockResolvedValue({
+        hits: {
+          hits: [
+            // มีอยู่แล้วแต่ status drift (DB=SUBOWN)
+            {
+              _id: 'correspondence_uuid-a',
+              _source: {
+                docNumber: 'LTR-001',
+                title: 'Subject A',
+                status: 'DRAFT',
+                type: 'correspondence',
+              },
+            },
+            // stale — ไม่มีใน DB
+            {
+              _id: 'correspondence_uuid-gone',
+              _source: {
+                docNumber: 'OLD-001',
+                title: 'x',
+                status: 'DRAFT',
+                type: 'correspondence',
+              },
+            },
+          ],
+          total: 2,
+        },
+      });
+      mockEsService.index.mockResolvedValue({ result: 'created' });
+      mockEsService.delete.mockResolvedValue({ result: 'deleted' });
+
+      const result = await service.reconcileIndex();
+
+      expect(result).toEqual({
+        added: 1,
+        updated: 1,
+        deleted: 1,
+        unchanged: 0,
+      });
+      expect(mockEsService.delete).toHaveBeenCalledWith({
+        index: 'dms_documents',
+        id: 'correspondence_uuid-gone',
+      });
+      expect(mockEsService.index).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'correspondence_uuid-a' })
+      );
+      expect(mockEsService.index).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'correspondence_uuid-b' })
+      );
+    });
+  });
+
   describe('removeDocument', () => {
     beforeEach(async () => {
       mockEsService.ping.mockResolvedValue(true);
@@ -314,23 +434,35 @@ describe('SearchService', () => {
       await service.onModuleInit();
     });
 
-    it('should remove a document from index', async () => {
+    it('should remove a document by publicId under both key prefixes', async () => {
       mockEsService.delete.mockResolvedValue({ result: 'deleted' });
 
-      await service.removeDocument('correspondence', 42);
+      await service.removeDocument('uuid-42');
 
+      expect(mockEsService.delete).toHaveBeenCalledTimes(2);
       expect(mockEsService.delete).toHaveBeenCalledWith({
         index: 'dms_documents',
-        id: 'correspondence_42',
+        id: 'correspondence_uuid-42',
+      });
+      expect(mockEsService.delete).toHaveBeenCalledWith({
+        index: 'dms_documents',
+        id: 'rfa_uuid-42',
       });
     });
 
-    it('should handle removal errors gracefully', async () => {
-      mockEsService.delete.mockRejectedValue(new Error('Not found'));
+    it('should treat 404 as success (idempotent delete)', async () => {
+      const notFound = Object.assign(new Error('Not found'), {
+        meta: { statusCode: 404 },
+      });
+      mockEsService.delete.mockRejectedValue(notFound);
 
-      await expect(
-        service.removeDocument('correspondence', 999)
-      ).resolves.not.toThrow();
+      await expect(service.removeDocument('uuid-999')).resolves.not.toThrow();
+    });
+
+    it('should handle removal errors gracefully', async () => {
+      mockEsService.delete.mockRejectedValue(new Error('ES down'));
+
+      await expect(service.removeDocument('uuid-999')).resolves.not.toThrow();
     });
   });
 

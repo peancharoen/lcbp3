@@ -217,7 +217,8 @@
     "replace_file_success": "เปลี่ยนไฟล์สำเร็จ — ระบบกำลัง Re-extract อัตโนมัติ",
     "replace_file_error": "เปลี่ยนไฟล์ไม่สำเร็จ",
     "replace_file_tree_error": "โหลดรายการโฟลเดอร์ไม่สำเร็จ",
-    "replace_file_list_error": "โหลดรายการไฟล์ไม่สำเร็จ"
+    "replace_file_list_error": "โหลดรายการไฟล์ไม่สำเร็จ",
+    "revision_badge": "ฉบับที่"
   },
   "rag": {
     "ingestion_status": {

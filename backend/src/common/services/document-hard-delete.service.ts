@@ -1,9 +1,10 @@
 // File: backend/src/common/services/document-hard-delete.service.ts
 // บันทึกการแก้ไข: Hard-delete orchestration with Redlock + snapshot + cascade (Feature 253 — T012)
+// 2026-09-23 | เพิ่ม SEARCH_DELETE side-effect post-commit — ลบ doc ออกจาก ES index
 // 2026-09-07 | FR-008: แยก Transmittal cascade ไม่ลบ root Correspondence
 // 2026-09-07 | FR-011: sync Qdrant delete + pending_vector_deletions สำหรับทุก document type
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import Redlock, { Lock } from 'redlock';
@@ -16,6 +17,7 @@ import { HardDeleteCascadePolicy } from '../interfaces/hard-delete-cascade-polic
 import { AiQdrantService } from '../../modules/ai/qdrant.service';
 import { PendingVectorDeletion } from '../../modules/ai/entities/pending-vector-deletion.entity';
 import { AuditLog } from '../entities/audit-log.entity';
+import { DocumentSideEffectsService } from './document-side-effects.service';
 
 /**
  * Input สำหรับ hard-delete
@@ -42,7 +44,9 @@ export class DocumentHardDeleteService {
   constructor(
     private readonly dataSource: DataSource,
     @InjectRedis() private readonly redis: Redis,
-    private readonly aiQdrantService: AiQdrantService
+    private readonly aiQdrantService: AiQdrantService,
+    @Optional()
+    private readonly sideEffectsService?: DocumentSideEffectsService
   ) {
     this.redlock = new Redlock([redis], {
       driftFactor: 0.01,
@@ -135,13 +139,26 @@ export class DocumentHardDeleteService {
           );
         }
 
+        // 7b. Search index delete (post-commit, BullMQ retry) — เฉพาะ document
+        //     family ที่อยู่ใน dms_documents (CORRESPONDENCE/RFA ใช้ตารางร่วมกัน)
+        //     TRANSMITTAL ไม่ลบ root correspondence, DRAWING ไม่ได้อยู่ใน index
+        const isIndexedFamily = ['CORRESPONDENCE', 'RFA'].includes(
+          input.documentType.toUpperCase()
+        );
+        const searchDeleted =
+          isIndexedFamily &&
+          (await (this.sideEffectsService?.enqueueSearchDelete({
+            publicId: input.publicId,
+            documentType: input.documentType,
+          }) ?? Promise.resolve(false)));
+
         // 9. Return result
         return {
           success: true,
           publicId: input.publicId,
           action: 'HARD_DELETE',
           sideEffects: {
-            searchReindexed: false,
+            searchReindexed: searchDeleted,
             notificationsSent: 0,
             workflowTerminated: false,
             circulationsClosed: 0,

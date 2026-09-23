@@ -19,6 +19,9 @@
 // - 2026-09-12: Async/polling pattern (ADR-008) — check() คืน sessionId ทันที
 //   แล้ว BullMQ worker ประมวลผลใน background, frontend poll GET /status
 //   แก้ปัญหา axios timeout 15s ไม่พอสำหรับ AI review 265+ แถว
+// - 2026-09-23: confirm() persist revision ลง queue — document_number ต้อง unique
+//   จึงใช้ `${base}-R${label}` สำหรับ rev ที่ไม่ใช่ '0' และเก็บ revision_label +
+//   original_document_number ไว้ใน details ให้ commitRecord สร้าง revision chain
 
 import {
   Injectable,
@@ -74,6 +77,7 @@ import {
   ENV_LEGACY_NAS_PATH,
   LEGACY_NAS_PATH_DEFAULT,
 } from '../constants/migration.constants';
+import { normalizeRevisionLabel } from '../utils/revision-label.util';
 
 /**
  * Input สำหรับ check() — มาจาก controller หลังผ่าน DTO validation
@@ -778,10 +782,37 @@ export class ExcelDataReviewService {
     await this.dataSource.transaction(async (txMgr) => {
       if (quarantineResult.passedRows.length > 0) {
         const queueRepo = txMgr.getRepository(MigrationReviewQueue);
-        const entities = quarantineResult.passedRows.map((row) => {
+        const entities: MigrationReviewQueue[] = [];
+        // staging keys ที่ถูกจองไว้ใน batch นี้แล้ว — entities ยังไม่ถูก save
+        // จนกว่าจะครบ loop จึง findOne ใน DB ไม่เจอ ต้อง track เองกันชน
+        // unique constraint ตอน save
+        const claimedDocNumbers = new Set<string>();
+        for (const row of quarantineResult.passedRows) {
           const item = new MigrationReviewQueue();
           item.batchId = batchId;
-          item.documentNumber = row.documentNumber;
+          // คอลัมน์ revision แยกจากเลขที่เอกสาร — queue document_number ต้อง unique:
+          // rev '0' ใช้เลขฐาน, revision อื่นใช้ `${base}-R${label}` (label จริงอยู่ใน
+          // details.revision_label — commitRecord อ่านเพื่อสร้าง revision chain)
+          const revNorm = normalizeRevisionLabel(row.revisionNumber);
+          const baseQueueDocNumber =
+            revNorm.label === '0'
+              ? row.documentNumber
+              : `${row.documentNumber}-R${revNorm.label}`;
+          let queueDocNumber = baseQueueDocNumber;
+          // กันชนกับ queue item เดิม (batch ก่อนหน้า/ชื่อเดียวกันโดยบังเอิญ)
+          // และกับแถวก่อนหน้าใน batch นี้ (claimedDocNumbers)
+          let dupCounter = 0;
+          while (
+            claimedDocNumbers.has(queueDocNumber) ||
+            (await queueRepo.findOne({
+              where: { documentNumber: queueDocNumber },
+            }))
+          ) {
+            dupCounter++;
+            queueDocNumber = `${baseQueueDocNumber}-D${dupCounter}`;
+          }
+          claimedDocNumbers.add(queueDocNumber);
+          item.documentNumber = queueDocNumber;
           item.subject = row.subject;
           item.originalSubject = row.subject;
           item.status = MigrationReviewStatus.PENDING;
@@ -789,8 +820,18 @@ export class ExcelDataReviewService {
           item.receivedDate = row.receivedDate;
           item.issuedDate = row.issuedDate;
           item.remarks = row.remarks;
-          return item;
-        });
+          // residual ingestion keys (ADR-054 D3) — เลขฐาน + revision label ให้
+          // commitRecord resolve กลับมาที่ Correspondence เดียวกันและสร้าง revision ที่ถูกต้อง
+          item.details = {
+            original_row_index: row.rowIndex,
+            original_document_number:
+              queueDocNumber !== row.documentNumber
+                ? row.documentNumber
+                : undefined,
+            revision_label: revNorm.label,
+          };
+          entities.push(item);
+        }
         const saved = await queueRepo.save(entities);
         enqueuedCount = saved.length;
       }

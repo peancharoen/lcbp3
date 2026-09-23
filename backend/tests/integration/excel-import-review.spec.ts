@@ -1,5 +1,7 @@
 // File: backend/tests/integration/excel-import-review.spec.ts
 // Change Log:
+// - 2026-09-24: เพิ่ม findOne ใน txMgr repo mock — confirm() มี staging-key
+//   collision check ตั้งแต่ revision-chain import
 // - 2026-09-06: Initial creation — Integration test for Excel Import Review Pipeline
 //   (Feature 252, ADR-052, T026, Phase 7)
 //   ทดสอบ end-to-end flow: check → confirm และ check → cancel
@@ -146,6 +148,8 @@ describe('Integration: Excel Import Review Pipeline (Feature 252, T026)', () => 
           const txMgr = {
             getRepository: jest.fn().mockReturnValue({
               save: jest.fn().mockResolvedValue([{ id: 1 }]),
+              // staging-key collision check — ไม่มีชื่อชน → resolve null
+              findOne: jest.fn().mockResolvedValue(null),
             }),
           };
           return Promise.resolve(cb(txMgr));

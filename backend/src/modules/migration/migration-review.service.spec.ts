@@ -1811,9 +1811,16 @@ describe('MigrationReviewService', () => {
 
       await service.commitRecord(makeDto(), 1, 'idem-key-rev-001');
 
+      // revision สร้างด้วย isCurrent=false แล้วถูก set current ผ่าน update
+      // (current ถูกเลือกจาก normalized label — order-independent)
       expect(qr.manager.create).toHaveBeenCalledWith(
         CorrespondenceRevision,
-        expect.objectContaining({ revisionNumber: 0, isCurrent: true })
+        expect.objectContaining({ revisionNumber: 0, revisionLabel: '0' })
+      );
+      expect(qr.manager.update).toHaveBeenCalledWith(
+        CorrespondenceRevision,
+        { id: expect.any(Number) },
+        { isCurrent: true }
       );
     });
 
@@ -1826,10 +1833,16 @@ describe('MigrationReviewService', () => {
 
       await service.commitRecord(makeDto(), 1, 'idem-key-rev-002');
 
+      // unset current ทั้งหมดของ correspondence แล้ว set เฉพาะ revision ลำดับสูงสุด
       expect(qr.manager.update).toHaveBeenCalledWith(
         CorrespondenceRevision,
-        expect.objectContaining({ isCurrent: true }),
+        { correspondenceId: expect.any(Number) },
         { isCurrent: false }
+      );
+      expect(qr.manager.update).toHaveBeenCalledWith(
+        CorrespondenceRevision,
+        { id: expect.any(Number) },
+        { isCurrent: true }
       );
     });
 
@@ -1852,6 +1865,109 @@ describe('MigrationReviewService', () => {
         expect.any(Number),
         [10, 20]
       );
+    });
+
+    it('staging key + revision_label — commit สร้าง correspondence ด้วยเลขฐานและ revision ตาม label', async () => {
+      const qr = createMockQueryRunner({
+        queueItem: makeQueueItem({
+          // queue document_number เป็น staging key เมื่อ Excel มี revision column
+          documentNumber: 'DOC-001-RA',
+          details: {
+            original_document_number: 'DOC-001',
+            revision_label: 'A',
+          },
+        }),
+      });
+      dataSource.createQueryRunner.mockReturnValue(qr);
+
+      await service.commitRecord(makeDto(), 1, 'idem-key-rev-004');
+
+      expect(qr.manager.create).toHaveBeenCalledWith(
+        Correspondence,
+        expect.objectContaining({ correspondenceNumber: 'DOC-001' })
+      );
+      expect(qr.manager.create).toHaveBeenCalledWith(
+        CorrespondenceRevision,
+        expect.objectContaining({ revisionLabel: 'A', revisionNumber: 0 })
+      );
+    });
+
+    it('update revision เดิมเมื่อ revision_label ตรงกัน — ไม่สร้าง revision ใหม่', async () => {
+      const existingRev = {
+        id: 77,
+        correspondenceId: 50,
+        revisionNumber: 0,
+        revisionLabel: 'A',
+        isCurrent: true,
+        subject: 'Old subject',
+        details: {},
+      };
+      const qr = createMockQueryRunner({
+        queueItem: makeQueueItem({
+          documentNumber: 'DOC-001-RA',
+          details: {
+            original_document_number: 'DOC-001',
+            revision_label: 'A',
+          },
+        }),
+        correspondence: {
+          id: 50,
+          publicId: 'corr-uuid-001',
+          correspondenceNumber: 'DOC-001',
+        },
+      });
+      qr.manager.find.mockResolvedValue([existingRev]);
+      dataSource.createQueryRunner.mockReturnValue(qr);
+
+      await service.commitRecord(makeDto(), 1, 'idem-key-rev-005');
+
+      const createRevCalls = qr.manager.create.mock.calls.filter(
+        (c: unknown[]) => c[0] === CorrespondenceRevision
+      );
+      expect(createRevCalls).toHaveLength(0);
+      expect(existingRev.subject).toBe('Test Subject');
+    });
+
+    it('revision ต่าง label ใต้เลขเดียวกัน — สร้าง revision ใหม่และ current = label สูงสุด', async () => {
+      const existingCorr = {
+        id: 50,
+        publicId: 'corr-uuid-001',
+        correspondenceNumber: 'DOC-001',
+      };
+      const revA = {
+        id: 77,
+        correspondenceId: 50,
+        revisionNumber: 0,
+        revisionLabel: 'A',
+        isCurrent: true,
+        subject: 'Rev A',
+        details: {},
+      };
+      const qr = createMockQueryRunner({
+        queueItem: makeQueueItem({
+          documentNumber: 'DOC-001-RB',
+          details: {
+            original_document_number: 'DOC-001',
+            revision_label: 'B',
+          },
+        }),
+        correspondence: existingCorr,
+      });
+      qr.manager.find.mockResolvedValue([revA]);
+      dataSource.createQueryRunner.mockReturnValue(qr);
+
+      await service.commitRecord(makeDto(), 1, 'idem-key-rev-006');
+
+      // 'B' (rank 1) > 'A' (rank 0) → สร้าง rev ใหม่และเป็น current
+      expect(qr.manager.create).toHaveBeenCalledWith(
+        CorrespondenceRevision,
+        expect.objectContaining({
+          revisionLabel: 'B',
+          revisionNumber: 1,
+          correspondenceId: 50,
+        })
+      );
+      expect(revA.subject).toBe('Rev A'); // revision เดิมไม่ถูกแตะ
     });
   });
 

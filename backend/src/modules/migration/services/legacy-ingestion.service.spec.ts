@@ -424,6 +424,64 @@ describe('LegacyIngestionService (ADR-047)', () => {
     expect(savedDocNumbers).toContain('LCBP3-C2-2024-001-R1');
   });
 
+  it('revision column แยกจากเลขที่เอกสาร — queue key `${base}-R${label}` + details.revision_label', async () => {
+    mockProjectRepo.findOne.mockResolvedValue({
+      id: 5,
+      publicId: '019505a1-7c3e-7000-8000-proj12345678',
+      projectCode: 'LCBP3-C2',
+    });
+    mockReviewQueueRepo.findOne.mockResolvedValue(null);
+
+    // Excel ที่มี revision column แยก (format ใหม่: เลขฐาน + 0,1,2/A,B,C)
+    const revExcelPath = path.join(tempTestDir, 'test-revision.xlsx');
+    const workbook = new ExcelJS.Workbook();
+    const ws = workbook.addWorksheet('Sheet1');
+    ws.addRow([
+      'ลำดับ',
+      'เลขที่เอกสาร',
+      'เรื่อง',
+      'วันที่ออก',
+      'วันที่รับ',
+      'จาก',
+      'ถึง',
+      'หมวดหมู่',
+      'ชื่อไฟล์',
+      'หมายเหตุ',
+      'Revision',
+    ]);
+    ws.addRow([1, 'DOC-A', 'เรื่อง A rev0', '', '', '', '', '', '', '', '0']);
+    ws.addRow([2, 'DOC-A', 'เรื่อง A revA', '', '', '', '', '', '', '', 'A']);
+    ws.addRow([3, 'DOC-B', 'เรื่อง B rev1', '', '', '', '', '', '', '', '1']);
+    await workbook.xlsx.writeFile(revExcelPath);
+
+    const result = await service.startIngestion({
+      filePath: revExcelPath,
+      projectPublicId: '019505a1-7c3e-7000-8000-proj12345678',
+      batchId: 'BATCH-REV-001',
+    });
+
+    expect(result.enqueuedCount).toBe(3);
+
+    const savedItems = mockReviewQueueRepo.save.mock.calls.map(
+      ([entity]: [MockEntity]) => entity
+    );
+    const docNums = savedItems.map((e) => e.documentNumber);
+    // rev '0' ใช้เลขฐาน, revision อื่นใช้ `${base}-R${label}` (staging key unique)
+    expect(docNums).toEqual(['DOC-A', 'DOC-A-RA', 'DOC-B-R1']);
+
+    // details เก็บ base number + revision label ให้ commit สร้าง revision chain
+    const rev0 = savedItems[0].details as Record<string, unknown>;
+    expect(rev0.revision_label).toBe('0');
+    const revA = savedItems[1].details as Record<string, unknown>;
+    expect(revA.original_document_number).toBe('DOC-A');
+    expect(revA.revision_label).toBe('A');
+    const rev1 = savedItems[2].details as Record<string, unknown>;
+    expect(rev1.original_document_number).toBe('DOC-B');
+    expect(rev1.revision_label).toBe('1');
+
+    fs.rmSync(revExcelPath, { force: true });
+  });
+
   it('ควรบันทึก error และยังคงประมวลผลแถวถัดไปเมื่อ row processing ล้มเหลว', async () => {
     mockProjectRepo.findOne.mockResolvedValue({
       id: 5,

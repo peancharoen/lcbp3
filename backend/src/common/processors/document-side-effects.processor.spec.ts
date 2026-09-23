@@ -21,7 +21,10 @@ function makeJob(name: string, data: unknown): Job {
 
 describe('DocumentSideEffectsProcessor', () => {
   let processor: DocumentSideEffectsProcessor;
-  let mockSearchService: { indexDocument: jest.Mock };
+  let mockSearchService: {
+    indexDocument: jest.Mock;
+    removeDocument: jest.Mock;
+  };
   let mockQdrantService: { deleteByDocumentPublicId: jest.Mock };
   let mockNotificationService: { send: jest.Mock };
   let mockCorrespondenceRepo: { findOne: jest.Mock };
@@ -30,6 +33,7 @@ describe('DocumentSideEffectsProcessor', () => {
   beforeEach(async () => {
     mockSearchService = {
       indexDocument: jest.fn().mockResolvedValue(undefined),
+      removeDocument: jest.fn().mockResolvedValue(undefined),
     };
     mockQdrantService = {
       deleteByDocumentPublicId: jest.fn().mockResolvedValue(undefined),
@@ -132,18 +136,78 @@ describe('DocumentSideEffectsProcessor', () => {
       expect(mockSearchService.indexDocument).not.toHaveBeenCalled();
     });
 
-    it('skips (does not throw) for a documentType with no real caller/implementation', async () => {
+    it('reindexes RFA via the shared correspondences table', async () => {
+      mockCorrespondenceRepo.findOne.mockResolvedValue({
+        id: 9,
+        publicId: 'rfa-uuid-1',
+        correspondenceNumber: 'RFA-001',
+        projectId: 3,
+        createdAt: new Date(),
+      });
+      mockRevisionRepo.findOne.mockResolvedValue({
+        subject: 'RFA Subject',
+        status: { statusCode: 'SUBOWN' },
+      });
+
+      await processor.process(
+        makeJob(SideEffectJobType.SEARCH_REINDEX, {
+          documentType: 'RFA',
+          publicId: 'rfa-uuid-1',
+          auditId: 'audit-1',
+        })
+      );
+
+      expect(mockCorrespondenceRepo.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { publicId: 'rfa-uuid-1' } })
+      );
+      expect(mockSearchService.indexDocument).toHaveBeenCalledWith(
+        expect.objectContaining({
+          publicId: 'rfa-uuid-1',
+          docNumber: 'RFA-001',
+        })
+      );
+    });
+
+    it('skips (does not throw) for a documentType with no implementation', async () => {
       await expect(
         processor.process(
           makeJob(SideEffectJobType.SEARCH_REINDEX, {
-            documentType: 'RFA',
-            publicId: 'rfa-uuid-1',
+            documentType: 'DRAWING',
+            publicId: 'drw-uuid-1',
             auditId: 'audit-1',
           })
         )
       ).resolves.not.toThrow();
       expect(mockSearchService.indexDocument).not.toHaveBeenCalled();
       expect(mockCorrespondenceRepo.findOne).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('SEARCH_DELETE', () => {
+    it('removes the document from the search index by publicId', async () => {
+      await processor.process(
+        makeJob(SideEffectJobType.SEARCH_DELETE, {
+          documentType: 'CORRESPONDENCE',
+          publicId: 'corr-uuid-1',
+          auditId: 'audit-1',
+        })
+      );
+
+      expect(mockSearchService.removeDocument).toHaveBeenCalledWith(
+        'corr-uuid-1'
+      );
+    });
+
+    it('skips when publicId is missing', async () => {
+      await processor.process(
+        makeJob(SideEffectJobType.SEARCH_DELETE, {
+          documentType: 'CORRESPONDENCE',
+          publicId: '',
+          auditId: 'audit-1',
+        })
+      );
+
+      expect(mockSearchService.removeDocument).not.toHaveBeenCalled();
     });
   });
 

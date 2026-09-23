@@ -1,5 +1,7 @@
 // File: backend/src/common/processors/document-side-effects.processor.ts
 // Change Log:
+// - 2026-09-23: เพิ่ม SEARCH_DELETE handler (ลบ doc ออกจาก ES index หลัง hard-delete)
+//   และ SEARCH_REINDEX รองรับ documentType=RFA (shared correspondences table)
 // - 2026-09-09: Create processor for the 'document-side-effects' queue (Feature 253
 //   T010+T011) — DocumentSideEffectsService.executeNonCritical() has enqueued
 //   SEARCH_REINDEX/NOTIFICATION/VECTOR_DELETE jobs since it shipped, but no
@@ -34,6 +36,12 @@ interface SearchReindexJobData {
   documentType: string;
   publicId: string;
   auditId: string;
+}
+
+interface SearchDeleteJobData {
+  documentType: string;
+  publicId: string;
+  auditId?: string;
 }
 
 interface NotificationJobData {
@@ -73,6 +81,9 @@ export class DocumentSideEffectsProcessor extends WorkerHost {
       case String(SideEffectJobType.SEARCH_REINDEX):
         await this.handleSearchReindex(job.data as SearchReindexJobData);
         break;
+      case String(SideEffectJobType.SEARCH_DELETE):
+        await this.handleSearchDelete(job.data as SearchDeleteJobData);
+        break;
       case String(SideEffectJobType.NOTIFICATION):
         await this.handleNotification(job.data as NotificationJobData);
         break;
@@ -85,7 +96,9 @@ export class DocumentSideEffectsProcessor extends WorkerHost {
   }
 
   private async handleSearchReindex(data: SearchReindexJobData): Promise<void> {
-    if (data.documentType !== 'CORRESPONDENCE') {
+    // CORRESPONDENCE และ RFA ใช้ตาราง correspondences ร่วมกัน (RFA = CTI subtype,
+    // shared PK) — indexDocument() resolve subtype จริงจากตาราง rfas เอง
+    if (!['CORRESPONDENCE', 'RFA'].includes(data.documentType)) {
       this.logger.warn(
         `SEARCH_REINDEX not implemented for documentType=${data.documentType} ` +
           `(no existing caller enqueues this type — see change log) — skipping publicId=${data.publicId}`
@@ -122,6 +135,24 @@ export class DocumentSideEffectsProcessor extends WorkerHost {
 
     this.logger.log(
       `SEARCH_REINDEX completed for correspondence publicId=${data.publicId}, auditId=${data.auditId}`
+    );
+  }
+
+  /**
+   * ลบเอกสารออกจาก search index หลัง hard-delete commit แล้ว
+   * removeDocument() ลบทั้ง key 'correspondence_<publicId>' และ 'rfa_<publicId>'
+   * เพื่อครอบคลุม docs ที่เคยถูก index ด้วย prefix ผิด
+   */
+  private async handleSearchDelete(data: SearchDeleteJobData): Promise<void> {
+    if (!data.publicId) {
+      this.logger.warn(
+        `SEARCH_DELETE: missing publicId, auditId=${data.auditId ?? 'n/a'}`
+      );
+      return;
+    }
+    await this.searchService.removeDocument(data.publicId);
+    this.logger.log(
+      `SEARCH_DELETE completed for publicId=${data.publicId}, auditId=${data.auditId ?? 'n/a'}`
     );
   }
 

@@ -170,6 +170,7 @@ describe('ExcelDataReviewService', () => {
     } as unknown as jest.Mocked<ExcelQuarantineService>;
     importTxRepo = { save: jest.fn() };
     // Mock dataSource.transaction — call the callback with a mock txMgr
+    // (queueRepo ต้องมี findOne — confirm() ใช้กันชน document_number staging key)
     dataSource = {
       transaction: jest
 
@@ -178,6 +179,7 @@ describe('ExcelDataReviewService', () => {
           const txMgr = {
             getRepository: jest.fn().mockReturnValue({
               save: jest.fn().mockResolvedValue([]),
+              findOne: jest.fn().mockResolvedValue(null),
             }),
           };
           return Promise.resolve(cb(txMgr));
@@ -1156,6 +1158,86 @@ describe('ExcelDataReviewService', () => {
       });
 
       expect(stash.deleteSession).toHaveBeenCalledTimes(1);
+
+      await fs.promises.rm(tmpFile, { force: true }).catch(() => undefined);
+    });
+
+    it('revision column — queue document_number เป็น staging key และ details เก็บ revision_label (FR-007)', async () => {
+      const session = makeReadySession();
+      session.totalRows = 3;
+      session.passCount = 3;
+      stash.getSession.mockResolvedValue(session);
+      stash.tryLockForConfirm.mockResolvedValue(true);
+      const rows = [
+        makeRow({
+          documentNumber: 'DOC-REV',
+          revisionNumber: '0',
+          rowIndex: 2,
+        }),
+        makeRow({
+          documentNumber: 'DOC-REV',
+          revisionNumber: 'A',
+          rowIndex: 3,
+        }),
+        makeRow({
+          documentNumber: 'DOC-REV',
+          revisionNumber: 'B',
+          rowIndex: 4,
+        }),
+      ];
+      rowBuilder.buildFromWorkbook.mockResolvedValue(makeParsed(rows));
+      quarantine.prepareQuarantine.mockResolvedValue({
+        passedCount: 3,
+        quarantinedCount: 0,
+        passedRows: rows,
+        quarantinedRows: [],
+        failedRowsFilePath: '',
+        batchId: 'batch-rev-1',
+      });
+
+      const savedQueueEntities: Record<string, unknown>[] = [];
+      dataSource.transaction.mockImplementation(
+        (cb: (txMgr: unknown) => Promise<unknown>) => {
+          const txMgr = {
+            getRepository: jest.fn().mockReturnValue({
+              save: jest.fn().mockImplementation((ents: unknown) => {
+                const arr = Array.isArray(ents) ? ents : [ents];
+                for (const e of arr as Record<string, unknown>[]) {
+                  // กรองเฉพาะ MigrationReviewQueue (มี subject) — ImportTransaction
+                  // ก็มี documentNumber+batchId แต่ไม่มี subject
+                  if ('documentNumber' in e && 'subject' in e) {
+                    savedQueueEntities.push(e);
+                  }
+                }
+                return Promise.resolve(ents);
+              }),
+              findOne: jest.fn().mockResolvedValue(null),
+            }),
+          };
+          return Promise.resolve(cb(txMgr));
+        }
+      );
+
+      const tmpFile = path.join(os.tmpdir(), 'confirm-test-rev.xlsx');
+      await fs.promises.writeFile(tmpFile, Buffer.from('fake-xlsx'));
+      session.originalFilePath = tmpFile;
+
+      await service.confirm({
+        reviewSessionPublicId: 'session-confirm-1',
+        confirmedBy: 'user-1',
+      });
+
+      const docNums = savedQueueEntities.map((e) => e.documentNumber);
+      // rev '0' ใช้เลขฐาน ส่วน revision อื่นใช้ `${base}-R${label}`
+      expect(docNums).toEqual(['DOC-REV', 'DOC-REV-RA', 'DOC-REV-RB']);
+      expect(savedQueueEntities[1].details).toMatchObject({
+        original_document_number: 'DOC-REV',
+        revision_label: 'A',
+      });
+      expect(savedQueueEntities[2].details).toMatchObject({
+        original_document_number: 'DOC-REV',
+        revision_label: 'B',
+      });
 
       await fs.promises.rm(tmpFile, { force: true }).catch(() => undefined);
     });

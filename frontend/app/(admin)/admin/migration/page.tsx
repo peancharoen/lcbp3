@@ -1,5 +1,8 @@
 // File: app/(admin)/admin/migration/page.tsx
 // Change Log:
+// - 2026-09-24: แสดงเลขเอกสารฐาน + revision badge ผ่าน QueueDocNumber และส่ง
+//   เลขฐานใน batch dto (queue document_number เป็น staging key ตั้งแต่
+//   revision-chain import — เลขจริงใน details.original_document_number)
 // - 2026-09-16: เพิ่ม filter ที่ column Correspondence Type + Confidence, pagination
 //   แบบเลขหน้า (กระโดดข้ามได้), reset page=1 เมื่อเปลี่ยน filter, และแก้ bug header
 //   หายเมื่อ filter ไม่พบข้อมูล (render TableHeader เสมอ ย้าย empty state เข้า TableBody)
@@ -29,6 +32,8 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getApiErrorMessage } from '@/types/api-error';
 import { LegacyIngestionCard } from '@/components/migration/legacy-ingestion-card';
+import { QueueDocNumber } from '@/components/migration/queue-doc-number';
+import { getQueueBaseDocNumber, getQueueDocDisplayText } from '@/lib/utils/queue-doc-number';
 import { masterDataService } from '@/lib/services/master-data.service';
 import { CorrespondenceType } from '@/types/master-data';
 
@@ -231,7 +236,9 @@ function LegacyManagementTab() {
         .map((item) => ({
           queuePublicId: item.publicId,
           dto: {
-            documentNumber: item.documentNumber,
+            // เลขฐานจริง — document_number เป็น staging key (backend resolve
+            // จาก details เหมือนกัน แต่ส่งค่าที่ถูกต้องตาม semantics ของ DTO)
+            documentNumber: getQueueBaseDocNumber(item),
             subject: item.subject || item.originalSubject || 'Untitled',
             correspondenceType: item.aiSuggestedCorrespondenceType || 'Correspondence',
             projectId: item.projectId || 1,
@@ -269,7 +276,7 @@ function LegacyManagementTab() {
         const failedIds = new Set(
           (Array.isArray(result?.errors) ? result.errors : []).map((e: { queuePublicId?: string }) => e.queuePublicId)
         );
-        const failedDocs = items.filter((i) => failedIds.has(i.publicId)).map((i) => i.documentNumber);
+        const failedDocs = items.filter((i) => failedIds.has(i.publicId)).map((i) => getQueueDocDisplayText(i));
         toast.warning(`Import สำเร็จ ${result?.processed ?? 0} / ล้มเหลว ${failedCount} รายการ`, {
           description:
             failedDocs.slice(0, 5).join(', ') +
@@ -487,7 +494,9 @@ function LegacyManagementTab() {
                           aria-label={`Select item ${item.publicId}`}
                         />
                       </TableCell>
-                      <TableCell className="font-medium">{item.documentNumber}</TableCell>
+                      <TableCell className="font-medium">
+                        <QueueDocNumber item={item} />
+                      </TableCell>
                       <TableCell>
                         {item.aiSuggestedCorrespondenceTypeName || item.aiSuggestedCorrespondenceType || 'Unknown'}
                       </TableCell>
