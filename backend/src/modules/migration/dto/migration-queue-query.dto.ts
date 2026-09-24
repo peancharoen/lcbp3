@@ -1,5 +1,7 @@
 // File: backend/src/modules/migration/dto/migration-queue-query.dto.ts
 // Change Log:
+// - 2026-09-24: ขยาย @Max(100)→@Max(200) บน limit — รองรับตัวเลือก 200/หน้า
+//   ของหน้า Legacy Review Queue (enrichment ยังเป็น batched query ไม่ใช่ N+1)
 // - 2026-09-19: เพิ่ม @Max(100) บน limit — รองรับ page-size selector ของหน้า queue + กัน query ใหญ่ผิดปกติ
 // - 2026-09-16: เพิ่ม correspondenceType filter และ confidenceBucket filter
 //   (low/mid/high/missing ตามเกณฑ์ badge ของหน้า Legacy Review Queue)
@@ -32,12 +34,12 @@ export class PaginationDto {
   @Min(1)
   page?: number = 1;
 
-  @ApiPropertyOptional({ default: 10, maximum: 100 })
+  @ApiPropertyOptional({ default: 10, maximum: 200 })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @Max(100)
+  @Max(200)
   limit?: number = 10;
 }
 

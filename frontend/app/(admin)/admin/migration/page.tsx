@@ -14,6 +14,7 @@
 // - 2026-08-23: Legacy Review Queue - column-header filters, delete all/selected with BullMQ cleanup
 // - 2026-08-25: D161 — ลบ AI Migration Logs tab + AiMigrationTab component (dead UI — migration_logs ไม่ถูกเขียนตั้งแต่ ADR-023/023A เปลี่ยนไป BullMQ)
 // - 2026-09-19: URL-backed page+filters (useSearchParams) — กด Review แล้วย้อนกลับคงหน้า/filter เดิม
+// - 2026-09-24: เพิ่มตัวเลือก 200/หน้า ใน page-size selector (backend cap @Max ขยาย 100→200)
 // - 2026-09-19: page-size selector 10/20/50/100 (URL-backed ?limit=) — เปลี่ยน size แล้ว reset ไปหน้า 1
 
 'use client';
@@ -46,7 +47,7 @@ import { CorrespondenceType } from '@/types/master-data';
 type ConfidenceBucket = 'low' | 'mid' | 'high' | 'missing';
 
 /** page size ที่เลือกได้ — ต้องไม่เกิน @Max(100) ของ backend DTO */
-const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100, 200] as const;
 const DEFAULT_PAGE_SIZE = 20;
 
 /** สร้างลำดับเลขหน้าสำหรับ pagination — แสดงหน้าแรก/สุดท้าย + window ±2 รอบหน้าปัจจุบัน คั่นด้วย ellipsis */
@@ -83,7 +84,7 @@ function LegacyManagementTab() {
   const confidenceBucketFilter = searchParams.get('conf') ?? 'ALL';
   const pageParam = Number(searchParams.get('page'));
   const page = Number.isInteger(pageParam) && pageParam >= 1 ? pageParam : 1;
-  // page size เป็น URL-backed เช่นเดียวกับ page/filters — ค่าที่ไม่ใช่ 10/20/50/100 fallback เป็น default
+  // page size เป็น URL-backed เช่นเดียวกับ page/filters — ค่าที่ไม่ใช่ 10/20/50/100/200 fallback เป็น default
   const limitParam = Number(searchParams.get('limit'));
   const pageSize = (PAGE_SIZE_OPTIONS as readonly number[]).includes(limitParam) ? limitParam : DEFAULT_PAGE_SIZE;
   const [correspondenceTypeOptions, setCorrespondenceTypeOptions] = useState<CorrespondenceType[]>([]);
