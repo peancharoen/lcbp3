@@ -13,7 +13,7 @@ import {
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import type Redis from 'ioredis';
 
-import { TelegramUpdateDto } from './dto/telegram-update.dto';
+import type { TelegramUpdateDto } from './dto/telegram-update.dto';
 import { TelegramSecretGuard } from './telegram-secret.guard';
 import { TelegramLinkService } from './telegram-link.service';
 import { TelegramBotService } from './telegram-bot.service';
@@ -44,6 +44,10 @@ export class TelegramWebhookController {
   @HttpCode(200)
   @UseGuards(TelegramSecretGuard)
   async handleUpdate(@Body() update: TelegramUpdateDto): Promise<{ ok: true }> {
+    // payload ผ่านมาแบบไม่ผ่าน ValidationPipe (interface → metatype Object) — guard shape พื้นฐานเอง
+    if (!update || typeof update.update_id !== 'number') {
+      return { ok: true };
+    }
     // Idempotent ingress — Telegram retry update เดิมซ้ำได้
     const dedupKey = telegramWebhookDedupKey(update.update_id);
     const acquired = await this.redis.set(

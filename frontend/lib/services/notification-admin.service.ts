@@ -50,16 +50,17 @@ export const notificationAdminService = {
   listDeliveries: async (filter: DeliveryListFilter): Promise<DeliveryListResponse> => {
     const params = Object.fromEntries(Object.entries(filter).filter(([, v]) => v !== undefined && v !== ''));
     const response = await apiClient.get('/admin/notifications/deliveries', { params });
+    // paginated: envelope มี data+meta ที่ top-level ตรงกับ DeliveryListResponse — ไม่ต้อง unwrap
     return response.data;
   },
 
   getSettings: async (): Promise<TelegramSettingsStatus> => {
     const response = await apiClient.get('/admin/notifications/settings');
-    return response.data;
+    return response.data.data; // Unwrap NestJS Interceptor envelope
   },
 
   patchSettings: async (dto: { enabled: boolean }): Promise<{ enabled: boolean }> => {
     const response = await apiClient.patch('/admin/notifications/settings', dto);
-    return response.data;
+    return response.data.data; // Unwrap NestJS Interceptor envelope
   },
 };

@@ -99,7 +99,7 @@ export class NotificationDelivery {
   sentAt?: Date;
 
   @CreateDateColumn({ name: 'created_at' })
-  @PrimaryColumn()
+  @PrimaryColumn({ name: 'created_at' }) // name ต้องระบุซ้ำ — PrimaryColumn() ว่างจะ override name กลับเป็น property name
   createdAt!: Date;
 
   @BeforeInsert()

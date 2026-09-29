@@ -55,7 +55,7 @@ export class Notification extends UuidBaseEntity {
 
   // ✅ [Fix] รวม Decorator ไว้ที่นี่ที่เดียว (เป็นทั้ง CreateDate และ PrimaryColumn สำหรับ Partition)
   @CreateDateColumn({ name: 'created_at' })
-  @PrimaryColumn()
+  @PrimaryColumn({ name: 'created_at' }) // name ต้องระบุซ้ำ — PrimaryColumn() ว่างจะ override name กลับเป็น property name
   createdAt!: Date;
 
   // --- Relations ---

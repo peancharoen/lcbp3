@@ -28,17 +28,17 @@ export const notificationChannelService = {
     const response = await apiClient.get('/admin/notifications/channels', {
       params: projectPublicId ? { projectPublicId } : undefined,
     });
-    return response.data;
+    return response.data.data; // Unwrap NestJS Interceptor envelope
   },
 
   issueLinkCode: async (dto: { projectPublicId: string; name?: string }): Promise<IssueLinkCodeResult> => {
     const response = await apiClient.post('/admin/notifications/channels/link-code', dto);
-    return response.data;
+    return response.data.data; // Unwrap NestJS Interceptor envelope
   },
 
   patch: async (publicId: string, dto: { name?: string; isActive?: boolean }): Promise<NotificationChannel> => {
     const response = await apiClient.patch(`/admin/notifications/channels/${publicId}`, dto);
-    return response.data;
+    return response.data.data; // Unwrap NestJS Interceptor envelope
   },
 
   remove: async (publicId: string): Promise<void> => {

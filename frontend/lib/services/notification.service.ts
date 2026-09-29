@@ -32,39 +32,39 @@ export const notificationService = {
     const response = await apiClient.get('/notifications/unread');
     // Backend should return { items: [], unreadCount: number }
     // Or just items and we count on frontend, but typically backend gives count.
-    return response.data;
+    return response.data.data; // Unwrap NestJS Interceptor envelope
   },
 
   markAsRead: async (uuid: string) => {
     const response = await apiClient.put(`/notifications/${uuid}/read`);
-    return response.data;
+    return response.data.data; // Unwrap NestJS Interceptor envelope
   },
 
   markAllAsRead: async () => {
     const response = await apiClient.patch(`/notifications/read-all`);
-    return response.data;
+    return response.data.data; // Unwrap NestJS Interceptor envelope
   },
 
   // --- User Preferences ---
   getPreferences: async (): Promise<UserPreferences> => {
     const response = await apiClient.get('/users/me/preferences');
-    return response.data;
+    return response.data.data; // Unwrap NestJS Interceptor envelope
   },
 
   updatePreferences: async (dto: Partial<UserPreferences>): Promise<UserPreferences> => {
     const response = await apiClient.patch('/users/me/preferences', dto);
-    return response.data;
+    return response.data.data; // Unwrap NestJS Interceptor envelope
   },
 
   // --- Telegram binding (Feature 258) ---
   getTelegramStatus: async (): Promise<TelegramStatus> => {
     const response = await apiClient.get('/users/me/telegram/status');
-    return response.data;
+    return response.data.data; // Unwrap NestJS Interceptor envelope
   },
 
   getTelegramLinkToken: async (): Promise<TelegramLinkToken> => {
     const response = await apiClient.post('/users/me/telegram/link-token');
-    return response.data;
+    return response.data.data; // Unwrap NestJS Interceptor envelope
   },
 
   unlinkTelegram: async (): Promise<void> => {
