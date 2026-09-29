@@ -2,10 +2,10 @@
 // Change Log:
 // - 2026-09-29: สร้าง seed script สำหรับ TELEGRAM_* rows ใน system_settings (T003a)
 
-import { NestFactory } from '@nestjs/core';
 import { Logger } from '@nestjs/common';
-import { DataSource } from 'typeorm';
-import { AppModule } from '../app.module';
+import { ConfigService } from '@nestjs/config';
+import { DataSource, DataSourceOptions } from 'typeorm';
+import { databaseConfig } from '../config/database.config';
 import { CryptoService } from '../common/services/crypto.service';
 
 /**
@@ -19,7 +19,8 @@ import { CryptoService } from '../common/services/crypto.service';
  *   TELEGRAM_WEBHOOK_SECRET='<openssl rand -hex 32>' \
  *   TELEGRAM_BOT_USERNAME='<ชื่อ bot ไม่มี @>' \
  *   TELEGRAM_ENABLED='true' \
- *   npx ts-node -r tsconfig-paths/register src/scripts/seed-telegram-settings.ts
+ *   npx ts-node -T -r tsconfig-paths/register src/scripts/seed-telegram-settings.ts
+ *   (-T = transpile-only: ไม่ typecheck ทั้งกราฟ — มี pre-existing type error ที่ไม่เกี่ยว)
  *
  * ห้าม hardcode secret ลงไฟล์นี้เด็ดขาด — รับผ่าน env เท่านั้น
  * Idempotent: INSERT ... ON DUPLICATE KEY UPDATE — รันซ้ำได้ปลอดภัย
@@ -51,14 +52,19 @@ async function bootstrap(): Promise<void> {
   const botUsername = requireEnv('TELEGRAM_BOT_USERNAME').replace(/^@/, '');
   const enabled = process.env.TELEGRAM_ENABLED?.trim() || 'true';
 
-  const app = await NestFactory.createApplicationContext(AppModule, {
-    logger: ['error', 'warn'],
-  });
+  // ไม่ boot AppModule — CryptoService ใช้แค่ ConfigService (APP_SECRET_KEY)
+  // และ DataSource สร้างจาก databaseConfig ตรง ๆ — เบาและไม่ติด module graph
+  // ตัด entities/autoLoadEntities ออก — script ใช้แค่ raw query; union types
+  // (เช่น `string | null`) ทำให้ decorator metadata เป็น Object → mysql reject
+  const {
+    entities: _entities,
+    autoLoadEntities: _autoLoad,
+    ...dsConfig
+  } = databaseConfig;
+  const cryptoService = new CryptoService(new ConfigService());
+  const dataSource = new DataSource(dsConfig as DataSourceOptions);
+  await dataSource.initialize();
   try {
-    const cryptoService = app.get(CryptoService);
-    const dataSource = app.get(DataSource);
-
-    // [setting_key, value (encrypted แล้วถ้าจำเป็น), data_type, is_encrypted]
     const rows: Array<[string, string, string, number]> = [
       ['TELEGRAM_ENABLED', enabled, 'boolean', 0],
       ['TELEGRAM_BOT_USERNAME', botUsername, 'string', 0],
@@ -111,7 +117,7 @@ async function bootstrap(): Promise<void> {
       'ขั้นต่อไป: setWebhook ตาม specs/200-fullstacks/258-telegram-notifications/quickstart.md'
     );
   } finally {
-    await app.close();
+    await dataSource.destroy();
   }
 }
 
