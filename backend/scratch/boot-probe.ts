@@ -4,7 +4,7 @@ async function probe() {
   const app = await NestFactory.createApplicationContext(AppModule, {
     logger: ['error', 'warn'],
   });
-  console.log('BOOT_OK');
+  process.stdout.write('BOOT_OK\n');
   await app.close();
   process.exit(0);
 }
