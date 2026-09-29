@@ -29,7 +29,7 @@ import { NotificationCleanupService } from './notification-cleanup.service';
 
 describe('NotificationCleanupService — decorator metadata fallback', () => {
   it('should instantiate when typeorm Repository is not a function', () => {
-    const service = new NotificationCleanupService({} as never);
+    const service = new NotificationCleanupService({} as never, {} as never);
     expect(service).toBeDefined();
   });
 });

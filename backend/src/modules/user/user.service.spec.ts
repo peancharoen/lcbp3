@@ -6,6 +6,7 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { UserService } from './user.service';
 import { User } from './entities/user.entity';
@@ -75,6 +76,10 @@ describe('UserService', () => {
             resolveOrganizationId: jest.fn().mockResolvedValue(1),
             resolveProjectId: jest.fn().mockResolvedValue(1),
           },
+        },
+        {
+          provide: DataSource,
+          useValue: { query: jest.fn().mockResolvedValue([]) },
         },
       ],
     }).compile();

@@ -1,3 +1,7 @@
+// File: frontend/components/admin/sidebar.tsx
+// Change Log:
+// - 2026-09-25: Feature 258 (T057a) — เพิ่มเมนู 'การแจ้งเตือน' (Notifications) group
+
 'use client';
 
 import Link from 'next/link';
@@ -14,6 +18,7 @@ import {
   FolderOpen,
   BookOpen,
   Ruler,
+  Bell,
 } from 'lucide-react';
 
 interface MenuChild {
@@ -89,6 +94,16 @@ export const menuItems: MenuItem[] = [
     ],
   },
   {
+    label: 'การแจ้งเตือน',
+    sublabel: 'Notifications',
+    icon: Bell,
+    children: [
+      { href: '/admin/notifications/channels', label: 'ช่องทางกลุ่ม (Telegram)' },
+      { href: '/admin/notifications/deliveries', label: 'บันทึกการส่ง' },
+      { href: '/admin/notifications/settings', label: 'ตั้งค่า Telegram' },
+    ],
+  },
+  {
     label: 'AI Console',
     sublabel: 'AI Intelligence',
     icon: Brain,
@@ -152,7 +167,11 @@ export function AdminSidebar() {
                       )}
                     </span>
                   </span>
-                  {isExpanded ? <ChevronDown className="h-3.5 w-3.5 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
+                  {isExpanded ? (
+                    <ChevronDown className="h-3.5 w-3.5 shrink-0" />
+                  ) : (
+                    <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+                  )}
                 </button>
 
                 {isExpanded && (
@@ -274,7 +293,11 @@ export function AdminMobileSidebar() {
                           )}
                         </span>
                       </span>
-                      {isExpanded ? <ChevronDown className="h-3.5 w-3.5 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
+                      {isExpanded ? (
+                        <ChevronDown className="h-3.5 w-3.5 shrink-0" />
+                      ) : (
+                        <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+                      )}
                     </button>
 
                     {isExpanded && (

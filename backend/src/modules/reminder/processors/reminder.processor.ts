@@ -50,6 +50,8 @@ export class ReminderProcessor extends WorkerHost {
           title: '⏰ Review Task Due Soon',
           message: 'Your review task is due soon. Please complete your review.',
           type: 'SYSTEM',
+          alsoTelegram: true,
+          eventType: 'sla.deadline_reminder',
           entityType: 'review_task',
           entityId: task.id,
         });
@@ -63,6 +65,8 @@ export class ReminderProcessor extends WorkerHost {
           message:
             'Your review task is due today. Please complete it as soon as possible.',
           type: 'SYSTEM',
+          alsoTelegram: true,
+          eventType: 'sla.deadline_reminder',
           entityType: 'review_task',
           entityId: task.id,
         });
@@ -76,6 +80,8 @@ export class ReminderProcessor extends WorkerHost {
           message:
             'Your review task is overdue. Escalation will occur if not completed.',
           type: 'SYSTEM',
+          alsoTelegram: true,
+          eventType: 'sla.deadline_reminder',
           entityType: 'review_task',
           entityId: task.id,
         });

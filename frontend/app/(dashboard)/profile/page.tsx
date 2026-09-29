@@ -17,6 +17,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Switch } from '@/components/ui/switch';
 import apiClient from '@/lib/api/client';
 import { toast } from 'sonner';
+import { TelegramBindingCard } from '@/components/profile/telegram-binding-card';
+import { useUserPreferences, useUpdatePreferences, useTelegramStatus } from '@/hooks/use-notification';
+import { useTranslations } from '@/hooks/use-translations';
 
 // -----------------------------------------------------------------------------
 // Schemas
@@ -68,11 +71,12 @@ export default function ProfilePage() {
     }
   };
 
-  // --- Notification State (Mockup) ---
-  // ในการใช้งานจริง ควรดึงค่าจาก API /users/preferences หรือ UserPreferenceService
-  const [notifyEmail, setNotifyEmail] = useState(true);
-  const [notifyLine, setNotifyLine] = useState(true);
-  const [digestMode, setDigestMode] = useState(false);
+  // --- Notification Preferences (real API — Feature 258 US1, T028) ---
+  const t = useTranslations();
+  const { data: preferences } = useUserPreferences();
+  const updatePreferences = useUpdatePreferences();
+  const { data: telegramStatus } = useTelegramStatus();
+  const telegramLinked = telegramStatus?.linked === true;
 
   // Helper to get initials
   const userName = session?.user?.name || 'User';
@@ -209,7 +213,11 @@ export default function ProfilePage() {
                     รับแจ้งเตือนงานใหม่และการอนุมัติผ่านทางอีเมล
                   </span>
                 </Label>
-                <Switch id="notify-email" checked={notifyEmail} onCheckedChange={setNotifyEmail} />
+                <Switch
+                  id="notify-email"
+                  checked={preferences?.notifyEmail ?? true}
+                  onCheckedChange={(v) => updatePreferences.mutate({ notifyEmail: v })}
+                />
               </div>
 
               <div className="flex items-center justify-between space-x-2">
@@ -219,7 +227,29 @@ export default function ProfilePage() {
                     รับแจ้งเตือนด่วนผ่าน LINE Official Account
                   </span>
                 </Label>
-                <Switch id="notify-line" checked={notifyLine} onCheckedChange={setNotifyLine} />
+                <Switch
+                  id="notify-line"
+                  checked={preferences?.notifyLine ?? true}
+                  onCheckedChange={(v) => updatePreferences.mutate({ notifyLine: v })}
+                />
+              </div>
+
+              {/* Telegram DM — toggle ปิดไว้จนกว่าจะผูกบัญชี (D2) */}
+              <div className="flex items-center justify-between space-x-2">
+                <Label htmlFor="notify-telegram" className="flex flex-col space-y-1">
+                  <span>{t('notification.telegram.toggleLabel')}</span>
+                  <span className="font-normal text-xs text-muted-foreground">
+                    {telegramLinked
+                      ? t('notification.telegram.toggleDesc')
+                      : t('notification.telegram.toggleRequiresLink')}
+                  </span>
+                </Label>
+                <Switch
+                  id="notify-telegram"
+                  checked={preferences?.notifyTelegram ?? false}
+                  disabled={!telegramLinked}
+                  onCheckedChange={(v) => updatePreferences.mutate({ notifyTelegram: v })}
+                />
               </div>
 
               <div className="flex items-center justify-between space-x-2">
@@ -229,14 +259,15 @@ export default function ProfilePage() {
                     รับสรุปแจ้งเตือนวันละครั้ง แทนการแจ้งเตือนทันที (ลด Spam)
                   </span>
                 </Label>
-                <Switch id="digest-mode" checked={digestMode} onCheckedChange={setDigestMode} />
+                <Switch
+                  id="digest-mode"
+                  checked={preferences?.digestMode ?? false}
+                  onCheckedChange={(v) => updatePreferences.mutate({ digestMode: v })}
+                />
               </div>
+
+              <TelegramBindingCard />
             </CardContent>
-            <CardFooter>
-              <Button variant="outline" onClick={() => toast.success('บันทึกการตั้งค่าแจ้งเตือนแล้ว')}>
-                บันทึกการตั้งค่า
-              </Button>
-            </CardFooter>
           </Card>
         </TabsContent>
       </Tabs>

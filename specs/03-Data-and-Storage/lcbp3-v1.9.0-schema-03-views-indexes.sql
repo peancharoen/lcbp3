@@ -79,6 +79,14 @@ CREATE INDEX idx_notifications_entity ON notifications (entity_type, entity_id);
 
 CREATE INDEX idx_notifications_created_at ON notifications (created_at);
 
+-- [258-telegram-notifications] Indexes for notification_channels
+CREATE INDEX idx_notification_channels_type ON notification_channels (channel_type, is_active);
+
+-- [258-telegram-notifications] Indexes for notification_deliveries
+CREATE INDEX idx_deliveries_status_retry ON notification_deliveries (STATUS, created_at);
+
+CREATE INDEX idx_deliveries_channel_time ON notification_deliveries (channel_id, created_at);
+
 -- Indexes for search_indices
 CREATE INDEX idx_search_indices_entity ON search_indices (entity_type, entity_id);
 

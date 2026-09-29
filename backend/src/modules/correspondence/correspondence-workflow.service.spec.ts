@@ -13,6 +13,8 @@ import { CorrespondenceRevision } from './entities/correspondence-revision.entit
 import { CorrespondenceStatus } from './entities/correspondence-status.entity';
 import { CorrespondenceRecipient } from './entities/correspondence-recipient.entity';
 import { NotificationService } from '../notification/notification.service';
+import { NotificationChannelService } from '../notification/notification-channel.service';
+import { ConfigService } from '@nestjs/config';
 import { UserService } from '../user/user.service';
 
 describe('CorrespondenceWorkflowService', () => {
@@ -72,6 +74,14 @@ describe('CorrespondenceWorkflowService', () => {
         },
         { provide: DataSource, useValue: mockDataSource },
         { provide: NotificationService, useValue: mockNotificationService },
+        {
+          provide: NotificationChannelService,
+          useValue: { notifyProject: jest.fn().mockResolvedValue(0) },
+        },
+        {
+          provide: ConfigService,
+          useValue: { get: jest.fn().mockReturnValue(undefined) },
+        },
         { provide: UserService, useValue: mockUserService },
       ],
     }).compile();

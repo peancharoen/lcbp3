@@ -6,6 +6,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { NotificationCleanupService } from './notification-cleanup.service';
 import { Notification } from './entities/notification.entity';
+import { NotificationDelivery } from './entities/notification-delivery.entity';
 
 /**
  * Helper สร้าง mock QueryBuilder ที่ support chaining สำหรับ delete operations
@@ -27,9 +28,13 @@ function createMockDeleteQueryBuilder(
 describe('NotificationCleanupService', () => {
   let service: NotificationCleanupService;
   let mockNotificationRepo: Record<string, jest.Mock>;
+  let mockDeliveryRepo: Record<string, jest.Mock>;
 
   beforeEach(async () => {
     mockNotificationRepo = {
+      createQueryBuilder: jest.fn(() => createMockDeleteQueryBuilder()),
+    };
+    mockDeliveryRepo = {
       createQueryBuilder: jest.fn(() => createMockDeleteQueryBuilder()),
     };
 
@@ -39,6 +44,10 @@ describe('NotificationCleanupService', () => {
         {
           provide: getRepositoryToken(Notification),
           useValue: mockNotificationRepo,
+        },
+        {
+          provide: getRepositoryToken(NotificationDelivery),
+          useValue: mockDeliveryRepo,
         },
       ],
     }).compile();
@@ -103,6 +112,48 @@ describe('NotificationCleanupService', () => {
       const expectedDate = new Date();
       expectedDate.setDate(expectedDate.getDate() - 30);
       expect(thresholdArg.dateThreshold.getDate()).toBe(expectedDate.getDate());
+    });
+  });
+
+  describe('handleDeliveryCleanup (Feature 258, D11f)', () => {
+    it('should delete notification_deliveries rows older than 90 days', async () => {
+      const qb = createMockDeleteQueryBuilder({
+        execute: jest.fn().mockResolvedValue({ affected: 3 }),
+      });
+      mockDeliveryRepo.createQueryBuilder.mockReturnValue(qb);
+
+      await service.handleDeliveryCleanup();
+
+      expect(qb.delete).toHaveBeenCalled();
+      expect(qb.from).toHaveBeenCalledWith(NotificationDelivery);
+      expect(qb.where).toHaveBeenCalledWith(
+        'created_at < :dateThreshold',
+        expect.objectContaining({ dateThreshold: expect.any(Date) })
+      );
+      expect(qb.execute).toHaveBeenCalled();
+    });
+
+    it('should use a 90-day threshold', async () => {
+      const qb = createMockDeleteQueryBuilder();
+      mockDeliveryRepo.createQueryBuilder.mockReturnValue(qb);
+
+      await service.handleDeliveryCleanup();
+
+      const arg = (qb.where.mock.calls[0] as unknown[])[1] as {
+        dateThreshold: Date;
+      };
+      const expected = new Date();
+      expected.setDate(expected.getDate() - 90);
+      expect(arg.dateThreshold.getDate()).toBe(expected.getDate());
+    });
+
+    it('should not throw on delivery cleanup failure', async () => {
+      const qb = createMockDeleteQueryBuilder({
+        execute: jest.fn().mockRejectedValue(new Error('partition error')),
+      });
+      mockDeliveryRepo.createQueryBuilder.mockReturnValue(qb);
+
+      await expect(service.handleDeliveryCleanup()).resolves.not.toThrow();
     });
   });
 });

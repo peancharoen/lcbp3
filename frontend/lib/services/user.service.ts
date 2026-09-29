@@ -1,3 +1,7 @@
+// File: frontend/lib/services/user.service.ts
+// Change Log:
+// - 2026-09-25: Feature 258 (T056) — เพิ่ม unlinkTelegram (admin force-unlink)
+
 import apiClient from '@/lib/api/client';
 import { CreateUserDto, UpdateUserDto, SearchUserDto, User, Role } from '@/types/user';
 
@@ -67,6 +71,12 @@ export const userService = {
 
   delete: async (uuid: string) => {
     const response = await apiClient.delete(`/users/${uuid}`);
+    return response.data;
+  },
+
+  /** Feature 258 (T056): admin force-unlink Telegram binding ของ user (user.edit) */
+  unlinkTelegram: async (uuid: string): Promise<{ status: 'unlinked' | 'not_linked' }> => {
+    const response = await apiClient.patch(`/users/${uuid}/telegram/unlink`);
     return response.data;
   },
 

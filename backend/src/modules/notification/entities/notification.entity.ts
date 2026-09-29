@@ -1,3 +1,7 @@
+// File: backend/src/modules/notification/entities/notification.entity.ts
+// Change Log:
+// - 2026-09-25: Feature 258 — เพิ่ม TELEGRAM ใน NotificationType enum
+
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -14,6 +18,7 @@ import { Exclude } from 'class-transformer';
 export enum NotificationType {
   EMAIL = 'EMAIL',
   LINE = 'LINE',
+  TELEGRAM = 'TELEGRAM',
   SYSTEM = 'SYSTEM',
 }
 

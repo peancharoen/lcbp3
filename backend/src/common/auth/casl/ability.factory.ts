@@ -17,7 +17,9 @@ export type Actions =
   | 'update'
   | 'delete'
   | 'manage'
-  | 'commit';
+  | 'commit'
+  | 'view'
+  | 'manage_all';
 
 // Define subject types (resources)
 export type Subjects =
@@ -32,6 +34,7 @@ export type Subjects =
   | 'role'
   | 'workflow'
   | 'migration'
+  | 'notification'
   | 'all';
 
 export type AppAbility = Ability<[Actions, Subjects]>;

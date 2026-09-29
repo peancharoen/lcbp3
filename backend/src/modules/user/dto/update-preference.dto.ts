@@ -22,6 +22,14 @@ export class UpdatePreferenceDto {
   notifyLine?: boolean;
 
   @ApiPropertyOptional({
+    description: 'รับการแจ้งเตือนทาง Telegram DM หรือไม่ (ต้องผูกบัญชีก่อน)',
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  notifyTelegram?: boolean;
+
+  @ApiPropertyOptional({
     description:
       'รับการแจ้งเตือนแบบรวม (Digest) แทน Real-time เพื่อลดจำนวนข้อความ',
     default: false,

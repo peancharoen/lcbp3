@@ -1,3 +1,7 @@
+// File: frontend/hooks/use-users.ts
+// Change Log:
+// - 2026-09-25: Feature 258 (T056) — เพิ่ม useUnlinkTelegram mutation
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { userService } from '@/lib/services/user.service';
 import { CreateUserDto, UpdateUserDto, SearchUserDto, Role } from '@/types/user';
@@ -66,6 +70,23 @@ export function useDeleteUser() {
     },
     onError: (error: unknown) => {
       toast.error('Failed to delete user', {
+        description: getApiErrorMessage(error, 'Unknown error'),
+      });
+    },
+  });
+}
+
+// Feature 258 (T056): force-unlink Telegram binding โดย admin
+export function useUnlinkTelegram() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (uuid: string) => userService.unlinkTelegram(uuid),
+    onSuccess: (result) => {
+      toast.success(result.status === 'unlinked' ? 'Telegram unlinked' : 'User has no Telegram binding');
+      queryClient.invalidateQueries({ queryKey: userKeys.all });
+    },
+    onError: (error: unknown) => {
+      toast.error('Failed to unlink Telegram', {
         description: getApiErrorMessage(error, 'Unknown error'),
       });
     },

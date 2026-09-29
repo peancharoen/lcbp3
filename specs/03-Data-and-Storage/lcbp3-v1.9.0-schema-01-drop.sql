@@ -59,6 +59,12 @@ DROP TABLE IF EXISTS backup_logs;
 
 DROP TABLE IF EXISTS search_indices;
 
+-- [258-telegram-notifications] ตาราง audit send attempts (FK -> notification_channels)
+DROP TABLE IF EXISTS notification_deliveries;
+
+-- [258-telegram-notifications] ตารางจุดหมายแจ้งเตือนภายนอก (FK -> projects, users)
+DROP TABLE IF EXISTS notification_channels;
+
 DROP TABLE IF EXISTS notifications;
 
 DROP TABLE IF EXISTS audit_logs;

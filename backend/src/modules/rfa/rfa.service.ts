@@ -34,6 +34,7 @@ import { RfaApproveCode } from './entities/rfa-approve-code.entity';
 import { RfaConsentReason } from './entities/rfa-consent-reason.entity';
 import { RfaItem } from './entities/rfa-item.entity';
 import { RfaRevision } from './entities/rfa-revision.entity';
+import { RfaWorkflow } from './entities/rfa-workflow.entity';
 import { RfaStatusCode } from './entities/rfa-status-code.entity';
 import { RfaType } from './entities/rfa-type.entity';
 import { Rfa } from './entities/rfa.entity';
@@ -184,6 +185,8 @@ export class RfaService {
     private orgRepo: Repository<Organization>,
     @InjectRepository(CorrespondenceRecipient)
     private corrRecipientRepo: Repository<CorrespondenceRecipient>,
+    @InjectRepository(RfaWorkflow)
+    private rfaWorkflowRepo: Repository<RfaWorkflow>,
 
     private numberingService: DocumentNumberingService,
     private userService: UserService,
@@ -854,7 +857,8 @@ export class RfaService {
     void this.notifyRecipients(
       rfa.correspondence.id,
       rfa.correspondence.correspondenceNumber,
-      currentCorrRev.subject
+      currentCorrRev.subject,
+      rfa.correspondence.publicId
     ).catch((err: unknown) =>
       this.logger.warn(
         `RFA submit notification failed: ${err instanceof Error ? err.message : String(err)}`
@@ -958,6 +962,17 @@ export class RfaService {
       result.isCompleted
     );
 
+    // Feature 258 (T025): rfa.decision_returned — hook ใหม่ (ไม่มีอยู่เดิม
+    // แม้แต่ EMAIL/SYSTEM) — fire-and-forget หลัง status sync สำเร็จ
+    if (result.isCompleted) {
+      void this.notifyDecisionReturned(rfa, currentRfaRev).catch(
+        (err: unknown) =>
+          this.logger.warn(
+            `RFA decision notification failed: ${err instanceof Error ? err.message : String(err)}`
+          )
+      );
+    }
+
     // ADR-049 T026: บันทึก consent reason code ลง details ถ้ามี (metadata ไม่มีผลต่อ state)
     if (consentReasonCode && currentRfaRev.details) {
       const details = (currentRfaRev.details as Record<string, unknown>) ?? {};
@@ -1021,11 +1036,13 @@ export class RfaService {
   /**
    * ADR-008: แจ้งเตือน Document Controller ของ org ผู้รับ (TO) แบบ async
    * เรียกหลัง transaction สำเร็จเท่านั้น (ห้ามค้างใน request transaction)
+   * Feature 258 (T024): เพิ่ม Telegram DM leg (`alsoTelegram`) สำหรับ rfa.pending_approval
    */
   private async notifyRecipients(
     correspondenceId: number,
     correspondenceNumber: string,
-    subject?: string
+    subject?: string,
+    correspondencePublicId?: string
   ): Promise<void> {
     const recipients = await this.corrRecipientRepo.find({
       where: { correspondenceId, recipientType: RFA.RECIPIENT_TYPE_TO },
@@ -1040,10 +1057,72 @@ export class RfaService {
           title: `RFA Submitted: ${subject ?? correspondenceNumber}`,
           message: `RFA ${correspondenceNumber} submitted for approval.`,
           type: 'SYSTEM',
+          alsoTelegram: true,
+          eventType: 'rfa.pending_approval',
           entityType: RFA.ENTITY_TYPE_RFA,
           entityId: correspondenceId,
+          entityPublicId: correspondencePublicId,
+          link: correspondencePublicId
+            ? `/rfas/${correspondencePublicId}`
+            : undefined,
         });
       }
+    }
+  }
+
+  /**
+   * Feature 258 (T025): rfa.decision_returned — DM fan-out เมื่อ RFA ถึง terminal state
+   * recipients = DISTINCT(correspondence.createdBy + active rfa_workflows.assignedTo)
+   * แต่ละ recipient ได้ notification row + Telegram DM แยกกัน (1 ต่อ 1 — Clarification Q5)
+   */
+  private async notifyDecisionReturned(
+    rfa: Rfa,
+    revision: RfaRevision
+  ): Promise<void> {
+    const correspondence = rfa.correspondence;
+    if (!correspondence) return;
+
+    // active assignees = rfa_workflows ที่ยังไม่ถึง terminal (PENDING/IN_PROGRESS)
+    const activeWorkflows = await this.rfaWorkflowRepo.find({
+      where: { rfaRevisionId: revision.id },
+    });
+    const assigneeIds = activeWorkflows
+      .filter(
+        (w) =>
+          w.assignedTo !== null &&
+          w.assignedTo !== undefined &&
+          (w.status === 'PENDING' || w.status === 'IN_PROGRESS')
+      )
+      .map((w) => w.assignedTo as number);
+
+    const recipientIds = Array.from(
+      new Set<number>(
+        [correspondence.createdBy, ...assigneeIds].filter(
+          (id): id is number => typeof id === 'number'
+        )
+      )
+    );
+
+    const statusCode =
+      (
+        await this.rfaStatusRepo.findOne({
+          where: { id: revision.rfaStatusCodeId },
+        })
+      )?.statusCode ?? 'COMPLETED';
+
+    for (const targetUserId of recipientIds) {
+      await this.notificationService.send({
+        userId: targetUserId,
+        title: `RFA Decision: ${correspondence.correspondenceNumber}`,
+        message: `RFA ${correspondence.correspondenceNumber} has reached a decision (${statusCode}).`,
+        type: 'SYSTEM',
+        alsoTelegram: true,
+        eventType: 'rfa.decision_returned',
+        entityType: RFA.ENTITY_TYPE_RFA,
+        entityId: correspondence.id,
+        entityPublicId: correspondence.publicId,
+        link: `/rfas/${correspondence.publicId}`,
+      });
     }
   }
 

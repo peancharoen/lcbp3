@@ -87,6 +87,8 @@ export class EscalationService {
         title: `⚠ Review Task Overdue (L1 Strike ${strikes + 1})`,
         message: `Your review task is overdue. Please complete it immediately.`,
         type: 'SYSTEM',
+        alsoTelegram: true,
+        eventType: 'sla.deadline_reminder',
         entityType: 'review_task',
         entityId: task.id,
       });
@@ -155,6 +157,8 @@ export class EscalationService {
         title: `🛑 ESCALATION L2: Review Task Overdue`,
         message: `Task ${task.publicId} (${task.discipline?.codeNameEn ?? ''}) assigned to ${task.assignedToUser?.firstName ?? ''} ${task.assignedToUser?.lastName ?? ''} is critically overdue.`,
         type: 'SYSTEM',
+        alsoTelegram: true,
+        eventType: 'sla.deadline_reminder',
         entityType: 'review_task',
         entityId: task.id,
       });
@@ -167,6 +171,8 @@ export class EscalationService {
         title: `🛑 CRITICAL: Review Task Overdue (L2 Strike ${strikes + 1})`,
         message: `Your review task is critically overdue. Project Management has been notified.`,
         type: 'SYSTEM',
+        alsoTelegram: true,
+        eventType: 'sla.deadline_reminder',
         entityType: 'review_task',
         entityId: task.id,
       });

@@ -1,6 +1,10 @@
+// File: frontend/types/user.ts
+// Change Log:
+// - 2026-09-25: Feature 258 (T056) — เพิ่ม telegramStatus/telegramUsername fields
+
 export interface Role {
   publicId?: string; // ADR-019: public identifier
-  roleId?: number;   // Internal INT
+  roleId?: number; // Internal INT
   roleName: string;
   description: string;
 }
@@ -33,6 +37,10 @@ export interface User {
   // Audit columns
   createdAt?: string;
   updatedAt?: string;
+
+  // Feature 258: Telegram binding status (list response only)
+  telegramStatus?: 'linked' | 'blocked' | 'none';
+  telegramUsername?: string;
 }
 
 export interface CreateUserDto {

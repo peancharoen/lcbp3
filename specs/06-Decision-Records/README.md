@@ -39,6 +39,7 @@ Architecture Decision Records (ADRs) เป็นเอกสารที่บ�
 | :--- | :--- | :--- | :--- | :--- |
 | [ADR-001](./ADR-001-unified-workflow-engine.md) | Unified Workflow Engine | ✅ Accepted | 2026-02-24 | ใช้ DSL-based Workflow Engine สำหรับ Correspondences, RFAs, และ Circulations |
 | [ADR-002](./ADR-002-document-numbering-strategy.md) | Document Numbering Strategy | ✅ Accepted | 2026-02-24 | Double-lock mechanism (Redis + DB Optimistic Lock) สำหรับเลขที่เอกสาร |
+| [ADR-021](./ADR-021-integrated-workflow-context.md) | Integrated Workflow Context & Step-specific Attachments | ✅ Active | 2026-05-13 | รวม workflow context + step-specific attachments ใน IntegratedBanner เดียว; related ADR-001/049 |
 
 ### Security & Access Control
 
@@ -64,6 +65,7 @@ Architecture Decision Records (ADRs) เป็นเอกสารที่บ�
 | [ADR-007](./ADR-007-error-handling-strategy.md) | Error Handling & Recovery | ✅ Accepted | 2026-04-04 | Layered Error Classification พร้อม User-friendly Messages และ Recovery Actions |
 | [ADR-008](./ADR-008-email-notification-strategy.md) | Email & Notification Strategy | ✅ Accepted | 2026-02-24 | BullMQ + Redis Queue สำหรับ Multi-channel Notifications (Email, LINE, In-app) |
 | [ADR-031](./ADR-031-hermes-agent-telegram-devops-bridge.md) | Hermes Agent & Telegram DevOps Bridge | ✅ Accepted | 2026-05-28 | Hermes DevOps Telegram Bridge สำหรับอ่าน diagnostics และ staged rollout |
+| [ADR-057](./ADR-057-dms-telegram-notification-channel.md) | DMS Telegram Notification Channel | 🟡 Draft | 2026-09-25 | DM binding (deep link) + per-project group binding (/link code) + webhook ingress ผ่าน Cloudflare Tunnel; แยกจาก Hermes bot ตาม ADR-031; related ADR-008/016/019/044/045 |
 
 ### Observability
 
@@ -126,6 +128,10 @@ Architecture Decision Records (ADRs) เป็นเอกสารที่บ�
 | [ADR-050](./ADR-050-ai-metadata-extraction-output-contract.md) | AI Metadata Extraction Output Contract | ✅ Accepted | 2026-09-01 | กำหนด JSON Contract ของ AI Metadata Extraction; related ADR-023A/034 |
 | [ADR-051](./ADR-051-automatic-queue-aware-model-scheduling.md) | Automatic Queue-Aware Model Scheduling | ✅ Accepted | 2026-09-02 | จัดคิวสลับโมเดล Ollama อัตโนมัติตาม BullMQ queue priority; related ADR-023A/033/048 |
 | [ADR-052](./ADR-052-excel-data-review-pipeline.md) | 4-Layer Excel Data Review & AI Suggestion Pipeline for Correspondence Ingestion | ✅ Accepted | 2026-09-05 | นำเข้า Data Review 4 ชั้นจาก CDMS ปรับใช้กับ Legacy Migration และ Routine Import ด้วย Excel (.xlsx) + Multi-tier AI Reviewer (Local/Gemini/Claude) + Annotated Excel Output; amends ADR-028/047 |
+| [ADR-053](./ADR-053-rag-admin-console-architecture.md) | RAG Admin Console Architecture | ✅ Accepted | 2026-09-10 | Admin UI บน RAG attachment-chunks APIs (feature 255); route prefix `ai/admin/rag/*`; decisions จาก design interview Q1–Q45 |
+| [ADR-054](./ADR-054-migration-review-queue-metadata-separation.md) | Migration Review Queue Metadata Separation | ✅ Accepted | 2026-09-14 | แยก Ingestion / AI Output / Review State + OCR text protection — แก้ data-loss bug ที่ reset `ai_metadata_json` ทับ `source_file_path`/OCR text |
+| [ADR-055](./ADR-055-attachment-manual-re-ocr.md) | Attachment Manual Re-OCR — Human-in-the-loop Compare-before-Replace | ✅ Accepted | 2026-09-14 (rev. 2026-09-19) | Re-OCR attachment เดี่ยวจาก RAG console พร้อม diff + confirm; ขยาย production file-replace ผ่าน junction link (ไม่ mutate attachment เดิม) |
+| [ADR-056](./ADR-056-ai-queue-observability-retry-resilience.md) | AI Queue Observability, Auto-Retry Resilience, Resource Safeguards & Vector Synchronization | 🟡 Proposed | 2026-09-16 | Monitoring ครบ 9 BullMQ queues + exponential backoff retry + bulk retry + Qdrant/MariaDB vector drift reconciliation; related ADR-023A/048/055 |
 
 ---
 
@@ -134,6 +140,8 @@ Architecture Decision Records (ADRs) เป็นเอกสารที่บ�
 ### 1. Business Logic & Workflows
 
 - **ADR-001:** Unified Workflow Engine - ใช้ JSON DSL แทน Hard-coded routing tables
+- **ADR-021:** Integrated Workflow Context - workflow context + step-specific attachments ใน IntegratedBanner
+- **ADR-049:** Workflow State Machine Consolidation - รวมศูนย์ State Machine ของ Workflow
 
 ### 2. Data Integrity & Concurrency
 
@@ -160,6 +168,7 @@ Architecture Decision Records (ADRs) เป็นเอกสารที่บ�
 - **ADR-007:** Error Handling - Layered Classification (Validation / Business / System) พร้อม Recovery Actions
 - **ADR-008:** Notification - BullMQ Queue สำหรับ Multi-channel notifications
 - **ADR-031:** Hermes Agent - Telegram DevOps Bridge สำหรับอ่าน diagnostics และ devops commands
+- **ADR-057:** DMS Telegram Notification Channel (Draft) - DM binding + project group binding แยกจาก Hermes bot; webhook ผ่าน Cloudflare Tunnel
 
 ### 6. Observability & Monitoring
 
@@ -190,6 +199,10 @@ Architecture Decision Records (ADRs) เป็นเอกสารที่บ�
 - **ADR-041:** Server Consolidation — ย้ายทุก services ไป np-dms-lcbp3 (single-host Docker); T016 (X-API-Key removal) complete
 - **ADR-042:** Sandbox Project + OCR Text Persistence — DB-committing full pipeline test + แยก rag-prepare เป็น 2 jobs
 - **ADR-047:** Native Backend Legacy Ingestion & OCR Persistence — ย้าย Ingestion จาก n8n สู่ NestJS Module (Streaming Excel, BullMQ ai-batch, Staging Queue, OCR Editor UI, RAG Sync)
+- **ADR-053:** RAG Admin Console Architecture — admin UI บน RAG attachment-chunks APIs; route `ai/admin/rag/*`
+- **ADR-054:** Migration Review Queue Metadata Separation — แยก Ingestion/AI Output/Review State + OCR text protection
+- **ADR-055:** Attachment Manual Re-OCR — human-in-the-loop compare-before-replace + production file replace
+- **ADR-056:** AI Queue Observability & Retry Resilience (Proposed) — monitoring 9 queues + backoff retry + vector drift reconciliation
 
 > 📖 **AI Document Ingestion Flow walkthrough:** ดู [`02-Architecture/02-05-ai-document-ingestion-flow.md`](../02-architecture/02-05-ai-document-ingestion-flow.md) สำหรับ end-to-end flow (Production + Sandbox)
 
@@ -215,6 +228,6 @@ Architecture Decision Records (ADRs) เป็นเอกสารที่บ�
 
 ---
 
-**Version:** 1.9.12 (Added ADR-036/037/040/041/042 + ADR-035 amendment note)
-**Last Review:** 2026-07-30
+**Version:** 1.9.13 (Added ADR-053/054/055/056/057 to index + categories)
+**Last Review:** 2026-09-25
 **Next Review:** 2027-01-30

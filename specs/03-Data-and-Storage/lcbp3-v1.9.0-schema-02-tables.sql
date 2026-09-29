@@ -95,6 +95,9 @@ CREATE TABLE users (
   last_name VARCHAR(50) COMMENT 'นามสกุล',
   email VARCHAR(100) NOT NULL UNIQUE COMMENT 'อีเมล',
   line_id VARCHAR(100) COMMENT 'LINE ID',
+  telegram_chat_id VARCHAR(50) COMMENT 'Telegram Chat ID สำหรับส่งแจ้งเตือน DM (ผูกผ่าน deep-link flow เท่านั้น — 1 chat id = 1 user)',
+  telegram_username VARCHAR(100) COMMENT 'Telegram @username สำหรับแสดงผล (เปลี่ยนได้ ห้ามใช้เป็น send target)',
+  telegram_linked_at TIMESTAMP NULL COMMENT 'วันที่ผูกบัญชี Telegram สำเร็จ',
   primary_organization_id INT COMMENT 'สังกัดองค์กร',
   is_active TINYINT(1) DEFAULT 1 COMMENT 'สถานะการใช้งาน',
   must_change_password TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'SEV-014: บังคับเปลี่ยนรหัสผ่านหลัง login ครั้งแรก (ADR-016)',
@@ -106,7 +109,8 @@ CREATE TABLE users (
   deleted_at DATETIME NULL DEFAULT NULL COMMENT 'วันที่ลบ',
   FOREIGN KEY (primary_organization_id) REFERENCES organizations (id) ON DELETE
   SET NULL,
-    UNIQUE INDEX idx_users_uuid (uuid)
+    UNIQUE INDEX idx_users_uuid (uuid),
+    UNIQUE INDEX idx_users_telegram_chat_id (telegram_chat_id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บข้อมูลผู้ใช้งาน (User)';
 
 -- ตารางเก็บ Refresh Tokens สำหรับ Authentication
@@ -1377,6 +1381,7 @@ CREATE TABLE user_preferences (
   user_id INT PRIMARY KEY,
   notify_email BOOLEAN DEFAULT TRUE,
   notify_line BOOLEAN DEFAULT TRUE,
+  notify_telegram BOOLEAN DEFAULT FALSE COMMENT 'รับแจ้งเตือนผ่าน Telegram (opt-in ต้องผูกบัญชีก่อนจึงมีผล)',
   digest_mode BOOLEAN DEFAULT FALSE COMMENT 'รับแจ้งเตือนแบบรวม (Digest) แทน Real - time',
   ui_theme VARCHAR(20) DEFAULT 'light',
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -1444,7 +1449,7 @@ CREATE TABLE notifications (
   user_id INT NOT NULL COMMENT 'ID ผู้ใช้',
   title VARCHAR(255) NOT NULL COMMENT 'หัวข้อการแจ้งเตือน',
   message TEXT NOT NULL COMMENT 'รายละเอียดการแจ้งเตือน',
-  notification_type ENUM('EMAIL', 'LINE', 'SYSTEM ') NOT NULL COMMENT 'ประเภท (EMAIL, LINE, SYSTEM)',
+  notification_type ENUM('EMAIL', 'LINE', 'TELEGRAM', 'SYSTEM') NOT NULL COMMENT 'ประเภท (EMAIL, LINE, TELEGRAM, SYSTEM)',
   is_read BOOLEAN DEFAULT FALSE COMMENT 'สถานะการอ่าน',
   entity_type VARCHAR(50) COMMENT 'เช่น ''rfa '',
     ''circulation ''',
@@ -1476,6 +1481,97 @@ PARTITION BY RANGE (YEAR(created_at)) (
   VALUES LESS THAN (2030),
     PARTITION p2030
   VALUES LESS THAN (2031),
+    PARTITION p_future
+  VALUES LESS THAN MAXVALUE
+);
+
+-- [258-telegram-notifications] ตารางจุดหมายแจ้งเตือนภายนอก (Telegram Group/Channel ต่อโครงการ)
+-- เหตุผล: แยกจาก users — group ไม่ผูกกับ user คนเดียว และรองรับ channel ประเภทอื่นในอนาคต
+CREATE TABLE notification_channels (
+  id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง (ห้าม expose — ADR-019)',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019)',
+  channel_type ENUM(
+    'TELEGRAM_GROUP',
+    'TELEGRAM_CHANNEL',
+    'LINE'
+  ) NOT NULL COMMENT 'ชนิดปลายทาง',
+  external_chat_id VARCHAR(50) NOT NULL COMMENT 'chat_id ของ group/channel (ติดลบสำหรับ Telegram group)',
+  project_id INT NULL COMMENT 'โครงการเจ้าของ (NULL = global scope)',
+  name VARCHAR(100) NULL COMMENT 'ชื่อกลุ่มสำหรับแสดงใน admin console',
+  is_active TINYINT(1) DEFAULT 1 COMMENT 'สถานะใช้งาน (auto=0 เมื่อ bot ถูกเตะออกจากกลุ่ม)',
+  telegram_topic_id INT NULL COMMENT 'message_thread_id ของ Telegram Forum Topic ถ้าผูกเฉพาะ topic (เช่น topic "Correspondences" ในกลุ่ม "LCBP3"); NULL = ผูกทั้งกลุ่ม/general chat',
+  last_error VARCHAR(255) NULL COMMENT 'เหตุผลล่าสุดที่ส่งไม่สำเร็จ (แสดงใน admin)',
+  created_by INT NULL COMMENT 'admin ผู้ผูก channel',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
+  FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE,
+  FOREIGN KEY (created_by) REFERENCES users (user_id) ON DELETE
+  SET NULL,
+    UNIQUE KEY uk_channel (
+      channel_type,
+      external_chat_id,
+      telegram_topic_id
+    ),
+    INDEX idx_channels_project_active (project_id, is_active),
+    UNIQUE INDEX idx_notification_channels_uuid (uuid)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางจุดหมายแจ้งเตือนภายนอก (Telegram Group/Channel ต่อโครงการ)';
+
+-- [258-telegram-notifications] ตาราง audit ทุก send attempt (ครอบคลุม DM และ group post)
+-- เหตุผล: group post ไม่มี user notification row → ต้องมี delivery log แยก (FR-009)
+CREATE TABLE notification_deliveries (
+  id BIGINT NOT NULL AUTO_INCREMENT COMMENT 'ID ของรายการส่ง',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019)',
+  notification_id INT NULL COMMENT 'notifications.id ถ้าเป็น user notification (ไม่ใส่ FK เพราะ notifications เป็น partitioned table — ใช้ index ธรรมดา)',
+  channel_type ENUM(
+    'EMAIL',
+    'LINE',
+    'TELEGRAM',
+    'SYSTEM'
+  ) NOT NULL COMMENT 'ช่องทางที่ส่ง',
+  target VARCHAR(100) NOT NULL COMMENT 'ปลายทาง (chat_id / email / line id) — ไม่เก็บเนื้อข้อความ',
+  channel_id INT NULL COMMENT 'notification_channels.id ถ้าส่งผ่าน bound channel (group) — ไม่ใส่ FK เพราะตารางนี้ partitioned (MariaDB ไม่รองรับ FK บน partitioned table)',
+  event_type VARCHAR(50) NOT NULL COMMENT 'ชนิด event (เช่น rfa.pending_approval, transmittal.received)',
+  entity_type VARCHAR(50) NULL COMMENT 'ชนิด entity ต้นทาง (เช่น rfa, transmittal)',
+  entity_id VARCHAR(50) NULL COMMENT 'publicId ของ entity ต้นทาง (VARCHAR เพื่อเก็บ UUID — ADR-019)',
+  STATUS ENUM(
+    'PENDING',
+    'SENT',
+    'FAILED',
+    'SKIPPED'
+  ) NOT NULL DEFAULT 'PENDING' COMMENT 'สถานะการส่ง (SKIPPED = unreachable/disabled)',
+  error_code VARCHAR(50) NULL COMMENT 'รหัส error (เช่น BOT_BLOCKED, CHAT_NOT_FOUND, RATE_LIMITED)',
+  error_message VARCHAR(500) NULL COMMENT 'รายละเอียด error',
+  attempt_count INT NOT NULL DEFAULT 0 COMMENT 'จำนวนครั้งที่ retry',
+  queued_job_id VARCHAR(64) NULL COMMENT 'BullMQ job id',
+  sent_at DATETIME NULL COMMENT 'เวลาส่งสำเร็จ',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'เวลาสร้างรายการ',
+  PRIMARY KEY (id, created_at),
+  INDEX idx_deliveries_notification (notification_id),
+  INDEX idx_deliveries_channel_status (channel_type, STATUS),
+  INDEX idx_deliveries_channel_id (channel_id),
+  INDEX idx_deliveries_target (target),
+  INDEX idx_deliveries_entity (entity_type, entity_id),
+  INDEX idx_deliveries_created (created_at),
+  INDEX idx_notification_deliveries_uuid (uuid)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง audit ทุก send attempt ของการแจ้งเตือน' PARTITION BY RANGE (YEAR(created_at)) (
+  PARTITION p_old
+  VALUES LESS THAN (2024),
+    PARTITION p2024
+  VALUES LESS THAN (2025),
+    PARTITION p2025
+  VALUES LESS THAN (2026),
+    PARTITION p2026
+  VALUES LESS THAN (2027),
+    PARTITION p2027
+  VALUES LESS THAN (2028),
+    PARTITION p2028
+  VALUES LESS THAN (2029),
+    PARTITION p2029
+  VALUES LESS THAN (2030),
+    PARTITION p2030
+  VALUES LESS THAN (2031),
+    PARTITION p2031
+  VALUES LESS THAN (2032),
     PARTITION p_future
   VALUES LESS THAN MAXVALUE
 );

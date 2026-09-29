@@ -3127,3 +3127,87 @@ WHERE NOT EXISTS (
     WHERE prompt_type = 'migration_compare'
       AND version_number = 1
   );
+
+-- ==========================================================
+-- [258-telegram-notifications] Telegram channel settings
+-- Token/secret เป็น placeholder — ops ใส่ค่าจริงผ่าน admin console (encrypted)
+-- ==========================================================
+INSERT INTO system_settings (
+    setting_key,
+    setting_value,
+    data_type,
+    category,
+    is_encrypted,
+    description,
+    is_public
+  )
+VALUES (
+    'TELEGRAM_ENABLED',
+    'false',
+    'boolean',
+    'notification',
+    0,
+    'สถานะเปิด/ปิดช่องทางแจ้งเตือน Telegram ทั้งระบบ (เปิดเมื่อ bot configured)',
+    1
+  ) ON DUPLICATE KEY
+UPDATE setting_key = setting_key;
+
+INSERT INTO system_settings (
+    setting_key,
+    setting_value,
+    data_type,
+    category,
+    is_encrypted,
+    description,
+    is_public
+  )
+VALUES (
+    'TELEGRAM_BOT_TOKEN',
+    '',
+    'string',
+    'notification',
+    1,
+    'Bot token จาก @BotFather — ห้าม commit ค่าจริง (placeholder เท่านั้น)',
+    0
+  ) ON DUPLICATE KEY
+UPDATE setting_key = setting_key;
+
+INSERT INTO system_settings (
+    setting_key,
+    setting_value,
+    data_type,
+    category,
+    is_encrypted,
+    description,
+    is_public
+  )
+VALUES (
+    'TELEGRAM_WEBHOOK_SECRET',
+    '',
+    'string',
+    'notification',
+    1,
+    'Secret token สำหรับ verify webhook header X-Telegram-Bot-Api-Secret-Token',
+    0
+  ) ON DUPLICATE KEY
+UPDATE setting_key = setting_key;
+
+INSERT INTO system_settings (
+    setting_key,
+    setting_value,
+    data_type,
+    category,
+    is_encrypted,
+    description,
+    is_public
+  )
+VALUES (
+    'TELEGRAM_BOT_USERNAME',
+    'LCBP3DMSBot',
+    'string',
+    'notification',
+    0,
+    'Username ของ bot (ไม่มี @) ใช้สร้าง deep link t.me/<username>?start=<token>',
+    1
+  ) ON DUPLICATE KEY
+UPDATE setting_key = setting_key;

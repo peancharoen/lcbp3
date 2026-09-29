@@ -21,10 +21,20 @@ export interface NotificationJobData {
   userId: number;
   title: string;
   message: string;
-  type: 'EMAIL' | 'LINE' | 'SYSTEM'; // ช่องทางหลักที่ต้องการส่ง (Trigger Type)
+  type: 'EMAIL' | 'LINE' | 'TELEGRAM' | 'SYSTEM'; // ช่องทางหลักที่ต้องการส่ง (Trigger Type)
   entityType?: string;
   entityId?: number;
   link?: string;
+  /** Feature 258: event key สำหรับ delivery audit (เช่น 'rfa.pending_approval') */
+  eventType?: string;
+  /** Feature 258: entity publicId สำหรับ delivery audit (ADR-019) */
+  entityPublicId?: string;
+  /**
+   * Feature 258: ส่ง Telegram DM เป็น channel รองพร้อมกับ primary type
+   * (1 inbox row เดียว — ไม่สร้าง notification ซ้ำเมื่อ producer ต้องการทั้ง
+   * SYSTEM in-app + TELEGRAM DM)
+   */
+  alsoTelegram?: boolean;
 }
 
 @Injectable()

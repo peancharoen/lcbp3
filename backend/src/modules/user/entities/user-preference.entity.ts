@@ -22,6 +22,10 @@ export class UserPreference {
   @Column({ name: 'notify_line', default: true })
   notifyLine!: boolean;
 
+  /** Feature 258: เปิดรับแจ้งเตือนผ่าน Telegram DM (default FALSE — opt-in) */
+  @Column({ name: 'notify_telegram', default: false })
+  notifyTelegram!: boolean;
+
   @Column({ name: 'digest_mode', default: false })
   digestMode!: boolean; // รับแจ้งเตือนแบบรวม (Digest) แทน Real-time
 

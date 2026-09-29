@@ -176,7 +176,7 @@ erDiagram
         AUTO_INCREMENT | UNIQUE identifier FOR user | | uuid | UUID | NOT NULL, UNIQUE, DEFAULT UUID() | UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019) | | username | VARCHAR(50) | NOT NULL,
         UNIQUE | Login username | | password_hash | VARCHAR(255) | NOT NULL | Hashed PASSWORD (bcrypt) | | first_name | VARCHAR(50) | NULL | User 's first name |
         | last_name | VARCHAR(50) | NULL | User' s last name | | email | VARCHAR(100) | NOT NULL,
-        UNIQUE | Email address | | line_id | VARCHAR(100) | NULL | LINE messenger ID | | primary_organization_id | INT | NULL,
+        UNIQUE | Email address | | line_id | VARCHAR(100) | NULL | LINE messenger ID | | telegram_chat_id | VARCHAR(50) | NULL, UNIQUE | [Feature 258] Telegram Chat ID สำหรับส่งแจ้งเตือน DM — send target เดียวของ Bot API ได้จาก deep-link flow เท่านั้น (1 chat id = 1 user) | | telegram_username | VARCHAR(100) | NULL | [Feature 258] Telegram @username สำหรับแสดงผล (เปลี่ยนได้ ห้ามใช้เป็น send target) | | telegram_linked_at | TIMESTAMP | NULL | [Feature 258] วันที่ผูกบัญชี Telegram สำเร็จ | | primary_organization_id | INT | NULL,
         FK | PRIMARY organization affiliation | | is_active | TINYINT(1) | DEFAULT 1 | Active STATUS | | must_change_password | TINYINT(1) | NOT NULL, DEFAULT 0 | SEV-014: บังคับเปลี่ยนรหัสผ่านหลัง login ครั้งแรก (ADR-016) | | failed_attempts | INT | DEFAULT 0 | Failed login attempts counter | | locked_until | DATETIME | NULL | Account LOCK expiration time | | last_login_at | TIMESTAMP | NULL | Last successful login timestamp | | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation timestamp | | updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last
         UPDATE timestamp | | deleted_at | DATETIME | NULL | Deleted at | ** INDEXES **: - PRIMARY KEY (user_id) - UNIQUE (username) - UNIQUE (email) - FOREIGN KEY (primary_organization_id) REFERENCES organizations(id) ON DELETE
         SET NULL - INDEX (is_active) - INDEX (email) ** Relationships \*\*: - Parent: organizations (primary_organization_id) - Referenced by: user_assignments,
@@ -267,6 +267,7 @@ erDiagram
 | user_id      | INT         | PK, FK            | User ID            |
 | notify_email | BOOLEAN     | DEFAULT TRUE      | รับอีเมลแจ้งเตือน  |
 | notify_line  | BOOLEAN     | DEFAULT TRUE      | รับไลน์แจ้งเตือน   |
+| notify_telegram | BOOLEAN | DEFAULT FALSE     | [Feature 258] รับแจ้งเตือนผ่าน Telegram (opt-in ต้องผูกบัญชีก่อนจึงมีผล) |
 | digest_mode  | BOOLEAN     | DEFAULT FALSE     | รับแจ้งเตือนแบบรวม |
 | ui_theme     | VARCHAR(20) | DEFAULT ' light ' | UI Theme           |
 
@@ -2025,7 +2026,7 @@ erDiagram
 | user_id           | INT          | NOT NULL, FK                | Recipient user ID                                                                                              |
 | title             | VARCHAR(255) | NOT NULL                    | Notification title                                                                                             |
 | message           | TEXT         | NOT NULL                    | Notification body                                                                                              |
-| notification_type | ENUM         | NOT NULL                    | Type: EMAIL, LINE, SYSTEM                                                                                      |
+| notification_type | ENUM         | NOT NULL                    | Type: EMAIL, LINE, TELEGRAM, SYSTEM                                                                            |
 | is_read           | BOOLEAN      | DEFAULT FALSE               | Read status                                                                                                    |
 | entity_type       | VARCHAR(50)  | NULL                        | Related Entity Type                                                                                            |
 | entity_id         | INT          | NULL                        | Related Entity ID                                                                                              |
@@ -2043,6 +2044,91 @@ erDiagram
 **Partitioning**:
 
 - **PARTITION BY RANGE (YEAR(created_at))**: แบ่ง Partition รายปี
+
+---
+
+### 11.4 notification_channels (NEW — Feature 258)
+
+**Purpose**: จุดหมายแจ้งเตือนภายนอกที่ bind ได้ — Telegram Group/Channel ต่อโครงการ หรือ global (แยกจาก users เพราะ group ไม่ผูกกับ user คนเดียว และรองรับ channel ประเภทอื่นในอนาคต)
+
+| Column Name      | Data Type   | Constraints                        | Description                                                              |
+| :--------------- | :---------- | :--------------------------------- | :----------------------------------------------------------------------- |
+| id               | INT         | PK, AI                             | Internal ID (ห้าม expose — ADR-019)                                      |
+| uuid             | UUID        | NOT NULL, UNIQUE, DEFAULT UUID()   | publicId (ADR-019)                                                       |
+| channel_type     | ENUM        | NOT NULL                           | TELEGRAM_GROUP, TELEGRAM_CHANNEL, LINE                                   |
+| external_chat_id | VARCHAR(50) | NOT NULL                           | chat_id ของ group/channel (ติดลบสำหรับ Telegram group)                    |
+| project_id       | INT         | NULL, FK                           | โครงการเจ้าของ (NULL = global scope)                                     |
+| name             | VARCHAR(100)| NULL                               | ชื่อกลุ่มสำหรับแสดงใน admin console                                      |
+| is_active        | TINYINT(1)  | DEFAULT 1                          | สถานะใช้งาน (auto=0 เมื่อ bot ถูกเตะออกจากกลุ่ม)                          |
+| last_error       | VARCHAR(255)| NULL                               | เหตุผลล่าสุดที่ส่งไม่สำเร็จ                                               |
+| created_by       | INT         | NULL, FK                           | admin ผู้ผูก channel                                                     |
+| created_at       | TIMESTAMP   | DEFAULT CURRENT_TIMESTAMP          | วันที่สร้าง                                                              |
+| updated_at       | TIMESTAMP   | DEFAULT CURRENT_TIMESTAMP ON UPDATE| วันที่แก้ไขล่าสุด                                                        |
+
+**Indexes**:
+
+- PRIMARY KEY (id)
+- UNIQUE uk_channel (channel_type, external_chat_id)
+- UNIQUE INDEX idx_notification_channels_uuid (uuid)
+- INDEX idx_channels_project_active (project_id, is_active)
+- FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+- FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL
+
+**Business Rules**:
+
+- Group bound กับ project A ห้ามได้รับ event ของ project B (project isolation — FR-005)
+- `is_active=0` เมื่อ send ล้มเหลวแบบ permanent (bot ถูก remove) — admin re-enable หลังเชิญ bot กลับ
+- Binding/unbinding ต้องการ permission `notification.manage_all`
+
+**Relationships**:
+
+- Parent: projects, users
+
+---
+
+### 11.5 notification_deliveries (NEW — Feature 258)
+
+**Purpose**: Audit trail ทุก send attempt — ครอบคลุมทั้ง DM (มี notification row) และ group post (ไม่มี user notification row) ตาม FR-009
+
+| Column Name      | Data Type   | Constraints                        | Description                                                              |
+| :--------------- | :---------- | :--------------------------------- | :----------------------------------------------------------------------- |
+| id               | BIGINT      | PK, AI                             | Unique delivery ID                                                       |
+| uuid             | UUID        | NOT NULL, UNIQUE, DEFAULT UUID()   | publicId (ADR-019)                                                       |
+| notification_id  | INT         | NULL                               | notifications.id ถ้าเป็น user notification (ไม่ใส่ FK — partitioned table) |
+| channel_type     | ENUM        | NOT NULL                           | EMAIL, LINE, TELEGRAM, SYSTEM                                            |
+| target           | VARCHAR(100)| NOT NULL                           | ปลายทาง (chat_id / email / line id) — ไม่เก็บเนื้อข้อความ                 |
+| channel_id       | INT         | NULL, FK                           | notification_channels.id ถ้าส่งผ่าน bound channel                        |
+| event_type       | VARCHAR(50) | NOT NULL                           | ชนิด event (เช่น rfa.pending_approval, transmittal.received)             |
+| entity_type      | VARCHAR(50) | NULL                               | ชนิด entity ต้นทาง                                                       |
+| entity_id        | VARCHAR(50) | NULL                               | publicId ของ entity ต้นทาง (VARCHAR เพื่อเก็บ UUID — ADR-019)             |
+| status           | ENUM        | NOT NULL, DEFAULT 'PENDING'        | PENDING, SENT, FAILED, SKIPPED                                           |
+| error_code       | VARCHAR(50) | NULL                               | รหัส error (BOT_BLOCKED, CHAT_NOT_FOUND, RATE_LIMITED)                   |
+| error_message    | VARCHAR(500)| NULL                               | รายละเอียด error                                                         |
+| attempt_count    | INT         | NOT NULL, DEFAULT 0                | จำนวนครั้งที่ retry                                                      |
+| queued_job_id    | VARCHAR(64) | NULL                               | BullMQ job id                                                            |
+| sent_at          | DATETIME    | NULL                               | เวลาส่งสำเร็จ                                                            |
+| created_at       | DATETIME    | DEFAULT CURRENT_TIMESTAMP          | เวลาสร้างรายการ                                                          |
+
+**Indexes**:
+
+- PRIMARY KEY (id, created_at) — **Partition Key**
+- UNIQUE INDEX idx_notification_deliveries_uuid (uuid)
+- FOREIGN KEY (channel_id) REFERENCES notification_channels(id) ON DELETE SET NULL
+- INDEX idx_deliveries_notification (notification_id)
+- INDEX idx_deliveries_channel_status (channel_type, status)
+- INDEX idx_deliveries_target (target)
+- INDEX idx_deliveries_entity (entity_type, entity_id)
+- INDEX idx_deliveries_created (created_at)
+
+**Partitioning**:
+
+- **PARTITION BY RANGE (YEAR(created_at))**: แบ่ง Partition รายปี (pattern เดียวกับ notifications/audit_logs)
+
+**Business Rules**:
+
+- ทุก send attempt ต้องลง row — delivered/failed พร้อมเหตุผล (audit trail)
+- Permanent error (BOT_BLOCKED, CHAT_NOT_FOUND) → mark FAILED + flag binding/channel, ห้าม retry ต่อ
+- ไม่เก็บเนื้อข้อความแจ้งเตือน (data minimization — เก็บเฉพาะ metadata)
 
 ---
 

@@ -4,7 +4,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { NotFoundException, ConflictException } from '../../common/exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager'; // ✅ FIX: เพิ่ม 'type' ตรงนี้
 import * as bcrypt from 'bcrypt';
@@ -26,7 +26,8 @@ export class UserService {
     @InjectRepository(Permission)
     private permissionRepository: Repository<Permission>,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
-    private uuidResolver: UuidResolverService
+    private uuidResolver: UuidResolverService,
+    private dataSource: DataSource
   ) {}
 
   // 1. สร้างผู้ใช้ (Hash Password ก่อนบันทึก)
@@ -97,6 +98,9 @@ export class UserService {
         'user.isActive',
         'user.createdAt',
         'user.updatedAt',
+        'user.telegramChatId', // Feature 258 — telegramStatus derivation (ไม่ serialize — @Exclude)
+        'user.telegramUsername',
+        'user.telegramLinkedAt',
         'assignments.id',
         'role.roleId',
         'role.roleName',
@@ -129,6 +133,10 @@ export class UserService {
     query.skip((page - 1) * limit).take(limit);
 
     const [data, total] = await query.getManyAndCount();
+
+    // Feature 258 (T055): telegramStatus ต่อ row — linked / blocked / none
+    // blocked = มี delivery FAILED ด้วย permanent code ล่าสุด (BOT_BLOCKED/CHAT_NOT_FOUND)
+    await this.attachTelegramStatus(data);
 
     return {
       data,
@@ -300,5 +308,40 @@ export class UserService {
    */
   async clearUserCache(userId: number): Promise<void> {
     await this.cacheManager.del(`permissions:user:${userId}`);
+  }
+
+  /**
+   * Feature 258 (T055): แนบ `telegramStatus` ให้ user rows ใน list response
+   * — 'linked' (ผูกปกติ) / 'blocked' (delivery ล่าสุด FAILED ด้วย permanent code)
+   * / 'none' (ยังไม่ผูก) — batch query เดียว ไม่ N+1
+   */
+  private async attachTelegramStatus(users: User[]): Promise<void> {
+    interface TelegramStatusRow extends User {
+      telegramStatus?: 'linked' | 'blocked' | 'none';
+    }
+    const linked = users.filter((u) => !!u.telegramChatId);
+    const blockedChatIds = new Set<string>();
+
+    if (linked.length > 0) {
+      const chatIds = linked.map((u) => u.telegramChatId as string);
+      const failedRows = await this.dataSource.query<{ target: string }[]>(
+        `SELECT DISTINCT target FROM notification_deliveries
+         WHERE channel_type = 'TELEGRAM' AND status = 'FAILED'
+           AND error_code IN ('BOT_BLOCKED', 'CHAT_NOT_FOUND')
+           AND target IN (?)`,
+        [chatIds]
+      );
+      for (const row of failedRows) {
+        blockedChatIds.add(row.target);
+      }
+    }
+
+    for (const u of users as TelegramStatusRow[]) {
+      u.telegramStatus = !u.telegramChatId
+        ? 'none'
+        : blockedChatIds.has(u.telegramChatId)
+          ? 'blocked'
+          : 'linked';
+    }
   }
 }

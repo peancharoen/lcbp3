@@ -1,10 +1,14 @@
+// File: frontend/app/(admin)/admin/access-control/users/page.tsx
+// Change Log:
+// - 2026-09-25: Feature 258 (T056) — Telegram status column + admin force-unlink action
+
 'use client';
 
-import { useUsers, useDeleteUser } from '@/hooks/use-users';
+import { useUsers, useDeleteUser, useUnlinkTelegram } from '@/hooks/use-users';
 import { useOrganizations } from '@/hooks/use-master-data';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/common/data-table';
-import { Plus, MoreHorizontal, Pencil, Trash, Search } from 'lucide-react';
+import { Plus, MoreHorizontal, Pencil, Trash, Search, Send } from 'lucide-react';
 import { useState } from 'react';
 import { UserDialog } from '@/components/admin/user-dialog';
 import {
@@ -52,12 +56,17 @@ export default function UsersPage() {
   const organizationList: Organization[] = Array.isArray(organizations) ? organizations : [];
 
   const deleteMutation = useDeleteUser();
+  const unlinkTelegramMutation = useUnlinkTelegram();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   // Stats for Delete Dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
+
+  // Feature 258: Telegram unlink confirm dialog
+  const [unlinkDialogOpen, setUnlinkDialogOpen] = useState(false);
+  const [userToUnlink, setUserToUnlink] = useState<User | null>(null);
 
   const handleDeleteClick = (user: User) => {
     setUserToDelete(user);
@@ -70,6 +79,17 @@ export default function UsersPage() {
         onSuccess: () => {
           setDeleteDialogOpen(false);
           setUserToDelete(null);
+        },
+      });
+    }
+  };
+
+  const confirmUnlinkTelegram = () => {
+    if (userToUnlink) {
+      unlinkTelegramMutation.mutate(userToUnlink.publicId, {
+        onSuccess: () => {
+          setUnlinkDialogOpen(false);
+          setUserToUnlink(null);
         },
       });
     }
@@ -99,9 +119,9 @@ export default function UsersPage() {
           return 'All Organizations';
         }
 
-        const org = Array.isArray(organizationList) ? organizationList.find(
-          (o) => (o.id ?? o.publicId) === orgId?.toString() || o.publicId === orgId?.toString()
-        ) : undefined;
+        const org = Array.isArray(organizationList)
+          ? organizationList.find((o) => (o.id ?? o.publicId) === orgId?.toString() || o.publicId === orgId?.toString())
+          : undefined;
         return org ? org.organizationCode : 'All Organizations';
       },
     },
@@ -119,6 +139,24 @@ export default function UsersPage() {
             ))}
           </div>
         );
+      },
+    },
+    {
+      id: 'telegram',
+      header: 'Telegram',
+      cell: ({ row }) => {
+        const status = row.original.telegramStatus;
+        if (status === 'linked') {
+          return (
+            <span className="text-sm">
+              ✈️ {row.original.telegramUsername ? `@${row.original.telegramUsername}` : 'Linked'}
+            </span>
+          );
+        }
+        if (status === 'blocked') {
+          return <Badge variant="destructive">⚠️ Blocked</Badge>;
+        }
+        return <span className="text-muted-foreground">—</span>;
       },
     },
     {
@@ -152,6 +190,16 @@ export default function UsersPage() {
               >
                 <Pencil className="mr-2 h-4 w-4" /> Edit
               </DropdownMenuItem>
+              {user.telegramStatus && user.telegramStatus !== 'none' && (
+                <DropdownMenuItem
+                  onClick={() => {
+                    setUserToUnlink(user);
+                    setUnlinkDialogOpen(true);
+                  }}
+                >
+                  <Send className="mr-2 h-4 w-4" /> Unlink Telegram
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem className="text-red-600 focus:text-red-600" onClick={() => handleDeleteClick(user)}>
                 <Trash className="mr-2 h-4 w-4" /> Delete
               </DropdownMenuItem>
@@ -240,6 +288,26 @@ export default function UsersPage() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
               {deleteMutation.isPending ? 'Deleting...' : 'Delete User'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={unlinkDialogOpen} onOpenChange={setUnlinkDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unlink Telegram?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will disconnect the Telegram account
+              {userToUnlink?.telegramUsername ? ` @${userToUnlink.telegramUsername}` : ''} from
+              <span className="font-semibold text-foreground"> {userToUnlink?.username} </span>. They will stop
+              receiving Telegram notifications until they link again.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmUnlinkTelegram}>
+              {unlinkTelegramMutation.isPending ? 'Unlinking...' : 'Unlink Telegram'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

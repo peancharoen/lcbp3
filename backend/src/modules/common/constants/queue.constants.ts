@@ -10,6 +10,10 @@
 export const QUEUE_NOTIFICATIONS = 'notifications';
 export const QUEUE_WORKFLOW_EVENTS = 'workflow-events';
 
+/** Job names สำหรับ Telegram channel บน QUEUE_NOTIFICATIONS (Feature 258, ADR-008) */
+export const JOB_SEND_TELEGRAM_DM = 'send-telegram-dm';
+export const JOB_SEND_TELEGRAM_GROUP = 'send-telegram-group';
+
 // ─── New Queues (Feature: 1-rfa-approval-refactor) ────────────────────────
 
 /** Queue สำหรับ Auto-Reminders และ Escalation (T043-T047) */

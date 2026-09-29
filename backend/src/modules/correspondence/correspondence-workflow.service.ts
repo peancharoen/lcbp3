@@ -6,6 +6,7 @@
 
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { ConfigService } from '@nestjs/config';
 import { DataSource, Repository } from 'typeorm';
 
 import { WorkflowTransitionDto } from '../workflow-engine/dto/workflow-transition.dto';
@@ -14,7 +15,16 @@ import { CorrespondenceRevision } from './entities/correspondence-revision.entit
 import { CorrespondenceStatus } from './entities/correspondence-status.entity';
 import { CorrespondenceRecipient } from './entities/correspondence-recipient.entity';
 import { NotificationService } from '../notification/notification.service';
+import { NotificationChannelService } from '../notification/notification-channel.service';
+import { TelegramBotService } from '../notification/telegram/telegram-bot.service';
 import { UserService } from '../user/user.service';
+import { CirculationRouting } from '../circulation/entities/circulation-routing.entity';
+import { Circulation } from '../circulation/entities/circulation.entity';
+
+// Feature 258 (T041): significant-status allowlist สำหรับ correspondence.status_changed
+// — เฉพาะผลลัพธ์ที่ทีมต้องรู้: ตอบกลับ (REP*), ปิดงาน (CLB*), ยกเลิก (CCB*)
+// ไม่แจ้ง DRAFT/SUB*/RSB* (forward transitions — ไม่ใช่ outcome)
+const SIGNIFICANT_STATUS_PREFIXES = ['REP', 'CLB', 'CCB'] as const;
 
 @Injectable()
 export class CorrespondenceWorkflowService {
@@ -31,6 +41,8 @@ export class CorrespondenceWorkflowService {
     private readonly recipientRepo: Repository<CorrespondenceRecipient>,
     private readonly dataSource: DataSource,
     private readonly notificationService: NotificationService,
+    private readonly channelService: NotificationChannelService,
+    private readonly configService: ConfigService,
     private readonly userService: UserService
   ) {}
 
@@ -48,7 +60,13 @@ export class CorrespondenceWorkflowService {
       const revision = await this.revisionRepo.findOne({
         // ✅ FIX: CamelCase (correspondenceId, isCurrent)
         where: { correspondenceId: correspondenceId, isCurrent: true },
-        relations: ['correspondence'],
+        // Feature 258 (T040): nested relations สำหรับ group notification template
+        relations: [
+          'correspondence',
+          'correspondence.project',
+          'correspondence.originator',
+          'correspondence.type',
+        ],
       });
 
       if (!revision) {
@@ -112,13 +130,17 @@ export class CorrespondenceWorkflowService {
                     r.recipientOrganizationId
                   );
                 if (targetUserId) {
+                  // Feature 258 (T040): DM leg — EMAIL เดิม + TELEGRAM leg (alsoTelegram
+                  // รวมกับ primary channel ใน notification row เดียวกัน)
                   await this.notificationService.send({
                     userId: targetUserId,
                     title: 'New Correspondence Received',
                     message: `${corrForNotify.correspondenceNumber} has been submitted to your organization.`,
                     type: 'EMAIL',
+                    alsoTelegram: true,
                     entityType: 'correspondence',
                     entityId: revision.correspondenceId,
+                    entityPublicId: corrForNotify.publicId,
                     link: `/correspondences/${corrForNotify.publicId}`,
                   });
                 }
@@ -126,6 +148,39 @@ export class CorrespondenceWorkflowService {
             })
             .catch((err: Error) =>
               this.logger.warn(`Submit notification failed: ${err.message}`)
+            );
+
+          // Feature 258 (T040): group leg — แจ้งทุก active channel ของ project
+          const typeCode = corrForNotify.type?.typeCode;
+          const eventType =
+            typeCode === 'TRANSMITTAL'
+              ? 'transmittal.received'
+              : 'correspondence.registered';
+          const documentUrl = `${this.appBaseUrl}/correspondences/${corrForNotify.publicId}`;
+          const projectName = TelegramBotService.escapeHtml(
+            corrForNotify.project?.projectName ?? ''
+          );
+          const docNumber = TelegramBotService.escapeHtml(
+            corrForNotify.correspondenceNumber
+          );
+          const originatorOrg = TelegramBotService.escapeHtml(
+            corrForNotify.originator?.organizationName ?? '-'
+          );
+          // Template: contracts/telegram-message-templates.md (minimal — ไม่ใส่ title, D7)
+          const groupText =
+            eventType === 'transmittal.received'
+              ? `<b>📥 Transmittal ใหม่ — ${projectName}</b>\n\n<b>${docNumber}</b>\nจาก: ${originatorOrg}\nสถานะ: รอตรวจรับ\n\n<a href="${documentUrl}">ดูรายละเอียด →</a>`
+              : `<b>📄 Correspondence ใหม่ — ${projectName}</b>\n\n<b>${docNumber}</b> [${TelegramBotService.escapeHtml(typeCode ?? '-')}] \nจาก: ${originatorOrg}\n\n<a href="${documentUrl}">ดูรายละเอียด →</a>`;
+          void this.channelService
+            .notifyProject(corrForNotify.projectId, eventType, {
+              text: groupText,
+              entityType: 'correspondence',
+              entityPublicId: corrForNotify.publicId,
+            })
+            .catch((err: Error) =>
+              this.logger.warn(
+                `Telegram group notify failed (non-critical): ${err.message}`
+              )
             );
         }
       } catch (err: unknown) {
@@ -167,9 +222,21 @@ export class CorrespondenceWorkflowService {
     if (instance && instance.entityType === 'correspondence_revision') {
       const revision = await this.revisionRepo.findOne({
         where: { id: Number(instance.entityId) },
+        relations: ['correspondence', 'correspondence.project'],
       });
       if (revision) {
+        // Feature 258 (T041): จับ status เดิมก่อน sync เพื่อเปรียบเทียบใน notification
+        const oldStatusId = revision.statusId;
         await this.syncStatus(revision, result.statusProjection);
+        void this.notifyCorrespondenceStatusChanged(
+          revision,
+          oldStatusId,
+          userId
+        ).catch((err: Error) =>
+          this.logger.warn(
+            `Status-change notification failed (non-critical): ${err.message}`
+          )
+        );
       }
     }
 
@@ -191,6 +258,104 @@ export class CorrespondenceWorkflowService {
         ? queryRunner.manager
         : this.revisionRepo.manager;
       await manager.save(revision);
+    }
+  }
+
+  /** Frontend base URL สำหรับลิงก์ใน Telegram message (absolute — Telegram ไม่ resolve relative) */
+  private get appBaseUrl(): string {
+    return (
+      this.configService.get<string>('APP_BASE_URL') ??
+      'https://lcbp3.np-dms.work'
+    );
+  }
+
+  /**
+   * Feature 258 (T041): แจ้ง `correspondence.status_changed` เมื่อสถานะใหม่
+   * อยู่ใน allowlist (prefix REP, CLB, CCB) — DM fan-out (createdBy + circulation assignees PENDING)
+   * + group leg ผ่าน notifyProject (minimal template ตาม D7)
+   */
+  private async notifyCorrespondenceStatusChanged(
+    revision: CorrespondenceRevision,
+    oldStatusId: number | undefined,
+    actorUserId: number
+  ): Promise<void> {
+    const newStatus = await this.statusRepo.findOne({
+      where: { id: revision.statusId },
+    });
+    if (!newStatus) return;
+    const isSignificant = SIGNIFICANT_STATUS_PREFIXES.some((p) =>
+      newStatus.statusCode.startsWith(p)
+    );
+    if (!isSignificant) return;
+
+    const corr = revision.correspondence;
+    if (!corr) return;
+    const oldStatus = oldStatusId
+      ? await this.statusRepo.findOne({ where: { id: oldStatusId } })
+      : null;
+    const oldCode = oldStatus?.statusCode ?? '-';
+    const newCode = newStatus.statusCode;
+    const docNumber = TelegramBotService.escapeHtml(corr.correspondenceNumber);
+    const documentUrl = `${this.appBaseUrl}/correspondences/${corr.publicId}`;
+    const actorName = await this.resolveUserDisplayName(actorUserId);
+
+    // DM fan-out: creator + circulation assignees ที่ยัง PENDING (dedup, ไม่รวม actor)
+    const recipientIds = new Set<number>();
+    if (corr.createdBy) recipientIds.add(corr.createdBy);
+    const pendingRoutings = await this.dataSource
+      .getRepository(CirculationRouting)
+      .createQueryBuilder('r')
+      .innerJoin(Circulation, 'c', 'c.id = r.circulation_id')
+      .where('c.correspondence_id = :cid', { cid: corr.id })
+      .andWhere('r.status = :st', { st: 'PENDING' })
+      .andWhere('r.assigned_to IS NOT NULL')
+      .getMany();
+    for (const r of pendingRoutings) {
+      if (r.assignedTo) recipientIds.add(r.assignedTo);
+    }
+    recipientIds.delete(actorUserId); // actor ไม่ต้องรับแจ้งเตือนการกระทำของตัวเอง
+
+    for (const recipientId of recipientIds) {
+      await this.notificationService.send({
+        userId: recipientId,
+        title: 'Correspondence Status Changed',
+        message: `${corr.correspondenceNumber}: ${oldCode} → ${newCode} (by ${actorName})`,
+        type: 'SYSTEM',
+        alsoTelegram: true,
+        entityType: 'correspondence',
+        entityId: corr.id,
+        entityPublicId: corr.publicId,
+        link: `/correspondences/${corr.publicId}`,
+      });
+    }
+
+    // Group leg — minimal template (ไม่ใส่ title/subject, D7)
+    const projectName = TelegramBotService.escapeHtml(
+      corr.project?.projectName ?? ''
+    );
+    const groupText = `<b>🔄 อัปเดตสถานะ — ${projectName}</b>\n\n<b>${docNumber}</b>: ${TelegramBotService.escapeHtml(oldCode)} → <b>${TelegramBotService.escapeHtml(newCode)}</b>\nโดย: ${TelegramBotService.escapeHtml(actorName)}\n\n<a href="${documentUrl}">ดูรายละเอียด →</a>`;
+    await this.channelService.notifyProject(
+      corr.projectId,
+      'correspondence.status_changed',
+      {
+        text: groupText,
+        entityType: 'correspondence',
+        entityPublicId: corr.publicId,
+      }
+    );
+  }
+
+  /** ชื่อแสดงของ user สำหรับใส่ใน message (fallback = user id) */
+  private async resolveUserDisplayName(userId: number): Promise<string> {
+    try {
+      const user = await this.userService.findOne(userId);
+      const fullName = [user?.firstName, user?.lastName]
+        .filter(Boolean)
+        .join(' ')
+        .trim();
+      return fullName || user?.username || `user ${userId}`;
+    } catch {
+      return `user ${userId}`;
     }
   }
 }
