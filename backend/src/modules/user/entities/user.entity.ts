@@ -62,6 +62,7 @@ export class User extends UuidBaseEntity {
   /** Feature 258: Telegram Chat ID สำหรับส่ง DM — ได้จาก deep-link flow เท่านั้น (UNIQUE ที่ DB level) */
   @Column({
     name: 'telegram_chat_id',
+    type: 'varchar',
     nullable: true,
     length: 50,
   })
@@ -69,7 +70,12 @@ export class User extends UuidBaseEntity {
   telegramChatId?: string | null;
 
   /** Feature 258: @username สำหรับแสดงผลใน admin — user เปลี่ยนได้ทุกเมื่อ ห้ามใช้เป็น send target */
-  @Column({ name: 'telegram_username', nullable: true, length: 100 })
+  @Column({
+    name: 'telegram_username',
+    type: 'varchar',
+    nullable: true,
+    length: 100,
+  })
   telegramUsername?: string | null;
 
   /** Feature 258: เวลาที่ผูกบัญชีสำเร็จ — NULL พร้อม chat_id หมายถึง binding ถูกล้าง */

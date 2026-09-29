@@ -61,7 +61,7 @@ export class NotificationDelivery {
   target!: string;
 
   /** notification_channels.id ถ้าส่งผ่าน bound channel — plain index (no FK on partitioned) */
-  @Column({ name: 'channel_id', nullable: true })
+  @Column({ name: 'channel_id', type: 'int', nullable: true })
   @Exclude()
   channelId?: number | null;
 

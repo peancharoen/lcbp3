@@ -32,7 +32,6 @@ import { NotificationChannelAdminController } from './notification-channel-admin
 import { NotificationAdminController } from './notification-admin.controller';
 import { NotificationDeliveryService } from './notification-delivery.service';
 import { UserModule } from '../user/user.module';
-import { CommonModule } from '../../common/common.module';
 
 @Module({
   imports: [
@@ -50,7 +49,8 @@ import { CommonModule } from '../../common/common.module';
     }),
     ScheduleModule.forRoot(), // ✅ New (ถ้ายังไม่ได้ import ใน AppModule)
     ConfigModule,
-    CommonModule, // CryptoService สำหรับ decrypt system_settings (Feature 258)
+    // CommonModule ไม่ต้อง import — @Global() + export CryptoService อยู่แล้ว
+    // (import ซ้ำสร้าง circular require: CommonModule→AiModule→…→NotificationModule)
     UserModule,
   ],
   controllers: [

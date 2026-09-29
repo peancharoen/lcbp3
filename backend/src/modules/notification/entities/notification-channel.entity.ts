@@ -61,7 +61,7 @@ export class NotificationChannel extends UuidBaseEntity {
   telegramTopicId?: number | null;
 
   /** เหตุผลล่าสุดที่ส่งไม่สำเร็จ (แสดงใน admin) */
-  @Column({ name: 'last_error', nullable: true, length: 255 })
+  @Column({ name: 'last_error', type: 'varchar', nullable: true, length: 255 })
   lastError?: string | null;
 
   @Column({ name: 'created_by', nullable: true })
