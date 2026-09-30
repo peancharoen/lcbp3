@@ -166,6 +166,11 @@ jobs:
   deploy:
     needs: [ci-test]
     runs-on: lcbp3-ci
+    # Serialize deploys — 2 push ติดกันจะ queue แทนที่จะ compose up ชนกัน
+    # (container name conflict — incident 2026-09-30 run 823+824)
+    concurrency:
+      group: deploy-lcbp3
+      cancel-in-progress: false
     if: |
       always() &&
       github.ref == 'refs/heads/main' &&

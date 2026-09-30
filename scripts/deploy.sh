@@ -31,6 +31,17 @@ export REGISTRY
 API_URL="http://192.168.10.11:3000/api"
 AUTH_URL="https://lcbp3.np-dms.work"
 
+# ── Deploy lock — serialize concurrent deploys ─────────────────────────
+# 2 push ติดกัน → deploy job รันขนานบน host เดียวกัน → compose up --force-recreate
+# ชนกัน (container name conflict / No such container — incident 2026-09-30 run 823+824)
+# flock รอให้ deploy ก่อนหน้าจบก่อน (job ที่ถูกคิวจะ deploy origin/main ล่าสุดอยู่แล้ว)
+DEPLOY_LOCK="/tmp/lcbp3-deploy.lock"
+exec 200>"$DEPLOY_LOCK"
+if ! flock -w 1800 200; then
+    echo "✗ Deploy lock timeout — another deploy is still running"
+    exit 1
+fi
+
 echo "========================================="
 echo "LCBP3-DMS Deployment v4.0"
 echo "Target: np-dms-lcbp3 (192.168.10.11)"

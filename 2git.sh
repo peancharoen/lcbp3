@@ -1,6 +1,8 @@
 #!/bin/bash
 # File: 2git.sh
 # Change Log:
+# - 2026-09-30: Fix --skip-ci no-op เมื่อ HEAD ถูก commit ไว้ก่อนแล้ว (amend marker ก่อน push)
+#   + strip [skip CI] ออกจาก squash body — marker ต้องมาจาก flag เท่านั้น (กัน leak → code push โดน skip)
 # - 2026-09-08: Add --skip-ci flag for docs/memory commits (appends [skip CI] to message)
 # - 2026-09-08: Fix default message typo, support multi-word message, add branch guard, fetch origin/main, show status summary, remove interactive read on error
 # - 2026-08-26: เพิ่ม squash commits ก่อน push — รวม commits ที่นำ origin/main เป็น commit เดียว
@@ -64,9 +66,21 @@ fi
 if [ "$AHEAD" -gt 1 ]; then
     echo -e "\033[36m🔀 Squashing $AHEAD commits into one...\033[0m"
     # เก็บ commit messages เดิมไว้ใน body เพื่อ audit trail
-    SQUASH_BODY=$(git log origin/main..HEAD --format='%h %s' | sed 's/^/  - /')
+    # strip [skip CI] ออกเสมอ — marker ต้องอยู่ใน subject ผ่าน flag เท่านั้น
+    # (incident 2026-09-22: marker ใน body ทำ code push โดน CI skip โดยไม่ตั้งใจ)
+    SQUASH_BODY=$(git log origin/main..HEAD --format='%h %s' | sed 's/\[skip CI\]//g; s/^/  - /')
     git reset --soft origin/main
     git commit -m "$COMMIT_MSG" -m "Squashed commits:" -m "$SQUASH_BODY"
+fi
+
+# --skip-ci guard: COMMIT_MSG ถูกใช้เฉพาะตอน script commit เอง (uncommitted changes
+# หรือ squash) — ถ้า HEAD เป็น commit เดิมที่ผู้ใช้ commit ไว้ก่อน marker จะไม่ติด
+# → amend เพิ่ม [skip CI] เข้า HEAD ก่อน push
+if [ "$AHEAD" -eq 1 ] && [ -n "$SKIP_CI" ]; then
+    if ! git log -1 --format=%B HEAD | grep -q '\[skip CI\]'; then
+        echo -e "\033[36m🏷️  Appending [skip CI] marker to HEAD commit...\033[0m"
+        git commit --amend -m "$(git log -1 --format=%B HEAD)$SKIP_CI"
+    fi
 fi
 
 echo -e "\033[36m🚀 Pushing to Gitea...\033[0m"
