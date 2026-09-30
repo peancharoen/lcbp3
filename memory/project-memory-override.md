@@ -375,6 +375,10 @@ QDRANT_URL
 
 ## Next Session Focus
 
+- [x] F258 Telegram Notifications — implemented, merged, deployed (`f9f58cf9`), T064 verified live: group `/link`→topic binding + group send (SC-002 ≈2s) + DM `/start` binding (SC-001 ≈1s system) + test DM; ledger CP11; CI #821 green
+- [ ] F258 SC-006 (500-notification burst) — user deferred; run later only with approval
+- [ ] F258 cleanup decision: test bindings in prod (channel SANDBOX↔group topic 3; user superadmin↔Telegram chat) — keep or unlink
+- [ ] F258 known gaps (unscheduled): sendTestMessage inline; 400→CHAT_NOT_FOUND over-classify; bind-fail silent; DM retry duplicate rows; telegramStatus no recovery
 - [x] OCR corrupt RAW_TEXT context-overflow และ stable prompt hash แก้และ deploy แล้ว (`3a33420c`)
 - [x] Legacy re-extract rebuild comparison แก้และ deploy แล้ว (`b3803380`, run #775)
 - [x] OCR failure acknowledgment, Correspondence admin correction และ document-list server filter/sort implement+verify แล้ว (`bfabcfa5`–`ea874c38`)
