@@ -10,10 +10,15 @@ import { DataSource } from 'typeorm';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { UserService } from './user.service';
 import { User } from './entities/user.entity';
+import { UserAssignment } from './entities/user-assignment.entity';
 import { Role } from './entities/role.entity';
 import { Permission } from './entities/permission.entity';
 import { UuidResolverService } from '../../common/services/uuid-resolver.service';
-import { NotFoundException, ConflictException } from '../../common/exceptions';
+import {
+  NotFoundException,
+  ConflictException,
+  ValidationException,
+} from '../../common/exceptions';
 
 // Mock Repository
 const mockUserRepository = {
@@ -36,6 +41,7 @@ const mockUserRepository = {
 
 const mockRoleRepository = {
   find: jest.fn(),
+  findBy: jest.fn(),
   findOne: jest.fn(),
   save: jest.fn(),
   createQueryBuilder: jest.fn(() => ({
@@ -49,11 +55,29 @@ const mockPermissionRepository = {
   createQueryBuilder: jest.fn(),
 };
 
+const mockAssignmentRepository = {
+  create: jest.fn(),
+  save: jest.fn(),
+  remove: jest.fn(),
+};
+
 // Mock Cache Manager
 const mockCacheManager = {
   get: jest.fn(),
   set: jest.fn(),
   del: jest.fn(),
+};
+
+// Transaction manager — delegate create/save กลับไปที่ mockUserRepository
+// เพื่อให้ test เดิม (mockRejectedValue บน save) ทำงานผ่าน transaction ได้
+const mockEntityManager = {
+  create: jest.fn(
+    (_entity: unknown, data: unknown): unknown =>
+      mockUserRepository.create(data) as unknown
+  ),
+  save: jest.fn(
+    (entity: unknown): unknown => mockUserRepository.save(entity) as unknown
+  ),
 };
 
 describe('UserService', () => {
@@ -71,6 +95,10 @@ describe('UserService', () => {
           useValue: mockPermissionRepository,
         },
         {
+          provide: getRepositoryToken(UserAssignment),
+          useValue: mockAssignmentRepository,
+        },
+        {
           provide: UuidResolverService,
           useValue: {
             resolveOrganizationId: jest.fn().mockResolvedValue(1),
@@ -79,7 +107,13 @@ describe('UserService', () => {
         },
         {
           provide: DataSource,
-          useValue: { query: jest.fn().mockResolvedValue([]) },
+          useValue: {
+            query: jest.fn().mockResolvedValue([]),
+            transaction: jest.fn(
+              (cb: (manager: typeof mockEntityManager) => Promise<unknown>) =>
+                cb(mockEntityManager)
+            ),
+          },
         },
       ],
     }).compile();
@@ -153,6 +187,36 @@ describe('UserService', () => {
       expect(mockUserRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({ primaryOrganizationId: 1 })
       );
+    });
+
+    it('should create user_assignments when roleIds provided', async () => {
+      const dto = {
+        username: 'roled',
+        email: 'roled@test.com',
+        password: 'pass',
+        roleIds: [2],
+      };
+      mockUserRepository.create.mockReturnValue({ ...dto });
+      mockUserRepository.save.mockResolvedValue({ user_id: 10, ...dto });
+      mockRoleRepository.findBy.mockResolvedValue([{ roleId: 2 }]);
+
+      await service.create(dto);
+
+      expect(mockRoleRepository.findBy).toHaveBeenCalled();
+      // manager.save ถูกเรียก 2 ครั้ง — user + assignments (delegate → userRepository.save)
+      expect(mockUserRepository.save).toHaveBeenCalledTimes(2);
+    });
+
+    it('should throw ValidationException for invalid roleIds', async () => {
+      const dto = {
+        username: 'badrole',
+        email: 'bad@test.com',
+        password: 'pass',
+        roleIds: [999],
+      };
+      mockRoleRepository.findBy.mockResolvedValue([]);
+
+      await expect(service.create(dto)).rejects.toThrow(ValidationException);
     });
   });
 
@@ -332,6 +396,49 @@ describe('UserService', () => {
       await expect(
         service.update('bad-uuid', { firstName: 'X' })
       ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should sync assignments when roleIds provided', async () => {
+      const existingAssignment = { id: 10, userId: 1, roleId: 1 };
+      const mockUser = {
+        user_id: 1,
+        publicId: 'uuid-123',
+        assignments: [existingAssignment],
+      };
+      mockUserRepository.findOne.mockResolvedValue(mockUser);
+      mockUserRepository.merge.mockReturnValue(mockUser);
+      mockUserRepository.save.mockResolvedValue(mockUser);
+      mockRoleRepository.findBy.mockResolvedValue([{ roleId: 2 }]);
+      mockAssignmentRepository.create.mockImplementation(
+        (d: unknown): unknown => d
+      );
+
+      await service.update('uuid-123', { roleIds: [2] });
+
+      // roleId 1 ถูกเอาออก → remove; roleId 2 เพิ่มใหม่ → save (Global scope)
+      expect(mockAssignmentRepository.remove).toHaveBeenCalledWith([
+        existingAssignment,
+      ]);
+      expect(mockAssignmentRepository.save).toHaveBeenCalledWith([
+        expect.objectContaining({ userId: 1, roleId: 2 }),
+      ]);
+      expect(mockCacheManager.del).toHaveBeenCalledWith('permissions:user:1');
+    });
+
+    it('should not touch assignments when roleIds omitted', async () => {
+      const mockUser = {
+        user_id: 1,
+        publicId: 'uuid-123',
+        assignments: [{ id: 10, userId: 1, roleId: 1 }],
+      };
+      mockUserRepository.findOne.mockResolvedValue(mockUser);
+      mockUserRepository.merge.mockReturnValue(mockUser);
+      mockUserRepository.save.mockResolvedValue(mockUser);
+
+      await service.update('uuid-123', { firstName: 'Only' });
+
+      expect(mockAssignmentRepository.remove).not.toHaveBeenCalled();
+      expect(mockAssignmentRepository.save).not.toHaveBeenCalled();
     });
   });
 

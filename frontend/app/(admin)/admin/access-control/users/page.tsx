@@ -1,15 +1,17 @@
 // File: frontend/app/(admin)/admin/access-control/users/page.tsx
 // Change Log:
 // - 2026-09-25: Feature 258 (T056) — Telegram status column + admin force-unlink action
+// - 2026-09-30: ปรับให้ตรงข้อมูล user จริง — org จาก organization.publicId (แก้ ADR-019 violation),
+//   เพิ่ม Last Login/Locked/MustChangePassword, role filter, debounce search, limit 100
 
 'use client';
 
-import { useUsers, useDeleteUser, useUnlinkTelegram } from '@/hooks/use-users';
+import { useUsers, useDeleteUser, useUnlinkTelegram, useRoles } from '@/hooks/use-users';
 import { useOrganizations } from '@/hooks/use-master-data';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/common/data-table';
-import { Plus, MoreHorizontal, Pencil, Trash, Search, Send } from 'lucide-react';
-import { useState } from 'react';
+import { Plus, MoreHorizontal, Pencil, Trash, Search, Send, Lock } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { UserDialog } from '@/components/admin/user-dialog';
 import {
   DropdownMenu,
@@ -37,9 +39,34 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Organization } from '@/types/organization';
 import { getApiErrorMessage } from '@/types/api-error';
 
+// limit สูงพอสำหรับหน้า admin (backend default คือ 10 — ต้องระบุเองไม่งั้นเห็นแค่ 10 users)
+const USER_PAGE_LIMIT = 100;
+
+// แปลงวันที่ล็อกอินล่าสุด — null = ยังไม่เคย login
+const formatLastLogin = (value?: string): string => {
+  if (!value) return '—';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString();
+};
+
+// บัญชีถูกล็อกเมื่อ lockedUntil ยังอยู่ในอนาคต
+const isLocked = (user: User): boolean => {
+  if (!user.lockedUntil) return false;
+  const until = new Date(user.lockedUntil);
+  return !Number.isNaN(until.getTime()) && until.getTime() > Date.now();
+};
+
 export default function UsersPage() {
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
+  const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
+
+  // Debounce search 300ms — ลด request ระหว่างพิมพ์ (server-side LIKE)
+  useEffect(() => {
+    const timer = setTimeout(() => setSearch(searchInput.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   const {
     data: users,
@@ -49,9 +76,12 @@ export default function UsersPage() {
   } = useUsers({
     search: search || undefined,
     primaryOrganizationId: selectedOrgId ?? undefined,
+    roleId: selectedRoleId ?? undefined,
+    limit: USER_PAGE_LIMIT,
   });
 
   const { data: organizations = [] } = useOrganizations();
+  const { data: roleOptions = [] } = useRoles();
   const userList = Array.isArray(users) ? users : [];
   const organizationList: Organization[] = Array.isArray(organizations) ? organizations : [];
 
@@ -102,27 +132,29 @@ export default function UsersPage() {
       cell: ({ row }) => <span className="font-semibold">{row.original.username}</span>,
     },
     {
-      accessorKey: 'email',
-      header: 'Email',
-    },
-    {
       id: 'name',
       header: 'Name',
-      cell: ({ row }) => `${row.original.firstName} ${row.original.lastName}`,
+      cell: ({ row }) =>
+        [row.original.firstName, row.original.lastName].filter(Boolean).join(' ') || '—',
+    },
+    {
+      accessorKey: 'email',
+      header: 'Email',
     },
     {
       id: 'organization',
       header: 'Organization',
       cell: ({ row }) => {
-        const orgId = row.original.primaryOrganizationId;
-        if (!orgId) {
+        const org = row.original.organization;
+        if (!org?.publicId) {
           return 'All Organizations';
         }
-
-        const org = Array.isArray(organizationList)
-          ? organizationList.find((o) => (o.id ?? o.publicId) === orgId?.toString() || o.publicId === orgId?.toString())
-          : undefined;
-        return org ? org.organizationCode : 'All Organizations';
+        // ข้อมูล embed จาก API ก่อน — ถ้า list ไม่มีชื่อ ให้ lookup จาก organizations master
+        if (org.organizationCode) {
+          return `${org.organizationCode}${org.organizationName ? ` - ${org.organizationName}` : ''}`;
+        }
+        const master = organizationList.find((o) => o.publicId === org.publicId);
+        return master ? `${master.organizationCode} - ${master.organizationName}` : 'All Organizations';
       },
     },
     {
@@ -133,7 +165,7 @@ export default function UsersPage() {
         return (
           <div className="flex flex-wrap gap-1">
             {roles.map((r) => (
-              <Badge key={r.publicId} variant="outline" className="text-xs">
+              <Badge key={r.publicId ?? r.roleName} variant="outline" className="text-xs">
                 {r.roleName}
               </Badge>
             ))}
@@ -160,12 +192,31 @@ export default function UsersPage() {
       },
     },
     {
+      id: 'lastLogin',
+      header: 'Last Login',
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">{formatLastLogin(row.original.lastLoginAt)}</span>
+      ),
+    },
+    {
       accessorKey: 'isActive',
       header: 'Status',
       cell: ({ row }) => (
-        <Badge variant={row.original.isActive ? 'default' : 'secondary'}>
-          {row.original.isActive ? 'Active' : 'Inactive'}
-        </Badge>
+        <div className="flex flex-wrap gap-1">
+          <Badge variant={row.original.isActive ? 'default' : 'secondary'}>
+            {row.original.isActive ? 'Active' : 'Inactive'}
+          </Badge>
+          {isLocked(row.original) && (
+            <Badge variant="destructive" className="gap-1">
+              <Lock className="h-3 w-3" /> Locked
+            </Badge>
+          )}
+          {row.original.mustChangePassword && (
+            <Badge variant="outline" className="text-xs">
+              Reset required
+            </Badge>
+          )}
+        </div>
       ),
     },
     {
@@ -227,13 +278,13 @@ export default function UsersPage() {
         </Button>
       </div>
 
-      <div className="flex gap-4 items-center bg-muted/30 p-4 rounded-lg">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex gap-4 items-center bg-muted/30 p-4 rounded-lg flex-wrap">
+        <div className="relative flex-1 max-w-sm min-w-[200px]">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search users..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             className="pl-8 bg-background"
           />
         </div>
@@ -249,6 +300,26 @@ export default function UsersPage() {
                   {org.organizationCode} - {org.organizationName}
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="w-[200px]">
+          <Select
+            value={selectedRoleId !== null ? String(selectedRoleId) : 'all'}
+            onValueChange={(val) => setSelectedRoleId(val === 'all' ? null : Number(val))}
+          >
+            <SelectTrigger className="bg-background">
+              <SelectValue placeholder="All Roles" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Roles</SelectItem>
+              {roleOptions
+                .filter((role) => role.roleId !== undefined)
+                .map((role) => (
+                  <SelectItem key={role.publicId ?? role.roleName} value={String(role.roleId)}>
+                    {role.roleName}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </div>

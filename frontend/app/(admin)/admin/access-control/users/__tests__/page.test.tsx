@@ -14,6 +14,7 @@ vi.mock('@/hooks/use-users', () => ({
   useUsers: () => mockUsers(),
   useDeleteUser: () => ({ mutate: mockDeleteMutate, isPending: false }),
   useUnlinkTelegram: () => ({ mutate: mockUnlinkMutate, isPending: false }),
+  useRoles: () => ({ data: [] }),
 }));
 
 vi.mock('@/hooks/use-master-data', () => ({

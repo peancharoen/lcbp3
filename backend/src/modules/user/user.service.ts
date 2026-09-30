@@ -2,13 +2,18 @@
 // บันทึกการแก้ไข: แก้ไข Error TS1272 โดยใช้ 'import type' สำหรับ Cache interface (T1.3)
 
 import { Injectable, Inject } from '@nestjs/common';
-import { NotFoundException, ConflictException } from '../../common/exceptions';
+import {
+  NotFoundException,
+  ConflictException,
+  ValidationException,
+} from '../../common/exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager'; // ✅ FIX: เพิ่ม 'type' ตรงนี้
 import * as bcrypt from 'bcrypt';
 import { User } from './entities/user.entity';
+import { UserAssignment } from './entities/user-assignment.entity';
 import { Role } from './entities/role.entity';
 import { Permission } from './entities/permission.entity';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -25,13 +30,15 @@ export class UserService {
     private roleRepository: Repository<Role>,
     @InjectRepository(Permission)
     private permissionRepository: Repository<Permission>,
+    @InjectRepository(UserAssignment)
+    private assignmentRepository: Repository<UserAssignment>,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private uuidResolver: UuidResolverService,
     private dataSource: DataSource
   ) {}
 
-  // 1. สร้างผู้ใช้ (Hash Password ก่อนบันทึก)
-  async create(createUserDto: CreateUserDto): Promise<User> {
+  // 1. สร้างผู้ใช้ (Hash Password ก่อนบันทึก) + มอบหมาย Role (Global scope) ถ้าระบุ roleIds
+  async create(createUserDto: CreateUserDto, actor?: User): Promise<User> {
     const salt = await bcrypt.genSalt(12); // ADR-016: 12 salt rounds
     const hashedPassword = await bcrypt.hash(createUserDto.password, salt);
 
@@ -42,14 +49,35 @@ export class UserService {
         )
       : undefined;
 
-    const newUser = this.usersRepository.create({
-      ...createUserDto,
-      primaryOrganizationId: resolvedOrgId,
-      password: hashedPassword,
-    });
+    // roleIds ไม่ใช่คอลัมน์ของ users — แยกออกก่อนสร้าง entity
+    const { roleIds, ...userData } = createUserDto;
+    if (roleIds?.length) {
+      await this.assertRolesExist(roleIds);
+    }
 
     try {
-      return await this.usersRepository.save(newUser);
+      // Transaction: user + user_assignments ต้องสำเร็จพร้อมกัน (กัน user ไม่มี role ค้าง)
+      return await this.dataSource.transaction(async (manager) => {
+        const newUser = manager.create(User, {
+          ...userData,
+          primaryOrganizationId: resolvedOrgId,
+          password: hashedPassword,
+        });
+        const savedUser = await manager.save(newUser);
+
+        if (roleIds?.length) {
+          const assignments = [...new Set(roleIds)].map((roleId) =>
+            manager.create(UserAssignment, {
+              userId: savedUser.user_id,
+              roleId,
+              assignedByUserId: actor?.user_id,
+            })
+          );
+          await manager.save(assignments);
+        }
+
+        return savedUser;
+      });
     } catch (error: unknown) {
       const dbError = error as { code?: string };
       if (dbError.code === 'ER_DUP_ENTRY') {
@@ -96,6 +124,10 @@ export class UserService {
         'user.lastName',
         'user.lineId',
         'user.isActive',
+        'user.mustChangePassword',
+        'user.failedAttempts',
+        'user.lockedUntil',
+        'user.lastLoginAt',
         'user.createdAt',
         'user.updatedAt',
         'user.telegramChatId', // Feature 258 — telegramStatus derivation (ไม่ serialize — @Exclude)
@@ -104,7 +136,10 @@ export class UserService {
         'assignments.id',
         'role.roleId',
         'role.roleName',
-        'organization.publicId', // [FIX] Expose org UUID for getter (ADR-019)
+        'role.publicId',
+        'organization.publicId',
+        'organization.organizationCode',
+        'organization.organizationName',
       ]);
 
     // Apply Filters
@@ -190,8 +225,12 @@ export class UserService {
     return this.usersRepository.findOne({ where: { username } });
   }
 
-  // 4. แก้ไขข้อมูล
-  async update(uuid: string, updateUserDto: UpdateUserDto): Promise<User> {
+  // 4. แก้ไขข้อมูล (+ sync Roles ถ้าส่ง roleIds มา)
+  async update(
+    uuid: string,
+    updateUserDto: UpdateUserDto,
+    actor?: User
+  ): Promise<User> {
     const user = await this.findOneByUuid(uuid);
 
     if (updateUserDto.password) {
@@ -199,8 +238,14 @@ export class UserService {
       updateUserDto.password = await bcrypt.hash(updateUserDto.password, salt);
     }
 
+    // roleIds ไม่ใช่คอลัมน์ของ users — แยกออกก่อน merge
+    const { roleIds, ...dtoWithoutRoles } = updateUserDto;
+    if (roleIds?.length) {
+      await this.assertRolesExist(roleIds);
+    }
+
     // ADR-019: Resolve UUID→INT for primaryOrganizationId before merge
-    const resolvedDto: Record<string, unknown> = { ...updateUserDto };
+    const resolvedDto: Record<string, unknown> = { ...dtoWithoutRoles };
     if (updateUserDto.primaryOrganizationId !== undefined) {
       resolvedDto.primaryOrganizationId =
         await this.uuidResolver.resolveOrganizationId(
@@ -213,6 +258,10 @@ export class UserService {
       resolvedDto as Partial<User>
     );
     const savedUser = await this.usersRepository.save(updatedUser);
+
+    if (roleIds !== undefined) {
+      await this.syncRoleAssignments(user, roleIds, actor?.user_id);
+    }
 
     // ⚠️ สำคัญ: เมื่อมีการแก้ไขข้อมูล User ต้องเคลียร์ Cache สิทธิ์เสมอ
     await this.clearUserCache(user.user_id);
@@ -308,6 +357,57 @@ export class UserService {
    */
   async clearUserCache(userId: number): Promise<void> {
     await this.cacheManager.del(`permissions:user:${userId}`);
+  }
+
+  /**
+   * ตรวจว่า roleIds ที่ส่งมามีอยู่จริงทั้งหมด (กัน FK violation เป็น 500)
+   */
+  private async assertRolesExist(roleIds: number[]): Promise<void> {
+    const uniqueRoleIds = [...new Set(roleIds)];
+    const found = await this.roleRepository.findBy({
+      roleId: In(uniqueRoleIds),
+    });
+    const foundIds = new Set(found.map((r) => r.roleId));
+    const missing = uniqueRoleIds.filter((id) => !foundIds.has(id));
+    if (missing.length > 0) {
+      throw new ValidationException(
+        `Invalid roleId(s): ${missing.join(', ')}`,
+        undefined,
+        'บทบาทที่เลือกไม่ถูกต้อง กรุณาเลือกบทบาทใหม่'
+      );
+    }
+  }
+
+  /**
+   * Sync user_assignments ให้ตรงกับ roleIds ที่ admin เลือกในหน้า User Dialog
+   * — role ที่ถูกเอาออกถูกลบทุก scope (UI แสดง role แบบ flat list)
+   * — role ที่เพิ่มใหม่สร้างเป็น Global scope (ทุก scope เป็น NULL)
+   */
+  private async syncRoleAssignments(
+    user: User,
+    roleIds: number[],
+    assignedByUserId?: number
+  ): Promise<void> {
+    const targetRoleIds = [...new Set(roleIds)];
+    const current = user.assignments ?? [];
+    const currentRoleIds = new Set(current.map((a) => a.roleId));
+
+    const toRemove = current.filter((a) => !targetRoleIds.includes(a.roleId));
+    const toAdd = targetRoleIds.filter((rid) => !currentRoleIds.has(rid));
+
+    if (toRemove.length > 0) {
+      await this.assignmentRepository.remove(toRemove);
+    }
+    if (toAdd.length > 0) {
+      const rows = toAdd.map((roleId) =>
+        this.assignmentRepository.create({
+          userId: user.user_id,
+          roleId,
+          assignedByUserId,
+        })
+      );
+      await this.assignmentRepository.save(rows);
+    }
   }
 
   /**

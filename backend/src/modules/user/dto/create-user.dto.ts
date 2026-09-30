@@ -5,6 +5,8 @@ import {
   MinLength,
   IsOptional,
   IsBoolean,
+  IsArray,
+  IsInt,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -54,4 +56,22 @@ export class CreateUserDto {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Role IDs to assign (Global scope)',
+    example: [1, 2],
+    type: [Number],
+  })
+  @IsArray()
+  @IsInt({ each: true })
+  @IsOptional()
+  roleIds?: number[];
+
+  @ApiPropertyOptional({
+    description: 'Force password change on first login (SEV-014)',
+    default: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  mustChangePassword?: boolean;
 }

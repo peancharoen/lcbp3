@@ -27,7 +27,6 @@ describe('userService', () => {
         data: {
           data: [
             {
-              user_id: 123,
               publicId: 'uuid-user-1',
               username: 'test1',
               assignments: [{ role: { roleName: 'Admin' } }],
@@ -40,8 +39,6 @@ describe('userService', () => {
       expect(apiClient.get).toHaveBeenCalledWith('/users', { params: { search: 'test1' } });
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual({
-        user_id: 123,
-        userId: 123,
         publicId: 'uuid-user-1',
         username: 'test1',
         assignments: [{ role: { roleName: 'Admin' } }],
@@ -70,7 +67,6 @@ describe('userService', () => {
     it('ควรดึงรายละเอียดผู้ใช้ตาม uuid และทำการ transform', async () => {
       const mockResponse = {
         data: {
-          userId: 456,
           publicId: 'uuid-user-2',
           username: 'test2',
         },
@@ -79,7 +75,6 @@ describe('userService', () => {
       const result = await userService.getByUuid('uuid-user-2');
       expect(apiClient.get).toHaveBeenCalledWith('/users/uuid-user-2');
       expect(result).toEqual({
-        userId: 456,
         publicId: 'uuid-user-2',
         username: 'test2',
         roles: [],

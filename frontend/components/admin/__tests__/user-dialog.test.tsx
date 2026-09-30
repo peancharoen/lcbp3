@@ -31,7 +31,7 @@ const existingUser: User = {
   lastName: 'User',
   isActive: true,
   lineId: 'line-existing',
-  primaryOrganizationId: '019505a1-7c3e-7000-8000-abc123defb02',
+  organization: { publicId: '019505a1-7c3e-7000-8000-abc123defb02' },
   roles: [
     {
       publicId: '019505a1-7c3e-7000-8000-abc123defb03',

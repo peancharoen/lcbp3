@@ -103,12 +103,17 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
       reset({
         username: user.username,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        firstName: user.firstName ?? '',
+        lastName: user.lastName ?? '',
         isActive: user.isActive,
         lineId: user.lineId || '',
-        primaryOrganizationId: user.primaryOrganizationId || ALL_ORGANIZATIONS_VALUE,
-        roleIds: user.roles?.map((r: { roleId?: number }) => r.roleId).filter((id): id is number => id !== undefined) || [],
+        // API ส่ง org มาใน user.organization.publicId (ADR-019) — ไม่มี primaryOrganizationId ใน response
+        primaryOrganizationId: user.organization?.publicId || ALL_ORGANIZATIONS_VALUE,
+        roleIds: Array.from(
+          new Set(
+            user.roles?.map((r: { roleId?: number }) => r.roleId).filter((id): id is number => id !== undefined) || []
+          )
+        ),
         password: '',
         confirmPassword: '',
       });
@@ -169,6 +174,8 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
           lineId: payload.lineId,
           primaryOrganizationId: payload.primaryOrganizationId,
           roleIds: payload.roleIds ?? [],
+          // SEV-014: admin สร้าง user ด้วยรหัสตั้งต้น → บังคับเปลี่ยนรหัส login ครั้งแรก
+          mustChangePassword: true,
         },
         {
           onSuccess: () => onOpenChange(false),

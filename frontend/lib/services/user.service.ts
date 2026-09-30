@@ -7,8 +7,6 @@ import { CreateUserDto, UpdateUserDto, SearchUserDto, User, Role } from '@/types
 
 /** Raw API user shape (before transform) */
 interface RawUser {
-  user_id?: number;
-  userId?: number;
   assignments?: Array<{ role: unknown }>;
   [key: string]: unknown;
 }
@@ -35,7 +33,6 @@ const transformUser = (user: RawUser): User => {
   return {
     ...(user as unknown as User),
     publicId: (user.publicId as string) ?? '',
-    userId: (user.user_id ?? user.userId) as number | undefined,
     roles: (user.assignments?.map((a) => a.role) ?? []) as User['roles'],
   };
 };

@@ -112,8 +112,8 @@ export class UserController {
   @ApiBody({ type: CreateUserDto })
   @ApiResponse({ status: 201, description: 'User created' })
   @RequirePermission('user.create')
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.userService.create(createUserDto);
+  create(@Body() createUserDto: CreateUserDto, @CurrentUser() actor: User) {
+    return this.userService.create(createUserDto, actor);
   }
 
   @Get()
@@ -141,9 +141,10 @@ export class UserController {
   @RequirePermission('user.edit')
   update(
     @Param('uuid', ParseUuidPipe) uuid: string,
-    @Body() updateUserDto: UpdateUserDto
+    @Body() updateUserDto: UpdateUserDto,
+    @CurrentUser() actor: User
   ) {
-    return this.userService.update(uuid, updateUserDto);
+    return this.userService.update(uuid, updateUserDto, actor);
   }
 
   @Delete(':uuid')
