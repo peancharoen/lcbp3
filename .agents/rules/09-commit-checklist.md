@@ -8,6 +8,7 @@
 - **Commit (local) ทันที** — เสร็จงานย่อยแต่ละจุด (แก้ไฟล์/เพิ่ม test/อัปเดต memory) ให้ `git commit` ทันที ไม่ต้องรอ user สั่ง และไม่ต้องรอจนกว่างานทั้ง session จะเสร็จ
 - **ห้าม push เอง** — push ไป `origin main` ทำได้เฉพาะเมื่อ user สั่งชัดเจนต่อครั้งเท่านั้น (hard limit, ดู AGENTS.md §Hard limits)
 - **Push ใช้ `2git.sh` เท่านั้น** — ไม่ใช้ `git push` ตรงๆ สคริปต์นี้ squash commit ย่อยทั้งหมดที่นำหน้า `origin/main` เป็น 1 commit อัตโนมัติ (เก็บ commit message ย่อยไว้ใน body เป็น audit trail) ก่อน push — commit ย่อยระหว่างทางจึงไม่ทำให้ history รก
+- **ข้อยกเว้น Devin Cloud (`devin-bot`)** — ห้ามรัน `2git.sh` และห้าม push เข้า `np-dms/lcbp3`; push ได้เฉพาะ branch `devin/<topic>` บน fork แล้วเปิด PR (ดู `25-devin-cloud-workflow.md`)
 
 ## Pre-Commit Verification
 

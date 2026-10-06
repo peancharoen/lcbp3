@@ -1,7 +1,7 @@
 # NAP-DMS Project Context & Rules
 
 - For: Windsurf Cascade (and compatible: Claude, opencode, Amp, Antigravity, AGENTS.md tools)
-- Version: 1.9.17 | Last synced from repo: 2026-09-02
+- Version: 1.9.18 | Last synced from repo: 2026-10-06
 - Repo: [https://git.np-dms.work/np-dms/lcbp3](https://git.np-dms.work/np-dms/lcbp3)
 - Skill pack: `.agents/skills/` ↔ `.devin/skills/` (v1.9.0, 35 skills) — see [`skills/README.md`](./.agents/skills/README.md) + [`skills/_LCBP3-CONTEXT.md`](./.agents/skills/_LCBP3-CONTEXT.md)
 
@@ -227,7 +227,7 @@ Tools: `qdrant_list_collections`, `qdrant_collection_info`, `qdrant_scroll`, `qd
 
 → Full details: [`.agents/rules/19-mcp-gitea-tools.md`](./.agents/rules/19-mcp-gitea-tools.md)
 
-60+ tools: issues, comments, labels, milestones, topics, pull requests, Gitea Actions (CI/CD), releases, wiki. 🔴 `merge_pull_request` is IRREVERSIBLE — confirm before.
+2 servers: `gitea` (amonstack, ~75 tools — issues, labels, milestones, topics, PRs, attachments, wiki; auto-resolves owner/repo) + `gitea-official` (official v1.8.0, 57 action-based tools — files, branches/tags, commits, PR reviews, Actions logs/secrets, fork; **must pass `owner` + `repo` every call**). 🔴 `merge_pull_request` / `pull_request_write` method `merge` is IRREVERSIBLE — confirm before.
 
 ---
 
@@ -387,6 +387,40 @@ Tier 4 (guidelines): Prettier, comments.
 
 ---
 
+## ☁️ Devin Cloud Workflow (Fork → PR)
+
+→ Full details: [`.agents/rules/25-devin-cloud-workflow.md`](./.agents/rules/25-devin-cloud-workflow.md)
+
+> ใช้เฉพาะ agent ที่รันบน **Devin Cloud** (ทำงานในนาม Gitea user `devin-bot`) — agent บนเครื่อง admin (Devin Desktop / Windsurf / Claude Code ฯลฯ) ใช้ Commit Discipline (D264) + `2git.sh` ตามเดิม
+
+Devin Cloud ไม่มี native Gitea integration → ทำงานบน **fork** แล้วเปิด PR เข้า repo หลักเท่านั้น (`main` มี branch protection: push allowlist = `admin`, ห้าม force push, ต้อง approval + status check `ci-quality`/`ci-test`)
+
+| Remote     | URL                                           | สิทธิ์ของ `devin-bot` |
+| ---------- | --------------------------------------------- | --------------------- |
+| `origin`   | `https://git.np-dms.work/devin-bot/lcbp3.git` | Read + Write (fork)   |
+| `upstream` | `https://git.np-dms.work/np-dms/lcbp3.git`    | Read only             |
+
+**ขั้นตอนต่อ task:**
+
+1. Sync fork ก่อนเริ่มงาน: `git fetch upstream && git checkout main && git reset --hard upstream/main && git push origin main`
+2. สร้าง branch `devin/<topic>` จาก `main` (kebab-case เช่น `devin/fix-rfa-status-filter`)
+3. แก้ไข + รัน verification ตาม § Commands & Verification (lint + test ของ workspace ที่แตะ) ให้ผ่านก่อน push
+4. Commit ตาม Commit Message Format (`type(scope): description`) — ห้ามใส่ `[skip CI]`
+5. `git push origin devin/<topic>` (push ไป fork เท่านั้น)
+6. เปิด PR `devin-bot:devin/<topic>` → `np-dms/lcbp3:main` ผ่าน Gitea MCP (`gitea-official`: `pull_request_write` method `create` / `gitea`: `create_pull_request`) หรือ `POST /api/v1/repos/np-dms/lcbp3/pulls` — PR body ต้องมี: สรุปการเปลี่ยนแปลง, ADR/spec ที่อ้างอิง, ผล verification
+7. ถ้า `main` ขยับระหว่างรอ review → `git fetch upstream && git rebase upstream/main` แล้ว `git push --force-with-lease origin devin/<topic>` (force ได้เฉพาะ branch ของตัวเองบน fork)
+
+**ห้าม (Devin Cloud):**
+
+- ❌ push ไป `upstream` หรือ branch ใด ๆ ใน `np-dms/lcbp3` / ❌ merge PR เอง (`merge_pull_request`) — admin review + merge เท่านั้น
+- ❌ รัน `2git.sh` / `2git.ps1` (ใช้เฉพาะเครื่อง admin)
+- ❌ แตะ GitHub (`peancharoen/lcbp3` เป็น one-way push mirror จาก Gitea — ทุกอย่างบน GitHub ถูกเขียนทับ) / ❌ ใช้ `gh` CLI
+- ❌ แก้ `.gitea/workflows/**`, `2git.sh`, `2git.ps1` (protected files — PR จะ merge ไม่ได้) เว้นแต่ได้รับคำสั่งชัดเจน
+- ❌ commit token / credential (`GITEA_TOKEN` อยู่ใน Devin Secrets เท่านั้น) / ❌ เข้าถึง production DB, storage หรือ server `192.168.10.11` โดยตรง
+- ❌ แก้ schema SQL, RBAC matrix หรือ ADR โดยไม่มีคำสั่งชัดเจน (ดู § Forbidden Actions & Out of Scope)
+
+---
+
 ## Agent skills
 
 ### Issue tracker
@@ -422,6 +456,7 @@ This file is a **quick reference**. For detailed information:
 
 | Version | Date       | Changes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Updated By     |
 | ------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| 1.9.18  | 2026-10-06 | Added Devin Cloud Workflow section — Devin Cloud (Gitea user `devin-bot`) works on fork `devin-bot/lcbp3` → PR to `np-dms/lcbp3:main` (no native Gitea integration); branch `devin/<topic>`; forbids push to upstream, self-merge, `2git.sh`, GitHub mirror access, editing protected files (`.gitea/workflows/**`, `2git.*`); full rule in `.agents/rules/25-devin-cloud-workflow.md` ↔ `.devin/rules/`; MCP Gitea section updated for 2 servers (`gitea` + `gitea-official`); synced `.agents/rules/19-mcp-gitea-tools.md` from `.devin/rules/`                                                                                | Devin          |
 | 1.9.17  | 2026-09-02 | Added Docker Compose Live Edit Protocol section — live edit at `/opt/np-dms/<layer>/`, sync to repo `specs/04-Infrastructure-OPS/`, use `dockerup.sh`/`dockerstart.sh` commands with `--env-file`; added same protocol to `memory/project-memory-override.md`                                                                                                                                                                                                                                                                                                                                                                     | Devin          |
 | 1.9.16  | 2026-08-31 | Added Claude Code row to Collaboration & Sub-agents Commands table — maps `Agent` tool (`subagent_type`) + `/<command>` to `.claude/agents/` and `.claude/commands/`; new `.claude/` setup: `skills/` mirrored from `.agents/skills/` (35 skills), `settings.json` permissions allowlist from Commands & Verification table, `agents/` (`security-review`, `schema-change`, `spec-researcher` thin subagents), `commands/` (`/deploy`, `/schema-change`, `/security-review`, `/bugfix`, `/save-memory`)                                                                                                                           | Claude         |
 | 1.9.15  | 2026-08-28 | Added Collaboration & Sub-agents Commands section with platform-specific command mapping; clarifies Devin `run_subagent`/`read_subagent` vs other IDE equivalents and forbids treating them as universal.                                                                                                                                                                                                                                                                                                                                                                                                                         | Devin          |
