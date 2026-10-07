@@ -1,6 +1,7 @@
 // File: backend/src/modules/organization/organization.service.spec.ts
 // Change Log:
 // - 2026-06-20: Initial creation — unit tests สำหรับ OrganizationService
+// - 2026-10-07: เพิ่ม test isActive filter (กรณี false ต้องถูก apply ด้วย)
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
@@ -126,8 +127,20 @@ describe('OrganizationService', () => {
 
       await service.findAll({ roleId: 3 });
 
-      expect(qb.andWhere).toHaveBeenCalledWith('org.roleId = :roleId', {
-        roleId: 3,
+      expect(qb.andWhere).toHaveBeenCalledWith(
+        expect.stringContaining('contract_organizations'),
+        { roleId: 3 }
+      );
+    });
+
+    it('should apply isActive filter (including false)', async () => {
+      const qb = createMockQueryBuilder();
+      mockOrgRepo.createQueryBuilder.mockReturnValue(qb);
+
+      await service.findAll({ isActive: false });
+
+      expect(qb.andWhere).toHaveBeenCalledWith('org.isActive = :isActive', {
+        isActive: false,
       });
     });
 

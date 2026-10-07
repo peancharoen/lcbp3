@@ -33,10 +33,18 @@ export class OrganizationService {
     search?: string;
     roleId?: number;
     projectId?: number;
+    isActive?: boolean;
     page?: number;
     limit?: number;
   }) {
-    const { search, roleId, projectId, page = 1, limit = 100 } = params || {};
+    const {
+      search,
+      roleId,
+      projectId,
+      isActive,
+      page = 1,
+      limit = 100,
+    } = params || {};
     const skip = (page - 1) * limit;
 
     // Start with a basic query builder to handle dynamic conditions easily
@@ -49,17 +57,28 @@ export class OrganizationService {
       );
     }
 
-    // [Refactor] Support filtering by roleId (e.g., getting all CONTRACTORS)
+    // Filter isActive — ใช้ !== undefined เพราะ isActive=false ก็ต้อง filter (ห้ามใช้ truthy check)
+    if (isActive !== undefined) {
+      queryBuilder.andWhere('org.isActive = :isActive', { isActive });
+    }
+
+    // [Refactor] Filter by roleId — องค์กรที่ถือ role นี้ใน contract หรือ project ใดก็ได้
+    // (organizations.role_id ถูกตัดออก — role มีความหมายเฉพาะใน context ของ contract/project)
     if (roleId) {
-      // Assuming there is a relation or a way to filter by role.
-      // If Organization has a roleId column directly:
-      queryBuilder.andWhere('org.roleId = :roleId', { roleId });
+      queryBuilder.andWhere(
+        `EXISTS (
+           SELECT 1 FROM contract_organizations co
+           WHERE co.organization_id = org.id AND co.role_id = :roleId
+         ) OR EXISTS (
+           SELECT 1 FROM project_organizations po_role
+           WHERE po_role.organization_id = org.id AND po_role.role_id = :roleId
+         )`,
+        { roleId }
+      );
     }
 
     // [New] Support filtering by projectId (e.g. organizations in a project)
-    // Assuming a Many-to-Many or One-to-Many relation exists via ProjectOrganization
     if (projectId) {
-      // Use raw join to avoid circular dependency with ProjectOrganization entity
       queryBuilder.innerJoin(
         'project_organizations',
         'po',

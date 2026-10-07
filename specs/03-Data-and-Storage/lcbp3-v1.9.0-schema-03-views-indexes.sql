@@ -258,11 +258,12 @@ SELECT c.id AS contract_id,
   o.uuid AS organization_uuid,
   o.organization_code,
   o.organization_name,
-  co.role_in_contract
+  orole.role_name AS role_in_contract
 FROM contracts c
   INNER JOIN projects p ON c.project_id = p.id
   INNER JOIN contract_organizations co ON c.id = co.contract_id
   INNER JOIN organizations o ON co.organization_id = o.id
+  LEFT JOIN organization_roles orole ON co.role_id = orole.id
 WHERE c.is_active = TRUE;
 
 -- ============================================================

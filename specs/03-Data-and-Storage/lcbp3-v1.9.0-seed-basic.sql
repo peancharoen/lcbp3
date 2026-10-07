@@ -66,77 +66,66 @@ VALUES (1, 'OWNER'),
 INSERT INTO organizations (
     id,
     organization_code,
-    organization_name,
-    role_id
+    organization_name
   )
-VALUES (1, 'กทท.', 'การท่าเรือแห่งประเทศไทย', 1),
+VALUES (1, 'กทท.', 'การท่าเรือแห่งประเทศไทย'),
   (
     10,
     'สคฉ.3',
-    'โครงการพัฒนาท่าเรือแหลมฉบัง ระยะที่ 3',
-    1
+    'โครงการพัฒนาท่าเรือแหลมฉบัง ระยะที่ 3'
   ),
   (
     11,
     'สคฉ.3-01',
-    'ตรวจรับพัสดุ ที่ปรึกษาควบคุมงาน',
-    1
+    'ตรวจรับพัสดุ ที่ปรึกษาควบคุมงาน'
   ),
-  (12, 'สคฉ.3-02', 'ตรวจรับพัสดุ งานทางทะเล', 1),
+  (12, 'สคฉ.3-02', 'ตรวจรับพัสดุ งานทางทะเล'),
   (
     13,
     'สคฉ.3-03',
-    'ตรวจรับพัสดุ อาคารและระบบสาธารณูปโภค',
-    1
+    'ตรวจรับพัสดุ อาคารและระบบสาธารณูปโภค'
   ),
   (
     14,
     'สคฉ.3-04',
-    'ตรวจรับพัสดุ ตรวจสอบผลกระทบสิ่งแวดล้อม',
-    1
+    'ตรวจรับพัสดุ ตรวจสอบผลกระทบสิ่งแวดล้อม'
   ),
   (
     15,
     'สคฉ.3-05',
-    'ตรวจรับพัสดุ เยียวยาการประมง',
-    1
+    'ตรวจรับพัสดุ เยียวยาการประมง'
   ),
   (
     16,
     'สคฉ.3-06',
-    'ตรวจรับพัสดุ งานก่อสร้าง ส่วนที่ 3',
-    1
+    'ตรวจรับพัสดุ งานก่อสร้าง ส่วนที่ 3'
   ),
   (
     17,
     'สคฉ.3-07',
-    'ตรวจรับพัสดุ งานก่อสร้าง ส่วนที่ 4',
-    1
+    'ตรวจรับพัสดุ งานก่อสร้าง ส่วนที่ 4'
   ),
   (
     18,
     'สคฉ.3-xx',
-    'ตรวจรับพัสดุ ที่ปรึกษาออกแบบ ส่วนที่ 4',
-    1
+    'ตรวจรับพัสดุ ที่ปรึกษาออกแบบ ส่วนที่ 4'
   ),
-  (21, 'TEAM', 'Designer Consulting Ltd.', 2),
-  (22, 'คคง.', 'Construction Supervision Ltd.', 3),
-  (41, 'ผรม.1', 'Contractor งานทางทะเล', 4),
-  (42, 'ผรม.2', 'Contractor งานก่อสร้าง', 4),
+  (21, 'TEAM', 'Designer Consulting Ltd.'),
+  (22, 'คคง.', 'Construction Supervision Ltd.'),
+  (41, 'ผรม.1', 'Contractor งานทางทะเล'),
+  (42, 'ผรม.2', 'Contractor งานก่อสร้าง'),
   (
     43,
     'ผรม.3',
-    'Contractor งานก่อสร้าง ส่วนที่ 3',
-    4
+    'Contractor งานก่อสร้าง ส่วนที่ 3'
   ),
   (
     44,
     'ผรม.4',
-    'Contractor งานก่อสร้าง ส่วนที่ 4',
-    4
+    'Contractor งานก่อสร้าง ส่วนที่ 4'
   ),
-  (31, 'EN', 'Third Party Environment', 5),
-  (32, 'CAR', 'Third Party Fishery Care', 5);
+  (31, 'EN', 'Third Party Environment'),
+  (32, 'CAR', 'Third Party Fishery Care');
 
 -- Seed project
 INSERT INTO projects (project_code, project_name)
@@ -473,7 +462,7 @@ WHERE organization_code IN (
 -- == 5. การเชื่อมโยงสัญญากับองค์กร (contract_organizations) ==
 -- =====================================================
 -- สัญญาที่ปรึกษาออกแบบ (DSLCBP3)
-INSERT INTO contract_organizations (contract_id, organization_id, role_in_contract)
+INSERT INTO contract_organizations (contract_id, organization_id, role_id)
 VALUES (
     (
       SELECT id
@@ -485,7 +474,7 @@ VALUES (
       FROM organizations
       WHERE organization_code = 'กทท.'
     ),
-    'Owner'
+    (SELECT id FROM organization_roles WHERE role_name = 'OWNER')
   ),
   (
     (
@@ -498,11 +487,11 @@ VALUES (
       FROM organizations
       WHERE organization_code = 'TEAM'
     ),
-    'Designer'
+    (SELECT id FROM organization_roles WHERE role_name = 'DESIGNER')
   );
 
 -- สัญญาที่ปรึกษาควบคุมงาน (PSLCBP3)
-INSERT INTO contract_organizations (contract_id, organization_id, role_in_contract)
+INSERT INTO contract_organizations (contract_id, organization_id, role_id)
 VALUES (
     (
       SELECT id
@@ -514,7 +503,7 @@ VALUES (
       FROM organizations
       WHERE organization_code = 'กทท.'
     ),
-    'Owner'
+    (SELECT id FROM organization_roles WHERE role_name = 'OWNER')
   ),
   (
     (
@@ -527,11 +516,11 @@ VALUES (
       FROM organizations
       WHERE organization_code = 'คคง.'
     ),
-    'Consultant'
+    (SELECT id FROM organization_roles WHERE role_name = 'CONSULTANT')
   );
 
 -- สัญญางานก่อสร้าง ส่วนที่ 1 (LCBP3-C1)
-INSERT INTO contract_organizations (contract_id, organization_id, role_in_contract)
+INSERT INTO contract_organizations (contract_id, organization_id, role_id)
 VALUES (
     (
       SELECT id
@@ -543,7 +532,7 @@ VALUES (
       FROM organizations
       WHERE organization_code = 'กทท.'
     ),
-    'Owner'
+    (SELECT id FROM organization_roles WHERE role_name = 'OWNER')
   ),
   (
     (
@@ -556,11 +545,11 @@ VALUES (
       FROM organizations
       WHERE organization_code = 'ผรม.1'
     ),
-    'Contractor'
+    (SELECT id FROM organization_roles WHERE role_name = 'CONTRACTOR')
   );
 
 -- สัญญางานก่อสร้าง ส่วนที่ 2 (LCBP3-C2)
-INSERT INTO contract_organizations (contract_id, organization_id, role_in_contract)
+INSERT INTO contract_organizations (contract_id, organization_id, role_id)
 VALUES (
     (
       SELECT id
@@ -572,7 +561,7 @@ VALUES (
       FROM organizations
       WHERE organization_code = 'กทท.'
     ),
-    'Owner'
+    (SELECT id FROM organization_roles WHERE role_name = 'OWNER')
   ),
   (
     (
@@ -585,11 +574,11 @@ VALUES (
       FROM organizations
       WHERE organization_code = 'ผรม.2'
     ),
-    'Contractor'
+    (SELECT id FROM organization_roles WHERE role_name = 'CONTRACTOR')
   );
 
 -- สัญญาตรวจสอบสิ่งแวดล้อม (LCBP3-EN)
-INSERT INTO contract_organizations (contract_id, organization_id, role_in_contract)
+INSERT INTO contract_organizations (contract_id, organization_id, role_id)
 VALUES (
     (
       SELECT id
@@ -601,7 +590,7 @@ VALUES (
       FROM organizations
       WHERE organization_code = 'กทท.'
     ),
-    'Owner'
+    (SELECT id FROM organization_roles WHERE role_name = 'OWNER')
   ),
   (
     (
@@ -614,7 +603,7 @@ VALUES (
       FROM organizations
       WHERE organization_code = 'EN'
     ),
-    'Consultant'
+    (SELECT id FROM organization_roles WHERE role_name = 'CONSULTANT')
   );
 
 -- Seed correspondence_status

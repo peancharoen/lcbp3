@@ -235,14 +235,16 @@ erDiagram
     - - Purpose **: Junction TABLE linking projects TO participating organizations (M :N) | COLUMN Name | Data TYPE | Constraints | Description | | --------------- | --------- | --------------- | -------------------------------- |
         | project_id | INT | PRIMARY KEY,
         FK | Reference TO projects TABLE | | organization_id | INT | PRIMARY KEY,
-        FK | Reference TO organizations TABLE | ** INDEXES **: - PRIMARY KEY (project_id, organization_id) - FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE - FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE - INDEX (organization_id) ** Relationships \*\*: - Parent: projects,
+        FK | Reference TO organizations TABLE | | role_id | INT | NULL,
+        FK | Organization 's role in this project (FK → organization_roles.id) | ** INDEXES **: - PRIMARY KEY (project_id, organization_id) - FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE - FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE - FOREIGN KEY (role_id) REFERENCES organization_roles(id) ON DELETE SET NULL - INDEX (organization_id) ** Relationships \*\*: - Parent: projects,
         organizations ---
 
     ### 2.7 contract_organizations
     - - Purpose \*\*: Junction TABLE linking contracts TO participating organizations WITH roles (M :N) | COLUMN Name | Data TYPE | Constraints | Description | | ---------------- | ------------ | --------------- | ------------------------------------------------------------------------- |
         | contract_id | INT | PRIMARY KEY,
         FK | Reference TO contracts TABLE | | organization_id | INT | PRIMARY KEY,
-        FK | Reference TO organizations TABLE | | role_in_contract | VARCHAR(100) | NULL | Organization 's role in contract (Owner, Designer, Consultant, Contractor) |
+        FK | Reference TO organizations TABLE | | role_id | INT | NULL,
+        FK | Organization 's role in this contract (FK → organization_roles.id — OWNER, DESIGNER, CONSULTANT, CONTRACTOR, THIRD PARTY) |
 
 **Indexes**:
 
@@ -250,7 +252,7 @@ erDiagram
 - FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE
 - FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE
 - INDEX (organization_id)
-- INDEX (role_in_contract)
+- FOREIGN KEY (role_id) REFERENCES organization_roles(id) ON DELETE SET NULL
 
 **Relationships**:
 

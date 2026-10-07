@@ -36,13 +36,10 @@ CREATE TABLE organizations (
   uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019)',
   organization_code VARCHAR(20) NOT NULL UNIQUE COMMENT 'รหัสองค์กร',
   organization_name VARCHAR(255) NOT NULL COMMENT 'ชื่อองค์กร',
-  role_id INT COMMENT 'บทบาทขององค์กร',
   is_active BOOLEAN DEFAULT TRUE COMMENT 'สถานะการใช้งาน',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
   deleted_at DATETIME NULL COMMENT 'วันที่ลบ (Soft Delete)',
-  FOREIGN KEY (role_id) REFERENCES organization_roles (id) ON DELETE
-  SET NULL,
     UNIQUE INDEX idx_organizations_uuid (uuid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บข้อมูลองค์กรทั้งหมดที่เกี่ยวข้องในระบบ';
 
@@ -239,19 +236,21 @@ CREATE TABLE user_assignments (
 CREATE TABLE project_organizations (
   project_id INT NOT NULL,
   organization_id INT NOT NULL,
+  role_id INT COMMENT 'บทบาทขององค์กรใน project นี้ (FK → organization_roles)',
   PRIMARY KEY (project_id, organization_id),
   FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE,
-  FOREIGN KEY (organization_id) REFERENCES organizations (id) ON DELETE CASCADE
+  FOREIGN KEY (organization_id) REFERENCES organizations (id) ON DELETE CASCADE,
+  FOREIGN KEY (role_id) REFERENCES organization_roles (id) ON DELETE SET NULL
 );
 
 CREATE TABLE contract_organizations (
   contract_id INT NOT NULL,
   organization_id INT NOT NULL,
-  role_in_contract VARCHAR(100),
-  -- เช่น 'Owner', 'Designer', 'Consultant', 'Contractor '
+  role_id INT COMMENT 'บทบาทขององค์กรใน contract นี้ (FK → organization_roles)',
   PRIMARY KEY (contract_id, organization_id),
   FOREIGN KEY (contract_id) REFERENCES contracts (id) ON DELETE CASCADE,
-  FOREIGN KEY (organization_id) REFERENCES organizations (id) ON DELETE CASCADE
+  FOREIGN KEY (organization_id) REFERENCES organizations (id) ON DELETE CASCADE,
+  FOREIGN KEY (role_id) REFERENCES organization_roles (id) ON DELETE SET NULL
 );
 
 -- =====================================================

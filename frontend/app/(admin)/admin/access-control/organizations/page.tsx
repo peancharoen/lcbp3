@@ -28,15 +28,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 
-// Organization role types for display
-const ORGANIZATION_ROLES = [
-  { value: '1', label: 'Owner' },
-  { value: '2', label: 'Designer' },
-  { value: '3', label: 'Consultant' },
-  { value: '4', label: 'Contractor' },
-  { value: '5', label: 'Third Party' },
-] as const;
-
 export default function OrganizationsPage() {
   const [search, setSearch] = useState('');
   const { data: organizations, isLoading } = useOrganizations({
@@ -76,15 +67,6 @@ export default function OrganizationsPage() {
       cell: ({ row }) => <span className="font-medium">{row.original.organizationCode}</span>,
     },
     { accessorKey: 'organizationName', header: 'Name' },
-    {
-      accessorKey: 'roleId',
-      header: 'Role',
-      cell: ({ row }) => {
-        const roleId = row.getValue('roleId') as number;
-        const role = Array.isArray(ORGANIZATION_ROLES) ? ORGANIZATION_ROLES.find((r) => r.value === roleId?.toString()) : undefined;
-        return role ? role.label : '-';
-      },
-    },
     {
       accessorKey: 'isActive',
       header: 'Status',

@@ -28,10 +28,10 @@ related:
 |---|---|
 | `projects` | ข้อมูล Master โครงการ: code, name, is_active |
 | `contracts` | สัญญา ผูกกับ Project (N:1) |
-| `organizations` | ข้อมูล Master องค์กร: code, name, role |
+| `organizations` | ข้อมูล Master องค์กร: code, name |
 | `organization_roles` | Master: ประเภทองค์กร (OWNER/DESIGNER/ฯลฯ) |
-| `project_organizations` | M:N: Project ↔ Organization |
-| `contract_organizations` | M:N: Contract ↔ Organization + role_in_contract |
+| `project_organizations` | M:N: Project ↔ Organization + role_id |
+| `contract_organizations` | M:N: Contract ↔ Organization + role_id |
 | `disciplines` | สาขางาน ผูกกับ Contract (N:1) |
 
 ### Hierarchy
@@ -88,11 +88,11 @@ Project ↔ Organization (M:N via project_organizations)
 | `THIRD PARTY` | บุคคลที่สาม | หลาย Project / หลาย Contract |
 
 ### project_organizations (M:N)
-- ผูก Organization เข้า Project — ไม่มี role_in_contract ระดับ Project
+- ผูก Organization เข้า Project พร้อม `role_id` (FK → `organization_roles`) — role มีความหมายเฉพาะใน context นั้น
 
 ### contract_organizations (M:N)
-- ผูก Organization เข้า Contract พร้อม `role_in_contract` (Owner/Designer/Consultant/Contractor)
-- 1 Organization สามารถมีหลาย role ใน Contract เดียวกันได้
+- ผูก Organization เข้า Contract พร้อม `role_id` (FK → `organization_roles`: OWNER/DESIGNER/CONSULTANT/CONTRACTOR/THIRD PARTY)
+- 1 Organization มีได้ 1 role ต่อ 1 Contract (PK: `contract_id` + `organization_id`) — แต่ถือ role ต่างกันได้ในแต่ละ Contract/Project
 
 ---
 

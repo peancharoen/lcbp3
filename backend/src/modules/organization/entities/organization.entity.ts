@@ -6,10 +6,7 @@ import {
   UpdateDateColumn,
   DeleteDateColumn,
   Index,
-  ManyToOne,
-  JoinColumn,
 } from 'typeorm';
-import { OrganizationRole } from './organization-role.entity';
 import { UuidBaseEntity } from '../../../common/entities/uuid-base.entity';
 import { Exclude } from 'class-transformer';
 
@@ -26,9 +23,6 @@ export class Organization extends UuidBaseEntity {
   @Column({ name: 'organization_name', length: 255 })
   organizationName!: string;
 
-  @Column({ name: 'role_id', nullable: true })
-  roleId?: number;
-
   @Column({ name: 'is_active', default: true })
   isActive!: boolean;
 
@@ -40,9 +34,4 @@ export class Organization extends UuidBaseEntity {
 
   @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt!: Date;
-
-  // Relations
-  @ManyToOne(() => OrganizationRole, { nullable: true })
-  @JoinColumn({ name: 'role_id' })
-  organizationRole?: OrganizationRole;
 }

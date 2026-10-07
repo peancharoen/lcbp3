@@ -8,24 +8,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCreateOrganization, useUpdateOrganization } from '@/hooks/use-master-data';
 import { useEffect } from 'react';
 import { Organization } from '@/types/organization';
 
-// Organization role types matching database
-const ORGANIZATION_ROLES = [
-  { value: '1', label: 'Owner' },
-  { value: '2', label: 'Designer' },
-  { value: '3', label: 'Consultant' },
-  { value: '4', label: 'Contractor' },
-  { value: '5', label: 'Third Party' },
-] as const;
-
 const organizationSchema = z.object({
   organizationCode: z.string().min(1, 'Organization Code is required'),
   organizationName: z.string().min(1, 'Organization Name is required'),
-  roleId: z.string().optional(),
   isActive: z.boolean().optional(),
 });
 
@@ -45,8 +34,6 @@ export function OrganizationDialog({ open, onOpenChange, organization }: Organiz
     register,
     handleSubmit,
     reset,
-    setValue,
-    watch,
     control,
     formState: { errors },
   } = useForm<OrganizationFormData>({
@@ -54,7 +41,6 @@ export function OrganizationDialog({ open, onOpenChange, organization }: Organiz
     defaultValues: {
       organizationCode: '',
       organizationName: '',
-      roleId: '',
       isActive: true,
     },
   });
@@ -64,29 +50,22 @@ export function OrganizationDialog({ open, onOpenChange, organization }: Organiz
       reset({
         organizationCode: organization.organizationCode,
         organizationName: organization.organizationName,
-        roleId: organization.publicId?.toString() || '',
         isActive: organization.isActive,
       });
     } else {
       reset({
         organizationCode: '',
         organizationName: '',
-        roleId: '',
         isActive: true,
       });
     }
   }, [organization, reset, open]);
 
   const onSubmit = (data: OrganizationFormData) => {
-    const submitData = {
-      ...data,
-      roleId: data.roleId ? String(data.roleId) : undefined,
-    };
-
     if (organization) {
-      updateOrg.mutate({ uuid: organization.publicId, data: submitData }, { onSuccess: () => onOpenChange(false) });
+      updateOrg.mutate({ uuid: organization.publicId, data }, { onSuccess: () => onOpenChange(false) });
     } else {
-      createOrg.mutate(submitData, {
+      createOrg.mutate(data, {
         onSuccess: () => onOpenChange(false),
       });
     }
@@ -106,21 +85,6 @@ export function OrganizationDialog({ open, onOpenChange, organization }: Organiz
               {errors.organizationCode && <p className="text-sm text-red-500">{errors.organizationCode.message}</p>}
             </div>
 
-            <div className="space-y-2">
-              <Label>Role</Label>
-              <Select value={watch('roleId')} onValueChange={(value) => setValue('roleId', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ORGANIZATION_ROLES.map((role) => (
-                    <SelectItem key={role.value} value={role.value}>
-                      {role.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
           </div>
 
           <div className="space-y-2">
