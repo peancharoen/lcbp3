@@ -30,6 +30,7 @@ describe('ContractService', () => {
     findOneOrFail: jest.fn(),
     create: jest.fn(),
     save: jest.fn(),
+    update: jest.fn(),
     delete: jest.fn(),
   };
 
@@ -382,21 +383,28 @@ describe('ContractService', () => {
   });
 
   describe('updateOrganizationRole', () => {
-    it('ควรอัปเดต role บน link ที่มีอยู่', async () => {
+    it('ควรอัปเดต role บน link ที่มีอยู่ผ่าน update() ไม่ใช่ save() (save() จะเขียน relation เก่าทับ roleId)', async () => {
       mockContractRepo.findOne.mockResolvedValue(mockContract);
       mockUuidResolver.resolveOrganizationId.mockResolvedValue(10);
       mockContractOrgRepo.findOne.mockResolvedValue({ ...mockLink });
       mockOrgService.resolveRoleId.mockResolvedValue(2);
-      mockContractOrgRepo.save.mockResolvedValue({});
+      mockContractOrgRepo.update.mockResolvedValue({ affected: 1 });
+      mockContractOrgRepo.findOneOrFail.mockResolvedValue({
+        ...mockLink,
+        roleId: 2,
+        organizationRole: { id: 2, roleName: 'DESIGNER' },
+      });
 
       await service.updateOrganizationRole('contract-uuid', 'org-uuid', {
         roleName: 'DESIGNER',
       });
 
       expect(mockOrgService.resolveRoleId).toHaveBeenCalledWith('DESIGNER');
-      expect(mockContractOrgRepo.save).toHaveBeenCalledWith(
-        expect.objectContaining({ roleId: 2 })
+      expect(mockContractOrgRepo.update).toHaveBeenCalledWith(
+        { contractId: mockContract.id, organizationId: 10 },
+        { roleId: 2 }
       );
+      expect(mockContractOrgRepo.save).not.toHaveBeenCalled();
     });
 
     it('ควร throw NotFoundException เมื่อยังไม่ได้ link', async () => {

@@ -46,6 +46,7 @@ describe('ProjectService', () => {
       findOneOrFail: jest.fn(),
       create: jest.fn(),
       save: jest.fn(),
+      update: jest.fn(),
       delete: jest.fn(),
     };
 
@@ -399,12 +400,17 @@ describe('ProjectService', () => {
   });
 
   describe('updateOrganizationRole', () => {
-    it('should update role on existing link', async () => {
+    it('should update role on existing link via update() not save() (save() จะเขียน relation เก่าทับ roleId)', async () => {
       mockProjectRepository.findOne.mockResolvedValue(mockProject);
       mockUuidResolver.resolveOrganizationId.mockResolvedValue(10);
       mockProjectOrgRepo.findOne.mockResolvedValue({ ...mockLink });
       mockOrganizationService.resolveRoleId.mockResolvedValue(2);
-      mockProjectOrgRepo.save.mockResolvedValue({});
+      mockProjectOrgRepo.update.mockResolvedValue({ affected: 1 });
+      mockProjectOrgRepo.findOneOrFail.mockResolvedValue({
+        ...mockLink,
+        roleId: 2,
+        organizationRole: { id: 2, roleName: 'DESIGNER' },
+      });
 
       const result = await service.updateOrganizationRole(
         'proj-uuid',
@@ -415,10 +421,12 @@ describe('ProjectService', () => {
       expect(mockOrganizationService.resolveRoleId).toHaveBeenCalledWith(
         'DESIGNER'
       );
-      expect(mockProjectOrgRepo.save).toHaveBeenCalledWith(
-        expect.objectContaining({ roleId: 2 })
+      expect(mockProjectOrgRepo.update).toHaveBeenCalledWith(
+        { projectId: mockProject.id, organizationId: 10 },
+        { roleId: 2 }
       );
-      expect(result.roleName).toBe('CONTRACTOR'); // shape มาจาก relation เดิม
+      expect(mockProjectOrgRepo.save).not.toHaveBeenCalled();
+      expect(result.roleName).toBe('DESIGNER');
     });
 
     it('should throw NotFoundException when link does not exist', async () => {

@@ -204,9 +204,18 @@ export class ContractService {
       );
     }
 
-    link.roleId = await this.organizationService.resolveRoleId(dto.roleName);
-    await this.contractOrgRepo.save(link);
-    return this.toLinkedOrganization(link);
+    const roleId = await this.organizationService.resolveRoleId(dto.roleName);
+    // ใช้ update() ไม่ใช่ save(link) — organizationRole relation ที่โหลดมาจะเขียนค่าเก่าทับ roleId ใหม่
+    await this.contractOrgRepo.update(
+      { contractId: contract.id, organizationId },
+      { roleId }
+    );
+
+    const saved = await this.contractOrgRepo.findOneOrFail({
+      where: { contractId: contract.id, organizationId },
+      relations: ['organization', 'organizationRole'],
+    });
+    return this.toLinkedOrganization(saved);
   }
 
   /** ถอดองค์กรออกจาก contract — junction เป็น pure link table ลบจริงได้ (ไม่มี deleted_at) */

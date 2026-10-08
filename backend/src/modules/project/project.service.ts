@@ -223,9 +223,19 @@ export class ProjectService {
       throw new NotFoundException('Organization is not linked to this project');
     }
 
-    link.roleId = await this.organizationService.resolveRoleId(dto.roleName);
-    await this.projectOrgRepo.save(link);
-    return this.toLinkedOrganization(link);
+    const roleId = await this.organizationService.resolveRoleId(dto.roleName);
+    // ใช้ update() ไม่ใช่ save(link) — entity มี organizationRole relation ที่โหลดมา
+    // แล้ว (ค่าเก่า) ทำให้ save() cascade เขียน role เดิมทับ roleId ใหม่กลับคืน
+    await this.projectOrgRepo.update(
+      { projectId: project.id, organizationId },
+      { roleId }
+    );
+
+    const saved = await this.projectOrgRepo.findOneOrFail({
+      where: { projectId: project.id, organizationId },
+      relations: ['organization', 'organizationRole'],
+    });
+    return this.toLinkedOrganization(saved);
   }
 
   /** ถอดองค์กรออกจาก project — junction เป็น pure link table ลบจริงได้ (ไม่มี deleted_at) */
