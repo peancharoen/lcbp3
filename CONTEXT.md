@@ -39,6 +39,21 @@ _Avoid_: Label, Category (เป็นคนละ concept), Folder
 ค่า enum ที่เก็บใน `tags.color_code` (VARCHAR(30)) — เป็น palette key ไม่ใช่ hex หรือ CSS class; frontend map key → hex สำหรับ render; 14 keys: default/slate/red/orange/amber/yellow/green/teal/blue/indigo/violet/purple/pink/rose (ADR-046)
 _Avoid_: Color Code (ambiguous), Hex Color, CSS Color
 
+**Organization Role** (per-context):
+Role ขององค์กรที่ผูกกับ context เฉพาะ — เก็บบน junction `contract_organizations.role_id` / `project_organizations.role_id` เท่านั้น (ไม่มี global role บน `organizations` อีกต่อไป — ตัดออกใน PR #29); ชุด role มาจาก `organization_roles` และใช้ `role_name` เป็น public identifier (ตารางไม่มี uuid); admin assign/เปลี่ยน role ผ่าน Organizations dialog บนหน้า Projects/Contracts
+_Avoid_: Global Organization Role, Default Role
+
+**Department**:
+หน่วยงานย่อยภายใน Organization ที่ admin นิยามเอง (`departments`, scoped per-org) — ใช้จัดกลุ่ม user ภายในองค์กรเดียวกัน (PR #30)
+_Avoid_: Division, Section (ใช้ในความหมายอื่น)
+
+**User Group**:
+กลุ่ม user ข้ามองค์กรที่ admin นิยามเอง (`user_groups` + `user_group_members`) — ใช้เป็น routing target เช่น `circulation_routings.assigned_group_id` (claim แบบ atomic ด้วย conditional UPDATE) และ recipient ใน distribution/notification
+_Avoid_: Team, Role (group ≠ role — role คือสิทธิ์, group คือกลุ่มคน)
+
+**Primary Organization Membership**:
+ความเป็นสมาชิกหลักของ user — user หนึ่งคนอยู่ได้หลายองค์กรผ่าน `user_organizations` แต่มี `is_primary=1` ได้แค่แถวเดียว บังคับด้วย generated column `primary_org_guard` + `UNIQUE uk_user_primary_org` (MariaDB ไม่มี partial index) (PR #30)
+
 ### Workflow
 
 **Workflow Engine**:
@@ -236,6 +251,9 @@ _Avoid_: OCR Sandbox (สื่อแคบ), Sandbox Project (คนละแ�
 - A **RFA** has 1:N **RFA Revisions**, each linking to one or more **Shop Drawing Revisions** via `rfa_items`
 - A **Tag** has one **Tag Color Key** (palette key); frontend แปลง key → hex ผ่าน `TAG_PALETTE` constant; backend enforce `@IsIn(TAG_COLOR_KEYS)` (ADR-046)
 - A **Correspondence** has M:N **Tags** ผ่าน `correspondence_tags`
+- A **Contract** / **Project** has M:N **Organizations** ผ่าน `contract_organizations` / `project_organizations`; แต่ละ link มี **Organization Role** ของตัวเอง (`role_id` → `organization_roles`) — role อาจต่างกันระหว่าง context เดียวกันกับองค์กรเดียวกัน (PR #29/#31)
+- A **User** has M:N **Organizations** ผ่าน `user_organizations`; exactly one membership มี `is_primary=1` (DB-enforced); user อาจผูก **Department** ภายในองค์กร และเป็นสมาชิกของหลาย **User Groups** (PR #30)
+- A **Notification Channel** ต้องมี scope exactly-1 — `project_id` XOR `user_group_id` XOR `department_id` (`chk_channel_single_scope`; ไม่มี "global" channel) (PR #30)
 - A **Workflow Instance** governs exactly one **Correspondence**; its current state is projected into entity columns (e.g. `rfa_revisions.rfa_status_code_id`) but **`workflow_instances` is the source of truth**
 - A **Prompt Version** lives in `ai_prompts`; exactly one per `prompt_type` has `is_active = 1` — this is the **Active Prompt** consumed by both OCR Sandbox and `processMigrateDocument`; cached in Redis TTL 60s
 - An **Attachment** belongs to one owning Correspondence/Revision and one owning Project; cross-project delivery is handled by Distribution/access scope, not by changing document ownership

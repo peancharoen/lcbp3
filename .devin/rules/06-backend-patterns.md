@@ -40,6 +40,23 @@ async create(dto: CreateCorrespondenceDto, contractId: number) {
 }
 ```
 
+## TypeORM FK Update Pattern
+
+```typescript
+// ❌ WRONG — entity ที่โหลด relation มาแล้ว + save() ทำให้ relation เก่า
+//    cascade เขียนค่าเดิมทับ FK ใหม่กลับคืน (200 OK แต่ DB ไม่เปลี่ยน — PR #32)
+const link = await repo.findOne({ where, relations: ['organizationRole'] });
+link.roleId = newRoleId;
+await repo.save(link); // roleId ถูกเขียนทับกลับเป็นค่าเก่า
+
+// ✅ CORRECT — update scalar FK ตรง ๆ แล้ว refetch ให้ response มี relation ใหม่
+await repo.update({ projectId, organizationId }, { roleId: newRoleId });
+const saved = await repo.findOneOrFail({ where, relations: ['organizationRole'] });
+return toDto(saved);
+```
+
+**Rule:** เมื่อเปลี่ยน scalar FK บน entity ที่โหลด many-to-one relation มาแล้ว ให้ใช้ `repo.update()` หรือ query builder เสมอ — ห้าม `save(entity)` (precedent: `updateOrganizationRole` ใน Project/ContractService, PR #32)
+
 ## API Response Pattern
 
 ```typescript

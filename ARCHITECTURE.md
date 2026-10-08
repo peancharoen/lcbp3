@@ -414,6 +414,14 @@ async createCorrespondence(@Body() dto: CreateCorrespondenceDto) {
 }
 ```
 
+##### Organization Membership & Roles (post PR #29/#30/#31)
+
+- **Role ขององค์กรเป็น per-context** — ไม่มี `organizations.role_id` ระดับ global แล้ว; role ผูกกับ link `contract_organizations.role_id` / `project_organizations.role_id` (องค์กรเดียวกันอาจมี role ต่างกันในแต่ละ context); admin assign ผ่าน `POST/PATCH/DELETE /projects|contracts/:uuid/organizations[/:orgUuid]` และ `GET /organizations/roles` (ใช้ `roleName` เป็น public identifier — `organization_roles` ไม่มี uuid)
+- **User อยู่ได้หลายองค์กร** ผ่าน `user_organizations` — exactly one `is_primary=1` ต่อ user (DB-enforced: generated column + `UNIQUE uk_user_primary_org`); องค์กรแบ่ง **Department** ภายใน และ admin สร้าง **User Group** ข้ามองค์กรสำหรับ routing/recipient targets
+- **Notification Channel scope = exactly-1** — `project_id` XOR `user_group_id` XOR `department_id` (`chk_channel_single_scope`)
+
+> ⚠️ **TypeORM caveat (PR #32):** เมื่อเปลี่ยน scalar FK บน entity ที่โหลด relation มาแล้ว ห้าม `repo.save(entity)` — loaded relation จะ cascade เขียนค่าเก่าทับ FK ใหม่กลับคืน; ให้ใช้ `repo.update(criteria, { fk })` แล้ว refetch
+
 ### 4.3 API Conventions
 
 #### Base URL Structure

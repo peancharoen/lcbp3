@@ -6,7 +6,7 @@
 ## Load order
 
 1. [`../AGENTS.md`](../AGENTS.md) — **LCBP3 Agent Execution Contract §1-9** บังคับใช้ทุก session
-2. [`./rules/README.md`](./rules/README.md) — index กฎทั้ง 23 ไฟล์ (**canonical**)
+2. [`./rules/README.md`](./rules/README.md) — index กฎทั้ง 27 ไฟล์ (**canonical**)
 3. [`./rules/12-key-spec-files.md`](./rules/12-key-spec-files.md) — เลือก ADR/spec ตามงาน
 4. [`../memory/project-memory-override.md`](../memory/project-memory-override.md) — project memory
 5. [`./skills/README.md`](./skills/README.md) — skill index (**canonical**; now includes `2git-push` safe push workflow)

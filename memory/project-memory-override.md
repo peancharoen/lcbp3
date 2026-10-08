@@ -334,6 +334,13 @@
 | D355 | **Frontend API contract rules** — entity serialize ออก `publicId` ไม่ใช่ `uuid` (ADR-019); TransformInterceptor wrap `{statusCode,message,data}` → ต้อง unwrap `.data` ที่ service/component; query params ต้องตรง DTO whitelist เป๊ะ (`forbidNonWhitelisted:true` → param เกิน = 400 เงียบ — transmittals `projectId`→`projectUuid` คือตัวอย่าง) | Session 2026-09-22 |
 | D356 | **DataTable width = `columnDef.size` → style width** — TanStack auto-layout ไม่ใช้ `size` เอง; shared `data-table.tsx` apply size เป็น width บน TableHead/TableCell; ลดแค่ header `min-w` ไม่ได้ผล | Session 2026-09-22 |
 | D357 | **exceljs@4.4.0 pnpm patch — iterate-stream drain race** — unzipper `Parse` emit custom `'end'` ตอน writable-side finish เร็วกว่า buffered entries emit `'data'` → entry ท้าย zip (`xl/workbook.xml`) หลุด → `this.model.sheets` TypeError (flaky บน CI); patch `patches/exceljs@4.4.0.patch` loop ต่อจน `readableLength===0`; ทุก `pnpm patch` ต้องลง `patchedDependencies` (check-patches.sh gate) | Session 2026-09-22 |
+| D358 | **Gitea instance signing ถาวร** — `[repository.signing]`: SIGNING_KEY `816EF0478E793CEA` + `MERGES = always`; keyring ที่ `/var/lib/gitea/home/.gnupg`; merge commits signed โดย instance | Session 2026-10-08 |
+| D359 | **ADR-044 delta timing** — backward-compatible (add-only/widen) apply **ก่อน** merge → zero-gap (PR #30); drop/rename ที่ old code ยังใช้ apply **หลัง** deploy (PR #29) | Session 2026-10-08 |
+| D360 | **`notification_channels` scope = exactly-1** (`project_id` XOR `user_group_id` XOR `department_id`) ทั้ง API+DB `chk_channel_single_scope` | Session 2026-10-08 / PR #30 |
+| D361 | **`organization_roles.role_name` = public identifier** ของ role assignment (ตารางไม่มี uuid); endpoints `/projects\|contracts/:uuid/organizations[/:orgUuid]` + `GET /organizations/roles` | ADR-019 / PR #31 |
+| D362 | **One primary per user บน MariaDB = generated column + UNIQUE** (`primary_org_guard` + `uk_user_primary_org`) | PR #30 |
+| D363 | **Devin worktree gotchas** — husky พังใน worktree → verify manual + `--no-verify`; LF/CRLF churn → เช็ค `git diff --stat`; dry-run delta บน scratch DB ก่อน prod; temp Gitea token revoke ด้วยลบแถว `access_token` | Session 2026-10-08 |
+| D364 | **TypeORM: ห้าม `repo.save(entity)` เปลี่ยน scalar FK เมื่อโหลด relation มาแล้ว** — relation เก่า cascade เขียนทับ FK (200 แต่ DB ไม่เปลี่ยน); ใช้ `repo.update()` + refetch; บันทึกใน `06-backend-patterns`/`05-forbidden-actions`/AGENTS | PR #32 |
 
 ## Environment & Services
 
@@ -375,6 +382,10 @@ QDRANT_URL
 
 ## Next Session Focus
 
+- [x] Org-role pipeline PR #29/#30/#31/#32 — merged+deployed (`a1515fd2`/`fdbb1476`/`40877227`/`fc00ef26`), role update verified on prod via Playwright (D358–D364)
+- [ ] Cleanup decision: test link `EN → GUEST` บน project LCBP3-C2 (keep หรือ unlink)
+- [x] Push docs commits ผ่าน `2git.sh --skip-ci` (2026-10-08, user สั่ง)
+- [x] เพิ่ม Agent Execution Contract §1-9 กลับเข้า AGENTS.md (v1.9.20) — refs ใน adapters/.devin/.claude ไม่ dangling แล้ว (section ไม่เคย commit มาก่อน; spec อยู่ `docs/20260811-agents.md`)
 - [x] F258 Telegram Notifications — implemented, merged, deployed (`f9f58cf9`), T064 verified live: group `/link`→topic binding + group send (SC-002 ≈2s) + DM `/start` binding (SC-001 ≈1s system) + test DM; ledger CP11; CI #821 green
 - [ ] F258 SC-006 (500-notification burst) — user deferred; run later only with approval
 - [ ] F258 cleanup decision: test bindings in prod (channel SANDBOX↔group topic 3; user superadmin↔Telegram chat) — keep or unlink

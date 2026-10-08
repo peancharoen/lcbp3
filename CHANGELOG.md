@@ -1,5 +1,26 @@
 # Version History
 
+## 1.9.16 (2026-10-08)
+
+### refactor(org): Organization Role เป็น per-context + Role Assignment API/UI + User Grouping (PR #29–#32)
+
+#### Summary
+
+ย้าย organization role จาก global (`organizations.role_id`) ไปผูกกับ context (`contract_organizations.role_id`, `project_organizations.role_id`), เพิ่ม API/UI สำหรับ assign role ตอน link org, เพิ่ม user grouping model (departments, user groups, multi-org membership, structured recipients) และ hotfix bug TypeORM ที่ทำให้ role update ไม่ persist
+
+#### Changes
+
+- **PR #29 `a1515fd2`** — drop `organizations.role_id` ออกจากตาราง global; role ย้ายไปอยู่บน junction `contract_organizations.role_id` / `project_organizations.role_id` เท่านั้น (schema delta แบบ destructive → apply หลัง deploy ตาม ADR-044)
+- **PR #30 `fdbb1476`** — user-grouping model: ตารางใหม่ `departments`, `user_groups`, `user_group_members`, `user_organizations` (multi-org membership, `uk_user_primary_org` บังคับ primary เดียว/user ด้วย generated column + UNIQUE), structured recipients ใน `distribution_recipients`, `circulation_routings.assigned_group_id` (atomic group-claim), `notification_channels` scope = exactly-1 (`chk_channel_single_scope`), reconcile `reminder_rules` ให้ตรง spec shape
+- **PR #31 `40877227`** — role assignment endpoints: `GET /organizations/roles`, `GET/POST/PATCH/DELETE /projects|contracts/:uuid/organizations[/:orgUuid]` (guards: `project.view`/`project.edit`, `master_data.manage`); `roleName` เป็น public identifier (`organization_roles` ไม่มี uuid); frontend `OrganizationLinksDialog` บน admin Projects/Contracts — list/add/เปลี่ยน role inline/unlink
+- **PR #32 `fc00ef26`** — fix role update ไม่ persist: `repo.save()` บน entity ที่โหลด `organizationRole` relation → cascade เขียน role เก่าทับ `roleId` ใหม่; เปลี่ยนเป็น `repo.update()` + refetch ทั้ง Project/Contract service; verified จริงบน production ผ่าน Playwright (PATCH→200, GET/DB/UI = role ใหม่)
+
+#### Notes
+
+- ไม่มี breaking change สำหรับ API consumers — response ใช้ `publicId`/`roleName` เหมือนเดิม (ADR-019)
+- Gitea instance commit signing เปิดถาวร (`[repository.signing]` + instance key)
+- Rollout log: `specs/88-logs/rollouts.md`
+
 ## 1.9.15 (2026-08-17)
 
 ### fix(migration): Resolve Critical Pre-Merge Blockers + Phase 2 Improvements (Issue #3)

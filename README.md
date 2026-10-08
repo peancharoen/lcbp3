@@ -47,6 +47,8 @@ LCBP3-DMS เป็นระบบบริหารจัดการเอก�
 - 🔄 **Workflow Engine** - DSL-based workflow สำหรับกระบวนการอนุมัติ (ADR-021 Integrated Context)
 - 📊 **Advanced Search** - ค้นหาเอกสารด้วย Elasticsearch
 - 🔐 **RBAC 4-Level** - ควบคุมสิทธิ์แบบละเอียด (Global, Organization, Project, Contract)
+- 🏢 **Contextual Organization Roles** - org ผูก role แยกตาม Contract/Project (`contract_organizations`/`project_organizations`) พร้อม admin UI assign/unlink (PR #29/#31)
+- 👥 **User Grouping** - Departments, User Groups, multi-org membership (primary เดียว/user), structured recipients + group routing ใน Circulation/Notification (PR #30)
 - 📁 **Two-Phase File Storage** - จัดการไฟล์แบบ Transactional พร้อม Virus Scanning
 - 🔢 **Document Numbering** - สร้างเลขที่เอกสารอัตโนมัติ ป้องกัน Race Condition
 - 🤖 **AI-Assisted Migration** - Ollama + n8n นำเข้าเอกสารเก่า ~20,000 ไฟล์ (ADR-023/028)
@@ -264,10 +266,11 @@ lcbp3-dms/
 │   │   ├── common/             # Shared utilities, guards, decorators
 │   │   ├── config/             # Configuration module
 │   │   ├── database/           # Database entities & migrations
-│   │   ├── modules/            # Feature modules (18 modules)
+│   │   ├── modules/            # Feature modules (28 modules)
 │   │   │   ├── auth/           # JWT Authentication
 │   │   │   ├── user/           # User management & RBAC
-│   │   │   ├── project/        # Project & Contract management
+│   │   │   ├── project/        # Project management & org links
+│   │   │   ├── contract/       # Contract management & org links
 │   │   │   ├── correspondence/ # Correspondence module
 │   │   │   ├── rfa/            # Request for Approval
 │   │   │   ├── drawing/        # Contract & Shop Drawings
@@ -280,7 +283,7 @@ lcbp3-dms/
 │   │   │   ├── notification/   # Email/LINE notifications
 │   │   │   ├── monitoring/     # Health checks & metrics
 │   │   │   ├── master/         # Master data management
-│   │   │   ├── organizations/  # Organization management
+│   │   │   ├── organization/   # Organizations, roles, departments & user groups
 │   │   │   └── json-schema/    # JSON Schema validation
 │   │   └── main.ts
 │   ├── test/                   # Unit & E2E tests

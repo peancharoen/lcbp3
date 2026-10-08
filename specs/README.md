@@ -85,7 +85,7 @@ specs/
 │   ├── 05-08-i18n-guidelines.md         # Localization rules
 │   └── README.md                        # ภาพรวมเป้าหมายงาน Engineering
 │
-├── 06-Decision-Records/         # Architecture Decision Records (28 ADRs)
+├── 06-Decision-Records/         # Architecture Decision Records (52 ADRs)
 │   ├── ADR-001 to ADR-016...   # ไฟล์อธิบายสถาปัตยกรรม (ADR)
 │   ├── ADR-019-hybrid-identifier-strategy.md  # ★ Hybrid ID: INT PK + UUIDv7 Public API
 │   ├── ADR-021-integrated-workflow-context.md  # ★ Workflow Engine & Step-specific Attachments
@@ -203,7 +203,7 @@ specs/
 
 ---
 
-## 🏛️ ADR Reference (All 28 ADRs)
+## 🏛️ ADR Reference (All 52 ADRs)
 
 | ADR        | Topic                           | Key Decision                                              | สถานะ    |
 | ---------- | ------------------------------- | --------------------------------------------------------- | -------- |
@@ -215,7 +215,7 @@ specs/
 | ADR-006    | Redis Caching                   | Cache strategy and invalidation patterns                  | ✅ Active |
 | ADR-007    | Error Handling                  | Layered error classification + user-friendly messages     | ✅ Active |
 | ADR-008    | Email Notification              | BullMQ queue-based email/LINE/in-app                      | ✅ Active |
-| ADR-009    | DB Strategy                     | No TypeORM migrations — modify schema SQL directly        | ✅ Active |
+| ADR-009    | DB Strategy                     | No TypeORM migrations — modify schema SQL directly        | ✅ Active (amended by ADR-044) |
 | ADR-010    | Logging/Monitoring              | Prometheus + Loki + Grafana stack                         | ✅ Active |
 | ADR-011    | App Router                      | Next.js App Router with RSC patterns                      | ✅ Active |
 | ADR-012    | UI Components                   | Shadcn/UI component library                               | ✅ Active |
@@ -238,5 +238,31 @@ specs/
 | ADR-027 ★  | AI Admin Console & Dynamic Ctrl | AI Admin Panel + dynamic model/prompt control (2026-05-20) | ✅ Active |
 | ADR-028 ★  | Migration Architecture Refactor | Staging Queue & post-migration cleanup (2026-05-22)       | ✅ Active |
 | ADR-043 ⭐ | AI Architecture Current State   | Single Source of Truth — restates active AI ADRs (2026-08-03) | ✅ Active |
+| ADR-029    | Dynamic Prompt Management       | Prompt templates in DB `ai_prompts`, Redis cache TTL 60s  | ✅ Active |
+| ADR-030    | Context-Aware Prompt Templates  | OCR metadata prompt variants per context                  | ✅ Active |
+| ADR-031    | Hermes Agent / Telegram DevOps  | Autonomous dev orchestrator + Telegram bridge             | ✅ Active |
+| ADR-032    | Typhoon OCR & LLM Integration   | Thai OCR/LLM integration architecture                     | ✅ Active |
+| ADR-033    | Active Model & OCR Runner Mgmt  | Model load/unload + runner control                        | ✅ Active |
+| ADR-034    | AI Model Change                 | Thai-optimized stack: `np-dms-ai` + `np-dms-ocr`          | ✅ Active |
+| ADR-035    | AI Pipeline Flow                | BGE-M3 + BGE-Reranker 4-flow pipeline                     | ✅ Active |
+| ADR-036    | Unified AI/OCR Model Arch       | Sandbox–production parity (`np-dms-ai`/`np-dms-ocr`)      | ✅ Active |
+| ADR-037    | Unified Prompt Management UX    | Prompt management UX/UI                                   | ✅ Active |
+| ADR-040    | OCR Sidecar Refactor            | Pure compute worker, preserved GPU policy                 | ✅ Active |
+| ADR-041    | Single-Host Server Consolidation | All services on `np-dms-lcbp3` host                      | ✅ Active |
+| ADR-042    | Sandbox Project + OCR Persist   | DB-committing full-pipeline test sandbox                  | ✅ Active |
+| ADR-044 ★  | DB Schema Amendment             | No TypeORM migrations — explicit SQL deltas (amends ADR-009) | ✅ Active |
+| ADR-045    | Edge Proxy Topology Amendment   | Cloudflare Tunnel sole edge proxy, QNAP no Docker         | ✅ Active |
+| ADR-046    | Tag Color Palette Key           | `tags.color_code` → palette key enum (14 keys)            | ✅ Active |
+| ADR-047    | Native Backend Legacy Ingestion | In-backend ingestion + OCR persistence                    | ✅ Active |
+| ADR-048    | AI Engine Control Center        | Read-only monitoring → active control                     | ✅ Active |
+| ADR-049    | Workflow State Machine Consolidation | Consolidated engine + RFA multi-party approval       | ✅ Active |
+| ADR-050    | AI Extraction Output Contract   | `ocrQuality` + per-field `confidence` + `requiresHumanReview` | ✅ Active |
+| ADR-051    | Queue-Aware Model Scheduling    | Automatic model scheduling by queue load                  | ✅ Active |
+| ADR-052    | Excel Data Review Pipeline      | 4-layer review + AI suggestion for ingestion              | ✅ Active |
+| ADR-053    | RAG Admin Console               | RAG admin architecture                                    | ✅ Active |
+| ADR-054    | Migration Queue Metadata Split  | Ingestion / AI output / review state separation           | ✅ Active |
+| ADR-055    | Attachment Manual Re-OCR        | Human-in-the-loop compare-before-replace                  | ✅ Active |
+| ADR-056    | AI Queue Observability          | Auto-retry, resource safeguards, vector sync              | ✅ Active |
+| ADR-057    | Telegram Notification Channel   | Telegram channel (group topics + DM deep-link)            | ✅ Active |
 
 > **Priority:** `06-Decision-Records` > `05-Engineering-Guidelines` > others

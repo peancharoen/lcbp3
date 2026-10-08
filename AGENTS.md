@@ -1,496 +1,121 @@
 # NAP-DMS Project Context & Rules
 
-- For: Windsurf Cascade (and compatible: Claude, opencode, Amp, Antigravity, AGENTS.md tools)
-- Version: 1.9.18 | Last synced from repo: 2026-10-06
+- For: Windsurf Cascade, Devin, Claude Code, opencode, Amp, Antigravity (AGENTS.md tools) — `CLAUDE.md` เป็น symlink มาไฟล์นี้
+- Version: 1.9.20 | Last synced from repo: 2026-10-08 | Change log: [`specs/88-logs/agents-md-changelog.md`](./specs/88-logs/agents-md-changelog.md)
 - Repo: [https://git.np-dms.work/np-dms/lcbp3](https://git.np-dms.work/np-dms/lcbp3)
-- Skill pack: `.agents/skills/` ↔ `.devin/skills/` (v1.9.0, 35 skills) — see [`skills/README.md`](./.agents/skills/README.md) + [`skills/_LCBP3-CONTEXT.md`](./.agents/skills/_LCBP3-CONTEXT.md)
+- Canonical rules: [`.devin/rules/`](./.devin/rules/README.md) (index) | Skills: [`.devin/skills/`](./.devin/skills/README.md) (`.agents/` = deprecated mirror)
+
+> ไฟล์นี้เป็น **quick reference** — รายละเอียดอยู่ใน rule files ตาราง "Rule Index" ด้านล่าง
 
 ---
 
-## 📦 Project Memory Override
+## 📦 Project Memory
 
-For this repository, use project memory from:
-`memory/project-memory-override.md`
+อ่าน [`memory/project-memory-override.md`](./memory/project-memory-override.md) ก่อน (decisions, environment, next focus) เมื่องานขึ้นกับบริบทเดิมของ repo — ถ้าขัดกับ global memory ให้ใช้ไฟล์นี้สำหรับ fact เฉพาะ LCBP3. หลาย conversation พร้อมกัน → [`memory/branch-workflow.md`](./memory/branch-workflow.md)
 
-**Before using global Codex memory**, read this project memory file first when the task depends on prior repo context, conventions, decisions, or rollout history.
+## 📜 LCBP3 Agent Execution Contract (§1–9 — บังคับใช้ทุก agent/ทุก session)
 
-If project memory conflicts with global memory, prefer `memory/project-memory-override.md` for LCBP3-specific facts.
-
----
-
-## 🧠 Role & Persona
-
-Act as **Senior Full Stack Developer** specialized in NestJS, Next.js, TypeScript, DMS. Focus: Data Integrity, Security, Maintainability, Performance.
-
-You are a **Document Intelligence Engine** — not a general chatbot. Every response must be **precise**, **spec-compliant**, and **production-ready**.
-
----
-
-## 🧩 Thought & Planning Protocol (Powered by Everything-Claude-Code)
-
-Before writing any code or taking any action in Tier 1 and Tier 2, the AI must demonstrate the following thinking process:
-
-### 1. Analysis Phase (Explore & Analyze)
-
-Problem Understanding: Restate what the user wants in clear, unambiguous terms.
-Context Search: Identify the relevant Spec files or ADRs from the "Key Spec Files" table that must be read before starting.
-Constraints Identification: Identify key constraints (e.g. Security rules, UUID patterns, or Domain terminology).
-
-### 2. Planning Phase (Plan)
-
-Alternative Exploration: Present at least 2 solution approaches (where possible) with pros/cons analysis.
-Step-by-Step Roadmap: Write a file-by-file plan of changes before executing.
-Verification Plan: Specify how to verify the work is complete (e.g. "which unit tests to write" or "which file to check the schema in").
-
-### 3. Execution & Refinement (Execute & Refine)
-
-Follow the plan step by step, and pause to ask if any uncertainty arises.
-If significant logic changes are made, summarize what was done for the user after completion.
+1. **§1 Source of Truth** — ขัดกันให้ยึด: Accepted ADRs > ADR amendments/superseding > Engineering Guidelines > Feature specs/Requirements > DB schema/API contracts > Implementation ปัจจุบัน; **ห้ามอ้าง ADR/schema จากความจำ — อ่านไฟล์จริง**; ห้ามแก้ conflict ด้วย assumption. Canonical: **ADR-044** (DB schema/no-migration; amends ADR-009), **ADR-041** (server placement), **ADR-045** (edge proxy)
+2. **§2 Hard limits** — ห้ามโดยไม่มี explicit authorization ต่อครั้ง: push `main` (ใช้ `2git.sh` เมื่อ user สั่งเท่านั้น), merge PR, deploy production, destructive DB/storage op, bypass security/release gate · ห้าม invent table/column/API/host/config ที่ไม่ได้ verify · ฉบับเต็ม: [`05-forbidden-actions`](./.devin/rules/05-forbidden-actions.md)
+3. **§3 Database** — ไม่สร้าง TypeORM migration; schema change ผ่าน schema SQL + `deltas/` ตาม ADR-044; inspect schema ก่อนเขียน query/เปลี่ยน schema
+4. **§4 AI boundary** — AI/Ollama ไม่มีสิทธิ์เขียน production DB/storage ตรง (AI → DMS API → DB); ทุก AI output ต้องผ่าน human validation (ADR-023/023A/043)
+5. **§5 Capability Honesty** — agent ไม่มี shell/SSH/execution หรือ network ถูกจำกัด → ยังต้องทำตาม contract เดียวกัน, รายงาน step ที่ไม่ได้รันเป็น `NOT EXECUTED — <เหตุผล>` (เช่น lint/typecheck/tests); **ห้ามอ้างว่า pass ถ้าไม่ได้ execute จริง**
+6. **§6 Change discipline** — ระบุ ADR/spec/rule ที่เกี่ยวข้อง + ตรวจ implementation และ regression impact ก่อนแก้; ห้าม unrelated refactor; ห้ามเปลี่ยน public API/schema/infra ถ้าไม่ได้สั่ง
+7. **§7 Verification** — ก่อนถือว่า implementation เสร็จ ให้รัน verification ทั้งหมดที่ environment รองรับ (lint, typecheck, unit/integration, targeted E2E — คำสั่งดู § Commands & Verification); ห้าม report success โดยไม่มี command/result รองรับ
+8. **§8 Completion Report (ครบ 8 ข้อ)** — files changed · ADR/specs/rules consulted · commands/tests executed · verification results · architectural impact · known risks · unresolved issues/ambiguities · recommended follow-up
+9. **§9 Thin adapters** — แต่ละ agent มีเฉพาะวิธี load `AGENTS.md` + `.devin/rules/` และข้อจำกัดเฉพาะตัว **ห้ามคัดลอก policy**; registry: [`.agents/adapters/README.md`](./.agents/adapters/README.md) (Claude → `CLAUDE.md`, Devin → `.devin/README.md`, Gemini, Codex, Agy, Ollama, Windsurf, Qwen/Kilocode) — เพิ่ม agent ใหม่ต้องเพิ่มแถวใน registry นั้น
 
 ---
 
-## ⚙️ DMS Workflow Engine Protocol
+## 🧠 Role & Working Protocol
 
-กฎนี้ใช้คุม Logic การไหลของเอกสาร (RFA, Transmittal, Correspondence) เพื่อป้องกัน Race Condition และรักษาความถูกต้องของสถานะ:
+**Senior Full Stack Developer** (NestJS, Next.js, TypeScript, DMS) — **Document Intelligence Engine** ไม่ใช่ general chatbot: ตอบ precise, spec-compliant, production-ready. Focus: Data Integrity, Security, Maintainability, Performance.
 
-- **State Management:** ตรวจสอบสถานะปัจจุบันจาก DB ก่อนเสมอ เพื่อป้องกันการอนุมัติซ้ำซ้อน (ดู `05-06-code-snippets.md` `[workflow-transition]`)
-- **Concurrency Control:** การจอนเลขที่เอกสารต้องใช้ **Redis Redlock** หรือ **TypeORM `@VersionColumn`** เท่านั้น (ADR-002)
-- **Background Jobs:** งานนานหรือการแจ้งเตือนต้องส่งไปทำที่ **BullMQ** ห้ามเขียนแบบ Inline (ADR-008)
-- **Term Consistency:** ห้ามใช้ "Approval Flow" ให้ใช้ **"Workflow Engine"** และห้ามใช้ "Letter" ให้ใช้ **"Correspondence"** (หมายเหตุ: "จดหมาย" ในคอมเมนต์ภาษาไทย = Correspondence ที่ครอบคลุมทุกประเภท)
+ก่อนลงมือ Tier 1–2:
 
----
-
-## 🛡️ Security & Integrity Audit Protocol
-
-กฎนี้ให้ AI เป็น Gatekeeper ก่อน Commit โดยเน้น **Tier 1 — CRITICAL**:
-
-- **UUID Validation:** ตรวจสอบว่าเป็น **UUIDv7** และห้ามใช้ `parseInt()` บน UUID (ADR-019)
-- **RBAC Check:** API ใหม่ต้องมี **CASL Guard** และตรวจสอบ 4-Level RBAC Matrix (ADR-016)
-- **Data Isolation:** AI ต้องรันผ่าน **Ollama บน `np-dms-lcbp3`** เท่านั้น (post-ADR-041 — formerly Admin Desktop/Desk-5439, decommissioned) ห้ามเข้าถึง DB/storage โดยตรง (ADR-023)
-- **Input Sanitization:** ไฟล์อัปโหลดต้องผ่าน **Two-Phase** (Temp → Commit) และสแกนด้วย **ClamAV** (ADR-016)
+1. **Analyze** — restate งาน, หา spec/ADR ที่ต้องอ่าน ([Key Spec Files](./.devin/rules/12-key-spec-files.md)), ระบุ constraints (security, UUID, terminology)
+2. **Plan** — เสนอ ≥2 แนวทางถ้าทำได้ + แผนรายไฟล์ + วิธี verify
+3. **Execute** — ทำตามแผน, หยุดถามเมื่อไม่แน่ใจ, สรุปให้ user เมื่อเปลี่ยน logic สำคัญ
 
 ---
 
-## 🧭 Rule Enforcement Tiers
+## 🛡️ Critical Rules (Tier 1 — CI BLOCKER)
 
-### 🔴 Tier 1 — CRITICAL (CI BLOCKER)
+- **UUID (ADR-019):** ใช้ `publicId` เท่านั้น, ห้ามเปิดเผย INT `id`, ห้าม `parseInt` / `Number` / `+` บน UUID, ห้าม `id ?? ''` fallback
+  - ⚠️ ESLint ban **ทุก** `parseInt()` และ unary `+` (กว้างกว่า CI grep `parseInt(.*uuid`) — ตัวเลขทั่วไป/pagination ใช้ `Number(value)` หรือ DTO/Zod `transform()`
+- **RBAC (ADR-016):** API ใหม่ต้องมี CASL Guard + ตรวจ 4-Level matrix; Validation = class-validator (backend) + Zod (frontend)
+- **Database:** verify schema ก่อนเขียน query (`specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql`); schema change = SQL delta ตาม ADR-044 (ไม่มี TypeORM migration)
+- **FK Integrity:** ห้าม `repo.save(entity)` เพื่อเปลี่ยน scalar FK บน entity ที่โหลด relation มาแล้ว (relation เก่าเขียนทับ FK ใหม่) → ใช้ `repo.update()` + refetch (PR #32)
+- **Concurrency (ADR-002):** เลขที่เอกสารใช้ Redis Redlock หรือ `@VersionColumn` · **Background (ADR-008):** งานนาน/แจ้งเตือนผ่าน BullMQ ห้าม inline
+- **File upload (ADR-016):** Two-Phase (Temp → Commit) + ClamAV + whitelist
+- **AI boundary (ADR-023/023A/041):** Ollama บน `np-dms-lcbp3` เท่านั้น, ห้ามเข้าถึง DB/storage ตรง (AI → DMS API → DB), Qdrant query ต้องมี `projectPublicId`, ทุก transition ต้องมี human `actor_user_id`
+- **Errors (ADR-007):** layered classification, log technical / ส่งข้อความ user-friendly
+- **Code:** strict TS, ZERO `any`, ZERO `console.log`, English identifiers + Thai comments, file header `// File: path`
+- **Terminology:** Correspondence (ไม่ใช่ Letter), Workflow Engine (ไม่ใช่ Approval Flow), Document Numbering (ไม่ใช่ Document ID)
 
-Build fails หากละเมิด:
+**🟡 Tier 2 (code review):** thin controller/logic ใน service, coverage 80%+ business logic / 70%+ backend, cache invalidation, naming, JSDoc/types/headers, i18n keys
+**🟢 Tier 3 (specialized):** ADR-021 Workflow Context, AI infra/runtime (ADR-023/023A/024–027/032/033/036/037/040/042/043), Ingestion (ADR-028/047 — [flow](./specs/02-architecture/02-05-ai-document-ingestion-flow.md)), complex workflows, performance → ดู [`08-development-flow`](./.devin/rules/08-development-flow.md)
+**🔵 Tier 4:** Prettier, comments, minor optimizations
 
-- Security (Auth, RBAC, Validation)
-- UUID Strategy (ADR-019) — no `parseInt` / `Number` / `+` on UUID
-- Database correctness — verify schema before writing queries
-- File upload security (ClamAV + whitelist)
-- AI validation boundary (ADR-023)
-- Error handling strategy (ADR-007)
-- Forbidden patterns: `any`, `console.log`, UUID misuse, `id ?? ''` fallback
-
-### 🟡 Tier 2 — IMPORTANT (CODE REVIEW)
-
-Must fix ก่อน merge:
-
-- Architecture patterns (thin controller, business logic in service)
-- Test coverage (80%+ business logic, 70%+ backend overall)
-- Cache invalidation
-- Naming conventions
-- **TypeScript Standards:** Missing JSDoc, explicit types, or file headers
-
-### 🟢 Tier 3 — SPECIALIZED WORK
-
-Requires domain-specific knowledge:
-
-- **ADR-021 Integration:** Workflow Engine & Context implementation
-- **AI Infrastructure:** ADR-023/023A boundary enforcement and pipeline usage; ADR-040 OCR sidecar contract (amends ADR-035); ADR-042 OCR text persistence + Sandbox Project
-- **AI Runtime Layer:** ADR-024 Intent Classification, ADR-025 Tool Layer, ADR-026 Chat UI, ADR-027 Admin Console, ADR-032 Typhoon OCR, ADR-033 Active Model & OCR, ADR-036 Sandbox-Production Parity, ADR-037 Prompt Management UX/UI
-- **AI Document Ingestion Flow:** [`specs/02-architecture/02-05-ai-document-ingestion-flow.md`](./specs/02-architecture/02-05-ai-document-ingestion-flow.md) — end-to-end walkthrough (Production + Sandbox)
-- **Migration Pipeline:** ADR-028 Staging Queue & post-migration cleanup; **ADR-047** Native Backend Legacy Ingestion (`LegacyIngestionService` — supersedes n8n migration orchestration, `migration_review_queue` 4-stage lifecycle, OCR text persistence + auto Re-embed)
-- **Complex Business Logic:** Multi-step workflows with state management
-- **Performance Optimization:** Database queries, caching strategies, bulk operations
-
-### 🔵 Tier 4 — GUIDELINES
-
-Best practice — follow when possible:
-
-- Code style / formatting (Prettier handles)
-- Comment completeness
-- Minor optimizations
+**Out of scope (ต้องขออนุญาตก่อน):** DROP/RENAME column/table, push `main`, seed production, ลบไฟล์ถาวร, แก้ RBAC matrix/auth guard, major upgrade, แก้ Redlock, สร้าง/แก้ ADR — ดู [`05-forbidden-actions`](./.devin/rules/05-forbidden-actions.md)
 
 ---
 
-## 🗂️ Key Spec Files (Always Check Before Writing Code)
+## 📚 Rule Index (อ่านเมื่อเกี่ยวข้อง)
 
-→ Full table: [`.agents/rules/12-key-spec-files.md`](./.agents/rules/12-key-spec-files.md)
+| หัวข้อ                   | ไฟล์ (`.devin/rules/`)                                                                                          | ใช้เมื่อ / สาระสำคัญ                                                                          |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Project context & tiers  | `00-project-context.md`                                                                                         | บริบทเต็ม, platform/sub-agent command mapping                                                 |
+| UUID / Security / TS     | `01-adr-019-uuid.md` · `02-security.md` · `03-typescript.md`                                                    | งานที่แตะ identifier, auth, upload, coding standard                                           |
+| Terminology              | `04-domain-terminology.md` + `specs/00-overview/00-02-glossary.md`                                              | ตรวจคำศัพท์โดเมน                                                                              |
+| Forbidden / Out of scope | `05-forbidden-actions.md`                                                                                       | ก่อนทำสิ่งเสี่ยง (schema, RBAC, delete, push)                                                 |
+| Backend / Frontend       | `06-backend-patterns.md` · `07-frontend-patterns.md`                                                            | NestJS / Next.js patterns                                                                     |
+| Dev flow (tiered)        | `08-development-flow.md`                                                                                        | 🔴 DB/API/Security → 🟡 UI/Feature → 🟢 Quick fix → 🟢 Specialized                            |
+| Commit / Error / AI      | `09-commit-checklist.md` · `10-error-handling.md` · `11-ai-integration.md`                                      | pre-commit, ADR-007, ADR-023/023A                                                             |
+| Specs map & triggers     | `12-key-spec-files.md` · `13-specs-folder-organization.md` · `14-context-aware-triggers.md`                     | เลือก spec/ADR ตามงาน; priority: `06-Decision-Records` > `05-Engineering-Guidelines` > others |
+| MCP tools                | `15`-MariaDB · `16`-Memory · `17`-Redis · `18`-Qdrant · `19`-Gitea · `20`-Fetch · `21`-Stitch · `22`-Playwright | ก่อนใช้ MCP server นั้น (ดู ⚠️ ด้านล่าง)                                                      |
+| Deps / Docker            | `23-dependency-overrides.md` · `24-docker-stack-sync.md`                                                        | แก้ override / compose                                                                        |
+| Devin Cloud              | `25-devin-cloud-workflow.md`                                                                                    | agent บน Devin Cloud (fork → PR)                                                              |
+| Commands & verification  | `26-commands-verification.md`                                                                                   | build/test/lint ครบ + CI order                                                                |
 
-Spec priority: **`06-Decision-Records`** > **`05-Engineering-Guidelines`** > others
-
----
-
-## 📁 Specs Folder Organization
-
-→ Full details: [`.agents/rules/13-specs-folder-organization.md`](./.agents/rules/13-specs-folder-organization.md)
-
-Core: `00-overview/` → `06-Decision-Records/` (permanent) | Feature: `100-Infrastructures/`, `200-fullstacks/`, `300-others/`
-
----
-
-## 🆔 Identifier Strategy (ADR-019) — CRITICAL
-
-→ Full details: [`.agents/rules/01-adr-019-uuid.md`](./.agents/rules/01-adr-019-uuid.md)
-
-Key rules: Use `publicId` only, NEVER `parseInt()` on UUID, NEVER expose INT `id`.
-
-> ⚠️ **ESLint blanket ban (broader than CI grep gate):** `backend/eslint.config.mjs` bans **ALL** `parseInt()` calls and **ALL** unary `+` conversions via `no-restricted-syntax` — not just on UUIDs. The CI grep gate (`ci-deploy.yml`) only checks `parseInt(.*uuid`, which is narrower. **For pagination/numeric parsing**, use `Number(value)` or a Zod/DTO `transform()` — never `parseInt()` or `+value`, even for non-UUID values.
+**MCP ⚠️:** MariaDB ❌ no DDL · Redis ❌ ห้ามลบ Redlock keys · Qdrant 🔴 ต้องมี `projectPublicId` · Gitea (`gitea` + `gitea-official`) 🔴 `merge_pull_request` ย้อนกลับไม่ได้ — confirm ก่อน; `gitea-official` ต้องส่ง `owner`+`repo` ทุกครั้ง · Stitch: code ต้อง review (ADR-019, TS strict) · Playwright คู่กับ skill `check-real-app` / `e2e-testing`
 
 ---
 
-## 🛡️ Security Rules (Non-Negotiable)
+## 🧪 Commands & Verification (gotchas — ตารางเต็ม: [`26-commands-verification.md`](./.devin/rules/26-commands-verification.md))
 
-→ Full details: [`.agents/rules/02-security.md`](./.agents/rules/02-security.md)
+- Backend: `pnpm --filter backend build` · `lint:ci` (ไม่มี `--fix`) · `test` (Jest `--forceExit`, จบเอง)
+- Frontend: `pnpm --filter lcbp3-frontend build` · `lint` (`--max-warnings 0`) · **`test run`** (❌ `test` เฉยๆ = vitest watch → hang)
+- Root: `pnpm -r test` · `pnpm lint` · `pnpm dev`
+- CI: install → backend `lint:ci` → security grep (`parseInt(.*uuid`, `console.log`) → backend test → frontend `test run` → build
 
-Key: Two-phase upload, ClamAV, RBAC, AI isolation (ADR-023/023A/034), Qdrant `projectPublicId` filter.
-
----
-
-## 📐 TypeScript Rules & Coding Standards
-
-→ Full details: [`.agents/rules/03-typescript.md`](./.agents/rules/03-typescript.md)
-
-Key: Strict mode, ZERO `any`, ZERO `console.log`, English code/Thai comments, file headers `// File: path`.
-
----
-
-## 🏷️ Domain Terminology
-
-→ Full glossary: [`.agents/rules/04-domain-terminology.md`](./.agents/rules/04-domain-terminology.md) | `specs/00-overview/00-02-glossary.md`
-
-Key: Correspondence (not Letter), Workflow Engine (not Approval Flow), Document Numbering (not Document ID).
-
----
-
-## 🚫 Forbidden Actions & Out of Scope
-
-→ Full details: [`.agents/rules/05-forbidden-actions.md`](./.agents/rules/05-forbidden-actions.md)
-
-Includes: Forbidden patterns + Out of Scope (never do without explicit approval).
-
----
-
-## 🔄 Development Flow (Tiered)
-
-→ Full details: [`.agents/rules/08-development-flow.md`](./.agents/rules/08-development-flow.md)
-
-Tiers: 🔴 Critical (DB/API/Security) → 🟡 Normal (UI/Feature) → 🟢 Quick Fix → 🟢 Specialized (ADR-021/AI Runtime/Migration)
-
----
-
-## 🎯 Context-Aware Triggers
-
-→ Full table: [`.agents/rules/14-context-aware-triggers.md`](./.agents/rules/14-context-aware-triggers.md)
-
-Maps user requests → spec files to check + expected response.
-
----
-
-## 🔌 MCP MariaDB Tools
-
-→ Full details: [`.agents/rules/15-mcp-mariadb-tools.md`](./.agents/rules/15-mcp-mariadb-tools.md)
-
-Tools: `mysql_test_connection`, `mysql_show_databases`, `mysql_show_tables`, `mysql_describe_table`, `mysql_query`, `mysql_insert`, `mysql_update`, `mysql_delete`. ❌ No DDL.
-
----
-
-## 🧠 MCP Memory Tools
-
-→ Full details: [`.agents/rules/16-mcp-memory-tools.md`](./.agents/rules/16-mcp-memory-tools.md)
-
-Knowledge Graph tools: `create_entities`, `create_relations`, `add_observations`, `delete_entities`, `delete_relations`, `delete_observations`, `open_nodes`, `read_graph`, `search_nodes` for long-term context.
-
----
-
-## 🔴 MCP Redis Tools
-
-→ Full details: [`.agents/rules/17-mcp-redis-tools.md`](./.agents/rules/17-mcp-redis-tools.md)
-
-Tools: `set`, `get`, `delete`, `list`. Debug cache/Redlock/BullMQ. ❌ Don't delete Redlock keys (ADR-002).
-
----
-
-## 🔍 MCP Qdrant Tools
-
-→ Full details: [`.agents/rules/18-mcp-qdrant-tools.md`](./.agents/rules/18-mcp-qdrant-tools.md)
-
-Tools: `qdrant_list_collections`, `qdrant_collection_info`, `qdrant_scroll`, `qdrant_count`, `qdrant_search`, `qdrant_health`. 🔴 Every query MUST include `projectPublicId` filter (ADR-023A).
-
----
-
-## 🐙 MCP Gitea Tools
-
-→ Full details: [`.agents/rules/19-mcp-gitea-tools.md`](./.agents/rules/19-mcp-gitea-tools.md)
-
-2 servers: `gitea` (amonstack, ~75 tools — issues, labels, milestones, topics, PRs, attachments, wiki; auto-resolves owner/repo) + `gitea-official` (official v1.8.0, 57 action-based tools — files, branches/tags, commits, PR reviews, Actions logs/secrets, fork; **must pass `owner` + `repo` every call**). 🔴 `merge_pull_request` / `pull_request_write` method `merge` is IRREVERSIBLE — confirm before.
-
----
-
-## 🌐 MCP Fetch Tools
-
-→ Full details: [`.agents/rules/20-mcp-fetch-tools.md`](./.agents/rules/20-mcp-fetch-tools.md)
-
-Tools: `fetch_html`, `fetch_markdown`, `fetch_txt`, `fetch_json`, `fetch_readable`, `fetch_youtube_transcript`. Web content retrieval for research/docs.
-
----
-
-## 🎨 MCP StitchMCP Tools
-
-→ Full details: [`.agents/rules/21-mcp-stitch-tools.md`](./.agents/rules/21-mcp-stitch-tools.md)
-
-Tools: project/screen/design-system management + `generate_screen_from_text`, `generate_variants`. ⚠️ Generated code must pass review (ADR-019, TS strict) before production.
-
----
-
-## 🎭 MCP Playwright Tools
-
-→ Full details: [`.agents/rules/22-mcp-playwright-tools.md`](./.agents/rules/22-mcp-playwright-tools.md)
-
-Browser automation: navigate, click, fill_form, snapshot, console_messages, network_requests, screenshot. Pairs with `check-real-app` + `e2e-testing` skills.
-
----
-
-## 🧪 Commands & Verification
-
-> **อ่าน section นี้ก่อนรัน build/test/lint** — การเดาผิดทำให้ hang หรือ fail โดยไม่จำเป็น
-
-### Backend (`pnpm --filter backend <script>`)
-
-| Task             | Command                            | Notes                                                               |
-| ---------------- | ---------------------------------- | ------------------------------------------------------------------- |
-| Build            | `pnpm --filter backend build`      | `nest build` — ตรวจ TS compile errors                               |
-| Lint (CI)        | `pnpm --filter backend lint:ci`    | ESLint with `--cache` + `--max-old-space-size=4096` — ไม่มี `--fix` |
-| Lint (local fix) | `pnpm --filter backend lint`       | ESLint with `--fix` — สำหรับ local เท่านั้น                         |
-| Test (single)    | `pnpm --filter backend test`       | Jest `--forceExit` — จบเอง (ไม่ใช่ watch mode)                      |
-| Test coverage    | `pnpm --filter backend test:cov`   | Jest + coverage report                                              |
-| Test E2E         | `pnpm --filter backend test:e2e`   | Jest e2e config (`test/jest-e2e.json`)                              |
-| Test watch       | `pnpm --filter backend test:watch` | Jest watch — **จะไม่จบ** ใช้เฉพาะ interactive dev                   |
-
-### Frontend (`pnpm --filter lcbp3-frontend <script>`)
-
-| Task           | Command                                      | Notes                                                   |
-| -------------- | -------------------------------------------- | ------------------------------------------------------- |
-| Build          | `pnpm --filter lcbp3-frontend build`         | `next build --webpack`                                  |
-| Lint           | `pnpm --filter lcbp3-frontend lint`          | ESLint `--max-warnings 0` (zero tolerance)              |
-| Test (single!) | `pnpm --filter lcbp3-frontend test run`      | ⚠️ **ต้องมี `run`** — `vitest run` จบเอง                |
-| Test coverage  | `pnpm --filter lcbp3-frontend test:coverage` | `vitest run --coverage` — จบเอง                         |
-| Test (DANGER)  | `pnpm --filter lcbp3-frontend test`          | ❌ **WATCH MODE — จะ hang ไม่จบ!** อย่าใช้ใน agent loop |
-
-### Root / Workspace
-
-| Task         | Command             | Notes                                       |
-| ------------ | ------------------- | ------------------------------------------- |
-| Test all     | `pnpm -r test`      | รัน test ทุก workspace (backend + frontend) |
-| Lint all     | `pnpm lint`         | ESLint ทุก workspace                        |
-| Dev (both)   | `pnpm dev`          | backend + frontend พร้อมกัน (parallel)      |
-| Dev backend  | `pnpm dev:backend`  | `nest start --watch`                        |
-| Dev frontend | `pnpm dev:frontend` | `next dev`                                  |
-
-### CI Pipeline (`.gitea/workflows/ci-deploy.yml`)
-
-CI รันตามลำดับ: `pnpm install` → `pnpm --filter backend lint:ci` → security grep (`parseInt(.*uuid`, `console.log`) → `pnpm test` (backend) → `pnpm test run` (frontend) → build.
-
-> ⚠️ **CI ใช้ `pnpm test run` สำหรับ frontend** (ไม่ใช่ `pnpm test`) เพื่อบังคับ single-run mode. หาก agent รัน `pnpm --filter lcbp3-frontend test` จะ hang ใน vitest watch mode.
-
----
-
-## � Docker Compose Live Edit Protocol
-
-> [!IMPORTANT]
-> **แก้ docker-compose.yml ผิดที่ → container รัน code เก่า แก้ไม่ติด**
-
-→ Full details: [`memory/project-memory-override.md` § Docker Compose Live Edit Protocol](./memory/project-memory-override.md)
-
-### แก้ที่ไหน (ตามลำดับ)
-
-| ขั้นตอน              | Path                                                                                                             | หน้าที่                                |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| **1. Live edit**     | `/opt/np-dms/{00-basic,01-infrastructure,02-platform,03-application,04-ai,04-ai/ocr-sidecar}/docker-compose.yml` | แก้ที่นี่ก่อน — container รันจากที่นี่ |
-| **2. Sync to repo**  | `/opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/<layer>/docker-compose.yml`     | `cp` กลับเข้า repo เพื่อ commit        |
-| **3. Commit + push** | repo `np-dms-lcbp3`                                                                                              | commit พร้อม message อธิบาย            |
-
-### คำสั่งที่ใช้ (ตาม `dockerup.sh` / `dockerstart.sh`)
+## 🐳 Docker Compose
 
 > [!CAUTION]
-> **ห้าม `docker compose up -d` โดยไม่ระบุ `--env-file`** — env vars หาย ทำให้ container fail
+> ห้าม `docker compose up -d` โดยไม่ใส่ `--env-file ../.env` (env หาย → container fail) · build backend จาก repo root
 
-```bash
-# Start ทุก layer (หลัง reboot) — ตาม dockerup.sh
-cd /opt/np-dms/00-basic && sudo docker compose --env-file ../.env up -d
-cd /opt/np-dms/01-infrastructure && sudo docker compose --env-file ../.env up -d
-cd /opt/np-dms/02-platform && sudo docker compose --env-file ../.env up -d
-cd /opt/np-dms/03-application && sudo docker compose --env-file ../.env up -d
-cd /opt/np-dms/04-ai && sudo docker compose --env-file ../.env up -d
-cd /opt/np-dms/04-ai/ocr-sidecar && sudo docker compose --env-file ../../.env up -d
-
-# Start container ที่หยุดไว้ (เร็วกว่า) — ตาม dockerstart.sh
-cd /opt/np-dms/00-basic && sudo docker compose --env-file ../.env start
-# ... (ลำดับเดียวกัน แต่ใช้ start แทน up -d)
-
-# Rebuild + recreate container เดียว (เช่น ocr-sidecar)
-cd /opt/np-dms/04-ai/ocr-sidecar && docker compose --env-file ../../.env build ocr-sidecar
-cd /opt/np-dms/04-ai/ocr-sidecar && docker compose --env-file ../../.env up -d ocr-sidecar
-
-# Rebuild + recreate backend (มี Dockerfile, context = repo root)
-cd /opt/np-dms-lcbp3 && docker build -f backend/Dockerfile -t lcbp3-backend:latest .
-cd /opt/np-dms/03-application && sudo docker compose --env-file ../.env up -d backend
-```
-
-### กฎสำคัญ
-
-- **ห้ามแก้ repo ก่อนแล้วค่อย copy ไป live** — จะทำให้ live กับ repo ไม่ตรง
-- **หลังแก้ live ต้อง sync กลับ repo ทันที** — `cp /opt/np-dms/<layer>/docker-compose.yml /opt/np-dms-lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/<layer>/`
-- **`up -d` สร้าง container ใหม่, `start` ใช้ container เดิม** — ใช้ให้ถูกต้อง
-- **`/opt/np-dms/.env`** เป็น env file กลาง — ทุก layer อ้างผ่าน `../.env` หรือ `../../.env`
-- **Backend image build จาก repo root** — Dockerfile context = workspace root ไม่ใช่ `backend/`
+Runtime = `/opt/np-dms/<layer>/` (container รันจากที่นี่); spec canonical = `specs/04-Infrastructure-OPS/04-00-docker-compose/np-dms-lcbp3/`. แก้ฝั่งไหนต้อง **sync อีกฝั่งทันที** (`copy-env.sh`, commit hotfix กลับ spec — D259). รายละเอียด + คำสั่ง up/start/rebuild: [`24-docker-stack-sync.md`](./.devin/rules/24-docker-stack-sync.md) · [`memory/project-memory-override.md` § Docker Compose Live Edit Protocol](./memory/project-memory-override.md)
 
 ---
 
-## �🛠️ Final Checklists
+## 🔀 Git & Commit Discipline
 
-→ Full details: [`.agents/rules/09-commit-checklist.md`](./.agents/rules/09-commit-checklist.md)
+- **Commit local ทันที** หลังงานย่อยเสร็จ (D264) — ห้ามปล่อย uncommitted ค้าง; checklist เต็ม: [`09-commit-checklist.md`](./.devin/rules/09-commit-checklist.md); format `type(scope): description`
+- **Push** ไป `origin main` ผ่าน `2git.sh` เท่านั้น + ต้องมี explicit authorization ต่อครั้ง — ห้าม push เอง; docs-only commit ใส่ `[skip CI]`
 
-Tier 1 (CI blocker): UUID, RBAC, AI boundary, validation, file upload, error handling.
-Tier 2 (code review): File headers, JSDoc, test coverage, cache invalidation, i18n.
-Tier 3 (specialized): Workflow, AI integration, performance.
-Tier 4 (guidelines): Prettier, comments.
+### ☁️ Devin Cloud (Fork → PR) — เฉพาะ agent บน Devin Cloud (`devin-bot`)
 
-> **Commit Discipline (D264):** commit local ทันทีหลังแก้ไข/อัปเดตงานแต่ละจุดเสร็จ — ห้ามปล่อยเป็น uncommitted ค้างไว้
-> (uncommitted change เป็นจุดเสี่ยงที่เคยทำให้งานหาย — ดู `memory/project-memory-override.md` D264)
-> Push ไป `origin main` ทำผ่าน `2git.sh` เท่านั้น และต้องมี explicit authorization จาก user ต่อครั้งเสมอ — ห้าม push เอง
-> **หลาย conversation พร้อมกัน:** ใช้ branch แยกตาม conversation และอ่าน `memory/branch-workflow.md` สำหรับ naming convention + workflow
+ทำงานบน fork `devin-bot/lcbp3` → branch `devin/<topic>` → เปิด PR เข้า `np-dms/lcbp3:main` (branch protection: ต้อง approval + `ci-quality`/`ci-test`) — ขั้นตอนเต็ม: [`25-devin-cloud-workflow.md`](./.devin/rules/25-devin-cloud-workflow.md)
+**ห้าม:** push `upstream` / merge PR เอง · รัน `2git.sh` · แตะ GitHub mirror / `gh` · แก้ `.gitea/workflows/**`, `2git.*` · commit token · เข้า production DB/server · แก้ schema SQL/RBAC/ADR โดยไม่มีคำสั่งชัด
 
 ---
 
-## Collaboration & Sub-agents Commands
+## 🧰 Agent Skills & Docs
 
-> คำสั่งเหล่านี้ขึ้นกับ IDE/Agent platform ที่กำลังใช้งาน อย่าใช้ชื่อ Devin เป็นคำสั่งหลักให้กับ IDE อื่น โดยไม่ระบุ mapping
-
-| Platform                            | คำสั่งหลัก                                      | ฟังก์ชัน                                                                                                                                                                                  |
-| ----------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Devin / Windsurf                    | `run_subagent` / `read_subagent`                | เปิด/อ่านผล subagent (ใช้ได้เมื่อ `subagents_enabled=true`)                                                                                                                               |
-| Codex CLI                           | `codex --task` หรือคำสั่ง multi-agent ของ Codex | รัน task ย่อยใน session แยก                                                                                                                                                               |
-| Claude Code                         | `Agent` tool (`subagent_type`) / `/<command>`   | รัน subagent ที่นิยามใน `.claude/agents/` หรือ slash command ที่นิยามใน `.claude/commands/`; skill ที่ mirror ไว้ที่ `.claude/skills/` ถูกเรียกอัตโนมัติผ่าน `Skill` tool ตาม description |
-| opencode                            | `opencode agents` / `opencode tasks`            | รัน agent/task ย่อย                                                                                                                                                                       |
-| Amp / Antigravity / AGENTS.md tools | ตามเอกสารของเครื่องมือนั้น ๆ                    | fallback เป็น inline ถ้าไม่มี multi-agent                                                                                                                                                 |
-
-หลักการ:
-
-- ห้ามอ้างอิง `run_subagent` หรือ `read_subagent` เป็น universal command ใน AGENTS.md
-- ถ้า IDE ปัจจุบันไม่มี subagent ให้ทำงาน inline ด้วยเครื่องมือปกติ โดยไม่แกล้งว่ามีการกระจายงาน
-- สกิลที่ใช้ subagent ต้องระบุใน description หรือ doc ของตัวเองว่าใช้งานได้บน platform ไหน
+- Issue tracker: Gitea (git.np-dms.work) → [`docs/agents/issue-tracker.md`](./docs/agents/issue-tracker.md) · labels: [`triage-labels.md`](./docs/agents/triage-labels.md) · domain docs: [`domain.md`](./docs/agents/domain.md)
+- Skills (35): [`.devin/skills/README.md`](./.devin/skills/README.md) · inventory: [`docs/agents/skills-inventory.md`](./docs/agents/skills-inventory.md) · scripts: `.agents/scripts/{bash,powershell}/`
+- Specs: `specs/{01-requirements,02-architecture,03-Data-and-Storage,04-Infrastructure-OPS,05-Engineering-Guidelines,06-Decision-Records}/` — index: [`specs/README.md`](./specs/README.md)
 
 ---
 
-## ☁️ Devin Cloud Workflow (Fork → PR)
-
-→ Full details: [`.agents/rules/25-devin-cloud-workflow.md`](./.agents/rules/25-devin-cloud-workflow.md)
-
-> ใช้เฉพาะ agent ที่รันบน **Devin Cloud** (ทำงานในนาม Gitea user `devin-bot`) — agent บนเครื่อง admin (Devin Desktop / Windsurf / Claude Code ฯลฯ) ใช้ Commit Discipline (D264) + `2git.sh` ตามเดิม
-
-Devin Cloud ไม่มี native Gitea integration → ทำงานบน **fork** แล้วเปิด PR เข้า repo หลักเท่านั้น (`main` มี branch protection: push allowlist = `admin`, ห้าม force push, ต้อง approval + status check `ci-quality`/`ci-test`)
-
-| Remote     | URL                                           | สิทธิ์ของ `devin-bot` |
-| ---------- | --------------------------------------------- | --------------------- |
-| `origin`   | `https://git.np-dms.work/devin-bot/lcbp3.git` | Read + Write (fork)   |
-| `upstream` | `https://git.np-dms.work/np-dms/lcbp3.git`    | Read only             |
-
-**ขั้นตอนต่อ task:**
-
-1. Sync fork ก่อนเริ่มงาน: `git fetch upstream && git checkout main && git reset --hard upstream/main && git push origin main`
-2. สร้าง branch `devin/<topic>` จาก `main` (kebab-case เช่น `devin/fix-rfa-status-filter`)
-3. แก้ไข + รัน verification ตาม § Commands & Verification (lint + test ของ workspace ที่แตะ) ให้ผ่านก่อน push
-4. Commit ตาม Commit Message Format (`type(scope): description`) — ห้ามใส่ `[skip CI]`
-5. `git push origin devin/<topic>` (push ไป fork เท่านั้น)
-6. เปิด PR `devin-bot:devin/<topic>` → `np-dms/lcbp3:main` ผ่าน Gitea MCP (`gitea-official`: `pull_request_write` method `create` / `gitea`: `create_pull_request`) หรือ `POST /api/v1/repos/np-dms/lcbp3/pulls` — PR body ต้องมี: สรุปการเปลี่ยนแปลง, ADR/spec ที่อ้างอิง, ผล verification
-7. ถ้า `main` ขยับระหว่างรอ review → `git fetch upstream && git rebase upstream/main` แล้ว `git push --force-with-lease origin devin/<topic>` (force ได้เฉพาะ branch ของตัวเองบน fork)
-
-**ห้าม (Devin Cloud):**
-
-- ❌ push ไป `upstream` หรือ branch ใด ๆ ใน `np-dms/lcbp3` / ❌ merge PR เอง (`merge_pull_request`) — admin review + merge เท่านั้น
-- ❌ รัน `2git.sh` / `2git.ps1` (ใช้เฉพาะเครื่อง admin)
-- ❌ แตะ GitHub (`peancharoen/lcbp3` เป็น one-way push mirror จาก Gitea — ทุกอย่างบน GitHub ถูกเขียนทับ) / ❌ ใช้ `gh` CLI
-- ❌ แก้ `.gitea/workflows/**`, `2git.sh`, `2git.ps1` (protected files — PR จะ merge ไม่ได้) เว้นแต่ได้รับคำสั่งชัดเจน
-- ❌ commit token / credential (`GITEA_TOKEN` อยู่ใน Devin Secrets เท่านั้น) / ❌ เข้าถึง production DB, storage หรือ server `192.168.10.11` โดยตรง
-- ❌ แก้ schema SQL, RBAC matrix หรือ ADR โดยไม่มีคำสั่งชัดเจน (ดู § Forbidden Actions & Out of Scope)
-
----
-
-## Agent skills
-
-### Issue tracker
-
-Issues live in the self-hosted Gitea repo at git.np-dms.work:2222. See `docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-Default label vocabulary (no custom mapping). See `docs/agents/triage-labels.md`.
-
-### Domain docs
-
-Single-context repo with domain documentation in `specs/`. See `docs/agents/domain.md`.
-
----
-
-## 📚 Full Documentation
-
-This file is a **quick reference**. For detailed information:
-
-- **Architecture:** `specs/02-architecture/`
-- **Requirements:** `specs/01-requirements/`
-- **Data & Storage:** `specs/03-Data-and-Storage/` (canonical schema + `deltas/` incremental SQL per ADR-044)
-- **Engineering Guidelines:** `specs/05-Engineering-Guidelines/`
-- **Decision Records:** `specs/06-Decision-Records/`
-- **Infrastructure:** `specs/04-Infrastructure-OPS/`
-- **Agent Skill Pack:** `.agents/skills/` ↔ `.devin/skills/` (NestJS/Next.js rules + 35 Speckit & Utility skills)
-- **Helper Scripts:** `.agents/scripts/{bash,powershell}/` (audit, validate, prerequisites, setup-plan)
-
----
-
-## 🔄 Change Log
-
-| Version | Date       | Changes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Updated By     |
-| ------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
-| 1.9.18  | 2026-10-06 | Added Devin Cloud Workflow section — Devin Cloud (Gitea user `devin-bot`) works on fork `devin-bot/lcbp3` → PR to `np-dms/lcbp3:main` (no native Gitea integration); branch `devin/<topic>`; forbids push to upstream, self-merge, `2git.sh`, GitHub mirror access, editing protected files (`.gitea/workflows/**`, `2git.*`); full rule in `.agents/rules/25-devin-cloud-workflow.md` ↔ `.devin/rules/`; MCP Gitea section updated for 2 servers (`gitea` + `gitea-official`); synced `.agents/rules/19-mcp-gitea-tools.md` from `.devin/rules/`                                                                                | Devin          |
-| 1.9.17  | 2026-09-02 | Added Docker Compose Live Edit Protocol section — live edit at `/opt/np-dms/<layer>/`, sync to repo `specs/04-Infrastructure-OPS/`, use `dockerup.sh`/`dockerstart.sh` commands with `--env-file`; added same protocol to `memory/project-memory-override.md`                                                                                                                                                                                                                                                                                                                                                                     | Devin          |
-| 1.9.16  | 2026-08-31 | Added Claude Code row to Collaboration & Sub-agents Commands table — maps `Agent` tool (`subagent_type`) + `/<command>` to `.claude/agents/` and `.claude/commands/`; new `.claude/` setup: `skills/` mirrored from `.agents/skills/` (35 skills), `settings.json` permissions allowlist from Commands & Verification table, `agents/` (`security-review`, `schema-change`, `spec-researcher` thin subagents), `commands/` (`/deploy`, `/schema-change`, `/security-review`, `/bugfix`, `/save-memory`)                                                                                                                           | Claude         |
-| 1.9.15  | 2026-08-28 | Added Collaboration & Sub-agents Commands section with platform-specific command mapping; clarifies Devin `run_subagent`/`read_subagent` vs other IDE equivalents and forbids treating them as universal.                                                                                                                                                                                                                                                                                                                                                                                                                         | Devin          |
-| 1.9.14  | 2026-08-26 | **Diagnose & Fix 5 issues:** (1) Added Commands & Verification section with build/test/lint commands — flagged frontend `pnpm test` = vitest watch mode (hangs); (2) Added ESLint blanket ban note — `no-restricted-syntax` bans ALL `parseInt()` + unary `+` (broader than CI grep gate `parseInt(.*uuid`); use `Number()` for pagination; (3) Fixed stale "Admin Desktop" → `np-dms-lcbp3` (ADR-041 decommissioned Desk-5439); (4) Fixed skill count 21 → 35 (D81 confirmed); (5) Added ADR-047 (Native Backend Legacy Ingestion) to Tier 3 Migration Pipeline + context triggers; synced to `.agents/rules/` + `.devin/rules/` | Devin          |
-| 1.9.13  | 2026-08-03 | **MCP Rules Sync:** Added 6 new MCP rule files (17-22) covering Redis, Qdrant, Gitea, Fetch, StitchMCP, Playwright servers; fixed MariaDB rule (15) tool name prefixes `mcp1_*` → `mysql_*` and Memory rule (16) verified (no `mcp3_*` prefix); synced rules 17-22 from `.devin/rules/` → `.agents/rules/`; updated `.agents/README.md` architecture tree + MCP servers table; AGENTS.md MCP sections expanded from 2 → 8 servers                                                                                                                                                                                                 | Devin          |
-| 1.9.12  | 2026-07-23 | **Refactoring:** Extracted 12 sections to `.agents/rules/` reference files (5 new: 12-16); merged Out of Scope into 05-forbidden-actions.md; AGENTS.md reduced from 756→283 lines (63% reduction); all content preserved in rule files with stub links in AGENTS.md                                                                                                                                                                                                                                                                                                                                                               | Windsurf AI    |
-| 1.9.10  | 2026-06-06 | Added MCP MariaDB Tools section with available tools (test_connection, show_databases, show_tables, describe_table, query, insert, update, delete), usage guidelines for development flow, and safety warnings for DDL operations; Added MCP Memory Tools section with Knowledge Graph management tools (create_entities, create_relations, add_observations, delete_entities, delete_relations, delete_observations, open_nodes, read_graph, search_nodes) for long-term context storage                                                                                                                                         | Windsurf AI    |
-| 1.9.9   | 2026-06-13 | ADR-034 canonical model names sync: np-dms-ai:latest / np-dms-ocr:latest; ADR-036 parity prep; model switching and sidecar refs updated                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Codex          |
-| 1.9.8   | 2026-06-02 | Added ADR-033 Active Model & OCR Runner Management; implemented Synchronous LLM switches, GPU Memory Auto-release, sidecar `X-API-Key` headers protection; updated Key Spec Files & Specialized Work AI runtime sections                                                                                                                                                                                                                                                                                                                                                                                                          | Windsurf AI    |
-| 1.9.7   | 2026-05-25 | Added ADR-029 Dynamic Prompt Management to Key Spec Files table; fixed gemma4 model name e2b→e4b Q8_0; added Dynamic Prompt context trigger; added ADR-029 to Tier 3 AI checklist; bumped last synced date                                                                                                                                                                                                                                                                                                                                                                                                                        | Windsurf AI    |
-| 1.9.6   | 2026-05-22 | Added ADR-024/025/026/027/028 to Key Spec Files table; Tier 3 expanded with AI Runtime Layer + Migration Pipeline tiers; Specialized Work section updated with ADR-024~028 patterns; 6 new Context-Aware Triggers; bumped Last synced date                                                                                                                                                                                                                                                                                                                                                                                        | Windsurf AI    |
-| 1.9.5   | 2026-05-18 | **Grill-with-Docs Session:** Domain terminology clarified (Correspondence = all doc types), Tier 3: SPECIALIZED WORK added, Context-Aware Triggers with Status column, Tier-specific Final Checklists                                                                                                                                                                                                                                                                                                                                                                                                                             | Windsurf AI    |
-| 1.9.4   | 2026-05-16 | Added ADR-015 Release Strategy to Key Spec Files table (Blue-Green deployment + release gates)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Human Dev      |
-| 1.9.3   | 2026-05-15 | ADR-023A: Model revision — gemma4:9b+Typhoon→gemma4:e2b (2-model stack), BullMQ 2-queue split, RAG full-doc embed, OCR auto-detect, n8n→DMS API boundary, QdrantService multi-tenancy contract                                                                                                                                                                                                                                                                                                                                                                                                                                    | Windsurf AI    |
-| 1.9.2   | 2026-05-14 | Consolidated legacy AI ADRs (017, 017B, 018, 020, 022) into master ADR-023: Unified AI Architecture                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Antigravity AI |
-| 1.9.1   | 2026-05-13 | Added `bugfix` workflow and skill (migrated and improved from `docs/bugfix.md`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Windsurf AI    |
-| 1.9.0   | 2026-05-03 | Integrated Global TypeScript Coding Standards (Headers, JSDoc, Thai comments, Single Export, No blank lines)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Windsurf AI    |
-| 1.8.9   | 2026-04-22 | `.agents/skills/` LCBP3-native rebuild (20 skills @ v1.8.9) + `_LCBP3-CONTEXT.md` appendix + `specs/03-Data-and-Storage/deltas/` + AGENTS.md sync                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Windsurf AI    |
-| 1.8.8   | 2026-04-14 | Workflow attachments (ADR-021) + step-attachment envelope fields                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Windsurf AI    |
-| 1.8.7   | 2026-04-14 | + ADR-021 Workflow Context integration, + ADR-021 Integration Work tier, + Transmittal/Circulation context triggers, updated ADR-020 status                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Windsurf AI    |
-| 1.8.6   | 2026-04-10 | + DMS Workflow Engine Protocol, + Security & Integrity Audit Protocol, + 2 Context-Aware Triggers, ADR Status column, Forbidden Why column                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Human Dev      |
-| 1.8.5   | 2026-04-04 | Added ADR-007 error handling, ADR-020 AI integration, updated security rules                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Windsurf AI    |
-| 1.8.4   | 2026-03-24 | Phase 5.4→✅ DONE, Tailwind 3.4.3, ADR count(16), MariaDB UUID note                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Windsurf AI    |
-| 1.8.3   | 2026-03-21 | + Rule Enforcement Tiers (🔴🟡🟢), + Tiered Development Flow                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Human Dev + AI |
-| 1.8.2   | 2026-03-21 | + Context Triggers, + Code Snippets, + Error Handling, + i18n                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Human Dev + AI |
-| 1.8.1   | 2026-03-21 | + ADR-019 UUID patterns, + Phase 5.4 pending files                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Claude Sonnet  |
-| 1.8.0   | 2026-03-19 | + Security overrides, + UAT criteria reference                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Human Dev      |
-| 1.7.2   | 2026-03-15 | + AI Boundary rules (ADR-018)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Gemini Pro     |
-
----
-
-**To update this file:**
-
-1. Edit relevant sections
-2. Update Change Log above
-3. Bump version number in header
-4. Commit: `spec(agents): bump to vX.X.X - <brief description>`
+**To update this file:** แก้ section → เพิ่ม entry ใน [`agents-md-changelog.md`](./specs/88-logs/agents-md-changelog.md) → bump version ใน header → commit `spec(agents): bump to vX.X.X - <brief>` · เนื้อหายาว ๆ ให้เพิ่มใน `.devin/rules/` แล้วอ้างอิงที่นี่ (อย่ากลับมาขยายไฟล์นี้)

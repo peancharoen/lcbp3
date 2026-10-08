@@ -4,9 +4,9 @@ Critical rules and guidelines for AI agents working on LCBP3-DMS.
 
 ## Version
 
-- **Current:** v1.9.14
-- **Last Updated:** 2026-08-24
-- **Synced with:** `AGENTS.md` (v1.9.12) + MCP servers (8)
+- **Current:** v1.9.16
+- **Last Updated:** 2026-10-08
+- **Synced with:** `AGENTS.md` (v1.9.20) + MCP servers (8)
 
 ## Purpose
 
@@ -76,11 +76,11 @@ Best practice — follow when possible:
 
 ### Coding Standards
 
-| File                      | Purpose                                                 |
-| ------------------------- | ------------------------------------------------------- |
-| `03-typescript.md`        | TypeScript rules, file headers, i18n guidelines         |
-| `06-backend-patterns.md`  | NestJS patterns, UUID resolution, API response patterns |
-| `07-frontend-patterns.md` | Next.js patterns, RHF+Zod+TanStack Query, UUID handling |
+| File                      | Purpose                                                                     |
+| ------------------------- | --------------------------------------------------------------------------- |
+| `03-typescript.md`        | TypeScript rules, file headers, i18n guidelines                             |
+| `06-backend-patterns.md`  | NestJS patterns, UUID resolution, API response + TypeORM FK update patterns |
+| `07-frontend-patterns.md` | Next.js patterns, RHF+Zod+TanStack Query, UUID handling                     |
 
 ### Domain & Workflow
 
@@ -91,12 +91,12 @@ Best practice — follow when possible:
 
 ### Compliance & Architecture
 
-| File                      | Purpose                                                        |
-| ------------------------- | -------------------------------------------------------------- |
-| `05-forbidden-actions.md` | Actions that must never be done, schema changes, UUID handling |
-| `09-commit-checklist.md`  | Pre-commit verification, commit message format                 |
-| `10-error-handling.md`    | ADR-007 error handling strategy, layered classification        |
-| `11-ai-integration.md`    | ADR-023/023A AI architecture, 2-model stack, BullMQ 2-queue    |
+| File                      | Purpose                                                                       |
+| ------------------------- | ----------------------------------------------------------------------------- |
+| `05-forbidden-actions.md` | Actions that must never be done, schema changes, UUID + FK-integrity handling |
+| `09-commit-checklist.md`  | Pre-commit verification, commit message format                                |
+| `10-error-handling.md`    | ADR-007 error handling strategy, layered classification                       |
+| `11-ai-integration.md`    | ADR-023/023A AI architecture, 2-model stack, BullMQ 2-queue                   |
 
 ### Reference Tables (extracted from AGENTS.md v1.9.12)
 
@@ -116,6 +116,7 @@ Best practice — follow when possible:
 | `23-dependency-overrides.md`      | D144–D146 bounded override rule, undici pin, service-down debug order                                       |
 | `24-docker-stack-sync.md`         | Docker stack spec↔runtime sync — spec=canonical, /opt/np-dms=runtime, copy-env.sh                          |
 | `25-devin-cloud-workflow.md`      | Devin Cloud (`devin-bot`) fork → PR workflow, branch `devin/<topic>`, forbidden actions                     |
+| `26-commands-verification.md`     | Build/test/lint commands (backend/frontend/root), CI order, vitest watch-mode trap, worktree gotchas         |
 
 ## Maintenance
 
