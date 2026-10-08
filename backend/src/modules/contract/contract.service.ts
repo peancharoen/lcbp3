@@ -6,16 +6,23 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like, FindOptionsWhere, FindManyOptions } from 'typeorm';
 import { Contract } from './entities/contract.entity';
+import { ContractOrganization } from './entities/contract-organization.entity';
 import { CreateContractDto } from './dto/create-contract.dto';
 import { UpdateContractDto } from './dto/update-contract.dto';
 import { UuidResolverService } from '../../common/services/uuid-resolver.service';
+import { OrganizationService } from '../organization/organization.service';
+import { LinkOrganizationDto } from '../organization/dto/link-organization.dto';
+import { UpdateLinkedOrganizationRoleDto } from '../organization/dto/update-linked-organization-role.dto';
 
 @Injectable()
 export class ContractService {
   constructor(
     @InjectRepository(Contract)
     private readonly contractRepo: Repository<Contract>,
-    private readonly uuidResolver: UuidResolverService
+    @InjectRepository(ContractOrganization)
+    private readonly contractOrgRepo: Repository<ContractOrganization>,
+    private readonly uuidResolver: UuidResolverService,
+    private readonly organizationService: OrganizationService
   ) {}
 
   async create(dto: CreateContractDto) {
@@ -122,5 +129,101 @@ export class ContractService {
   async remove(publicId: string) {
     const contract = await this.findOneByUuid(publicId);
     return this.contractRepo.remove(contract);
+  }
+
+  // --- Contract ↔ Organization Links (role per context — PR #29) ---
+
+  /** แปลง junction row เป็น API shape — expose เฉพาะ publicId ไม่รั่ว internal id (ADR-019) */
+  private toLinkedOrganization(link: ContractOrganization) {
+    return {
+      organizationId: link.organization?.publicId ?? null,
+      organizationCode: link.organization?.organizationCode ?? null,
+      organizationName: link.organization?.organizationName ?? null,
+      roleName: link.organizationRole?.roleName ?? null,
+    };
+  }
+
+  /** ดึงองค์กรทั้งหมดที่ผูกกับ contract พร้อม role ใน context นั้น */
+  async listOrganizations(publicId: string) {
+    const contract = await this.findOneByUuid(publicId);
+    const links = await this.contractOrgRepo.find({
+      where: { contractId: contract.id },
+      relations: ['organization', 'organizationRole'],
+    });
+    return links.map((link) => this.toLinkedOrganization(link));
+  }
+
+  /** ผูกองค์กรเข้า contract พร้อม role — PK (contract_id, organization_id) กันซ้ำที่ DB ด้วย */
+  async linkOrganization(publicId: string, dto: LinkOrganizationDto) {
+    const contract = await this.findOneByUuid(publicId);
+    const organizationId = await this.uuidResolver.resolveOrganizationId(
+      dto.organizationId
+    );
+    const roleId = await this.organizationService.resolveRoleId(dto.roleName);
+
+    const existing = await this.contractOrgRepo.findOne({
+      where: { contractId: contract.id, organizationId },
+    });
+    if (existing) {
+      throw new ConflictException(
+        'Organization is already linked to this contract'
+      );
+    }
+
+    const link = this.contractOrgRepo.create({
+      contractId: contract.id,
+      organizationId,
+      roleId,
+    });
+    await this.contractOrgRepo.save(link);
+
+    const saved = await this.contractOrgRepo.findOneOrFail({
+      where: { contractId: contract.id, organizationId },
+      relations: ['organization', 'organizationRole'],
+    });
+    return this.toLinkedOrganization(saved);
+  }
+
+  /** เปลี่ยน role ขององค์กรที่ผูกอยู่แล้ว — role มีความหมายเฉพาะ context นี้ */
+  async updateOrganizationRole(
+    publicId: string,
+    orgUuid: string,
+    dto: UpdateLinkedOrganizationRoleDto
+  ) {
+    const contract = await this.findOneByUuid(publicId);
+    const organizationId =
+      await this.uuidResolver.resolveOrganizationId(orgUuid);
+
+    const link = await this.contractOrgRepo.findOne({
+      where: { contractId: contract.id, organizationId },
+      relations: ['organization', 'organizationRole'],
+    });
+    if (!link) {
+      throw new NotFoundException(
+        'Organization is not linked to this contract'
+      );
+    }
+
+    link.roleId = await this.organizationService.resolveRoleId(dto.roleName);
+    await this.contractOrgRepo.save(link);
+    return this.toLinkedOrganization(link);
+  }
+
+  /** ถอดองค์กรออกจาก contract — junction เป็น pure link table ลบจริงได้ (ไม่มี deleted_at) */
+  async unlinkOrganization(publicId: string, orgUuid: string) {
+    const contract = await this.findOneByUuid(publicId);
+    const organizationId =
+      await this.uuidResolver.resolveOrganizationId(orgUuid);
+
+    const result = await this.contractOrgRepo.delete({
+      contractId: contract.id,
+      organizationId,
+    });
+    if (!result.affected) {
+      throw new NotFoundException(
+        'Organization is not linked to this contract'
+      );
+    }
+    return { deleted: true };
   }
 }

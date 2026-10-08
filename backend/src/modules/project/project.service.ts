@@ -10,12 +10,16 @@ import { BusinessException } from '../../common/exceptions';
 
 // Entities
 import { Project } from './entities/project.entity';
+import { ProjectOrganization } from './entities/project-organization.entity';
 import { OrganizationService } from '../organization/organization.service';
+import { UuidResolverService } from '../../common/services/uuid-resolver.service';
 
 // DTOs
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { SearchProjectDto } from './dto/search-project.dto';
+import { LinkOrganizationDto } from '../organization/dto/link-organization.dto';
+import { UpdateLinkedOrganizationRoleDto } from '../organization/dto/update-linked-organization-role.dto';
 
 @Injectable()
 export class ProjectService {
@@ -24,7 +28,10 @@ export class ProjectService {
   constructor(
     @InjectRepository(Project)
     private projectRepository: Repository<Project>,
-    private organizationService: OrganizationService
+    @InjectRepository(ProjectOrganization)
+    private projectOrgRepo: Repository<ProjectOrganization>,
+    private organizationService: OrganizationService,
+    private uuidResolver: UuidResolverService
   ) {}
 
   // --- CRUD Operations ---
@@ -143,5 +150,97 @@ export class ProjectService {
 
   async findAllOrganizations() {
     return this.organizationService.findAllActive();
+  }
+
+  // --- Project ↔ Organization Links (role per context — PR #29) ---
+
+  /** แปลง junction row เป็น API shape — expose เฉพาะ publicId ไม่รั่ว internal id (ADR-019) */
+  private toLinkedOrganization(link: ProjectOrganization) {
+    return {
+      organizationId: link.organization?.publicId ?? null,
+      organizationCode: link.organization?.organizationCode ?? null,
+      organizationName: link.organization?.organizationName ?? null,
+      roleName: link.organizationRole?.roleName ?? null,
+    };
+  }
+
+  /** ดึงองค์กรทั้งหมดที่ผูกกับ project พร้อม role ใน context นั้น */
+  async listOrganizations(publicId: string) {
+    const project = await this.findOneByUuid(publicId);
+    const links = await this.projectOrgRepo.find({
+      where: { projectId: project.id },
+      relations: ['organization', 'organizationRole'],
+    });
+    return links.map((link) => this.toLinkedOrganization(link));
+  }
+
+  /** ผูกองค์กรเข้า project พร้อม role — PK (project_id, organization_id) กันซ้ำที่ DB ด้วย */
+  async linkOrganization(publicId: string, dto: LinkOrganizationDto) {
+    const project = await this.findOneByUuid(publicId);
+    const organizationId = await this.uuidResolver.resolveOrganizationId(
+      dto.organizationId
+    );
+    const roleId = await this.organizationService.resolveRoleId(dto.roleName);
+
+    const existing = await this.projectOrgRepo.findOne({
+      where: { projectId: project.id, organizationId },
+    });
+    if (existing) {
+      throw new ConflictException(
+        'Organization is already linked to this project'
+      );
+    }
+
+    const link = this.projectOrgRepo.create({
+      projectId: project.id,
+      organizationId,
+      roleId,
+    });
+    await this.projectOrgRepo.save(link);
+
+    const saved = await this.projectOrgRepo.findOneOrFail({
+      where: { projectId: project.id, organizationId },
+      relations: ['organization', 'organizationRole'],
+    });
+    return this.toLinkedOrganization(saved);
+  }
+
+  /** เปลี่ยน role ขององค์กรที่ผูกอยู่แล้ว — role มีความหมายเฉพาะ context นี้ */
+  async updateOrganizationRole(
+    publicId: string,
+    orgUuid: string,
+    dto: UpdateLinkedOrganizationRoleDto
+  ) {
+    const project = await this.findOneByUuid(publicId);
+    const organizationId =
+      await this.uuidResolver.resolveOrganizationId(orgUuid);
+
+    const link = await this.projectOrgRepo.findOne({
+      where: { projectId: project.id, organizationId },
+      relations: ['organization', 'organizationRole'],
+    });
+    if (!link) {
+      throw new NotFoundException('Organization is not linked to this project');
+    }
+
+    link.roleId = await this.organizationService.resolveRoleId(dto.roleName);
+    await this.projectOrgRepo.save(link);
+    return this.toLinkedOrganization(link);
+  }
+
+  /** ถอดองค์กรออกจาก project — junction เป็น pure link table ลบจริงได้ (ไม่มี deleted_at) */
+  async unlinkOrganization(publicId: string, orgUuid: string) {
+    const project = await this.findOneByUuid(publicId);
+    const organizationId =
+      await this.uuidResolver.resolveOrganizationId(orgUuid);
+
+    const result = await this.projectOrgRepo.delete({
+      projectId: project.id,
+      organizationId,
+    });
+    if (!result.affected) {
+      throw new NotFoundException('Organization is not linked to this project');
+    }
+    return { deleted: true };
   }
 }

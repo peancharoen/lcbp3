@@ -9,7 +9,8 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useProjects, useCreateProject, useUpdateProject, useDeleteProject } from '@/hooks/use-projects';
 import { ColumnDef } from '@tanstack/react-table';
-import { Pencil, Trash, Plus, Folder, Search as SearchIcon } from 'lucide-react';
+import { Pencil, Trash, Plus, Folder, Search as SearchIcon, Building2 } from 'lucide-react';
+import { OrganizationLinksDialog } from '@/components/admin/organization-links-dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -64,6 +65,10 @@ export default function ProjectsPage() {
   // Stats for Delete Dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+
+  // Dialog จัดการ org links (PR #29 deferred — assign role ต่อ context)
+  const [linksDialogOpen, setLinksDialogOpen] = useState(false);
+  const [linksProject, setLinksProject] = useState<Project | null>(null);
 
   const handleDeleteClick = (project: Project) => {
     setProjectToDelete(project);
@@ -132,6 +137,14 @@ export default function ProjectsPage() {
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => handleEdit(row.original)}>
               <Pencil className="mr-2 h-4 w-4" /> Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                setLinksProject(row.original);
+                setLinksDialogOpen(true);
+              }}
+            >
+              <Building2 className="mr-2 h-4 w-4" /> Organizations
             </DropdownMenuItem>
             <DropdownMenuItem
               className="text-red-600 focus:text-red-600"
@@ -258,6 +271,16 @@ export default function ProjectsPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {linksProject && (
+        <OrganizationLinksDialog
+          open={linksDialogOpen}
+          onOpenChange={setLinksDialogOpen}
+          context="project"
+          contextUuid={linksProject.publicId}
+          contextLabel={linksProject.projectCode}
+        />
+      )}
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>

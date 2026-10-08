@@ -58,8 +58,19 @@ export interface CreateUserGroupDto {
   memberIds?: string[]; // user publicIds
 }
 
-export type UpdateUserGroupDto = Partial<
-  Pick<CreateUserGroupDto, 'name' | 'description'>
-> & {
+export type UpdateUserGroupDto = Partial<Pick<CreateUserGroupDto, 'name' | 'description'>> & {
   isActive?: boolean;
 };
+
+/** Master role ขององค์กร (OWNER/DESIGNER/CONSULTANT/CONTRACTOR/THIRD_PARTY) — ใช้ roleName เป็น identifier */
+export interface OrganizationRole {
+  roleName: string;
+}
+
+/** องค์กรที่ผูกกับ project/contract พร้อม role ใน context นั้น (PR #29 deferred) */
+export interface LinkedOrganization {
+  organizationId: string; // Organization.publicId
+  organizationCode: string;
+  organizationName: string;
+  roleName: string | null;
+}

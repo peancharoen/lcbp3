@@ -9,7 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectService } from '@/lib/services/project.service';
 import { ColumnDef } from '@tanstack/react-table';
-import { Pencil, Trash, Plus, Search } from 'lucide-react';
+import { Pencil, Trash, Plus, Search, Building2 } from 'lucide-react';
+import { OrganizationLinksDialog } from '@/components/admin/organization-links-dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -76,8 +77,8 @@ export default function ContractsPage() {
   const projectList: _Project[] = Array.isArray(rawProjects)
     ? (rawProjects as _Project[])
     : Array.isArray((rawProjects as { data?: unknown })?.data)
-    ? (((rawProjects as { data?: unknown }).data as _Project[]))
-    : [];
+      ? ((rawProjects as { data?: unknown }).data as _Project[])
+      : [];
 
   const queryClient = useQueryClient();
 
@@ -121,6 +122,10 @@ export default function ContractsPage() {
   // Stats for Delete Dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [contractToDelete, setContractToDelete] = useState<Contract | null>(null);
+
+  // Dialog จัดการ org links (PR #29 deferred — assign role ต่อ context)
+  const [linksDialogOpen, setLinksDialogOpen] = useState(false);
+  const [linksContract, setLinksContract] = useState<Contract | null>(null);
 
   const handleDeleteClick = (contract: Contract) => {
     setContractToDelete(contract);
@@ -190,6 +195,14 @@ export default function ContractsPage() {
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => handleEdit(row.original)}>
               <Pencil className="mr-2 h-4 w-4" /> Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                setLinksContract(row.original);
+                setLinksDialogOpen(true);
+              }}
+            >
+              <Building2 className="mr-2 h-4 w-4" /> Organizations
             </DropdownMenuItem>
             <DropdownMenuItem
               className="text-red-600 focus:text-red-600"
@@ -352,6 +365,16 @@ export default function ContractsPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {linksContract && (
+        <OrganizationLinksDialog
+          open={linksDialogOpen}
+          onOpenChange={setLinksDialogOpen}
+          context="contract"
+          contextUuid={getContractPublicId(linksContract) ?? ''}
+          contextLabel={linksContract.contractCode}
+        />
+      )}
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>

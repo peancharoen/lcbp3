@@ -15,6 +15,8 @@ import { ProjectService } from './project.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { SearchProjectDto } from './dto/search-project.dto';
+import { LinkOrganizationDto } from '../organization/dto/link-organization.dto';
+import { UpdateLinkedOrganizationRoleDto } from '../organization/dto/update-linked-organization-role.dto';
 
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../common/guards/rbac.guard';
@@ -54,6 +56,48 @@ export class ProjectController {
   @RequirePermission('project.view')
   findContracts(@Param('uuid', ParseUuidPipe) uuid: string) {
     return this.projectService.findContracts(uuid);
+  }
+
+  // ---- Project ↔ Organization Links ----
+
+  @Get(':uuid/organizations')
+  @ApiOperation({
+    summary: 'List organizations linked to this project (with role)',
+  })
+  @RequirePermission('project.view')
+  listOrganizations(@Param('uuid', ParseUuidPipe) uuid: string) {
+    return this.projectService.listOrganizations(uuid);
+  }
+
+  @Post(':uuid/organizations')
+  @ApiOperation({ summary: 'Link organization to project with a role' })
+  @RequirePermission('project.edit')
+  linkOrganization(
+    @Param('uuid', ParseUuidPipe) uuid: string,
+    @Body() dto: LinkOrganizationDto
+  ) {
+    return this.projectService.linkOrganization(uuid, dto);
+  }
+
+  @Patch(':uuid/organizations/:orgUuid')
+  @ApiOperation({ summary: 'Change role of a linked organization' })
+  @RequirePermission('project.edit')
+  updateOrganizationRole(
+    @Param('uuid', ParseUuidPipe) uuid: string,
+    @Param('orgUuid', ParseUuidPipe) orgUuid: string,
+    @Body() dto: UpdateLinkedOrganizationRoleDto
+  ) {
+    return this.projectService.updateOrganizationRole(uuid, orgUuid, dto);
+  }
+
+  @Delete(':uuid/organizations/:orgUuid')
+  @ApiOperation({ summary: 'Unlink organization from project' })
+  @RequirePermission('project.edit')
+  unlinkOrganization(
+    @Param('uuid', ParseUuidPipe) uuid: string,
+    @Param('orgUuid', ParseUuidPipe) orgUuid: string
+  ) {
+    return this.projectService.unlinkOrganization(uuid, orgUuid);
   }
 
   @Get(':uuid')

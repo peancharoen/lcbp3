@@ -43,6 +43,13 @@ export class OrganizationController {
     return this.orgService.findAll(query);
   }
 
+  // ต้องประกาศก่อน ':uuid' ไม่งั้น "roles" จะถูกจับเป็น uuid param
+  @Get('roles')
+  @ApiOperation({ summary: 'List Organization Roles (Master Data)' })
+  findRoles() {
+    return this.orgService.findRoles();
+  }
+
   @Get(':uuid')
   @ApiOperation({ summary: 'Get Organization by UUID' })
   findOne(@Param('uuid', ParseUuidPipe) uuid: string) {

@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Organization } from './entities/organization.entity';
+import { OrganizationRole } from './entities/organization-role.entity';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
 
@@ -13,7 +14,9 @@ import { UpdateOrganizationDto } from './dto/update-organization.dto';
 export class OrganizationService {
   constructor(
     @InjectRepository(Organization)
-    private readonly orgRepo: Repository<Organization>
+    private readonly orgRepo: Repository<Organization>,
+    @InjectRepository(OrganizationRole)
+    private readonly roleRepo: Repository<OrganizationRole>
   ) {}
 
   async create(dto: CreateOrganizationDto) {
@@ -133,5 +136,26 @@ export class OrganizationService {
       where: { isActive: true },
       order: { organizationCode: 'ASC' },
     });
+  }
+
+  // ---- Organization Roles (master) ----
+
+  /**
+   * ดึงรายการ role ทั้งหมดขององค์กร — ใช้เป็น options ให้หน้า assign role
+   */
+  async findRoles() {
+    return this.roleRepo.find({ order: { id: 'ASC' } });
+  }
+
+  /**
+   * แปลง role_name → internal id
+   * (organization_roles ไม่มี uuid — role_name เป็น unique natural key จึงใช้เป็น public identifier)
+   */
+  async resolveRoleId(roleName: string): Promise<number> {
+    const role = await this.roleRepo.findOne({ where: { roleName } });
+    if (!role) {
+      throw new NotFoundException(`Organization role "${roleName}" not found`);
+    }
+    return role.id;
   }
 }

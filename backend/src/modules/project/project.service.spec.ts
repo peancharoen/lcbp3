@@ -6,14 +6,18 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ProjectService } from './project.service';
 import { Project } from './entities/project.entity';
+import { ProjectOrganization } from './entities/project-organization.entity';
 import { OrganizationService } from '../organization/organization.service';
+import { UuidResolverService } from '../../common/services/uuid-resolver.service';
 import { NotFoundException, ConflictException } from '@nestjs/common';
 import { BusinessException } from '../../common/exceptions';
 
 describe('ProjectService', () => {
   let service: ProjectService;
   let mockProjectRepository: Record<string, jest.Mock>;
+  let mockProjectOrgRepo: Record<string, jest.Mock>;
   let mockOrganizationService: Record<string, jest.Mock>;
+  let mockUuidResolver: Record<string, jest.Mock>;
 
   const createMockQB = (result: [unknown[], number] = [[], 0]) => ({
     leftJoinAndSelect: jest.fn().mockReturnThis(),
@@ -36,8 +40,22 @@ describe('ProjectService', () => {
       createQueryBuilder: jest.fn(() => createMockQB()),
     };
 
+    mockProjectOrgRepo = {
+      find: jest.fn(),
+      findOne: jest.fn(),
+      findOneOrFail: jest.fn(),
+      create: jest.fn(),
+      save: jest.fn(),
+      delete: jest.fn(),
+    };
+
     mockOrganizationService = {
       findAllActive: jest.fn(),
+      resolveRoleId: jest.fn(),
+    };
+
+    mockUuidResolver = {
+      resolveOrganizationId: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -48,8 +66,16 @@ describe('ProjectService', () => {
           useValue: mockProjectRepository,
         },
         {
+          provide: getRepositoryToken(ProjectOrganization),
+          useValue: mockProjectOrgRepo,
+        },
+        {
           provide: OrganizationService,
           useValue: mockOrganizationService,
+        },
+        {
+          provide: UuidResolverService,
+          useValue: mockUuidResolver,
         },
       ],
     }).compile();
@@ -289,6 +315,148 @@ describe('ProjectService', () => {
 
       expect(mockOrganizationService.findAllActive).toHaveBeenCalled();
       expect(result).toEqual(mockOrgs);
+    });
+  });
+
+  // ---- Organization Links (role per context) ----
+
+  const mockProject = { id: 7, publicId: 'proj-uuid' };
+  const mockLink = {
+    projectId: 7,
+    organizationId: 10,
+    roleId: 4,
+    organization: {
+      publicId: 'org-uuid',
+      organizationCode: 'ORG-A',
+      organizationName: 'Org A',
+    },
+    organizationRole: { roleName: 'CONTRACTOR' },
+  };
+
+  describe('listOrganizations', () => {
+    it('should return linked orgs mapped to public shape', async () => {
+      mockProjectRepository.findOne.mockResolvedValue(mockProject);
+      mockProjectOrgRepo.find.mockResolvedValue([mockLink]);
+
+      const result = await service.listOrganizations('proj-uuid');
+
+      expect(mockProjectOrgRepo.find).toHaveBeenCalledWith({
+        where: { projectId: 7 },
+        relations: ['organization', 'organizationRole'],
+      });
+      expect(result).toEqual([
+        {
+          organizationId: 'org-uuid',
+          organizationCode: 'ORG-A',
+          organizationName: 'Org A',
+          roleName: 'CONTRACTOR',
+        },
+      ]);
+    });
+  });
+
+  describe('linkOrganization', () => {
+    it('should create junction row with resolved role', async () => {
+      mockProjectRepository.findOne.mockResolvedValue(mockProject);
+      mockUuidResolver.resolveOrganizationId.mockResolvedValue(10);
+      mockOrganizationService.resolveRoleId.mockResolvedValue(4);
+      mockProjectOrgRepo.findOne.mockResolvedValue(null);
+      mockProjectOrgRepo.create.mockReturnValue({
+        projectId: 7,
+        organizationId: 10,
+        roleId: 4,
+      });
+      mockProjectOrgRepo.save.mockResolvedValue({});
+      mockProjectOrgRepo.findOneOrFail.mockResolvedValue(mockLink);
+
+      const result = await service.linkOrganization('proj-uuid', {
+        organizationId: 'org-uuid',
+        roleName: 'CONTRACTOR',
+      });
+
+      expect(mockProjectOrgRepo.save).toHaveBeenCalledWith({
+        projectId: 7,
+        organizationId: 10,
+        roleId: 4,
+      });
+      expect(result.roleName).toBe('CONTRACTOR');
+    });
+
+    it('should throw ConflictException when org already linked', async () => {
+      mockProjectRepository.findOne.mockResolvedValue(mockProject);
+      mockUuidResolver.resolveOrganizationId.mockResolvedValue(10);
+      mockOrganizationService.resolveRoleId.mockResolvedValue(4);
+      mockProjectOrgRepo.findOne.mockResolvedValue(mockLink);
+
+      await expect(
+        service.linkOrganization('proj-uuid', {
+          organizationId: 'org-uuid',
+          roleName: 'CONTRACTOR',
+        })
+      ).rejects.toThrow(ConflictException);
+      expect(mockProjectOrgRepo.save).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('updateOrganizationRole', () => {
+    it('should update role on existing link', async () => {
+      mockProjectRepository.findOne.mockResolvedValue(mockProject);
+      mockUuidResolver.resolveOrganizationId.mockResolvedValue(10);
+      mockProjectOrgRepo.findOne.mockResolvedValue({ ...mockLink });
+      mockOrganizationService.resolveRoleId.mockResolvedValue(2);
+      mockProjectOrgRepo.save.mockResolvedValue({});
+
+      const result = await service.updateOrganizationRole(
+        'proj-uuid',
+        'org-uuid',
+        { roleName: 'DESIGNER' }
+      );
+
+      expect(mockOrganizationService.resolveRoleId).toHaveBeenCalledWith(
+        'DESIGNER'
+      );
+      expect(mockProjectOrgRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ roleId: 2 })
+      );
+      expect(result.roleName).toBe('CONTRACTOR'); // shape มาจาก relation เดิม
+    });
+
+    it('should throw NotFoundException when link does not exist', async () => {
+      mockProjectRepository.findOne.mockResolvedValue(mockProject);
+      mockUuidResolver.resolveOrganizationId.mockResolvedValue(10);
+      mockProjectOrgRepo.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.updateOrganizationRole('proj-uuid', 'org-uuid', {
+          roleName: 'DESIGNER',
+        })
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('unlinkOrganization', () => {
+    it('should delete junction row', async () => {
+      mockProjectRepository.findOne.mockResolvedValue(mockProject);
+      mockUuidResolver.resolveOrganizationId.mockResolvedValue(10);
+      mockProjectOrgRepo.delete.mockResolvedValue({ affected: 1 });
+
+      const result = await service.unlinkOrganization('proj-uuid', 'org-uuid');
+
+      expect(mockProjectOrgRepo.delete).toHaveBeenCalledWith({
+        projectId: 7,
+        organizationId: 10,
+      });
+      expect(result).toEqual({ deleted: true });
+    });
+
+    it('should throw NotFoundException when nothing was deleted', async () => {
+      mockProjectRepository.findOne.mockResolvedValue(mockProject);
+      mockUuidResolver.resolveOrganizationId.mockResolvedValue(10);
+      mockProjectOrgRepo.delete.mockResolvedValue({ affected: 0 });
+
+      await expect(
+        service.unlinkOrganization('proj-uuid', 'org-uuid')
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

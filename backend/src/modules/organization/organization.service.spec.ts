@@ -8,6 +8,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { NotFoundException, ConflictException } from '@nestjs/common';
 import { OrganizationService } from './organization.service';
 import { Organization } from './entities/organization.entity';
+import { OrganizationRole } from './entities/organization-role.entity';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
 
@@ -30,6 +31,7 @@ function createMockQueryBuilder(overrides: Record<string, jest.Mock> = {}) {
 describe('OrganizationService', () => {
   let service: OrganizationService;
   let mockOrgRepo: Record<string, jest.Mock>;
+  let mockRoleRepo: Record<string, jest.Mock>;
 
   beforeEach(async () => {
     mockOrgRepo = {
@@ -41,12 +43,21 @@ describe('OrganizationService', () => {
       createQueryBuilder: jest.fn(() => createMockQueryBuilder()),
     };
 
+    mockRoleRepo = {
+      find: jest.fn(),
+      findOne: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         OrganizationService,
         {
           provide: getRepositoryToken(Organization),
           useValue: mockOrgRepo,
+        },
+        {
+          provide: getRepositoryToken(OrganizationRole),
+          useValue: mockRoleRepo,
         },
       ],
     }).compile();
@@ -281,6 +292,46 @@ describe('OrganizationService', () => {
         order: { organizationCode: 'ASC' },
       });
       expect(result).toEqual(mockOrgs);
+    });
+  });
+
+  // ---- Organization Roles ----
+
+  describe('findRoles', () => {
+    it('should return all organization roles ordered by id', async () => {
+      const mockRoles = [
+        { id: 1, roleName: 'OWNER' },
+        { id: 4, roleName: 'CONTRACTOR' },
+      ];
+      mockRoleRepo.find.mockResolvedValue(mockRoles);
+
+      const result = await service.findRoles();
+
+      expect(mockRoleRepo.find).toHaveBeenCalledWith({
+        order: { id: 'ASC' },
+      });
+      expect(result).toEqual(mockRoles);
+    });
+  });
+
+  describe('resolveRoleId', () => {
+    it('should return internal id for a known role name', async () => {
+      mockRoleRepo.findOne.mockResolvedValue({ id: 4, roleName: 'CONTRACTOR' });
+
+      const result = await service.resolveRoleId('CONTRACTOR');
+
+      expect(mockRoleRepo.findOne).toHaveBeenCalledWith({
+        where: { roleName: 'CONTRACTOR' },
+      });
+      expect(result).toBe(4);
+    });
+
+    it('should throw NotFoundException for an unknown role name', async () => {
+      mockRoleRepo.findOne.mockResolvedValue(null);
+
+      await expect(service.resolveRoleId('NOPE')).rejects.toThrow(
+        NotFoundException
+      );
     });
   });
 });

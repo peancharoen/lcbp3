@@ -54,4 +54,13 @@ export const organizationService = {
     const response = await apiClient.delete(`/organizations/${uuid}`);
     return response.data;
   },
+
+  /**
+   * ดึง master role ขององค์กรทั้งหมด — ใช้เป็น options ตอน assign role
+   * GET /organizations/roles
+   */
+  getRoles: async () => {
+    const response = await apiClient.get('/organizations/roles');
+    return response.data?.data ?? response.data;
+  },
 };
