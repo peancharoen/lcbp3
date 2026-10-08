@@ -18,6 +18,8 @@ export interface ScheduleReminderPayload {
   reminderType: ReminderType;
   projectId?: number;
   documentTypeCode?: string;
+  /** rule id ที่ trigger job นี้ — processor ใช้ load recipients มา fan-out (User Grouping Model) */
+  ruleId?: number;
 }
 
 type ReminderJob = Job<ScheduleReminderPayload>;
@@ -74,6 +76,7 @@ export class SchedulerService {
           {
             ...payload,
             reminderType: rule.reminderType,
+            ruleId: rule.id,
           },
           {
             delay: Math.max(delayMs, 0),

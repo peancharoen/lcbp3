@@ -9,6 +9,8 @@ export interface CreateUserDto {
   lastName?: string;
   lineId?: string;
   primaryOrganizationId?: number | string; // ADR-019: Accept UUID
+  departmentId?: number | string; // ADR-019: Accept UUID (department ของ primary org)
+  position?: string; // ตำแหน่งใน primary org (free-text)
   isActive?: boolean;
 }
 
@@ -25,6 +27,36 @@ export interface AssignRoleDto {
   projectId?: number | string;
   contractId?: number | string;
 }
+
+// --- Organization Membership (User Grouping Model) ---
+
+/** Membership ของ user ใน 1 org — API response */
+export interface UserOrganizationMembership {
+  publicId: string;
+  isPrimary: boolean;
+  position?: string;
+  organization?: {
+    publicId: string;
+    organizationCode?: string;
+    organizationName?: string;
+  };
+  department?: {
+    publicId: string;
+    departmentCode?: string;
+    departmentName?: string;
+  };
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface AddUserOrganizationDto {
+  organizationId: number | string; // ADR-019: Accept UUID
+  departmentId?: number | string; // ADR-019: Accept UUID
+  position?: string;
+  isPrimary?: boolean; // true → sync users.primary_organization_id
+}
+
+export type UpdateUserOrganizationDto = Partial<AddUserOrganizationDto>;
 
 // --- Update Preferences ---
 export interface UpdatePreferenceDto {

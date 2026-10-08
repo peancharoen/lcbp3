@@ -29,6 +29,15 @@ vi.mock('@/hooks/use-projects', () => ({
   }),
 }));
 
+vi.mock('@/hooks/use-master-data', () => ({
+  useOrganizations: () => ({ data: [], isLoading: false }),
+}));
+
+vi.mock('@/hooks/use-grouping', () => ({
+  useUserGroups: () => ({ data: [], isLoading: false }),
+  useDepartments: () => ({ data: [], isLoading: false }),
+}));
+
 vi.mock('@/hooks/use-translations', () => ({
   useTranslations: () => (key: string) => key,
 }));

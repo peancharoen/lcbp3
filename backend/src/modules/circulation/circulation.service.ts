@@ -3,12 +3,15 @@ import {
   NotFoundException,
   PermissionException,
   ValidationException,
+  ConflictException,
 } from '../../common/exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, IsNull } from 'typeorm';
 
 import { Circulation } from './entities/circulation.entity';
 import { CirculationRouting } from './entities/circulation-routing.entity';
+import { UserGroupMember } from '../organization/entities/user-group-member.entity';
+import { UserGroup } from '../organization/entities/user-group.entity';
 import { User } from '../user/entities/user.entity';
 import { CreateCirculationDto } from './dto/create-circulation.dto';
 import { UpdateCirculationRoutingDto } from './dto/update-circulation-routing.dto';
@@ -17,6 +20,7 @@ import { DocumentNumberingService } from '../document-numbering/services/documen
 import { UuidResolverService } from '../../common/services/uuid-resolver.service';
 import { UserService } from '../user/user.service';
 import { WorkflowEngineService } from '../workflow-engine/workflow-engine.service';
+import { NotificationChannelService } from '../notification/notification-channel.service';
 
 @Injectable()
 export class CirculationService {
@@ -32,11 +36,16 @@ export class CirculationService {
     private circulationRepo: Repository<Circulation>,
     @InjectRepository(CirculationRouting)
     private routingRepo: Repository<CirculationRouting>,
+    @InjectRepository(UserGroupMember)
+    private groupMemberRepo: Repository<UserGroupMember>,
+    @InjectRepository(UserGroup)
+    private userGroupRepo: Repository<UserGroup>,
     private numberingService: DocumentNumberingService,
     private dataSource: DataSource,
     private uuidResolver: UuidResolverService,
     private userService: UserService,
-    private workflowEngine: WorkflowEngineService
+    private workflowEngine: WorkflowEngineService,
+    private notificationChannelService: NotificationChannelService
   ) {}
 
   async create(createDto: CreateCirculationDto, user: User) {
@@ -84,8 +93,23 @@ export class CirculationService {
         createDto.correspondenceId
       );
       const resolvedAssigneeIds = await Promise.all(
-        createDto.assigneeIds.map((id) => this.uuidResolver.resolveUserId(id))
+        (createDto.assigneeIds ?? []).map((id) =>
+          this.uuidResolver.resolveUserId(id)
+        )
       );
+      // User Grouping Model: group routing (claim-based) — resolve group publicIds
+      const resolvedGroupIds = await Promise.all(
+        (createDto.assigneeGroupIds ?? []).map((id) =>
+          this.uuidResolver.resolveUserGroupId(id)
+        )
+      );
+      if (resolvedAssigneeIds.length + resolvedGroupIds.length === 0) {
+        throw new ValidationException(
+          'At least one assignee or assignee group is required',
+          undefined,
+          'กรุณาระบุผู้รับหรือกลุ่มผู้รับอย่างน้อย 1 ราย'
+        );
+      }
 
       // Generate No. using DocumentNumberingService (Type 900 - Circulation)
       const result = await this.numberingService.generateNextNumber({
@@ -109,20 +133,54 @@ export class CirculationService {
       });
       const savedCirculation = await queryRunner.manager.save(circulation);
 
-      if (resolvedAssigneeIds.length > 0) {
-        const routings = resolvedAssigneeIds.map((assigneeId, index) =>
-          queryRunner.manager.create(CirculationRouting, {
-            circulationId: savedCirculation.id,
-            stepNumber: index + 1,
-            organizationId: userOrgId,
-            assignedTo: assigneeId,
-            status: 'PENDING',
-          })
-        );
-        await queryRunner.manager.save(routings);
+      const routings = resolvedAssigneeIds.map((assigneeId, index) =>
+        queryRunner.manager.create(CirculationRouting, {
+          circulationId: savedCirculation.id,
+          stepNumber: index + 1,
+          organizationId: userOrgId,
+          assignedTo: assigneeId,
+          status: 'PENDING',
+        })
+      );
+      // Group routings ต่อท้าย — assignedTo ว่างไว้จนกว่า member จะ claim
+      const groupRoutings = resolvedGroupIds.map((groupId, index) =>
+        queryRunner.manager.create(CirculationRouting, {
+          circulationId: savedCirculation.id,
+          stepNumber: resolvedAssigneeIds.length + index + 1,
+          organizationId: userOrgId,
+          assignedGroupId: groupId,
+          status: 'PENDING',
+        })
+      );
+      if (routings.length + groupRoutings.length > 0) {
+        await queryRunner.manager.save([...routings, ...groupRoutings]);
       }
 
       await queryRunner.commitTransaction();
+
+      // Telegram fan-out (post-commit, fail-soft): แจ้ง channel ที่ผูกกับแต่ละ user group
+      // — member เห็นในกลุ่มแล้วเข้ามา claim งาน (routing จะ set assigned_to ของคนที่รับ)
+      for (const groupId of resolvedGroupIds) {
+        try {
+          const group = await this.userGroupRepo.findOne({
+            where: { id: groupId },
+          });
+          await this.notificationChannelService.notifyUserGroup(
+            groupId,
+            'circulation.assigned',
+            {
+              text: `📄 ใบเวียน ${savedCirculation.circulationNo}: ${savedCirculation.subject}\nมอบหมายให้กลุ่ม ${group?.name ?? ''} — สมาชิกคนแรกที่รับงานจะได้รับมอบหมาย`,
+              entityType: 'circulation',
+              entityPublicId: savedCirculation.publicId,
+            }
+          );
+        } catch (error) {
+          this.logger.warn(
+            `Telegram fan-out for group ${groupId} failed: ${error instanceof Error ? error.message : String(error)}`
+          );
+        }
+      }
+
       return savedCirculation;
     } catch (err) {
       await queryRunner.rollbackTransaction();
@@ -380,8 +438,32 @@ export class CirculationService {
       throw new NotFoundException('Routing task', String(routingId));
 
     // Check Permission: คนทำต้องเป็นเจ้าของ Task
+    // Claim-based: routing ที่เป็น group assignment และยังไม่มีเจ้าของ → member claim ได้
     if (routing.assignedTo !== user.user_id) {
-      throw new PermissionException('circulation routing task', 'process');
+      if (routing.assignedGroupId && !routing.assignedTo) {
+        const isMember = await this.groupMemberRepo.exist({
+          where: { groupId: routing.assignedGroupId, userId: user.user_id },
+        });
+        if (!isMember) {
+          throw new PermissionException('circulation routing task', 'process');
+        }
+        // Claim แบบ atomic — member 2 คนกดรับพร้อมกัน คนที่ flip row ได้ก่อนชนะ
+        // (conditional UPDATE กัน read-check-write race)
+        const claim = await this.routingRepo.update(
+          { id: routing.id, assignedTo: IsNull() },
+          { assignedTo: user.user_id }
+        );
+        if (claim.affected === 0) {
+          throw new ConflictException(
+            'ROUTING_ALREADY_CLAIMED',
+            'This routing task has already been claimed by another group member',
+            'งานนี้ถูกรับโดยสมาชิกคนอื่นในกลุ่มแล้ว'
+          );
+        }
+        routing.assignedTo = user.user_id;
+      } else {
+        throw new PermissionException('circulation routing task', 'process');
+      }
     }
 
     // Update Routing

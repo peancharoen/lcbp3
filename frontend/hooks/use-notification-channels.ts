@@ -3,7 +3,7 @@
 // - 2026-09-25: Initial creation (Feature 258 US2, T043) — TanStack Query hooks สำหรับ admin channels
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { notificationChannelService, IssueLinkCodeResult } from '@/lib/services/notification-channel.service';
+import { notificationChannelService, IssueLinkCodeResult, IssueLinkCodeDto } from '@/lib/services/notification-channel.service';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/types/api-error';
 
@@ -20,7 +20,7 @@ export function useNotificationChannels(projectPublicId?: string) {
 }
 
 export function useIssueLinkCode() {
-  return useMutation<IssueLinkCodeResult, unknown, { projectPublicId: string; name?: string }>({
+  return useMutation<IssueLinkCodeResult, unknown, IssueLinkCodeDto>({
     mutationFn: (dto) => notificationChannelService.issueLinkCode(dto),
     onError: (error) => {
       toast.error('ไม่สามารถสร้างรหัสผูกกลุ่มได้', {

@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { Circulation } from './circulation.entity';
 import { Organization } from '../../organization/entities/organization.entity';
+import { UserGroup } from '../../organization/entities/user-group.entity';
 import { User } from '../../user/entities/user.entity';
 
 @Entity('circulation_routings')
@@ -27,6 +28,10 @@ export class CirculationRouting {
 
   @Column({ name: 'assigned_to', nullable: true })
   assignedTo?: number;
+
+  /** กลุ่มที่ได้รับมอบหมาย — claim-based: member คนแรกที่รับงานจะ set assignedTo */
+  @Column({ name: 'assigned_group_id', nullable: true })
+  assignedGroupId?: number;
 
   @Column({
     type: 'enum',
@@ -59,4 +64,8 @@ export class CirculationRouting {
   @ManyToOne(() => User)
   @JoinColumn({ name: 'assigned_to' })
   assignee?: User;
+
+  @ManyToOne(() => UserGroup, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'assigned_group_id' })
+  assignedGroup?: UserGroup;
 }

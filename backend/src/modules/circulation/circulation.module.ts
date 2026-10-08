@@ -4,8 +4,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { CirculationRouting } from './entities/circulation-routing.entity';
 import { CirculationStatusCode } from './entities/circulation-status-code.entity';
 import { Circulation } from './entities/circulation.entity';
+import { UserGroupMember } from '../organization/entities/user-group-member.entity';
+import { UserGroup } from '../organization/entities/user-group.entity';
 
 import { UserModule } from '../user/user.module';
+import { NotificationModule } from '../notification/notification.module';
 import { WorkflowEngineModule } from '../workflow-engine/workflow-engine.module';
 import { DocumentNumberingModule } from '../document-numbering/document-numbering.module';
 import { CirculationWorkflowService } from './circulation-workflow.service';
@@ -19,8 +22,11 @@ import { CirculationActionStrategy } from './strategies/circulation-action.strat
       Circulation,
       CirculationRouting,
       CirculationStatusCode,
+      UserGroupMember,
+      UserGroup,
     ]),
     UserModule,
+    NotificationModule, // Telegram fan-out สำหรับ group-assigned routings
     WorkflowEngineModule,
     DocumentNumberingModule,
   ],

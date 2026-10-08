@@ -1,10 +1,4 @@
-import {
-  IsString,
-  IsNotEmpty,
-  IsArray,
-  IsOptional,
-  ArrayMinSize,
-} from 'class-validator';
+import { IsString, IsNotEmpty, IsArray, IsOptional } from 'class-validator';
 
 export class CreateCirculationDto {
   @IsNotEmpty()
@@ -21,8 +15,12 @@ export class CreateCirculationDto {
   subject!: string; // หัวข้อเรื่อง (Subject)
 
   @IsArray()
-  @ArrayMinSize(1) // ✅ ต้องมีผู้รับอย่างน้อย 1 คน
-  assigneeIds!: (number | string)[]; // รายชื่อ User ID or UUID ที่ต้องการส่งให้ (ADR-019)
+  @IsOptional()
+  assigneeIds?: (number | string)[]; // รายชื่อ User ID or UUID ที่ต้องการส่งให้ (ADR-019)
+
+  @IsArray()
+  @IsOptional()
+  assigneeGroupIds?: (number | string)[]; // รายชื่อ User Group ID or UUID — claim-based: member คนแรกที่รับงานจะเป็น assignedTo
 
   @IsString()
   @IsOptional()

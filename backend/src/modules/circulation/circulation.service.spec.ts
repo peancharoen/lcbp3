@@ -5,6 +5,9 @@ import { CirculationService } from './circulation.service';
 import { Circulation } from './entities/circulation.entity';
 import { CirculationRouting } from './entities/circulation-routing.entity';
 import { CirculationStatusCode } from './entities/circulation-status-code.entity';
+import { UserGroupMember } from '../organization/entities/user-group-member.entity';
+import { UserGroup } from '../organization/entities/user-group.entity';
+import { NotificationChannelService } from '../notification/notification-channel.service';
 import { DocumentNumberingService } from '../document-numbering/services/document-numbering.service';
 import { UuidResolverService } from '../../common/services/uuid-resolver.service';
 import { UserService } from '../user/user.service';
@@ -18,9 +21,10 @@ import { User } from '../user/entities/user.entity';
 describe('CirculationService', () => {
   let service: CirculationService;
   let circulationRepo: { findOne: jest.Mock; save: jest.Mock };
-  let routingRepo: { findOne: jest.Mock; save: jest.Mock };
+  let routingRepo: { findOne: jest.Mock; save: jest.Mock; update: jest.Mock };
+  let groupMemberRepo: { exist: jest.Mock };
   let dataSource: { createQueryRunner: jest.Mock };
-  let uuidResolver: { resolveUserId: jest.Mock };
+  let uuidResolver: { resolveUserId: jest.Mock; resolveUserGroupId: jest.Mock };
   let workflowEngine: { getInstanceByEntity: jest.Mock };
 
   const mockUser: Partial<User> = { user_id: 1, username: 'admin' };
@@ -36,8 +40,12 @@ describe('CirculationService', () => {
 
   beforeEach(async () => {
     circulationRepo = { findOne: jest.fn(), save: jest.fn() };
-    routingRepo = { findOne: jest.fn(), save: jest.fn() };
-    uuidResolver = { resolveUserId: jest.fn() };
+    routingRepo = { findOne: jest.fn(), save: jest.fn(), update: jest.fn() };
+    groupMemberRepo = { exist: jest.fn() };
+    uuidResolver = {
+      resolveUserId: jest.fn(),
+      resolveUserGroupId: jest.fn(),
+    };
     workflowEngine = { getInstanceByEntity: jest.fn() };
     dataSource = { createQueryRunner: jest.fn(() => mockQueryRunner) };
 
@@ -55,6 +63,14 @@ describe('CirculationService', () => {
           provide: getRepositoryToken(CirculationStatusCode),
           useValue: { findOne: jest.fn() },
         },
+        {
+          provide: getRepositoryToken(UserGroupMember),
+          useValue: groupMemberRepo,
+        },
+        {
+          provide: getRepositoryToken(UserGroup),
+          useValue: { findOne: jest.fn() },
+        },
         { provide: DataSource, useValue: dataSource },
         { provide: DocumentNumberingService, useValue: {} },
         { provide: UuidResolverService, useValue: uuidResolver },
@@ -63,6 +79,10 @@ describe('CirculationService', () => {
           useValue: { getUserPermissions: jest.fn().mockResolvedValue([]) },
         },
         { provide: WorkflowEngineService, useValue: workflowEngine },
+        {
+          provide: NotificationChannelService,
+          useValue: { notifyUserGroup: jest.fn().mockResolvedValue(0) },
+        },
       ],
     }).compile();
 
@@ -511,6 +531,89 @@ describe('CirculationService', () => {
           mockUser as User
         )
       ).rejects.toThrow();
+    });
+
+    it('should let a group member claim an unassigned group routing', async () => {
+      const mockRouting = {
+        id: 5,
+        assignedTo: null,
+        assignedGroupId: 7,
+        circulationId: 10,
+        circulation: { id: 10 },
+      };
+      routingRepo.findOne.mockResolvedValue(mockRouting);
+      groupMemberRepo.exist.mockResolvedValue(true);
+      routingRepo.update.mockResolvedValue({ affected: 1 });
+      routingRepo.save.mockResolvedValue({
+        ...mockRouting,
+        assignedTo: 1,
+      });
+
+      const mockQB = {
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getCount: jest.fn().mockResolvedValue(1),
+      };
+      routingRepo.createQueryBuilder = jest.fn().mockReturnValue(mockQB);
+
+      await service.updateRoutingStatus(
+        5,
+        { status: 'COMPLETED' },
+        mockUser as User
+      );
+
+      // claim ต้องเป็น conditional update (assigned_to IS NULL) เพื่อกัน race
+      expect(routingRepo.update).toHaveBeenCalledWith(
+        { id: 5, assignedTo: expect.anything() },
+        { assignedTo: 1 }
+      );
+      expect(routingRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ assignedTo: 1, status: 'COMPLETED' })
+      );
+    });
+
+    it('should throw ConflictException when group routing was already claimed', async () => {
+      const mockRouting = {
+        id: 5,
+        assignedTo: null,
+        assignedGroupId: 7,
+        circulationId: 10,
+        circulation: { id: 10 },
+      };
+      routingRepo.findOne.mockResolvedValue(mockRouting);
+      groupMemberRepo.exist.mockResolvedValue(true);
+      // member คนอื่น claim ไปก่อน → conditional update affected 0 rows
+      routingRepo.update.mockResolvedValue({ affected: 0 });
+
+      await expect(
+        service.updateRoutingStatus(
+          5,
+          { status: 'COMPLETED' },
+          mockUser as User
+        )
+      ).rejects.toThrow();
+      expect(routingRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('should throw PermissionException when user is not a group member', async () => {
+      const mockRouting = {
+        id: 5,
+        assignedTo: null,
+        assignedGroupId: 7,
+        circulationId: 10,
+        circulation: { id: 10 },
+      };
+      routingRepo.findOne.mockResolvedValue(mockRouting);
+      groupMemberRepo.exist.mockResolvedValue(false);
+
+      await expect(
+        service.updateRoutingStatus(
+          5,
+          { status: 'COMPLETED' },
+          mockUser as User
+        )
+      ).rejects.toThrow();
+      expect(routingRepo.update).not.toHaveBeenCalled();
     });
 
     it('should throw NotFoundException when routing not found', async () => {

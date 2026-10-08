@@ -20,6 +20,8 @@ import {
   DeliveryStatus,
 } from './entities/notification-delivery.entity';
 import { Project } from '../project/entities/project.entity';
+import { UserGroup } from '../organization/entities/user-group.entity';
+import { Department } from '../organization/entities/department.entity';
 import { QUEUE_NOTIFICATIONS } from '../common/constants/queue.constants';
 
 const mockRepo = () => ({
@@ -41,6 +43,8 @@ describe('NotificationChannelService', () => {
   let channelRepo: ReturnType<typeof mockRepo>;
   let deliveryRepo: ReturnType<typeof mockRepo>;
   let projectRepo: ReturnType<typeof mockRepo>;
+  let userGroupRepo: ReturnType<typeof mockRepo>;
+  let departmentRepo: ReturnType<typeof mockRepo>;
   let queue: {
     add: jest.Mock<
       Promise<{ id: string }>,
@@ -53,6 +57,8 @@ describe('NotificationChannelService', () => {
     channelRepo = mockRepo();
     deliveryRepo = mockRepo();
     projectRepo = mockRepo();
+    userGroupRepo = mockRepo();
+    departmentRepo = mockRepo();
     queue = {
       add: jest.fn(
         (): Promise<{ id: string }> => Promise.resolve({ id: 'job-1' })
@@ -72,6 +78,8 @@ describe('NotificationChannelService', () => {
           useValue: deliveryRepo,
         },
         { provide: getRepositoryToken(Project), useValue: projectRepo },
+        { provide: getRepositoryToken(UserGroup), useValue: userGroupRepo },
+        { provide: getRepositoryToken(Department), useValue: departmentRepo },
         { provide: getQueueToken(QUEUE_NOTIFICATIONS), useValue: queue },
         { provide: getRedisConnectionToken(), useValue: redis },
       ],
@@ -105,6 +113,34 @@ describe('NotificationChannelService', () => {
         service.issueLinkCode(1, { projectPublicId: 'missing' })
       ).rejects.toThrow();
     });
+
+    it('resolves userGroupPublicId scope into payload userGroupId', async () => {
+      userGroupRepo.findOne.mockResolvedValue({ id: 11, publicId: 'g-uuid' });
+      await service.issueLinkCode(1, { userGroupPublicId: 'g-uuid' });
+      const stored = JSON.parse(
+        (redis.set.mock.calls[0] as [string, string])[1]
+      ) as { userGroupId?: number };
+      expect(stored.userGroupId).toBe(11);
+    });
+
+    it('resolves departmentPublicId scope into payload departmentId', async () => {
+      departmentRepo.findOne.mockResolvedValue({ id: 5, publicId: 'd-uuid' });
+      await service.issueLinkCode(1, { departmentPublicId: 'd-uuid' });
+      const stored = JSON.parse(
+        (redis.set.mock.calls[0] as [string, string])[1]
+      ) as { departmentId?: number };
+      expect(stored.departmentId).toBe(5);
+    });
+
+    it('rejects when zero or multiple scopes provided', async () => {
+      await expect(service.issueLinkCode(1, {})).rejects.toThrow();
+      await expect(
+        service.issueLinkCode(1, {
+          projectPublicId: 'p',
+          userGroupPublicId: 'g',
+        })
+      ).rejects.toThrow();
+    });
   });
 
   describe('bindFromCode', () => {
@@ -128,6 +164,17 @@ describe('NotificationChannelService', () => {
       await expect(
         service.bindFromCode('ABC12345', { externalChatId: '-100' })
       ).rejects.toThrow();
+    });
+
+    it('binds channel to user group scope when payload has userGroupId', async () => {
+      redis.get.mockResolvedValue(
+        JSON.stringify({ userGroupId: 11, issuedBy: 1, iat: 1 })
+      );
+      channelRepo.findOne.mockResolvedValue(null);
+      await service.bindFromCode('ABC12345', { externalChatId: '-100' });
+      expect(channelRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ userGroupId: 11 })
+      );
     });
 
     it('creates channel with telegramTopicId when bound inside a forum topic', async () => {
@@ -188,6 +235,38 @@ describe('NotificationChannelService', () => {
       const count = await service.notifyProject(7, 'evt', { text: 'x' });
       expect(count).toBe(0);
       expect(queue.add).not.toHaveBeenCalled();
+    });
+
+    it('notifyUserGroup fans out to channels bound to the group', async () => {
+      channelRepo.find.mockResolvedValue([
+        { id: 3, externalChatId: '-100', telegramTopicId: 9, isActive: true },
+      ]);
+      const count = await service.notifyUserGroup(11, 'circulation.assigned', {
+        text: 'hi',
+      });
+      expect(count).toBe(1);
+      expect(channelRepo.find).toHaveBeenCalledWith({
+        where: { userGroupId: 11, isActive: true },
+      });
+      expect(queue.add).toHaveBeenCalledTimes(1);
+    });
+
+    it('notifyDepartment fans out to channels bound to the department', async () => {
+      channelRepo.find.mockResolvedValue([
+        {
+          id: 4,
+          externalChatId: '-100',
+          telegramTopicId: null,
+          isActive: true,
+        },
+      ]);
+      const count = await service.notifyDepartment(5, 'announce', {
+        text: 'hi',
+      });
+      expect(count).toBe(1);
+      expect(channelRepo.find).toHaveBeenCalledWith({
+        where: { departmentId: 5, isActive: true },
+      });
     });
   });
 

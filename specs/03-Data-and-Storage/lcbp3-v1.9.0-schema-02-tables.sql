@@ -95,7 +95,7 @@ CREATE TABLE users (
   telegram_chat_id VARCHAR(50) COMMENT 'Telegram Chat ID สำหรับส่งแจ้งเตือน DM (ผูกผ่าน deep-link flow เท่านั้น — 1 chat id = 1 user)',
   telegram_username VARCHAR(100) COMMENT 'Telegram @username สำหรับแสดงผล (เปลี่ยนได้ ห้ามใช้เป็น send target)',
   telegram_linked_at TIMESTAMP NULL COMMENT 'วันที่ผูกบัญชี Telegram สำเร็จ',
-  primary_organization_id INT COMMENT 'สังกัดองค์กร',
+  primary_organization_id INT COMMENT 'สังกัดองค์กรหลัก (denormalized pointer → user_organizations ที่ is_primary=1)',
   is_active TINYINT(1) DEFAULT 1 COMMENT 'สถานะการใช้งาน',
   must_change_password TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'SEV-014: บังคับเปลี่ยนรหัสผ่านหลัง login ครั้งแรก (ADR-016)',
   failed_attempts INT DEFAULT 0 COMMENT 'จำนวนครั้งที่ล็อกอินล้มเหลว',
@@ -232,6 +232,73 @@ CREATE TABLE user_assignments (
     ) -- สำหรับ Global scope
   )
 );
+
+-- ตาราง Master เก็บแผนก/ฝ่ายภายในองค์กร (flat — ไม่มี hierarchy)
+-- เหตุผล: ตำแหน่ง/แผนกผูกกับ org context (คนเดียวกันอาจเป็นแผนกต่างกันในแต่ละ org)
+CREATE TABLE departments (
+  id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019)',
+  organization_id INT NOT NULL COMMENT 'องค์กรเจ้าของแผนก',
+  department_code VARCHAR(20) NOT NULL COMMENT 'รหัสแผนก (unique ภายใน org)',
+  department_name VARCHAR(255) NOT NULL COMMENT 'ชื่อแผนก',
+  is_active TINYINT(1) DEFAULT 1 COMMENT 'สถานะการใช้งาน',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
+  deleted_at DATETIME NULL COMMENT 'วันที่ลบ (Soft Delete)',
+  FOREIGN KEY (organization_id) REFERENCES organizations (id) ON DELETE CASCADE,
+  UNIQUE KEY uk_department_code (organization_id, department_code),
+  UNIQUE INDEX idx_departments_uuid (uuid)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บแผนกภายในองค์กร';
+
+-- ตารางเชื่อม user ↔ organizations (multi-org membership + ตำแหน่ง/แผนกต่อ org)
+-- users.primary_organization_id ยังใช้เป็น pointer ไปที่แถว is_primary=1 (denormalized — sync ที่ app layer)
+CREATE TABLE user_organizations (
+  id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019)',
+  user_id INT NOT NULL,
+  organization_id INT NOT NULL,
+  department_id INT NULL COMMENT 'แผนกใน org นี้ (FK → departments)',
+  position VARCHAR(100) NULL COMMENT 'ตำแหน่งใน org นี้ (free-text — แต่ละบริษัทต่างกัน ไม่ทำ master)',
+  is_primary TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'สังกัดหลัก — มีได้ 1 แถวต่อ user (sync กับ users.primary_organization_id)',
+  -- DB-level guard สำหรับ is_primary=1 แถวเดียวต่อ user: MariaDB ไม่มี partial unique index
+  -- → generated column คืน user_id เมื่อ is_primary=1, เป็น NULL เมื่อไม่ใช่ (NULL ใน unique key ชนกันไม่ได้)
+  primary_org_guard INT GENERATED ALWAYS AS (IF(is_primary = 1, user_id, NULL)) PERSISTENT COMMENT 'guard บังคับ is_primary=1 แถวเดียวต่อ user (ห้าม map ใน entity)',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
+  UNIQUE KEY uk_user_org (user_id, organization_id),
+  UNIQUE KEY uk_user_primary_org (primary_org_guard),
+  FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE,
+  FOREIGN KEY (organization_id) REFERENCES organizations (id) ON DELETE CASCADE,
+  FOREIGN KEY (department_id) REFERENCES departments (id) ON DELETE SET NULL,
+  UNIQUE INDEX idx_user_organizations_uuid (uuid)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางเชื่อม user กับ org ทุกแห่งที่สังกัด (พร้อมแผนก+ตำแหน่งต่อ org)';
+
+-- ตาราง functional group ของ user ภายใน org (เช่น "ทีม QC", "ฝ่ายเอกสาร")
+-- ใช้เป็น pool สำหรับ claim-based assignment (circulation), distribution และ reminder recipients
+-- ห้ามใช้แทน review_teams (project-scoped ผูก RFA) หรือ departments (หน่วยงานของบริษัท)
+CREATE TABLE user_groups (
+  id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019)',
+  organization_id INT NOT NULL COMMENT 'องค์กรเจ้าของกลุ่ม',
+  name VARCHAR(100) NOT NULL COMMENT 'ชื่อกลุ่ม (unique ภายใน org)',
+  description VARCHAR(255) NULL COMMENT 'คำอธิบาย',
+  is_active TINYINT(1) DEFAULT 1 COMMENT 'สถานะการใช้งาน',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
+  deleted_at DATETIME NULL COMMENT 'วันที่ลบ (Soft Delete)',
+  FOREIGN KEY (organization_id) REFERENCES organizations (id) ON DELETE CASCADE,
+  UNIQUE KEY uk_user_group_name (organization_id, name),
+  UNIQUE INDEX idx_user_groups_uuid (uuid)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง functional group ของ user ภายใน org';
+
+CREATE TABLE user_group_members (
+  group_id INT NOT NULL,
+  user_id INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่เพิ่มสมาชิก',
+  PRIMARY KEY (group_id, user_id),
+  FOREIGN KEY (group_id) REFERENCES user_groups (id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางเชื่อมสมาชิกของ user_groups';
 
 CREATE TABLE project_organizations (
   project_id INT NOT NULL,
@@ -874,7 +941,8 @@ CREATE TABLE circulation_routings (
   circulation_id INT NOT NULL COMMENT 'ID ของใบเวียน',
   step_number INT NOT NULL COMMENT 'ลำดับขั้นตอน',
   organization_id INT NOT NULL COMMENT 'ID ขององค์กรในขั้นตอนนี้',
-  assigned_to INT NULL COMMENT 'ID ของผู้ใช้ที่ได้รับมอบหมาย (NULL = ยังไม่มอบหมาย)',
+  assigned_to INT NULL COMMENT 'ID ของผู้ใช้ที่ได้รับมอบหมาย (NULL = ยังไม่มอบหมาย หรือรอ claim จาก group)',
+  assigned_group_id INT NULL COMMENT 'กลุ่มที่ได้รับมอบหมาย (FK → user_groups) — claim-based: member คนแรกที่รับงานจะ set assigned_to',
   STATUS ENUM(
     'PENDING',
     'IN_PROGRESS',
@@ -889,6 +957,7 @@ CREATE TABLE circulation_routings (
   FOREIGN KEY (organization_id) REFERENCES organizations (id),
   FOREIGN KEY (assigned_to) REFERENCES users (user_id) ON DELETE
   SET NULL,
+    FOREIGN KEY (assigned_group_id) REFERENCES user_groups (id) ON DELETE SET NULL,
     INDEX idx_circulation_routing_circulation (circulation_id),
     INDEX idx_circulation_routing_status (STATUS)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางเก็บ Routing/Workflow ของใบเวียน';
@@ -1495,7 +1564,9 @@ CREATE TABLE notification_channels (
     'LINE'
   ) NOT NULL COMMENT 'ชนิดปลายทาง',
   external_chat_id VARCHAR(50) NOT NULL COMMENT 'chat_id ของ group/channel (ติดลบสำหรับ Telegram group)',
-  project_id INT NULL COMMENT 'โครงการเจ้าของ (NULL = global scope)',
+  project_id INT NULL COMMENT 'โครงการเจ้าของ — ต้องผูกกับ 1 scope เสมอ (chk_channel_single_scope)',
+  user_group_id INT NULL COMMENT 'user group เจ้าของ (User Grouping Model) — ตั้งได้ 1 ใน project/user_group/department',
+  department_id INT NULL COMMENT 'department เจ้าของ (User Grouping Model)',
   name VARCHAR(100) NULL COMMENT 'ชื่อกลุ่มสำหรับแสดงใน admin console',
   is_active TINYINT(1) DEFAULT 1 COMMENT 'สถานะใช้งาน (auto=0 เมื่อ bot ถูกเตะออกจากกลุ่ม)',
   telegram_topic_id INT NULL COMMENT 'message_thread_id ของ Telegram Forum Topic ถ้าผูกเฉพาะ topic (เช่น topic "Correspondences" ในกลุ่ม "LCBP3"); NULL = ผูกทั้งกลุ่ม/general chat',
@@ -1504,14 +1575,21 @@ CREATE TABLE notification_channels (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
   FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE,
+  FOREIGN KEY (user_group_id) REFERENCES user_groups (id) ON DELETE CASCADE,
+  FOREIGN KEY (department_id) REFERENCES departments (id) ON DELETE CASCADE,
   FOREIGN KEY (created_by) REFERENCES users (user_id) ON DELETE
   SET NULL,
+    CHECK (
+      (project_id IS NOT NULL) + (user_group_id IS NOT NULL) + (department_id IS NOT NULL) = 1
+    ),
     UNIQUE KEY uk_channel (
       channel_type,
       external_chat_id,
       telegram_topic_id
     ),
     INDEX idx_channels_project_active (project_id, is_active),
+    INDEX idx_channels_user_group_active (user_group_id, is_active),
+    INDEX idx_channels_department_active (department_id, is_active),
     UNIQUE INDEX idx_notification_channels_uuid (uuid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางจุดหมายแจ้งเตือนภายนอก (Telegram Group/Channel ต่อโครงการ)';
 
@@ -2134,9 +2212,7 @@ CREATE TABLE IF NOT EXISTS `reminder_rules` (
   `uuid` UUID NOT NULL DEFAULT (UUID()) COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT (UUID()) fallback) สำหรับ seed/migration (ADR-019)',
   `name` VARCHAR(100) NOT NULL,
   `project_id` INT NULL COMMENT 'NULL = global',
-  `document_type_id` INT NULL COMMENT 'NULL = all types',
-  `trigger_days_before_due` INT NOT NULL DEFAULT 2,
-  `escalation_days_after_due` INT NOT NULL DEFAULT 1,
+  `document_type_code` VARCHAR(20) NULL COMMENT 'รหัสประเภทเอกสาร เช่น SDW, DDW — NULL = all types',
   `reminder_type` ENUM(
     'DUE_SOON',
     'ON_DUE',
@@ -2144,9 +2220,9 @@ CREATE TABLE IF NOT EXISTS `reminder_rules` (
     'ESCALATION_L1',
     'ESCALATION_L2'
   ) NOT NULL,
-  `recipients` TEXT NOT NULL COMMENT 'Comma-separated: ASSIGNEE,MANAGER,PROJECT_MANAGER',
-  `message_template_th` TEXT NOT NULL,
-  `message_template_en` TEXT NOT NULL,
+  `days_before_due` INT NOT NULL COMMENT 'บวก = ก่อน due, ลบ = หลัง due (overdue)',
+  `escalation_level` TINYINT NOT NULL DEFAULT 0 COMMENT '0 = reminder, 1 = escalation L1, 2 = escalation L2',
+  `message_template` TEXT NULL,
   `is_active` TINYINT(1) NOT NULL DEFAULT 1,
   `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
@@ -2154,6 +2230,33 @@ CREATE TABLE IF NOT EXISTS `reminder_rules` (
   UNIQUE KEY `uq_reminder_rules_uuid` (`uuid`),
   KEY `idx_reminder_rules_active` (`is_active`, `project_id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 20.7.1 reminder_rule_recipients — ผู้รับของแต่ละกฎ (structured, แทน recipients CSV เดิม)
+-- symbolic types (ref=NULL): TASK_ASSIGNEE / TEAM_LEAD / PROJECT_MANAGER
+-- concrete types (ref=publicId): USER→users.uuid | ROLE→roles.uuid | TEAM→review_teams.uuid | GROUP→user_groups.uuid | DEPARTMENT→departments.uuid
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `reminder_rule_recipients` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `uuid` UUID NOT NULL DEFAULT (UUID()) COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT (UUID()) fallback) สำหรับ seed/migration (ADR-019)',
+  `rule_id` INT NOT NULL,
+  `recipient_type` ENUM(
+    'TASK_ASSIGNEE',
+    'TEAM_LEAD',
+    'PROJECT_MANAGER',
+    'USER',
+    'ROLE',
+    'TEAM',
+    'GROUP',
+    'DEPARTMENT'
+  ) NOT NULL,
+  `recipient_ref` UUID NULL COMMENT 'publicId ของ target — NULL สำหรับ symbolic types',
+  `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_reminder_rule_recipients_uuid` (`uuid`),
+  KEY `idx_rrr_rule` (`rule_id`),
+  CONSTRAINT `fk_rrr_rule` FOREIGN KEY (`rule_id`) REFERENCES `reminder_rules` (`id`) ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Structured recipients — polymorphic ref, no FK on recipient_ref (by design, ADR-019)';
 
 -- -----------------------------------------------------------------------------
 -- 20.8 distribution_matrices — ตารางกระจายเอกสาร
@@ -2186,8 +2289,8 @@ CREATE TABLE IF NOT EXISTS `distribution_recipients` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `uuid` UUID NOT NULL DEFAULT (UUID()) COMMENT 'UUIDv7 (NestJS @BeforeInsert) สำหรับ runtime; UUIDv1 (DEFAULT UUID() fallback) สำหรับ seed/migration (ADR-019)',
   `matrix_id` INT NOT NULL,
-  `recipient_type` ENUM('USER', 'ORGANIZATION', 'TEAM', 'ROLE') NOT NULL,
-  `recipient_public_id` UUID NOT NULL COMMENT 'publicId ของ target entity (UUIDv7 หรือ UUIDv1 ตามที่มาของ record): USER=users.uuid | ORGANIZATION=organizations.uuid | TEAM=review_teams.uuid | ROLE=roles.uuid',
+  `recipient_type` ENUM('USER', 'ORGANIZATION', 'TEAM', 'ROLE', 'GROUP', 'DEPARTMENT') NOT NULL,
+  `recipient_public_id` UUID NOT NULL COMMENT 'publicId ของ target entity (UUIDv7 หรือ UUIDv1 ตามที่มาของ record): USER=users.uuid | ORGANIZATION=organizations.uuid | TEAM=review_teams.uuid | ROLE=roles.uuid | GROUP=user_groups.uuid | DEPARTMENT=departments.uuid',
   `delivery_method` ENUM('EMAIL', 'IN_APP', 'BOTH') NOT NULL DEFAULT 'BOTH',
   `sequence` INT NULL COMMENT 'For ordered delivery',
   `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),

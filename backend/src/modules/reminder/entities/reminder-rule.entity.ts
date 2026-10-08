@@ -5,10 +5,12 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
 import { Exclude } from 'class-transformer';
 import { UuidBaseEntity } from '../../../common/entities/uuid-base.entity';
 import { ReminderType } from '../../common/enums/review.enums';
+import { ReminderRuleRecipient } from './reminder-rule-recipient.entity';
 
 @Entity('reminder_rules')
 export class ReminderRule extends UuidBaseEntity {
@@ -38,8 +40,11 @@ export class ReminderRule extends UuidBaseEntity {
   @Column({ name: 'escalation_level', type: 'tinyint', default: 0 })
   escalationLevel!: number; // 0 = reminder, 1 = escalation L1, 2 = escalation L2
 
-  @Column({ name: 'notify_roles', type: 'simple-array', nullable: true })
-  notifyRoles?: string[]; // เช่น ['TASK_ASSIGNEE', 'TEAM_LEAD', 'PROJECT_MANAGER']
+  /** Structured recipients (แทน notify_roles simple-array เดิม) — resolve โดย RecipientResolverService */
+  @OneToMany(() => ReminderRuleRecipient, (recipient) => recipient.rule, {
+    cascade: true,
+  })
+  recipients?: ReminderRuleRecipient[];
 
   @Column({ name: 'message_template', type: 'text', nullable: true })
   messageTemplate?: string;

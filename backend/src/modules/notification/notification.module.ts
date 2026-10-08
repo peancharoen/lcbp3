@@ -15,6 +15,8 @@ import { User } from '../user/entities/user.entity';
 import { UserPreference } from '../user/entities/user-preference.entity';
 import { SystemSetting } from '../ai/entities/system-setting.entity';
 import { Project } from '../project/entities/project.entity';
+import { UserGroup } from '../organization/entities/user-group.entity';
+import { Department } from '../organization/entities/department.entity';
 
 import { NotificationService } from './notification.service';
 import { NotificationController } from './notification.controller';
@@ -43,6 +45,8 @@ import { UserModule } from '../user/user.module';
       UserPreference,
       SystemSetting,
       Project,
+      UserGroup,
+      Department,
     ]),
     BullModule.registerQueue({
       name: 'notifications',

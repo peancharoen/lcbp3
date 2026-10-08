@@ -11,7 +11,14 @@ import { Repository } from 'typeorm';
 import { validate as uuidValidate } from 'uuid';
 import { ReminderRule } from './entities/reminder-rule.entity';
 import { ReminderHistory } from './entities/reminder-history.entity';
-import { CreateReminderRuleDto } from './dto/create-reminder-rule.dto';
+import {
+  ReminderRuleRecipient,
+  ReminderRecipientType,
+} from './entities/reminder-rule-recipient.entity';
+import {
+  CreateReminderRuleDto,
+  ReminderRecipientDto,
+} from './dto/create-reminder-rule.dto';
 import { Project } from '../project/entities/project.entity';
 import { ReviewTask } from '../review-team/entities/review-task.entity';
 
@@ -29,17 +36,23 @@ export class ReminderService {
     @InjectRepository(Project)
     private readonly projectRepo: Repository<Project>,
     @InjectRepository(ReviewTask)
-    private readonly taskRepo: Repository<ReviewTask>
+    private readonly taskRepo: Repository<ReviewTask>,
+    @InjectRepository(ReminderRuleRecipient)
+    private readonly recipientRepo: Repository<ReminderRuleRecipient>
   ) {}
 
   async findAll(projectId?: number): Promise<ReminderRule[]> {
     if (projectId !== undefined) {
       return this.ruleRepo.find({
         where: [{ projectId }, { projectId: undefined }],
+        relations: ['recipients'],
         order: { escalationLevel: 'ASC', daysBeforeDue: 'DESC' },
       });
     }
-    return this.ruleRepo.find({ order: { escalationLevel: 'ASC' } });
+    return this.ruleRepo.find({
+      relations: ['recipients'],
+      order: { escalationLevel: 'ASC' },
+    });
   }
 
   async findAllByProjectPublicId(
@@ -58,7 +71,10 @@ export class ReminderService {
   }
 
   async findOne(publicId: string): Promise<ReminderRule> {
-    const rule = await this.ruleRepo.findOne({ where: { publicId } });
+    const rule = await this.ruleRepo.findOne({
+      where: { publicId },
+      relations: ['recipients'],
+    });
     if (!rule)
       throw new NotFoundException(`ReminderRule not found: ${publicId}`);
     return rule;
@@ -80,8 +96,15 @@ export class ReminderService {
   }
 
   async create(dto: CreateReminderRuleDto): Promise<ReminderRule> {
-    const rule = this.ruleRepo.create(dto as Partial<ReminderRule>);
-    return this.ruleRepo.save(rule);
+    // recipients/notifyRoles ไม่ใช่คอลัมน์ของ rule — แยกออกเป็น child rows
+    const { recipients, notifyRoles, ...ruleData } = dto;
+    const rule = this.ruleRepo.create(ruleData as Partial<ReminderRule>);
+    const saved = await this.ruleRepo.save(rule);
+    const rows = this.buildRecipientRows(saved.id, recipients, notifyRoles);
+    if (rows.length > 0) {
+      await this.recipientRepo.save(rows);
+    }
+    return this.findOne(saved.publicId);
   }
 
   async update(
@@ -89,8 +112,58 @@ export class ReminderService {
     dto: Partial<CreateReminderRuleDto>
   ): Promise<ReminderRule> {
     const rule = await this.findOne(publicId);
-    Object.assign(rule, dto);
-    return this.ruleRepo.save(rule);
+    const { recipients, notifyRoles, ...ruleData } = dto;
+    Object.assign(rule, ruleData);
+    await this.ruleRepo.save(rule);
+
+    // ส่ง recipients หรือ notifyRoles มา = replace ทั้งชุด
+    if (recipients !== undefined || notifyRoles !== undefined) {
+      await this.recipientRepo.delete({ ruleId: rule.id });
+      const rows = this.buildRecipientRows(rule.id, recipients, notifyRoles);
+      if (rows.length > 0) {
+        await this.recipientRepo.save(rows);
+      }
+    }
+    return this.findOne(publicId);
+  }
+
+  /**
+   * สร้าง recipient rows จาก structured recipients (preferred) หรือ legacy notifyRoles
+   * notifyRoles mapping: ASSIGNEE→TASK_ASSIGNEE, MANAGER→TEAM_LEAD, PROJECT_MANAGER→PROJECT_MANAGER
+   */
+  private buildRecipientRows(
+    ruleId: number,
+    recipients?: ReminderRecipientDto[],
+    notifyRoles?: string[]
+  ): ReminderRuleRecipient[] {
+    if (recipients !== undefined) {
+      return recipients.map((r) =>
+        this.recipientRepo.create({
+          ruleId,
+          recipientType: r.recipientType,
+          recipientRef: r.recipientRef,
+        })
+      );
+    }
+    const legacyMap: Record<string, ReminderRecipientType> = {
+      ASSIGNEE: ReminderRecipientType.TASK_ASSIGNEE,
+      MANAGER: ReminderRecipientType.TEAM_LEAD,
+      PROJECT_MANAGER: ReminderRecipientType.PROJECT_MANAGER,
+    };
+    return (notifyRoles ?? [])
+      .filter((role) => {
+        const mapped = legacyMap[role];
+        if (!mapped) {
+          this.logger.warn(`Unknown legacy notifyRole '${role}' — skipped`);
+        }
+        return !!mapped;
+      })
+      .map((role) =>
+        this.recipientRepo.create({
+          ruleId,
+          recipientType: legacyMap[role],
+        })
+      );
   }
 
   async remove(publicId: string): Promise<void> {

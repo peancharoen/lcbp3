@@ -12,9 +12,11 @@ import { UserPreferenceService } from './user-preference.service'; // ✅ เพ
 // Entities
 import { User } from './entities/user.entity';
 import { UserAssignment } from './entities/user-assignment.entity';
+import { UserOrganization } from './entities/user-organization.entity';
 import { UserPreference } from './entities/user-preference.entity';
 import { Role } from './entities/role.entity';
 import { Permission } from './entities/permission.entity';
+import { Department } from '../organization/entities/department.entity';
 
 @Module({
   imports: [
@@ -22,9 +24,11 @@ import { Permission } from './entities/permission.entity';
     TypeOrmModule.forFeature([
       User,
       UserAssignment,
+      UserOrganization,
       UserPreference,
       Role,
       Permission,
+      Department,
     ]),
     // CacheModule is now global (from AppModule)
   ],

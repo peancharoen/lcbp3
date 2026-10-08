@@ -7,6 +7,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ReminderService } from './reminder.service';
 import { ReminderRule } from './entities/reminder-rule.entity';
+import { ReminderRuleRecipient } from './entities/reminder-rule-recipient.entity';
 import { ReminderHistory } from './entities/reminder-history.entity';
 import { Project } from '../project/entities/project.entity';
 import { ReviewTask } from '../review-team/entities/review-task.entity';
@@ -25,6 +26,7 @@ describe('ReminderService', () => {
   let mockHistoryRepo: Record<string, jest.Mock>;
   let mockProjectRepo: Record<string, jest.Mock>;
   let mockTaskRepo: Record<string, jest.Mock>;
+  let mockRecipientRepo: Record<string, jest.Mock>;
 
   beforeEach(async () => {
     mockRuleRepo = {
@@ -43,6 +45,12 @@ describe('ReminderService', () => {
     mockTaskRepo = {
       findOne: jest.fn(),
     };
+    mockRecipientRepo = {
+      find: jest.fn(),
+      create: jest.fn((data: unknown) => data),
+      save: jest.fn(),
+      delete: jest.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -54,6 +62,10 @@ describe('ReminderService', () => {
         },
         { provide: getRepositoryToken(Project), useValue: mockProjectRepo },
         { provide: getRepositoryToken(ReviewTask), useValue: mockTaskRepo },
+        {
+          provide: getRepositoryToken(ReminderRuleRecipient),
+          useValue: mockRecipientRepo,
+        },
       ],
     }).compile();
 
@@ -76,6 +88,7 @@ describe('ReminderService', () => {
 
       expect(mockRuleRepo.find).toHaveBeenCalledWith({
         where: [{ projectId: 10 }, { projectId: undefined }],
+        relations: ['recipients'],
         order: { escalationLevel: 'ASC', daysBeforeDue: 'DESC' },
       });
       expect(result).toEqual(mockRules);
@@ -88,6 +101,7 @@ describe('ReminderService', () => {
       const result = await service.findAll();
 
       expect(mockRuleRepo.find).toHaveBeenCalledWith({
+        relations: ['recipients'],
         order: { escalationLevel: 'ASC' },
       });
       expect(result).toEqual(mockRules);
@@ -144,6 +158,7 @@ describe('ReminderService', () => {
 
       expect(mockRuleRepo.findOne).toHaveBeenCalledWith({
         where: { publicId: 'uuid-1' },
+        relations: ['recipients'],
       });
       expect(result).toEqual(mockRule);
     });
@@ -196,6 +211,7 @@ describe('ReminderService', () => {
       };
       const savedRule = { id: 1, ...dto };
       mockRuleRepo.save.mockResolvedValue(savedRule);
+      mockRuleRepo.findOne.mockResolvedValue(savedRule);
 
       const result = await service.create(dto);
 

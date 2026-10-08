@@ -54,6 +54,8 @@ export interface CreateUserDto {
   isActive: boolean;
   lineId?: string;
   primaryOrganizationId?: string; // ADR-019: UUID string only
+  departmentId?: string; // ADR-019: UUID string only (department ของ primary org)
+  position?: string; // ตำแหน่งใน primary org (free-text)
   roleIds?: number[]; // role_id (INT) → user_assignments Global scope
   mustChangePassword?: boolean; // SEV-014: admin สร้าง user ใหม่ควรบังคับเปลี่ยนรหัส
 }

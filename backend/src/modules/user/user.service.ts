@@ -14,11 +14,17 @@ import type { Cache } from 'cache-manager'; // ✅ FIX: เพิ่ม 'type' �
 import * as bcrypt from 'bcrypt';
 import { User } from './entities/user.entity';
 import { UserAssignment } from './entities/user-assignment.entity';
+import { UserOrganization } from './entities/user-organization.entity';
 import { Role } from './entities/role.entity';
 import { Permission } from './entities/permission.entity';
+import { Department } from '../organization/entities/department.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { SearchUserDto } from './dto/search-user.dto';
+import {
+  AddUserOrganizationDto,
+  UpdateUserOrganizationDto,
+} from './dto/user-organization.dto';
 import { UuidResolverService } from '../../common/services/uuid-resolver.service';
 
 @Injectable()
@@ -32,6 +38,10 @@ export class UserService {
     private permissionRepository: Repository<Permission>,
     @InjectRepository(UserAssignment)
     private assignmentRepository: Repository<UserAssignment>,
+    @InjectRepository(UserOrganization)
+    private membershipRepository: Repository<UserOrganization>,
+    @InjectRepository(Department)
+    private departmentRepository: Repository<Department>,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private uuidResolver: UuidResolverService,
     private dataSource: DataSource
@@ -64,6 +74,24 @@ export class UserService {
           password: hashedPassword,
         });
         const savedUser = await manager.save(newUser);
+
+        // User Grouping Model: สร้าง membership row (is_primary=1) ให้สอดคล้องกับ primary_organization_id
+        if (resolvedOrgId) {
+          const resolvedDeptId = createUserDto.departmentId
+            ? await this.uuidResolver.resolveDepartmentId(
+                createUserDto.departmentId
+              )
+            : undefined;
+          await manager.save(
+            manager.create(UserOrganization, {
+              userId: savedUser.user_id,
+              organizationId: resolvedOrgId,
+              departmentId: resolvedDeptId,
+              position: createUserDto.position,
+              isPrimary: true,
+            })
+          );
+        }
 
         if (roleIds?.length) {
           const assignments = [...new Set(roleIds)].map((roleId) =>
@@ -259,6 +287,14 @@ export class UserService {
     );
     const savedUser = await this.usersRepository.save(updatedUser);
 
+    // User Grouping Model: primary org เปลี่ยน → sync membership is_primary
+    if (updateUserDto.primaryOrganizationId !== undefined) {
+      await this.syncPrimaryMembership(
+        user.user_id,
+        resolvedDto.primaryOrganizationId as number | undefined
+      );
+    }
+
     if (roleIds !== undefined) {
       await this.syncRoleAssignments(user, roleIds, actor?.user_id);
     }
@@ -279,6 +315,188 @@ export class UserService {
     }
     // เคลียร์ Cache เมื่อลบ
     await this.clearUserCache(user.user_id);
+  }
+
+  // --- User Organization Memberships (User Grouping Model) ---
+
+  /** ดึง memberships ทั้งหมดของ user (พร้อม org/department) */
+  async listMemberships(userPublicId: string): Promise<UserOrganization[]> {
+    const userId = await this.uuidResolver.resolveUserId(userPublicId);
+    return this.membershipRepository.find({
+      where: { userId },
+      relations: ['organization', 'department'],
+      order: { isPrimary: 'DESC', createdAt: 'ASC' },
+    });
+  }
+
+  /** เพิ่ม membership (user join org อีกตัว) — isPrimary=1 จะ sync users.primary_organization_id */
+  async addMembership(
+    userPublicId: string,
+    dto: AddUserOrganizationDto
+  ): Promise<UserOrganization> {
+    const userId = await this.uuidResolver.resolveUserId(userPublicId);
+    const organizationId = await this.uuidResolver.resolveOrganizationId(
+      dto.organizationId
+    );
+    const departmentId = dto.departmentId
+      ? await this.resolveDepartmentInOrg(dto.departmentId, organizationId)
+      : undefined;
+
+    const existing = await this.membershipRepository.findOne({
+      where: { userId, organizationId },
+    });
+    if (existing) {
+      throw new ConflictException(
+        'MEMBERSHIP_DUPLICATE',
+        'User is already a member of this organization'
+      );
+    }
+
+    const membership = this.membershipRepository.create({
+      userId,
+      organizationId,
+      departmentId,
+      position: dto.position,
+      isPrimary: dto.isPrimary ?? false,
+    });
+    const saved = await this.membershipRepository.save(membership);
+
+    if (saved.isPrimary) {
+      await this.setPrimaryOrg(userId, organizationId);
+    } else {
+      // ถ้ายังไม่มี primary เลย (เช่น user ถูกสร้างโดยไม่มี org) ให้ row แรกเป็น primary
+      const primary = await this.membershipRepository.findOne({
+        where: { userId, isPrimary: true },
+      });
+      if (!primary) {
+        await this.setPrimaryOrg(userId, organizationId);
+      }
+    }
+    return saved;
+  }
+
+  /** แก้ไข membership (แผนก/ตำแหน่ง/เป็น primary) */
+  async updateMembership(
+    userPublicId: string,
+    membershipPublicId: string,
+    dto: UpdateUserOrganizationDto
+  ): Promise<UserOrganization> {
+    const userId = await this.uuidResolver.resolveUserId(userPublicId);
+    const membership = await this.membershipRepository.findOne({
+      where: { publicId: membershipPublicId, userId },
+    });
+    if (!membership) {
+      throw new NotFoundException('UserOrganization', membershipPublicId);
+    }
+
+    if (dto.departmentId !== undefined) {
+      membership.departmentId = dto.departmentId
+        ? await this.resolveDepartmentInOrg(
+            dto.departmentId,
+            membership.organizationId
+          )
+        : undefined;
+    }
+    if (dto.position !== undefined) {
+      membership.position = dto.position;
+    }
+    const saved = await this.membershipRepository.save(membership);
+
+    if (dto.isPrimary) {
+      await this.setPrimaryOrg(userId, membership.organizationId);
+    }
+    return saved;
+  }
+
+  /** ลบ membership — ถ้าลบ primary row จะเคลียร์ users.primary_organization_id ด้วย */
+  async removeMembership(
+    userPublicId: string,
+    membershipPublicId: string
+  ): Promise<void> {
+    const userId = await this.uuidResolver.resolveUserId(userPublicId);
+    const membership = await this.membershipRepository.findOne({
+      where: { publicId: membershipPublicId, userId },
+    });
+    if (!membership) {
+      throw new NotFoundException('UserOrganization', membershipPublicId);
+    }
+    await this.membershipRepository.remove(membership);
+
+    if (membership.isPrimary) {
+      // โปรโมต row ที่เหลือถัดไปเป็น primary (หรือ NULL ถ้าไม่เหลือ)
+      const next = await this.membershipRepository.findOne({
+        where: { userId },
+        order: { createdAt: 'ASC' },
+      });
+      if (next) {
+        await this.setPrimaryOrg(userId, next.organizationId);
+      } else {
+        await this.usersRepository.update(userId, {
+          primaryOrganizationId: null as unknown as number,
+        });
+      }
+    }
+  }
+
+  /**
+   * Sync membership กับ users.primary_organization_id (denormalized pointer)
+   * — primary ใหม่ upsert row + ล้าง is_primary ของ row อื่น
+   */
+  private async syncPrimaryMembership(
+    userId: number,
+    organizationId: number | undefined
+  ): Promise<void> {
+    await this.membershipRepository.update({ userId }, { isPrimary: false });
+    if (!organizationId) return;
+    const existing = await this.membershipRepository.findOne({
+      where: { userId, organizationId },
+    });
+    if (existing) {
+      await this.membershipRepository.update(existing.id, {
+        isPrimary: true,
+      });
+    } else {
+      await this.membershipRepository.save(
+        this.membershipRepository.create({
+          userId,
+          organizationId,
+          isPrimary: true,
+        })
+      );
+    }
+  }
+
+  /** ตั้ง primary org ทั้งสองฝั่ง (membership + users.primary_organization_id) */
+  private async setPrimaryOrg(
+    userId: number,
+    organizationId: number
+  ): Promise<void> {
+    await this.syncPrimaryMembership(userId, organizationId);
+    await this.usersRepository.update(userId, {
+      primaryOrganizationId: organizationId,
+    });
+  }
+
+  /** Resolve dept + ตรวจว่าอยู่ใน org เดียวกับ membership */
+  private async resolveDepartmentInOrg(
+    departmentId: number | string,
+    organizationId: number
+  ): Promise<number> {
+    const deptId = await this.uuidResolver.resolveDepartmentId(departmentId);
+    const dept = await this.departmentRepository.findOne({
+      where: { id: deptId },
+    });
+    if (!dept) {
+      throw new NotFoundException('Department', String(departmentId));
+    }
+    if (dept.organizationId !== organizationId) {
+      throw new ValidationException(
+        'Department does not belong to this organization',
+        undefined,
+        'แผนกที่เลือกไม่ได้อยู่ในองค์กรเดียวกัน'
+      );
+    }
+    return deptId;
   }
 
   async findDocControlIdByOrg(organizationId: number): Promise<number | null> {

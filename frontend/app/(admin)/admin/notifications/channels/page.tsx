@@ -1,6 +1,7 @@
 // File: frontend/app/(admin)/admin/notifications/channels/page.tsx
 // Change Log:
 // - 2026-09-25: Initial creation (Feature 258 US2, T042) — admin จัดการ Telegram group/topic bindings
+// - 2026-10-06: User Grouping Model — ผูก channel ให้ user group / department ได้ (ไม่ใช่แค่ project)
 'use client';
 
 import { useState } from 'react';
@@ -51,11 +52,20 @@ import {
   useDeleteChannel,
 } from '@/hooks/use-notification-channels';
 import { useProjects } from '@/hooks/use-projects';
-import { NotificationChannel } from '@/lib/services/notification-channel.service';
+import { useOrganizations } from '@/hooks/use-master-data';
+import { useUserGroups, useDepartments } from '@/hooks/use-grouping';
+import { NotificationChannel, IssueLinkCodeDto } from '@/lib/services/notification-channel.service';
+import { Organization } from '@/types/organization';
 import { useTranslations } from '@/hooks/use-translations';
 
+type ChannelScopeType = 'project' | 'user_group' | 'department';
+
 const linkCodeSchema = z.object({
-  projectPublicId: z.string().min(1),
+  scopeType: z.enum(['project', 'user_group', 'department']),
+  /** publicId ของ scope ที่เลือก (project / user_group / department) */
+  scopeRef: z.string().min(1),
+  /** org ที่เลือกก่อน เมื่อ scope = department */
+  scopeOrg: z.string().optional(),
   name: z.string().max(255).optional(),
 });
 type LinkCodeForm = z.infer<typeof linkCodeSchema>;
@@ -64,6 +74,10 @@ export default function NotificationChannelsPage() {
   const t = useTranslations();
   const { data: channels, isLoading } = useNotificationChannels();
   const { data: projects } = useProjects();
+  const { data: organizations } = useOrganizations({ isActive: true });
+  const organizationList: Organization[] = Array.isArray(organizations)
+    ? (organizations as Organization[])
+    : [];
   const issueLinkCode = useIssueLinkCode();
   const patchChannel = usePatchChannel();
   const deleteChannel = useDeleteChannel();
@@ -78,11 +92,26 @@ export default function NotificationChannelsPage() {
     watch,
     reset,
     formState: { errors },
-  } = useForm<LinkCodeForm>({ resolver: zodResolver(linkCodeSchema) });
-  const selectedProject = watch('projectPublicId');
+  } = useForm<LinkCodeForm>({
+    resolver: zodResolver(linkCodeSchema),
+    defaultValues: { scopeType: 'project' },
+  });
+  const scopeType = watch('scopeType');
+  const scopeRef = watch('scopeRef');
+  const scopeOrg = watch('scopeOrg');
+  const { data: userGroups } = useUserGroups();
+  const { data: departments } = useDepartments(
+    scopeType === 'department' ? scopeOrg : undefined
+  );
 
   const onIssue = async (data: LinkCodeForm) => {
-    const result = await issueLinkCode.mutateAsync(data);
+    // Map scopeType + scopeRef → field ของ DTO (ต้องระบุอย่างใดอย่างหนึ่ง)
+    const dto: IssueLinkCodeDto = { name: data.name };
+    if (data.scopeType === 'project') dto.projectPublicId = data.scopeRef;
+    else if (data.scopeType === 'user_group')
+      dto.userGroupPublicId = data.scopeRef;
+    else dto.departmentPublicId = data.scopeRef;
+    const result = await issueLinkCode.mutateAsync(dto);
     setIssuedCode(result.code);
   };
 
@@ -93,11 +122,25 @@ export default function NotificationChannelsPage() {
       cell: ({ row }) => row.original.name ?? '—',
     },
     {
-      accessorKey: 'projectId',
-      header: 'โครงการ',
+      accessorKey: 'scopeName',
+      header: 'Scope',
       cell: ({ row }) => {
-        const p = projects?.find((x) => x.publicId && row.original.projectId);
-        return p?.projectName ?? `#${row.original.projectId ?? '-'}`;
+        const ch = row.original;
+        const scopeTypeLabel = ch.projectPublicId
+          ? 'โครงการ'
+          : ch.userGroupPublicId
+            ? 'กลุ่มผู้ใช้'
+            : ch.departmentPublicId
+              ? 'แผนก'
+              : 'ทั่วไป';
+        return (
+          <div className="flex flex-col">
+            <span>{ch.scopeName ?? '—'}</span>
+            <span className="text-xs text-muted-foreground">
+              {scopeTypeLabel}
+            </span>
+          </div>
+        );
       },
     },
     {
@@ -242,24 +285,86 @@ export default function NotificationChannelsPage() {
           ) : (
             <form onSubmit={handleSubmit(onIssue)} className="space-y-4">
               <div className="space-y-2">
-                <Label>โครงการ</Label>
+                <Label>ประเภท scope</Label>
                 <Select
-                  value={selectedProject}
-                  onValueChange={(v) => setValue('projectPublicId', v)}
+                  value={scopeType ?? 'project'}
+                  onValueChange={(v: ChannelScopeType) => {
+                    setValue('scopeType', v);
+                    setValue('scopeRef', '');
+                    setValue('scopeOrg', undefined);
+                  }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="เลือกโครงการ" />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {(projects ?? []).map((p) => (
-                      <SelectItem key={p.publicId} value={p.publicId}>
-                        {p.projectName}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="project">โครงการ</SelectItem>
+                    <SelectItem value="user_group">กลุ่มผู้ใช้</SelectItem>
+                    <SelectItem value="department">แผนก</SelectItem>
                   </SelectContent>
                 </Select>
-                {errors.projectPublicId && (
-                  <p className="text-xs text-destructive">กรุณาเลือกโครงการ</p>
+              </div>
+              {scopeType === 'department' && (
+                <div className="space-y-2">
+                  <Label>องค์กร (สำหรับเลือกแผนก)</Label>
+                  <Select
+                    value={scopeOrg ?? ''}
+                    onValueChange={(v) => {
+                      setValue('scopeOrg', v);
+                      setValue('scopeRef', '');
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="เลือกองค์กร" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {organizationList.map((o) => (
+                        <SelectItem key={o.publicId} value={o.publicId}>
+                          {o.organizationName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label>
+                  {scopeType === 'user_group'
+                    ? 'กลุ่มผู้ใช้'
+                    : scopeType === 'department'
+                      ? 'แผนก'
+                      : 'โครงการ'}
+                </Label>
+                <Select
+                  value={scopeRef}
+                  onValueChange={(v) => setValue('scopeRef', v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="เลือก scope" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {scopeType === 'project' &&
+                      (projects ?? []).map((p) => (
+                        <SelectItem key={p.publicId} value={p.publicId}>
+                          {p.projectName}
+                        </SelectItem>
+                      ))}
+                    {scopeType === 'user_group' &&
+                      (userGroups ?? []).map((g) => (
+                        <SelectItem key={g.publicId} value={g.publicId}>
+                          {g.name}
+                        </SelectItem>
+                      ))}
+                    {scopeType === 'department' &&
+                      (departments ?? []).map((d) => (
+                        <SelectItem key={d.publicId} value={d.publicId}>
+                          {d.departmentName}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                {errors.scopeRef && (
+                  <p className="text-xs text-destructive">กรุณาเลือก scope</p>
                 )}
               </div>
               <div className="space-y-2">

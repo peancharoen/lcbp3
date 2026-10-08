@@ -314,6 +314,12 @@ VALUES (
     0
   );
 
+-- Seed user_organizations — sync กับ users.primary_organization_id (is_primary=1)
+INSERT INTO user_organizations (user_id, organization_id, is_primary)
+SELECT u.user_id, u.primary_organization_id, 1
+FROM users u
+WHERE u.primary_organization_id IS NOT NULL;
+
 -- ==========================================================
 -- Seed Roles (บทบาทพื้นฐาน 5 บทบาท ตาม Req 4.3)
 -- ==========================================================

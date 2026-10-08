@@ -15,6 +15,7 @@ import {
 } from 'typeorm';
 import { Organization } from '../../organization/entities/organization.entity'; // Adjust path as needed
 import { UserAssignment } from './user-assignment.entity';
+import { UserOrganization } from './user-organization.entity';
 import { UserPreference } from './user-preference.entity';
 import { UuidBaseEntity } from '../../../common/entities/uuid-base.entity';
 import { Exclude } from 'class-transformer';
@@ -103,6 +104,10 @@ export class User extends UuidBaseEntity {
   // Relation กับ Preferences (1:1)
   @OneToOne(() => UserPreference, (pref) => pref.user, { cascade: true })
   preference?: UserPreference;
+
+  /** Membership ใน org ทั้งหมดที่สังกัด (multi-org) — is_primary=1 sync กับ primary_organization_id */
+  @OneToMany(() => UserOrganization, (membership) => membership.user)
+  memberships?: UserOrganization[];
 
   // Base Entity Fields
   @CreateDateColumn({ name: 'created_at' })

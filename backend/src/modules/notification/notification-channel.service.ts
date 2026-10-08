@@ -2,12 +2,13 @@
 // Change Log:
 // - 2026-09-25: Initial creation (T037, pulled forward for webhook controller dependency)
 //   — project↔Telegram group/topic binding + notifyProject fan-out (Feature 258, FR-003/004/005)
+// - 2026-10-06: User Grouping Model — เพิ่ม scope user_group/department + notifyUserGroup/notifyDepartment
 
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { InjectQueue } from '@nestjs/bullmq';
 import { InjectRedis } from '@nestjs-modules/ioredis';
-import { IsNull, Repository } from 'typeorm';
+import { In, IsNull, Repository } from 'typeorm';
 import type Redis from 'ioredis';
 import type { Queue } from 'bullmq';
 import { randomBytes } from 'crypto';
@@ -22,6 +23,8 @@ import {
 } from './entities/notification-delivery.entity';
 import { NotificationType } from './entities/notification.entity';
 import { Project } from '../project/entities/project.entity';
+import { UserGroup } from '../organization/entities/user-group.entity';
+import { Department } from '../organization/entities/department.entity';
 import { LinkCodeRequestDto } from './telegram/dto/link-code-request.dto';
 import {
   telegramGroupLinkKey,
@@ -38,8 +41,11 @@ import {
 } from '../../common/exceptions';
 
 interface GroupLinkCodePayload {
-  projectId: number;
-  projectPublicId: string;
+  /** Scope ของ channel ที่จะผูก — ต้องตั้ง 1 ค่าเสมอ (ไม่มี global scope) */
+  projectId?: number;
+  projectPublicId?: string;
+  userGroupId?: number;
+  departmentId?: number;
   name?: string;
   issuedBy: number;
   iat: number;
@@ -48,7 +54,7 @@ interface GroupLinkCodePayload {
 export interface GroupLinkCodeResult {
   code: string;
   expiresIn: number;
-  projectPublicId: string;
+  projectPublicId?: string; // มีค่าเฉพาะเมื่อ scope = project (backward compat)
 }
 
 interface BindContext {
@@ -82,6 +88,10 @@ export class NotificationChannelService {
     private readonly deliveryRepo: Repository<NotificationDelivery>,
     @InjectRepository(Project)
     private readonly projectRepo: Repository<Project>,
+    @InjectRepository(UserGroup)
+    private readonly userGroupRepo: Repository<UserGroup>,
+    @InjectRepository(Department)
+    private readonly departmentRepo: Repository<Department>,
     @InjectQueue(QUEUE_NOTIFICATIONS) private readonly notificationQueue: Queue,
     @InjectRedis() private readonly redis: Redis
   ) {}
@@ -93,21 +103,54 @@ export class NotificationChannelService {
     adminUserId: number,
     dto: LinkCodeRequestDto
   ): Promise<GroupLinkCodeResult> {
-    const project = await this.projectRepo.findOne({
-      where: { publicId: dto.projectPublicId },
-    });
-    if (!project) {
-      throw new NotFoundException('Project', dto.projectPublicId);
+    // Scope: ต้องระบุอย่างน้อย 1 ใน project/userGroup/department (และห้ามเกิน 1)
+    const scopes = [
+      dto.projectPublicId,
+      dto.userGroupPublicId,
+      dto.departmentPublicId,
+    ].filter(Boolean);
+    if (scopes.length !== 1) {
+      throw new ValidationException(
+        'Specify exactly one scope: projectPublicId, userGroupPublicId, or departmentPublicId',
+        undefined,
+        'กรุณาระบุ scope สำหรับผูก channel เพียง 1 อย่าง (โครงการ / กลุ่มผู้ใช้ / แผนก)'
+      );
     }
 
-    const code = randomBytes(4).toString('hex').toUpperCase(); // 8 chars
     const payload: GroupLinkCodePayload = {
-      projectId: project.id,
-      projectPublicId: project.publicId,
       name: dto.name,
       issuedBy: adminUserId,
       iat: Date.now(),
     };
+
+    if (dto.projectPublicId) {
+      const project = await this.projectRepo.findOne({
+        where: { publicId: dto.projectPublicId },
+      });
+      if (!project) {
+        throw new NotFoundException('Project', dto.projectPublicId);
+      }
+      payload.projectId = project.id;
+      payload.projectPublicId = project.publicId;
+    } else if (dto.userGroupPublicId) {
+      const group = await this.userGroupRepo.findOne({
+        where: { publicId: dto.userGroupPublicId },
+      });
+      if (!group) {
+        throw new NotFoundException('UserGroup', dto.userGroupPublicId);
+      }
+      payload.userGroupId = group.id;
+    } else if (dto.departmentPublicId) {
+      const department = await this.departmentRepo.findOne({
+        where: { publicId: dto.departmentPublicId },
+      });
+      if (!department) {
+        throw new NotFoundException('Department', dto.departmentPublicId);
+      }
+      payload.departmentId = department.id;
+    }
+
+    const code = randomBytes(4).toString('hex').toUpperCase(); // 8 chars
     await this.redis.set(
       telegramGroupLinkKey(code),
       JSON.stringify(payload),
@@ -117,12 +160,12 @@ export class NotificationChannelService {
     );
 
     this.logger.log(
-      `Issued group link code for project ${dto.projectPublicId} by user ${adminUserId}`
+      `Issued group link code by user ${adminUserId} (scope: project=${payload.projectId ?? '-'} group=${payload.userGroupId ?? '-'} dept=${payload.departmentId ?? '-'})`
     );
     return {
       code,
       expiresIn: TELEGRAM_GROUP_LINK_TTL_SECONDS,
-      projectPublicId: project.publicId,
+      projectPublicId: payload.projectPublicId,
     };
   }
 
@@ -172,6 +215,8 @@ export class NotificationChannelService {
       externalChatId: ctx.externalChatId,
       telegramTopicId: ctx.telegramTopicId ?? null,
       projectId: payload.projectId,
+      userGroupId: payload.userGroupId,
+      departmentId: payload.departmentId,
       name: ctx.name ?? payload.name,
       isActive: true,
       createdBy: payload.issuedBy,
@@ -180,7 +225,7 @@ export class NotificationChannelService {
     await this.redis.del(key); // single-use
 
     this.logger.log(
-      `Telegram channel bound: chat=${ctx.externalChatId} topic=${ctx.telegramTopicId ?? '-'} → project ${payload.projectPublicId}`
+      `Telegram channel bound: chat=${ctx.externalChatId} topic=${ctx.telegramTopicId ?? '-'} → project=${payload.projectPublicId ?? '-'} group=${payload.userGroupId ?? '-'} dept=${payload.departmentId ?? '-'}`
     );
     return saved;
   }
@@ -197,6 +242,39 @@ export class NotificationChannelService {
     const channels = await this.channelRepo.find({
       where: { projectId, isActive: true },
     });
+    return this.fanOut(channels, eventType, payload);
+  }
+
+  /** ส่ง event เข้าทุก active channel ที่ผูกกับ user group (claim-based fan-out) */
+  async notifyUserGroup(
+    userGroupId: number,
+    eventType: string,
+    payload: { text: string; entityType?: string; entityPublicId?: string }
+  ): Promise<number> {
+    const channels = await this.channelRepo.find({
+      where: { userGroupId, isActive: true },
+    });
+    return this.fanOut(channels, eventType, payload);
+  }
+
+  /** ส่ง event เข้าทุก active channel ที่ผูกกับ department */
+  async notifyDepartment(
+    departmentId: number,
+    eventType: string,
+    payload: { text: string; entityType?: string; entityPublicId?: string }
+  ): Promise<number> {
+    const channels = await this.channelRepo.find({
+      where: { departmentId, isActive: true },
+    });
+    return this.fanOut(channels, eventType, payload);
+  }
+
+  /** Fan-out ร่วม: สร้าง delivery row + enqueue ทีละ channel */
+  private async fanOut(
+    channels: NotificationChannel[],
+    eventType: string,
+    payload: { text: string; entityType?: string; entityPublicId?: string }
+  ): Promise<number> {
     if (channels.length === 0) return 0;
 
     for (const channel of channels) {
@@ -235,24 +313,61 @@ export class NotificationChannelService {
     }
 
     this.logger.log(
-      `Queued ${channels.length} Telegram group message(s) for project ${projectId} event=${eventType}`
+      `Queued ${channels.length} Telegram group message(s) event=${eventType}`
     );
     return channels.length;
   }
 
-  /** รายการ channels สำหรับ admin (filter ตาม project ได้) */
+  /** รายการ channels สำหรับ admin (filter ตาม project ได้) — resolve scope publicIds + ชื่อ scope ให้ UI */
   async list(projectPublicId?: string): Promise<NotificationChannel[]> {
+    let channels: NotificationChannel[];
     if (!projectPublicId) {
-      return this.channelRepo.find({ order: { createdAt: 'DESC' } });
+      channels = await this.channelRepo.find({ order: { createdAt: 'DESC' } });
+    } else {
+      const project = await this.projectRepo.findOne({
+        where: { publicId: projectPublicId },
+      });
+      if (!project) return [];
+      channels = await this.channelRepo.find({
+        where: { projectId: project.id },
+        order: { createdAt: 'DESC' },
+      });
     }
-    const project = await this.projectRepo.findOne({
-      where: { publicId: projectPublicId },
-    });
-    if (!project) return [];
-    return this.channelRepo.find({
-      where: { projectId: project.id },
-      order: { createdAt: 'DESC' },
-    });
+    // Resolve scope publicIds + scopeName สำหรับแสดงผล (column INT ถูก @Exclude ไม่ให้ expose)
+    const projectIds = channels.map((c) => c.projectId).filter(Boolean);
+    const groupIds = channels.map((c) => c.userGroupId).filter(Boolean);
+    const deptIds = channels.map((c) => c.departmentId).filter(Boolean);
+    const [projects, groups, departments] = await Promise.all([
+      projectIds.length
+        ? this.projectRepo.find({ where: { id: In(projectIds) } })
+        : [],
+      groupIds.length
+        ? this.userGroupRepo.find({ where: { id: In(groupIds) } })
+        : [],
+      deptIds.length
+        ? this.departmentRepo.find({ where: { id: In(deptIds) } })
+        : [],
+    ]);
+    const projectMap = new Map(projects.map((p) => [p.id, p]));
+    const groupMap = new Map(groups.map((g) => [g.id, g]));
+    const deptMap = new Map(departments.map((d) => [d.id, d]));
+    for (const channel of channels) {
+      const project = channel.projectId
+        ? projectMap.get(channel.projectId)
+        : undefined;
+      const group = channel.userGroupId
+        ? groupMap.get(channel.userGroupId)
+        : undefined;
+      const department = channel.departmentId
+        ? deptMap.get(channel.departmentId)
+        : undefined;
+      channel.projectPublicId = project?.publicId;
+      channel.userGroupPublicId = group?.publicId;
+      channel.departmentPublicId = department?.publicId;
+      channel.scopeName =
+        project?.projectName ?? group?.name ?? department?.departmentName;
+    }
+    return channels;
   }
 
   /** อัปเดต name/is_active (reactivate หลังเชิญ bot กลับ) */

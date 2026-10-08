@@ -11,6 +11,8 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { UserService } from './user.service';
 import { User } from './entities/user.entity';
 import { UserAssignment } from './entities/user-assignment.entity';
+import { UserOrganization } from './entities/user-organization.entity';
+import { Department } from '../organization/entities/department.entity';
 import { Role } from './entities/role.entity';
 import { Permission } from './entities/permission.entity';
 import { UuidResolverService } from '../../common/services/uuid-resolver.service';
@@ -61,6 +63,19 @@ const mockAssignmentRepository = {
   remove: jest.fn(),
 };
 
+const mockMembershipRepository = {
+  find: jest.fn().mockResolvedValue([]),
+  findOne: jest.fn(),
+  create: jest.fn(),
+  save: jest.fn(),
+  update: jest.fn(),
+  remove: jest.fn(),
+};
+
+const mockDepartmentRepository = {
+  findOne: jest.fn(),
+};
+
 // Mock Cache Manager
 const mockCacheManager = {
   get: jest.fn(),
@@ -99,10 +114,20 @@ describe('UserService', () => {
           useValue: mockAssignmentRepository,
         },
         {
+          provide: getRepositoryToken(UserOrganization),
+          useValue: mockMembershipRepository,
+        },
+        {
+          provide: getRepositoryToken(Department),
+          useValue: mockDepartmentRepository,
+        },
+        {
           provide: UuidResolverService,
           useValue: {
             resolveOrganizationId: jest.fn().mockResolvedValue(1),
             resolveProjectId: jest.fn().mockResolvedValue(1),
+            resolveUserId: jest.fn().mockResolvedValue(1),
+            resolveDepartmentId: jest.fn().mockResolvedValue(1),
           },
         },
         {

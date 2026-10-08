@@ -130,4 +130,18 @@ export class UuidResolverService {
       asBuiltDrawingRevisionId
     );
   }
+
+  /**
+   * Resolve userGroupId (INT or UUID string) to internal INT ID.
+   */
+  async resolveUserGroupId(groupId: number | string): Promise<number> {
+    return this.resolve('User Group', 'user_groups', 'id', groupId);
+  }
+
+  /**
+   * Resolve departmentId (INT or UUID string) to internal INT ID.
+   */
+  async resolveDepartmentId(deptId: number | string): Promise<number> {
+    return this.resolve('Department', 'departments', 'id', deptId);
+  }
 }

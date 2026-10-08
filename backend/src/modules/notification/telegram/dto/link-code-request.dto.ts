@@ -2,26 +2,36 @@
 // Change Log:
 // - 2026-09-25: Initial creation — DTO สำหรับ admin ออก group link code (Feature 258)
 
-import {
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  IsUUID,
-  Length,
-} from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional, IsString, IsUUID, Length } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
 /**
  * Request สำหรับ POST /admin/notifications/channels/link-code
- * — admin เลือก project ที่จะผูกก่อน แล้วนำ code ไปพิมพ์ `/link <code>` ใน Telegram group/topic
+ * — admin เลือก scope ที่จะผูก (project / user group / department อย่างใดอย่างหนึ่ง)
+ *   แล้วนำ code ไปพิมพ์ `/link <code>` ใน Telegram group/topic
  */
 export class LinkCodeRequestDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Project publicId (UUID) ที่จะผูกกับ Telegram group',
   })
+  @IsOptional()
   @IsUUID()
-  @IsNotEmpty()
-  projectPublicId!: string;
+  projectPublicId?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'User Group publicId (UUID) — claim-based fan-out (เช่น circulation)',
+  })
+  @IsOptional()
+  @IsUUID()
+  userGroupPublicId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Department publicId (UUID) ที่จะผูกกับ Telegram group',
+  })
+  @IsOptional()
+  @IsUUID()
+  departmentPublicId?: string;
 
   @ApiPropertyOptional({
     description:

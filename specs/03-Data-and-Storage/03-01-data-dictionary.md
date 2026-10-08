@@ -260,6 +260,80 @@ erDiagram
 
 ---
 
+### 2.7a departments (NEW v1.9.x — User Grouping Model)
+
+**Purpose**: Master table เก็บแผนก/ฝ่ายภายในองค์กร (flat — ไม่มี hierarchy) — ตำแหน่ง/แผนกผูกกับ org context
+
+| Column | Type | Constraints | Description |
+| --- | --- | --- | --- |
+| id | INT | PK, AI | ID ของตาราง |
+| uuid | UUID | NOT NULL, UNIQUE | ADR-019 publicId |
+| organization_id | INT | NOT NULL, FK | องค์กรเจ้าของแผนก |
+| department_code | VARCHAR(20) | NOT NULL | รหัสแผนก (unique ภายใน org) |
+| department_name | VARCHAR(255) | NOT NULL | ชื่อแผนก |
+| is_active | TINYINT(1) | DEFAULT 1 | สถานะการใช้งาน |
+
+**Indexes**: PK(id), UNIQUE(organization_id, department_code), UNIQUE(uuid), FK organization_id → organizations CASCADE
+
+**Business Rules**: แผนกเป็นของ org ไม่ใช่ global; ใช้ใน user_organizations, reminder/distribution recipients; ห้ามใช้ discipline แทน (discipline = สาขางานเอกสารต่อ contract)
+
+---
+
+### 2.7b user_organizations (NEW v1.9.x — User Grouping Model)
+
+**Purpose**: Junction user ↔ organizations ทุกแห่งที่สังกัด พร้อมแผนก + ตำแหน่งต่อ org — `users.primary_organization_id` ยังเป็น denormalized pointer ไปที่แถว `is_primary=1` (sync ที่ app layer)
+
+| Column | Type | Constraints | Description |
+| --- | --- | --- | --- |
+| id | INT | PK, AI | ID ของตาราง |
+| uuid | UUID | NOT NULL, UNIQUE | ADR-019 publicId |
+| user_id | INT | NOT NULL, FK | เจ้าของ membership |
+| organization_id | INT | NOT NULL, FK | org ที่สังกัด |
+| department_id | INT | NULL, FK | แผนกใน org นี้ |
+| position | VARCHAR(100) | NULL | ตำแหน่งใน org นี้ (free-text — ไม่ทำ master) |
+| is_primary | TINYINT(1) | NOT NULL DEFAULT 0 | สังกัดหลัก — 1 แถวต่อ user |
+
+**Indexes**: PK(id), UNIQUE(user_id, organization_id), UNIQUE(uuid), UNIQUE(primary_org_guard), FKs → users/organizations CASCADE, departments SET NULL
+
+**Business Rules**: ตำแหน่งผูกกับ org (คนเดียวกันอาจเป็น "ผู้จัดการโครงการ" ที่ org A แต่ "วิศวกร" ที่ org B) — ห้ามใส่ position บน users; is_primary sync กับ users.primary_organization_id; `primary_org_guard` generated column + UNIQUE บังคับ is_primary=1 แถวเดียวต่อ user ที่ระดับ DB (ห้าม map ใน entity)
+
+---
+
+### 2.7c user_groups + user_group_members (NEW v1.9.x — User Grouping Model)
+
+**Purpose**: Functional group ของ user ภายใน org ("ทีม QC", "ฝ่ายเอกสาร") — pool สำหรับ claim-based assignment (circulation), distribution และ reminder recipients
+
+**user_groups**: id, uuid, organization_id (FK CASCADE), name (unique per org), description, is_active
+**user_group_members**: PK(group_id, user_id), FKs CASCADE, created_at
+
+**Business Rules**: org-scoped — ห้ามใช้แทน review_teams (project-scoped ผูก RFA) หรือ departments (หน่วยงานของบริษัท); group อาจตัดข้ามแผนกได้
+
+---
+
+### 2.7d reminder_rule_recipients (NEW v1.9.x — User Grouping Model)
+
+**Purpose**: Structured recipients ของ reminder rule — แทน recipients CSV เดิม
+
+| Column | Type | Constraints | Description |
+| --- | --- | --- | --- |
+| id | INT | PK, AI | ID ของตาราง |
+| uuid | UUID | NOT NULL, UNIQUE | ADR-019 publicId |
+| rule_id | INT | NOT NULL, FK CASCADE | กฎที่เกี่ยวข้อง |
+| recipient_type | ENUM | NOT NULL | symbolic: TASK_ASSIGNEE/TEAM_LEAD/PROJECT_MANAGER; concrete: USER/ROLE/TEAM/GROUP/DEPARTMENT |
+| recipient_ref | UUID | NULL | publicId ของ target — NULL สำหรับ symbolic |
+
+**Business Rules**: polymorphic ref (no FK — same pattern as distribution_recipients); resolve: symbolic → จาก task context, concrete → จาก publicId; ขยาย type = เพิ่ม enum value ไม่แก้ logic
+
+---
+
+**หมายเหตุ v1.9.x (User Grouping Model)**:
+
+- `circulation_routings.assigned_group_id` (NULL, FK → user_groups SET NULL) — claim-based: notify ทั้ง group, member คนแรกที่รับงาน set `assigned_to`
+- `distribution_recipients.recipient_type` เพิ่ม GROUP, DEPARTMENT
+- `reminder_rules` sync กับ entity: `document_type_code`, `days_before_due`, `escalation_level`, `message_template` (แทนคอลัมน์เก่า `document_type_id`, `trigger_days_before_due`, `escalation_days_after_due`, `recipients`, `message_template_th/en`)
+
+---
+
 ### 2.8 user_preferences (NEW v1.5.1)
 
 **Purpose**: เก็บการตั้งค่าส่วนตัวของผู้ใช้ (Req 5.5, 6.8.3)
@@ -2051,7 +2125,7 @@ erDiagram
 
 ### 11.4 notification_channels (NEW — Feature 258)
 
-**Purpose**: จุดหมายแจ้งเตือนภายนอกที่ bind ได้ — Telegram Group/Channel ต่อโครงการ หรือ global (แยกจาก users เพราะ group ไม่ผูกกับ user คนเดียว และรองรับ channel ประเภทอื่นในอนาคต)
+**Purpose**: จุดหมายแจ้งเตือนภายนอกที่ bind ได้ — Telegram Group/Channel ต่อ scope เดียว: โครงการ / user group / department / global (แยกจาก users เพราะ group ไม่ผูกกับ user คนเดียว และรองรับ channel ประเภทอื่นในอนาคต)
 
 | Column Name      | Data Type   | Constraints                        | Description                                                              |
 | :--------------- | :---------- | :--------------------------------- | :----------------------------------------------------------------------- |
@@ -2059,7 +2133,9 @@ erDiagram
 | uuid             | UUID        | NOT NULL, UNIQUE, DEFAULT UUID()   | publicId (ADR-019)                                                       |
 | channel_type     | ENUM        | NOT NULL                           | TELEGRAM_GROUP, TELEGRAM_CHANNEL, LINE                                   |
 | external_chat_id | VARCHAR(50) | NOT NULL                           | chat_id ของ group/channel (ติดลบสำหรับ Telegram group)                    |
-| project_id       | INT         | NULL, FK                           | โครงการเจ้าของ (NULL = global scope)                                     |
+| project_id       | INT         | NULL, FK                           | โครงการเจ้าของ (NULL + scopes อื่นว่าง = global scope)                   |
+| user_group_id    | INT         | NULL, FK                           | user group เจ้าของ (User Grouping Model) — ตั้งได้ 1 ใน project/user_group/department |
+| department_id    | INT         | NULL, FK                           | department เจ้าของ (User Grouping Model)                                 |
 | name             | VARCHAR(100)| NULL                               | ชื่อกลุ่มสำหรับแสดงใน admin console                                      |
 | is_active        | TINYINT(1)  | DEFAULT 1                          | สถานะใช้งาน (auto=0 เมื่อ bot ถูกเตะออกจากกลุ่ม)                          |
 | last_error       | VARCHAR(255)| NULL                               | เหตุผลล่าสุดที่ส่งไม่สำเร็จ                                               |
@@ -2073,7 +2149,12 @@ erDiagram
 - UNIQUE uk_channel (channel_type, external_chat_id)
 - UNIQUE INDEX idx_notification_channels_uuid (uuid)
 - INDEX idx_channels_project_active (project_id, is_active)
+- INDEX idx_channels_user_group_active (user_group_id, is_active)
+- INDEX idx_channels_department_active (department_id, is_active)
+- CHECK chk_channel_single_scope: (project_id IS NOT NULL) + (user_group_id IS NOT NULL) + (department_id IS NOT NULL) <= 1
 - FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+- FOREIGN KEY (user_group_id) REFERENCES user_groups(id) ON DELETE CASCADE
+- FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE
 - FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL
 
 **Business Rules**:

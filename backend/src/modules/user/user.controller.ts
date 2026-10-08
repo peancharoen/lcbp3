@@ -28,6 +28,10 @@ import { AssignRoleDto } from './dto/assign-role.dto';
 import { SearchUserDto } from './dto/search-user.dto';
 import { UpdatePreferenceDto } from './dto/update-preference.dto';
 import { BulkAssignmentDto } from './dto/bulk-assignment.dto';
+import {
+  AddUserOrganizationDto,
+  UpdateUserOrganizationDto,
+} from './dto/user-organization.dto';
 
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../common/guards/rbac.guard';
@@ -154,6 +158,49 @@ export class UserController {
   @RequirePermission('user.delete')
   remove(@Param('uuid', ParseUuidPipe) uuid: string) {
     return this.userService.remove(uuid);
+  }
+
+  // --- Organization Memberships (User Grouping Model) ---
+
+  @Get(':uuid/organizations')
+  @ApiOperation({ summary: 'List user organization memberships' })
+  @ApiParam({ name: 'uuid', description: 'User UUID' })
+  @RequirePermission('user.view')
+  listMemberships(@Param('uuid', ParseUuidPipe) uuid: string) {
+    return this.userService.listMemberships(uuid);
+  }
+
+  @Post(':uuid/organizations')
+  @ApiOperation({ summary: 'Add user to an organization' })
+  @ApiBody({ type: AddUserOrganizationDto })
+  @RequirePermission('user.edit')
+  addMembership(
+    @Param('uuid', ParseUuidPipe) uuid: string,
+    @Body() dto: AddUserOrganizationDto
+  ) {
+    return this.userService.addMembership(uuid, dto);
+  }
+
+  @Patch(':uuid/organizations/:membershipUuid')
+  @ApiOperation({ summary: 'Update membership (department/position/primary)' })
+  @ApiBody({ type: UpdateUserOrganizationDto })
+  @RequirePermission('user.edit')
+  updateMembership(
+    @Param('uuid', ParseUuidPipe) uuid: string,
+    @Param('membershipUuid', ParseUuidPipe) membershipUuid: string,
+    @Body() dto: UpdateUserOrganizationDto
+  ) {
+    return this.userService.updateMembership(uuid, membershipUuid, dto);
+  }
+
+  @Delete(':uuid/organizations/:membershipUuid')
+  @ApiOperation({ summary: 'Remove user from an organization' })
+  @RequirePermission('user.edit')
+  removeMembership(
+    @Param('uuid', ParseUuidPipe) uuid: string,
+    @Param('membershipUuid', ParseUuidPipe) membershipUuid: string
+  ) {
+    return this.userService.removeMembership(uuid, membershipUuid);
   }
 
   // --- Role Assignment ---

@@ -52,6 +52,20 @@ export class CreateUserDto {
   @IsOptional()
   primaryOrganizationId?: number | string; // ADR-019: Accept INT or UUID
 
+  @ApiPropertyOptional({
+    description: 'Department ID or UUID (of primary org)',
+  })
+  @IsOptional()
+  departmentId?: number | string; // ADR-019: Accept INT or UUID
+
+  @ApiPropertyOptional({
+    description: 'Position in primary org (free-text)',
+    example: 'ผู้จัดการโครงการ',
+  })
+  @IsString()
+  @IsOptional()
+  position?: string;
+
   @ApiPropertyOptional({ description: 'Is user active?', default: true })
   @IsBoolean()
   @IsOptional()

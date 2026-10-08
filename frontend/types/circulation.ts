@@ -15,6 +15,7 @@ export interface CirculationRouting {
   stepNumber: number;
   organizationId: number;
   assignedTo?: number;
+  assignedGroupId?: number; // claim-based: routing ที่มอบให้ group — member คนแรกที่รับงานจะเป็น assignedTo
   status: CirculationRoutingStatus;
   comments?: string;
   completedAt?: string;
@@ -26,6 +27,10 @@ export interface CirculationRouting {
     username: string;
     firstName?: string;
     lastName?: string;
+  };
+  assignedGroup?: {
+    publicId: string;
+    name: string;
   };
   organization?: {
     id: number;
@@ -97,7 +102,8 @@ export interface CreateCirculationDto {
   correspondenceId: number | string;
   projectId?: number | string;
   subject: string;
-  assigneeIds: (number | string)[];
+  assigneeIds?: (number | string)[];
+  assigneeGroupIds?: (number | string)[]; // User Group publicIds — claim-based routing (ต้องมีอย่างน้อย 1 รวมกับ assigneeIds)
   remarks?: string;
 }
 

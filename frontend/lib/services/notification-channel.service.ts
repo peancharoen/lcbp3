@@ -1,6 +1,7 @@
 // File: frontend/lib/services/notification-channel.service.ts
 // Change Log:
 // - 2026-09-25: Initial creation (Feature 258 US2, T043) — admin notification_channels client
+// - 2026-10-06: User Grouping Model — channel scope รองรับ user_group/department
 
 import apiClient from '@/lib/api/client';
 
@@ -11,16 +12,28 @@ export interface NotificationChannel {
   externalChatId: string;
   telegramTopicId: number | null;
   projectId: number | null;
+  /** Scope publicIds + ชื่อที่ backend resolve ให้แสดงผล (ต้องมี 1 ใน 3 เสมอ) */
+  projectPublicId?: string | null;
+  userGroupPublicId?: string | null;
+  departmentPublicId?: string | null;
+  scopeName?: string | null;
   name: string | null;
   isActive: boolean;
   lastError: string | null;
   createdAt: string;
 }
 
+export interface IssueLinkCodeDto {
+  projectPublicId?: string;
+  userGroupPublicId?: string;
+  departmentPublicId?: string;
+  name?: string;
+}
+
 export interface IssueLinkCodeResult {
   code: string;
   expiresIn: number;
-  projectPublicId: string;
+  projectPublicId?: string;
 }
 
 export const notificationChannelService = {
@@ -31,7 +44,7 @@ export const notificationChannelService = {
     return response.data.data; // Unwrap NestJS Interceptor envelope
   },
 
-  issueLinkCode: async (dto: { projectPublicId: string; name?: string }): Promise<IssueLinkCodeResult> => {
+  issueLinkCode: async (dto: IssueLinkCodeDto): Promise<IssueLinkCodeResult> => {
     const response = await apiClient.post('/admin/notifications/channels/link-code', dto);
     return response.data.data; // Unwrap NestJS Interceptor envelope
   },
