@@ -383,7 +383,7 @@ QDRANT_URL
 ## Next Session Focus
 
 - [x] Org-role pipeline PR #29/#30/#31/#32 — merged+deployed (`a1515fd2`/`fdbb1476`/`40877227`/`fc00ef26`), role update verified on prod via Playwright (D358–D364)
-- [ ] Cleanup decision: test link `EN → GUEST` บน project LCBP3-C2 (keep หรือ unlink)
+- [x] Test link `EN → GUEST` บน LCBP3-C2 — unlink แล้วผ่าน UI (superadmin, 2026-10-10; DB ยืนยันเหลือ 4 links; พิสูจน์ DELETE flow ด้วย)
 - [x] Push docs commits ผ่าน `2git.sh --skip-ci` (2026-10-08, user สั่ง)
 - [x] เพิ่ม Agent Execution Contract §1-9 กลับเข้า AGENTS.md (v1.9.20) — refs ใน adapters/.devin/.claude ไม่ dangling แล้ว (section ไม่เคย commit มาก่อน; spec อยู่ `docs/20260811-agents.md`)
 - [x] F258 Telegram Notifications — implemented, merged, deployed (`f9f58cf9`), T064 verified live: group `/link`→topic binding + group send (SC-002 ≈2s) + DM `/start` binding (SC-001 ≈1s system) + test DM; ledger CP11; CI #821 green
@@ -400,22 +400,22 @@ QDRANT_URL
 - [x] Vector Sync migrated → generation-aware pipeline (`fce3e7a0`, D344) — 188 legacy Qdrant points deleted; missing scan เช็ค ACTIVE gen; 2 stuck attachments (test-attach, AI-INGEST-E2E-001) healed+ingested, missing list = 0; deployed image `3dbea91d`
 - [x] Migration queue URL-state fix pushed `5861b89e` + **browser verified** (page 3 + filter คงหลัง browser back)
 - [x] Review back button `router.back()` + page-size selector 10/20/50/100 + `@Max(100)` pushed `3055ad73` (D347) — pending deploy verify
-- [ ] ตรวจ UI จริงหลัง deploy ของ Correspondence/RFA/Circulation/Transmittal/Drawing filters
-- [ ] Browser verify `3055ad73`: ปุ่ม `<-` คง state + page-size selector + Vector Sync tab/RAG Console metrics
+- [ ] ตรวจ UI จริงหลัง deploy ของ RFA/Circulation/Drawing filters (Correspondence + Transmittals ตรวจแล้ว 2026-10-10: limit=50 URL-backed → API 200, คอลัมน์ Rev/Issued Date มี, `/api/transmittals?projectUuid=` 200)
+- [ ] Browser verify `3055ad73` ที่เหลือ: Vector Sync tab (RAG Console tabs ปัจจุบัน: แดชบอร์ด/การจัดหมวด/วงจรการสร้าง/เมตริก/รีทราย — ยืนยันชื่อ tab ก่อน) — ปุ่ม `<-` คง `?limit=50` ✅, page-size ✅, เปิด tab เมตริก console 0 errors ✅ (2026-10-10)
 - [ ] `DROP TABLE *_backup_20260918` (3 tables) เมื่อมั่นใจ orphan cleanup ถูกต้อง — ต้อง user confirm
 - [ ] (optional) Re-ingest healed non-current-rev attachments `01a0a357-3952` (CHEC-0004), `01a0a7fc-169c` (CHEC-0011) ถ้าอยาก index เนื้อหา — ocr+checksum พร้อมแล้ว
 - [x] **ADR-055 Part 2 T062 + security audit pushed+deployed** (`8d298dea` CI #796; retrigger `c908b299` CI #795 สำหรับ [skip CI] leak — D348) — junction swap จริงบน production สำเร็จ (rev 369→att 1035), SEV-001/002/003 fixed; **manual-review open:** audit write ใน confirmReplace เป็น best-effort (swap→audit order) — ต้องตัดสิน ADR-016 acceptability
 - [x] Staging file picker fix pushed (`2bca9601` CI #797) — `q` filter + cap 2,000 + wrap filenames + max-w-4xl ทุก file list
 - [x] Upload bug class fix pushed (`f31dd69d` CI #798 queued) — multipart headers 3 call sites (D349), drawings two-phase `attachmentTempIds` (D350), bare-filename staging preview (D351)
-- [ ] Post-deploy verify CI #798: (1) `/admin/migration/review/` upload tab สำเร็จ, (2) `/drawings/upload` create พร้อมไฟล์ + attachment commit, (3) bare-filename queue items (เช่น id 246) preview → 404 สะอาด
+- [ ] Post-deploy verify CI #798 (เหลือ flow ที่ mutate — ต้อง approve/test data): upload tab สำเร็จ, `/drawings/upload` create พร้อมไฟล์, bare-filename queue item preview → 404 (หน้า `/admin/migration` โหลด console 0 errors ✅ 2026-10-10)
 - [x] RAG NOT_STARTED reconcile เสร็จ — 59/59 → ACTIVE (NOT_STARTED=0); `commitRecord`/`importCorrespondence`/workflow trigger migrate → generation-aware (push `608a1226` CI pending); D352 locked
-- [ ] Post-deploy verify `608a1226`: commit ผ่าน review queue ใหม่ได้ generation ทันที (ไม่ต้อง reconcile); ถ้า queue drain แล้วพิจารณาลบ `enqueueRagPrepare` definitions ถาวร
-- [ ] Post-deploy verify `87c8974a`: `/admin/migration` เลือก Contract Code → import → correspondences มี discipline/contract; Referenced Documents search ทำงาน
-- [ ] Post-deploy verify `b910fc91`: `/transmittals` โหลดได้; `/correspondences` back-state/page-size/Rev แคบ/Issued Date
-- [ ] Post-deploy verify `32529617`: rag-console filename filter + column widths
+- [ ] Post-deploy verify `608a1226`: commit ผ่าน review queue ใหม่ได้ generation ทันที — ยังไม่ได้ทดสอบ flow (DB ตอนนี้ generations ACTIVE 1993 / FAILED 8, ไม่มี BUILDING ค้าง); ถ้า queue drain แล้วพิจารณาลบ `enqueueRagPrepare` definitions ถาวร
+- [ ] Post-deploy verify `87c8974a` ที่เหลือ: import จริงด้วย Contract Code + Referenced Documents search (UI มี Contract Code select แล้ว — disabled จนเลือกโครงการ ✅ 2026-10-10)
+- [x] Post-deploy verify `b910fc91`: `/transmittals` โหลด + `projectUuid` filter → 200; `/correspondences` back-state/page-size/Issued Date ✅ (Rev แคบ ไม่ได้วัดความกว้าง) — 2026-10-10
+- [x] Post-deploy verify `32529617`: rag-console filename filter → `GET /api/ai/admin/rag/attachments?filename=pdf` 200 ✅ (column widths ไม่ได้ตรวจ) — 2026-10-10
 - [ ] 10 NULL-discipline correspondences (test/manual, no queue link) — รอ user สั่ง mapping ถ้าต้องการ assign
-- [ ] เฝ้า CI ถัดไป — ถ้าเจอ `this.model.sheets` TypeError อีก = exceljs race ยังไม่หมด (D357 patch อาจต้องขยาย)
-- [ ] T040: finalize assurance ledger (`FINAL_STATUS`) หลัง ADR-055 deploy verify ครบ
+- [x] เฝ้า CI — runs 829–841 สำเร็จติดกัน 13 รอบ (ไม่พบ `this.model.sheets` TypeError ซ้ำ); เปิดดูอีกครั้งถ้า flaky กลับมา (D357)
+- [ ] T040: finalize assurance ledger (`FINAL_STATUS`) — **ยังไม่ปิด**: `ledger.md` มี `INDEPENDENT_ATTESTATION: not-obtained` + residual risk (shared ai-batch DONE-guard ต้องมี test PENDING→PROCESSING→DONE / FAILED retry); ต้องตัดสินใจ attestation + ยืนยัน SEV-001 confirm route บน prod หลัง deploy
 - [ ] (optional) 6 queue items ที่ `storageTempPath` เป็น doc-number (เช่น `O672-0258-ผรม.2-คคง.-0100-2567`) — พิจารณา data repair/migration-review UX สำหรับ malformed paths
 
 ### 🎯 Open Items — รวมจาก cleanup pass 2026-09-05 (branch `docs/next-session-focus`)
