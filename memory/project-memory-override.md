@@ -341,6 +341,7 @@
 | D362 | **One primary per user บน MariaDB = generated column + UNIQUE** (`primary_org_guard` + `uk_user_primary_org`) | PR #30 |
 | D363 | **Devin worktree gotchas** — husky พังใน worktree → verify manual + `--no-verify`; LF/CRLF churn → เช็ค `git diff --stat`; dry-run delta บน scratch DB ก่อน prod; temp Gitea token revoke ด้วยลบแถว `access_token` | Session 2026-10-08 |
 | D364 | **TypeORM: ห้าม `repo.save(entity)` เปลี่ยน scalar FK เมื่อโหลด relation มาแล้ว** — relation เก่า cascade เขียนทับ FK (200 แต่ DB ไม่เปลี่ยน); ใช้ `repo.update()` + refetch; บันทึกใน `06-backend-patterns`/`05-forbidden-actions`/AGENTS | PR #32 |
+| D365 | **Frontend color tokens: ห้ามใช้สี palette ดิบสำหรับสถานะ** — ใช้ `success`/`warning`/`info`/`destructive` + `muted*` (พื้นอ่อนใช้ `bg-<token>/10`, เส้นขอบ `/30`, ไม่ต้องมี `dark:` override); `--destructive` dark ต้องสว่างพอเป็นข้อความ (55% L); orange/purple/indigo เป็นสีตกแต่งอนุญาต; **อยู่ Tailwind v3.4.3 ต่อ — ไม่ย้าย v4** (ต้องมี visual regression baseline ก่อน + อนุมัติ major upgrade); prettier plugin pin `0.7.4` จนกว่าจะอัป prettier ≥3.9 | Session 2026-10-12 |
 
 ## Environment & Services
 
