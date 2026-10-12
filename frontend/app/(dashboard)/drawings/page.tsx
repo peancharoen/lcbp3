@@ -24,10 +24,10 @@ export default function DrawingsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Drawings</h1>
-          <p className="text-muted-foreground mt-1">Manage contract, shop, and as-built drawings</p>
+          <p className="mt-1 text-muted-foreground">Manage contract, shop, and as-built drawings</p>
         </div>
         <Link href="/drawings/upload">
           <Button>
@@ -48,17 +48,19 @@ export default function DrawingsPage() {
             )}
           </SelectTrigger>
           <SelectContent>
-            {(projects as Array<{ id?: number; publicId?: string; projectName: string; projectCode: string }>).map((project) => (
-              <SelectItem key={project.publicId || project.id} value={String(project.publicId || project.id)}>
-                {project.projectCode} - {project.projectName}
-              </SelectItem>
-            ))}
+            {(projects as Array<{ id?: number; publicId?: string; projectName: string; projectCode: string }>).map(
+              (project) => (
+                <SelectItem key={project.publicId || project.id} value={String(project.publicId || project.id)}>
+                  {project.projectCode} - {project.projectName}
+                </SelectItem>
+              )
+            )}
           </SelectContent>
         </Select>
       </div>
 
       {!selectedProjectUuid ? (
-        <div className="text-center py-12 text-muted-foreground border rounded-lg border-dashed">
+        <div className="rounded-lg border border-dashed py-12 text-center text-muted-foreground">
           Please select a project to view drawings.
         </div>
       ) : (
@@ -79,15 +81,11 @@ function DrawingTabs({ projectUuid }: { projectUuid: string }) {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showTagDialog, setShowTagDialog] = useState(false);
 
-  const selectedIds = useMemo(
-    () => selectionByType[activeType] || [],
-    [selectionByType, activeType]
-  );
+  const selectedIds = useMemo(() => selectionByType[activeType] || [], [selectionByType, activeType]);
 
   const { bulkCancel, bulkTag, bulkExport, isBulkCancelling } = useBulkActions({
     documentType: 'DRAWING',
-    onComplete: () =>
-      setSelectionByType((prev) => ({ ...prev, [activeType]: [] })),
+    onComplete: () => setSelectionByType((prev) => ({ ...prev, [activeType]: [] })),
   });
 
   const handleSelectionChange = (type: 'CONTRACT' | 'SHOP' | 'AS_BUILT') => (ids: string[]) => {
@@ -104,8 +102,8 @@ function DrawingTabs({ projectUuid }: { projectUuid: string }) {
       className="w-full"
       onValueChange={(value) => setActiveType(value as typeof activeType)}
     >
-      <div className="flex justify-between items-center mb-6">
-        <TabsList className="grid w-full grid-cols-3 max-w-[400px]">
+      <div className="mb-6 flex items-center justify-between">
+        <TabsList className="grid w-full max-w-[400px] grid-cols-3">
           <TabsTrigger value="contract">Contract</TabsTrigger>
           <TabsTrigger value="shop">Shop</TabsTrigger>
           <TabsTrigger value="asbuilt">As Built</TabsTrigger>

@@ -4,11 +4,7 @@
 // แสดง indicator "Delegated from X" บน Review Task (T041)
 import { ArrowRightLeft } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from '@/components/ui/hover-card';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 
 interface DelegatedBadgeProps {
   delegatedFromUser?: {
@@ -26,13 +22,15 @@ export function DelegatedBadge({ delegatedFromUser }: DelegatedBadgeProps) {
   return (
     <HoverCard>
       <HoverCardTrigger asChild>
-        <Badge variant="outline" className="gap-1 text-xs text-muted-foreground border-dashed cursor-pointer">
+        <Badge variant="outline" className="cursor-pointer gap-1 border-dashed text-xs text-muted-foreground">
           <ArrowRightLeft className="h-3 w-3" />
           Delegated
         </Badge>
       </HoverCardTrigger>
       <HoverCardContent className="w-auto p-2">
-        <p className="text-sm">Delegated from: <strong>{displayName}</strong></p>
+        <p className="text-sm">
+          Delegated from: <strong>{displayName}</strong>
+        </p>
       </HoverCardContent>
     </HoverCard>
   );

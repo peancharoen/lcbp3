@@ -11,38 +11,35 @@
 // - 2026-05-22: Integrated hybrid identifiers and Radix Sheet panel with zero blank lines inside function bodies (T024)
 
 import React, { useState, useMemo } from 'react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetFooter,
-} from '@/components/ui/sheet';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { useCommitMigrationReview, useRejectMigrationReview, useStartExtractQueueItem } from '@/hooks/use-migration-review';
+  useCommitMigrationReview,
+  useRejectMigrationReview,
+  useStartExtractQueueItem,
+} from '@/hooks/use-migration-review';
 import { useProjects, useOrganizations } from '@/hooks/use-master-data';
 import { MigrationReviewQueueItem, MigrationReviewStatus, CompareStatus, CompareResult } from '@/types/migration';
-import { Loader2, Calendar, Tag, AlertCircle, Edit, Check, X, Plus, GitCompare, RefreshCw, ShieldAlert, History } from 'lucide-react';
+import {
+  Loader2,
+  Calendar,
+  Tag,
+  AlertCircle,
+  Edit,
+  Check,
+  X,
+  Plus,
+  GitCompare,
+  RefreshCw,
+  ShieldAlert,
+  History,
+} from 'lucide-react';
 import { QueueDocNumber } from '@/components/migration/queue-doc-number';
 import { getQueueBaseDocNumber, getQueueRevisionLabel } from '@/lib/utils/queue-doc-number';
 import aiMessages from '@/public/locales/th/ai.json';
@@ -230,57 +227,54 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
     const configs: Record<MigrationReviewStatus, { label: string; className: string }> = {
       [MigrationReviewStatus.PENDING]: {
         label: 'รอตรวจสอบ',
-        className: 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30',
+        className: 'bg-warning/20 text-warning border-warning/30',
       },
       [MigrationReviewStatus.PENDING_REVIEW]: {
         label: 'รอ Review OCR',
-        className: 'bg-blue-500/20 text-blue-500 border-blue-500/30',
+        className: 'bg-info/20 text-info border-info/30',
       },
       [MigrationReviewStatus.REJECTED]: {
         label: 'ปฏิเสธ',
-        className: 'bg-red-500/20 text-red-500 border-red-500/30',
+        className: 'bg-destructive/20 text-destructive border-destructive/30',
       },
       [MigrationReviewStatus.IMPORTED]: {
         label: 'นำเข้าแล้ว',
-        className: 'bg-green-500/20 text-green-500 border-green-500/30',
+        className: 'bg-success/20 text-success border-success/30',
       },
     };
     const config = configs[status] || { label: status, className: '' };
     return <Badge className={config.className}>{config.label}</Badge>;
   };
   /** Feature 242: ป้ายสถานะการเปรียบเทียบทะเบียนกับเอกสารจริง (FR-012c) */
-  const getCompareStatusBadge = (
-    compareStatus?: CompareStatus,
-    mismatchCount?: number
-  ) => {
-    if (!compareStatus) return <span className="text-muted-foreground text-xs">—</span>;
+  const getCompareStatusBadge = (compareStatus?: CompareStatus, mismatchCount?: number) => {
+    if (!compareStatus) return <span className="text-xs text-muted-foreground">—</span>;
     if (compareStatus === CompareStatus.UNAVAILABLE) {
       return (
-        <Badge variant="outline" className="text-orange-600 border-orange-500/30 bg-orange-500/5">
-          <GitCompare className="h-3 w-3 mr-1" />
+        <Badge variant="outline" className="border-orange-500/30 bg-orange-500/5 text-orange-600">
+          <GitCompare className="mr-1 h-3 w-3" />
           ไม่สามารถเปรียบเทียบ
         </Badge>
       );
     }
     if (mismatchCount === undefined) {
       return (
-        <Badge variant="outline" className="text-blue-600 border-blue-500/30 bg-blue-500/5">
-          <GitCompare className="h-3 w-3 mr-1" />
+        <Badge variant="outline" className="border-info/30 bg-info/5 text-info">
+          <GitCompare className="mr-1 h-3 w-3" />
           เปรียบเทียบแล้ว
         </Badge>
       );
     }
     if (mismatchCount === 0) {
       return (
-        <Badge variant="outline" className="text-green-600 border-green-500/30 bg-green-500/5">
-          <GitCompare className="h-3 w-3 mr-1" />
+        <Badge variant="outline" className="border-success/30 bg-success/5 text-success">
+          <GitCompare className="mr-1 h-3 w-3" />
           ตรงทั้งหมด
         </Badge>
       );
     }
     return (
-      <Badge variant="outline" className="text-red-600 border-red-500/30 bg-red-500/5">
-        <GitCompare className="h-3 w-3 mr-1" />
+      <Badge variant="outline" className="border-destructive/30 bg-destructive/5 text-destructive">
+        <GitCompare className="mr-1 h-3 w-3" />
         ไม่ตรง {mismatchCount} ช่อง
       </Badge>
     );
@@ -288,31 +282,34 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
   /** T032: แสดง OCR quality confidence indicator (ADR-050) */
   const getOcrQualityConfidenceDisplay = (item: MigrationReviewQueueItem) => {
     if (item.ocrQualityConfidence === null || item.ocrQualityConfidence === undefined) {
-      return <span className="text-muted-foreground text-xs">—</span>;
+      return <span className="text-xs text-muted-foreground">—</span>;
     }
     const pct = `${(Number(item.ocrQualityConfidence) * 100).toFixed(1)}%`;
     const conf = Number(item.ocrQualityConfidence);
-    let className = 'text-green-600';
+    let className = 'text-success';
     if (conf < 0.5) {
-      className = 'text-red-600';
+      className = 'text-destructive';
     } else if (conf < 0.75) {
-      className = 'text-yellow-600';
+      className = 'text-warning';
     }
     return (
-      <span className={`font-mono text-sm font-semibold ${className}`} title={migrationReviewT('ocr_quality_confidence')}>
+      <span
+        className={`font-mono text-sm font-semibold ${className}`}
+        title={migrationReviewT('ocr_quality_confidence')}
+      >
         {pct}
       </span>
     );
   };
   /** T032: แสดง requiresHumanReview badge (visually distinct — ADR-050) */
   const getRequiresHumanReviewBadge = (item: MigrationReviewQueueItem) => {
-    if (!item.requiresHumanReview) return <span className="text-muted-foreground text-xs">—</span>;
+    if (!item.requiresHumanReview) return <span className="text-xs text-muted-foreground">—</span>;
     return (
       <Badge
         data-testid="requires-human-review-badge"
-        className="bg-red-500/20 text-red-600 border-red-500/30 animate-pulse"
+        className="animate-pulse border-destructive/30 bg-destructive/20 text-destructive"
       >
-        <ShieldAlert className="h-3 w-3 mr-1" />
+        <ShieldAlert className="mr-1 h-3 w-3" />
         {migrationReviewT('requires_human_review_badge')}
       </Badge>
     );
@@ -320,8 +317,8 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
   return (
     <div className="w-full">
       {/* T033: needs-review filter + sort-by-OCR-quality controls */}
-      <div className="flex items-center justify-between gap-4 mb-3 px-1">
-        <label className="flex items-center gap-2 cursor-pointer select-none">
+      <div className="mb-3 flex items-center justify-between gap-4 px-1">
+        <label className="flex cursor-pointer select-none items-center gap-2">
           <input
             type="checkbox"
             checked={needsReviewFilter}
@@ -329,9 +326,7 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
             data-testid="needs-review-filter"
             className="h-4 w-4 rounded border-input"
           />
-          <span className="text-sm font-medium">
-            {migrationReviewT('requires_human_review_badge')}
-          </span>
+          <span className="text-sm font-medium">{migrationReviewT('requires_human_review_badge')}</span>
         </label>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">{migrationReviewT('ocr_quality_confidence')}:</span>
@@ -339,7 +334,7 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
             value={sortByOcrQuality}
             onValueChange={(value: string) => setSortByOcrQuality(value as 'none' | 'asc' | 'desc')}
           >
-            <SelectTrigger className="w-[160px] h-8" data-testid="sort-ocr-quality">
+            <SelectTrigger className="h-8 w-[160px]" data-testid="sort-ocr-quality">
               <SelectValue placeholder={migrationReviewT('sort_none')} />
             </SelectTrigger>
             <SelectContent>
@@ -350,7 +345,7 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
           </Select>
         </div>
       </div>
-      <div className="rounded-md border bg-card text-card-foreground shadow-sm overflow-hidden">
+      <div className="overflow-hidden rounded-md border bg-card text-card-foreground shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>
@@ -386,7 +381,7 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
                 // T034: legacy items (details lacks metadata.confidence) → re-extract required state
                 if (isLegacyItem(item)) {
                   return (
-                    <TableRow key={item.publicId} className="hover:bg-muted/50 transition-colors bg-amber-500/5">
+                    <TableRow key={item.publicId} className="bg-warning/5 transition-colors hover:bg-muted/50">
                       <TableCell className="font-mono text-sm font-semibold">
                         <QueueDocNumber item={item} revisionPrefix={migrationReviewT('revision_badge')} />
                       </TableCell>
@@ -394,20 +389,22 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
                         {item.subject || item.title || 'ไม่มีหัวข้อ'}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="opacity-60">{item.aiSuggestedCorrespondenceType || 'Correspondence'}</Badge>
+                        <Badge variant="outline" className="opacity-60">
+                          {item.aiSuggestedCorrespondenceType || 'Correspondence'}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-center font-mono">
                         {item.aiConfidence ? `${(Number(item.aiConfidence) * 100).toFixed(1)}%` : '-'}
                       </TableCell>
                       <TableCell className="text-center">
-                        <span className="text-muted-foreground text-xs italic">—</span>
+                        <span className="text-xs italic text-muted-foreground">—</span>
                       </TableCell>
                       <TableCell className="text-center">
-                        <span className="text-muted-foreground text-xs italic">—</span>
+                        <span className="text-xs italic text-muted-foreground">—</span>
                       </TableCell>
                       <TableCell className="text-center">
-                        <Badge className="bg-amber-500/20 text-amber-600 border-amber-500/30">
-                          <RefreshCw className="h-3 w-3 mr-1" />
+                        <Badge className="border-warning/30 bg-warning/20 text-warning">
+                          <RefreshCw className="mr-1 h-3 w-3" />
                           {migrationReviewT('legacy_reextract_badge')}
                         </Badge>
                       </TableCell>
@@ -429,7 +426,7 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
                   );
                 }
                 return (
-                  <TableRow key={item.publicId} className="hover:bg-muted/50 transition-colors">
+                  <TableRow key={item.publicId} className="transition-colors hover:bg-muted/50">
                     <TableCell className="font-mono text-sm font-semibold">
                       <QueueDocNumber item={item} revisionPrefix={migrationReviewT('revision_badge')} />
                     </TableCell>
@@ -442,15 +439,11 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
                     <TableCell className="text-center font-mono">
                       {item.aiConfidence ? `${(Number(item.aiConfidence) * 100).toFixed(1)}%` : '-'}
                     </TableCell>
-                    <TableCell className="text-center">
-                      {getOcrQualityConfidenceDisplay(item)}
-                    </TableCell>
+                    <TableCell className="text-center">{getOcrQualityConfidenceDisplay(item)}</TableCell>
                     <TableCell className="text-center">
                       {getCompareStatusBadge(item.compareStatus, getCompareResult(item)?.mismatches.length)}
                     </TableCell>
-                    <TableCell className="text-center">
-                      {getRequiresHumanReviewBadge(item)}
-                    </TableCell>
+                    <TableCell className="text-center">{getRequiresHumanReviewBadge(item)}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
                         {getStatusBadge(item.status)}
@@ -461,7 +454,7 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
                             className="text-xs"
                             title={migrationReviewT('has_ocr_backup_tooltip')}
                           >
-                            <History className="h-3 w-3 mr-1" />
+                            <History className="mr-1 h-3 w-3" />
                             {migrationReviewT('has_ocr_backup')}
                           </Badge>
                         )}
@@ -487,9 +480,9 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
       </div>
 
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent className="sm:max-w-2xl overflow-y-auto w-[650px] p-6 bg-background border-l shadow-2xl">
+        <SheetContent className="w-[650px] overflow-y-auto border-l bg-background p-6 shadow-2xl sm:max-w-2xl">
           <SheetHeader className="mb-6 border-b pb-4">
-            <SheetTitle className="text-xl font-bold flex items-center space-x-2">
+            <SheetTitle className="flex items-center space-x-2 text-xl font-bold">
               <span>รีวิวการย้ายข้อมูลเอกสาร</span>
               <Badge variant="outline" className="font-mono text-xs">
                 {selectedItem ? getQueueBaseDocNumber(selectedItem) : ''}
@@ -506,16 +499,14 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
           {selectedItem && (
             <div className="space-y-6">
               {selectedItem.aiIssues && selectedItem.aiIssues.length > 0 && (
-                <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-500 space-y-2">
+                <div className="space-y-2 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
                   <div className="flex items-center space-x-2 font-semibold">
                     <AlertCircle className="h-4 w-4" />
                     <span>ข้อควรระวังจากการตรวจสอบของ AI:</span>
                   </div>
-                  <ul className="list-disc pl-5 space-y-1">
+                  <ul className="list-disc space-y-1 pl-5">
                     {selectedItem.aiIssues.map((issue, idx: number) => (
-                      <li key={idx}>
-                        {getIssueText(issue)}
-                      </li>
+                      <li key={idx}>{getIssueText(issue)}</li>
                     ))}
                   </ul>
                 </div>
@@ -523,7 +514,9 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
 
               <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="subject" className="text-sm font-semibold">หัวข้อเรื่อง (Subject)</Label>
+                  <Label htmlFor="subject" className="text-sm font-semibold">
+                    หัวข้อเรื่อง (Subject)
+                  </Label>
                   <Input
                     id="subject"
                     value={editSubject}
@@ -532,7 +525,7 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
                     className="w-full border-input"
                   />
                   {selectedItem.originalSubject && selectedItem.originalSubject !== editSubject && (
-                    <p className="text-xs text-muted-foreground italic">
+                    <p className="text-xs italic text-muted-foreground">
                       หัวข้อเดิมที่ AI ดึงได้: {selectedItem.originalSubject}
                     </p>
                   )}
@@ -540,7 +533,9 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="category" className="text-sm font-semibold">หมวดหมู่เอกสาร</Label>
+                    <Label htmlFor="category" className="text-sm font-semibold">
+                      หมวดหมู่เอกสาร
+                    </Label>
                     <Select value={editCategory} onValueChange={setEditCategory}>
                       <SelectTrigger id="category">
                         <SelectValue placeholder="เลือกหมวดหมู่" />
@@ -556,7 +551,9 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="project" className="text-sm font-semibold">โครงการ (Project)</Label>
+                    <Label htmlFor="project" className="text-sm font-semibold">
+                      โครงการ (Project)
+                    </Label>
                     <Select value={editProjectId} onValueChange={setEditProjectId}>
                       <SelectTrigger id="project">
                         <SelectValue placeholder="เลือกโครงการ" />
@@ -574,7 +571,9 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="sender" className="text-sm font-semibold">องค์กรผู้ส่ง (Sender)</Label>
+                    <Label htmlFor="sender" className="text-sm font-semibold">
+                      องค์กรผู้ส่ง (Sender)
+                    </Label>
                     <Select value={editSenderId} onValueChange={setEditSenderId}>
                       <SelectTrigger id="sender">
                         <SelectValue placeholder="เลือกองค์กรผู้ส่ง" />
@@ -590,7 +589,9 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="receiver" className="text-sm font-semibold">องค์กรผู้รับ (Receiver)</Label>
+                    <Label htmlFor="receiver" className="text-sm font-semibold">
+                      องค์กรผู้รับ (Receiver)
+                    </Label>
                     <Select value={editReceiverId} onValueChange={setEditReceiverId}>
                       <SelectTrigger id="receiver">
                         <SelectValue placeholder="เลือกองค์กรผู้รับ" />
@@ -608,7 +609,7 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="issuedDate" className="text-sm font-semibold flex items-center space-x-1">
+                    <Label htmlFor="issuedDate" className="flex items-center space-x-1 text-sm font-semibold">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                       <span>วันที่ออกเอกสาร (Issued Date)</span>
                     </Label>
@@ -621,7 +622,7 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="receivedDate" className="text-sm font-semibold flex items-center space-x-1">
+                    <Label htmlFor="receivedDate" className="flex items-center space-x-1 text-sm font-semibold">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                       <span>วันที่ลงรับเอกสาร (Received Date)</span>
                     </Label>
@@ -635,23 +636,25 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="body" className="text-sm font-semibold">เนื้อหาสรุปจดหมาย (Body)</Label>
+                  <Label htmlFor="body" className="text-sm font-semibold">
+                    เนื้อหาสรุปจดหมาย (Body)
+                  </Label>
                   <Textarea
                     id="body"
                     value={editBody}
                     onChange={(e) => setEditBody(e.target.value)}
                     placeholder="ป้อนเนื้อความย่อของจดหมาย"
                     rows={4}
-                    className="w-full border-input font-sans text-sm resize-y"
+                    className="w-full resize-y border-input font-sans text-sm"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-semibold flex items-center space-x-1">
+                  <Label className="flex items-center space-x-1 text-sm font-semibold">
                     <Tag className="h-4 w-4 text-muted-foreground" />
                     <span>แท็กภาษาไทยที่แนะนำ (Tags)</span>
                   </Label>
-                  <div className="flex flex-wrap gap-2 p-3 bg-muted/40 rounded-md border min-h-[50px]">
+                  <div className="flex min-h-[50px] flex-wrap gap-2 rounded-md border bg-muted/40 p-3">
                     {editTags.map((tag) => {
                       const origItem = Array.isArray(selectedItem.extractedTags)
                         ? selectedItem.extractedTags
@@ -663,25 +666,20 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
                         <Badge
                           key={tag}
                           variant="secondary"
-                          className={`flex items-center space-x-1 pr-1 font-sans ${isNew ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/30' : 'bg-secondary'}`}
+                          className={`flex items-center space-x-1 pr-1 font-sans ${isNew ? 'border-success/30 bg-success/20 text-success' : 'bg-secondary'}`}
                         >
                           <span>{tag}</span>
-                          <button
-                            onClick={() => handleRemoveTag(tag)}
-                            className="hover:bg-muted rounded-full p-0.5"
-                          >
+                          <button onClick={() => handleRemoveTag(tag)} className="rounded-full p-0.5 hover:bg-muted">
                             <X className="h-3 w-3" />
                           </button>
                         </Badge>
                       );
                     })}
                     {editTags.length === 0 && (
-                      <span className="text-xs text-muted-foreground italic flex items-center">
-                        ไม่มีแท็ก
-                      </span>
+                      <span className="flex items-center text-xs italic text-muted-foreground">ไม่มีแท็ก</span>
                     )}
                   </div>
-                  <div className="flex space-x-2 mt-2">
+                  <div className="mt-2 flex space-x-2">
                     <Input
                       placeholder="เพิ่มแท็กภาษาไทย..."
                       value={newTagInput}
@@ -692,16 +690,10 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
                           handleAddTag();
                         }
                       }}
-                      className="h-8 text-xs max-w-[200px]"
+                      className="h-8 max-w-[200px] text-xs"
                     />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleAddTag}
-                      className="h-8"
-                    >
-                      <Plus className="h-3.5 w-3.5 mr-1" />
+                    <Button type="button" variant="outline" size="sm" onClick={handleAddTag} className="h-8">
+                      <Plus className="mr-1 h-3.5 w-3.5" />
                       <span>เพิ่ม</span>
                     </Button>
                   </div>
@@ -709,7 +701,7 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
               </div>
 
               {selectedItem.status === MigrationReviewStatus.PENDING_REVIEW && (
-                <SheetFooter className="border-t pt-4 mt-6 flex justify-between sm:justify-between">
+                <SheetFooter className="mt-6 flex justify-between border-t pt-4 sm:justify-between">
                   <Button
                     type="button"
                     variant="destructive"

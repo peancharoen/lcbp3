@@ -24,14 +24,7 @@ export interface BulkResultDialogProps {
   failedItems?: string[];
 }
 
-export function BulkResultDialog({
-  open,
-  onOpenChange,
-  total,
-  success,
-  failed,
-  failedItems,
-}: BulkResultDialogProps) {
+export function BulkResultDialog({ open, onOpenChange, total, success, failed, failedItems }: BulkResultDialogProps) {
   const t = useTranslations();
 
   return (
@@ -56,21 +49,21 @@ export function BulkResultDialog({
             </div>
             <div className="rounded-md border p-2">
               <p className="text-xs text-muted-foreground">{t('document.bulk.resultDialog.successColumn')}</p>
-              <p className="text-lg font-semibold text-green-600">{success}</p>
+              <p className="text-lg font-semibold text-success">{success}</p>
             </div>
             <div className="rounded-md border p-2">
               <p className="text-xs text-muted-foreground">{t('document.bulk.resultDialog.failedColumn')}</p>
-              <p className="text-lg font-semibold text-red-600">{failed}</p>
+              <p className="text-lg font-semibold text-destructive">{failed}</p>
             </div>
           </div>
 
           {failed > 0 && failedItems && failedItems.length > 0 && (
             <div>
-              <p className="text-sm font-medium mb-2">{t('document.bulk.resultDialog.failedItems')}</p>
+              <p className="mb-2 text-sm font-medium">{t('document.bulk.resultDialog.failedItems')}</p>
               <ScrollArea className="h-40 rounded-md border p-2">
                 <ul className="space-y-1 text-sm">
                   {failedItems.map((item) => (
-                    <li key={item} className="text-destructive font-mono break-all">
+                    <li key={item} className="break-all font-mono text-destructive">
                       {item}
                     </li>
                   ))}
@@ -81,9 +74,7 @@ export function BulkResultDialog({
         </div>
 
         <DialogFooter>
-          <Button onClick={() => onOpenChange(false)}>
-            {t('document.bulk.resultDialog.close')}
-          </Button>
+          <Button onClick={() => onOpenChange(false)}>{t('document.bulk.resultDialog.close')}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

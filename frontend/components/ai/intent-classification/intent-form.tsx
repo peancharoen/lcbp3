@@ -8,24 +8,9 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import type {
-  IntentDefinition,
-  IntentCategory,
-} from '@/lib/services/ai-intent.service';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import type { IntentDefinition, IntentCategory } from '@/lib/services/ai-intent.service';
 
 interface IntentFormProps {
   open: boolean;
@@ -44,13 +29,7 @@ interface IntentFormProps {
 /**
  * Dialog Form สำหรับสร้าง/แก้ไข Intent Definition
  */
-export function IntentForm({
-  open,
-  onClose,
-  onSubmit,
-  initial,
-  isLoading,
-}: IntentFormProps) {
+export function IntentForm({ open, onClose, onSubmit, initial, isLoading }: IntentFormProps) {
   const isEdit = !!initial;
   const [intentCode, setIntentCode] = useState(initial?.intentCode || '');
   const [descriptionTh, setDescriptionTh] = useState(initial?.descriptionTh || '');
@@ -66,9 +45,7 @@ export function IntentForm({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            {isEdit ? `แก้ไข ${initial.intentCode}` : 'สร้าง Intent ใหม่'}
-          </DialogTitle>
+          <DialogTitle>{isEdit ? `แก้ไข ${initial.intentCode}` : 'สร้าง Intent ใหม่'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Intent Code */}
@@ -84,9 +61,7 @@ export function IntentForm({
               disabled={isEdit}
               required
             />
-            <p className="text-xs text-muted-foreground">
-              UPPERCASE_SNAKE_CASE เช่น GET_RFA, SUMMARIZE_DOCUMENT
-            </p>
+            <p className="text-xs text-muted-foreground">UPPERCASE_SNAKE_CASE เช่น GET_RFA, SUMMARIZE_DOCUMENT</p>
           </div>
 
           {/* Description TH */}
@@ -118,10 +93,7 @@ export function IntentForm({
           {/* Category */}
           <div className="space-y-1">
             <Label>Category</Label>
-            <Select
-              value={category}
-              onValueChange={(v) => setCategory(v as IntentCategory)}
-            >
+            <Select value={category} onValueChange={(v) => setCategory(v as IntentCategory)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>

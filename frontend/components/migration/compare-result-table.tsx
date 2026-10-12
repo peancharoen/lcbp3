@@ -70,19 +70,13 @@ export function CompareResultTable({
   if (!compareResult) {
     return (
       <Card>
-        <CardContent className="py-6 text-center text-sm text-muted-foreground">
-          ไม่มีข้อมูลการเปรียบเทียบ
-        </CardContent>
+        <CardContent className="py-6 text-center text-sm text-muted-foreground">ไม่มีข้อมูลการเปรียบเทียบ</CardContent>
       </Card>
     );
   }
   const mismatchCount = compareResult.mismatches.length;
-  const isOverThreshold = capturedThresholds
-    ? mismatchCount > capturedThresholds.maxMismatchFields
-    : false;
-  const isLowConfidence = capturedThresholds
-    ? compareResult.confidence < capturedThresholds.minConfidence
-    : false;
+  const isOverThreshold = capturedThresholds ? mismatchCount > capturedThresholds.maxMismatchFields : false;
+  const isLowConfidence = capturedThresholds ? compareResult.confidence < capturedThresholds.minConfidence : false;
   const handleSourceChange = (field: string, source: 'EXCEL' | 'DOCUMENT' | 'MANUAL', finalValue: string) => {
     if (!onFieldResolutionChange) return;
     const existing = fieldResolutions ?? [];
@@ -91,30 +85,28 @@ export function CompareResultTable({
   };
   return (
     <Card className="border-muted shadow-sm">
-      <CardHeader className="pb-3 border-b">
+      <CardHeader className="border-b pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base font-bold">ผลการเปรียบเทียบทะเบียนกับเอกสาร</CardTitle>
           <div className="flex items-center gap-2">
             <Badge variant={mismatchCount === 0 ? 'default' : isOverThreshold ? 'destructive' : 'secondary'}>
-              {mismatchCount === 0
-                ? 'ตรงทั้งหมด'
-                : `ไม่ตรง ${mismatchCount} ช่อง`}
+              {mismatchCount === 0 ? 'ตรงทั้งหมด' : `ไม่ตรง ${mismatchCount} ช่อง`}
             </Badge>
             {capturedThresholds && (
-              <span className="text-xs text-muted-foreground font-mono">
+              <span className="font-mono text-xs text-muted-foreground">
                 ขั้นต่ำ {capturedThresholds.maxMismatchFields} ช่อง
               </span>
             )}
           </div>
         </div>
         {isOverThreshold && (
-          <div className="flex items-center gap-2 mt-2 text-xs text-destructive">
+          <div className="mt-2 flex items-center gap-2 text-xs text-destructive">
             <AlertCircle className="h-4 w-4" />
             <span>จำนวนช่องที่ไม่ตรงเกินขีดจำกัด — ต้องตรวจสอบด้วยมือ</span>
           </div>
         )}
         {isLowConfidence && (
-          <div className="flex items-center gap-2 mt-1 text-xs text-orange-600">
+          <div className="mt-1 flex items-center gap-2 text-xs text-orange-600">
             <AlertCircle className="h-4 w-4" />
             <span>ค่าความมั่นใจต่ำกว่าขั้นต่ำ — ต้องตรวจสอบด้วยมือ</span>
           </div>
@@ -128,8 +120,8 @@ export function CompareResultTable({
                 <th className="py-2 pr-4 font-semibold">ช่องข้อมูล</th>
                 <th className="py-2 pr-4 font-semibold">ทะเบียน (Excel)</th>
                 <th className="py-2 pr-4 font-semibold">เอกสารจริง (OCR)</th>
-                <th className="py-2 pr-4 font-semibold text-center">ผล</th>
-                <th className="py-2 pr-4 font-semibold text-center">ใช้ค่าจาก</th>
+                <th className="py-2 pr-4 text-center font-semibold">ผล</th>
+                <th className="py-2 pr-4 text-center font-semibold">ใช้ค่าจาก</th>
               </tr>
             </thead>
             <tbody>
@@ -145,9 +137,14 @@ export function CompareResultTable({
           </table>
         </div>
         <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-          <span>ค่าความมั่นใจ: <span className="font-mono font-semibold">{(compareResult.confidence * 100).toFixed(0)}%</span></span>
+          <span>
+            ค่าความมั่นใจ:{' '}
+            <span className="font-mono font-semibold">{(compareResult.confidence * 100).toFixed(0)}%</span>
+          </span>
           {capturedThresholds && (
-            <span>ขั้นต่ำ: <span className="font-mono">{(capturedThresholds.minConfidence * 100).toFixed(0)}%</span></span>
+            <span>
+              ขั้นต่ำ: <span className="font-mono">{(capturedThresholds.minConfidence * 100).toFixed(0)}%</span>
+            </span>
           )}
         </div>
       </CardContent>
@@ -179,20 +176,22 @@ function CompareFieldRow({
       <td className="py-2 pr-4 font-medium">{label}</td>
       <td className="py-2 pr-4 text-muted-foreground">{fieldResult.excelValue ?? '—'}</td>
       <td className="py-2 pr-4 text-muted-foreground">
-        {fieldResult.foundInDocument ? (fieldResult.ocrValue ?? '—') : (
+        {fieldResult.foundInDocument ? (
+          (fieldResult.ocrValue ?? '—')
+        ) : (
           <span className="italic text-orange-600">ไม่พบในเอกสาร</span>
         )}
       </td>
       <td className="py-2 pr-4 text-center">
         {fieldResult.match ? (
-          <CheckCircle2 className="inline h-4 w-4 text-green-500" />
+          <CheckCircle2 className="inline h-4 w-4 text-success" />
         ) : (
-          <XCircle className="inline h-4 w-4 text-red-500" />
+          <XCircle className="inline h-4 w-4 text-destructive" />
         )}
       </td>
       <td className="py-2 pr-4 text-center">
         <div className="inline-flex items-center gap-1">
-          <label className={cn('text-xs cursor-pointer', currentSource === 'EXCEL' && 'font-bold text-blue-600')}>
+          <label className={cn('cursor-pointer text-xs', currentSource === 'EXCEL' && 'font-bold text-info')}>
             <input
               type="radio"
               name={`source-${fieldResult.field}`}
@@ -206,7 +205,7 @@ function CompareFieldRow({
           {fieldResult.foundInDocument && (
             <>
               <span className="text-muted-foreground">|</span>
-              <label className={cn('text-xs cursor-pointer', currentSource === 'DOCUMENT' && 'font-bold text-green-600')}>
+              <label className={cn('cursor-pointer text-xs', currentSource === 'DOCUMENT' && 'font-bold text-success')}>
                 <input
                   type="radio"
                   name={`source-${fieldResult.field}`}
@@ -220,7 +219,7 @@ function CompareFieldRow({
             </>
           )}
           <span className="text-muted-foreground">|</span>
-          <label className={cn('text-xs cursor-pointer', currentSource === 'MANUAL' && 'font-bold text-purple-600')}>
+          <label className={cn('cursor-pointer text-xs', currentSource === 'MANUAL' && 'font-bold text-purple-600')}>
             <input
               type="radio"
               name={`source-${fieldResult.field}`}

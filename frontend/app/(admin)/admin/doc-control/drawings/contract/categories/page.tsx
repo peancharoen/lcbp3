@@ -46,7 +46,7 @@ export default function ContractCategoriesPage() {
     {
       accessorKey: 'description',
       header: 'Description',
-      cell: ({ row }) => <span className="text-muted-foreground text-sm">{row.getValue('description') || '-'}</span>,
+      cell: ({ row }) => <span className="text-sm text-muted-foreground">{row.getValue('description') || '-'}</span>,
     },
     {
       accessorKey: 'sortOrder',
@@ -67,11 +67,13 @@ export default function ContractCategoriesPage() {
           )}
         </SelectTrigger>
         <SelectContent>
-          {(projects as { id?: number; publicId?: string; projectCode: string; projectName: string }[]).map((project) => (
-            <SelectItem key={project.publicId || project.id} value={String(project.publicId || project.id)}>
-              {project.projectCode} - {project.projectName}
-            </SelectItem>
-          ))}
+          {(projects as { id?: number; publicId?: string; projectCode: string; projectName: string }[]).map(
+            (project) => (
+              <SelectItem key={project.publicId || project.id} value={String(project.publicId || project.id)}>
+                {project.projectCode} - {project.projectName}
+              </SelectItem>
+            )
+          )}
         </SelectContent>
       </Select>
     </div>
@@ -79,13 +81,13 @@ export default function ContractCategoriesPage() {
 
   if (!selectedProjectId) {
     return (
-      <div className="p-6 space-y-6">
+      <div className="space-y-6 p-6">
         <div>
           <h1 className="text-2xl font-bold">Contract Drawing Categories</h1>
-          <p className="text-muted-foreground mt-1">Manage main categories (หมวดหมู่หลัก) for contract drawings</p>
+          <p className="mt-1 text-muted-foreground">Manage main categories (หมวดหมู่หลัก) for contract drawings</p>
         </div>
         {projectFilter}
-        <div className="text-center py-12 text-muted-foreground border rounded-lg border-dashed">
+        <div className="rounded-lg border border-dashed py-12 text-center text-muted-foreground">
           Please select a project to manage categories.
         </div>
       </div>
@@ -147,9 +149,9 @@ class MappingErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="p-4 border border-red-200 bg-red-50 rounded-md text-sm text-red-700">
+        <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
           <p className="font-medium">Failed to load mapping section</p>
-          <p className="text-xs mt-1">{this.state.error?.message || 'Unknown error'}</p>
+          <p className="mt-1 text-xs">{this.state.error?.message || 'Unknown error'}</p>
           <button className="mt-2 text-xs underline" onClick={() => this.setState({ hasError: false, error: null })}>
             Retry
           </button>
@@ -164,7 +166,7 @@ function CategoryMappingSection({ projectId }: { projectId: string }) {
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold">Category Mappings (Map Sub-categories to Categories)</h2>
-      <div className="bg-muted/30 p-4 rounded-lg border-dashed border">
+      <div className="rounded-lg border border-dashed bg-muted/30 p-4">
         <p className="text-sm text-muted-foreground">Select a category to view and manage its sub-categories.</p>
         <MappingErrorBoundary>
           <ManageMappings projectId={projectId} />
@@ -239,19 +241,19 @@ function ManageMappings({ projectId }: { projectId: string }) {
   };
 
   if (isLoadingCats || isLoadingSubCats) {
-    return <p className="text-sm text-muted-foreground py-2">Loading data...</p>;
+    return <p className="py-2 text-sm text-muted-foreground">Loading data...</p>;
   }
 
   if (isCatError || isSubCatError) {
     return (
-      <p className="text-sm text-red-500 py-2">
+      <p className="py-2 text-sm text-destructive">
         Failed to load categories or sub-categories. Please check your permissions.
       </p>
     );
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 mt-4">
+    <div className="mt-4 grid gap-6 md:grid-cols-2">
       <div className="space-y-2">
         <label className="text-sm font-medium">Select Category</label>
         <Select value={selectedCat} onValueChange={setSelectedCat}>
@@ -270,7 +272,7 @@ function ManageMappings({ projectId }: { projectId: string }) {
 
       {selectedCat && (
         <div className="space-y-4">
-          <div className="flex gap-2 items-end">
+          <div className="flex items-end gap-2">
             <div className="flex-1 space-y-2">
               <label className="text-sm font-medium">Add Sub-Category</label>
               <Select value={selectedSubCat} onValueChange={setSelectedSubCat}>
@@ -281,7 +283,8 @@ function ManageMappings({ projectId }: { projectId: string }) {
                   {subCategories
                     .filter(
                       (s: ContractSubCategory) =>
-                        !Array.isArray(mappings) || !mappings.find((m: Record<string, unknown>) => {
+                        !Array.isArray(mappings) ||
+                        !mappings.find((m: Record<string, unknown>) => {
                           const sub = m.subCategory as { id?: number } | undefined;
                           return sub?.id === s.id;
                         })
@@ -295,12 +298,12 @@ function ManageMappings({ projectId }: { projectId: string }) {
               </Select>
             </div>
             <Button onClick={handleAdd} disabled={!selectedSubCat || createMutation.isPending}>
-              <Plus className="h-4 w-4 mr-2" /> Add
+              <Plus className="mr-2 h-4 w-4" /> Add
             </Button>
           </div>
 
-          <div className="border rounded-md">
-            <div className="p-2 bg-muted/50 font-medium text-sm grid grid-cols-[1fr,auto] gap-2">
+          <div className="rounded-md border">
+            <div className="grid grid-cols-[1fr,auto] gap-2 bg-muted/50 p-2 text-sm font-medium">
               <span>Mapped Sub-Categories</span>
               <span>Action</span>
             </div>
@@ -313,7 +316,7 @@ function ManageMappings({ projectId }: { projectId: string }) {
                 {mappings
                   .filter((m: Record<string, unknown>) => m && m.subCategory)
                   .map((m: { id: number; subCategory: ContractSubCategory }) => (
-                    <div key={m.id} className="p-2 grid grid-cols-[1fr,auto] gap-2 items-center">
+                    <div key={m.id} className="grid grid-cols-[1fr,auto] items-center gap-2 p-2">
                       <span className="text-sm">
                         {m.subCategory?.subCatCode ?? '?'} - {m.subCategory?.subCatName ?? 'Unknown'}
                       </span>
@@ -323,7 +326,7 @@ function ManageMappings({ projectId }: { projectId: string }) {
                         onClick={() => deleteMutation.mutate(m.id)}
                         disabled={deleteMutation.isPending}
                       >
-                        <Trash2 className="h-4 w-4 text-red-500" />
+                        <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </div>
                   ))}

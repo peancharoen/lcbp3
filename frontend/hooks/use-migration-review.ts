@@ -42,9 +42,18 @@ export const migrationReviewKeys = {
     limit?: number,
     requiresHumanReview?: boolean,
     sortBy?: string,
-    sortOrder?: string,
+    sortOrder?: string
   ) =>
-    [...migrationReviewKeys.all, 'queue', status ?? 'ALL', page ?? 1, limit ?? 10, requiresHumanReview ?? false, sortBy ?? 'none', sortOrder ?? 'asc'] as const,
+    [
+      ...migrationReviewKeys.all,
+      'queue',
+      status ?? 'ALL',
+      page ?? 1,
+      limit ?? 10,
+      requiresHumanReview ?? false,
+      sortBy ?? 'none',
+      sortOrder ?? 'asc',
+    ] as const,
 };
 
 /**
@@ -57,7 +66,7 @@ export function useMigrationReviewQueue(
   limit: number = 10,
   requiresHumanReview?: boolean,
   sortBy?: SortByOcrQuality,
-  sortOrder?: SortOrder,
+  sortOrder?: SortOrder
 ) {
   return useQuery({
     queryKey: migrationReviewKeys.queue(status, page, limit, requiresHumanReview, sortBy, sortOrder),

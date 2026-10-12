@@ -15,13 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTranslations } from '@/hooks/use-translations';
 
 export interface ImpersonationHandler {
@@ -41,12 +35,7 @@ export interface ImpersonationDialogProps {
   onConfirm: (data: ImpersonationDialogConfirmData) => void;
 }
 
-export function ImpersonationDialog({
-  open,
-  onOpenChange,
-  handlers,
-  onConfirm,
-}: ImpersonationDialogProps) {
+export function ImpersonationDialog({ open, onOpenChange, handlers, onConfirm }: ImpersonationDialogProps) {
   const t = useTranslations();
   const [selected, setSelected] = useState('');
   const [reason, setReason] = useState('');

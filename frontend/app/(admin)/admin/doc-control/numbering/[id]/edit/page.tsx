@@ -32,9 +32,9 @@ export default function EditTemplatePage() {
   const { data: disciplines = [] } = useDisciplines(contractId);
 
   const selectedProjectName = Array.isArray(projects)
-    ? (projects as Array<{ id?: number; publicId?: string; projectCode: string; projectName: string }>).find((p) =>
-        String(p.publicId ?? p.id) === String(projectId))
-        ?.projectName || 'LCBP3'
+    ? (projects as Array<{ id?: number; publicId?: string; projectCode: string; projectName: string }>).find(
+        (p) => String(p.publicId ?? p.id) === String(projectId)
+      )?.projectName || 'LCBP3'
     : 'LCBP3';
 
   useEffect(() => {
@@ -97,7 +97,7 @@ export default function EditTemplatePage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6 p-6">
       <h1 className="text-3xl font-bold">Edit Numbering Template</h1>
 
       <Tabs defaultValue="config">

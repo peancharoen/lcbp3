@@ -45,19 +45,12 @@ describe('useBulkActions (Feature 253 — Phase 2 Frontend Unit)', () => {
       failed: 0,
     });
 
-    const { result } = renderHook(
-      () => useBulkActions({ documentType }),
-      { wrapper },
-    );
+    const { result } = renderHook(() => useBulkActions({ documentType }), { wrapper });
 
     result.current.bulkCancel({ publicIds, reason: 'test' });
 
     await waitFor(() => {
-      expect(documentActionService.bulkCancel).toHaveBeenCalledWith(
-        publicIds,
-        documentType,
-        'test',
-      );
+      expect(documentActionService.bulkCancel).toHaveBeenCalledWith(publicIds, documentType, 'test');
     });
   });
 
@@ -72,20 +65,12 @@ describe('useBulkActions (Feature 253 — Phase 2 Frontend Unit)', () => {
       failed: 0,
     });
 
-    const { result } = renderHook(
-      () => useBulkActions({ documentType }),
-      { wrapper },
-    );
+    const { result } = renderHook(() => useBulkActions({ documentType }), { wrapper });
 
     result.current.bulkTag({ publicIds, addTags: [1, 2] });
 
     await waitFor(() => {
-      expect(documentActionService.bulkTag).toHaveBeenCalledWith(
-        publicIds,
-        documentType,
-        [1, 2],
-        undefined,
-      );
+      expect(documentActionService.bulkTag).toHaveBeenCalledWith(publicIds, documentType, [1, 2], undefined);
     });
   });
 
@@ -97,20 +82,12 @@ describe('useBulkActions (Feature 253 — Phase 2 Frontend Unit)', () => {
     });
     const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
 
-    const { result } = renderHook(
-      () => useBulkActions({ documentType }),
-      { wrapper },
-    );
+    const { result } = renderHook(() => useBulkActions({ documentType }), { wrapper });
 
     result.current.bulkExport({ publicIds, format: 'CSV' });
 
     await waitFor(() => {
-      expect(documentActionService.bulkExport).toHaveBeenCalledWith(
-        publicIds,
-        documentType,
-        'CSV',
-        undefined,
-      );
+      expect(documentActionService.bulkExport).toHaveBeenCalledWith(publicIds, documentType, 'CSV', undefined);
     });
     await waitFor(() => {
       expect(openSpy).toHaveBeenCalledWith('/api/documents/bulk/bulk-789/download', '_blank');
@@ -122,13 +99,13 @@ describe('useBulkActions (Feature 253 — Phase 2 Frontend Unit)', () => {
     const { wrapper } = createTestQueryClient();
     let resolveCancel: (value: unknown) => void;
     (documentActionService.bulkCancel as jest.Mock).mockImplementation(
-      () => new Promise((resolve) => { resolveCancel = resolve; }),
+      () =>
+        new Promise((resolve) => {
+          resolveCancel = resolve;
+        })
     );
 
-    const { result } = renderHook(
-      () => useBulkActions({ documentType }),
-      { wrapper },
-    );
+    const { result } = renderHook(() => useBulkActions({ documentType }), { wrapper });
 
     result.current.bulkCancel({ publicIds });
 
@@ -154,10 +131,7 @@ describe('useBulkActions (Feature 253 — Phase 2 Frontend Unit)', () => {
       failed: 0,
     });
 
-    const { result } = renderHook(
-      () => useBulkActions({ documentType }),
-      { wrapper },
-    );
+    const { result } = renderHook(() => useBulkActions({ documentType }), { wrapper });
 
     result.current.bulkCancel({ publicIds });
 

@@ -61,9 +61,7 @@ export const reviewTeamService = {
 
   /** ลบสมาชิก */
   removeMember: async (teamPublicId: string, memberPublicId: string) => {
-    const response = await apiClient.delete(
-      `/review-teams/${teamPublicId}/members/${memberPublicId}`,
-    );
+    const response = await apiClient.delete(`/review-teams/${teamPublicId}/members/${memberPublicId}`);
     return response.data;
   },
 

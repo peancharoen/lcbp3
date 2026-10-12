@@ -29,7 +29,7 @@ describe('BulkActionBar (Feature 253 — Phase 2 Frontend Unit)', () => {
         onBulkTag={mockOnBulkTag}
         onBulkExport={mockOnBulkExport}
         onClear={mockOnClear}
-      />,
+      />
     );
     expect(container.firstChild).toBeNull();
   });
@@ -42,7 +42,7 @@ describe('BulkActionBar (Feature 253 — Phase 2 Frontend Unit)', () => {
         onBulkTag={mockOnBulkTag}
         onBulkExport={mockOnBulkExport}
         onClear={mockOnClear}
-      />,
+      />
     );
 
     expect(screen.getByText('document.bulk.selected')).toBeInTheDocument();
@@ -59,7 +59,7 @@ describe('BulkActionBar (Feature 253 — Phase 2 Frontend Unit)', () => {
         onBulkTag={mockOnBulkTag}
         onBulkExport={mockOnBulkExport}
         onClear={mockOnClear}
-      />,
+      />
     );
 
     fireEvent.click(screen.getByText('document.bulk.export'));
@@ -74,7 +74,7 @@ describe('BulkActionBar (Feature 253 — Phase 2 Frontend Unit)', () => {
         onBulkTag={mockOnBulkTag}
         onBulkExport={mockOnBulkExport}
         onClear={mockOnClear}
-      />,
+      />
     );
 
     fireEvent.click(screen.getByText('document.bulk.tag'));
@@ -89,7 +89,7 @@ describe('BulkActionBar (Feature 253 — Phase 2 Frontend Unit)', () => {
         onBulkTag={mockOnBulkTag}
         onBulkExport={mockOnBulkExport}
         onClear={mockOnClear}
-      />,
+      />
     );
 
     fireEvent.click(screen.getByText('document.bulk.cancel'));
@@ -105,7 +105,7 @@ describe('BulkActionBar (Feature 253 — Phase 2 Frontend Unit)', () => {
         onBulkExport={mockOnBulkExport}
         onClear={mockOnClear}
         isLoading={true}
-      />,
+      />
     );
 
     expect(screen.getByText('document.bulk.export')).toBeDisabled();
@@ -122,15 +122,7 @@ describe('BulkResultDialog (Feature 253 — Phase 2 Frontend Unit)', () => {
   });
 
   it('แสดง title + summary (total/success/failed)', () => {
-    render(
-      <BulkResultDialog
-        open={true}
-        onOpenChange={mockOnOpenChange}
-        total={10}
-        success={8}
-        failed={2}
-      />,
-    );
+    render(<BulkResultDialog open={true} onOpenChange={mockOnOpenChange} total={10} success={8} failed={2} />);
 
     expect(screen.getByText('document.bulk.resultDialog.title')).toBeInTheDocument();
     expect(screen.getByText('10')).toBeInTheDocument();
@@ -147,7 +139,7 @@ describe('BulkResultDialog (Feature 253 — Phase 2 Frontend Unit)', () => {
         success={1}
         failed={2}
         failedItems={['CORR-001', 'CORR-002']}
-      />,
+      />
     );
 
     expect(screen.getByText('document.bulk.resultDialog.failedItems')).toBeInTheDocument();
@@ -156,29 +148,13 @@ describe('BulkResultDialog (Feature 253 — Phase 2 Frontend Unit)', () => {
   });
 
   it('ไม่แสดง failed items list เมื่อ failed=0', () => {
-    render(
-      <BulkResultDialog
-        open={true}
-        onOpenChange={mockOnOpenChange}
-        total={5}
-        success={5}
-        failed={0}
-      />,
-    );
+    render(<BulkResultDialog open={true} onOpenChange={mockOnOpenChange} total={5} success={5} failed={0} />);
 
     expect(screen.queryByText('document.bulk.resultDialog.failedItems')).not.toBeInTheDocument();
   });
 
   it('คลิก close → เรียก onOpenChange(false)', () => {
-    render(
-      <BulkResultDialog
-        open={true}
-        onOpenChange={mockOnOpenChange}
-        total={5}
-        success={5}
-        failed={0}
-      />,
-    );
+    render(<BulkResultDialog open={true} onOpenChange={mockOnOpenChange} total={5} success={5} failed={0} />);
 
     fireEvent.click(screen.getByText('document.bulk.resultDialog.close'));
     expect(mockOnOpenChange).toHaveBeenCalledWith(false);

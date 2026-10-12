@@ -16,10 +16,7 @@ import Link from 'next/link';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import {
-  DocumentMetadataEditDialog,
-  type MetadataField,
-} from '@/components/documents/document-metadata-edit-dialog';
+import { DocumentMetadataEditDialog, type MetadataField } from '@/components/documents/document-metadata-edit-dialog';
 import { DocumentHardDeleteDialog } from '@/components/documents/document-hard-delete-dialog';
 import { DocumentCancelDialog } from '@/components/documents/document-cancel-dialog';
 import { getDocumentActionConfig } from '@/components/documents/document-action-strategy';
@@ -40,9 +37,7 @@ export default function CorrespondenceDetailPage() {
   const corrData = correspondence as Correspondence | undefined;
 
   // ADR-021: ดึงประวัติ Workflow (disabled อัตโนมัติถ้าไม่มี workflowInstanceId)
-  const { data: wfHistory, isLoading: wfLoading, error: wfError } = useWorkflowHistory(
-    corrData?.workflowInstanceId
-  );
+  const { data: wfHistory, isLoading: wfLoading, error: wfError } = useWorkflowHistory(corrData?.workflowInstanceId);
 
   // ADR-021 US4: state สำหรับ FilePreviewModal
   const [previewFile, setPreviewFile] = useState<WorkflowAttachmentSummary | null>(null);
@@ -50,14 +45,11 @@ export default function CorrespondenceDetailPage() {
   const [pendingAttachmentIds, setPendingAttachmentIds] = useState<string[]>([]);
   // ADR-021 T041: ติดตาม publicIds ที่ Storage แจ้ง 404
   const [unavailableIds, setUnavailableIds] = useState<string[]>([]);
-  const handleUnavailable = (publicId: string) =>
-    setUnavailableIds((prev) => [...new Set([...prev, publicId])]);
+  const handleUnavailable = (publicId: string) => setUnavailableIds((prev) => [...new Set([...prev, publicId])]);
 
   // Feature 253 T061: Metadata Edit Dialog (DC edit metadata after submit)
   const requestedAction = searchParams.get('action');
-  const [showMetaEdit, setShowMetaEdit] = useState(
-    requestedAction === 'edit-metadata'
-  );
+  const [showMetaEdit, setShowMetaEdit] = useState(requestedAction === 'edit-metadata');
   const [showCancel, setShowCancel] = useState(requestedAction === 'cancel');
   const t = useTranslations();
   const router = useRouter();
@@ -70,23 +62,22 @@ export default function CorrespondenceDetailPage() {
     },
   });
   // Feature 253 T073: Hard-Delete Dialog (Superadmin only)
-  const [showHardDelete, setShowHardDelete] = useState(
-    requestedAction === 'hard-delete'
-  );
+  const [showHardDelete, setShowHardDelete] = useState(requestedAction === 'hard-delete');
   const canHardDelete = hasPermission('system.manage_all') || hasPermission('correspondence.delete');
-  const canCancel = hasPermission('correspondence.cancel') || hasPermission('document.cancel') || hasPermission('system.manage_all');
+  const canCancel =
+    hasPermission('correspondence.cancel') || hasPermission('document.cancel') || hasPermission('system.manage_all');
 
   if (!uuid) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <h1 className="text-xl font-bold text-red-500">Invalid Correspondence UUID</h1>
+      <div className="flex min-h-screen flex-col items-center justify-center">
+        <h1 className="text-xl font-bold text-destructive">Invalid Correspondence UUID</h1>
       </div>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="flex bg-muted/20 min-h-screen justify-center items-center">
+      <div className="flex min-h-screen items-center justify-center bg-muted/20">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
@@ -94,8 +85,8 @@ export default function CorrespondenceDetailPage() {
 
   if (isError || !correspondence) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <h1 className="text-xl font-bold text-red-500">Failed to load correspondence</h1>
+      <div className="flex min-h-screen flex-col items-center justify-center">
+        <h1 className="text-xl font-bold text-destructive">Failed to load correspondence</h1>
         <p>Please try again later or verify the UUID.</p>
       </div>
     );
@@ -109,18 +100,11 @@ export default function CorrespondenceDetailPage() {
 
   // Feature 253: metadata fields สำหรับ Edit Dialog (Tier 1 แก้ได้ทันที)
   const normalizedRole = (user?.role ?? '').toUpperCase().replace(/\s+/g, '_');
-  const isPrivilegedEditRole = [
-    'SUPERADMIN',
-    'SUPER_ADMIN',
-    'ADMIN',
-    'DC',
-    'DOCUMENT_CONTROL',
-  ].includes(normalizedRole);
-  const canEditMetadata =
-    (hasPermission('correspondence.edit') || isPrivilegedEditRole) &&
-    status !== 'CANCELLED';
-  const canEditContent =
-    canEditMetadata && (status === 'DRAFT' || isPrivilegedEditRole);
+  const isPrivilegedEditRole = ['SUPERADMIN', 'SUPER_ADMIN', 'ADMIN', 'DC', 'DOCUMENT_CONTROL'].includes(
+    normalizedRole
+  );
+  const canEditMetadata = (hasPermission('correspondence.edit') || isPrivilegedEditRole) && status !== 'CANCELLED';
+  const canEditContent = canEditMetadata && (status === 'DRAFT' || isPrivilegedEditRole);
   const metaFields: MetadataField[] = [
     { key: 'subject', label: 'Subject', value: currentRevision?.subject ?? '', tier: 1 },
     { key: 'description', label: 'Description', value: currentRevision?.description ?? '', tier: 1 },
@@ -164,11 +148,7 @@ export default function CorrespondenceDetailPage() {
             </Button>
           )}
           {canHardDelete && (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => setShowHardDelete(true)}
-            >
+            <Button variant="destructive" size="sm" onClick={() => setShowHardDelete(true)}>
               {t('document.action.hardDelete')}
             </Button>
           )}
@@ -228,9 +208,7 @@ export default function CorrespondenceDetailPage() {
         currentVersion={corrData!.version ?? 0}
         fields={metaFields}
         isLoading={isPatching}
-        onConfirm={(patch, version) =>
-          metadataPatch({ publicId: uuid, patch, version })
-        }
+        onConfirm={(patch, version) => metadataPatch({ publicId: uuid, patch, version })}
       />
 
       {/* ADR-021 US4: File Preview Modal */}

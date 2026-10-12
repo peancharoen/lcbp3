@@ -12,14 +12,7 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import {
-  Search,
-  Loader2,
-  Brain,
-  Info,
-  HelpCircle,
-  AlertCircle,
-} from 'lucide-react';
+import { Search, Loader2, Brain, Info, HelpCircle, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -240,23 +233,23 @@ export default function RagPlaygroundPage() {
         </CardContent>
       </Card>
       {isSandboxPolling && (
-        <Card className="border border-amber-500/20 bg-amber-500/5">
-          <CardContent className="pt-6 space-y-4">
+        <Card className="border border-warning/20 bg-warning/5">
+          <CardContent className="space-y-4 pt-6">
             <div className="flex items-center justify-between text-sm font-medium">
               <div className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
+                <Loader2 className="h-4 w-4 animate-spin text-warning" />
                 <span>{sandboxStatusText}</span>
               </div>
               <span className="text-xs text-muted-foreground">{sandboxProgress}%</span>
             </div>
             {isColdStartLikely && (
-              <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+              <p className="flex items-center gap-1.5 text-xs text-warning">
                 <Info className="h-3 w-3 shrink-0" />
                 {t('ai.coldStart.hint')}
               </p>
             )}
             <Progress value={sandboxProgress} className="h-2" />
-            <div className="rounded bg-background/50 p-2 text-[11px] text-muted-foreground font-mono flex items-center gap-2">
+            <div className="flex items-center gap-2 rounded bg-background/50 p-2 font-mono text-[11px] text-muted-foreground">
               <Info className="h-3 w-3" />
               ID คำขอ: {sandboxJobId}
             </div>
@@ -267,23 +260,20 @@ export default function RagPlaygroundPage() {
         <div className="space-y-6">
           {sandboxJobResult.status === 'completed' && (
             <>
-              <Card className="border border-emerald-500/20 bg-background/50 backdrop-blur-md">
-                <CardHeader className="border-b border-border/30 pb-3 flex flex-row items-center justify-between">
-                  <CardTitle className="text-base text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+              <Card className="border border-success/20 bg-background/50 backdrop-blur-md">
+                <CardHeader className="flex flex-row items-center justify-between border-b border-border/30 pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base text-success">
                     <Brain className="h-4 w-4" />
                     คำตอบที่ประมวลผลได้ (RAG Sandbox Answer)
                   </CardTitle>
                   {sandboxJobResult.usedFallbackModel && (
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] text-amber-500 border-amber-500/20 bg-amber-500/5"
-                    >
+                    <Badge variant="outline" className="border-warning/20 bg-warning/5 text-[10px] text-warning">
                       โมเดลสำรอง (Fallback)
                     </Badge>
                   )}
                 </CardHeader>
                 <CardContent className="pt-4">
-                  <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground select-text font-sans">
+                  <div className="select-text whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground">
                     {sandboxJobResult.answer}
                   </div>
                   {sandboxJobResult.completedAt && (
@@ -295,7 +285,7 @@ export default function RagPlaygroundPage() {
               </Card>
               <Card className="border border-border/50 bg-background/50 backdrop-blur-md">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
+                  <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                     <HelpCircle className="h-4 w-4" />
                     เอกสารที่อ้างอิง ({sandboxJobResult.citations?.length ?? 0} รายการ)
                   </CardTitle>
@@ -306,11 +296,11 @@ export default function RagPlaygroundPage() {
                       {sandboxCitations.map((cite, index) => (
                         <div
                           key={cite.pointId || index}
-                          className="rounded-lg border border-border/40 bg-background/30 p-3 hover:bg-background/60 transition-colors space-y-2"
+                          className="space-y-2 rounded-lg border border-border/40 bg-background/30 p-3 transition-colors hover:bg-background/60"
                         >
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <div className="flex items-center gap-2">
-                              <Badge className="bg-primary/10 text-primary hover:bg-primary/20 text-[10px] border-none py-0">
+                              <Badge className="border-none bg-primary/10 py-0 text-[10px] text-primary hover:bg-primary/20">
                                 {cite.docType || 'Document'}
                               </Badge>
                               <span className="text-xs font-semibold text-foreground">
@@ -319,13 +309,13 @@ export default function RagPlaygroundPage() {
                             </div>
                             <Badge
                               variant="outline"
-                              className="text-[10px] py-0 border-border/50 text-muted-foreground"
+                              className="border-border/50 py-0 text-[10px] text-muted-foreground"
                             >
                               Score Match: {(cite.score * 100).toFixed(1)}%
                             </Badge>
                           </div>
                           {cite.snippet && (
-                            <p className="text-xs text-muted-foreground line-clamp-3 bg-background/50 p-2 rounded border border-border/20 italic font-sans leading-relaxed">
+                            <p className="line-clamp-3 rounded border border-border/20 bg-background/50 p-2 font-sans text-xs italic leading-relaxed text-muted-foreground">
                               &quot;{cite.snippet}&quot;
                             </p>
                           )}
@@ -333,7 +323,7 @@ export default function RagPlaygroundPage() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-6 text-xs text-muted-foreground italic">
+                    <div className="py-6 text-center text-xs italic text-muted-foreground">
                       ไม่มีการสกัดเอกสารอ้างอิงสำหรับคำถามนี้
                     </div>
                   )}
@@ -348,7 +338,7 @@ export default function RagPlaygroundPage() {
                 <CardTitle className="text-sm font-medium">ประมวลผล Sandbox ล้มเหลว</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-xs text-muted-foreground leading-relaxed">
+                <p className="text-xs leading-relaxed text-muted-foreground">
                   {sandboxJobResult.errorMessage ||
                     'เกิดข้อผิดพลาดในการเรียกใช้ Local LLM หรือ Vector DB ใน Sandbox Sandbox process ล้มเหลว กรุณาตรวจสอบสถานะสุขภาพของ Ollama Engine/Qdrant DB ในส่วน Monitoring ด้านบน'}
                 </p>

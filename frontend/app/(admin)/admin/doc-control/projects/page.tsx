@@ -108,7 +108,7 @@ export default function ProjectsPage() {
       header: 'Code',
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <Folder className="h-4 w-4 text-blue-500" />
+          <Folder className="h-4 w-4 text-info" />
           <span className="font-medium">{row.original.projectCode}</span>
         </div>
       ),
@@ -147,7 +147,7 @@ export default function ProjectsPage() {
               <Building2 className="mr-2 h-4 w-4" /> Organizations
             </DropdownMenuItem>
             <DropdownMenuItem
-              className="text-red-600 focus:text-red-600"
+              className="text-destructive focus:text-destructive"
               onClick={() => handleDeleteClick(row.original)}
             >
               <Trash className="mr-2 h-4 w-4" /> Delete
@@ -195,24 +195,24 @@ export default function ProjectsPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Projects</h1>
-          <p className="text-muted-foreground mt-1">Manage construction projects and configurations</p>
+          <p className="mt-1 text-muted-foreground">Manage construction projects and configurations</p>
         </div>
         <Button onClick={handleCreate}>
           <Plus className="mr-2 h-4 w-4" /> Add Project
         </Button>
       </div>
 
-      <div className="flex items-center space-x-2 bg-muted/30 p-4 rounded-lg">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex items-center space-x-2 rounded-lg bg-muted/30 p-4">
+        <div className="relative max-w-sm flex-1">
           <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search projects by code or name..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-8 bg-background"
+            className="bg-background pl-8"
           />
         </div>
       </div>
@@ -242,13 +242,13 @@ export default function ProjectsPage() {
                 {...register('projectCode')}
                 disabled={!!editingUuid} // Code is immutable after creation usually
               />
-              {errors.projectCode && <p className="text-sm text-red-500">{errors.projectCode.message}</p>}
+              {errors.projectCode && <p className="text-sm text-destructive">{errors.projectCode.message}</p>}
             </div>
 
             <div className="space-y-2">
               <Label>Project Name *</Label>
               <Input placeholder="Full project name" {...register('projectName')} />
-              {errors.projectName && <p className="text-sm text-red-500">{errors.projectName.message}</p>}
+              {errors.projectName && <p className="text-sm text-destructive">{errors.projectName.message}</p>}
             </div>
 
             <div className="flex items-center space-x-2 pt-2">
@@ -294,7 +294,7 @@ export default function ProjectsPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
               {deleteProject.isPending ? 'Deleting...' : 'Delete Project'}
             </AlertDialogAction>
           </AlertDialogFooter>

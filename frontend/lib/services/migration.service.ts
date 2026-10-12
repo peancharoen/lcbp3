@@ -162,11 +162,7 @@ export const migrationService = {
   },
 
   // ADR-019: ใช้ publicId (UUIDv7) เท่านั้น
-  approveQueueItem: async (
-    publicId: string,
-    payload: Record<string, unknown>,
-    idempotencyKey: string
-  ) => {
+  approveQueueItem: async (publicId: string, payload: Record<string, unknown>, idempotencyKey: string) => {
     const { data } = await api.post(`/migration/queue/${publicId}/approve`, payload, {
       headers: {
         'idempotency-key': idempotencyKey,
@@ -177,42 +173,58 @@ export const migrationService = {
 
   // ADR-047: เริ่มประมวลผล OCR/AI ของ queue item เดียว
   startExtractQueueItem: async (publicId: string, idempotencyKey: string) => {
-    const { data } = await api.post(`/migration/queue/${publicId}/extract`, {}, {
-      headers: {
-        'idempotency-key': idempotencyKey,
-      },
-    });
+    const { data } = await api.post(
+      `/migration/queue/${publicId}/extract`,
+      {},
+      {
+        headers: {
+          'idempotency-key': idempotencyKey,
+        },
+      }
+    );
     return data?.data || data;
   },
 
   // ADR-047: เริ่มประมวลผล OCR/AI ใหม่ (re-extract) สำหรับ queue item ที่เคยประมวลผลแล้ว
   reExtractQueueItem: async (publicId: string, idempotencyKey: string) => {
-    const { data } = await api.post(`/migration/queue/${publicId}/re-extract`, {}, {
-      headers: {
-        'idempotency-key': idempotencyKey,
-      },
-    });
+    const { data } = await api.post(
+      `/migration/queue/${publicId}/re-extract`,
+      {},
+      {
+        headers: {
+          'idempotency-key': idempotencyKey,
+        },
+      }
+    );
     return data?.data || data;
   },
 
   // ADR-047: เริ่มประมวลผล OCR/AI แบบ batch
   startExtractBatch: async (publicIds: string[], idempotencyKey: string) => {
-    const { data } = await api.post('/migration/extract', { queuePublicIds: publicIds }, {
-      headers: {
-        'idempotency-key': idempotencyKey,
-      },
-    });
+    const { data } = await api.post(
+      '/migration/extract',
+      { queuePublicIds: publicIds },
+      {
+        headers: {
+          'idempotency-key': idempotencyKey,
+        },
+      }
+    );
     return data?.data || data;
   },
 
   // ADR-019: ใช้ publicId (UUIDv7) เท่านั้น
   // ADR-016: ต้องส่ง Idempotency-Key สำหรับ state mutation
   rejectQueueItem: async (publicId: string, idempotencyKey: string) => {
-    const { data } = await api.post(`/migration/queue/${publicId}/reject`, {}, {
-      headers: {
-        'idempotency-key': idempotencyKey,
-      },
-    });
+    const { data } = await api.post(
+      `/migration/queue/${publicId}/reject`,
+      {},
+      {
+        headers: {
+          'idempotency-key': idempotencyKey,
+        },
+      }
+    );
     return data?.data || data;
   },
 
@@ -248,24 +260,21 @@ export const migrationService = {
 
   // ADR-054 (FR-007): กู้คืน OCR text จาก ocr_text_bak — restore ไม่ลบ backup (non-destructive)
   // ADR-019 + ADR-016: ใช้ publicId และต้องส่ง Idempotency-Key
-  restoreQueueOcrText: async (
-    publicId: string,
-    idempotencyKey: string
-  ): Promise<RestoreQueueOcrTextResponse> => {
-    const { data } = await api.post(`/migration/queue/${publicId}/restore-ocr-text`, {}, {
-      headers: {
-        'idempotency-key': idempotencyKey,
-      },
-    });
+  restoreQueueOcrText: async (publicId: string, idempotencyKey: string): Promise<RestoreQueueOcrTextResponse> => {
+    const { data } = await api.post(
+      `/migration/queue/${publicId}/restore-ocr-text`,
+      {},
+      {
+        headers: {
+          'idempotency-key': idempotencyKey,
+        },
+      }
+    );
     return (data?.data || data) as RestoreQueueOcrTextResponse;
   },
 
   // ADR-019 + ADR-016: ใช้ publicId และต้องส่ง Idempotency-Key
-  updateQueueOcr: async (
-    publicId: string,
-    payload: UpdateQueueOcrPayload,
-    idempotencyKey: string
-  ) => {
+  updateQueueOcr: async (publicId: string, payload: UpdateQueueOcrPayload, idempotencyKey: string) => {
     const { data } = await api.patch(`/migration/queue/${publicId}/ocr`, payload, {
       headers: {
         'idempotency-key': idempotencyKey,
@@ -275,9 +284,7 @@ export const migrationService = {
   },
 
   // ADR-047: List Excel files จาก Legacy NAS folder
-  listLegacyExcelFiles: async (): Promise<
-    Array<{ filename: string; fullPath: string; size: number }>
-  > => {
+  listLegacyExcelFiles: async (): Promise<Array<{ filename: string; fullPath: string; size: number }>> => {
     const { data } = await api.get('/migration/legacy-files');
     const result = data?.data ?? data;
     return Array.isArray(result?.files) ? result.files : [];
@@ -295,10 +302,7 @@ export const migrationService = {
    * ใช้คู่กับ listLegacyFolders สำหรับ dialog เปลี่ยนไฟล์ต้นฉบับ
    * q = กรองชื่อไฟล์ฝั่ง server (folder บางอันมีไฟล์ >1,000 — ต้อง filter ก่อน cap)
    */
-  listLegacyFolderFiles: async (
-    folderPath: string,
-    q?: string
-  ): Promise<LegacyFolderFileList> => {
+  listLegacyFolderFiles: async (folderPath: string, q?: string): Promise<LegacyFolderFileList> => {
     const { data } = await api.get('/migration/legacy-folder-files', {
       params: { path: folderPath, ...(q?.trim() ? { q: q.trim() } : {}) },
     });
@@ -321,15 +325,11 @@ export const migrationService = {
     payload: { storageTempPath?: string; tempAttachmentPublicId?: string },
     idempotencyKey: string
   ): Promise<ReplaceQueueFileResponse> => {
-    const { data } = await api.patch(
-      `/migration/queue/${publicId}/file`,
-      payload,
-      {
-        headers: {
-          'idempotency-key': idempotencyKey,
-        },
-      }
-    );
+    const { data } = await api.patch(`/migration/queue/${publicId}/file`, payload, {
+      headers: {
+        'idempotency-key': idempotencyKey,
+      },
+    });
     return (data?.data ?? data) as ReplaceQueueFileResponse;
   },
 
@@ -360,9 +360,7 @@ export const migrationService = {
       params.publicIds = publicIds.join(',');
     }
     const idempotencyKey =
-      typeof crypto !== 'undefined' && crypto.randomUUID
-        ? crypto.randomUUID()
-        : `del-queue-${Date.now()}`;
+      typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `del-queue-${Date.now()}`;
     const { data } = await api.delete('/migration/queue', {
       params,
       headers: { 'Idempotency-Key': idempotencyKey },
@@ -372,17 +370,12 @@ export const migrationService = {
   },
 
   // ADR-047: ลบรายการ Migration Errors ตาม batch หรือทั้งหมด
-  deleteErrors: async (
-    batchId?: string,
-    all: boolean = false
-  ): Promise<{ deleted: number }> => {
+  deleteErrors: async (batchId?: string, all: boolean = false): Promise<{ deleted: number }> => {
     const params: Record<string, string> = {};
     if (all) params.all = 'true';
     else if (batchId) params.batchId = batchId;
     const idempotencyKey =
-      typeof crypto !== 'undefined' && crypto.randomUUID
-        ? crypto.randomUUID()
-        : `del-errors-${Date.now()}`;
+      typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `del-errors-${Date.now()}`;
     const { data } = await api.delete('/migration/errors', {
       params,
       headers: { 'Idempotency-Key': idempotencyKey },

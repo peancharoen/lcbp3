@@ -21,7 +21,7 @@ export function PendingTasks({ tasks, isLoading }: PendingTasksProps) {
         <CardContent>
           <div className="space-y-3">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-14 bg-muted animate-pulse rounded-md" />
+              <div key={i} className="h-14 animate-pulse rounded-md bg-muted" />
             ))}
           </div>
         </CardContent>
@@ -34,12 +34,12 @@ export function PendingTasks({ tasks, isLoading }: PendingTasksProps) {
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle className="text-lg flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-lg">
           Pending Tasks
           {tasks.length > 0 && (
             <Badge
               variant="destructive"
-              className="rounded-full h-5 w-5 p-0 flex items-center justify-center text-[10px]"
+              className="flex h-5 w-5 items-center justify-center rounded-full p-0 text-[10px]"
             >
               {tasks.length}
             </Badge>
@@ -49,31 +49,31 @@ export function PendingTasks({ tasks, isLoading }: PendingTasksProps) {
       <CardContent>
         <div className="space-y-3">
           {tasks.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">No pending tasks. Good job!</p>
+            <p className="py-4 text-center text-sm text-muted-foreground">No pending tasks. Good job!</p>
           ) : (
             tasks.map((task) => (
               <Link
                 key={task.publicId}
                 href={task.url}
-                className="block p-3 bg-muted/40 rounded-lg border hover:bg-muted/60 transition-colors group"
+                className="group block rounded-lg border bg-muted/40 p-3 transition-colors hover:bg-muted/60"
               >
-                <div className="flex items-start justify-between mb-1">
-                  <span className="text-sm font-medium group-hover:text-primary transition-colors">{task.title}</span>
+                <div className="mb-1 flex items-start justify-between">
+                  <span className="text-sm font-medium transition-colors group-hover:text-primary">{task.title}</span>
                   {task.daysOverdue > 0 ? (
-                    <Badge variant="destructive" className="text-[10px] h-5 px-1.5">
+                    <Badge variant="destructive" className="h-5 px-1.5 text-[10px]">
                       {task.daysOverdue}d overdue
                     </Badge>
                   ) : (
                     <Badge
                       variant="outline"
-                      className="text-[10px] h-5 px-1.5 bg-yellow-50 text-yellow-700 border-yellow-200"
+                      className="h-5 border-warning/30 bg-warning/10 px-1.5 text-[10px] text-warning"
                     >
                       Due Soon
                     </Badge>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground line-clamp-1 mb-2">{task.description}</p>
-                <div className="flex items-center text-xs text-primary font-medium">
+                <p className="mb-2 line-clamp-1 text-xs text-muted-foreground">{task.description}</p>
+                <div className="flex items-center text-xs font-medium text-primary">
                   View Details <ArrowRight className="ml-1 h-3 w-3" />
                 </div>
               </Link>

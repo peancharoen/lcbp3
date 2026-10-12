@@ -6,14 +6,7 @@ import React, { useState } from 'react';
 import { Check, X, AlertTriangle, Lock } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface MatrixRule {
@@ -56,7 +49,7 @@ export function MatrixEditor({
 
   const grouped = CATEGORY_ORDER.reduce<Record<string, MatrixRule[]>>((acc, cat) => {
     const catRules = rules.filter(
-      (r) => r.responseCode.category === cat && (filter === 'ALL' || r.responseCode.category === filter),
+      (r) => r.responseCode.category === cat && (filter === 'ALL' || r.responseCode.category === filter)
     );
     if (catRules.length > 0) acc[cat] = catRules;
     return acc;
@@ -69,17 +62,21 @@ export function MatrixEditor({
           <CardTitle className="text-base">
             Matrix: {documentTypeCode}
             {isProjectLevel && (
-              <Badge variant="secondary" className="ml-2 text-xs">Project Override</Badge>
+              <Badge variant="secondary" className="ml-2 text-xs">
+                Project Override
+              </Badge>
             )}
           </CardTitle>
           <select
             value={filter}
             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilter(e.target.value)}
-            className="text-sm border rounded px-2 py-1"
+            className="rounded border px-2 py-1 text-sm"
           >
             <option value="ALL">All Categories</option>
             {CATEGORY_ORDER.map((c) => (
-              <option key={c} value={c}>{c}</option>
+              <option key={c} value={c}>
+                {c}
+              </option>
             ))}
           </select>
         </div>
@@ -100,7 +97,10 @@ export function MatrixEditor({
             {Object.entries(grouped).map(([cat, catRules]) => (
               <React.Fragment key={cat}>
                 <TableRow className="bg-muted/30">
-                  <TableCell colSpan={6} className="py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  <TableCell
+                    colSpan={6}
+                    className="py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                  >
                     {cat}
                   </TableCell>
                 </TableRow>
@@ -112,7 +112,7 @@ export function MatrixEditor({
                     <TableCell className="text-sm">{rule.responseCode.descriptionEn}</TableCell>
                     <TableCell className="text-center">
                       {rule.isSystem ? (
-                        <Lock className="h-4 w-4 mx-auto text-muted-foreground" />
+                        <Lock className="mx-auto h-4 w-4 text-muted-foreground" />
                       ) : (
                         <Switch
                           checked={rule.isEnabled}
@@ -137,11 +137,11 @@ export function MatrixEditor({
                     </TableCell>
                     <TableCell className="text-center">
                       {rule.isOverridden ? (
-                        <AlertTriangle className="h-4 w-4 mx-auto text-amber-500" />
+                        <AlertTriangle className="mx-auto h-4 w-4 text-warning" />
                       ) : rule.isEnabled ? (
-                        <Check className="h-4 w-4 mx-auto text-green-500" />
+                        <Check className="mx-auto h-4 w-4 text-success" />
                       ) : (
-                        <X className="h-4 w-4 mx-auto text-muted-foreground" />
+                        <X className="mx-auto h-4 w-4 text-muted-foreground" />
                       )}
                     </TableCell>
                   </TableRow>
@@ -150,7 +150,7 @@ export function MatrixEditor({
             ))}
             {Object.keys(grouped).length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground py-6">
+                <TableCell colSpan={6} className="py-6 text-center text-muted-foreground">
                   No rules configured for this document type.
                 </TableCell>
               </TableRow>

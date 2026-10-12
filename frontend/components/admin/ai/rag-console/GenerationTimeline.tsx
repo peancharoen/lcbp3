@@ -29,9 +29,7 @@ export function GenerationTimeline({ generations }: { generations: GenerationTim
         <div key={index} className="rounded-md border p-4">
           <div className="flex items-center justify-between">
             <RagStatusBadge status={gen.status as RagStatus} />
-            <span className="text-xs text-muted-foreground">
-              {new Date(gen.createdAt).toLocaleString()}
-            </span>
+            <span className="text-xs text-muted-foreground">{new Date(gen.createdAt).toLocaleString()}</span>
           </div>
           <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
             <div>

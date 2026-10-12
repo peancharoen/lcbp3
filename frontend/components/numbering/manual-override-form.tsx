@@ -56,9 +56,9 @@ export function ManualOverrideForm({ projectId = 1 }: { projectId?: number | str
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 border p-4 rounded-md mt-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="mt-4 space-y-4 rounded-md border p-4">
         <h3 className="text-lg font-medium">Manual Override Sequence</h3>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted-foreground">
           Careful: This updates the LAST generated number. Next number will receive +1.
         </p>
 

@@ -19,15 +19,11 @@ export const documentActionService = {
   /**
    * ยกเลิกเอกสาร (POST /{apiBasePath}/{publicId}/cancel)
    */
-  cancel: async (
-    apiBasePath: string,
-    publicId: string,
-    reason?: string,
-  ): Promise<DocumentActionResult> => {
+  cancel: async (apiBasePath: string, publicId: string, reason?: string): Promise<DocumentActionResult> => {
     const response = await apiClient.post(
       `${apiBasePath}/${publicId}/cancel`,
       { reason },
-      { headers: { 'Idempotency-Key': generateIdempotencyKey() } },
+      { headers: { 'Idempotency-Key': generateIdempotencyKey() } }
     );
     return response.data;
   },
@@ -35,14 +31,10 @@ export const documentActionService = {
   /**
    * ลบถาวร (DELETE /{apiBasePath}/{publicId}/hard)
    */
-  hardDelete: async (
-    apiBasePath: string,
-    publicId: string,
-  ): Promise<DocumentActionResult> => {
-    const response = await apiClient.delete(
-      `${apiBasePath}/${publicId}/hard`,
-      { headers: { 'Idempotency-Key': generateIdempotencyKey() } },
-    );
+  hardDelete: async (apiBasePath: string, publicId: string): Promise<DocumentActionResult> => {
+    const response = await apiClient.delete(`${apiBasePath}/${publicId}/hard`, {
+      headers: { 'Idempotency-Key': generateIdempotencyKey() },
+    });
     return response.data;
   },
 
@@ -53,12 +45,12 @@ export const documentActionService = {
     apiBasePath: string,
     publicId: string,
     patch: Record<string, string | number | boolean | null>,
-    version: number,
+    version: number
   ): Promise<DocumentActionResult> => {
     const response = await apiClient.patch(
       `${apiBasePath}/${publicId}/metadata`,
       { patch, version },
-      { headers: { 'Idempotency-Key': generateIdempotencyKey() } },
+      { headers: { 'Idempotency-Key': generateIdempotencyKey() } }
     );
     return response.data;
   },
@@ -66,15 +58,11 @@ export const documentActionService = {
   /**
    * Bulk cancel (POST /documents/bulk/cancel)
    */
-  bulkCancel: async (
-    publicIds: string[],
-    documentType: string,
-    reason?: string,
-  ): Promise<{ bulkId: string }> => {
+  bulkCancel: async (publicIds: string[], documentType: string, reason?: string): Promise<{ bulkId: string }> => {
     const response = await apiClient.post(
       '/documents/bulk/cancel',
       { publicIds, documentType, reason },
-      { headers: { 'Idempotency-Key': generateIdempotencyKey() } },
+      { headers: { 'Idempotency-Key': generateIdempotencyKey() } }
     );
     return response.data;
   },
@@ -87,12 +75,12 @@ export const documentActionService = {
     publicIds: string[],
     documentType: string,
     addTags: number[],
-    removeTags?: number[],
+    removeTags?: number[]
   ): Promise<{ bulkId: string }> => {
     const response = await apiClient.post(
       '/documents/bulk/tag',
       { publicIds, documentType, addTags, removeTags },
-      { headers: { 'Idempotency-Key': generateIdempotencyKey() } },
+      { headers: { 'Idempotency-Key': generateIdempotencyKey() } }
     );
     return response.data;
   },
@@ -104,12 +92,12 @@ export const documentActionService = {
     publicIds: string[],
     documentType: string,
     format: 'CSV' | 'XLSX' | 'JSON',
-    columns?: string[],
+    columns?: string[]
   ): Promise<{ bulkId: string; downloadUrl?: string }> => {
     const response = await apiClient.post(
       '/documents/bulk/export',
       { publicIds, documentType, format, columns },
-      { headers: { 'Idempotency-Key': generateIdempotencyKey() } },
+      { headers: { 'Idempotency-Key': generateIdempotencyKey() } }
     );
     return response.data;
   },
@@ -118,8 +106,15 @@ export const documentActionService = {
    * Poll bulk operation progress (GET /documents/bulk/{bulkId}/progress)
    */
   getBulkProgress: async (
-    bulkId: string,
-  ): Promise<{ total: number; completed: number; failed: number; done: boolean; downloadUrl?: string; failedItems?: string[] }> => {
+    bulkId: string
+  ): Promise<{
+    total: number;
+    completed: number;
+    failed: number;
+    done: boolean;
+    downloadUrl?: string;
+    failedItems?: string[];
+  }> => {
     const response = await apiClient.get(`/documents/bulk/${bulkId}/progress`);
     return response.data;
   },

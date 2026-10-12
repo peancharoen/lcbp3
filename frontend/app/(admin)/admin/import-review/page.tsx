@@ -28,10 +28,25 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { DownloadIcon, UploadIcon, XIcon, CheckIcon, LoaderIcon, ChevronDown, ChevronRight, FolderIcon, FolderOpenIcon } from 'lucide-react';
+import {
+  DownloadIcon,
+  UploadIcon,
+  XIcon,
+  CheckIcon,
+  LoaderIcon,
+  ChevronDown,
+  ChevronRight,
+  FolderIcon,
+  FolderOpenIcon,
+} from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useProjectStore } from '@/lib/stores/project-store';
-import { useCheckImportReview, useReviewStatus, useConfirmImportReview, useCancelImportReview } from '@/hooks/use-import-review';
+import {
+  useCheckImportReview,
+  useReviewStatus,
+  useConfirmImportReview,
+  useCancelImportReview,
+} from '@/hooks/use-import-review';
 import { importReviewService } from '@/lib/services/import-review.service';
 import { migrationService, type LegacyFolderNode } from '@/lib/services/migration.service';
 import {
@@ -97,7 +112,9 @@ export default function ImportReviewPage() {
   // Restore จาก localStorage — ถ้ามี session อยู่กลับมาดูผลต่อได้
   const [sessionId, setSessionId] = useState<string | null>(() => readLS<string>(LS_KEY_SESSION_ID));
   const [result, setResult] = useState<CheckReviewResponse | null>(() => readLS<CheckReviewResponse>(LS_KEY_RESULT));
-  const [confirmResult, setConfirmResult] = useState<ConfirmReviewResponse | null>(() => readLS<ConfirmReviewResponse>(LS_KEY_CONFIRM_RESULT));
+  const [confirmResult, setConfirmResult] = useState<ConfirmReviewResponse | null>(() =>
+    readLS<ConfirmReviewResponse>(LS_KEY_CONFIRM_RESULT)
+  );
   const [isDownloading, setIsDownloading] = useState(false);
   const [isDownloadingFailedRows, setIsDownloadingFailedRows] = useState(false);
 
@@ -109,7 +126,10 @@ export default function ImportReviewPage() {
   // โหลด NAS folder tree เมื่อเลือก MIGRATION_STAGING mode
   useEffect(() => {
     if (targetMode === 'MIGRATION_STAGING' && nasFolderTree.length === 0) {
-      migrationService.listLegacyFolders().then(setNasFolderTree).catch(() => undefined);
+      migrationService
+        .listLegacyFolders()
+        .then(setNasFolderTree)
+        .catch(() => undefined);
     }
   }, [targetMode, nasFolderTree.length]);
 
@@ -222,7 +242,13 @@ export default function ImportReviewPage() {
     // localStorage ถูกเคลียร์โดย useEffect sync ด้านบน
   };
 
-  const isProcessing = !!sessionId && statusQuery.data?.status !== 'READY' && statusQuery.data?.status !== 'FAILED' && statusQuery.data?.status !== 'EXPIRED' && statusQuery.data?.status !== 'CANCELLED' && !statusQuery.isError;
+  const isProcessing =
+    !!sessionId &&
+    statusQuery.data?.status !== 'READY' &&
+    statusQuery.data?.status !== 'FAILED' &&
+    statusQuery.data?.status !== 'EXPIRED' &&
+    statusQuery.data?.status !== 'CANCELLED' &&
+    !statusQuery.isError;
   const progressValue = statusQuery.data?.progress ?? 0;
   const currentStep = statusQuery.data?.currentStep ?? '';
   const failedMessage =
@@ -235,7 +261,7 @@ export default function ImportReviewPage() {
           : null;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6 p-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">ตรวจสอบข้อมูลนำเข้า Excel</h1>
         <p className="text-sm text-muted-foreground">
@@ -248,9 +274,7 @@ export default function ImportReviewPage() {
           <CardTitle className="text-base">1. อัปโหลดไฟล์</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {!selectedProjectId && (
-            <p className="text-sm text-destructive">กรุณาเลือกโครงการก่อน (มุมบนของหน้าจอ)</p>
-          )}
+          {!selectedProjectId && <p className="text-sm text-destructive">กรุณาเลือกโครงการก่อน (มุมบนของหน้าจอ)</p>}
 
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-1.5">
@@ -284,9 +308,7 @@ export default function ImportReviewPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="DIRECT_IMPORT">Direct Import (นำเข้าประจำวัน)</SelectItem>
-                  {isAdmin && (
-                    <SelectItem value="MIGRATION_STAGING">Migration Staging (Admin เท่านั้น)</SelectItem>
-                  )}
+                  {isAdmin && <SelectItem value="MIGRATION_STAGING">Migration Staging (Admin เท่านั้น)</SelectItem>}
                 </SelectContent>
               </Select>
             </div>
@@ -331,9 +353,7 @@ export default function ImportReviewPage() {
                 <PopoverContent className="w-[480px] p-0" align="start">
                   <div className="max-h-[320px] overflow-y-auto p-1">
                     {nasFolderTree.length === 0 ? (
-                      <div className="px-3 py-6 text-center text-xs text-muted-foreground">
-                        ไม่พบโฟลเดอร์ใน NAS
-                      </div>
+                      <div className="px-3 py-6 text-center text-xs text-muted-foreground">ไม่พบโฟลเดอร์ใน NAS</div>
                     ) : (
                       <FolderTree
                         nodes={nasFolderTree}
@@ -378,7 +398,7 @@ export default function ImportReviewPage() {
               onClick={handleUpload}
               disabled={!file || !selectedProjectId || checkMutation.isPending || isProcessing}
             >
-              <UploadIcon className="h-4 w-4 mr-2" />
+              <UploadIcon className="mr-2 h-4 w-4" />
               {checkMutation.isPending ? 'กำลังส่งไฟล์...' : 'อัปโหลดและตรวจสอบ'}
             </Button>
           </div>
@@ -389,7 +409,7 @@ export default function ImportReviewPage() {
       {isProcessing && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-base">
               <LoaderIcon className="h-4 w-4 animate-spin" />
               กำลังตรวจสอบข้อมูล...
             </CardTitle>
@@ -401,8 +421,7 @@ export default function ImportReviewPage() {
               <span>{progressValue}%</span>
             </div>
             <p className="text-xs text-muted-foreground">
-              ระบบกำลังรัน 4-Layer review ใน background (ADR-008) — ไม่ต้องรอหน้านี้
-              สามารถกลับมาดูผลได้ภายใน 24 ชั่วโมง
+              ระบบกำลังรัน 4-Layer review ใน background (ADR-008) — ไม่ต้องรอหน้านี้ สามารถกลับมาดูผลได้ภายใน 24 ชั่วโมง
             </p>
           </CardContent>
         </Card>
@@ -430,41 +449,38 @@ export default function ImportReviewPage() {
               <CardTitle className="text-base">2. ผลการตรวจสอบ</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-4">
+              <div className="mb-4 grid grid-cols-2 gap-4 sm:grid-cols-5">
                 <SummaryStat label="ทั้งหมด" value={result.totalRows} />
-                <SummaryStat label="ผ่าน" value={result.passCount} className="text-green-600" />
-                <SummaryStat label="คำเตือน" value={result.warnCount} className="text-amber-600" />
-                <SummaryStat label="ติด BLOCK" value={result.blockCount} className="text-red-600" />
-                <SummaryStat label="AI แนะนำ" value={result.aiSuggestCount} className="text-blue-600" />
+                <SummaryStat label="ผ่าน" value={result.passCount} className="text-success" />
+                <SummaryStat label="คำเตือน" value={result.warnCount} className="text-warning" />
+                <SummaryStat label="ติด BLOCK" value={result.blockCount} className="text-destructive" />
+                <SummaryStat label="AI แนะนำ" value={result.aiSuggestCount} className="text-info" />
               </div>
 
               {!result.aiAvailable && (
-                <p className="text-sm text-muted-foreground mb-4">
+                <p className="mb-4 text-sm text-muted-foreground">
                   AI Review unavailable{result.aiUnavailableReason ? `: ${result.aiUnavailableReason}` : ''} —
                   ยังตรวจสอบผลจาก Layer 1/2 ได้ตามปกติ
                 </p>
               )}
 
-              <div className="flex items-center gap-2 mb-4">
+              <div className="mb-4 flex items-center gap-2">
                 <Button variant="outline" onClick={handleDownloadAnnotated} disabled={isDownloading}>
-                  <DownloadIcon className="h-4 w-4 mr-2" />
+                  <DownloadIcon className="mr-2 h-4 w-4" />
                   ดาวน์โหลดไฟล์ Annotated Excel
                 </Button>
-                <Button
-                  onClick={handleConfirm}
-                  disabled={!result.canConfirm || confirmMutation.isPending}
-                >
-                  <CheckIcon className="h-4 w-4 mr-2" />
+                <Button onClick={handleConfirm} disabled={!result.canConfirm || confirmMutation.isPending}>
+                  <CheckIcon className="mr-2 h-4 w-4" />
                   ยืนยันนำเข้า
                 </Button>
                 <Button variant="destructive" onClick={handleCancel} disabled={cancelMutation.isPending}>
-                  <XIcon className="h-4 w-4 mr-2" />
+                  <XIcon className="mr-2 h-4 w-4" />
                   ยกเลิก
                 </Button>
               </div>
 
               {!result.canConfirm && (
-                <p className="text-sm text-destructive mb-4">
+                <p className="mb-4 text-sm text-destructive">
                   ไม่สามารถยืนยันนำเข้าได้ — มีแถวที่ติดสถานะ BLOCK กรุณาแก้ไขและอัปโหลดใหม่
                 </p>
               )}
@@ -492,14 +508,10 @@ export default function ImportReviewPage() {
                       <TableCell>{finding.row}</TableCell>
                       <TableCell>{finding.column}</TableCell>
                       <TableCell>
-                        <Badge variant={FINDING_BADGE_VARIANT[finding.level] ?? 'default'}>
-                          {finding.level}
-                        </Badge>
+                        <Badge variant={FINDING_BADGE_VARIANT[finding.level] ?? 'default'}>{finding.level}</Badge>
                       </TableCell>
                       <TableCell>{finding.message}</TableCell>
-                      <TableCell>
-                        {finding.suggestedValue != null ? String(finding.suggestedValue) : '-'}
-                      </TableCell>
+                      <TableCell>{finding.suggestedValue != null ? String(finding.suggestedValue) : '-'}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -515,20 +527,20 @@ export default function ImportReviewPage() {
             <CardTitle className="text-base">3. ผลการยืนยันนำเข้า</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
               <SummaryStat label="Batch ID" value={confirmResult.batchId} />
               <SummaryStat label="ทั้งหมด" value={confirmResult.totalRows} />
-              <SummaryStat label="นำเข้าสำเร็จ" value={confirmResult.enqueuedCount} className="text-green-600" />
+              <SummaryStat label="นำเข้าสำเร็จ" value={confirmResult.enqueuedCount} className="text-success" />
               <SummaryStat
                 label="กักกัน (Quarantine)"
                 value={confirmResult.quarantinedCount}
-                className={confirmResult.quarantinedCount > 0 ? 'text-amber-600' : undefined}
+                className={confirmResult.quarantinedCount > 0 ? 'text-warning' : undefined}
               />
             </div>
 
             {confirmResult.quarantinedCount > 0 && confirmResult.failedRowsDownloadUrl && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-                <p className="text-sm text-amber-800 mb-2">
+              <div className="rounded-lg border border-warning/30 bg-warning/10 p-3">
+                <p className="mb-2 text-sm text-warning">
                   มี {confirmResult.quarantinedCount} แถวถูกกักกันไว้ (D6) — ดาวน์โหลดไฟล์เพื่อตรวจสอบและแก้ไขย้อนหลัง
                 </p>
                 <Button
@@ -537,7 +549,7 @@ export default function ImportReviewPage() {
                   onClick={handleDownloadFailedRows}
                   disabled={isDownloadingFailedRows}
                 >
-                  <DownloadIcon className="h-4 w-4 mr-2" />
+                  <DownloadIcon className="mr-2 h-4 w-4" />
                   ดาวน์โหลด failed_rows.xlsx
                 </Button>
               </div>
@@ -553,19 +565,11 @@ export default function ImportReviewPage() {
   );
 }
 
-function SummaryStat({
-  label,
-  value,
-  className,
-}: {
-  label: string;
-  value: number | string;
-  className?: string;
-}) {
+function SummaryStat({ label, value, className }: { label: string; value: number | string; className?: string }) {
   return (
     <div className="rounded-lg border p-3">
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className={`text-2xl font-bold truncate ${className ?? ''}`}>{value}</p>
+      <p className={`truncate text-2xl font-bold ${className ?? ''}`}>{value}</p>
     </div>
   );
 }
@@ -580,14 +584,7 @@ interface FolderTreeProps {
   depth?: number;
 }
 
-function FolderTree({
-  nodes,
-  expanded,
-  onToggle,
-  selectedPath,
-  onSelect,
-  depth = 0,
-}: FolderTreeProps) {
+function FolderTree({ nodes, expanded, onToggle, selectedPath, onSelect, depth = 0 }: FolderTreeProps) {
   return (
     <ul className={depth === 0 ? '' : 'ml-3 border-l border-border/40 pl-1'}>
       {nodes.map((node) => {
@@ -597,8 +594,8 @@ function FolderTree({
         return (
           <li key={node.path}>
             <div
-              className={`flex items-center gap-1 rounded px-1.5 py-1 text-xs cursor-pointer hover:bg-accent ${
-                isSelected ? 'bg-primary/15 text-primary font-medium' : ''
+              className={`flex cursor-pointer items-center gap-1 rounded px-1.5 py-1 text-xs hover:bg-accent ${
+                isSelected ? 'bg-primary/15 font-medium text-primary' : ''
               }`}
               style={{ paddingLeft: `${depth * 12 + 6}px` }}
               onClick={() => onSelect(node.path)}
@@ -621,11 +618,7 @@ function FolderTree({
                   }}
                   aria-label={isExpanded ? 'ย่อ' : 'ขยาย'}
                 >
-                  {isExpanded ? (
-                    <ChevronDown className="h-3.5 w-3.5" />
-                  ) : (
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  )}
+                  {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
                 </button>
               ) : (
                 <span className="inline-block w-[22px] shrink-0" />

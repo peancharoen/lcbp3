@@ -78,9 +78,7 @@ export function DistributionStatus({ rfaPublicId: _rfaPublicId, distribution, is
             </span>
           )}
         </div>
-        {distribution.error && (
-          <p className="mt-1 text-xs text-destructive">{distribution.error}</p>
-        )}
+        {distribution.error && <p className="mt-1 text-xs text-destructive">{distribution.error}</p>}
       </CardContent>
     </Card>
   );

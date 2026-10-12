@@ -16,25 +16,15 @@ import {
   useShopSubCategories,
   useProjects,
 } from '@/hooks/use-master-data';
-import {
-  ShopMainCategory,
-  ShopSubCategory,
-  ContractDrawingCategory,
-} from '@/types/master-data';
+import { ShopMainCategory, ShopSubCategory, ContractDrawingCategory } from '@/types/master-data';
 import { useState, useEffect, useMemo } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { filesApi } from '@/lib/api/files';
 import { toast } from 'sonner';
-import {
-  CreateContractDrawingDto,
-} from '@/types/dto/drawing/contract-drawing.dto';
-import {
-  CreateShopDrawingDto,
-} from '@/types/dto/drawing/shop-drawing.dto';
-import {
-  CreateAsBuiltDrawingDto,
-} from '@/types/dto/drawing/asbuilt-drawing.dto';
+import { CreateContractDrawingDto } from '@/types/dto/drawing/contract-drawing.dto';
+import { CreateShopDrawingDto } from '@/types/dto/drawing/shop-drawing.dto';
+import { CreateAsBuiltDrawingDto } from '@/types/dto/drawing/asbuilt-drawing.dto';
 
 // Base Schema
 const baseSchema = z.object({
@@ -200,7 +190,7 @@ export function DrawingUploadForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="max-w-3xl space-y-6">
       <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4">Drawing Information</h3>
+        <h3 className="mb-4 text-lg font-semibold">Drawing Information</h3>
 
         <div className="space-y-4">
           {/* Project Selector */}
@@ -215,14 +205,16 @@ export function DrawingUploadForm() {
                 )}
               </SelectTrigger>
               <SelectContent>
-                {projects.map((project: { publicId?: string; id?: number; projectCode: string; projectName: string }) => {
-                const projectValue = String(project.publicId ?? project.id ?? '');
-                return (
-                  <SelectItem key={projectValue} value={projectValue}>
-                    {project.projectCode} - {project.projectName}
-                  </SelectItem>
-                );
-              })}
+                {projects.map(
+                  (project: { publicId?: string; id?: number; projectCode: string; projectName: string }) => {
+                    const projectValue = String(project.publicId ?? project.id ?? '');
+                    return (
+                      <SelectItem key={projectValue} value={projectValue}>
+                        {project.projectCode} - {project.projectName}
+                      </SelectItem>
+                    );
+                  }
+                )}
               </SelectContent>
             </Select>
             {errors.projectId && <p className="text-sm text-destructive">{errors.projectId.message}</p>}
@@ -251,7 +243,7 @@ export function DrawingUploadForm() {
           {/* CONTRACT FIELDS */}
           {drawingType === 'CONTRACT' && (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                   <Label>Contract Drawing No *</Label>
                   <Input {...register('contractDrawingNo')} placeholder="e.g. CD-001" />
@@ -266,7 +258,7 @@ export function DrawingUploadForm() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                   <Label>Category *</Label>
                   <Select onValueChange={(v) => setValue('mapCatId', v)}>
@@ -300,7 +292,7 @@ export function DrawingUploadForm() {
           {/* SHOP FIELDS */}
           {drawingType === 'SHOP' && (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                   <Label>Shop Drawing No *</Label>
                   <Input {...register('drawingNumber')} placeholder="e.g. SD-101" />
@@ -314,7 +306,7 @@ export function DrawingUploadForm() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                   <Label>Main Category *</Label>
                   <Select
@@ -374,7 +366,7 @@ export function DrawingUploadForm() {
           {/* AS BUILT FIELDS */}
           {drawingType === 'AS_BUILT' && (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                   <Label>Drawing No *</Label>
                   <Input {...register('drawingNumber')} placeholder="e.g. AB-101" />
@@ -388,7 +380,7 @@ export function DrawingUploadForm() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                   <Label>Main Category *</Label>
                   <Select
@@ -456,7 +448,7 @@ export function DrawingUploadForm() {
                 if (file) setValue('file', file);
               }}
             />
-            {errors.file && <p className="text-sm text-destructive mt-1">{errors.file.message}</p>}
+            {errors.file && <p className="mt-1 text-sm text-destructive">{errors.file.message}</p>}
           </div>
         </div>
       </Card>

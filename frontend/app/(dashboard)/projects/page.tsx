@@ -159,7 +159,7 @@ export default function ProjectsPage() {
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <Progress value={project.progress} className="h-2" />
-                    <span className="text-xs text-muted-foreground w-[30px] text-right">{project.progress}%</span>
+                    <span className="w-[30px] text-right text-xs text-muted-foreground">{project.progress}%</span>
                   </div>
                 </TableCell>
                 <TableCell className="text-right">
@@ -215,7 +215,7 @@ export default function ProjectsPage() {
             className="cursor-pointer active:bg-muted/50"
           >
             <CardHeader className="pb-2">
-              <div className="flex justify-between items-start">
+              <div className="flex items-start justify-between">
                 <div>
                   <CardTitle className="text-base font-bold">{project.projectCode}</CardTitle>
                   <CardDescription className="mt-1 line-clamp-2">{project.projectName}</CardDescription>
@@ -225,7 +225,7 @@ export default function ProjectsPage() {
                 </Badge>
               </div>
             </CardHeader>
-            <CardContent className="pb-2 space-y-4">
+            <CardContent className="space-y-4 pb-2">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Folder className="h-4 w-4" />
                 <span>{project.contractorName}</span>
@@ -238,7 +238,7 @@ export default function ProjectsPage() {
               </div>
               <div className="space-y-1">
                 <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground flex items-center gap-1">
+                  <span className="flex items-center gap-1 text-muted-foreground">
                     <BarChart3 className="h-3 w-3" /> Progress
                   </span>
                   <span className="font-medium">{project.progress}%</span>
@@ -247,7 +247,7 @@ export default function ProjectsPage() {
               </div>
             </CardContent>
             <CardFooter className="pt-2">
-              <Button variant="ghost" size="sm" className="w-full ml-auto">
+              <Button variant="ghost" size="sm" className="ml-auto w-full">
                 View Details
               </Button>
             </CardFooter>

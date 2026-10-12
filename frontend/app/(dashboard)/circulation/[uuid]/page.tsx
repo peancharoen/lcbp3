@@ -124,11 +124,11 @@ export default function CirculationDetailPage() {
       <div className="space-y-4">
         <Link href="/circulation">
           <Button variant="ghost">
-            <ArrowLeft className="h-4 w-4 mr-2" />
+            <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Circulations
           </Button>
         </Link>
-        <div className="bg-destructive/10 text-destructive px-4 py-3 rounded-md">
+        <div className="rounded-md bg-destructive/10 px-4 py-3 text-destructive">
           Failed to load circulation details.
         </div>
       </div>
@@ -153,7 +153,7 @@ export default function CirculationDetailPage() {
       <div className="flex items-center justify-between">
         <Link href="/circulation">
           <Button variant="ghost" size="sm">
-            <ArrowLeft className="h-4 w-4 mr-2" />
+            <ArrowLeft className="mr-2 h-4 w-4" />
             {t('common.back')}
           </Button>
         </Link>
@@ -171,108 +171,107 @@ export default function CirculationDetailPage() {
           <TabsTrigger value="workflow">Workflow</TabsTrigger>
         </TabsList>
         <TabsContent value="details" className="space-y-4">
-
-      {/* Info Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Circulation Details</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2">
-          <div>
-            <p className="text-sm text-muted-foreground">Organization</p>
-            <p className="font-medium">{circulation.organization?.organizationName || '-'}</p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Created By</p>
-            <p className="font-medium">
-              {circulation.creator
-                ? `${circulation.creator.firstName || ''} ${circulation.creator.lastName || ''}`.trim() ||
-                  circulation.creator.username
-                : '-'}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Created At</p>
-            <p className="font-medium">{format(new Date(circulation.createdAt), 'dd MMM yyyy, HH:mm')}</p>
-          </div>
-          {circulation.correspondence && (
-            <div>
-              <p className="text-sm text-muted-foreground">Linked Document</p>
-              <Link
-                href={`/correspondences/${circulation.correspondence.publicId}`}
-                className="font-medium text-primary hover:underline"
-              >
-                {circulation.correspondence.correspondenceNumber}
-              </Link>
-            </div>
-          )}
-          {circulation.deadlineDate && (
-            <div>
-              <p className="text-sm text-muted-foreground">Deadline</p>
-              <p className="font-medium flex items-center gap-1">
-                {format(parseISO(circulation.deadlineDate), 'dd MMM yyyy')}
-                {isOverdue(circulation.deadlineDate) && (
-                  <Badge variant="destructive" className="text-xs ml-1">
-                    <AlertCircle className="h-3 w-3 mr-1" />
-                    Overdue
-                  </Badge>
-                )}
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Assignees/Routings */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Assignees</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {circulation.routings && circulation.routings.length > 0 ? (
-            <div className="space-y-3">
-              {circulation.routings.map((routing) => (
-                <div key={routing.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarFallback>
-                        {getInitials(routing.assignee?.firstName, routing.assignee?.lastName)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium">
-                        {routing.assignee
-                          ? `${routing.assignee.firstName || ''} ${routing.assignee.lastName || ''}`.trim() ||
-                            routing.assignee.username
-                          : 'Unassigned'}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Step {routing.stepNumber}
-                        {routing.comments && ` • ${routing.comments}`}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={getStatusVariant(routing.status)}>{routing.status}</Badge>
-                    {routing.status === 'PENDING' && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleComplete(routing.id)}
-                        disabled={completeMutation.isPending}
-                      >
-                        <CheckCircle2 className="h-4 w-4 mr-1" />
-                        Complete
-                      </Button>
-                    )}
-                  </div>
+          {/* Info Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Circulation Details</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-2">
+              <div>
+                <p className="text-sm text-muted-foreground">Organization</p>
+                <p className="font-medium">{circulation.organization?.organizationName || '-'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Created By</p>
+                <p className="font-medium">
+                  {circulation.creator
+                    ? `${circulation.creator.firstName || ''} ${circulation.creator.lastName || ''}`.trim() ||
+                      circulation.creator.username
+                    : '-'}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Created At</p>
+                <p className="font-medium">{format(new Date(circulation.createdAt), 'dd MMM yyyy, HH:mm')}</p>
+              </div>
+              {circulation.correspondence && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Linked Document</p>
+                  <Link
+                    href={`/correspondences/${circulation.correspondence.publicId}`}
+                    className="font-medium text-primary hover:underline"
+                  >
+                    {circulation.correspondence.correspondenceNumber}
+                  </Link>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-muted-foreground">No assignees found</p>
-          )}
-        </CardContent>
-      </Card>
+              )}
+              {circulation.deadlineDate && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Deadline</p>
+                  <p className="flex items-center gap-1 font-medium">
+                    {format(parseISO(circulation.deadlineDate), 'dd MMM yyyy')}
+                    {isOverdue(circulation.deadlineDate) && (
+                      <Badge variant="destructive" className="ml-1 text-xs">
+                        <AlertCircle className="mr-1 h-3 w-3" />
+                        Overdue
+                      </Badge>
+                    )}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Assignees/Routings */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Assignees</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {circulation.routings && circulation.routings.length > 0 ? (
+                <div className="space-y-3">
+                  {circulation.routings.map((routing) => (
+                    <div key={routing.id} className="flex items-center justify-between rounded-lg border p-3">
+                      <div className="flex items-center gap-3">
+                        <Avatar>
+                          <AvatarFallback>
+                            {getInitials(routing.assignee?.firstName, routing.assignee?.lastName)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium">
+                            {routing.assignee
+                              ? `${routing.assignee.firstName || ''} ${routing.assignee.lastName || ''}`.trim() ||
+                                routing.assignee.username
+                              : 'Unassigned'}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Step {routing.stepNumber}
+                            {routing.comments && ` • ${routing.comments}`}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={getStatusVariant(routing.status)}>{routing.status}</Badge>
+                        {routing.status === 'PENDING' && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleComplete(routing.id)}
+                            disabled={completeMutation.isPending}
+                          >
+                            <CheckCircle2 className="mr-1 h-4 w-4" />
+                            Complete
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground">No assignees found</p>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
         <TabsContent value="workflow">
           {/* ADR-021: WorkflowLifecycle — wired with history data (v1.8.7) */}

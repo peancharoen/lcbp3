@@ -51,7 +51,7 @@ export function AiSuggestionButton({
           <span className="sr-only">{disabledMessage}</span>
         </span>
       </HoverCardTrigger>
-      <HoverCardContent className="border-amber-200 bg-amber-50 text-amber-900">
+      <HoverCardContent className="border-warning/30 bg-warning/10 text-warning">
         <p className="text-sm">{disabledMessage}</p>
       </HoverCardContent>
     </HoverCard>

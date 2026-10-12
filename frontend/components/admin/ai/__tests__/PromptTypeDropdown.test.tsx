@@ -15,10 +15,28 @@ vi.mock('@/hooks/use-translations', () => ({
 vi.mock('@tanstack/react-query', () => ({
   useQuery: vi.fn().mockReturnValue({
     data: [
-      { publicId: '1', promptType: 'ocr_extraction', displayName: 'OCR Extraction', isSystemManaged: true, isActive: true },
-      { publicId: '2', promptType: 'rag_query_prompt', displayName: 'RAG Query', isSystemManaged: true, isActive: true },
+      {
+        publicId: '1',
+        promptType: 'ocr_extraction',
+        displayName: 'OCR Extraction',
+        isSystemManaged: true,
+        isActive: true,
+      },
+      {
+        publicId: '2',
+        promptType: 'rag_query_prompt',
+        displayName: 'RAG Query',
+        isSystemManaged: true,
+        isActive: true,
+      },
       { publicId: '3', promptType: 'rag_prep_prompt', displayName: 'RAG Prep', isSystemManaged: true, isActive: true },
-      { publicId: '4', promptType: 'classification_prompt', displayName: 'Classification', isSystemManaged: true, isActive: true },
+      {
+        publicId: '4',
+        promptType: 'classification_prompt',
+        displayName: 'Classification',
+        isSystemManaged: true,
+        isActive: true,
+      },
     ],
     isLoading: false,
   }),

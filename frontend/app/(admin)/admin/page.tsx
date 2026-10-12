@@ -20,8 +20,8 @@ export default function AdminPage() {
       icon: Users,
       loading: usersLoading,
       href: '/admin/access-control/users',
-      color: 'text-blue-600',
-      bg: 'bg-blue-50 dark:bg-blue-950/30',
+      color: 'text-info',
+      bg: 'bg-info/10',
     },
     {
       title: 'องค์กร',
@@ -30,8 +30,8 @@ export default function AdminPage() {
       icon: Building2,
       loading: orgsLoading,
       href: '/admin/access-control/organizations',
-      color: 'text-emerald-600',
-      bg: 'bg-emerald-50 dark:bg-emerald-950/30',
+      color: 'text-success',
+      bg: 'bg-success/10',
     },
     {
       title: 'บันทึกการปฏิบัติการ',
@@ -51,7 +51,7 @@ export default function AdminPage() {
       sublabel: 'Identity & Access',
       href: '/admin/access-control/users',
       icon: Shield,
-      color: 'text-blue-600',
+      color: 'text-info',
       hoverBorder: 'hover:border-l-blue-500',
       description: 'จัดการผู้ใช้, บทบาท, สิทธิ์ และองค์กรในระบบ',
     },
@@ -78,7 +78,7 @@ export default function AdminPage() {
       sublabel: 'Drawing Master',
       href: '/admin/doc-control/drawings/contract/volumes',
       icon: Ruler,
-      color: 'text-amber-600',
+      color: 'text-warning',
       hoverBorder: 'hover:border-l-amber-500',
       description: 'Volume, หมวดหมู่ และหมวดหมู่ย่อย สำหรับ Contract & Shop Drawing',
     },
@@ -87,7 +87,7 @@ export default function AdminPage() {
       sublabel: 'Operations',
       href: '/admin/monitoring/audit-logs',
       icon: Activity,
-      color: 'text-rose-600',
+      color: 'text-destructive',
       hoverBorder: 'hover:border-l-rose-500',
       description: 'Audit Log, System Log, Active Sessions และ Migration Queue',
     },
@@ -106,18 +106,18 @@ export default function AdminPage() {
     <div className="space-y-8 p-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
-        <p className="text-muted-foreground mt-1">ภาพรวมระบบและเมนูลัดสำหรับงานบริหารจัดการ</p>
+        <p className="mt-1 text-muted-foreground">ภาพรวมระบบและเมนูลัดสำหรับงานบริหารจัดการ</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {stats.map((stat) => (
-          <Card key={stat.title} className="hover:shadow-md transition-shadow">
+          <Card key={stat.title} className="transition-shadow hover:shadow-md">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <div>
                 <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
                 <p className="text-xs text-muted-foreground">{stat.subtitle}</p>
               </div>
-              <div className={`p-2 rounded-lg ${stat.bg}`}>
+              <div className={`rounded-lg p-2 ${stat.bg}`}>
                 <stat.icon className={`h-4 w-4 ${stat.color}`} />
               </div>
             </CardHeader>
@@ -128,7 +128,7 @@ export default function AdminPage() {
                 <div className="text-2xl font-bold">{stat.value}</div>
               )}
               {stat.href && (
-                <Link href={stat.href} className="text-xs text-muted-foreground hover:underline mt-1 inline-block">
+                <Link href={stat.href} className="mt-1 inline-block text-xs text-muted-foreground hover:underline">
                   ดูรายละเอียด
                 </Link>
               )}
@@ -138,25 +138,31 @@ export default function AdminPage() {
       </div>
 
       <div>
-        <h2 className="text-xl font-semibold mb-1">เมนูหลัก</h2>
-        <p className="text-sm text-muted-foreground mb-4">เลือกกลุ่มงานที่ต้องการจัดการ</p>
+        <h2 className="mb-1 text-xl font-semibold">เมนูหลัก</h2>
+        <p className="mb-4 text-sm text-muted-foreground">เลือกกลุ่มงานที่ต้องการจัดการ</p>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {groups.map((group) => (
             <Link key={group.href} href={group.href}>
-              <Card className={`h-full hover:bg-muted/50 transition-colors cursor-pointer border-l-4 border-l-transparent ${group.hoverBorder}`}>
+              <Card
+                className={`h-full cursor-pointer border-l-4 border-l-transparent transition-colors hover:bg-muted/50 ${group.hoverBorder}`}
+              >
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2">
                     <group.icon className={`h-5 w-5 ${group.color}`} />
                     <span className="flex flex-col">
                       <span className="text-base font-semibold leading-tight">{group.label}</span>
-                      <span className="text-xs font-normal text-muted-foreground leading-tight">{group.sublabel}</span>
+                      <span className="text-xs font-normal leading-tight text-muted-foreground">{group.sublabel}</span>
                     </span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground">{group.description}</p>
-                  <Button variant="ghost" className="mt-3 p-0 h-auto font-normal text-primary hover:no-underline group/btn">
-                    เข้าสู่เมนู <ArrowRight className="ml-1 h-3 w-3 group-hover/btn:translate-x-1 transition-transform" />
+                  <Button
+                    variant="ghost"
+                    className="group/btn mt-3 h-auto p-0 font-normal text-primary hover:no-underline"
+                  >
+                    เข้าสู่เมนู{' '}
+                    <ArrowRight className="ml-1 h-3 w-3 transition-transform group-hover/btn:translate-x-1" />
                   </Button>
                 </CardContent>
               </Card>

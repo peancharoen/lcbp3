@@ -99,13 +99,13 @@ export function Sidebar({ className }: SidebarProps) {
   return (
     <div
       className={cn(
-        'hidden md:flex flex-col h-screen border-r bg-card transition-all duration-300',
+        'hidden h-screen flex-col border-r bg-card transition-all duration-300 md:flex',
         collapsed ? 'w-16' : 'w-64',
         className
       )}
     >
-      <div className="h-16 flex items-center justify-between px-4 border-b">
-        {!collapsed && <span className="text-lg font-bold text-primary truncate">LCBP3 DMS</span>}
+      <div className="flex h-16 items-center justify-between border-b px-4">
+        {!collapsed && <span className="truncate text-lg font-bold text-primary">LCBP3 DMS</span>}
         <Button
           variant="ghost"
           size="icon"
@@ -124,12 +124,8 @@ export function Sidebar({ className }: SidebarProps) {
             const baseHref = item.href.split('?')[0];
             const isRfaSubRoute = item.matchType === 'RFA' && pathname.startsWith('/rfas');
             const isBaseActive = pathname.startsWith(baseHref) || isRfaSubRoute;
-            const isTypeMatched =
-              !item.matchType ||
-              currentType === item.matchType.toUpperCase() ||
-              isRfaSubRoute;
-            const isTypeExcluded =
-              !!item.excludeType && currentType === item.excludeType.toUpperCase();
+            const isTypeMatched = !item.matchType || currentType === item.matchType.toUpperCase() || isRfaSubRoute;
+            const isTypeExcluded = !!item.excludeType && currentType === item.excludeType.toUpperCase();
             const isActive = isBaseActive && isTypeMatched && !isTypeExcluded;
 
             const LinkComponent = (
@@ -161,7 +157,7 @@ export function Sidebar({ className }: SidebarProps) {
         </nav>
       </div>
 
-      <div className="p-4 border-t">
+      <div className="border-t p-4">
         <Link
           href="/settings"
           className={cn(
@@ -198,10 +194,10 @@ export function MobileSidebar() {
       </SheetTrigger>
       <SheetContent side="left" className="w-64 p-0">
         <SheetTitle className="sr-only">Mobile Navigation</SheetTitle>
-        <div className="h-16 flex items-center px-4 border-b">
-          <span className="text-lg font-bold text-primary truncate">LCBP3 DMS</span>
+        <div className="flex h-16 items-center border-b px-4">
+          <span className="truncate text-lg font-bold text-primary">LCBP3 DMS</span>
         </div>
-        <div className="flex-1 overflow-y-auto py-4 h-[calc(100vh-4rem)]">
+        <div className="h-[calc(100vh-4rem)] flex-1 overflow-y-auto py-4">
           <nav className="grid gap-1 px-2">
             {mainNavItems.map((item) => {
               if (item.adminOnly && !isAdmin) return null;
@@ -209,12 +205,8 @@ export function MobileSidebar() {
               const baseHref = item.href.split('?')[0];
               const isRfaSubRoute = item.matchType === 'RFA' && pathname.startsWith('/rfas');
               const isBaseActive = pathname.startsWith(baseHref) || isRfaSubRoute;
-              const isTypeMatched =
-                !item.matchType ||
-                currentType === item.matchType.toUpperCase() ||
-                isRfaSubRoute;
-              const isTypeExcluded =
-                !!item.excludeType && currentType === item.excludeType.toUpperCase();
+              const isTypeMatched = !item.matchType || currentType === item.matchType.toUpperCase() || isRfaSubRoute;
+              const isTypeExcluded = !!item.excludeType && currentType === item.excludeType.toUpperCase();
               const isActive = isBaseActive && isTypeMatched && !isTypeExcluded;
 
               const LinkComponent = (
@@ -244,7 +236,7 @@ export function MobileSidebar() {
             })}
           </nav>
 
-          <div className="p-4 mt-auto border-t absolute bottom-0 w-full left-0 bg-background">
+          <div className="absolute bottom-0 left-0 mt-auto w-full border-t bg-background p-4">
             <Link
               href="/settings"
               onClick={() => setOpen(false)}

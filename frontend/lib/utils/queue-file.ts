@@ -6,10 +6,7 @@
 
 import type { MigrationReviewQueueItem } from '@/types/migration';
 
-type QueueItemLike = Pick<
-  MigrationReviewQueueItem,
-  'details' | 'originalFilename' | 'storageTempPath'
->;
+type QueueItemLike = Pick<MigrationReviewQueueItem, 'details' | 'originalFilename' | 'storageTempPath'>;
 
 /** shape ของ attachment metadata ที่ backend enrichWithAttachments ฉีดใน details */
 export interface QueueAttachmentRef {
@@ -26,9 +23,7 @@ export function getQueueAttachments(item: QueueItemLike): QueueAttachmentRef[] {
   if (!details || typeof details !== 'object') return [];
   const attachments = (details as Record<string, unknown>)['attachments'];
   if (!Array.isArray(attachments)) return [];
-  return attachments.filter(
-    (a): a is QueueAttachmentRef => typeof a === 'object' && a !== null
-  );
+  return attachments.filter((a): a is QueueAttachmentRef => typeof a === 'object' && a !== null);
 }
 
 /**
@@ -47,15 +42,11 @@ export function hasQueueFile(item: QueueItemLike): boolean {
  */
 export function getQueueFileName(item: QueueItemLike): string | undefined {
   const attachments = getQueueAttachments(item);
-  const main =
-    attachments.find((a) => a.isMainDocument) ?? attachments[0];
+  const main = attachments.find((a) => a.isMainDocument) ?? attachments[0];
   if (typeof main?.originalFilename === 'string' && main.originalFilename.trim() !== '') {
     return main.originalFilename;
   }
-  if (
-    typeof item.originalFilename === 'string' &&
-    item.originalFilename.trim() !== ''
-  ) {
+  if (typeof item.originalFilename === 'string' && item.originalFilename.trim() !== '') {
     return item.originalFilename;
   }
   const path = item.storageTempPath;

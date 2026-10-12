@@ -41,8 +41,7 @@ export function useSubmitRFA() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ uuid, data }: { uuid: string; data: SubmitRfaDto }) =>
-      rfaService.submit(uuid, data),
+    mutationFn: ({ uuid, data }: { uuid: string; data: SubmitRfaDto }) => rfaService.submit(uuid, data),
     onSuccess: (_, { uuid }) => {
       toast.success('RFA submitted successfully');
       queryClient.invalidateQueries({ queryKey: rfaKeys.detail(uuid) });

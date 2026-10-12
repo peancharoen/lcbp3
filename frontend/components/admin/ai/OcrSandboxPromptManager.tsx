@@ -109,22 +109,20 @@ const DEFAULT_OCR_TEMPLATE = `คุณคือเอนจิ้นสกั�
 export default function OcrSandboxPromptManager() {
   const t = useTranslations();
   const promptType = 'ocr_extraction';
-  const {
-    versionsQuery,
-    createMutation,
-    activateMutation,
-    deleteMutation,
-    updateNoteMutation,
-  } = useAiPrompts(promptType);
+  const { versionsQuery, createMutation, activateMutation, deleteMutation, updateNoteMutation } =
+    useAiPrompts(promptType);
   const versionsData = versionsQuery.data;
   const versions = Array.isArray(versionsData)
     ? versionsData
-    : (versionsData && typeof versionsData === 'object' && 'data' in versionsData && Array.isArray((versionsData as { data: unknown }).data))
-    ? (versionsData as { data: AiPrompt[] }).data
-    : [];
-  const activePrompt = versions.find(
-    (v) => v.isActive === true || (v.isActive as unknown) === 1 || (v.isActive as unknown) === '1'
-  ) || versions[0];
+    : versionsData &&
+        typeof versionsData === 'object' &&
+        'data' in versionsData &&
+        Array.isArray((versionsData as { data: unknown }).data)
+      ? (versionsData as { data: AiPrompt[] }).data
+      : [];
+  const activePrompt =
+    versions.find((v) => v.isActive === true || (v.isActive as unknown) === 1 || (v.isActive as unknown) === '1') ||
+    versions[0];
   const [templateText, setTemplateText] = useState<string>('');
   const [loadedPromptKey, setLoadedPromptKey] = useState<string | null>(null);
   const [ocrFile, setOcrFile] = useState<File | null>(null);
@@ -177,7 +175,8 @@ export default function OcrSandboxPromptManager() {
   }, [profileName]);
 
   useEffect(() => {
-    adminAiService.getSandboxProfile(profileName)
+    adminAiService
+      .getSandboxProfile(profileName)
       .then((params) => {
         setSandboxParams(params);
         setSandboxParamsDraft({
@@ -189,7 +188,9 @@ export default function OcrSandboxPromptManager() {
           keepAliveSeconds: params.keepAliveSeconds,
         });
       })
-      .catch(() => { /* ไม่ต้องแสดง error — อาจเป็น 403 หาก feature ยังไม่เปิด */ });
+      .catch(() => {
+        /* ไม่ต้องแสดง error — อาจเป็น 403 หาก feature ยังไม่เปิด */
+      });
 
     fetchProdParams();
   }, [profileName, fetchProdParams]);
@@ -209,7 +210,11 @@ export default function OcrSandboxPromptManager() {
   }, [profileName, sandboxParamsDraft]);
 
   const handleApplyParams = useCallback(async () => {
-    if (!confirm(`Are you sure you want to apply sandbox draft parameters for ${profileName} to production? This will immediately affect live production jobs.`)) {
+    if (
+      !confirm(
+        `Are you sure you want to apply sandbox draft parameters for ${profileName} to production? This will immediately affect live production jobs.`
+      )
+    ) {
       return;
     }
     setIsApplyingParams(true);
@@ -249,16 +254,8 @@ export default function OcrSandboxPromptManager() {
     const base = [{ value: 'auto', label: 'Auto (Current Baseline)' }];
     if (!ocrEnginesData) return base;
     const mapped = ocrEnginesData.map((e: OcrEngineResponse) => {
-      const value =
-        e.engineType === 'fast_path'
-          ? 'auto'
-          : e.engineType === 'np_dms_ocr'
-          ? 'np-dms-ocr'
-          : e.engineType;
-      const vramLabel =
-        e.vramRequirementMB > 0
-          ? ` (${(e.vramRequirementMB / 1024).toFixed(1)} GB VRAM)`
-          : '';
+      const value = e.engineType === 'fast_path' ? 'auto' : e.engineType === 'np_dms_ocr' ? 'np-dms-ocr' : e.engineType;
+      const vramLabel = e.vramRequirementMB > 0 ? ` (${(e.vramRequirementMB / 1024).toFixed(1)} GB VRAM)` : '';
       const activeLabel = e.isCurrentActive ? ' ✓' : '';
       return { value, label: `${e.engineName}${vramLabel}${activeLabel}` };
     });
@@ -272,12 +269,16 @@ export default function OcrSandboxPromptManager() {
     fallbackUsed?: boolean;
   } | null>(null);
   const [selectedPromptVersion, setSelectedPromptVersion] = useState<number | undefined>(undefined);
-  const { state: sandboxState, jobId: sandboxJobId, reset: resetSandbox, startPolling } =
-    useSandboxRun(() => {
-      // เมื่อ sandbox เสร็จสิ้น: รีเฟรชรายการเวอร์ชัน
-      versionsQuery.refetch();
-      toast.success(t('ai.prompt.sandboxSuccess'));
-    });
+  const {
+    state: sandboxState,
+    jobId: sandboxJobId,
+    reset: resetSandbox,
+    startPolling,
+  } = useSandboxRun(() => {
+    // เมื่อ sandbox เสร็จสิ้น: รีเฟรชรายการเวอร์ชัน
+    versionsQuery.refetch();
+    toast.success(t('ai.prompt.sandboxSuccess'));
+  });
   useEffect(() => {
     if (!versionsQuery.isSuccess) return;
     if (activePrompt) {
@@ -354,14 +355,11 @@ export default function OcrSandboxPromptManager() {
     try {
       resetSandbox();
       setSandboxStep('ocr');
-      const ocrOptions = selectedOcrEngine === 'np-dms-ocr'
-        ? { temperature: ocrTemperature, topP: ocrTopP, repeatPenalty: ocrRepeatPenalty }
-        : undefined;
-      const { requestPublicId } = await adminAiService.submitSandboxOcr(
-        ocrFile,
-        selectedOcrEngine,
-        ocrOptions
-      );
+      const ocrOptions =
+        selectedOcrEngine === 'np-dms-ocr'
+          ? { temperature: ocrTemperature, topP: ocrTopP, repeatPenalty: ocrRepeatPenalty }
+          : undefined;
+      const { requestPublicId } = await adminAiService.submitSandboxOcr(ocrFile, selectedOcrEngine, ocrOptions);
       toast.success(t('ai.prompt.uploadSuccess'));
       // Poll สำหรับผลลัพธ์ OCR
       const pollInterval = setInterval(async () => {
@@ -439,13 +437,13 @@ export default function OcrSandboxPromptManager() {
   };
   // แปล status key เป็นข้อความตาม locale ปัจจุบัน
   return (
-    <div className="grid gap-6 lg:grid-cols-12 items-start">
-      <div className="lg:col-span-8 space-y-6">
+    <div className="grid items-start gap-6 lg:grid-cols-12">
+      <div className="space-y-6 lg:col-span-8">
         <div className="flex border-b border-border/20">
           <button
             onClick={() => setActiveTab('sandbox')}
             className={cn(
-              'px-4 py-2 text-sm font-semibold border-b-2 -mb-[2px] transition-all',
+              '-mb-[2px] border-b-2 px-4 py-2 text-sm font-semibold transition-all',
               activeTab === 'sandbox'
                 ? 'border-primary text-primary'
                 : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -456,7 +454,7 @@ export default function OcrSandboxPromptManager() {
           <button
             onClick={() => setActiveTab('editor')}
             className={cn(
-              'px-4 py-2 text-sm font-semibold border-b-2 -mb-[2px] transition-all',
+              '-mb-[2px] border-b-2 px-4 py-2 text-sm font-semibold transition-all',
               activeTab === 'editor'
                 ? 'border-primary text-primary'
                 : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -467,8 +465,8 @@ export default function OcrSandboxPromptManager() {
         </div>
         {activeTab === 'editor' ? (
           <Card className="border border-border/50 bg-background/50 backdrop-blur-md">
-            <CardHeader className="pb-3 flex flex-row justify-between items-center">
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold">
                 <ScrollText className="h-4 w-4 text-primary" />
                 {t('ai.prompt.cardTitle')}
               </CardTitle>
@@ -486,15 +484,15 @@ export default function OcrSandboxPromptManager() {
                   disabled={createMutation.isPending}
                   rows={15}
                   placeholder={t('ai.prompt.editorPlaceholder')}
-                  className="font-mono text-xs leading-relaxed resize-none border border-input bg-background/30"
+                  className="resize-none border border-input bg-background/30 font-mono text-xs leading-relaxed"
                 />
-                <div className="flex justify-between items-center text-[10px] text-muted-foreground">
-                  <span className={cn(templateText.includes('{{ocr_text}}') ? 'text-emerald-500' : 'text-amber-500')}>
+                <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                  <span className={cn(templateText.includes('{{ocr_text}}') ? 'text-success' : 'text-warning')}>
                     {templateText.includes('{{ocr_text}}')
                       ? t('ai.prompt.placeholderOk')
                       : t('ai.prompt.placeholderMissing')}
                   </span>
-                  <span className={cn(templateText.length > 4000 ? 'text-destructive font-bold' : '')}>
+                  <span className={cn(templateText.length > 4000 ? 'font-bold text-destructive' : '')}>
                     {t('ai.prompt.charCount', { count: String(templateText.length) })}
                   </span>
                 </div>
@@ -533,7 +531,7 @@ export default function OcrSandboxPromptManager() {
                 {/* Project and Contract Selectors (US4) */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-xs font-semibold text-foreground flex items-center gap-1">
+                    <label className="flex items-center gap-1 text-xs font-semibold text-foreground">
                       Project <span className="text-destructive">*</span>
                     </label>
                     <select
@@ -551,9 +549,7 @@ export default function OcrSandboxPromptManager() {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-semibold text-foreground">
-                      Contract
-                    </label>
+                    <label className="text-xs font-semibold text-foreground">Contract</label>
                     <select
                       value={selectedContractPublicId}
                       onChange={(e) => setSelectedContractPublicId(e.target.value)}
@@ -570,7 +566,7 @@ export default function OcrSandboxPromptManager() {
                   </div>
                 </div>
 
-                <div className="border-t border-border/10 my-4" />
+                <div className="my-4 border-t border-border/10" />
 
                 {sandboxStep === 'ocr' ? (
                   <form onSubmit={handleStep1Ocr} className="space-y-4">
@@ -581,15 +577,17 @@ export default function OcrSandboxPromptManager() {
                           <button
                             type="button"
                             onClick={() => setShowParamPanel((v) => !v)}
-                            className="flex w-full items-center justify-between px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                            className="flex w-full items-center justify-between px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
                           >
                             <span>LLM Sandbox Parameters (production profile draft)</span>
                             <span className="text-[10px]">{showParamPanel ? '\u25b2' : '\u25bc'}</span>
                           </button>
                           {showParamPanel && (
-                            <div className="px-3 pb-3 space-y-3 border-t border-border/20 pt-3">
+                            <div className="space-y-3 border-t border-border/20 px-3 pb-3 pt-3">
                               <div className="space-y-1">
-                                <label className="text-[10px] font-medium text-muted-foreground">Model Profile (T050)</label>
+                                <label className="text-[10px] font-medium text-muted-foreground">
+                                  Model Profile (T050)
+                                </label>
                                 <select
                                   value={selectedModel}
                                   onChange={(e) => setSelectedModel(e.target.value as 'np-dms-ai' | 'np-dms-ocr')}
@@ -602,30 +600,125 @@ export default function OcrSandboxPromptManager() {
 
                               <div className="grid grid-cols-2 gap-3 text-xs">
                                 <div className="space-y-1">
-                                  <div className="flex justify-between"><label>Temperature</label><span className="font-mono text-muted-foreground">{((sandboxParamsDraft.temperature ?? sandboxParams?.temperature) ?? 0).toFixed(2)}</span></div>
-                                  <input type="range" min={0} max={1} step={0.01} value={(sandboxParamsDraft.temperature ?? sandboxParams?.temperature) ?? 0} onChange={(e) => setSandboxParamsDraft((p) => ({ ...p, temperature: parseFloat(e.target.value) }))} className="w-full h-1.5 accent-primary" />
+                                  <div className="flex justify-between">
+                                    <label>Temperature</label>
+                                    <span className="font-mono text-muted-foreground">
+                                      {(sandboxParamsDraft.temperature ?? sandboxParams?.temperature ?? 0).toFixed(2)}
+                                    </span>
+                                  </div>
+                                  <input
+                                    type="range"
+                                    min={0}
+                                    max={1}
+                                    step={0.01}
+                                    value={sandboxParamsDraft.temperature ?? sandboxParams?.temperature ?? 0}
+                                    onChange={(e) =>
+                                      setSandboxParamsDraft((p) => ({ ...p, temperature: parseFloat(e.target.value) }))
+                                    }
+                                    className="h-1.5 w-full accent-primary"
+                                  />
                                 </div>
                                 <div className="space-y-1">
-                                  <div className="flex justify-between"><label>Top-P</label><span className="font-mono text-muted-foreground">{((sandboxParamsDraft.topP ?? sandboxParams?.topP) ?? 0).toFixed(2)}</span></div>
-                                  <input type="range" min={0} max={1} step={0.01} value={(sandboxParamsDraft.topP ?? sandboxParams?.topP) ?? 0} onChange={(e) => setSandboxParamsDraft((p) => ({ ...p, topP: parseFloat(e.target.value) }))} className="w-full h-1.5 accent-primary" />
+                                  <div className="flex justify-between">
+                                    <label>Top-P</label>
+                                    <span className="font-mono text-muted-foreground">
+                                      {(sandboxParamsDraft.topP ?? sandboxParams?.topP ?? 0).toFixed(2)}
+                                    </span>
+                                  </div>
+                                  <input
+                                    type="range"
+                                    min={0}
+                                    max={1}
+                                    step={0.01}
+                                    value={sandboxParamsDraft.topP ?? sandboxParams?.topP ?? 0}
+                                    onChange={(e) =>
+                                      setSandboxParamsDraft((p) => ({ ...p, topP: parseFloat(e.target.value) }))
+                                    }
+                                    className="h-1.5 w-full accent-primary"
+                                  />
                                 </div>
                                 <div className="space-y-1">
-                                  <div className="flex justify-between"><label>Repeat Penalty</label><span className="font-mono text-muted-foreground">{((sandboxParamsDraft.repeatPenalty ?? sandboxParams?.repeatPenalty) ?? 1).toFixed(2)}</span></div>
-                                  <input type="range" min={1} max={2} step={0.01} value={(sandboxParamsDraft.repeatPenalty ?? sandboxParams?.repeatPenalty) ?? 1} onChange={(e) => setSandboxParamsDraft((p) => ({ ...p, repeatPenalty: parseFloat(e.target.value) }))} className="w-full h-1.5 accent-primary" />
+                                  <div className="flex justify-between">
+                                    <label>Repeat Penalty</label>
+                                    <span className="font-mono text-muted-foreground">
+                                      {(sandboxParamsDraft.repeatPenalty ?? sandboxParams?.repeatPenalty ?? 1).toFixed(
+                                        2
+                                      )}
+                                    </span>
+                                  </div>
+                                  <input
+                                    type="range"
+                                    min={1}
+                                    max={2}
+                                    step={0.01}
+                                    value={sandboxParamsDraft.repeatPenalty ?? sandboxParams?.repeatPenalty ?? 1}
+                                    onChange={(e) =>
+                                      setSandboxParamsDraft((p) => ({
+                                        ...p,
+                                        repeatPenalty: parseFloat(e.target.value),
+                                      }))
+                                    }
+                                    className="h-1.5 w-full accent-primary"
+                                  />
                                 </div>
                                 <div className="space-y-1">
-                                  <div className="flex justify-between"><label>Keep-Alive (s)</label><span className="font-mono text-muted-foreground">{(sandboxParamsDraft.keepAliveSeconds ?? sandboxParams?.keepAliveSeconds) ?? 0}</span></div>
-                                  <input type="range" min={0} max={3600} step={60} value={(sandboxParamsDraft.keepAliveSeconds ?? sandboxParams?.keepAliveSeconds) ?? 0} onChange={(e) => setSandboxParamsDraft((p) => ({ ...p, keepAliveSeconds: Number(e.target.value) }))} className="w-full h-1.5 accent-primary" />
+                                  <div className="flex justify-between">
+                                    <label>Keep-Alive (s)</label>
+                                    <span className="font-mono text-muted-foreground">
+                                      {sandboxParamsDraft.keepAliveSeconds ?? sandboxParams?.keepAliveSeconds ?? 0}
+                                    </span>
+                                  </div>
+                                  <input
+                                    type="range"
+                                    min={0}
+                                    max={3600}
+                                    step={60}
+                                    value={sandboxParamsDraft.keepAliveSeconds ?? sandboxParams?.keepAliveSeconds ?? 0}
+                                    onChange={(e) =>
+                                      setSandboxParamsDraft((p) => ({ ...p, keepAliveSeconds: Number(e.target.value) }))
+                                    }
+                                    className="h-1.5 w-full accent-primary"
+                                  />
                                 </div>
                                 {selectedModel === 'np-dms-ai' && (
                                   <>
                                     <div className="space-y-1">
-                                      <div className="flex justify-between"><label>Max Tokens</label><span className="font-mono text-muted-foreground">{(sandboxParamsDraft.maxTokens ?? sandboxParams?.maxTokens) ?? 4096}</span></div>
-                                      <input type="range" min={256} max={16384} step={256} value={(sandboxParamsDraft.maxTokens ?? sandboxParams?.maxTokens) ?? 4096} onChange={(e) => setSandboxParamsDraft((p) => ({ ...p, maxTokens: Number(e.target.value) }))} className="w-full h-1.5 accent-primary" />
+                                      <div className="flex justify-between">
+                                        <label>Max Tokens</label>
+                                        <span className="font-mono text-muted-foreground">
+                                          {sandboxParamsDraft.maxTokens ?? sandboxParams?.maxTokens ?? 4096}
+                                        </span>
+                                      </div>
+                                      <input
+                                        type="range"
+                                        min={256}
+                                        max={16384}
+                                        step={256}
+                                        value={sandboxParamsDraft.maxTokens ?? sandboxParams?.maxTokens ?? 4096}
+                                        onChange={(e) =>
+                                          setSandboxParamsDraft((p) => ({ ...p, maxTokens: Number(e.target.value) }))
+                                        }
+                                        className="h-1.5 w-full accent-primary"
+                                      />
                                     </div>
                                     <div className="space-y-1">
-                                      <div className="flex justify-between"><label>Ctx Size</label><span className="font-mono text-muted-foreground">{(sandboxParamsDraft.numCtx ?? sandboxParams?.numCtx) ?? 8192}</span></div>
-                                      <input type="range" min={1024} max={32768} step={1024} value={(sandboxParamsDraft.numCtx ?? sandboxParams?.numCtx) ?? 8192} onChange={(e) => setSandboxParamsDraft((p) => ({ ...p, numCtx: Number(e.target.value) }))} className="w-full h-1.5 accent-primary" />
+                                      <div className="flex justify-between">
+                                        <label>Ctx Size</label>
+                                        <span className="font-mono text-muted-foreground">
+                                          {sandboxParamsDraft.numCtx ?? sandboxParams?.numCtx ?? 8192}
+                                        </span>
+                                      </div>
+                                      <input
+                                        type="range"
+                                        min={1024}
+                                        max={32768}
+                                        step={1024}
+                                        value={sandboxParamsDraft.numCtx ?? sandboxParams?.numCtx ?? 8192}
+                                        onChange={(e) =>
+                                          setSandboxParamsDraft((p) => ({ ...p, numCtx: Number(e.target.value) }))
+                                        }
+                                        className="h-1.5 w-full accent-primary"
+                                      />
                                     </div>
                                   </>
                                 )}
@@ -633,9 +726,11 @@ export default function OcrSandboxPromptManager() {
 
                               {/* Production Defaults Read-Only Panel (T045) */}
                               {prodParams && (
-                                <div className="rounded border border-emerald-500/20 bg-emerald-500/5 p-2.5 text-xs space-y-1">
-                                  <p className="font-semibold text-emerald-600 dark:text-emerald-400">Current Production Parameters (Read-only)</p>
-                                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] font-mono text-muted-foreground font-semibold">
+                                <div className="space-y-1 rounded border border-success/20 bg-success/5 p-2.5 text-xs">
+                                  <p className="font-semibold text-success">
+                                    Current Production Parameters (Read-only)
+                                  </p>
+                                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 font-mono text-[11px] font-semibold text-muted-foreground">
                                     <div>Model: {prodParams.canonicalModel}</div>
                                     <div>Temperature: {prodParams.temperature.toFixed(2)}</div>
                                     <div>Top-P: {prodParams.topP.toFixed(2)}</div>
@@ -647,15 +742,44 @@ export default function OcrSandboxPromptManager() {
                                 </div>
                               )}
 
-                              <div className="flex justify-end gap-2 pt-1 flex-wrap">
-                                <Button type="button" variant="outline" size="sm" disabled={isResettingParams} onClick={handleResetParams} className="text-xs h-7 px-3">
-                                  {isResettingParams ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Reset to Production'}
+                              <div className="flex flex-wrap justify-end gap-2 pt-1">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={isResettingParams}
+                                  onClick={handleResetParams}
+                                  className="h-7 px-3 text-xs"
+                                >
+                                  {isResettingParams ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    'Reset to Production'
+                                  )}
                                 </Button>
-                                <Button type="button" variant="secondary" size="sm" disabled={isSavingParams} onClick={handleSaveParams} className="text-xs h-7 px-3">
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  size="sm"
+                                  disabled={isSavingParams}
+                                  onClick={handleSaveParams}
+                                  className="h-7 px-3 text-xs"
+                                >
                                   {isSavingParams ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Save Draft'}
                                 </Button>
-                                <Button type="button" variant="destructive" size="sm" disabled={isApplyingParams} onClick={handleApplyParams} className="text-xs h-7 px-3 flex items-center gap-1">
-                                  {isApplyingParams ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                                <Button
+                                  type="button"
+                                  variant="destructive"
+                                  size="sm"
+                                  disabled={isApplyingParams}
+                                  onClick={handleApplyParams}
+                                  className="flex h-7 items-center gap-1 px-3 text-xs"
+                                >
+                                  {isApplyingParams ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <Save className="h-3 w-3" />
+                                  )}
                                   Apply to Production
                                 </Button>
                               </div>
@@ -670,23 +794,32 @@ export default function OcrSandboxPromptManager() {
                           onChange={(e) => setSelectedOcrEngine(e.target.value)}
                           className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs"
                         >
-                           {ocrEngineOptions.map((opt) => (
-                             <option key={opt.value} value={opt.value}>{opt.label}</option>
-                           ))}
+                          {ocrEngineOptions.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
                         </select>
                       </div>
                       {selectedOcrEngine === 'np-dms-ocr' && (
-                        <div className="space-y-3 rounded-md border border-dashed border-amber-500/30 bg-amber-500/5 p-3">
-                          <p className="text-xs font-medium text-amber-600 dark:text-amber-400">OCR Options <span className="font-normal text-muted-foreground">(override Modelfile defaults)</span></p>
+                        <div className="space-y-3 rounded-md border border-dashed border-warning/30 bg-warning/5 p-3">
+                          <p className="text-xs font-medium text-warning">
+                            OCR Options{' '}
+                            <span className="font-normal text-muted-foreground">(override Modelfile defaults)</span>
+                          </p>
                           <div className="space-y-1">
                             <div className="flex justify-between text-xs">
                               <label>Temperature</label>
                               <span className="font-mono text-muted-foreground">{ocrTemperature.toFixed(2)}</span>
                             </div>
-                            <input type="range" min={0} max={1} step={0.01}
+                            <input
+                              type="range"
+                              min={0}
+                              max={1}
+                              step={0.01}
                               value={ocrTemperature}
                               onChange={(e) => setOcrTemperature(parseFloat(e.target.value))}
-                              className="w-full h-1.5 accent-amber-500"
+                              className="h-1.5 w-full accent-warning"
                             />
                           </div>
                           <div className="space-y-1">
@@ -694,10 +827,14 @@ export default function OcrSandboxPromptManager() {
                               <label>Top-P</label>
                               <span className="font-mono text-muted-foreground">{ocrTopP.toFixed(2)}</span>
                             </div>
-                            <input type="range" min={0} max={1} step={0.01}
+                            <input
+                              type="range"
+                              min={0}
+                              max={1}
+                              step={0.01}
                               value={ocrTopP}
                               onChange={(e) => setOcrTopP(parseFloat(e.target.value))}
-                              className="w-full h-1.5 accent-amber-500"
+                              className="h-1.5 w-full accent-warning"
                             />
                           </div>
                           <div className="space-y-1">
@@ -705,10 +842,14 @@ export default function OcrSandboxPromptManager() {
                               <label>Repeat Penalty</label>
                               <span className="font-mono text-muted-foreground">{ocrRepeatPenalty.toFixed(2)}</span>
                             </div>
-                            <input type="range" min={1} max={2} step={0.01}
+                            <input
+                              type="range"
+                              min={1}
+                              max={2}
+                              step={0.01}
                               value={ocrRepeatPenalty}
                               onChange={(e) => setOcrRepeatPenalty(parseFloat(e.target.value))}
-                              className="w-full h-1.5 accent-amber-500"
+                              className="h-1.5 w-full accent-warning"
                             />
                           </div>
                         </div>
@@ -730,9 +871,9 @@ export default function OcrSandboxPromptManager() {
                           }
                         }}
                       >
-                        <Brain className="h-9 w-9 text-muted-foreground/50 mb-2 animate-bounce" />
+                        <Brain className="mb-2 h-9 w-9 animate-bounce text-muted-foreground/50" />
                         {ocrFile ? (
-                          <div className="text-center space-y-1">
+                          <div className="space-y-1 text-center">
                             <p className="text-sm font-semibold">{ocrFile.name}</p>
                             <p className="text-xs text-muted-foreground">
                               ({(ocrFile.size / 1024 / 1024).toFixed(2)} MB)
@@ -749,10 +890,8 @@ export default function OcrSandboxPromptManager() {
                             </Button>
                           </div>
                         ) : (
-                          <div className="text-center space-y-1">
-                            <p className="text-xs text-muted-foreground">
-                              {t('ai.prompt.dropzoneDrag')}
-                            </p>
+                          <div className="space-y-1 text-center">
+                            <p className="text-xs text-muted-foreground">{t('ai.prompt.dropzoneDrag')}</p>
                             <input
                               type="file"
                               accept=".pdf"
@@ -766,7 +905,7 @@ export default function OcrSandboxPromptManager() {
                             />
                             <label
                               htmlFor="ocr-sandbox-file"
-                              className="mt-2.5 inline-flex h-8 items-center justify-center rounded-md bg-secondary px-3.5 text-xs font-semibold cursor-pointer hover:bg-secondary/85 transition-colors"
+                              className="mt-2.5 inline-flex h-8 cursor-pointer items-center justify-center rounded-md bg-secondary px-3.5 text-xs font-semibold transition-colors hover:bg-secondary/85"
                             >
                               {t('ai.prompt.dropzoneChoose')}
                             </label>
@@ -803,15 +942,17 @@ export default function OcrSandboxPromptManager() {
                           <button
                             type="button"
                             onClick={() => setActiveTab('editor')}
-                            className="text-[10px] text-primary hover:underline font-semibold"
+                            className="text-[10px] font-semibold text-primary hover:underline"
                           >
                             (Manage/Edit Prompts)
                           </button>
                         </div>
                         <select
-                          value={selectedPromptVersion ?? (activePrompt?.versionNumber ?? '')}
-                          onChange={(e) => setSelectedPromptVersion(e.target.value ? Number(e.target.value) : undefined)}
-                          className="text-xs bg-background border border-input rounded px-2 py-1"
+                          value={selectedPromptVersion ?? activePrompt?.versionNumber ?? ''}
+                          onChange={(e) =>
+                            setSelectedPromptVersion(e.target.value ? Number(e.target.value) : undefined)
+                          }
+                          className="rounded border border-input bg-background px-2 py-1 text-xs"
                         >
                           {versions.map((v) => (
                             <option key={v.versionNumber} value={v.versionNumber}>
@@ -854,9 +995,9 @@ export default function OcrSandboxPromptManager() {
               </CardContent>
             </Card>
             {sandboxStep === 'ai' && ocrResult && (
-              <Card className="border border-blue-500/20 bg-background/50 backdrop-blur-md">
-                <CardHeader className="border-b border-border/30 pb-3 flex flex-row items-center justify-between">
-                  <CardTitle className="text-base text-blue-600 dark:text-blue-400 flex items-center gap-2">
+              <Card className="border border-info/20 bg-background/50 backdrop-blur-md">
+                <CardHeader className="flex flex-row items-center justify-between border-b border-border/30 pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base text-info">
                     <ScanText className="h-4 w-4" />
                     OCR Raw Text (Step 1 Result)
                   </CardTitle>
@@ -870,12 +1011,12 @@ export default function OcrSandboxPromptManager() {
                 </CardHeader>
                 <CardContent className="pt-4">
                   {ocrResult.fallbackUsed && (
-                    <div className="mb-3 rounded-md border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-600 dark:text-amber-400">
+                    <div className="mb-3 rounded-md border border-warning/20 bg-warning/5 px-3 py-2 text-xs text-warning">
                       np-dms-ocr unavailable. Fallback to Fast Path was used for this run.
                     </div>
                   )}
-                  <div className="relative rounded-md bg-muted p-4 font-mono text-xs overflow-auto max-h-[200px] border border-border/10">
-                    <pre className="text-blue-600 dark:text-blue-400 select-text leading-relaxed whitespace-pre-wrap">
+                  <div className="relative max-h-[200px] overflow-auto rounded-md border border-border/10 bg-muted p-4 font-mono text-xs">
+                    <pre className="select-text whitespace-pre-wrap leading-relaxed text-info">
                       {ocrResult.ocrText || '(ไม่มีข้อความ)'}
                     </pre>
                   </div>
@@ -884,8 +1025,8 @@ export default function OcrSandboxPromptManager() {
             )}
             {sandboxState.result && sandboxState.result.llmPrompt && (
               <Card className="border border-purple-500/20 bg-purple-500/5">
-                <CardHeader className="border-b border-border/30 pb-3 flex flex-row items-center justify-between">
-                  <CardTitle className="text-base text-purple-600 dark:text-purple-400 flex items-center gap-2">
+                <CardHeader className="flex flex-row items-center justify-between border-b border-border/30 pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base text-purple-600 dark:text-purple-400">
                     <StickyNote className="h-4 w-4" />
                     LLM Prompt (Step 2 Input)
                   </CardTitle>
@@ -894,8 +1035,8 @@ export default function OcrSandboxPromptManager() {
                   </Badge>
                 </CardHeader>
                 <CardContent className="pt-4">
-                  <div className="relative rounded-md bg-muted p-4 font-mono text-xs overflow-auto max-h-[300px] border border-border/10">
-                    <pre className="text-purple-600 dark:text-purple-400 select-text leading-relaxed whitespace-pre-wrap">
+                  <div className="relative max-h-[300px] overflow-auto rounded-md border border-border/10 bg-muted p-4 font-mono text-xs">
+                    <pre className="select-text whitespace-pre-wrap leading-relaxed text-purple-600 dark:text-purple-400">
                       {sandboxState.result.llmPrompt}
                     </pre>
                   </div>
@@ -903,17 +1044,17 @@ export default function OcrSandboxPromptManager() {
               </Card>
             )}
             {sandboxState.isRunning && (
-              <Card className="border border-amber-500/20 bg-amber-500/5">
-                <CardContent className="pt-6 space-y-4">
+              <Card className="border border-warning/20 bg-warning/5">
+                <CardContent className="space-y-4 pt-6">
                   <div className="flex items-center justify-between text-xs font-medium">
                     <span className="flex items-center gap-1.5">
-                      <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-500" />
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-warning" />
                       {sandboxStep === 'ocr' ? 'Running OCR...' : 'Running AI Extraction...'}
                     </span>
                     <span>{sandboxState.progress}%</span>
                   </div>
                   <Progress value={sandboxState.progress} className="h-1.5" />
-                  <div className="text-[10px] text-muted-foreground font-mono bg-background/50 p-2 rounded">
+                  <div className="rounded bg-background/50 p-2 font-mono text-[10px] text-muted-foreground">
                     Request ID: {sandboxJobId}
                   </div>
                 </CardContent>
@@ -921,29 +1062,27 @@ export default function OcrSandboxPromptManager() {
             )}
             {sandboxState.result && sandboxState.result.status === 'completed' && sandboxStep === 'ai' && (
               <div className="space-y-6">
-                <Card className="border border-emerald-500/20 bg-background/50 backdrop-blur-md">
-                  <CardHeader className="border-b border-border/30 pb-3 flex flex-row items-center justify-between">
-                    <CardTitle className="text-base text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+                <Card className="border border-success/20 bg-background/50 backdrop-blur-md">
+                  <CardHeader className="flex flex-row items-center justify-between border-b border-border/30 pb-3">
+                    <CardTitle className="flex items-center gap-2 text-base text-success">
                       <FileJson className="h-4 w-4" />
                       {t('ai.prompt.resultTitle')}
                     </CardTitle>
-                    <Badge variant="outline" className="text-xs text-emerald-500 border-emerald-500/20 bg-emerald-500/5">
+                    <Badge variant="outline" className="border-success/20 bg-success/5 text-xs text-success">
                       Version {sandboxState.result.promptVersionUsed || (activePrompt?.versionNumber ?? '?')}
                     </Badge>
                   </CardHeader>
-                  <CardContent className="pt-4 space-y-4">
-                    <div className="relative rounded-md bg-muted p-4 font-mono text-xs overflow-auto max-h-[300px] border border-border/10">
-                      <pre className="text-emerald-600 dark:text-emerald-400 select-text leading-relaxed">
-                        {sandboxState.result.answer}
-                      </pre>
+                  <CardContent className="space-y-4 pt-4">
+                    <div className="relative max-h-[300px] overflow-auto rounded-md border border-border/10 bg-muted p-4 font-mono text-xs">
+                      <pre className="select-text leading-relaxed text-success">{sandboxState.result.answer}</pre>
                     </div>
                   </CardContent>
                 </Card>
                 {activePrompt && (
                   <Card className="border border-border/50 bg-background/50 backdrop-blur-md">
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                        <StickyNote className="h-4 w-4 text-amber-500 animate-pulse" />
+                      <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                        <StickyNote className="h-4 w-4 animate-pulse text-warning" />
                         {t('ai.prompt.noteCardTitle')}
                       </CardTitle>
                     </CardHeader>
@@ -953,7 +1092,7 @@ export default function OcrSandboxPromptManager() {
                         onChange={(e) => setManualNote(e.target.value)}
                         placeholder={t('ai.prompt.notePlaceholder')}
                         rows={3}
-                        className="text-xs leading-relaxed resize-none bg-background/30"
+                        className="resize-none bg-background/30 text-xs leading-relaxed"
                       />
                       <div className="flex justify-end">
                         <Button
@@ -982,7 +1121,7 @@ export default function OcrSandboxPromptManager() {
                   <CardTitle className="text-sm font-medium">{t('ai.prompt.sandboxErrorTitle')}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
+                  <p className="text-xs leading-relaxed text-muted-foreground">
                     {sandboxState.result.errorMessage || t('ai.prompt.sandboxErrorDefault')}
                   </p>
                 </CardContent>

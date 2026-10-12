@@ -8,9 +8,7 @@ import { TAG_PALETTE, TAG_COLOR_KEYS, DEFAULT_TAG_COLOR_HEX, type TagColorKey } 
  * Map ระหว่าง palette key → hex สำหรับ render
  * ใช้สำหรับ lookup เร็ว (O(1)) แทนการ `.find()` ทุกครั้ง
  */
-const KEY_TO_HEX: ReadonlyMap<string, string> = new Map(
-  TAG_PALETTE.map((entry) => [entry.key, entry.hex]),
-);
+const KEY_TO_HEX: ReadonlyMap<string, string> = new Map(TAG_PALETTE.map((entry) => [entry.key, entry.hex]));
 
 /**
  * แปลง palette key เป็น hex สำหรับ render

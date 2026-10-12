@@ -53,11 +53,7 @@ const getFileTypeLabel = (mimeType: string, filename: string): string => {
  */
 export function AttachmentList({ attachments, className }: AttachmentListProps) {
   if (!attachments || attachments.length === 0) {
-    return (
-      <div className={cn('text-sm text-muted-foreground py-2', className)}>
-        ไม่มีไฟล์แนบ
-      </div>
-    );
+    return <div className={cn('py-2 text-sm text-muted-foreground', className)}>ไม่มีไฟล์แนบ</div>;
   }
   return (
     <div className={cn('space-y-2', className)}>
@@ -67,28 +63,26 @@ export function AttachmentList({ attachments, className }: AttachmentListProps) 
         return (
           <div
             key={att.publicId}
-            className="flex items-center gap-3 rounded-md border bg-card p-3 shadow-sm hover:bg-muted/30 transition-colors"
+            className="flex items-center gap-3 rounded-md border bg-card p-3 shadow-sm transition-colors hover:bg-muted/30"
           >
             <Icon className="h-5 w-5 flex-shrink-0 text-muted-foreground" />
-            <div className="flex-1 min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium truncate">
-                  {att.originalFilename}
-                </span>
+                <span className="truncate text-sm font-medium">{att.originalFilename}</span>
                 {att.isMainDocument && (
-                  <Badge variant="default" className="text-xs flex-shrink-0">
+                  <Badge variant="default" className="flex-shrink-0 text-xs">
                     เอกสารหลัก
                   </Badge>
                 )}
               </div>
-              <div className="flex items-center gap-2 mt-0.5">
+              <div className="mt-0.5 flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">{typeLabel}</span>
                 {att.hasOcrText ? (
-                  <Badge variant="outline" className="text-xs text-green-600 border-green-500/30">
+                  <Badge variant="outline" className="border-success/30 text-xs text-success">
                     มีข้อความ OCR
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="text-xs text-orange-600 border-orange-500/30">
+                  <Badge variant="outline" className="border-orange-500/30 text-xs text-orange-600">
                     ไม่มีข้อความ OCR
                   </Badge>
                 )}

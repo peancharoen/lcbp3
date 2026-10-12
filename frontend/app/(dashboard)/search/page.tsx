@@ -47,21 +47,19 @@ function SearchContent() {
     <>
       <div>
         <h1 className="text-3xl font-bold">Search Results</h1>
-        <p className="text-muted-foreground mt-1">
-          {isLoading
-            ? 'Searching...'
-            : `Found ${total} results${query ? ` for "${query}"` : ''}`}
+        <p className="mt-1 text-muted-foreground">
+          {isLoading ? 'Searching...' : `Found ${total} results${query ? ` for "${query}"` : ''}`}
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
         <div className="lg:col-span-1">
           <SearchFilters filters={filters} onFilterChange={handleFilterChange} />
         </div>
 
-        <div className="lg:col-span-3 space-y-4">
+        <div className="space-y-4 lg:col-span-3">
           {isError ? (
-            <div className="text-red-500 py-8 text-center">Failed to load search results.</div>
+            <div className="py-8 text-center text-destructive">Failed to load search results.</div>
           ) : (
             <>
               <SearchResults results={results?.data || []} query={query} loading={isLoading} />
@@ -72,12 +70,7 @@ function SearchContent() {
                     Page {page} of {totalPages}
                   </span>
                   <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={page === 1}
-                      onClick={() => setPage((p) => p - 1)}
-                    >
+                    <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
                       <ChevronLeft className="h-4 w-4" />
                       Prev
                     </Button>

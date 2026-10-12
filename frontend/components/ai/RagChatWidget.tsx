@@ -10,20 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  AiRagCitation,
-  AiRagJobResult,
-  useCancelRagJob,
-  useRagJobStatus,
-  useSubmitRagQuery,
-} from '@/lib/api/ai';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { AiRagCitation, AiRagJobResult, useCancelRagJob, useRagJobStatus, useSubmitRagQuery } from '@/lib/api/ai';
 
 interface RagChatWidgetProps {
   /** publicId ของโครงการสำหรับ project-scoped vector search (FR-002) */
@@ -74,11 +62,7 @@ export function RagChatWidget({ projectPublicId, isAiOffline = false }: RagChatW
   // หยุด polling เมื่อ job เสร็จ/ล้มเหลว/ยกเลิก
   useEffect(() => {
     if (!jobResult) return;
-    if (
-      jobResult.status === 'completed' ||
-      jobResult.status === 'failed' ||
-      jobResult.status === 'cancelled'
-    ) {
+    if (jobResult.status === 'completed' || jobResult.status === 'failed' || jobResult.status === 'cancelled') {
       setIsPolling(false);
       if (jobResult.status === 'failed') {
         toast.error('การค้นหาล้มเหลว กรุณาลองใหม่อีกครั้ง');
@@ -164,22 +148,18 @@ export function RagChatWidget({ projectPublicId, isAiOffline = false }: RagChatW
             maxLength={500}
             disabled={isAiOffline || isActive}
           />
-          <p className="text-right text-xs text-muted-foreground">
-            {question.length}/500
-          </p>
+          <p className="text-right text-xs text-muted-foreground">{question.length}/500</p>
         </div>
 
         {/* Job Status Indicator */}
         {activeRequestId && jobResult && (
-          <div className="rounded-md border p-3 space-y-2">
+          <div className="space-y-2 rounded-md border p-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {(jobResult.status === 'pending' || jobResult.status === 'processing') && (
                   <Loader2 className="h-3 w-3 animate-spin" />
                 )}
-                <Badge variant={statusBadge(jobResult.status).variant}>
-                  {statusBadge(jobResult.status).label}
-                </Badge>
+                <Badge variant={statusBadge(jobResult.status).variant}>{statusBadge(jobResult.status).label}</Badge>
               </div>
               {jobResult.status !== 'completed' && jobResult.status !== 'failed' && (
                 <Button
@@ -189,7 +169,7 @@ export function RagChatWidget({ projectPublicId, isAiOffline = false }: RagChatW
                   disabled={cancelMutation.isPending}
                   className="h-6 px-2 text-xs"
                 >
-                  <X className="h-3 w-3 mr-1" />
+                  <X className="mr-1 h-3 w-3" />
                   ยกเลิก
                 </Button>
               )}
@@ -199,9 +179,7 @@ export function RagChatWidget({ projectPublicId, isAiOffline = false }: RagChatW
             {showResult && jobResult.answer && (
               <div className="space-y-2">
                 <p className="text-sm font-medium">คำตอบ:</p>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                  {jobResult.answer}
-                </p>
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{jobResult.answer}</p>
                 {typeof jobResult.confidence === 'number' && (
                   <p className="text-xs text-muted-foreground">
                     ความเชื่อมั่น: {(jobResult.confidence * 100).toFixed(1)}%
@@ -232,11 +210,7 @@ export function RagChatWidget({ projectPublicId, isAiOffline = false }: RagChatW
             size="sm"
             className="ml-auto"
           >
-            {isActive ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : (
-              <Send className="h-4 w-4 mr-2" />
-            )}
+            {isActive ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
             {isActive ? 'กำลังค้นหา...' : 'ส่งคำถาม'}
           </Button>
         ) : (
@@ -256,35 +230,24 @@ function CitationList({ citations }: { citations: AiRagCitation[] }) {
 
   return (
     <div className="space-y-1">
-      <p className="text-xs font-medium text-muted-foreground">
-        เอกสารอ้างอิง ({citations.length} รายการ):
-      </p>
+      <p className="text-xs font-medium text-muted-foreground">เอกสารอ้างอิง ({citations.length} รายการ):</p>
       {visible.map((c, index) => (
         <div
           key={`${String(c.pointId)}-${index}`}
-          className="rounded border border-border bg-muted/40 p-2 text-xs space-y-0.5"
+          className="space-y-0.5 rounded border border-border bg-muted/40 p-2 text-xs"
         >
           <div className="flex items-center justify-between gap-2">
             <span className="font-medium">
               {c.docType ?? 'เอกสาร'}
               {c.docNumber ? ` — ${c.docNumber}` : ''}
             </span>
-            <span className="text-muted-foreground shrink-0">
-              {(c.score * 100).toFixed(1)}%
-            </span>
+            <span className="shrink-0 text-muted-foreground">{(c.score * 100).toFixed(1)}%</span>
           </div>
-          {c.snippet && (
-            <p className="text-muted-foreground line-clamp-2">{c.snippet}</p>
-          )}
+          {c.snippet && <p className="line-clamp-2 text-muted-foreground">{c.snippet}</p>}
         </div>
       ))}
       {citations.length > 3 && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 px-1 text-xs w-full"
-          onClick={() => setExpanded(!expanded)}
-        >
+        <Button variant="ghost" size="sm" className="h-6 w-full px-1 text-xs" onClick={() => setExpanded(!expanded)}>
           {expanded ? 'แสดงน้อยลง' : `ดูอีก ${citations.length - 3} รายการ`}
         </Button>
       )}

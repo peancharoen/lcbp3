@@ -14,32 +14,31 @@ interface CirculationStatusCardProps {
 }
 
 const ROUTING_STATUS_META: Record<string, { icon: React.ElementType; color: string; label: string }> = {
-  PENDING: { icon: Clock, color: 'text-yellow-500', label: 'Pending' },
-  IN_PROGRESS: { icon: Circle, color: 'text-blue-500', label: 'In Progress' },
-  COMPLETED: { icon: CheckCircle2, color: 'text-green-500', label: 'Completed' },
-  REJECTED: { icon: XCircle, color: 'text-red-500', label: 'Rejected' },
+  PENDING: { icon: Clock, color: 'text-warning', label: 'Pending' },
+  IN_PROGRESS: { icon: Circle, color: 'text-info', label: 'In Progress' },
+  COMPLETED: { icon: CheckCircle2, color: 'text-success', label: 'Completed' },
+  REJECTED: { icon: XCircle, color: 'text-destructive', label: 'Rejected' },
 };
 
 const CIRC_STATUS_CLASS: Record<string, string> = {
-  OPEN: 'bg-blue-100 text-blue-700',
-  COMPLETED: 'bg-green-100 text-green-700',
-  CANCELLED: 'bg-slate-100 text-slate-500',
+  OPEN: 'bg-info/10 text-info',
+  COMPLETED: 'bg-success/10 text-success',
+  CANCELLED: 'bg-muted text-muted-foreground',
 };
 
 function RoutingStep({ routing }: { routing: CirculationRouting }) {
   const meta = ROUTING_STATUS_META[routing.status] ?? ROUTING_STATUS_META.PENDING;
   const Icon = meta.icon;
   const assigneeName = routing.assignee
-    ? `${routing.assignee.firstName ?? ''} ${routing.assignee.lastName ?? ''}`.trim() ||
-      routing.assignee.username
+    ? `${routing.assignee.firstName ?? ''} ${routing.assignee.lastName ?? ''}`.trim() || routing.assignee.username
     : '—';
 
   return (
     <div className="flex items-center gap-2 py-1">
       <Icon className={`h-3.5 w-3.5 shrink-0 ${meta.color}`} />
-      <span className="text-xs flex-1 truncate">{assigneeName}</span>
+      <span className="flex-1 truncate text-xs">{assigneeName}</span>
       {routing.completedAt && (
-        <span className="text-xs text-muted-foreground shrink-0">
+        <span className="shrink-0 text-xs text-muted-foreground">
           {format(new Date(routing.completedAt), 'dd MMM')}
         </span>
       )}
@@ -48,38 +47,34 @@ function RoutingStep({ routing }: { routing: CirculationRouting }) {
 }
 
 function CirculationItem({ circ }: { circ: Circulation }) {
-  const statusClass = CIRC_STATUS_CLASS[circ.statusCode] ?? 'bg-gray-100 text-gray-700';
+  const statusClass = CIRC_STATUS_CLASS[circ.statusCode] ?? 'bg-muted text-foreground';
   const routings = circ.routings ?? [];
 
   return (
-    <div className="border rounded-md p-3 space-y-2">
+    <div className="space-y-2 rounded-md border p-3">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-xs font-mono text-muted-foreground">{circ.circulationNo}</p>
-          <p className="text-sm font-medium line-clamp-1">{circ.subject}</p>
+          <p className="font-mono text-xs text-muted-foreground">{circ.circulationNo}</p>
+          <p className="line-clamp-1 text-sm font-medium">{circ.subject}</p>
         </div>
-        <Badge className={`text-xs px-1.5 py-0 shrink-0 border-0 ${statusClass}`}>
-          {circ.statusCode}
-        </Badge>
+        <Badge className={`shrink-0 border-0 px-1.5 py-0 text-xs ${statusClass}`}>{circ.statusCode}</Badge>
       </div>
 
       {routings.length > 0 && (
-        <div className="border-t pt-2 space-y-0.5">
+        <div className="space-y-0.5 border-t pt-2">
           {routings.slice(0, 3).map((r) => (
             <RoutingStep key={r.id} routing={r} />
           ))}
           {routings.length > 3 && (
-            <p className="text-xs text-muted-foreground pl-5">
-              +{routings.length - 3} more assignees
-            </p>
+            <p className="pl-5 text-xs text-muted-foreground">+{routings.length - 3} more assignees</p>
           )}
         </div>
       )}
 
       <Link href={`/circulation/${circ.publicId}`}>
-        <Button variant="ghost" size="sm" className="w-full h-7 text-xs mt-1">
+        <Button variant="ghost" size="sm" className="mt-1 h-7 w-full text-xs">
           View Details
-          <ChevronRight className="h-3 w-3 ml-1" />
+          <ChevronRight className="ml-1 h-3 w-3" />
         </Button>
       </Link>
     </div>
@@ -89,16 +84,12 @@ function CirculationItem({ circ }: { circ: Circulation }) {
 export function CirculationStatusCard({ correspondencePublicId }: CirculationStatusCardProps) {
   const { data, isLoading } = useCirculationsByCorrespondence(correspondencePublicId);
 
-  const circulations: Circulation[] = Array.isArray(data)
-    ? data
-    : Array.isArray(data?.data)
-      ? data.data
-      : [];
+  const circulations: Circulation[] = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
 
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-base">
           <GitBranch className="h-4 w-4" />
           Circulations
           {circulations.length > 0 && (
@@ -117,14 +108,12 @@ export function CirculationStatusCard({ correspondencePublicId }: CirculationSta
         ) : circulations.length === 0 ? (
           <p className="text-sm text-muted-foreground">No circulations yet</p>
         ) : (
-          circulations.map((circ) => (
-            <CirculationItem key={circ.publicId} circ={circ} />
-          ))
+          circulations.map((circ) => <CirculationItem key={circ.publicId} circ={circ} />)
         )}
 
         <Link href={`/circulation/new?correspondencePublicId=${correspondencePublicId}`}>
-          <Button variant="outline" size="sm" className="w-full h-8 text-xs mt-1">
-            <GitBranch className="h-3 w-3 mr-1.5" />
+          <Button variant="outline" size="sm" className="mt-1 h-8 w-full text-xs">
+            <GitBranch className="mr-1.5 h-3 w-3" />
             New Circulation
           </Button>
         </Link>

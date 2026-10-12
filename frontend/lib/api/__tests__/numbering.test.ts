@@ -28,7 +28,7 @@ describe('numberingApi', () => {
       (apiClient.get as any).mockResolvedValue({ data: mockTemplates });
 
       const result = await numberingApi.getTemplates();
-      
+
       expect(Array.isArray(result)).toBe(true);
       expect(result).toEqual(mockTemplates);
     });
@@ -38,7 +38,7 @@ describe('numberingApi', () => {
       (apiClient.get as any).mockResolvedValue({ data: { data: mockTemplates } });
 
       const result = await numberingApi.getTemplates();
-      
+
       expect(Array.isArray(result)).toBe(true);
       expect(result).toEqual(mockTemplates);
     });
@@ -49,7 +49,7 @@ describe('numberingApi', () => {
       (apiClient.get as any).mockResolvedValue({ data: [] });
 
       await numberingApi.getTemplatesByProject(1);
-      
+
       expect(apiClient.get).toHaveBeenCalledWith('/admin/document-numbering/templates?projectId=1');
     });
   });
@@ -60,7 +60,7 @@ describe('numberingApi', () => {
       (apiClient.get as any).mockResolvedValue({ data: mockTemplates });
 
       const result = await numberingApi.getTemplate(1);
-      
+
       expect(result).toEqual(mockTemplates[0]);
     });
 
@@ -69,7 +69,7 @@ describe('numberingApi', () => {
       (apiClient.get as any).mockResolvedValue({ data: mockTemplates });
 
       const result = await numberingApi.getTemplate(999);
-      
+
       expect(result).toBeUndefined();
     });
   });
@@ -86,7 +86,7 @@ describe('numberingApi', () => {
       };
 
       const result = await numberingApi.saveTemplate(dto);
-      
+
       expect(apiClient.post).toHaveBeenCalledWith('/admin/document-numbering/templates', expect.any(Object));
       expect(result).toEqual(mockTemplate);
     });
@@ -97,7 +97,7 @@ describe('numberingApi', () => {
       (apiClient.delete as any).mockResolvedValue({});
 
       await numberingApi.deleteTemplate(1);
-      
+
       expect(apiClient.delete).toHaveBeenCalledWith('/admin/document-numbering/templates/1');
     });
   });
@@ -108,7 +108,7 @@ describe('numberingApi', () => {
       (apiClient.get as any).mockResolvedValue({ data: mockLogs });
 
       const result = await numberingApi.getAuditLogs();
-      
+
       expect(Array.isArray(result)).toBe(true);
       expect(result).toEqual(mockLogs);
     });
@@ -117,7 +117,7 @@ describe('numberingApi', () => {
       (apiClient.get as any).mockResolvedValue({ data: [] });
 
       await numberingApi.getAuditLogs(50);
-      
+
       expect(apiClient.get).toHaveBeenCalledWith('/document-numbering/logs/audit?limit=50');
     });
   });
@@ -128,7 +128,7 @@ describe('numberingApi', () => {
       (apiClient.get as any).mockResolvedValue({ data: mockErrors });
 
       const result = await numberingApi.getErrorLogs();
-      
+
       expect(Array.isArray(result)).toBe(true);
       expect(result).toEqual(mockErrors);
     });
@@ -140,7 +140,7 @@ describe('numberingApi', () => {
       (apiClient.get as any).mockResolvedValue({ data: mockMetrics });
 
       const result = await numberingApi.getMetrics();
-      
+
       expect(result).toHaveProperty('audit');
       expect(result).toHaveProperty('errors');
     });
@@ -153,7 +153,7 @@ describe('numberingApi', () => {
 
       const dto = { projectId: 1, correspondenceTypeId: null, year: 2026, newValue: 100 };
       const result = await numberingApi.manualOverride(dto);
-      
+
       expect(apiClient.post).toHaveBeenCalledWith('/admin/document-numbering/manual-override', dto);
       expect(result).toEqual(mockResponse);
     });
@@ -166,7 +166,7 @@ describe('numberingApi', () => {
 
       const dto = { documentId: 1, reason: 'Test reason' };
       const result = await numberingApi.voidAndReplace(dto);
-      
+
       expect(apiClient.post).toHaveBeenCalledWith('/admin/document-numbering/void-and-replace', dto);
       expect(result).toEqual(mockResponse);
     });
@@ -179,7 +179,7 @@ describe('numberingApi', () => {
 
       const dto = { documentNumber: 'TEST-001', reason: 'Test reason' };
       const result = await numberingApi.cancelNumber(dto);
-      
+
       expect(apiClient.post).toHaveBeenCalledWith('/admin/document-numbering/cancel', dto);
       expect(result).toEqual(mockResponse);
     });
@@ -192,7 +192,7 @@ describe('numberingApi', () => {
 
       const items = [{ projectId: 1, correspondenceTypeId: null, year: 2026, lastNumber: 100 }];
       const result = await numberingApi.bulkImport(items);
-      
+
       expect(apiClient.post).toHaveBeenCalledWith('/admin/document-numbering/bulk-import', items);
       expect(result).toEqual(mockResponse);
     });
@@ -203,7 +203,7 @@ describe('numberingApi', () => {
       (apiClient.patch as any).mockResolvedValue({});
 
       await numberingApi.updateCounter(1, 100);
-      
+
       expect(apiClient.patch).toHaveBeenCalledWith('/document-numbering/counters/1', { sequence: 100 });
     });
   });
@@ -215,7 +215,7 @@ describe('numberingApi', () => {
 
       const ctx = { projectId: 1, originatorOrganizationId: 1, correspondenceTypeId: 1 };
       const result = await numberingApi.previewNumber(ctx);
-      
+
       expect(apiClient.post).toHaveBeenCalledWith('/document-numbering/preview', ctx);
       expect(result).toEqual(mockResponse);
     });
@@ -224,7 +224,7 @@ describe('numberingApi', () => {
   describe('generateTestNumber', () => {
     it('ควร return mock test number', async () => {
       const result = await numberingApi.generateTestNumber(1, { organizationId: '1', disciplineId: '1' });
-      
+
       expect(result).toHaveProperty('number');
       expect(result.number).toMatch(/^TEST-\d{4}-\d{4}$/);
     });

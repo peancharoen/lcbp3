@@ -56,13 +56,19 @@ function Sparkline({ values, color, label, height = 40 }: SparklineProps) {
   const path = useMemo(() => buildSparklinePath(values, width, height), [values, height]);
   if (values.length === 0) {
     return (
-      <div className="flex items-center justify-center text-[10px] text-muted-foreground italic" style={{ height }}>
+      <div className="flex items-center justify-center text-[10px] italic text-muted-foreground" style={{ height }}>
         {label}: —
       </div>
     );
   }
   return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible" aria-label={label}>
+    <svg
+      width={width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      className="overflow-visible"
+      aria-label={label}
+    >
       <path d={path} fill="none" stroke={color} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
       <circle
         cx={width}
@@ -96,9 +102,7 @@ function extractHistoryValues(history: HostMetricsHistoryPoint[] | undefined): {
     cpu: history.map((p) => p.cpuPercentage),
     memory: history.map((p) => p.memoryPercentage),
     // กรอง null ออกจาก temperature เพื่อไม่ให้ sparkline แสดง dip ลง 0°C
-    temperature: history
-      .map((p) => p.temperatureCelsius)
-      .filter((v): v is number => v !== null),
+    temperature: history.map((p) => p.temperatureCelsius).filter((v): v is number => v !== null),
   };
 }
 
@@ -125,10 +129,10 @@ export function HostMetricsCard({
             <Cpu className="h-4 w-4 text-primary" />
             {t('ai.hostMetrics.title')}
           </CardTitle>
-          <span className="text-[10px] text-muted-foreground mt-0.5">{t('ai.hostMetrics.subtitle')}</span>
+          <span className="mt-0.5 text-[10px] text-muted-foreground">{t('ai.hostMetrics.subtitle')}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-muted-foreground hidden sm:inline">
+          <span className="hidden text-[10px] text-muted-foreground sm:inline">
             {isPaused ? t('ai.hostMetrics.refresh.paused') : t('ai.hostMetrics.refresh.auto')}
           </span>
           <Button
@@ -155,7 +159,7 @@ export function HostMetricsCard({
       </CardHeader>
       <CardContent className="space-y-3">
         {isError ? (
-          <div className="flex items-center gap-2 text-xs text-destructive py-4 justify-center">
+          <div className="flex items-center justify-center gap-2 py-4 text-xs text-destructive">
             <AlertCircle className="h-4 w-4" />
             <span>{t('ai.hostMetrics.error')}</span>
           </div>
@@ -164,7 +168,7 @@ export function HostMetricsCard({
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             ) : (
-              <span className="text-xs text-muted-foreground italic">{t('ai.hostMetrics.notAvailable')}</span>
+              <span className="text-xs italic text-muted-foreground">{t('ai.hostMetrics.notAvailable')}</span>
             )}
           </div>
         ) : (
@@ -178,7 +182,7 @@ export function HostMetricsCard({
                 </span>
                 <div className="flex items-center gap-1">
                   {data.isEstimated && (
-                    <Badge variant="outline" className="text-[9px] py-0 px-1 text-amber-500 border-amber-500/30">
+                    <Badge variant="outline" className="border-warning/30 px-1 py-0 text-[9px] text-warning">
                       {t('ai.hostMetrics.estimated')}
                     </Badge>
                   )}
@@ -189,7 +193,9 @@ export function HostMetricsCard({
               </div>
               <Progress value={data.cpu.overallPercentage} className="h-2" />
               <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                <span>{data.cpu.coreCount} {t('ai.hostMetrics.cores')}</span>
+                <span>
+                  {data.cpu.coreCount} {t('ai.hostMetrics.cores')}
+                </span>
                 <Sparkline values={sparkData.cpu} color="#3b82f6" label={t('ai.hostMetrics.cpu')} />
               </div>
             </div>
@@ -201,9 +207,7 @@ export function HostMetricsCard({
                   <MemoryStick className="h-3.5 w-3.5" />
                   {t('ai.hostMetrics.memory')}
                 </span>
-                <span className="text-sm font-semibold text-foreground">
-                  {data.memory.usedPercentage.toFixed(1)}%
-                </span>
+                <span className="text-sm font-semibold text-foreground">{data.memory.usedPercentage.toFixed(1)}%</span>
               </div>
               <Progress value={data.memory.usedPercentage} className="h-2" />
               <div className="flex items-center justify-between text-[10px] text-muted-foreground">
@@ -228,21 +232,12 @@ export function HostMetricsCard({
                 </span>
               </div>
               {data.temperature.cpuCelsius !== null && (
-                <Progress
-                  value={Math.min(100, (data.temperature.cpuCelsius / 90) * 100)}
-                  className="h-2"
-                />
+                <Progress value={Math.min(100, (data.temperature.cpuCelsius / 90) * 100)} className="h-2" />
               )}
               <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                <span>
-                  {data.temperature.sensorName ?? '—'}
-                </span>
+                <span>{data.temperature.sensorName ?? '—'}</span>
                 {data.temperature.cpuCelsius !== null && (
-                  <Sparkline
-                    values={sparkData.temperature}
-                    color="#f59e0b"
-                    label={t('ai.hostMetrics.temperature')}
-                  />
+                  <Sparkline values={sparkData.temperature} color="#f59e0b" label={t('ai.hostMetrics.temperature')} />
                 )}
               </div>
             </div>

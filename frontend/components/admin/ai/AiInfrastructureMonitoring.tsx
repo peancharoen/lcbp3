@@ -7,14 +7,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  Loader2,
-  Database,
-  Activity,
-  ScanText,
-  ChevronUp,
-  RefreshCw,
-} from 'lucide-react';
+import { Loader2, Database, Activity, ScanText, ChevronUp, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,7 +24,12 @@ import { CombinedOllamaEngineCard } from './CombinedOllamaEngineCard';
  */
 export function AiInfrastructureMonitoring() {
   const queryClient = useQueryClient();
-  const { data: health, isLoading: isHealthLoading, refetch: refetchHealth, isFetching: isHealthFetching } = useAiHealth();
+  const {
+    data: health,
+    isLoading: isHealthLoading,
+    refetch: refetchHealth,
+    isFetching: isHealthFetching,
+  } = useAiHealth();
   const [isSectionCollapsed, setIsSectionCollapsed] = useState<boolean>(false);
   const [collapsedCards, setCollapsedCards] = useState<{
     qdrant: boolean;
@@ -138,15 +136,9 @@ export function AiInfrastructureMonitoring() {
     if (!status) return <Badge variant="outline">Unknown</Badge>;
     switch (status) {
       case 'HEALTHY':
-        return (
-          <Badge className="border-emerald-500/20 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20">
-            Healthy
-          </Badge>
-        );
+        return <Badge className="border-success/20 bg-success/10 text-success hover:bg-success/20">Healthy</Badge>;
       case 'DEGRADED':
-        return (
-          <Badge className="border-amber-500/20 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20">Degraded</Badge>
-        );
+        return <Badge className="border-warning/20 bg-warning/10 text-warning hover:bg-warning/20">Degraded</Badge>;
       default:
         return <Badge variant="destructive">Down</Badge>;
     }
@@ -154,13 +146,13 @@ export function AiInfrastructureMonitoring() {
 
   return (
     <>
-      <div className="flex items-center justify-between border-b pb-2 mb-4">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
+      <div className="mb-4 flex items-center justify-between border-b pb-2">
+        <h2 className="flex items-center gap-2 text-lg font-semibold">
           <Activity className="h-5 w-5 text-primary" />
           AI Engine Infrastructure Monitoring
         </h2>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground hidden sm:inline">
+          <span className="hidden text-xs text-muted-foreground sm:inline">
             อัปเดตทุก 30 วินาที{isHealthFetching ? ' (กำลังรีเฟรช)' : ''}
           </span>
           <Button
@@ -179,11 +171,15 @@ export function AiInfrastructureMonitoring() {
             className="h-8 w-8 text-muted-foreground hover:text-foreground"
             onClick={toggleSection}
           >
-            <ChevronUp className={`h-5 w-5 transition-transform duration-300 ${isSectionCollapsed ? 'rotate-180' : ''}`} />
+            <ChevronUp
+              className={`h-5 w-5 transition-transform duration-300 ${isSectionCollapsed ? 'rotate-180' : ''}`}
+            />
           </Button>
         </div>
       </div>
-      <div className={`transition-all duration-300 ease-in-out ${isSectionCollapsed ? 'max-h-0 opacity-0 overflow-hidden pointer-events-none' : 'max-h-[3000px] opacity-100'}`}>
+      <div
+        className={`transition-all duration-300 ease-in-out ${isSectionCollapsed ? 'pointer-events-none max-h-0 overflow-hidden opacity-0' : 'max-h-[3000px] opacity-100'}`}
+      >
         <div className="grid gap-4 md:grid-cols-3">
           {/* ADR-048 T009 — HostMetricsCard with 10s auto-refresh */}
           <HostMetricsCard
@@ -220,11 +216,15 @@ export function AiInfrastructureMonitoring() {
                   className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
                   onClick={() => toggleCard('qdrant')}
                 >
-                  <ChevronUp className={`h-4 w-4 transition-transform duration-300 ${collapsedCards.qdrant ? 'rotate-180' : ''}`} />
+                  <ChevronUp
+                    className={`h-4 w-4 transition-transform duration-300 ${collapsedCards.qdrant ? 'rotate-180' : ''}`}
+                  />
                 </Button>
               </div>
             </CardHeader>
-            <div className={`transition-all duration-300 ease-in-out ${collapsedCards.qdrant ? 'max-h-0 opacity-0 overflow-hidden' : 'max-h-[500px] opacity-100'}`}>
+            <div
+              className={`transition-all duration-300 ease-in-out ${collapsedCards.qdrant ? 'max-h-0 overflow-hidden opacity-0' : 'max-h-[500px] opacity-100'}`}
+            >
               <CardContent className="space-y-2">
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>ความเร็วตอบสนอง</span>
@@ -237,17 +237,17 @@ export function AiInfrastructureMonitoring() {
                   <div className="flex flex-wrap gap-1">
                     {healthQdrantCollections.length > 0 ? (
                       healthQdrantCollections.map((c) => (
-                        <Badge key={c} variant="outline" className="text-[10px] py-0 px-1 bg-background/30">
+                        <Badge key={c} variant="outline" className="bg-background/30 px-1 py-0 text-[10px]">
                           {c}
                         </Badge>
                       ))
                     ) : (
-                      <span className="text-[10px] text-muted-foreground italic">ไม่มีคอลเลกชัน</span>
+                      <span className="text-[10px] italic text-muted-foreground">ไม่มีคอลเลกชัน</span>
                     )}
                   </div>
                 </div>
                 {health?.qdrant?.error && (
-                  <p className="mt-1 text-[10px] text-destructive line-clamp-2">{health.qdrant.error}</p>
+                  <p className="mt-1 line-clamp-2 text-[10px] text-destructive">{health.qdrant.error}</p>
                 )}
               </CardContent>
             </div>
@@ -270,11 +270,15 @@ export function AiInfrastructureMonitoring() {
                   className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
                   onClick={() => toggleCard('ocr')}
                 >
-                  <ChevronUp className={`h-4 w-4 transition-transform duration-300 ${collapsedCards.ocr ? 'rotate-180' : ''}`} />
+                  <ChevronUp
+                    className={`h-4 w-4 transition-transform duration-300 ${collapsedCards.ocr ? 'rotate-180' : ''}`}
+                  />
                 </Button>
               </div>
             </CardHeader>
-            <div className={`transition-all duration-300 ease-in-out ${collapsedCards.ocr ? 'max-h-0 opacity-0 overflow-hidden' : 'max-h-[500px] opacity-100'}`}>
+            <div
+              className={`transition-all duration-300 ease-in-out ${collapsedCards.ocr ? 'max-h-0 overflow-hidden opacity-0' : 'max-h-[500px] opacity-100'}`}
+            >
               <CardContent className="space-y-2">
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>ความเร็วตอบสนอง</span>
@@ -284,11 +288,13 @@ export function AiInfrastructureMonitoring() {
                 </div>
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>URL</span>
-                  <span className="font-mono text-[10px] text-foreground truncate max-w-[160px]">
+                  <span className="max-w-[160px] truncate font-mono text-[10px] text-foreground">
                     {health?.ocr?.url ?? '-'}
                   </span>
                 </div>
-                {health?.ocr?.error && <p className="mt-1 text-[10px] text-destructive line-clamp-2">{health.ocr.error}</p>}
+                {health?.ocr?.error && (
+                  <p className="mt-1 line-clamp-2 text-[10px] text-destructive">{health.ocr.error}</p>
+                )}
               </CardContent>
             </div>
           </Card>
@@ -312,48 +318,58 @@ export function AiInfrastructureMonitoring() {
                   className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
                   onClick={() => toggleCard('bullmq')}
                 >
-                  <ChevronUp className={`h-4 w-4 transition-transform duration-300 ${collapsedCards.bullmq ? 'rotate-180' : ''}`} />
+                  <ChevronUp
+                    className={`h-4 w-4 transition-transform duration-300 ${collapsedCards.bullmq ? 'rotate-180' : ''}`}
+                  />
                 </Button>
               </div>
             </CardHeader>
-            <div className={`transition-all duration-300 ease-in-out ${collapsedCards.bullmq ? 'max-h-0 opacity-0 overflow-hidden' : 'max-h-[500px] opacity-100'}`}>
+            <div
+              className={`transition-all duration-300 ease-in-out ${collapsedCards.bullmq ? 'max-h-0 overflow-hidden opacity-0' : 'max-h-[500px] opacity-100'}`}
+            >
               <CardContent className="space-y-2">
                 <div className="space-y-1 text-xs">
-                  <div className="flex items-center justify-between font-medium text-[11px] border-b pb-1 mb-1">
+                  <div className="mb-1 flex items-center justify-between border-b pb-1 text-[11px] font-medium">
                     <span>คิว / สถานะงาน</span>
                     <span>Active / Waiting / Done / Failed</span>
                   </div>
                   <div
-                    className="flex items-center justify-between text-muted-foreground cursor-pointer rounded px-1 hover:bg-muted/50"
-                    onClick={() => { setSelectedQueue('ai-realtime'); setDrawerOpen(true); }}
+                    className="flex cursor-pointer items-center justify-between rounded px-1 text-muted-foreground hover:bg-muted/50"
+                    onClick={() => {
+                      setSelectedQueue('ai-realtime');
+                      setDrawerOpen(true);
+                    }}
                   >
                     <span className="flex items-center gap-1 font-mono">
                       realtime
                       {health?.queues?.realtime?.isPaused && (
-                        <span className="text-[9px] text-amber-500 font-sans">(Paused)</span>
+                        <span className="font-sans text-[9px] text-warning">(Paused)</span>
                       )}
                     </span>
                     <span className="font-semibold text-foreground">
                       {health?.queues?.realtime?.active ?? 0} / {health?.queues?.realtime?.waiting ?? 0} /{' '}
-                      <span className="text-emerald-500">{health?.queues?.realtime?.completed ?? 0}</span> /{' '}
+                      <span className="text-success">{health?.queues?.realtime?.completed ?? 0}</span> /{' '}
                       <span className={(health?.queues?.realtime?.failed ?? 0) > 0 ? 'text-destructive' : ''}>
                         {health?.queues?.realtime?.failed ?? 0}
                       </span>
                     </span>
                   </div>
                   <div
-                    className="flex items-center justify-between text-muted-foreground cursor-pointer rounded px-1 hover:bg-muted/50"
-                    onClick={() => { setSelectedQueue('ai-batch'); setDrawerOpen(true); }}
+                    className="flex cursor-pointer items-center justify-between rounded px-1 text-muted-foreground hover:bg-muted/50"
+                    onClick={() => {
+                      setSelectedQueue('ai-batch');
+                      setDrawerOpen(true);
+                    }}
                   >
                     <span className="flex items-center gap-1 font-mono">
                       batch
                       {health?.queues?.batch?.isPaused && (
-                        <span className="text-[9px] text-amber-500 font-sans">(Paused)</span>
+                        <span className="font-sans text-[9px] text-warning">(Paused)</span>
                       )}
                     </span>
                     <span className="font-semibold text-foreground">
                       {health?.queues?.batch?.active ?? 0} / {health?.queues?.batch?.waiting ?? 0} /{' '}
-                      <span className="text-emerald-500">{health?.queues?.batch?.completed ?? 0}</span> /{' '}
+                      <span className="text-success">{health?.queues?.batch?.completed ?? 0}</span> /{' '}
                       <span className={(health?.queues?.batch?.failed ?? 0) > 0 ? 'text-destructive' : ''}>
                         {health?.queues?.batch?.failed ?? 0}
                       </span>
@@ -361,13 +377,15 @@ export function AiInfrastructureMonitoring() {
                   </div>
                 </div>
                 {throughput && (throughput.realtime > 0 || throughput.batch > 0) && (
-                  <div className="flex items-center justify-between text-[10px] text-muted-foreground border-t pt-1">
+                  <div className="flex items-center justify-between border-t pt-1 text-[10px] text-muted-foreground">
                     <span>Throughput (jobs/min)</span>
-                    <span>RT: {throughput.realtime} | Batch: {throughput.batch}</span>
+                    <span>
+                      RT: {throughput.realtime} | Batch: {throughput.batch}
+                    </span>
                   </div>
                 )}
                 {(health?.queues?.realtime?.error || health?.queues?.batch?.error) && (
-                  <p className="mt-1 text-[10px] text-destructive line-clamp-1">
+                  <p className="mt-1 line-clamp-1 text-[10px] text-destructive">
                     {health.queues.realtime.error || health.queues.batch.error}
                   </p>
                 )}

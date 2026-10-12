@@ -16,9 +16,5 @@ const CLASSIFICATION_VARIANT: Record<SecurityClassification, 'default' | 'second
 
 /** Badge แสดง security classification */
 export function ClassificationBadge({ classification }: { classification: SecurityClassification }) {
-  return (
-    <Badge variant={CLASSIFICATION_VARIANT[classification]}>
-      {classification}
-    </Badge>
-  );
+  return <Badge variant={CLASSIFICATION_VARIANT[classification]}>{classification}</Badge>;
 }

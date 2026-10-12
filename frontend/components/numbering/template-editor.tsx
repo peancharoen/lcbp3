@@ -46,8 +46,12 @@ export function TemplateEditor({
   onCancel,
 }: TemplateEditorProps) {
   const [format, setFormat] = useState(template?.formatTemplate || '');
-  const [typeId, setTypeId] = useState<string>(template?.correspondenceTypeId ? String(template.correspondenceTypeId) : '');
-  const [disciplineId, setDisciplineId] = useState<string>(template?.disciplineId ? String(template.disciplineId) : '0');
+  const [typeId, setTypeId] = useState<string>(
+    template?.correspondenceTypeId ? String(template.correspondenceTypeId) : ''
+  );
+  const [disciplineId, setDisciplineId] = useState<string>(
+    template?.disciplineId ? String(template.disciplineId) : '0'
+  );
   const [reset, setReset] = useState(template?.resetSequenceYearly ?? true);
 
   const [preview, setPreview] = useState('');
@@ -63,9 +67,7 @@ export function TemplateEditor({
 
       // Dynamic context based on selection (optional visual enhancement)
       if (v.key === '{TYPE}' && typeId) {
-        const t = correspondenceTypes.find(
-          (ct) => String(ct.publicId) === typeId
-        );
+        const t = correspondenceTypes.find((ct) => String(ct.publicId) === typeId);
         if (t) replacement = t.typeCode;
       }
 
@@ -92,22 +94,22 @@ export function TemplateEditor({
   const isValid = format.length > 0; // typeId is optional (null = default for all types)
 
   return (
-    <Card className="p-6 space-y-6">
-      <div className="flex justify-between items-start">
+    <Card className="space-y-6 p-6">
+      <div className="flex items-start justify-between">
         <div>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="mb-1 flex items-center gap-2">
             <h3 className="text-lg font-semibold">{template ? 'Edit Template' : 'New Template'}</h3>
           </div>
           <p className="text-sm text-muted-foreground">Define how document numbers are generated for this project.</p>
         </div>
         <div className="flex flex-col items-end gap-2">
-          <Badge variant="outline" className="text-base px-3 py-1 bg-slate-50">
+          <Badge variant="outline" className="bg-muted/50 px-3 py-1 text-base">
             Project: {projectName}
           </Badge>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {/* Configuration Column */}
         <div className="space-y-4">
           <div>
@@ -127,7 +129,7 @@ export function TemplateEditor({
                 })}
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="mt-1 text-xs text-muted-foreground">
               Leave empty to create a default template for this project.
             </p>
           </div>
@@ -151,8 +153,8 @@ export function TemplateEditor({
             </div>
             <div>
               <Label>Reset Rule</Label>
-              <div className="flex items-center h-10">
-                <label className="flex items-center gap-2 cursor-pointer">
+              <div className="flex h-10 items-center">
+                <label className="flex cursor-pointer items-center gap-2">
                   <Checkbox checked={reset} onCheckedChange={(c) => setReset(!!c)} />
                   <span className="text-sm">Reset Annually</span>
                 </label>
@@ -170,7 +172,7 @@ export function TemplateEditor({
               value={format}
               onChange={(e) => setFormat(e.target.value)}
               placeholder="{ORG}-{TYPE}-{SEQ:4}"
-              className="font-mono text-base mb-2"
+              className="mb-2 font-mono text-base"
             />
             <div className="flex flex-wrap gap-2">
               {VARIABLES.map((v) => (
@@ -181,14 +183,14 @@ export function TemplateEditor({
                       size="sm"
                       onClick={() => insertVariable(v.key)}
                       type="button"
-                      className="font-mono text-xs bg-slate-50 hover:bg-slate-100"
+                      className="bg-muted/50 font-mono text-xs hover:bg-muted"
                     >
                       {v.key}
                     </Button>
                   </HoverCardTrigger>
                   <HoverCardContent className="w-60 p-3">
-                    <p className="font-semibold text-sm">{v.name}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-sm font-semibold">{v.name}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
                       Example: <span className="font-mono">{v.example}</span>
                     </p>
                   </HoverCardContent>
@@ -197,17 +199,17 @@ export function TemplateEditor({
             </div>
           </div>
 
-          <div className="bg-green-50/50 border border-green-200 rounded-lg p-4">
-            <p className="text-xs uppercase tracking-wide text-green-700 font-semibold mb-2">Preview Output</p>
-            <p className="text-2xl font-mono font-bold text-green-800 tracking-tight">{preview || '...'}</p>
-            <p className="text-xs text-green-600 mt-2">
+          <div className="rounded-lg border border-success/30 bg-success/50 p-4">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-success">Preview Output</p>
+            <p className="font-mono text-2xl font-bold tracking-tight text-success">{preview || '...'}</p>
+            <p className="mt-2 text-xs text-success">
               * This is an approximation. Actual numbers depend on runtime context.
             </p>
           </div>
         </div>
       </div>
 
-      <div className="flex justify-end gap-2 pt-4 border-t">
+      <div className="flex justify-end gap-2 border-t pt-4">
         <Button variant="outline" onClick={onCancel}>
           Cancel
         </Button>

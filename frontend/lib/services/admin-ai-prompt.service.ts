@@ -44,9 +44,7 @@ export const adminAiPromptService = {
    * ดึงรายการ prompt versions ทั้งหมดสำหรับ prompt_type ที่กำหนด
    */
   async getPrompts(promptType: string): Promise<AiPromptVersion[]> {
-    const response = await client.get<unknown>(
-      `/ai/prompts/${promptType}`
-    );
+    const response = await client.get<unknown>(`/ai/prompts/${promptType}`);
     return normalizePromptList(response.data);
   },
 
@@ -74,11 +72,7 @@ export const adminAiPromptService = {
   /**
    * เปิดใช้งาน prompt version ที่กำหนด
    */
-  async activatePrompt(
-    promptType: string,
-    versionNumber: number,
-    expectedVersion?: number
-  ): Promise<AiPromptVersion> {
+  async activatePrompt(promptType: string, versionNumber: number, expectedVersion?: number): Promise<AiPromptVersion> {
     const idempotencyKey = crypto.randomUUID();
     const response = await client.post<unknown>(
       `/ai/prompts/${promptType}/${versionNumber}/activate`,
@@ -96,9 +90,7 @@ export const adminAiPromptService = {
    * ลบ prompt version (ห้ามลบ active version)
    */
   async deletePrompt(promptType: string, versionNumber: number): Promise<void> {
-    await client.delete(
-      `/ai/prompts/${promptType}/${versionNumber}`
-    );
+    await client.delete(`/ai/prompts/${promptType}/${versionNumber}`);
   },
 
   /**
@@ -109,10 +101,7 @@ export const adminAiPromptService = {
     versionNumber: number,
     manualNote: string | null
   ): Promise<AiPromptVersion> {
-    const response = await client.patch<unknown>(
-      `/ai/prompts/${promptType}/${versionNumber}/note`,
-      { manualNote }
-    );
+    const response = await client.patch<unknown>(`/ai/prompts/${promptType}/${versionNumber}/note`, { manualNote });
     return extractData<AiPromptVersion>(response.data);
   },
 };

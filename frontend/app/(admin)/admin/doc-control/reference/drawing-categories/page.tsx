@@ -41,7 +41,9 @@ export default function DrawingCategoriesPage() {
             correspondenceTypeId: 3,
           })
         }
-        updateFn={(id, data) => masterDataService.updateRfaType(id, data as Parameters<typeof masterDataService.updateRfaType>[1])}
+        updateFn={(id, data) =>
+          masterDataService.updateRfaType(id, data as Parameters<typeof masterDataService.updateRfaType>[1])
+        }
         deleteFn={(id) => masterDataService.deleteRfaType(id)}
         columns={columns as unknown as ColumnDef<{ id?: number; uuid?: string }>[]}
         fields={[

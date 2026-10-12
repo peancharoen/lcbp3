@@ -41,7 +41,7 @@ export function NotificationsDropdown() {
           {unreadCount > 0 && !isLoading && (
             <Badge
               variant="destructive"
-              className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+              className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center p-0 text-xs"
             >
               {unreadCount}
             </Badge>
@@ -64,15 +64,15 @@ export function NotificationsDropdown() {
             {notifications.slice(0, 5).map((notification: Notification) => (
               <DropdownMenuItem
                 key={notification.notificationId}
-                className={`flex flex-col items-start p-3 cursor-pointer ${!notification.isRead ? 'bg-muted/30' : ''}`}
+                className={`flex cursor-pointer flex-col items-start p-3 ${!notification.isRead ? 'bg-muted/30' : ''}`}
                 onClick={() => handleNotificationClick(notification)}
               >
-                <div className="flex justify-between w-full">
-                  <span className="font-medium text-sm">{notification.title}</span>
-                  {!notification.isRead && <span className="h-2 w-2 rounded-full bg-blue-500 mt-1" />}
+                <div className="flex w-full justify-between">
+                  <span className="text-sm font-medium">{notification.title}</span>
+                  {!notification.isRead && <span className="mt-1 h-2 w-2 rounded-full bg-info" />}
                 </div>
-                <div className="text-xs text-muted-foreground mt-1 line-clamp-2">{notification.message}</div>
-                <div className="text-[10px] text-muted-foreground mt-1 self-end">
+                <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">{notification.message}</div>
+                <div className="mt-1 self-end text-[10px] text-muted-foreground">
                   {formatDistanceToNow(new Date(notification.createdAt), {
                     addSuffix: true,
                   })}
@@ -83,7 +83,7 @@ export function NotificationsDropdown() {
         )}
 
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="text-center justify-center text-xs text-muted-foreground" disabled>
+        <DropdownMenuItem className="justify-center text-center text-xs text-muted-foreground" disabled>
           View All Notifications (Coming Soon)
         </DropdownMenuItem>
       </DropdownMenuContent>

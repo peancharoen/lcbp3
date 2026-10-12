@@ -16,12 +16,13 @@ export async function POST(req: NextRequest) {
     if (!query || !context || !context.type || !context.publicId) {
       return NextResponse.json({ error: { message: 'ข้อมูลนำเข้าไม่ถูกต้อง' } }, { status: 400 });
     }
-    const backendUrl = (process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api') + '/ai/chat';
+    const backendUrl =
+      (process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api') + '/ai/chat';
     const response = await fetch(backendUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.accessToken}`,
+        Authorization: `Bearer ${session.accessToken}`,
       },
       body: JSON.stringify({ query, context }),
     });

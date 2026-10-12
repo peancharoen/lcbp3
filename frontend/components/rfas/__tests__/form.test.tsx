@@ -15,8 +15,6 @@ const renderWithClient = (ui: React.ReactElement) => {
   return render(ui, { wrapper });
 };
 
-
-
 // Mock dependencies
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
@@ -81,10 +79,10 @@ describe('RFAForm', () => {
     mockUseContracts.mockReturnValue({ data: [], isLoading: false });
     mockUseOrganizations.mockReturnValue({ data: [], isLoading: false });
     mockUseCorrespondenceTypes.mockReturnValue({
-      data: [{ id: 1, publicId: 'uuid-rfa-type-public', typeCode: 'RFA', typeName: 'Request for Approval' }]
+      data: [{ id: 1, publicId: 'uuid-rfa-type-public', typeCode: 'RFA', typeName: 'Request for Approval' }],
     });
     mockUseRfaTypes.mockReturnValue({
-      data: [{ publicId: 'uuid-type', typeCode: 'SDW', typeName: 'Shop Drawing RFA' }]
+      data: [{ publicId: 'uuid-type', typeCode: 'SDW', typeName: 'Shop Drawing RFA' }],
     });
     mockUseProjects.mockReturnValue({ data: [], isLoading: false });
     mockUseAiStatus.mockReturnValue({ data: null, isLoading: false });
@@ -239,7 +237,7 @@ describe('RFAForm', () => {
   describe('Drawing Selection', () => {
     it('should render shop drawing section', () => {
       mockUseRfaTypes.mockReturnValue({
-        data: [{ publicId: 'uuid-sdw', typeCode: 'SDW', typeName: 'Shop Drawing RFA' }]
+        data: [{ publicId: 'uuid-sdw', typeCode: 'SDW', typeName: 'Shop Drawing RFA' }],
       });
 
       renderWithClient(<RFAForm defaultValues={{ rfaTypeId: 'uuid-sdw' }} />);
@@ -248,7 +246,7 @@ describe('RFAForm', () => {
 
     it('should render as-built drawing section', () => {
       mockUseRfaTypes.mockReturnValue({
-        data: [{ publicId: 'uuid-adw', typeCode: 'ADW', typeName: 'As-Built Drawing RFA' }]
+        data: [{ publicId: 'uuid-adw', typeCode: 'ADW', typeName: 'As-Built Drawing RFA' }],
       });
 
       renderWithClient(<RFAForm defaultValues={{ rfaTypeId: 'uuid-adw' }} />);
@@ -257,7 +255,7 @@ describe('RFAForm', () => {
 
     it('should show search input for shop drawings', () => {
       mockUseRfaTypes.mockReturnValue({
-        data: [{ publicId: 'uuid-sdw', typeCode: 'SDW', typeName: 'Shop Drawing RFA' }]
+        data: [{ publicId: 'uuid-sdw', typeCode: 'SDW', typeName: 'Shop Drawing RFA' }],
       });
 
       renderWithClient(<RFAForm defaultValues={{ rfaTypeId: 'uuid-sdw' }} />);
@@ -267,7 +265,7 @@ describe('RFAForm', () => {
 
     it('should show search input for as-built drawings', () => {
       mockUseRfaTypes.mockReturnValue({
-        data: [{ publicId: 'uuid-adw', typeCode: 'ADW', typeName: 'As-Built RFA' }]
+        data: [{ publicId: 'uuid-adw', typeCode: 'ADW', typeName: 'As-Built RFA' }],
       });
 
       renderWithClient(<RFAForm defaultValues={{ rfaTypeId: 'uuid-adw' }} />);

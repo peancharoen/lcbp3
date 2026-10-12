@@ -74,9 +74,7 @@ describe('DSLEditor (T054)', () => {
     });
 
     // แสดง error message ใน UI
-    expect(
-      screen.getByText('DSL must have at least one state')
-    ).toBeInTheDocument();
+    expect(screen.getByText('DSL must have at least one state')).toBeInTheDocument();
   });
 
   it('calls onValidationChange(false) when validation returns valid', async () => {

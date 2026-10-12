@@ -40,10 +40,7 @@ interface Field {
    * Custom render function สำหรับ `type: 'custom'` (ADR-046)
    * รับค่าปัจจุบัน + callback setValue แล้วคืน ReactNode สำหรับ render ใน form dialog
    */
-  render?: (params: {
-    value: unknown;
-    setValue: (value: unknown) => void;
-  }) => React.ReactNode;
+  render?: (params: { value: unknown; setValue: (value: unknown) => void }) => React.ReactNode;
 }
 
 interface ApiError extends Error {
@@ -82,10 +79,7 @@ export function GenericCrudTable<T extends { id?: number; uuid?: string }>({
   const [editingItem, setEditingId] = useState<number | null>(null);
   const [itemToDelete, setItemToDelete] = useState<number | null>(null);
 
-  const {
-    data: rawData,
-    isLoading,
-  } = useQuery({
+  const { data: rawData, isLoading } = useQuery({
     queryKey,
     queryFn: fetchFn,
   });
@@ -155,7 +149,7 @@ export function GenericCrudTable<T extends { id?: number; uuid?: string }>({
             <Button
               variant="ghost"
               size="icon"
-              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
               onClick={() => setItemToDelete(row.original.id as number)}
             >
               <Trash2 className="h-4 w-4" />
@@ -200,13 +194,13 @@ export function GenericCrudTable<T extends { id?: number; uuid?: string }>({
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
           {description && <p className="text-muted-foreground">{description}</p>}
         </div>
         <Button onClick={handleAdd}>
-          <Plus className="h-4 w-4 mr-2" /> Add {entityName}
+          <Plus className="mr-2 h-4 w-4" /> Add {entityName}
         </Button>
       </div>
 
@@ -309,7 +303,9 @@ export function GenericCrudTable<T extends { id?: number; uuid?: string }>({
                     })}
                   />
                 )}
-                {errors[field.name] && <p className="text-xs text-red-500 font-medium">{field.label} is required</p>}
+                {errors[field.name] && (
+                  <p className="text-xs font-medium text-destructive">{field.label} is required</p>
+                )}
               </div>
             ))}
             <DialogFooter>
@@ -340,7 +336,7 @@ export function GenericCrudTable<T extends { id?: number; uuid?: string }>({
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => itemToDelete && deleteMutation.mutate(itemToDelete)}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive hover:bg-destructive/90"
             >
               {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
             </AlertDialogAction>

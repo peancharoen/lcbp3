@@ -30,9 +30,7 @@ vi.mock('@/components/common/data-table', () => ({
         },
       };
       return (
-        <div data-testid={`cell-${key || column.id || 'custom'}-${row.publicId}`}>
-          {column.cell(context as never)}
-        </div>
+        <div data-testid={`cell-${key || column.id || 'custom'}-${row.publicId}`}>{column.cell(context as never)}</div>
       );
     };
     return (
@@ -54,9 +52,7 @@ vi.mock('@/components/common/data-table', () => ({
 }));
 
 vi.mock('next/link', () => ({
-  default: ({ children, href }: { children: React.ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
-  ),
+  default: ({ children, href }: { children: React.ReactNode; href: string }) => <a href={href}>{children}</a>,
 }));
 
 const createRouting = (status: 'PENDING' | 'COMPLETED'): Circulation['routings'][number] => ({
@@ -94,8 +90,7 @@ const mockResponse: CirculationListResponse = {
 
 const { wrapper: QueryClientWrapper, queryClient } = createTestQueryClient();
 
-const renderWithClient = (ui: React.ReactNode) =>
-  render(<QueryClientWrapper>{ui}</QueryClientWrapper>);
+const renderWithClient = (ui: React.ReactNode) => render(<QueryClientWrapper>{ui}</QueryClientWrapper>);
 
 describe('CirculationList', () => {
   it('ควรเรนเดอร์ DataTable ได้ถูกต้อง', () => {

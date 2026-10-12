@@ -139,9 +139,15 @@ describe('use-review-teams hooks', () => {
       const { wrapper } = createTestQueryClient();
       const { result } = renderHook(() => useAddTeamMember(), { wrapper });
       await act(async () => {
-        await result.current.mutateAsync({ teamPublicId: 'uuid-team-1', data: { userPublicId: 'uuid-user-1', role: 'REVIEWER' } as any });
+        await result.current.mutateAsync({
+          teamPublicId: 'uuid-team-1',
+          data: { userPublicId: 'uuid-user-1', role: 'REVIEWER' } as any,
+        });
       });
-      expect(reviewTeamService.addMember).toHaveBeenCalledWith('uuid-team-1', { userPublicId: 'uuid-user-1', role: 'REVIEWER' });
+      expect(reviewTeamService.addMember).toHaveBeenCalledWith('uuid-team-1', {
+        userPublicId: 'uuid-user-1',
+        role: 'REVIEWER',
+      });
       expect(toast.success).toHaveBeenCalledWith('Member added to team');
     });
 
@@ -152,7 +158,10 @@ describe('use-review-teams hooks', () => {
       const { result } = renderHook(() => useAddTeamMember(), { wrapper });
       await act(async () => {
         try {
-          await result.current.mutateAsync({ teamPublicId: 'uuid-team-1', data: { userPublicId: 'uuid-user-1', role: 'REVIEWER' } as any });
+          await result.current.mutateAsync({
+            teamPublicId: 'uuid-team-1',
+            data: { userPublicId: 'uuid-user-1', role: 'REVIEWER' } as any,
+          });
         } catch {
           // Expected
         }

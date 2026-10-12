@@ -9,14 +9,14 @@ describe('adminApi', () => {
   describe('getUsers', () => {
     it('ควร return array of users', async () => {
       const users = await adminApi.getUsers();
-      
+
       expect(Array.isArray(users)).toBe(true);
       expect(users.length).toBeGreaterThan(0);
     });
 
     it('ควร return users ที่มี publicId, username, email', async () => {
       const users = await adminApi.getUsers();
-      
+
       expect(users[0]).toHaveProperty('publicId');
       expect(users[0]).toHaveProperty('username');
       expect(users[0]).toHaveProperty('email');
@@ -35,7 +35,7 @@ describe('adminApi', () => {
       };
 
       const newUser = await adminApi.createUser(userData);
-      
+
       expect(newUser).toHaveProperty('publicId');
       expect(newUser.username).toBe('testuser');
       expect(newUser.email).toBe('test@example.com');
@@ -52,7 +52,7 @@ describe('adminApi', () => {
       };
 
       const newUser = await adminApi.createUser(userData);
-      
+
       expect(newUser.userId).toBeGreaterThan(0);
     });
   });
@@ -60,14 +60,14 @@ describe('adminApi', () => {
   describe('getOrganizations', () => {
     it('ควร return array of organizations', async () => {
       const orgs = await adminApi.getOrganizations();
-      
+
       expect(Array.isArray(orgs)).toBe(true);
       expect(orgs.length).toBeGreaterThan(0);
     });
 
     it('ควร return organizations ที่มี publicId, orgCode, orgName', async () => {
       const orgs = await adminApi.getOrganizations();
-      
+
       expect(orgs[0]).toHaveProperty('publicId');
       expect(orgs[0]).toHaveProperty('orgCode');
       expect(orgs[0]).toHaveProperty('orgName');
@@ -84,7 +84,7 @@ describe('adminApi', () => {
       };
 
       const newOrg = await adminApi.createOrganization(orgData);
-      
+
       expect(newOrg).toHaveProperty('publicId');
       expect(newOrg.orgCode).toBe('TEST');
       expect(newOrg.orgName).toBe('Test Organization');
@@ -99,7 +99,7 @@ describe('adminApi', () => {
       };
 
       const newOrg = await adminApi.createOrganization(orgData);
-      
+
       expect(newOrg.orgId).toBeGreaterThan(0);
     });
   });
@@ -107,14 +107,14 @@ describe('adminApi', () => {
   describe('getAuditLogs', () => {
     it('ควร return array of audit logs', async () => {
       const logs = await adminApi.getAuditLogs();
-      
+
       expect(Array.isArray(logs)).toBe(true);
       expect(logs.length).toBeGreaterThan(0);
     });
 
     it('ควร return logs ที่มี publicId, userName, action', async () => {
       const logs = await adminApi.getAuditLogs();
-      
+
       expect(logs[0]).toHaveProperty('publicId');
       expect(logs[0]).toHaveProperty('userName');
       expect(logs[0]).toHaveProperty('action');

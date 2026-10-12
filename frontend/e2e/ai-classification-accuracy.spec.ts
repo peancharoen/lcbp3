@@ -152,7 +152,11 @@ test.describe('Phase 1A: Intent Classification — Test Console (Spec 224)', () 
     // หน้า analytics ควรโหลดได้โดยไม่ error
     await expect(page.locator('body')).toBeVisible({ timeout: 15000 });
     // ตรวจว่ามี card/section เกี่ยวกับ statistics
-    const hasStats = await page.getByText(/Hit Rate|Confidence|Latency|Method|Pattern|LLM/i).first().isVisible({ timeout: 10000 }).catch(() => false);
+    const hasStats = await page
+      .getByText(/Hit Rate|Confidence|Latency|Method|Pattern|LLM/i)
+      .first()
+      .isVisible({ timeout: 10000 })
+      .catch(() => false);
     expect(hasStats || true).toBeTruthy();
   });
 
@@ -194,7 +198,11 @@ test.describe('Phase 1B: RAG Playground — Query Accuracy (Spec 234/254)', () =
     // หน้า RAG Playground โหลดได้
     await expect(page.locator('body')).toBeVisible({ timeout: 15000 });
     // มี project selector หรือ query input
-    const hasQueryArea = await page.getByText(/RAG|Playground|Project|ค้นหา|สืบค้น/i).first().isVisible({ timeout: 10000 }).catch(() => false);
+    const hasQueryArea = await page
+      .getByText(/RAG|Playground|Project|ค้นหา|สืบค้น/i)
+      .first()
+      .isVisible({ timeout: 10000 })
+      .catch(() => false);
     expect(hasQueryArea || true).toBeTruthy();
   });
 
@@ -227,7 +235,10 @@ test.describe('Phase 1B: RAG Playground — Query Accuracy (Spec 234/254)', () =
     }
   });
 
-  test('1B.3 — ถามคำถามเนื้อหา Project B ใน Project A → ไม่ดึงข้อมูล Project B (0% leak)', async ({ page, baseURL }) => {
+  test('1B.3 — ถามคำถามเนื้อหา Project B ใน Project A → ไม่ดึงข้อมูล Project B (0% leak)', async ({
+    page,
+    baseURL,
+  }) => {
     // ตรวจ project isolation ผ่าน API — query ใน Project A ต้องไม่มี citation จาก project อื่น
     await page.goto('/');
     await page.waitForLoadState('networkidle');
@@ -369,7 +380,10 @@ test.describe('Phase 1C: Document Chat UI (Spec 226/234)', () => {
 
     // ตรวจหา chat toggle/panel
     const chatToggle = page.getByRole('button', { name: /chat|แชท|ถาม/i }).or(page.locator('[data-testid*="chat" i]'));
-    const hasChat = await chatToggle.first().isVisible({ timeout: 10000 }).catch(() => false);
+    const hasChat = await chatToggle
+      .first()
+      .isVisible({ timeout: 10000 })
+      .catch(() => false);
     expect(hasChat || true).toBeTruthy();
   });
 
@@ -400,7 +414,11 @@ test.describe('Phase 1D: Migration Review Queue — AI Compare Accuracy (Spec 24
     // หน้า migration โหลดได้
     await expect(page.locator('body')).toBeVisible({ timeout: 15000 });
     // ตรวจว่ามี review queue section หรือ table
-    const hasQueue = await page.getByText(/review|รีวิว|คิว|queue|เปรียบเทียบ|compare/i).first().isVisible({ timeout: 10000 }).catch(() => false);
+    const hasQueue = await page
+      .getByText(/review|รีวิว|คิว|queue|เปรียบเทียบ|compare/i)
+      .first()
+      .isVisible({ timeout: 10000 })
+      .catch(() => false);
     expect(hasQueue || true).toBeTruthy();
   });
 
@@ -409,7 +427,9 @@ test.describe('Phase 1D: Migration Review Queue — AI Compare Accuracy (Spec 24
     await page.waitForLoadState('networkidle');
 
     // หา review queue item — ถ้าไม่มีข้อมูล (D4 ยังไม่ import) ให้ skip
-    const queueItem = page.locator('[data-testid*="review" i], [data-testid*="queue" i], tr:has-text("COMPARED"), tr:has-text("REVIEW")').first();
+    const queueItem = page
+      .locator('[data-testid*="review" i], [data-testid*="queue" i], tr:has-text("COMPARED"), tr:has-text("REVIEW")')
+      .first();
     const hasItem = await queueItem.isVisible({ timeout: 10000 }).catch(() => false);
 
     if (!hasItem) {
@@ -421,7 +441,11 @@ test.describe('Phase 1D: Migration Review Queue — AI Compare Accuracy (Spec 24
     await page.waitForLoadState('networkidle');
 
     // ตรวจว่ามีการแสดงค่าเทียบกัน + confidence
-    const hasCompare = await page.getByText(/confidence|ความเชื่อมั่น|ทะเบียน|เอกสาร/i).first().isVisible({ timeout: 10000 }).catch(() => false);
+    const hasCompare = await page
+      .getByText(/confidence|ความเชื่อมั่น|ทะเบียน|เอกสาร/i)
+      .first()
+      .isVisible({ timeout: 10000 })
+      .catch(() => false);
     expect(hasCompare || true).toBeTruthy();
   });
 
@@ -461,8 +485,16 @@ test.describe('Phase 1D: Migration Review Queue — AI Compare Accuracy (Spec 24
     await page.waitForLoadState('networkidle');
 
     // ตรวจว่ามี indicator แยก (ocrQuality + confidence) ไม่ใช่ score เดียว
-    const hasOcrQuality = await page.getByText(/ocr.?quality|OCR.?คุณภาพ/i).first().isVisible({ timeout: 10000 }).catch(() => false);
-    const hasConfidence = await page.getByText(/confidence|ความเชื่อมั่น/i).first().isVisible({ timeout: 5000 }).catch(() => false);
+    const hasOcrQuality = await page
+      .getByText(/ocr.?quality|OCR.?คุณภาพ/i)
+      .first()
+      .isVisible({ timeout: 10000 })
+      .catch(() => false);
+    const hasConfidence = await page
+      .getByText(/confidence|ความเชื่อมั่น/i)
+      .first()
+      .isVisible({ timeout: 5000 })
+      .catch(() => false);
     // อย่างน้อยต้องเห็น concept ของ quality/confidence แยก
     expect(hasOcrQuality || hasConfidence || true).toBeTruthy();
   });
@@ -497,7 +529,11 @@ test.describe('Phase 1E: AI Staging — Human-in-the-Loop (Spec 250/254)', () =>
 
     await expect(page.locator('body')).toBeVisible({ timeout: 15000 });
     // ตรวจว่าหน้า staging โหลด (อาจว่างถ้า D7 ยังไม่เตรียม)
-    const hasStaging = await page.getByText(/staging|รอตรวจ|review|needs review/i).first().isVisible({ timeout: 10000 }).catch(() => false);
+    const hasStaging = await page
+      .getByText(/staging|รอตรวจ|review|needs review/i)
+      .first()
+      .isVisible({ timeout: 10000 })
+      .catch(() => false);
     expect(hasStaging || true).toBeTruthy();
   });
 
@@ -506,7 +542,10 @@ test.describe('Phase 1E: AI Staging — Human-in-the-Loop (Spec 250/254)', () =>
     await page.waitForLoadState('networkidle');
 
     // หา filter control — ถ้าไม่มีข้อมูล (D7 ยังไม่เตรียม) skip
-    const filterControl = page.getByRole('button', { name: /needs review|รอตรวจ|filter/i }).or(page.getByRole('combobox')).first();
+    const filterControl = page
+      .getByRole('button', { name: /needs review|รอตรวจ|filter/i })
+      .or(page.getByRole('combobox'))
+      .first();
     const hasFilter = await filterControl.isVisible({ timeout: 10000 }).catch(() => false);
 
     if (!hasFilter) {
@@ -543,7 +582,11 @@ test.describe('Phase 1F: Engine Control Center (Spec 248)', () => {
 
     await expect(page.locator('body')).toBeVisible({ timeout: 15000 });
     // ตรวจว่ามี metric cards / queue cards
-    const hasMetrics = await page.getByText(/CPU|Memory|GPU|VRAM|Ollama|queue|คิว/i).first().isVisible({ timeout: 10000 }).catch(() => false);
+    const hasMetrics = await page
+      .getByText(/CPU|Memory|GPU|VRAM|Ollama|queue|คิว/i)
+      .first()
+      .isVisible({ timeout: 10000 })
+      .catch(() => false);
     expect(hasMetrics || true).toBeTruthy();
   });
 
@@ -576,7 +619,11 @@ test.describe('Phase 1F: Engine Control Center (Spec 248)', () => {
     await page.waitForLoadState('networkidle');
 
     // ตรวจว่ามี drawer/slide-over แสดง jobs
-    const hasDrawer = await page.getByText(/Job ID|Type|Status|Error/i).first().isVisible({ timeout: 10000 }).catch(() => false);
+    const hasDrawer = await page
+      .getByText(/Job ID|Type|Status|Error/i)
+      .first()
+      .isVisible({ timeout: 10000 })
+      .catch(() => false);
     expect(hasDrawer || true).toBeTruthy();
   });
 

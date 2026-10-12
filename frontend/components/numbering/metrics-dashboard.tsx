@@ -53,7 +53,7 @@ export function MetricsDashboard() {
         <CardContent>
           <div className="text-2xl font-bold">{utilization}%</div>
           <Progress value={utilization} className="mt-2" />
-          <p className="text-xs text-muted-foreground mt-1">Average capacity used</p>
+          <p className="mt-1 text-xs text-muted-foreground">Average capacity used</p>
         </CardContent>
       </Card>
 

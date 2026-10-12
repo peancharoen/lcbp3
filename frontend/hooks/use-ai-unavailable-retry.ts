@@ -64,7 +64,6 @@ export function useAiUnavailableRetry(): UseAiUnavailableRetryResult {
         }, RETRY_INTERVAL_MS);
       }
     }
-     
   }, [clearTimers]);
 
   const trigger = useCallback((retryFn: () => Promise<void>) => {

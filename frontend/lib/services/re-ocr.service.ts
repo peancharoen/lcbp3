@@ -114,11 +114,7 @@ export const reOcrService = {
   },
 
   /** POST /files/:id/re-ocr/confirm — แทนที่ ocr_text ถาวร + re-index */
-  async confirm(
-    attachmentPublicId: string,
-    reOcrToken: string,
-    idempotencyKey: string
-  ): Promise<ReOcrConfirmResponse> {
+  async confirm(attachmentPublicId: string, reOcrToken: string, idempotencyKey: string): Promise<ReOcrConfirmResponse> {
     const response = await api.post(
       `/files/${attachmentPublicId}/re-ocr/confirm`,
       { reOcrToken },
@@ -150,11 +146,9 @@ export const reOcrService = {
     body: ReOcrReplaceRequest,
     idempotencyKey: string
   ): Promise<ReOcrTriggerResponse> {
-    const response = await api.post(
-      `/files/${attachmentPublicId}/re-ocr/replace`,
-      body,
-      { headers: { 'Idempotency-Key': idempotencyKey } }
-    );
+    const response = await api.post(`/files/${attachmentPublicId}/re-ocr/replace`, body, {
+      headers: { 'Idempotency-Key': idempotencyKey },
+    });
     return response.data.data as ReOcrTriggerResponse;
   },
 

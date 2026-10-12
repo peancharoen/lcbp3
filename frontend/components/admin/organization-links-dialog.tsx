@@ -139,7 +139,7 @@ export function OrganizationLinksDialog({
         </DialogHeader>
 
         {/* ฟอร์มเพิ่มองค์กรใหม่ */}
-        <form onSubmit={handleSubmit(onSubmit)} className="flex items-end gap-3 border rounded-lg p-3 bg-muted/30">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex items-end gap-3 rounded-lg border bg-muted/30 p-3">
           <div className="flex-1 space-y-1">
             <Label>Organization</Label>
             <Select value={watch('organizationId')} onValueChange={(v) => setValue('organizationId', v)}>
@@ -154,7 +154,7 @@ export function OrganizationLinksDialog({
                 ))}
               </SelectContent>
             </Select>
-            {errors.organizationId && <p className="text-sm text-red-500">{errors.organizationId.message}</p>}
+            {errors.organizationId && <p className="text-sm text-destructive">{errors.organizationId.message}</p>}
           </div>
 
           <div className="w-48 space-y-1">
@@ -171,7 +171,7 @@ export function OrganizationLinksDialog({
                 ))}
               </SelectContent>
             </Select>
-            {errors.roleName && <p className="text-sm text-red-500">{errors.roleName.message}</p>}
+            {errors.roleName && <p className="text-sm text-destructive">{errors.roleName.message}</p>}
           </div>
 
           <Button type="submit" disabled={linkMutation.isPending}>
@@ -187,14 +187,14 @@ export function OrganizationLinksDialog({
             ))}
           </div>
         ) : (links ?? []).length === 0 ? (
-          <p className="text-sm text-muted-foreground py-4 text-center">No organizations linked to this {context}</p>
+          <p className="py-4 text-center text-sm text-muted-foreground">No organizations linked to this {context}</p>
         ) : (
-          <div className="divide-y border rounded-lg">
+          <div className="divide-y rounded-lg border">
             {(links ?? []).map((link: LinkedOrganization) => (
               <div key={link.organizationId} className="flex items-center gap-3 px-3 py-2">
-                <div className="flex-1 min-w-0">
+                <div className="min-w-0 flex-1">
                   <span className="font-medium">{link.organizationCode}</span>
-                  <span className="text-muted-foreground ml-2 truncate">{link.organizationName}</span>
+                  <span className="ml-2 truncate text-muted-foreground">{link.organizationName}</span>
                 </div>
 
                 {/* เปลี่ยน role inline — ส่ง mutation ทันทีเมื่อเลือก */}
@@ -222,7 +222,7 @@ export function OrganizationLinksDialog({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-red-600 hover:text-red-700"
+                  className="text-destructive hover:text-destructive"
                   disabled={unlinkMutation.isPending}
                   onClick={() => unlinkMutation.mutate(link.organizationId)}
                 >

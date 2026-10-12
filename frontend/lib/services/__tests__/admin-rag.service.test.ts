@@ -219,9 +219,7 @@ describe('adminRagService — NestJS envelope unwrapping (ISSUE-003)', () => {
     it('should unwrap response.data.data for batch retry response', async () => {
       const innerPayload = {
         succeeded: ['gen-uuid-3'],
-        failed: [
-          { generationPublicId: 'gen-uuid-4', reason: 'Permanent error' },
-        ],
+        failed: [{ generationPublicId: 'gen-uuid-4', reason: 'Permanent error' }],
       };
       vi.mocked(api.post).mockResolvedValue({
         data: { statusCode: 200, message: 'Success', data: innerPayload },
@@ -250,16 +248,12 @@ describe('adminRagService — NestJS envelope unwrapping (ISSUE-003)', () => {
         data: { statusCode: 200, message: 'Success', data: innerPayload },
       });
 
-      const result = await adminRagService.overrideClassification(
-        'test-uuid-1',
-        'CONFIDENTIAL',
-        'Security review'
-      );
+      const result = await adminRagService.overrideClassification('test-uuid-1', 'CONFIDENTIAL', 'Security review');
 
-      expect(api.patch).toHaveBeenCalledWith(
-        '/ai/rag/attachments/test-uuid-1/classification',
-        { classification: 'CONFIDENTIAL', reason: 'Security review' }
-      );
+      expect(api.patch).toHaveBeenCalledWith('/ai/rag/attachments/test-uuid-1/classification', {
+        classification: 'CONFIDENTIAL',
+        reason: 'Security review',
+      });
       expect(result).toEqual(innerPayload);
     });
   });

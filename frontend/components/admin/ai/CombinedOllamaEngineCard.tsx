@@ -39,13 +39,7 @@ import {
   type VramStatusResponse,
   type BgeStatusResponse,
 } from '@/lib/services/admin-ai.service';
-import {
-  MAIN_MODEL_NAME,
-  MAIN_MODEL_30B_NAME,
-  OCR_MODEL_NAME,
-  BGE_MODEL_NAME,
-  toCanonicalModel,
-} from './ai-constants';
+import { MAIN_MODEL_NAME, MAIN_MODEL_30B_NAME, OCR_MODEL_NAME, BGE_MODEL_NAME, toCanonicalModel } from './ai-constants';
 
 interface CombinedOllamaEngineCardProps {
   health: AiSystemHealth | undefined;
@@ -119,15 +113,9 @@ const renderStatusBadge = (status?: 'HEALTHY' | 'DEGRADED' | 'DOWN') => {
   if (!status) return <Badge variant="outline">Unknown</Badge>;
   switch (status) {
     case 'HEALTHY':
-      return (
-        <Badge className="border-emerald-500/20 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20">
-          Healthy
-        </Badge>
-      );
+      return <Badge className="border-success/20 bg-success/10 text-success hover:bg-success/20">Healthy</Badge>;
     case 'DEGRADED':
-      return (
-        <Badge className="border-amber-500/20 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20">Degraded</Badge>
-      );
+      return <Badge className="border-warning/20 bg-warning/10 text-warning hover:bg-warning/20">Degraded</Badge>;
     default:
       return <Badge variant="destructive">Down</Badge>;
   }
@@ -152,9 +140,7 @@ export function CombinedOllamaEngineCard({
   // "Loaded on Ollama" badges: อ่านจาก vramStatus (แหล่งเดียวกับตาราง catalog ด้านล่าง) แทน
   // health.ollama.models — สอง query นี้ poll คนละรอบเวลา (health 30s, vramStatus 15s) ถ้าอ่าน
   // คนละแหล่งจะโชว์ snapshot ไม่ตรงกันได้ระหว่างโมเดลกำลังสลับ (เช่น batch OCR phase)
-  const loadedModelNames = Array.from(
-    new Set(vramLoadedModels.map((m) => toCanonicalModel(m.modelName)))
-  );
+  const loadedModelNames = Array.from(new Set(vramLoadedModels.map((m) => toCanonicalModel(m.modelName))));
 
   // FR-005: Canonical model catalog — แสดงทั้ง loaded และ unloaded models พร้อม residency status
   const canonicalCatalog = [MAIN_MODEL_NAME, MAIN_MODEL_30B_NAME, OCR_MODEL_NAME];
@@ -273,16 +259,16 @@ export function CombinedOllamaEngineCard({
                   (ดู "Loaded on Ollama" ด้านขวา หรือตาราง catalog ด้านล่างสำหรับสถานะจริง) */}
               <span className="text-[10px] text-muted-foreground">Configured models:</span>
               <div className="flex flex-wrap gap-1">
-                <Badge variant="outline" className="text-[10px] py-0 px-1 text-muted-foreground border-none">
+                <Badge variant="outline" className="border-none px-1 py-0 text-[10px] text-muted-foreground">
                   Main: {health?.activeModels?.main ?? '-'}
                 </Badge>
-                <Badge variant="outline" className="text-[10px] py-0 px-1 text-muted-foreground border-none">
+                <Badge variant="outline" className="border-none px-1 py-0 text-[10px] text-muted-foreground">
                   OCR: {health?.activeModels?.ocr ?? '-'}
                 </Badge>
               </div>
             </div>
             {health?.ollama?.error && (
-              <p className="mt-1 text-[10px] text-destructive line-clamp-2">{health.ollama.error}</p>
+              <p className="mt-1 line-clamp-2 text-[10px] text-destructive">{health.ollama.error}</p>
             )}
           </div>
           <div className="space-y-1.5">
@@ -292,13 +278,13 @@ export function CombinedOllamaEngineCard({
                 loadedModelNames.map((m) => (
                   <Badge
                     key={m}
-                    className="text-[10px] py-0 px-1 border-emerald-500/20 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
+                    className="border-success/20 bg-success/10 px-1 py-0 text-[10px] text-success hover:bg-success/20"
                   >
                     {m}
                   </Badge>
                 ))
               ) : (
-                <span className="text-[10px] text-muted-foreground italic">ไม่มีโมเดลที่โหลดอยู่</span>
+                <span className="text-[10px] italic text-muted-foreground">ไม่มีโมเดลที่โหลดอยู่</span>
               )}
             </div>
           </div>
@@ -306,7 +292,7 @@ export function CombinedOllamaEngineCard({
 
         {/* VRAM section */}
         {isVramError && !vramStatus ? (
-          <div className="flex items-center gap-2 text-xs text-destructive py-2 justify-center">
+          <div className="flex items-center justify-center gap-2 py-2 text-xs text-destructive">
             <AlertCircle className="h-4 w-4" />
             <span>{t('ai.vram.error')}</span>
           </div>
@@ -329,9 +315,7 @@ export function CombinedOllamaEngineCard({
               <Progress value={vramStatus.usagePercent} className="h-2" />
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">VRAM ที่เหลือว่าง</span>
-                <span className="font-semibold text-emerald-500">
-                  {vramStatus.totalVRAMMB - vramStatus.usedVRAMMB} MB
-                </span>
+                <span className="font-semibold text-success">{vramStatus.totalVRAMMB - vramStatus.usedVRAMMB} MB</span>
               </div>
               <div className="flex items-center justify-between text-[10px] text-muted-foreground">
                 <span>อัปเดตล่าสุด</span>
@@ -347,24 +331,24 @@ export function CombinedOllamaEngineCard({
                   {vramStatus.canLoadModel ? t('ai.vram.catalog.capacityOk') : t('ai.vram.catalog.capacityLow')}
                 </Badge>
               </div>
-              <div className="rounded-md border border-border/50 overflow-hidden">
+              <div className="overflow-hidden rounded-md border border-border/50">
                 <table className="w-full text-xs">
                   <thead className="bg-muted/30 text-muted-foreground">
                     <tr>
-                      <th className="text-left py-1.5 px-2 font-medium">{t('ai.vram.catalog.column.model')}</th>
-                      <th className="text-left py-1.5 px-2 font-medium">{t('ai.vram.catalog.column.residency')}</th>
-                      <th className="text-right py-1.5 px-2 font-medium">{t('ai.vram.catalog.column.modelSize')}</th>
-                      <th className="text-right py-1.5 px-2 font-medium">{t('ai.vram.catalog.column.vram')}</th>
-                      <th className="text-right py-1.5 px-2 font-medium">{t('ai.queue.column.actions')}</th>
+                      <th className="px-2 py-1.5 text-left font-medium">{t('ai.vram.catalog.column.model')}</th>
+                      <th className="px-2 py-1.5 text-left font-medium">{t('ai.vram.catalog.column.residency')}</th>
+                      <th className="px-2 py-1.5 text-right font-medium">{t('ai.vram.catalog.column.modelSize')}</th>
+                      <th className="px-2 py-1.5 text-right font-medium">{t('ai.vram.catalog.column.vram')}</th>
+                      <th className="px-2 py-1.5 text-right font-medium">{t('ai.queue.column.actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {catalogRows.map((row) => (
                       <tr key={row.canonicalName} className="border-t border-border/30">
-                        <td className="py-1.5 px-2 font-mono">{row.canonicalName}</td>
-                        <td className="py-1.5 px-2">
+                        <td className="px-2 py-1.5 font-mono">{row.canonicalName}</td>
+                        <td className="px-2 py-1.5">
                           {row.isLoaded ? (
-                            <Badge className="border-emerald-500/20 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 text-[10px]">
+                            <Badge className="border-success/20 bg-success/10 text-[10px] text-success hover:bg-success/20">
                               {t('ai.vram.residency.loaded')}
                             </Badge>
                           ) : (
@@ -373,19 +357,19 @@ export function CombinedOllamaEngineCard({
                             </Badge>
                           )}
                         </td>
-                        <td className="py-1.5 px-2 text-right">
+                        <td className="px-2 py-1.5 text-right">
                           {typeof row.modelSizeMB === 'number' ? row.modelSizeMB : '—'}
                         </td>
-                        <td className="py-1.5 px-2 text-right">
+                        <td className="px-2 py-1.5 text-right">
                           {typeof row.vramUsageMB === 'number' ? row.vramUsageMB : '—'}
                         </td>
-                        <td className="py-1.5 px-2 text-right">
+                        <td className="px-2 py-1.5 text-right">
                           {row.isLoaded ? (
                             <Button
                               type="button"
                               variant="ghost"
                               size="sm"
-                              className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              className="h-7 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
                               disabled={isBusy}
                               onClick={() => setPendingUnloadModel(row.canonicalName)}
                               aria-label={t('ai.vram.action.unload')}
@@ -398,7 +382,7 @@ export function CombinedOllamaEngineCard({
                               type="button"
                               variant="ghost"
                               size="sm"
-                              className="h-7 px-2 text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10"
+                              className="h-7 px-2 text-success hover:bg-success/10 hover:text-success"
                               disabled={isBusy || !vramStatus.canLoadModel}
                               onClick={() => void loadMutation.mutate(row.canonicalName)}
                               aria-label={t('ai.vram.action.load')}
@@ -413,13 +397,13 @@ export function CombinedOllamaEngineCard({
 
                     {/* BGE row — Sidecar lazy-load (ไม่ได้โหลดใน Ollama) */}
                     <tr className="border-t border-border/30 bg-purple-500/5">
-                      <td className="py-1.5 px-2 font-mono">
+                      <td className="px-2 py-1.5 font-mono">
                         {BGE_MODEL_NAME}
                         <span className="ml-1 text-[9px] text-muted-foreground">(sidecar)</span>
                       </td>
-                      <td className="py-1.5 px-2">
+                      <td className="px-2 py-1.5">
                         {bgeStatus?.bgeLoaded ? (
-                          <Badge className="border-purple-500/20 bg-purple-500/10 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20 text-[10px]">
+                          <Badge className="border-purple-500/20 bg-purple-500/10 text-[10px] text-purple-600 hover:bg-purple-500/20 dark:text-purple-400">
                             {t('ai.vram.residency.loaded')}
                           </Badge>
                         ) : (
@@ -428,16 +412,16 @@ export function CombinedOllamaEngineCard({
                           </Badge>
                         )}
                       </td>
-                      <td className="py-1.5 px-2 text-right text-muted-foreground">
+                      <td className="px-2 py-1.5 text-right text-muted-foreground">
                         {bgeStatus?.bgeLoaded ? '~4800' : '—'}
                       </td>
-                      <td className="py-1.5 px-2 text-right">
+                      <td className="px-2 py-1.5 text-right">
                         {bgeStatus?.bgeLoaded ? (
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            className="h-7 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
                             disabled={isBusy}
                             onClick={() => void bgeUnloadMutation.mutate()}
                           >
@@ -449,7 +433,7 @@ export function CombinedOllamaEngineCard({
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="h-7 px-2 text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10"
+                            className="h-7 px-2 text-success hover:bg-success/10 hover:text-success"
                             disabled={isBusy}
                             onClick={() => void bgeLoadMutation.mutate()}
                           >
@@ -473,7 +457,7 @@ export function CombinedOllamaEngineCard({
             </div>
           </>
         ) : (
-          <p className="text-xs text-muted-foreground italic text-center py-2">กำลังดึงข้อมูลสถานะ GPU VRAM...</p>
+          <p className="py-2 text-center text-xs italic text-muted-foreground">กำลังดึงข้อมูลสถานะ GPU VRAM...</p>
         )}
       </CardContent>
 
@@ -482,7 +466,7 @@ export function CombinedOllamaEngineCard({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              <AlertTriangle className="h-5 w-5 text-warning" />
               {t('ai.vram.unload.confirmTitle')}
             </AlertDialogTitle>
             <AlertDialogDescription>

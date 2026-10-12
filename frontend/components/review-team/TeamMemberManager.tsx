@@ -5,13 +5,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Trash2, UserPlus } from 'lucide-react';
 import { useAddTeamMember, useRemoveTeamMember } from '@/hooks/use-review-teams';
 import { ReviewTeamMemberRole } from '@/types/review-team';
@@ -87,7 +81,7 @@ export function TeamMemberManager({
           setSelectedDiscipline('');
           setSelectedRole('REVIEWER');
         },
-      },
+      }
     );
   };
 
@@ -95,34 +89,23 @@ export function TeamMemberManager({
     <div className="space-y-4">
       {/* Member List */}
       <div className="space-y-2">
-        {members.length === 0 && (
-          <p className="text-sm text-muted-foreground">No members assigned yet.</p>
-        )}
+        {members.length === 0 && <p className="text-sm text-muted-foreground">No members assigned yet.</p>}
         {members.map((member) => (
-          <div
-            key={member.publicId}
-            className="flex items-center justify-between p-3 rounded-lg border bg-card"
-          >
+          <div key={member.publicId} className="flex items-center justify-between rounded-lg border bg-card p-3">
             <div className="flex items-center gap-3">
               <div>
-                <p className="text-sm font-medium">
-                  {member.user?.fullName ?? member.user?.email ?? '—'}
-                </p>
+                <p className="text-sm font-medium">{member.user?.fullName ?? member.user?.email ?? '—'}</p>
                 <p className="text-xs text-muted-foreground">
                   {member.discipline?.disciplineCode} — {member.discipline?.codeNameEn}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant={ROLE_BADGE_VARIANT[member.role]}>
-                {ROLE_LABELS[member.role]}
-              </Badge>
+              <Badge variant={ROLE_BADGE_VARIANT[member.role]}>{ROLE_LABELS[member.role]}</Badge>
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() =>
-                  removeMember.mutate({ teamPublicId, memberPublicId: member.publicId })
-                }
+                onClick={() => removeMember.mutate({ teamPublicId, memberPublicId: member.publicId })}
                 disabled={removeMember.isPending}
               >
                 <Trash2 className="h-4 w-4 text-destructive" />
@@ -133,7 +116,7 @@ export function TeamMemberManager({
       </div>
 
       {/* Add Member Form */}
-      <div className="flex gap-2 pt-2 border-t">
+      <div className="flex gap-2 border-t pt-2">
         <Select value={selectedUser} onValueChange={setSelectedUser}>
           <SelectTrigger className="flex-1">
             <SelectValue placeholder="Select user..." />
@@ -160,10 +143,7 @@ export function TeamMemberManager({
           </SelectContent>
         </Select>
 
-        <Select
-          value={selectedRole}
-          onValueChange={(v: string) => setSelectedRole(v as ReviewTeamMemberRole)}
-        >
+        <Select value={selectedRole} onValueChange={(v: string) => setSelectedRole(v as ReviewTeamMemberRole)}>
           <SelectTrigger className="w-28">
             <SelectValue />
           </SelectTrigger>
@@ -177,7 +157,7 @@ export function TeamMemberManager({
         </Select>
 
         <Button onClick={handleAdd} disabled={!selectedUser || !selectedDiscipline || addMember.isPending}>
-          <UserPlus className="h-4 w-4 mr-1" />
+          <UserPlus className="mr-1 h-4 w-4" />
           Add
         </Button>
       </div>

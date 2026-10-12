@@ -17,12 +17,7 @@ vi.mock('@/lib/api/client', () => ({
 
 const renderView = (currentText: string, newText: string) =>
   render(
-    <ReOcrDiffView
-      attachmentPublicId="att-1"
-      currentText={currentText}
-      newText={newText}
-      engineUsed="np-dms-ocr"
-    />
+    <ReOcrDiffView attachmentPublicId="att-1" currentText={currentText} newText={newText} engineUsed="np-dms-ocr" />
   );
 
 describe('ReOcrDiffView', () => {
@@ -64,19 +59,10 @@ describe('ReOcrDiffView', () => {
       />
     );
     // default = new → fetch candidate
-    expect(apiClient.get).toHaveBeenLastCalledWith(
-      '/files/cand-1/re-ocr/preview',
-      expect.any(Object)
-    );
+    expect(apiClient.get).toHaveBeenLastCalledWith('/files/cand-1/re-ocr/preview', expect.any(Object));
     await userEvent.click(screen.getByTestId('pdf-toggle-old'));
-    expect(apiClient.get).toHaveBeenLastCalledWith(
-      '/files/att-1/re-ocr/preview',
-      expect.any(Object)
-    );
+    expect(apiClient.get).toHaveBeenLastCalledWith('/files/att-1/re-ocr/preview', expect.any(Object));
     await userEvent.click(screen.getByTestId('pdf-toggle-new'));
-    expect(apiClient.get).toHaveBeenLastCalledWith(
-      '/files/cand-1/re-ocr/preview',
-      expect.any(Object)
-    );
+    expect(apiClient.get).toHaveBeenLastCalledWith('/files/cand-1/re-ocr/preview', expect.any(Object));
   });
 });

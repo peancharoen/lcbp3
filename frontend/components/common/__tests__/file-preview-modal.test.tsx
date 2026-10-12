@@ -30,9 +30,7 @@ vi.stubGlobal('URL', {
   revokeObjectURL: vi.fn(),
 });
 
-const makeAttachment = (
-  overrides: Partial<WorkflowAttachmentSummary> = {}
-): WorkflowAttachmentSummary => ({
+const makeAttachment = (overrides: Partial<WorkflowAttachmentSummary> = {}): WorkflowAttachmentSummary => ({
   publicId: 'att-preview-001',
   originalFilename: 'test-file.pdf',
   mimeType: 'application/pdf',
@@ -130,13 +128,7 @@ describe('FilePreviewModal', () => {
 
     const attachment = makeAttachment({ publicId: 'missing-att-001' });
 
-    render(
-      <FilePreviewModal
-        attachment={attachment}
-        onClose={onClose}
-        onUnavailable={onUnavailable}
-      />
-    );
+    render(<FilePreviewModal attachment={attachment} onClose={onClose} onUnavailable={onUnavailable} />);
 
     await waitFor(() => {
       expect(onUnavailable).toHaveBeenCalledWith('missing-att-001');

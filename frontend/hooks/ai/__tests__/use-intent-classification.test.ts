@@ -58,10 +58,7 @@ describe('use-intent-classification hooks', () => {
       vi.mocked(aiIntentService.getDefinitions).mockResolvedValue([]);
 
       const { wrapper } = createTestQueryClient();
-      renderHook(
-        () => useIntentDefinitions({ category: 'read', isActive: true }),
-        { wrapper },
-      );
+      renderHook(() => useIntentDefinitions({ category: 'read', isActive: true }), { wrapper });
 
       await waitFor(() => {
         expect(aiIntentService.getDefinitions).toHaveBeenCalledWith({
@@ -86,10 +83,7 @@ describe('use-intent-classification hooks', () => {
       vi.mocked(aiIntentService.getDefinition).mockResolvedValue(mockDef);
 
       const { wrapper } = createTestQueryClient();
-      const { result } = renderHook(
-        () => useIntentDefinition('GET_RFA'),
-        { wrapper },
-      );
+      const { result } = renderHook(() => useIntentDefinition('GET_RFA'), { wrapper });
 
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
@@ -101,10 +95,7 @@ describe('use-intent-classification hooks', () => {
 
     it('ควรไม่ fetch เมื่อ intentCode เป็นค่าว่าง', () => {
       const { wrapper } = createTestQueryClient();
-      const { result } = renderHook(
-        () => useIntentDefinition(''),
-        { wrapper },
-      );
+      const { result } = renderHook(() => useIntentDefinition(''), { wrapper });
 
       // enabled: !!intentCode → false → ไม่ fetch
       expect(result.current.fetchStatus).toBe('idle');
@@ -114,17 +105,12 @@ describe('use-intent-classification hooks', () => {
 
   describe('useIntentPatterns', () => {
     it('ควรดึง patterns ตาม intentCode', async () => {
-      const mockPatterns = [
-        { publicId: 'p-1', intentCode: 'GET_RFA', patternType: 'keyword', patternValue: 'rfa' },
-      ];
+      const mockPatterns = [{ publicId: 'p-1', intentCode: 'GET_RFA', patternType: 'keyword', patternValue: 'rfa' }];
 
       vi.mocked(aiIntentService.getPatterns).mockResolvedValue(mockPatterns);
 
       const { wrapper } = createTestQueryClient();
-      const { result } = renderHook(
-        () => useIntentPatterns('GET_RFA'),
-        { wrapper },
-      );
+      const { result } = renderHook(() => useIntentPatterns('GET_RFA'), { wrapper });
 
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
@@ -150,10 +136,7 @@ describe('use-intent-classification hooks', () => {
       });
 
       const { wrapper } = createTestQueryClient();
-      const { result } = renderHook(
-        () => useCreateIntentDefinition(),
-        { wrapper },
-      );
+      const { result } = renderHook(() => useCreateIntentDefinition(), { wrapper });
 
       result.current.mutate(newDef);
 
@@ -177,10 +160,7 @@ describe('use-intent-classification hooks', () => {
       vi.mocked(aiIntentService.classify).mockResolvedValue(mockResult);
 
       const { wrapper } = createTestQueryClient();
-      const { result } = renderHook(
-        () => useClassifyIntent(),
-        { wrapper },
-      );
+      const { result } = renderHook(() => useClassifyIntent(), { wrapper });
 
       result.current.mutate({ query: 'สรุปเอกสาร' });
 
@@ -201,10 +181,7 @@ describe('use-intent-classification hooks', () => {
       });
 
       const { wrapper } = createTestQueryClient();
-      const { result } = renderHook(
-        () => useClassifyIntent(),
-        { wrapper },
-      );
+      const { result } = renderHook(() => useClassifyIntent(), { wrapper });
 
       result.current.mutate({
         query: 'show rfa',
@@ -222,10 +199,7 @@ describe('use-intent-classification hooks', () => {
       vi.mocked(aiIntentService.classify).mockRejectedValue(new Error('Network error'));
 
       const { wrapper } = createTestQueryClient();
-      const { result } = renderHook(
-        () => useClassifyIntent(),
-        { wrapper },
-      );
+      const { result } = renderHook(() => useClassifyIntent(), { wrapper });
 
       result.current.mutate({ query: 'test' });
 

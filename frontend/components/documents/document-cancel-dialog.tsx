@@ -54,9 +54,7 @@ export function DocumentCancelDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t(config.confirmKey)}</DialogTitle>
-          <DialogDescription>
-            {t('document.cancel.confirm')}
-          </DialogDescription>
+          <DialogDescription>{t('document.cancel.confirm')}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
@@ -66,9 +64,7 @@ export function DocumentCancelDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="cancel-reason">
-              {t('document.cancel.reason')}
-            </Label>
+            <Label htmlFor="cancel-reason">{t('document.cancel.reason')}</Label>
             <Textarea
               id="cancel-reason"
               placeholder={t('document.cancel.reasonPlaceholder')}
@@ -80,18 +76,10 @@ export function DocumentCancelDialog({
         </div>
 
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isLoading}
-          >
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
             {t('common.cancel')}
           </Button>
-          <Button
-            variant="destructive"
-            onClick={handleConfirm}
-            disabled={isLoading}
-          >
+          <Button variant="destructive" onClick={handleConfirm} disabled={isLoading}>
             {isLoading ? t('common.processing') : t('document.cancel.confirmAction')}
           </Button>
         </DialogFooter>

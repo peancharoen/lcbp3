@@ -5,14 +5,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { ResponseCodeSelector } from '@/components/response-code/ResponseCodeSelector';
@@ -89,15 +82,11 @@ export function CompleteReviewForm({
               <FormLabel>
                 Comments
                 {selectedCode?.code === '2' || selectedCode?.code === '3' ? (
-                  <span className="text-destructive ml-1">*</span>
+                  <span className="ml-1 text-destructive">*</span>
                 ) : null}
               </FormLabel>
               <FormControl>
-                <Textarea
-                  placeholder="Enter review comments..."
-                  className="min-h-[80px]"
-                  {...field}
-                />
+                <Textarea placeholder="Enter review comments..." className="min-h-[80px]" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

@@ -10,21 +10,21 @@ import { format } from 'date-fns';
 
 export function DrawingCard({ drawing }: { drawing: Drawing }) {
   return (
-    <Card className="p-6 hover:shadow-md transition-shadow">
+    <Card className="p-6 transition-shadow hover:shadow-md">
       <div className="flex gap-4">
         {/* Thumbnail Placeholder */}
-        <div className="w-24 h-24 bg-muted rounded flex items-center justify-center shrink-0">
+        <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded bg-muted">
           <FileText className="h-10 w-10 text-muted-foreground" />
         </div>
 
         {/* Info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between mb-2">
+        <div className="min-w-0 flex-1">
+          <div className="mb-2 flex items-start justify-between">
             <div>
-              <h3 className="text-lg font-semibold truncate" title={drawing.drawingNumber || 'No Number'}>
+              <h3 className="truncate text-lg font-semibold" title={drawing.drawingNumber || 'No Number'}>
                 {drawing.drawingNumber || 'No Number'}
               </h3>
-              <p className="text-sm text-muted-foreground truncate" title={drawing.title || 'No Title'}>
+              <p className="truncate text-sm text-muted-foreground" title={drawing.title || 'No Title'}>
                 {drawing.title || 'No Title'}
               </p>
             </div>
@@ -33,7 +33,7 @@ export function DrawingCard({ drawing }: { drawing: Drawing }) {
             </Badge>
           </div>
 
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-muted-foreground mb-3">
+          <div className="mb-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-muted-foreground">
             <div>
               <span className="font-medium text-foreground">Sheet:</span> {drawing.sheetNumber || '-'}
             </div>
@@ -59,7 +59,7 @@ export function DrawingCard({ drawing }: { drawing: Drawing }) {
             </div>
           </div>
 
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex flex-wrap gap-2">
             <Link href={`/drawings/${drawing.publicId}`}>
               <Button variant="outline" size="sm">
                 <Eye className="mr-2 h-4 w-4" />

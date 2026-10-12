@@ -7,7 +7,14 @@ import { describe, expect, it, vi } from 'vitest';
 import { Header } from '../header';
 
 vi.mock('../user-menu', () => ({ UserMenu: () => <div>User menu</div> }));
-vi.mock('../global-search', () => ({ GlobalSearch: () => <label>Search<input aria-label="Search" /></label> }));
+vi.mock('../global-search', () => ({
+  GlobalSearch: () => (
+    <label>
+      Search
+      <input aria-label="Search" />
+    </label>
+  ),
+}));
 vi.mock('../notifications-dropdown', () => ({ NotificationsDropdown: () => <button>Notifications</button> }));
 vi.mock('../sidebar', () => ({ MobileSidebar: () => <button>Mobile sidebar</button> }));
 vi.mock('../theme-toggle', () => ({ ThemeToggle: () => <button>Theme</button> }));

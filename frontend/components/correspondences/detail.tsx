@@ -10,7 +10,21 @@ import { StatusBadge } from '@/components/common/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
-import { ArrowLeft, Download, FileText, Loader2, Send, CheckCircle, XCircle, Edit, Ban, AlertTriangle, Eye, Trash2, FileInput } from 'lucide-react';
+import {
+  ArrowLeft,
+  Download,
+  FileText,
+  Loader2,
+  Send,
+  CheckCircle,
+  XCircle,
+  Edit,
+  Ban,
+  AlertTriangle,
+  Eye,
+  Trash2,
+  FileInput,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useSubmitCorrespondence, useProcessWorkflow, useCancelCorrespondence } from '@/hooks/use-correspondence';
 import { ReferenceSelector } from '@/components/correspondences/reference-selector';
@@ -76,8 +90,7 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
   const description = currentRevision?.description || '-';
   const status = currentRevision?.status?.statusCode || 'UNKNOWN';
   // [FIX v1.8.1] flatten attachmentLinks จาก junction table แทน attachments โดยตรง
-  const attachments =
-    currentRevision?.attachmentLinks?.map((link) => link.attachment) ?? [];
+  const attachments = currentRevision?.attachmentLinks?.map((link) => link.attachment) ?? [];
   const importance = (currentRevision?.details?.importance as string) || 'NORMAL';
   const canEditMetadata = hasPermission('correspondence.edit');
   const privilegedEditableStatuses = ['SUBCSC', 'SUBOWN', 'IN_REVIEW_CSC'];
@@ -85,9 +98,7 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
   const isPrivilegedEditRole = ['SUPERADMIN', 'SUPER_ADMIN', 'ADMIN', 'DC', 'DOCUMENT_CONTROL'].includes(
     normalizedRole
   );
-  const canEditInStatus =
-    status === 'DRAFT' ||
-    (privilegedEditableStatuses.includes(status) && isPrivilegedEditRole);
+  const canEditInStatus = status === 'DRAFT' || (privilegedEditableStatuses.includes(status) && isPrivilegedEditRole);
   const canEditDocument = canEditInStatus && (hasPermission('correspondence.edit') || isPrivilegedEditRole);
 
   const toRecipients = data.recipients?.filter((r) => normalizeRecipientType(r.recipientType) === 'TO') || [];
@@ -128,7 +139,12 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
     const action = actionState === 'approve' ? 'APPROVE' : 'REJECT';
     processMutation.mutate(
       { uuid: data.publicId, data: { action, comments } },
-      { onSuccess: () => { setActionState(null); setComments(''); } }
+      {
+        onSuccess: () => {
+          setActionState(null);
+          setComments('');
+        },
+      }
     );
   };
 
@@ -136,7 +152,12 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
     if (!cancelReason.trim()) return;
     cancelMutation.mutate(
       { uuid: data.publicId, reason: cancelReason },
-      { onSuccess: () => { setActionState(null); setCancelReason(''); } }
+      {
+        onSuccess: () => {
+          setActionState(null);
+          setCancelReason('');
+        },
+      }
     );
   };
 
@@ -157,11 +178,11 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
     <div className="space-y-6">
       {/* EC-CORR-002 Warning: Replying to cancelled document */}
       {status === 'CANCELLED' && (
-        <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-md">
-          <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+        <div className="flex items-start gap-3 rounded-md border border-warning/30 bg-warning/10 p-4">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
           <div>
-            <p className="font-semibold text-amber-800">This correspondence has been cancelled</p>
-            <p className="text-sm text-amber-700 mt-0.5">
+            <p className="font-semibold text-warning">This correspondence has been cancelled</p>
+            <p className="mt-0.5 text-sm text-warning">
               You can still create a new correspondence referencing this document to acknowledge the cancellation.
             </p>
           </div>
@@ -184,7 +205,9 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
         </div>
         <div className="flex gap-2">
           {canEditDocument && (
-            <Link href={`/correspondences/${data.publicId}/edit${selectedRevisionId ? `?revId=${selectedRevisionId}` : ''}`}>
+            <Link
+              href={`/correspondences/${data.publicId}/edit${selectedRevisionId ? `?revId=${selectedRevisionId}` : ''}`}
+            >
               <Button variant="outline">
                 <Edit className="mr-2 h-4 w-4" />
                 Edit
@@ -210,7 +233,10 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
                   <XCircle className="mr-2 h-4 w-4" />
                   Reject
                 </Button>
-                <Button className="bg-green-600 hover:bg-green-700" onClick={() => setActionState('approve')}>
+                <Button
+                  className="bg-success text-success-foreground hover:bg-success/90"
+                  onClick={() => setActionState('approve')}
+                >
                   <CheckCircle className="mr-2 h-4 w-4" />
                   Approve
                 </Button>
@@ -221,7 +247,7 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
             <Can permission="correspondence.delete">
               <Button
                 variant="outline"
-                className="text-destructive border-destructive hover:bg-destructive/10"
+                className="border-destructive text-destructive hover:bg-destructive/10"
                 onClick={() => setActionState('cancel')}
               >
                 <Ban className="mr-2 h-4 w-4" />
@@ -231,10 +257,7 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
           )}
           {/* Hard-delete — Superadmin only (system.manage_all) */}
           <Can permission="system.manage_all">
-            <Button
-              variant="destructive"
-              onClick={() => setShowHardDeleteConfirm(true)}
-            >
+            <Button variant="destructive" onClick={() => setShowHardDeleteConfirm(true)}>
               <Trash2 className="mr-2 h-4 w-4" />
               Hard Delete
             </Button>
@@ -267,7 +290,7 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
                 variant={actionState === 'approve' ? 'default' : 'destructive'}
                 onClick={handleProcess}
                 disabled={processMutation.isPending}
-                className={actionState === 'approve' ? 'bg-green-600 hover:bg-green-700' : ''}
+                className={actionState === 'approve' ? 'bg-success text-success-foreground hover:bg-success/90' : ''}
               >
                 {processMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Confirm {actionState === 'approve' ? 'Approve' : 'Reject'}
@@ -281,21 +304,23 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
       {actionState === 'cancel' && (
         <Card className="border-destructive">
           <CardHeader>
-            <CardTitle className="text-lg text-destructive flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-lg text-destructive">
               <Ban className="h-5 w-5" />
               Cancel Correspondence
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-md text-sm">
-              <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-              <p className="text-amber-800">
+            <div className="flex items-start gap-3 rounded-md border border-warning/30 bg-warning/10 p-3 text-sm">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+              <p className="text-warning">
                 Cancelling will permanently change this document&apos;s status and force-close any active circulations
                 linked to it. This action cannot be undone.
               </p>
             </div>
             <div className="space-y-2">
-              <Label>Reason for Cancellation <span className="text-destructive">*</span></Label>
+              <Label>
+                Reason for Cancellation <span className="text-destructive">*</span>
+              </Label>
               <Input
                 value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)}
@@ -303,7 +328,13 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
               />
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => { setActionState(null); setCancelReason(''); }}>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setActionState(null);
+                  setCancelReason('');
+                }}
+              >
                 Back
               </Button>
               <Button
@@ -323,7 +354,7 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
       {showHardDeleteConfirm && (
         <Card className="border-destructive">
           <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2 text-destructive">
+            <CardTitle className="flex items-center gap-2 text-lg text-destructive">
               <Trash2 className="h-5 w-5" />
               Hard Delete Correspondence
             </CardTitle>
@@ -332,23 +363,15 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
             <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
               <p className="font-semibold">Warning: This action cannot be undone.</p>
               <p className="mt-1">
-                This will permanently delete: physical files, attachment records,
-                Qdrant vectors, revisions, circulation records, references, and tags.
+                This will permanently delete: physical files, attachment records, Qdrant vectors, revisions, circulation
+                records, references, and tags.
               </p>
             </div>
             <div className="flex justify-end gap-2">
-              <Button
-                variant="ghost"
-                onClick={() => setShowHardDeleteConfirm(false)}
-                disabled={hardDeleteLoading}
-              >
+              <Button variant="ghost" onClick={() => setShowHardDeleteConfirm(false)} disabled={hardDeleteLoading}>
                 Back
               </Button>
-              <Button
-                variant="destructive"
-                onClick={handleHardDelete}
-                disabled={hardDeleteLoading}
-              >
+              <Button variant="destructive" onClick={handleHardDelete} disabled={hardDeleteLoading}>
                 {hardDeleteLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Confirm Hard Delete
               </Button>
@@ -357,12 +380,12 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
         </Card>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6 lg:col-span-2">
           <Card>
             <CardHeader>
-              <div className="flex justify-between items-start">
+              <div className="flex items-start justify-between">
                 <CardTitle className="text-xl">{subject}</CardTitle>
                 <StatusBadge status={status} />
               </div>
@@ -370,26 +393,22 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
             <CardContent className="space-y-6">
               {description && description !== '-' && (
                 <div>
-                  <h3 className="font-semibold mb-2">Description</h3>
+                  <h3 className="mb-2 font-semibold">Description</h3>
                   <p className="whitespace-pre-wrap">{description}</p>
                 </div>
               )}
               {(currentRevision?.body || currentRevision?.remarks) && (
                 <div>
-                  <h3 className="font-semibold mb-2">Content</h3>
+                  <h3 className="mb-2 font-semibold">Content</h3>
                   {/* หน้านี้เป็น read-only display ทั้งหมด (ไม่มี field ไหนแก้ไขได้ในหน้านี้) —
                       ข้อความ (value) ต้องใช้สีข้อความปกติเสมอเพื่อความคมชัด/อ่านง่าย เหมือนกับ
                       ฝั่ง Information sidebar (ด้านล่าง) ที่ mute เฉพาะ label ไม่ mute ค่าตัวเนื้อหา */}
-                  <div className="whitespace-pre-wrap p-3 bg-muted/10 rounded-md border max-h-[60vh] overflow-y-auto custom-scrollbar">
-                    {currentRevision?.body && (
-                      <div className="whitespace-pre-wrap">
-                        {currentRevision.body}
-                      </div>
-                    )}
+                  <div className="custom-scrollbar max-h-[60vh] overflow-y-auto whitespace-pre-wrap rounded-md border bg-muted/10 p-3">
+                    {currentRevision?.body && <div className="whitespace-pre-wrap">{currentRevision.body}</div>}
                     {currentRevision?.remarks && (
-                      <div className={`${currentRevision?.body ? 'mt-4 pt-3 border-t border-muted' : ''}`}>
-                        <h4 className="font-semibold text-sm text-muted-foreground mb-1">Remarks</h4>
-                        <p className="italic whitespace-pre-wrap">{currentRevision.remarks}</p>
+                      <div className={`${currentRevision?.body ? 'mt-4 border-t border-muted pt-3' : ''}`}>
+                        <h4 className="mb-1 text-sm font-semibold text-muted-foreground">Remarks</h4>
+                        <p className="whitespace-pre-wrap italic">{currentRevision.remarks}</p>
                       </div>
                     )}
                   </div>
@@ -399,13 +418,13 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
               <hr className="my-4 border-t" />
 
               <div>
-                <h3 className="font-semibold mb-3">Attachments</h3>
+                <h3 className="mb-3 font-semibold">Attachments</h3>
                 {attachments.length > 0 ? (
                   <div className="grid gap-2">
                     {attachments.map((file, index) => (
                       <div
                         key={file.publicId || index}
-                        className="flex items-center justify-between p-3 border rounded-lg bg-muted/20"
+                        className="flex items-center justify-between rounded-lg border bg-muted/20 p-3"
                       >
                         <div className="flex items-center gap-3">
                           <FileText className="h-5 w-5 text-primary" />
@@ -454,7 +473,7 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground italic">No attachments found.</p>
+                  <p className="text-sm italic text-muted-foreground">No attachments found.</p>
                 )}
               </div>
             </CardContent>
@@ -472,10 +491,13 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
               <div>
                 <p className="font-medium text-muted-foreground">Importance</p>
                 <span
-                  className={`inline-flex items-center mt-1 px-2.5 py-0.5 rounded-full text-xs font-medium
-                    ${importance === 'URGENT' ? 'bg-red-100 text-red-800'
-                      : importance === 'HIGH' ? 'bg-orange-100 text-orange-800'
-                      : 'bg-blue-100 text-blue-800'}`}
+                  className={`mt-1 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                    importance === 'URGENT'
+                      ? 'bg-destructive/10 text-destructive'
+                      : importance === 'HIGH'
+                        ? 'bg-orange-100 text-orange-800'
+                        : 'bg-info/10 text-info'
+                  }`}
                 >
                   {String(importance)}
                 </span>
@@ -483,14 +505,17 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
 
               <div>
                 <p className="font-medium text-muted-foreground">Document Type</p>
-                <p className="mt-1">{data.type?.typeName || '-'} <span className="text-xs text-muted-foreground">({data.type?.typeCode || '-'})</span></p>
+                <p className="mt-1">
+                  {data.type?.typeName || '-'}{' '}
+                  <span className="text-xs text-muted-foreground">({data.type?.typeCode || '-'})</span>
+                </p>
               </div>
 
               <hr />
 
               <div>
                 <p className="font-medium text-muted-foreground">Originator (From)</p>
-                <p className="font-semibold mt-1">{data.originator?.organizationName || '-'}</p>
+                <p className="mt-1 font-semibold">{data.originator?.organizationName || '-'}</p>
                 <p className="text-xs text-muted-foreground">{data.originator?.organizationCode}</p>
               </div>
 
@@ -527,7 +552,7 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
 
               <div>
                 <p className="font-medium text-muted-foreground">Project</p>
-                <p className="font-semibold mt-1">{data.project?.projectName || '-'}</p>
+                <p className="mt-1 font-semibold">{data.project?.projectName || '-'}</p>
                 <p className="text-xs text-muted-foreground">{data.project?.projectCode}</p>
               </div>
 
@@ -536,9 +561,7 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
                   <hr />
                   <div>
                     <p className="font-medium text-muted-foreground">Remarks</p>
-                    <p className="mt-1 text-sm italic whitespace-pre-wrap">
-                      {currentRevision.remarks}
-                    </p>
+                    <p className="mt-1 whitespace-pre-wrap text-sm italic">{currentRevision.remarks}</p>
                   </div>
                 </>
               )}
@@ -561,7 +584,9 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
               ).map(({ label, value }) => (
                 <div key={label} className="flex justify-between">
                   <span className="text-muted-foreground">{label}</span>
-                  <span className={`font-medium ${label === 'Due Date' && value && new Date(value) < new Date() && status !== 'CANCELLED' ? 'text-destructive' : ''}`}>
+                  <span
+                    className={`font-medium ${label === 'Due Date' && value && new Date(value) < new Date() && status !== 'CANCELLED' ? 'text-destructive' : ''}`}
+                  >
                     {value ? format(new Date(value), 'dd MMM yyyy') : '-'}
                   </span>
                 </div>
@@ -573,29 +598,18 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
           <CirculationStatusCard correspondencePublicId={data.publicId} />
 
           {/* Tags */}
-          <TagManager
-            uuid={data.publicId}
-            canEdit={status !== 'CANCELLED' && canEditMetadata}
-          />
+          <TagManager uuid={data.publicId} canEdit={status !== 'CANCELLED' && canEditMetadata} />
 
           {/* References */}
-          <ReferenceSelector
-            uuid={data.publicId}
-            canEdit={status !== 'CANCELLED' && canEditMetadata}
-          />
+          <ReferenceSelector uuid={data.publicId} canEdit={status !== 'CANCELLED' && canEditMetadata} />
 
           {/* Revision History */}
-          {data.revisions && data.revisions.length > 0 && (
-            <RevisionHistory revisions={data.revisions} />
-          )}
+          {data.revisions && data.revisions.length > 0 && <RevisionHistory revisions={data.revisions} />}
         </div>
       </div>
 
       {/* ADR-021: File Preview Modal — แสดง PDF/Image ของ attachment แบบ inline preview */}
-      <FilePreviewModal
-        attachment={previewAttachment}
-        onClose={() => setPreviewAttachment(null)}
-      />
+      <FilePreviewModal attachment={previewAttachment} onClose={() => setPreviewAttachment(null)} />
       {/* ADR-055: replace flow — link preselect ด้วย correspondence ปัจจุบัน (D22) */}
       {replaceAttachment?.publicId && (
         <ReOcrDialog

@@ -19,8 +19,7 @@ export const RE_OCR_POLL_INTERVAL_MS = 3000;
 const reOcrKey = (attachmentPublicId: string) => ['re-ocr', attachmentPublicId] as const;
 
 /** สร้าง Idempotency-Key ใหม่ต่อการกด 1 ครั้ง */
-const newIdempotencyKey = (prefix: string, id: string): string =>
-  `${prefix}-${id}-${crypto.randomUUID()}`;
+const newIdempotencyKey = (prefix: string, id: string): string => `${prefix}-${id}-${crypto.randomUUID()}`;
 
 /**
  * อ่านสถานะ re-OCR — คืน null เมื่อไม่มี job; poll เฉพาะตอน queued/processing
@@ -46,11 +45,7 @@ export function useReOcrTrigger(attachmentPublicId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (engineType: ReOcrEngine) =>
-      reOcrService.trigger(
-        attachmentPublicId,
-        engineType,
-        newIdempotencyKey('re-ocr-trigger', attachmentPublicId)
-      ),
+      reOcrService.trigger(attachmentPublicId, engineType, newIdempotencyKey('re-ocr-trigger', attachmentPublicId)),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: reOcrKey(attachmentPublicId) });
     },
@@ -73,11 +68,7 @@ export function useReOcrReplaceTrigger(attachmentPublicId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (body: ReOcrReplaceRequest) =>
-      reOcrService.triggerReplace(
-        attachmentPublicId,
-        body,
-        newIdempotencyKey('re-ocr-replace', attachmentPublicId)
-      ),
+      reOcrService.triggerReplace(attachmentPublicId, body, newIdempotencyKey('re-ocr-replace', attachmentPublicId)),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: reOcrKey(attachmentPublicId) });
     },
@@ -89,11 +80,7 @@ export function useReOcrConfirm(attachmentPublicId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (reOcrToken: string) =>
-      reOcrService.confirm(
-        attachmentPublicId,
-        reOcrToken,
-        newIdempotencyKey('re-ocr-confirm', attachmentPublicId)
-      ),
+      reOcrService.confirm(attachmentPublicId, reOcrToken, newIdempotencyKey('re-ocr-confirm', attachmentPublicId)),
     onSuccess: () => {
       queryClient.removeQueries({ queryKey: reOcrKey(attachmentPublicId) });
       void queryClient.invalidateQueries({ queryKey: ['rag-admin', 'attachments'] });

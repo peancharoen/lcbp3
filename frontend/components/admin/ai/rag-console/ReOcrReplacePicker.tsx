@@ -24,11 +24,7 @@ import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import apiClient from '@/lib/api/client';
-import {
-  migrationService,
-  LegacyFolderNode,
-  LegacyFolderFile,
-} from '@/lib/services/migration.service';
+import { migrationService, LegacyFolderNode, LegacyFolderFile } from '@/lib/services/migration.service';
 import { useRagAdminT } from './rag-admin-i18n';
 
 /** selection ที่ picker ส่งให้ parent — XOR: staging path หรือ temp attachment (D18/D20) */
@@ -54,21 +50,14 @@ interface FolderNodeRowProps {
 }
 
 /** แถวโฟลเดอร์ใน tree (recursive, unexported — single-export rule) */
-function FolderNodeRow({
-  node,
-  depth,
-  expanded,
-  selectedFolder,
-  onToggle,
-  onSelect,
-}: FolderNodeRowProps) {
+function FolderNodeRow({ node, depth, expanded, selectedFolder, onToggle, onSelect }: FolderNodeRowProps) {
   const isExpanded = expanded.has(node.path);
   const isSelected = selectedFolder === node.path;
   return (
     <div>
       <button
         type="button"
-        className={`w-full flex items-center gap-1 px-2 py-1 text-left text-sm rounded hover:bg-muted ${
+        className={`flex w-full items-center gap-1 rounded px-2 py-1 text-left text-sm hover:bg-muted ${
           isSelected ? 'bg-primary/10 font-medium' : ''
         }`}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
@@ -87,19 +76,15 @@ function FolderNodeRow({
               onToggle(node.path);
             }}
           >
-            {isExpanded ? (
-              <ChevronDownIcon className="w-3 h-3" />
-            ) : (
-              <ChevronRightIcon className="w-3 h-3" />
-            )}
+            {isExpanded ? <ChevronDownIcon className="h-3 w-3" /> : <ChevronRightIcon className="h-3 w-3" />}
           </span>
         ) : (
           <span className="w-3 shrink-0" />
         )}
         {isSelected ? (
-          <FolderOpenIcon className="w-4 h-4 shrink-0 text-primary" />
+          <FolderOpenIcon className="h-4 w-4 shrink-0 text-primary" />
         ) : (
-          <FolderIcon className="w-4 h-4 shrink-0 text-muted-foreground" />
+          <FolderIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
         )}
         <span className="truncate">{node.name}</span>
       </button>
@@ -171,10 +156,7 @@ export function ReOcrReplacePicker({ onChange }: ReOcrReplacePickerProps) {
       setSelectedFile(null);
       onChange(null);
       try {
-        const result = await migrationService.listLegacyFolderFiles(
-          folderPath,
-          q
-        );
+        const result = await migrationService.listLegacyFolderFiles(folderPath, q);
         setFolderFiles(result.files);
         setFilesTotal(result.total);
         setFilesTruncated(result.truncated);
@@ -225,9 +207,7 @@ export function ReOcrReplacePicker({ onChange }: ReOcrReplacePickerProps) {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const res = await apiClient.post<
-        { data?: UploadedFileResult } & UploadedFileResult
-      >('/files/upload', formData, {
+      const res = await apiClient.post<{ data?: UploadedFileResult } & UploadedFileResult>('/files/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       const uploaded = res.data?.data ?? res.data;
@@ -264,22 +244,20 @@ export function ReOcrReplacePicker({ onChange }: ReOcrReplacePickerProps) {
         onChange(null);
       }}
     >
-      <TabsList className="grid grid-cols-2 w-full">
+      <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="staging">{t('re_ocr.replace.tab_staging')}</TabsTrigger>
         <TabsTrigger value="upload">{t('re_ocr.replace.tab_upload')}</TabsTrigger>
       </TabsList>
 
-      <TabsContent value="staging" className="grid grid-cols-[2fr_3fr] gap-3 mt-3">
-        <div className="border rounded-md overflow-y-auto max-h-[40vh] p-1">
+      <TabsContent value="staging" className="mt-3 grid grid-cols-[2fr_3fr] gap-3">
+        <div className="max-h-[40vh] overflow-y-auto rounded-md border p-1">
           {treeLoading ? (
             <div className="flex items-center justify-center py-8 text-muted-foreground">
-              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               {t('re_ocr.replace.loading')}
             </div>
           ) : tree.length === 0 ? (
-            <p className="text-sm text-muted-foreground p-3">
-              {t('re_ocr.replace.no_folders')}
-            </p>
+            <p className="p-3 text-sm text-muted-foreground">{t('re_ocr.replace.no_folders')}</p>
           ) : (
             tree.map((node) => (
               <FolderNodeRow
@@ -294,7 +272,7 @@ export function ReOcrReplacePicker({ onChange }: ReOcrReplacePickerProps) {
             ))
           )}
         </div>
-        <div className="flex flex-col gap-1 min-w-0">
+        <div className="flex min-w-0 flex-col gap-1">
           <Input
             type="search"
             value={fileFilter}
@@ -303,47 +281,37 @@ export function ReOcrReplacePicker({ onChange }: ReOcrReplacePickerProps) {
             disabled={!selectedFolder}
             className="h-8 text-sm"
           />
-          <div className="border rounded-md overflow-y-auto max-h-[40vh] p-1 flex-1">
+          <div className="max-h-[40vh] flex-1 overflow-y-auto rounded-md border p-1">
             {filesLoading ? (
               <div className="flex items-center justify-center py-8 text-muted-foreground">
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 {t('re_ocr.replace.loading')}
               </div>
             ) : !selectedFolder ? (
-              <p className="text-sm text-muted-foreground p-3">
-                {t('re_ocr.replace.select_folder_hint')}
-              </p>
+              <p className="p-3 text-sm text-muted-foreground">{t('re_ocr.replace.select_folder_hint')}</p>
             ) : folderFiles.length === 0 ? (
-              <p className="text-sm text-muted-foreground p-3">
-                {t('re_ocr.replace.no_files')}
-              </p>
+              <p className="p-3 text-sm text-muted-foreground">{t('re_ocr.replace.no_files')}</p>
             ) : (
               folderFiles.map((file) => (
                 <button
                   key={file.fullPath}
                   type="button"
                   title={file.filename}
-                  className={`w-full flex items-start gap-2 px-2 py-1.5 text-left text-sm rounded hover:bg-muted ${
-                    selectedFile?.fullPath === file.fullPath
-                      ? 'bg-primary/10 font-medium'
-                      : ''
+                  className={`flex w-full items-start gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-muted ${
+                    selectedFile?.fullPath === file.fullPath ? 'bg-primary/10 font-medium' : ''
                   }`}
                   onClick={() => handleSelectStagingFile(file)}
                 >
-                  <FileTextIcon className="w-4 h-4 shrink-0 mt-0.5 text-muted-foreground" />
+                  <FileTextIcon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                   {/* break-all — ชื่อไฟล์ยาวต้องอ่านได้ครบ (wrap แทน truncate) */}
-                  <span className="flex-1 min-w-0 break-all leading-snug">
-                    {file.filename}
-                  </span>
-                  <span className="text-xs text-muted-foreground shrink-0">
-                    {formatSize(file.size)}
-                  </span>
+                  <span className="min-w-0 flex-1 break-all leading-snug">{file.filename}</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">{formatSize(file.size)}</span>
                 </button>
               ))
             )}
           </div>
           {selectedFolder && !filesLoading && filesTotal > 0 && (
-            <p className="text-xs text-muted-foreground px-1">
+            <p className="px-1 text-xs text-muted-foreground">
               {t('re_ocr.replace.showing', {
                 shown: folderFiles.length,
                 total: filesTotal,
@@ -360,27 +328,25 @@ export function ReOcrReplacePicker({ onChange }: ReOcrReplacePickerProps) {
       </TabsContent>
 
       <TabsContent value="upload" className="mt-3">
-        <div className="border-2 border-dashed rounded-md p-6 text-center">
-          <UploadIcon className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground mb-3">
-            {t('re_ocr.replace.upload_hint')}
-          </p>
+        <div className="rounded-md border-2 border-dashed p-6 text-center">
+          <UploadIcon className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
+          <p className="mb-3 text-sm text-muted-foreground">{t('re_ocr.replace.upload_hint')}</p>
           <Input
             ref={fileInputRef}
             type="file"
             accept=".pdf,application/pdf"
-            className="max-w-xs mx-auto"
+            className="mx-auto max-w-xs"
             disabled={uploading}
             onChange={(e) => void handleUpload(e.target.files?.[0] ?? null)}
           />
           {uploading && (
-            <p className="text-sm mt-2 text-muted-foreground">
-              <Loader2 className="inline w-4 h-4 animate-spin mr-1" />
+            <p className="mt-2 text-sm text-muted-foreground">
+              <Loader2 className="mr-1 inline h-4 w-4 animate-spin" />
               {t('re_ocr.replace.uploading')}
             </p>
           )}
           {uploadedName && (
-            <p className="text-sm mt-2 font-medium" data-testid="upload-selected">
+            <p className="mt-2 text-sm font-medium" data-testid="upload-selected">
               {uploadedName}
             </p>
           )}

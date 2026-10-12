@@ -132,7 +132,7 @@ export function AdminSidebar() {
   };
 
   return (
-    <aside className="w-64 border-r bg-card p-4 hidden md:block">
+    <aside className="hidden w-64 border-r bg-card p-4 md:block">
       <div className="mb-8 px-2">
         <h2 className="text-xl font-bold tracking-tight">Admin Console</h2>
         <p className="text-sm text-muted-foreground">LCBP3 DMS</p>
@@ -152,16 +152,16 @@ export function AdminSidebar() {
                 <button
                   onClick={() => toggleMenu(item.label)}
                   className={cn(
-                    'w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg transition-colors',
+                    'flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 transition-colors',
                     hasActiveChild
                       ? 'bg-primary/10 text-primary'
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                   )}
                 >
-                  <span className="flex items-center gap-3 min-w-0">
+                  <span className="flex min-w-0 items-center gap-3">
                     <Icon className="h-4 w-4 shrink-0" />
-                    <span className="flex flex-col items-start text-left min-w-0">
-                      <span className="text-sm font-medium leading-tight truncate">{item.label}</span>
+                    <span className="flex min-w-0 flex-col items-start text-left">
+                      <span className="truncate text-sm font-medium leading-tight">{item.label}</span>
                       {item.sublabel && (
                         <span className="text-[10px] font-normal leading-tight opacity-60">{item.sublabel}</span>
                       )}
@@ -183,7 +183,7 @@ export function AdminSidebar() {
                           key={child.href}
                           href={child.href}
                           className={cn(
-                            'block px-3 py-1.5 rounded-lg transition-colors text-sm',
+                            'block rounded-lg px-3 py-1.5 text-sm transition-colors',
                             isActive
                               ? 'bg-primary text-primary-foreground shadow-sm'
                               : 'text-muted-foreground hover:bg-muted hover:text-foreground'
@@ -206,15 +206,15 @@ export function AdminSidebar() {
               key={item.href}
               href={item.href!}
               className={cn(
-                'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors',
+                'flex items-center gap-3 rounded-lg px-3 py-2 transition-colors',
                 isActive
                   ? 'bg-primary text-primary-foreground shadow-sm'
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               )}
             >
               <Icon className="h-4 w-4 shrink-0" />
-              <span className="flex flex-col items-start min-w-0">
-                <span className="text-sm font-medium leading-tight truncate">{item.label}</span>
+              <span className="flex min-w-0 flex-col items-start">
+                <span className="truncate text-sm font-medium leading-tight">{item.label}</span>
                 {item.sublabel && (
                   <span className="text-[10px] font-normal leading-tight opacity-60">{item.sublabel}</span>
                 )}
@@ -224,8 +224,8 @@ export function AdminSidebar() {
         })}
       </nav>
 
-      <div className="mt-auto pt-8 px-2 fixed bottom-4 w-56">
-        <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-2">
+      <div className="fixed bottom-4 mt-auto w-56 px-2 pt-8">
+        <Link href="/dashboard" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
           ← Back to Dashboard
         </Link>
       </div>
@@ -260,11 +260,11 @@ export function AdminMobileSidebar() {
       </SheetTrigger>
       <SheetContent side="left" className="w-64 p-0">
         <SheetTitle className="sr-only">Admin Navigation</SheetTitle>
-        <div className="h-16 flex items-center px-4 border-b">
+        <div className="flex h-16 items-center border-b px-4">
           <span className="text-lg font-bold tracking-tight">Admin Console</span>
         </div>
 
-        <div className="flex-1 overflow-y-auto py-4 h-[calc(100vh-4rem)]">
+        <div className="h-[calc(100vh-4rem)] flex-1 overflow-y-auto py-4">
           <nav className="space-y-1 px-2">
             {menuItems.map((item) => {
               const Icon = item.icon;
@@ -278,16 +278,16 @@ export function AdminMobileSidebar() {
                     <button
                       onClick={() => toggleMenu(item.label)}
                       className={cn(
-                        'w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg transition-colors',
+                        'flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 transition-colors',
                         hasActiveChild
                           ? 'bg-primary/10 text-primary'
                           : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                       )}
                     >
-                      <span className="flex items-center gap-3 min-w-0">
+                      <span className="flex min-w-0 items-center gap-3">
                         <Icon className="h-4 w-4 shrink-0" />
-                        <span className="flex flex-col items-start text-left min-w-0">
-                          <span className="text-sm font-medium leading-tight truncate">{item.label}</span>
+                        <span className="flex min-w-0 flex-col items-start text-left">
+                          <span className="truncate text-sm font-medium leading-tight">{item.label}</span>
                           {item.sublabel && (
                             <span className="text-[10px] font-normal leading-tight opacity-60">{item.sublabel}</span>
                           )}
@@ -310,7 +310,7 @@ export function AdminMobileSidebar() {
                               href={child.href}
                               onClick={() => setOpen(false)}
                               className={cn(
-                                'block px-3 py-1.5 rounded-lg transition-colors text-sm',
+                                'block rounded-lg px-3 py-1.5 text-sm transition-colors',
                                 isActive
                                   ? 'bg-primary text-primary-foreground shadow-sm'
                                   : 'text-muted-foreground hover:bg-muted hover:text-foreground'
@@ -333,15 +333,15 @@ export function AdminMobileSidebar() {
                   href={item.href!}
                   onClick={() => setOpen(false)}
                   className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors',
+                    'flex items-center gap-3 rounded-lg px-3 py-2 transition-colors',
                     isActive
                       ? 'bg-primary text-primary-foreground shadow-sm'
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                   )}
                 >
                   <Icon className="h-4 w-4 shrink-0" />
-                  <span className="flex flex-col items-start min-w-0">
-                    <span className="text-sm font-medium leading-tight truncate">{item.label}</span>
+                  <span className="flex min-w-0 flex-col items-start">
+                    <span className="truncate text-sm font-medium leading-tight">{item.label}</span>
                     {item.sublabel && (
                       <span className="text-[10px] font-normal leading-tight opacity-60">{item.sublabel}</span>
                     )}
@@ -351,11 +351,11 @@ export function AdminMobileSidebar() {
             })}
           </nav>
 
-          <div className="p-4 mt-8 border-t absolute bottom-0 w-full left-0 bg-background">
+          <div className="absolute bottom-0 left-0 mt-8 w-full border-t bg-background p-4">
             <Link
               href="/dashboard"
               onClick={() => setOpen(false)}
-              className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-2"
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
             >
               ← Back to Dashboard
             </Link>

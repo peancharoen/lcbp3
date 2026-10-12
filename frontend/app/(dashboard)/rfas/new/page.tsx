@@ -8,10 +8,10 @@ export const fetchCache = 'force-no-store';
 
 export default function NewRFAPage() {
   return (
-    <div className="max-w-4xl mx-auto py-6">
+    <div className="mx-auto max-w-4xl py-6">
       <div className="mb-8">
         <h1 className="text-3xl font-bold">New RFA</h1>
-        <p className="text-muted-foreground mt-1">Create a new Request for Approval.</p>
+        <p className="mt-1 text-muted-foreground">Create a new Request for Approval.</p>
       </div>
 
       <RFAForm />

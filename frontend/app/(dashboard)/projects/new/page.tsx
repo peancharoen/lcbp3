@@ -82,7 +82,7 @@ export default function CreateProjectPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="mx-auto max-w-2xl space-y-6">
       {/* Header with Back Button */}
       <div className="flex items-center gap-4">
         <Button variant="outline" size="icon" onClick={() => router.back()} className="h-9 w-9">
@@ -105,7 +105,7 @@ export default function CreateProjectPage() {
           <CardContent className="space-y-4">
             {/* Project Code */}
             <div className="space-y-2">
-              <Label htmlFor="project_code" className="after:content-['*'] after:ml-0.5 after:text-red-500">
+              <Label htmlFor="project_code" className="after:ml-0.5 after:text-red-500 after:content-['*']">
                 รหัสโครงการ (Project Code)
               </Label>
               <Input
@@ -127,7 +127,7 @@ export default function CreateProjectPage() {
 
             {/* Project Name */}
             <div className="space-y-2">
-              <Label htmlFor="project_name" className="after:content-['*'] after:ml-0.5 after:text-red-500">
+              <Label htmlFor="project_name" className="after:ml-0.5 after:text-red-500 after:content-['*']">
                 ชื่อโครงการ (Project Name)
               </Label>
               <Input
@@ -184,7 +184,7 @@ export default function CreateProjectPage() {
             </div>
           </CardContent>
 
-          <CardFooter className="flex justify-end gap-2 border-t p-4 bg-muted/50">
+          <CardFooter className="flex justify-end gap-2 border-t bg-muted/50 p-4">
             <Button type="button" variant="ghost" onClick={() => router.back()} disabled={isLoading}>
               ยกเลิก
             </Button>

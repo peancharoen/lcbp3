@@ -32,10 +32,9 @@ describe('useColdStartHint hook (ADR-051 D2)', () => {
     expect(result.current).toBe(true);
   });
   it('ควร reset กลับเป็น false เมื่อ request เสร็จก่อนครบ threshold', () => {
-    const { result, rerender } = renderHook(
-      ({ waiting }) => useColdStartHint(waiting),
-      { initialProps: { waiting: true } }
-    );
+    const { result, rerender } = renderHook(({ waiting }) => useColdStartHint(waiting), {
+      initialProps: { waiting: true },
+    });
     act(() => {
       vi.advanceTimersByTime(3000);
     });
@@ -46,10 +45,9 @@ describe('useColdStartHint hook (ADR-051 D2)', () => {
     expect(result.current).toBe(false);
   });
   it('ควร reset กลับเป็น false หลัง request เสร็จ แม้เคยแสดง hint แล้ว', () => {
-    const { result, rerender } = renderHook(
-      ({ waiting }) => useColdStartHint(waiting),
-      { initialProps: { waiting: true } }
-    );
+    const { result, rerender } = renderHook(({ waiting }) => useColdStartHint(waiting), {
+      initialProps: { waiting: true },
+    });
     act(() => {
       vi.advanceTimersByTime(5000);
     });

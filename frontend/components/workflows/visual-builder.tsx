@@ -356,8 +356,8 @@ function VisualWorkflowBuilderContent({
   };
 
   return (
-    <div className="space-y-4 h-full flex flex-col">
-      <div className="h-[600px] border rounded-lg overflow-hidden relative bg-slate-50 dark:bg-slate-950">
+    <div className="flex h-full flex-col space-y-4">
+      <div className="relative h-[600px] overflow-hidden rounded-lg border bg-muted/50">
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -372,7 +372,7 @@ function VisualWorkflowBuilderContent({
 
           <Panel
             position="top-right"
-            className="flex gap-2 p-2 bg-white/80 dark:bg-black/50 rounded-lg backdrop-blur-sm border shadow-sm"
+            className="flex gap-2 rounded-lg border bg-white/80 p-2 shadow-sm backdrop-blur-sm dark:bg-black/50"
           >
             <Button size="sm" variant="secondary" onClick={() => addNode('step', 'New Step')}>
               <Plus className="mr-2 h-4 w-4" /> Add Step

@@ -93,10 +93,9 @@ describe('importReviewService', () => {
 
       await importReviewService.downloadAnnotated(SESSION_ID);
 
-      expect(api.get).toHaveBeenCalledWith(
-        `/v1/correspondence/import-review/${SESSION_ID}/download-annotated`,
-        { responseType: 'blob' }
-      );
+      expect(api.get).toHaveBeenCalledWith(`/v1/correspondence/import-review/${SESSION_ID}/download-annotated`, {
+        responseType: 'blob',
+      });
       expect(global.URL.createObjectURL).toHaveBeenCalledWith(mockBlob);
       expect(clickSpy).toHaveBeenCalled();
       expect(global.URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
@@ -113,10 +112,9 @@ describe('importReviewService', () => {
 
       await importReviewService.downloadFailedRows(SESSION_ID);
 
-      expect(api.get).toHaveBeenCalledWith(
-        `/v1/correspondence/import-review/${SESSION_ID}/download-failed-rows`,
-        { responseType: 'blob' }
-      );
+      expect(api.get).toHaveBeenCalledWith(`/v1/correspondence/import-review/${SESSION_ID}/download-failed-rows`, {
+        responseType: 'blob',
+      });
       expect(clickSpy).toHaveBeenCalled();
 
       clickSpy.mockRestore();

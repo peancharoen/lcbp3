@@ -124,20 +124,26 @@ describe('CorrespondenceForm (edit regression)', () => {
       isLoading: false,
     } as ReturnType<typeof useCorrespondenceTypes>);
 
-    vi.mocked(useContracts).mockImplementation((projectId?: number | string) => ({
-      data: projectId && typeof projectId === 'string' ? contractsByProject[projectId] ?? [] : [],
-      isLoading: false,
-    }) as ReturnType<typeof useContracts>);
+    vi.mocked(useContracts).mockImplementation(
+      (projectId?: number | string) =>
+        ({
+          data: projectId && typeof projectId === 'string' ? (contractsByProject[projectId] ?? []) : [],
+          isLoading: false,
+        }) as ReturnType<typeof useContracts>
+    );
 
-    vi.mocked(useDisciplines).mockImplementation((contractId?: number | string) => ({
-      data:
-        contractId === 'contract-1'
-          ? [{ id: 10, disciplineCode: 'GEN', codeNameEn: 'General' }]
-          : contractId === 'contract-2'
-            ? [{ id: 20, disciplineCode: 'STR', codeNameEn: 'Structural' }]
-            : [],
-      isLoading: false,
-    }) as ReturnType<typeof useDisciplines>);
+    vi.mocked(useDisciplines).mockImplementation(
+      (contractId?: number | string) =>
+        ({
+          data:
+            contractId === 'contract-1'
+              ? [{ id: 10, disciplineCode: 'GEN', codeNameEn: 'General' }]
+              : contractId === 'contract-2'
+                ? [{ id: 20, disciplineCode: 'STR', codeNameEn: 'Structural' }]
+                : [],
+          isLoading: false,
+        }) as ReturnType<typeof useDisciplines>
+    );
 
     vi.mocked(useCreateCorrespondence).mockReturnValue({
       mutate: vi.fn(),

@@ -70,7 +70,7 @@ export interface DocumentActionStrategy {
   metadataPatch(
     publicId: string,
     patch: Record<string, string | number | boolean | null>,
-    version: number,
+    version: number
   ): Promise<DocumentActionResult>;
 }
 
@@ -147,9 +147,7 @@ const DOCUMENT_ACTION_CONFIGS: Record<string, DocumentActionConfig> = {
 /**
  * คืนค่า DocumentActionConfig สำหรับ document type ที่กำหนด
  */
-export function getDocumentActionConfig(
-  documentType: string,
-): DocumentActionConfig {
+export function getDocumentActionConfig(documentType: string): DocumentActionConfig {
   const config = DOCUMENT_ACTION_CONFIGS[documentType];
   if (!config) {
     throw new Error(`Unknown document type: ${documentType}`);

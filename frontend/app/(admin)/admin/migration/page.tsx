@@ -108,10 +108,7 @@ function LegacyManagementTab() {
     },
     [searchParams, pathname, router]
   );
-  const setPage = useCallback(
-    (p: number) => updateParams({ page: p > 1 ? String(p) : null }),
-    [updateParams]
-  );
+  const setPage = useCallback((p: number) => updateParams({ page: p > 1 ? String(p) : null }), [updateParams]);
   // เปลี่ยน page size ต้องกลับไปหน้า 1 เสมอ — ไม่อย่างนั้นอาจตกหน้าว่าง (เช่นอยู่หน้า 13 ที่ size 20)
   const setPageSize = useCallback(
     (size: number) => updateParams({ limit: size === DEFAULT_PAGE_SIZE ? null : String(size), page: null }),
@@ -334,9 +331,9 @@ function LegacyManagementTab() {
 
       <Card>
         <CardHeader>
-          <div className="flex flex-wrap justify-between items-center gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <CardTitle>Legacy Review Queue</CardTitle>
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex flex-wrap items-center gap-3">
               {selectedPublicIds.length > 0 && (
                 <>
                   <Button variant="outline" onClick={handleBatchExtract} disabled={submitting}>
@@ -572,7 +569,7 @@ function LegacyManagementTab() {
                         {/* ADR-019: ใช้ publicId ใน route */}
                         <Link href={`/admin/migration/review/${item.publicId}`}>
                           <Button size="sm" variant="ghost">
-                            <EyeIcon className="h-4 w-4 mr-2" /> Review
+                            <EyeIcon className="mr-2 h-4 w-4" /> Review
                           </Button>
                         </Link>
                       </TableCell>
@@ -583,7 +580,7 @@ function LegacyManagementTab() {
             </Table>
           </div>
           {/* Pagination + row count — เลขหน้ากระโดดข้ามได้ (window ±2 รอบหน้าปัจจุบัน) */}
-          <div className="flex flex-wrap items-center justify-between gap-3 mt-4 pt-4 border-t">
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t pt-4">
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <span>
                 ทั้งหมด {totalRows} รายการ (หน้า {page}/{totalPages})
@@ -602,12 +599,7 @@ function LegacyManagementTab() {
               </Select>
             </div>
             <div className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page <= 1 || loading}
-                onClick={() => setPage(page - 1)}
-              >
+              <Button variant="outline" size="sm" disabled={page <= 1 || loading} onClick={() => setPage(page - 1)}>
                 ก่อนหน้า
               </Button>
               {getPageNumbers(page, totalPages).map((p, idx) =>
@@ -651,7 +643,7 @@ export default function MigrationManagementPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Migration Management</h1>
-        <p className="text-muted-foreground mt-1">จัดการการนำเข้าเอกสารจากระบบเดิม</p>
+        <p className="mt-1 text-muted-foreground">จัดการการนำเข้าเอกสารจากระบบเดิม</p>
       </div>
       {/* D160: ซ่อน AI Migration Logs tab — migration_logs เป็น dead table ตั้งแต่ ADR-023/023A
           เปลี่ยน migration pipeline ไปใช้ BullMQ + migration_review_queue แทน n8n orchestrator

@@ -101,7 +101,11 @@ export const adminApi = {
   createOrganization: async (data: Omit<Organization, 'orgId'>): Promise<Organization> => {
     await new Promise((resolve) => setTimeout(resolve, 600));
     const maxId = mockOrgs.length > 0 ? Math.max(...mockOrgs.map((o) => o.orgId ?? 0)) : 0;
-    const newOrg: Organization = { ...data, publicId: data.publicId || `org-${String(maxId + 1).padStart(3, '0')}`, orgId: maxId + 1 };
+    const newOrg: Organization = {
+      ...data,
+      publicId: data.publicId || `org-${String(maxId + 1).padStart(3, '0')}`,
+      orgId: maxId + 1,
+    };
     mockOrgs.push(newOrg);
     return newOrg;
   },

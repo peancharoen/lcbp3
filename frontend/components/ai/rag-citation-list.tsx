@@ -32,9 +32,7 @@ interface RagCitationListProps {
 }
 
 /** แปลง retrievalMode เป็น badge variant สำหรับแสดงผล */
-function retrievalModeVariant(
-  mode: RagRetrievalMode
-): 'default' | 'secondary' | 'outline' {
+function retrievalModeVariant(mode: RagRetrievalMode): 'default' | 'secondary' | 'outline' {
   switch (mode) {
     case 'VECTOR':
       return 'default';
@@ -48,9 +46,7 @@ function retrievalModeVariant(
 }
 
 /** แปลง segmentType เป็น badge variant สำหรับแสดงผล */
-function segmentTypeVariant(
-  segmentType: RagSegmentType
-): 'default' | 'secondary' | 'outline' | 'warning' {
+function segmentTypeVariant(segmentType: RagSegmentType): 'default' | 'secondary' | 'outline' | 'warning' {
   switch (segmentType) {
     case 'PAGE':
       return 'default';
@@ -103,67 +99,45 @@ function buildSourceBreadcrumb(
  * - แสดง attachmentPublicId, sourceLocator breadcrumb, snippet, score
  * - ไม่แสดง generationUuid ตาม ADR-019 (contract ระบุว่าห้ามเปิดเผย)
  */
-export function RagCitationList({
-  sources,
-  retrievalMode,
-}: RagCitationListProps) {
+export function RagCitationList({ sources, retrievalMode }: RagCitationListProps) {
   return (
     <div className="space-y-3" data-testid="rag-citation-list">
       <div className="flex items-center gap-2">
         <span className="text-sm font-medium">{ragT('citation_list.title')}</span>
-        <Badge variant={retrievalModeVariant(retrievalMode)}>
-          {retrievalMode}
-        </Badge>
+        <Badge variant={retrievalModeVariant(retrievalMode)}>{retrievalMode}</Badge>
       </div>
 
       {sources.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          {ragT('citation_list.empty')}
-        </p>
+        <p className="text-sm text-muted-foreground">{ragT('citation_list.empty')}</p>
       ) : (
         <ul className="space-y-2">
           {sources.map((citation, index) => {
-            const breadcrumb = buildSourceBreadcrumb(
-              citation.sourceLocator,
-              citation.segmentLabel
-            );
+            const breadcrumb = buildSourceBreadcrumb(citation.sourceLocator, citation.segmentLabel);
             return (
               <li
                 key={`${citation.chunkPublicId}-${index}`}
-                className="rounded border border-border bg-muted/40 p-3 text-sm space-y-1"
+                className="space-y-1 rounded border border-border bg-muted/40 p-3 text-sm"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span
-                    className="font-mono text-xs break-all"
-                    data-testid={`citation-attachment-${index}`}
-                  >
+                  <span className="break-all font-mono text-xs" data-testid={`citation-attachment-${index}`}>
                     {citation.attachmentPublicId}
                   </span>
-                  <div className="flex items-center gap-1 shrink-0">
+                  <div className="flex shrink-0 items-center gap-1">
                     <Badge
                       variant={segmentTypeVariant(citation.segmentType)}
                       data-testid={`citation-segment-type-${index}`}
                     >
                       {citation.segmentType}
                     </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {formatScore(citation.score)}
-                    </span>
+                    <span className="text-xs text-muted-foreground">{formatScore(citation.score)}</span>
                   </div>
                 </div>
                 {breadcrumb && (
-                  <p
-                    className="text-xs text-muted-foreground"
-                    data-testid={`citation-locator-${index}`}
-                  >
+                  <p className="text-xs text-muted-foreground" data-testid={`citation-locator-${index}`}>
                     {breadcrumb}
                   </p>
                 )}
-                {citation.snippet && (
-                  <p className="text-muted-foreground line-clamp-3">
-                    {citation.snippet}
-                  </p>
-                )}
+                {citation.snippet && <p className="line-clamp-3 text-muted-foreground">{citation.snippet}</p>}
               </li>
             );
           })}

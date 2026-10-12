@@ -32,7 +32,7 @@ describe('TemplateTester', () => {
 
   it('renders correctly when open', () => {
     render(<TemplateTester open={true} onOpenChange={onOpenChange} template={mockTemplate} />);
-    
+
     expect(screen.getByText('Test Number Generation')).toBeInTheDocument();
     expect(screen.getByText('{ORG}-{TYPE}-{SEQ:4}')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Generate Test Number' })).toBeInTheDocument();
@@ -46,15 +46,15 @@ describe('TemplateTester', () => {
   it('handles successful generation', async () => {
     const user = userEvent.setup();
     render(<TemplateTester open={true} onOpenChange={onOpenChange} template={mockTemplate} />);
-    
+
     vi.mocked(numberingApi.previewNumber).mockResolvedValue({
       previewNumber: 'ORG-TYPE-0001',
       isDefault: true,
     } as any);
-    
+
     const generateBtn = screen.getByRole('button', { name: 'Generate Test Number' });
     await user.click(generateBtn);
-    
+
     expect(numberingApi.previewNumber).toHaveBeenCalledWith({
       projectId: 1,
       originatorOrganizationId: '0',
@@ -63,7 +63,7 @@ describe('TemplateTester', () => {
       disciplineId: 0,
       year: new Date().getFullYear(),
     });
-    
+
     await waitFor(() => {
       expect(screen.getByText('ORG-TYPE-0001')).toBeInTheDocument();
       expect(screen.getByText('Default Template')).toBeInTheDocument();
@@ -73,12 +73,12 @@ describe('TemplateTester', () => {
   it('handles API error', async () => {
     const user = userEvent.setup();
     render(<TemplateTester open={true} onOpenChange={onOpenChange} template={mockTemplate} />);
-    
+
     vi.mocked(numberingApi.previewNumber).mockRejectedValue(new Error('Generation failed'));
-    
+
     const generateBtn = screen.getByRole('button', { name: 'Generate Test Number' });
     await user.click(generateBtn);
-    
+
     await waitFor(() => {
       expect(screen.getByText('Error: Generation failed')).toBeInTheDocument();
       expect(screen.getByText('Generation Failed:')).toBeInTheDocument();

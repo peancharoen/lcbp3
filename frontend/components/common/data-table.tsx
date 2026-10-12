@@ -56,11 +56,7 @@ export function DataTable<TData, TValue>({
         header: ({ table }) => (
           <Checkbox
             checked={
-              table.getIsAllPageRowsSelected()
-                ? true
-                : table.getIsSomePageRowsSelected()
-                  ? 'indeterminate'
-                  : false
+              table.getIsAllPageRowsSelected() ? true : table.getIsSomePageRowsSelected() ? 'indeterminate' : false
             }
             onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
             aria-label={t('common.selectAll')}
@@ -94,7 +90,7 @@ export function DataTable<TData, TValue>({
   });
 
   return (
-    <div className="rounded-md border overflow-x-auto">
+    <div className="overflow-x-auto rounded-md border">
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
@@ -103,9 +99,7 @@ export function DataTable<TData, TValue>({
                 <TableHead
                   key={header.id}
                   style={
-                    header.column.columnDef.size !== undefined
-                      ? { width: header.column.columnDef.size }
-                      : undefined
+                    header.column.columnDef.size !== undefined ? { width: header.column.columnDef.size } : undefined
                   }
                 >
                   {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
@@ -121,11 +115,7 @@ export function DataTable<TData, TValue>({
                 {row.getVisibleCells().map((cell) => (
                   <TableCell
                     key={cell.id}
-                    style={
-                      cell.column.columnDef.size !== undefined
-                        ? { width: cell.column.columnDef.size }
-                        : undefined
-                    }
+                    style={cell.column.columnDef.size !== undefined ? { width: cell.column.columnDef.size } : undefined}
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>

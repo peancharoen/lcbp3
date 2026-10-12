@@ -50,8 +50,6 @@ async function getAuthToken(page: import('@playwright/test').Page): Promise<stri
   return token as string;
 }
 
-
-
 // ============================================================================
 // Phase 1A: Cancel Correspondence (US1, FR-001 to FR-006)
 // ============================================================================
@@ -69,7 +67,10 @@ test.describe('Phase 1A: Cancel Correspondence (US1, FR-001 to FR-006)', () => {
 
     // ตรวจหาปุ่ม MoreHorizontal (⋯) — ถ้ามีข้อมูล
     const actionButtons = page.locator('button:has(svg.lucide-more-horizontal)');
-    const hasActions = await actionButtons.first().isVisible({ timeout: 10000 }).catch(() => false);
+    const hasActions = await actionButtons
+      .first()
+      .isVisible({ timeout: 10000 })
+      .catch(() => false);
     expect(hasActions || true).toBeTruthy();
   });
 
@@ -118,7 +119,9 @@ test.describe('Phase 1A: Cancel Correspondence (US1, FR-001 to FR-006)', () => {
       const cancelItem = page.getByRole('menuitem', { name: /ยกเลิก/i });
       const isVisible = await cancelItem.isVisible({ timeout: 3000 }).catch(() => false);
       if (isVisible) {
-        await expect(cancelItem).toBeDisabled({ timeout: 3000 }).catch(() => {});
+        await expect(cancelItem)
+          .toBeDisabled({ timeout: 3000 })
+          .catch(() => {});
       }
     }
   });
@@ -237,7 +240,9 @@ test.describe('Phase 1B: Metadata Patch (US2, FR-012 to FR-015)', () => {
       await page.waitForLoadState('networkidle');
 
       const editButton = page.getByRole('button', { name: /แก้ไขข้อมูลกำกับ|แก้ไข Metadata|Edit Metadata/i });
-      await expect(editButton).toBeVisible({ timeout: 10000 }).catch(() => {});
+      await expect(editButton)
+        .toBeVisible({ timeout: 10000 })
+        .catch(() => {});
     }
   });
 });
@@ -376,7 +381,9 @@ test.describe('Phase 1C UI: Hard-Delete — Superadmin', () => {
 
       // ตรวจหา "ลบถาวร" (document.hardDelete.title = "ยืนยันการลบถาวร?")
       const hardDeleteItem = page.getByRole('menuitem', { name: /ลบถาวร|Hard Delete/i });
-      await expect(hardDeleteItem).toBeVisible({ timeout: 5000 }).catch(() => {});
+      await expect(hardDeleteItem)
+        .toBeVisible({ timeout: 5000 })
+        .catch(() => {});
     }
   });
 });
@@ -404,7 +411,9 @@ test.describe('Phase 1D UI: Bulk Cancel — Bulk Action Bar', () => {
     await checkbox.check();
 
     const bulkBar = page.locator('[class*="fixed"]').filter({ hasText: /เลือก|selected|รายการ/i });
-    await expect(bulkBar).toBeVisible({ timeout: 5000 }).catch(() => {});
+    await expect(bulkBar)
+      .toBeVisible({ timeout: 5000 })
+      .catch(() => {});
   });
 });
 
@@ -475,10 +484,20 @@ test.describe('Phase 1E UI: Maintenance Console — Superadmin', () => {
     await page.waitForLoadState('networkidle');
 
     // ตรวจหา 4 แท็บ — ใช้ role=tab หรือ trigger
-    await expect(page.getByRole('tab', { name: /Numbering|เลขที่เอกสาร/i }).or(page.getByText(/Numbering|เลขที่เอกสาร/i))).toBeVisible({ timeout: 10000 }).catch(() => {});
-    await expect(page.getByRole('tab', { name: /Orphan|ไฟล์ขยะ/i }).or(page.getByText(/Orphan|ไฟล์ขยะ/i))).toBeVisible({ timeout: 5000 }).catch(() => {});
-    await expect(page.getByRole('tab', { name: /Vector|เวกเตอร์/i }).or(page.getByText(/Vector|เวกเตอร์/i))).toBeVisible({ timeout: 5000 }).catch(() => {});
-    await expect(page.getByRole('tab', { name: /Emergency|ฉุกเฉิน/i }).or(page.getByText(/Emergency|ฉุกเฉิน/i))).toBeVisible({ timeout: 5000 }).catch(() => {});
+    await expect(
+      page.getByRole('tab', { name: /Numbering|เลขที่เอกสาร/i }).or(page.getByText(/Numbering|เลขที่เอกสาร/i))
+    )
+      .toBeVisible({ timeout: 10000 })
+      .catch(() => {});
+    await expect(page.getByRole('tab', { name: /Orphan|ไฟล์ขยะ/i }).or(page.getByText(/Orphan|ไฟล์ขยะ/i)))
+      .toBeVisible({ timeout: 5000 })
+      .catch(() => {});
+    await expect(page.getByRole('tab', { name: /Vector|เวกเตอร์/i }).or(page.getByText(/Vector|เวกเตอร์/i)))
+      .toBeVisible({ timeout: 5000 })
+      .catch(() => {});
+    await expect(page.getByRole('tab', { name: /Emergency|ฉุกเฉิน/i }).or(page.getByText(/Emergency|ฉุกเฉิน/i)))
+      .toBeVisible({ timeout: 5000 })
+      .catch(() => {});
   });
 });
 
@@ -555,7 +574,9 @@ test.describe('Phase 1F: DRAFT Edit + 2-Tier (US6)', () => {
     await page.waitForLoadState('networkidle');
 
     // ตรวจว่าหน้า create form แสดง
-    await expect(page.locator('form').or(page.locator('[role="form"]'))).toBeVisible({ timeout: 10000 }).catch(() => {});
+    await expect(page.locator('form').or(page.locator('[role="form"]')))
+      .toBeVisible({ timeout: 10000 })
+      .catch(() => {});
   });
 });
 
@@ -608,7 +629,7 @@ test.describe('Phase 1G: Cross-Type Consistency (FR-021 to FR-024, SC-008)', () 
 
     // ไม่ควรมี React i18n missing key warnings
     const i18nWarnings = consoleErrors.filter(
-      (e) => e.includes('i18n') || e.includes('missing key') || e.includes('translation'),
+      (e) => e.includes('i18n') || e.includes('missing key') || e.includes('translation')
     );
     expect(i18nWarnings).toHaveLength(0);
   });
@@ -631,7 +652,7 @@ test.describe('Phase 1G: Cross-Type Consistency (FR-021 to FR-024, SC-008)', () 
         !e.includes('DevTools') &&
         !e.includes('Content Security Policy') &&
         !e.includes('403') &&
-        !e.includes('Failed to load resource'),
+        !e.includes('Failed to load resource')
     );
     expect(appErrors).toHaveLength(0);
   });

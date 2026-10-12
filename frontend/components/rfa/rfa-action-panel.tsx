@@ -93,7 +93,7 @@ export function RfaActionPanel({
                   pendingImpersonation.impersonatedUserId}
               </span>
               <Button type="button" variant="ghost" size="sm" onClick={clearImpersonation}>
-                <XCircle className="h-4 w-4 mr-1" />
+                <XCircle className="mr-1 h-4 w-4" />
                 {t('common.clear')}
               </Button>
             </>
@@ -105,7 +105,7 @@ export function RfaActionPanel({
               onClick={() => setImpersonationOpen(true)}
               disabled={handlers.length === 0}
             >
-              <UserCheck className="h-4 w-4 mr-1" />
+              <UserCheck className="mr-1 h-4 w-4" />
               {t('workflow.impersonation.actionOnBehalf')}
             </Button>
           )}

@@ -11,7 +11,7 @@ import apiClient from '@/lib/api/client';
 
 interface Role {
   publicId?: string; // ADR-019: public identifier
-  roleId?: number;   // Internal INT
+  roleId?: number; // Internal INT
   roleName: string;
   permissions?: Permission[];
 }
@@ -127,18 +127,18 @@ export function RbacMatrix() {
           onClick={() => updateMutation.mutate(pendingChanges)}
           disabled={!hasChanges || updateMutation.isPending}
         >
-          <Save className="h-4 w-4 mr-2" />
+          <Save className="mr-2 h-4 w-4" />
           Save Changes
         </Button>
       </div>
 
-      <div className="border rounded-lg overflow-x-auto">
+      <div className="overflow-x-auto rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead className="w-[300px]">Permission</TableHead>
               {roleList.map((role) => (
-                <TableHead key={role.publicId} className="text-center min-w-[100px]">
+                <TableHead key={role.publicId} className="min-w-[100px] text-center">
                   {role.roleName}
                 </TableHead>
               ))}

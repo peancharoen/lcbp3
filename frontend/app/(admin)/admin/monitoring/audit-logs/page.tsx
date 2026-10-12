@@ -14,7 +14,7 @@ export default function AuditLogsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Audit Logs</h1>
-        <p className="text-muted-foreground mt-1">View system activity and changes</p>
+        <p className="mt-1 text-muted-foreground">View system activity and changes</p>
       </div>
 
       {isLoading ? (
@@ -24,36 +24,36 @@ export default function AuditLogsPage() {
       ) : (
         <div className="space-y-2">
           {logList.length === 0 ? (
-            <div className="text-center text-muted-foreground py-10">No logs found</div>
+            <div className="py-10 text-center text-muted-foreground">No logs found</div>
           ) : (
             logList.map((log: import('@/lib/services/audit-log.service').AuditLog) => (
               <Card key={log.publicId} className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="font-medium text-sm">
+                    <div className="mb-2 flex items-center gap-3">
+                      <span className="text-sm font-medium">
                         {log.user?.fullName || log.user?.username || `User #${log.userId || 'System'}`}
                       </span>
                       <Badge
                         variant={log.severity === 'ERROR' ? 'destructive' : 'outline'}
-                        className="uppercase text-[10px]"
+                        className="text-[10px] uppercase"
                       >
                         {log.action}
                       </Badge>
-                      <Badge variant="secondary" className="uppercase text-[10px]">
+                      <Badge variant="secondary" className="text-[10px] uppercase">
                         {log.entityType || 'General'}
                       </Badge>
                     </div>
                     <p className="text-sm text-foreground">
                       {typeof log.detailsJson === 'string' ? log.detailsJson : JSON.stringify(log.detailsJson || {})}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-2">
+                    <p className="mt-2 text-xs text-muted-foreground">
                       {log.createdAt && formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
                     </p>
                   </div>
                   {/* Only show IP if available */}
                   {log.ipAddress && (
-                    <span className="text-xs text-muted-foreground font-mono bg-muted px-2 py-1 rounded hidden md:inline-block">
+                    <span className="hidden rounded bg-muted px-2 py-1 font-mono text-xs text-muted-foreground md:inline-block">
                       {log.ipAddress}
                     </span>
                   )}

@@ -35,9 +35,9 @@ const TRACK_ICON: Record<TaskStatus, React.ElementType> = {
 
 const TRACK_COLOR: Record<TaskStatus, string> = {
   PENDING: 'text-muted-foreground',
-  IN_PROGRESS: 'text-blue-500',
-  COMPLETED: 'text-green-500',
-  DELEGATED: 'text-amber-500',
+  IN_PROGRESS: 'text-info',
+  COMPLETED: 'text-success',
+  DELEGATED: 'text-warning',
   EXPIRED: 'text-destructive',
   CANCELLED: 'text-muted-foreground',
 };
@@ -50,7 +50,9 @@ export function ParallelProgress({ tracks, overallPct, isAllComplete }: Parallel
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold">{overallPct}%</span>
           {isAllComplete && (
-            <Badge variant="default" className="text-xs">All Complete</Badge>
+            <Badge variant="default" className="text-xs">
+              All Complete
+            </Badge>
           )}
         </div>
       </div>
@@ -62,17 +64,12 @@ export function ParallelProgress({ tracks, overallPct, isAllComplete }: Parallel
           const colorClass = TRACK_COLOR[track.taskStatus];
 
           return (
-            <div
-              key={track.disciplineId}
-              className="flex items-center justify-between py-1.5 px-2 rounded bg-muted/30"
-            >
+            <div key={track.disciplineId} className="flex items-center justify-between rounded bg-muted/30 px-2 py-1.5">
               <div className="flex items-center gap-2">
                 <Icon className={`h-4 w-4 ${colorClass} flex-shrink-0`} />
                 <div>
                   <p className="text-sm font-medium">{track.disciplineName}</p>
-                  {track.assigneeName && (
-                    <p className="text-xs text-muted-foreground">{track.assigneeName}</p>
-                  )}
+                  {track.assigneeName && <p className="text-xs text-muted-foreground">{track.assigneeName}</p>}
                 </div>
               </div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">

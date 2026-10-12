@@ -52,9 +52,9 @@ export function VoidReplaceForm({ projectId = 1 }: { projectId?: number | string
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 border p-4 rounded-md">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 rounded-md border p-4">
         <h3 className="text-lg font-medium">Void & Replace Number</h3>
-        <p className="text-sm text-gray-500">Void a generated number. Useful for skipped numbers or errors.</p>
+        <p className="text-sm text-muted-foreground">Void a generated number. Useful for skipped numbers or errors.</p>
 
         <FormField
           control={form.control}

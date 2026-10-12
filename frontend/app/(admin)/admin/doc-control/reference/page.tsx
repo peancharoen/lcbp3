@@ -31,12 +31,12 @@ const refMenu = [
 
 export default function ReferenceDataPage() {
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6 p-6">
       <h1 className="text-2xl font-bold">Reference Data Management</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         {refMenu.map((item) => (
           <Link key={item.href} href={item.href}>
-            <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+            <Card className="h-full cursor-pointer transition-shadow hover:shadow-md">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{item.title}</CardTitle>
                 <item.icon className="h-4 w-4 text-muted-foreground" />

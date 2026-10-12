@@ -14,13 +14,7 @@ import { Plus, Link2, Trash, Loader2, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/common/data-table';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,13 +29,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 
@@ -75,9 +63,7 @@ export default function NotificationChannelsPage() {
   const { data: channels, isLoading } = useNotificationChannels();
   const { data: projects } = useProjects();
   const { data: organizations } = useOrganizations({ isActive: true });
-  const organizationList: Organization[] = Array.isArray(organizations)
-    ? (organizations as Organization[])
-    : [];
+  const organizationList: Organization[] = Array.isArray(organizations) ? (organizations as Organization[]) : [];
   const issueLinkCode = useIssueLinkCode();
   const patchChannel = usePatchChannel();
   const deleteChannel = useDeleteChannel();
@@ -100,16 +86,13 @@ export default function NotificationChannelsPage() {
   const scopeRef = watch('scopeRef');
   const scopeOrg = watch('scopeOrg');
   const { data: userGroups } = useUserGroups();
-  const { data: departments } = useDepartments(
-    scopeType === 'department' ? scopeOrg : undefined
-  );
+  const { data: departments } = useDepartments(scopeType === 'department' ? scopeOrg : undefined);
 
   const onIssue = async (data: LinkCodeForm) => {
     // Map scopeType + scopeRef → field ของ DTO (ต้องระบุอย่างใดอย่างหนึ่ง)
     const dto: IssueLinkCodeDto = { name: data.name };
     if (data.scopeType === 'project') dto.projectPublicId = data.scopeRef;
-    else if (data.scopeType === 'user_group')
-      dto.userGroupPublicId = data.scopeRef;
+    else if (data.scopeType === 'user_group') dto.userGroupPublicId = data.scopeRef;
     else dto.departmentPublicId = data.scopeRef;
     const result = await issueLinkCode.mutateAsync(dto);
     setIssuedCode(result.code);
@@ -136,9 +119,7 @@ export default function NotificationChannelsPage() {
         return (
           <div className="flex flex-col">
             <span>{ch.scopeName ?? '—'}</span>
-            <span className="text-xs text-muted-foreground">
-              {scopeTypeLabel}
-            </span>
+            <span className="text-xs text-muted-foreground">{scopeTypeLabel}</span>
           </div>
         );
       },
@@ -149,8 +130,7 @@ export default function NotificationChannelsPage() {
       cell: ({ row }) => (
         <span className="font-mono text-xs">
           {row.original.externalChatId}
-          {row.original.telegramTopicId != null &&
-            ` / topic ${row.original.telegramTopicId}`}
+          {row.original.telegramTopicId != null && ` / topic ${row.original.telegramTopicId}`}
         </span>
       ),
     },
@@ -168,11 +148,7 @@ export default function NotificationChannelsPage() {
               })
             }
           />
-          {row.original.isActive ? (
-            <Badge variant="default">ใช้งาน</Badge>
-          ) : (
-            <Badge variant="secondary">ปิด</Badge>
-          )}
+          {row.original.isActive ? <Badge variant="default">ใช้งาน</Badge> : <Badge variant="secondary">ปิด</Badge>}
         </div>
       ),
     },
@@ -180,13 +156,7 @@ export default function NotificationChannelsPage() {
       accessorKey: 'lastError',
       header: 'Error ล่าสุด',
       cell: ({ row }) =>
-        row.original.lastError ? (
-          <span className="text-xs text-destructive">
-            {row.original.lastError}
-          </span>
-        ) : (
-          '—'
-        ),
+        row.original.lastError ? <span className="text-xs text-destructive">{row.original.lastError}</span> : '—',
     },
     {
       id: 'actions',
@@ -201,17 +171,11 @@ export default function NotificationChannelsPage() {
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>ยกเลิกการผูก channel นี้?</AlertDialogTitle>
-              <AlertDialogDescription>
-                กลุ่ม/topic นี้จะไม่ได้รับการแจ้งเตือนจากโครงการอีก
-              </AlertDialogDescription>
+              <AlertDialogDescription>กลุ่ม/topic นี้จะไม่ได้รับการแจ้งเตือนจากโครงการอีก</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => deleteChannel.mutate(row.original.publicId)}
-              >
-                ยืนยัน
-              </AlertDialogAction>
+              <AlertDialogAction onClick={() => deleteChannel.mutate(row.original.publicId)}>ยืนยัน</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
@@ -261,9 +225,7 @@ export default function NotificationChannelsPage() {
           </DialogHeader>
           {issuedCode ? (
             <div className="space-y-4">
-              <p className="text-sm">
-                นำรหัสนี้ไปพิมพ์ใน Telegram group ที่ต้องการผูก:
-              </p>
+              <p className="text-sm">นำรหัสนี้ไปพิมพ์ใน Telegram group ที่ต้องการผูก:</p>
               <div className="flex items-center gap-2 rounded-lg border bg-muted p-3">
                 <code className="flex-1 font-mono text-lg">/link {issuedCode}</code>
                 <Button
@@ -278,8 +240,7 @@ export default function NotificationChannelsPage() {
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                รหัสหมดอายุใน 15 นาที ใช้ได้ครั้งเดียว — ส่งใน group (หรือใน
-                topic ของ forum group เพื่อผูกเฉพาะ topic)
+                รหัสหมดอายุใน 15 นาที ใช้ได้ครั้งเดียว — ส่งใน group (หรือใน topic ของ forum group เพื่อผูกเฉพาะ topic)
               </p>
             </div>
           ) : (
@@ -329,16 +290,9 @@ export default function NotificationChannelsPage() {
               )}
               <div className="space-y-2">
                 <Label>
-                  {scopeType === 'user_group'
-                    ? 'กลุ่มผู้ใช้'
-                    : scopeType === 'department'
-                      ? 'แผนก'
-                      : 'โครงการ'}
+                  {scopeType === 'user_group' ? 'กลุ่มผู้ใช้' : scopeType === 'department' ? 'แผนก' : 'โครงการ'}
                 </Label>
-                <Select
-                  value={scopeRef}
-                  onValueChange={(v) => setValue('scopeRef', v)}
-                >
+                <Select value={scopeRef} onValueChange={(v) => setValue('scopeRef', v)}>
                   <SelectTrigger>
                     <SelectValue placeholder="เลือก scope" />
                   </SelectTrigger>
@@ -363,9 +317,7 @@ export default function NotificationChannelsPage() {
                       ))}
                   </SelectContent>
                 </Select>
-                {errors.scopeRef && (
-                  <p className="text-xs text-destructive">กรุณาเลือก scope</p>
-                )}
+                {errors.scopeRef && <p className="text-xs text-destructive">กรุณาเลือก scope</p>}
               </div>
               <div className="space-y-2">
                 <Label>ชื่อที่แสดง (ไม่บังคับ)</Label>

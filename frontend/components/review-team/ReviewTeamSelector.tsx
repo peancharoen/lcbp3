@@ -2,13 +2,7 @@
 
 // File: components/review-team/ReviewTeamSelector.tsx
 // Selector component สำหรับเลือก Review Team ตอน Submit RFA (T023)
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Users } from 'lucide-react';
 import { useReviewTeams } from '@/hooks/use-review-teams';
@@ -38,9 +32,7 @@ export function ReviewTeamSelector({
 
   // กรอง teams ที่ match กับ rfaTypeCode (ถ้ากำหนด)
   const filteredTeams = rfaTypeCode
-    ? (teams as ReviewTeam[]).filter(
-        (t) => !t.defaultForRfaTypes?.length || t.defaultForRfaTypes.includes(rfaTypeCode),
-      )
+    ? (teams as ReviewTeam[]).filter((t) => !t.defaultForRfaTypes?.length || t.defaultForRfaTypes.includes(rfaTypeCode))
     : (teams as ReviewTeam[]);
 
   return (
@@ -48,14 +40,14 @@ export function ReviewTeamSelector({
       <div className="flex items-center gap-2 text-sm font-medium">
         <Users className="h-4 w-4" />
         <span>Review Team (Parallel Review)</span>
-        <Badge variant="outline" className="text-xs">Optional</Badge>
+        <Badge variant="outline" className="text-xs">
+          Optional
+        </Badge>
       </div>
 
       <Select
         value={value ?? NO_REVIEW_TEAM_VALUE}
-        onValueChange={(v: string) =>
-          onChange(v === NO_REVIEW_TEAM_VALUE ? undefined : v)
-        }
+        onValueChange={(v: string) => onChange(v === NO_REVIEW_TEAM_VALUE ? undefined : v)}
         disabled={disabled || isLoading}
       >
         <SelectTrigger>
@@ -68,9 +60,7 @@ export function ReviewTeamSelector({
               <div className="flex items-center gap-2">
                 <span>{team.name}</span>
                 {(team.members ?? []).length > 0 && (
-                  <span className="text-xs text-muted-foreground">
-                    ({team.members?.length} members)
-                  </span>
+                  <span className="text-xs text-muted-foreground">({team.members?.length} members)</span>
                 )}
               </div>
             </SelectItem>

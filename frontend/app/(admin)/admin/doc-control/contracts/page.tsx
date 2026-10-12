@@ -205,7 +205,7 @@ export default function ContractsPage() {
               <Building2 className="mr-2 h-4 w-4" /> Organizations
             </DropdownMenuItem>
             <DropdownMenuItem
-              className="text-red-600 focus:text-red-600"
+              className="text-destructive focus:text-destructive"
               onClick={() => handleDeleteClick(row.original)}
             >
               <Trash className="mr-2 h-4 w-4" /> Delete
@@ -264,24 +264,24 @@ export default function ContractsPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Contracts</h1>
-          <p className="text-muted-foreground mt-1">Manage construction contracts</p>
+          <p className="mt-1 text-muted-foreground">Manage construction contracts</p>
         </div>
         <Button onClick={handleCreate}>
           <Plus className="mr-2 h-4 w-4" /> Add Contract
         </Button>
       </div>
 
-      <div className="flex items-center space-x-2 bg-muted/30 p-4 rounded-lg">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex items-center space-x-2 rounded-lg bg-muted/30 p-4">
+        <div className="relative max-w-sm flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search contracts..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-8 bg-background"
+            className="bg-background pl-8"
           />
         </div>
       </div>
@@ -321,20 +321,20 @@ export default function ContractsPage() {
                   ))}
                 </SelectContent>
               </Select>
-              {errors.projectId && <p className="text-sm text-red-500">{errors.projectId.message}</p>}
+              {errors.projectId && <p className="text-sm text-destructive">{errors.projectId.message}</p>}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Contract Code *</Label>
                 <Input placeholder="e.g. C-001" {...register('contractCode')} />
-                {errors.contractCode && <p className="text-sm text-red-500">{errors.contractCode.message}</p>}
+                {errors.contractCode && <p className="text-sm text-destructive">{errors.contractCode.message}</p>}
               </div>
 
               <div className="space-y-2">
                 <Label>Contract Name *</Label>
                 <Input placeholder="e.g. Main Construction" {...register('contractName')} />
-                {errors.contractName && <p className="text-sm text-red-500">{errors.contractName.message}</p>}
+                {errors.contractName && <p className="text-sm text-destructive">{errors.contractName.message}</p>}
               </div>
             </div>
 
@@ -388,7 +388,7 @@ export default function ContractsPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
               {deleteContract.isPending ? 'Deleting...' : 'Delete Contract'}
             </AlertDialogAction>
           </AlertDialogFooter>

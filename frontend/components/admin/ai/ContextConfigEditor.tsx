@@ -38,11 +38,7 @@ interface ContractOption {
  * คอมโพเนนต์ฟอร์มสำหรับแก้ไขบริบทข้อมูล (Context Configuration)
  * จัดการตัวเลือกการกรองข้อมูลรายโครงการ (Project Filter) และรายสัญญา (Contract Filter) รวมทั้งภาษาและจำนวนประวัติการดึงข้อมูล
  */
-export default function ContextConfigEditor({
-  initialConfig,
-  onSave,
-  isSaving,
-}: ContextConfigEditorProps) {
+export default function ContextConfigEditor({ initialConfig, onSave, isSaving }: ContextConfigEditorProps) {
   const t = useTranslations();
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [contracts, setContracts] = useState<ContractOption[]>([]);
@@ -163,20 +159,18 @@ export default function ContextConfigEditor({
 
   return (
     <Card className="border border-border/50 bg-background/30 backdrop-blur-md transition-all duration-300 hover:shadow-md">
-      <CardHeader className="pb-3 border-b border-border/10">
+      <CardHeader className="border-b border-border/10 pb-3">
         <CardTitle className="flex items-center gap-2 text-sm font-semibold tracking-wide text-foreground">
           <Settings className="h-4 w-4 text-primary" />
           การตั้งค่าบริบทข้อมูล (Context Configuration)
         </CardTitle>
       </CardHeader>
-      <CardContent className="pt-4 space-y-4">
+      <CardContent className="space-y-4 pt-4">
         {/* เลือกล็อคโครงการ */}
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">
-            ตัวกรองโครงการ (Project Filter)
-          </label>
+          <label className="text-xs font-medium text-muted-foreground">ตัวกรองโครงการ (Project Filter)</label>
           <Select value={projectId} onValueChange={setProjectId}>
-            <SelectTrigger className="w-full bg-background/50 border-border/50 backdrop-blur-sm">
+            <SelectTrigger className="w-full border-border/50 bg-background/50 backdrop-blur-sm">
               <SelectValue placeholder="เลือกโครงการ..." />
             </SelectTrigger>
             <SelectContent>
@@ -192,11 +186,9 @@ export default function ContextConfigEditor({
 
         {/* เลือกล็อคสัญญา */}
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">
-            ตัวกรองสัญญา (Contract Filter)
-          </label>
+          <label className="text-xs font-medium text-muted-foreground">ตัวกรองสัญญา (Contract Filter)</label>
           <Select value={contractId} onValueChange={setContractId}>
-            <SelectTrigger className="w-full bg-background/50 border-border/50 backdrop-blur-sm">
+            <SelectTrigger className="w-full border-border/50 bg-background/50 backdrop-blur-sm">
               <SelectValue placeholder="เลือกสัญญา..." />
             </SelectTrigger>
             <SelectContent>
@@ -211,11 +203,9 @@ export default function ContextConfigEditor({
         </div>
 
         {/* ปริมาณเอกสารอ้างอิงและภาษา */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-3">
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">
-              {t('prompt_management.page_size')}
-            </label>
+            <label className="text-xs font-medium text-muted-foreground">{t('prompt_management.page_size')}</label>
             <Input
               type="number"
               min={1}
@@ -226,7 +216,7 @@ export default function ContextConfigEditor({
                 setErrors((prev) => ({ ...prev, pageSize: '' }));
               }}
               className={cn(
-                'bg-background/50 border-border/50 text-sm focus-visible:ring-primary/30',
+                'border-border/50 bg-background/50 text-sm focus-visible:ring-primary/30',
                 errors.pageSize && 'border-destructive'
               )}
             />
@@ -239,11 +229,20 @@ export default function ContextConfigEditor({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">
-              {t('prompt_management.language')}
-            </label>
-            <Select value={language} onValueChange={(val) => { setLanguage(val); setErrors((prev) => ({ ...prev, language: '' })); }}>
-              <SelectTrigger className={cn('bg-background/50 border-border/50 backdrop-blur-sm', errors.language && 'border-destructive')}>
+            <label className="text-xs font-medium text-muted-foreground">{t('prompt_management.language')}</label>
+            <Select
+              value={language}
+              onValueChange={(val) => {
+                setLanguage(val);
+                setErrors((prev) => ({ ...prev, language: '' }));
+              }}
+            >
+              <SelectTrigger
+                className={cn(
+                  'border-border/50 bg-background/50 backdrop-blur-sm',
+                  errors.language && 'border-destructive'
+                )}
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -264,8 +263,19 @@ export default function ContextConfigEditor({
             <label className="text-xs font-medium text-muted-foreground">
               {t('prompt_management.output_language')}
             </label>
-            <Select value={outputLanguage} onValueChange={(val) => { setOutputLanguage(val); setErrors((prev) => ({ ...prev, outputLanguage: '' })); }}>
-              <SelectTrigger className={cn('bg-background/50 border-border/50 backdrop-blur-sm', errors.outputLanguage && 'border-destructive')}>
+            <Select
+              value={outputLanguage}
+              onValueChange={(val) => {
+                setOutputLanguage(val);
+                setErrors((prev) => ({ ...prev, outputLanguage: '' }));
+              }}
+            >
+              <SelectTrigger
+                className={cn(
+                  'border-border/50 bg-background/50 backdrop-blur-sm',
+                  errors.outputLanguage && 'border-destructive'
+                )}
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -283,16 +293,16 @@ export default function ContextConfigEditor({
           </div>
         </div>
       </CardContent>
-      <CardFooter className="flex items-center justify-between border-t border-border/10 pt-4 bg-muted/5 rounded-b-xl">
-        <span className="text-[11px] text-muted-foreground italic flex items-center gap-1">
-          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+      <CardFooter className="flex items-center justify-between rounded-b-xl border-t border-border/10 bg-muted/5 pt-4">
+        <span className="flex items-center gap-1 text-[11px] italic text-muted-foreground">
+          <CheckCircle2 className="h-3.5 w-3.5 text-success" />
           การตั้งค่านี้จะผูกกับเวอร์ชันของพรอมต์โดยตรง
         </span>
         <Button
           onClick={handleSave}
           disabled={isSaving}
           size="sm"
-          className="bg-primary hover:bg-primary/95 font-semibold text-xs"
+          className="bg-primary text-xs font-semibold hover:bg-primary/95"
         >
           {isSaving ? 'กำลังบันทึก...' : 'บันทึกบริบท (Save Config)'}
         </Button>

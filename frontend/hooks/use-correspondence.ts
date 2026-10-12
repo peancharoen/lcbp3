@@ -27,10 +27,7 @@ export const correspondenceKeys = {
 
 // --- Queries ---
 
-export function useCorrespondences(
-  params: SearchCorrespondenceDto,
-  options?: UseCorrespondencesOptions
-) {
+export function useCorrespondences(params: SearchCorrespondenceDto, options?: UseCorrespondencesOptions) {
   return useQuery({
     queryKey: correspondenceKeys.list(params),
     queryFn: () => correspondenceService.getAll(params),
@@ -106,8 +103,7 @@ export function useCancelCorrespondence() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ uuid, reason }: { uuid: string; reason: string }) =>
-      correspondenceService.cancel(uuid, reason),
+    mutationFn: ({ uuid, reason }: { uuid: string; reason: string }) => correspondenceService.cancel(uuid, reason),
     onSuccess: (_, { uuid }) => {
       toast.success('Correspondence cancelled successfully');
       queryClient.invalidateQueries({ queryKey: correspondenceKeys.detail(uuid) });

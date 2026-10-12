@@ -67,7 +67,7 @@ export function UserNav() {
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">{userName}</p>
             <p className="text-xs leading-none text-muted-foreground">{userEmail}</p>
-            <p className="text-xs leading-none text-primary mt-1 font-semibold">{userRole}</p>
+            <p className="mt-1 text-xs font-semibold leading-none text-primary">{userRole}</p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />

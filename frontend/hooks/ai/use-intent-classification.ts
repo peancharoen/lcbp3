@@ -25,10 +25,7 @@ const KEYS = {
 // === Query Hooks ===
 
 /** ดึง Intent Definitions ทั้งหมด */
-export function useIntentDefinitions(params?: {
-  category?: IntentCategory;
-  isActive?: boolean;
-}) {
+export function useIntentDefinitions(params?: { category?: IntentCategory; isActive?: boolean }) {
   return useQuery({
     queryKey: [...KEYS.definitions, params],
     queryFn: () => aiIntentService.getDefinitions(params),
@@ -59,8 +56,7 @@ export function useIntentPatterns(intentCode: string) {
 export function useCreateIntentDefinition() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (dto: CreateIntentDefinitionDto) =>
-      aiIntentService.createDefinition(dto),
+    mutationFn: (dto: CreateIntentDefinitionDto) => aiIntentService.createDefinition(dto),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: KEYS.definitions });
     },
@@ -71,8 +67,7 @@ export function useCreateIntentDefinition() {
 export function useUpdateIntentDefinition(intentCode: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (dto: UpdateIntentDefinitionDto) =>
-      aiIntentService.updateDefinition(intentCode, dto),
+    mutationFn: (dto: UpdateIntentDefinitionDto) => aiIntentService.updateDefinition(intentCode, dto),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: KEYS.definitions });
       queryClient.invalidateQueries({ queryKey: KEYS.definition(intentCode) });
@@ -84,8 +79,7 @@ export function useUpdateIntentDefinition(intentCode: string) {
 export function useCreateIntentPattern(intentCode: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (dto: CreateIntentPatternDto) =>
-      aiIntentService.createPattern(intentCode, dto),
+    mutationFn: (dto: CreateIntentPatternDto) => aiIntentService.createPattern(intentCode, dto),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: KEYS.patterns(intentCode) });
     },

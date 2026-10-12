@@ -180,10 +180,9 @@ describe('CorrespondenceDetail Component', () => {
     fireEvent.click(downloadBtn);
 
     await waitFor(() => {
-      expect(apiClient.get).toHaveBeenCalledWith(
-        '/files/preview/019505a1-7c3e-7000-8000-file1111111',
-        { responseType: 'blob' }
-      );
+      expect(apiClient.get).toHaveBeenCalledWith('/files/preview/019505a1-7c3e-7000-8000-file1111111', {
+        responseType: 'blob',
+      });
     });
   });
 
@@ -291,10 +290,7 @@ describe('CorrespondenceDetail Component', () => {
       ],
     };
     render(
-      <CorrespondenceDetail
-        data={multiRevCorrespondence}
-        selectedRevisionId="019505a1-7c3e-7000-8000-rev111111111"
-      />
+      <CorrespondenceDetail data={multiRevCorrespondence} selectedRevisionId="019505a1-7c3e-7000-8000-rev111111111" />
     );
     expect(screen.getByText('Revision A Subject')).toBeInTheDocument();
     expect(screen.queryByText('Revision B Subject')).not.toBeInTheDocument();

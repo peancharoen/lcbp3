@@ -6,7 +6,17 @@
 import { useRef, useState } from 'react';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
-import { CheckCircle2, XCircle, RotateCcw, MessageSquare, Clock, Loader2, Paperclip, Upload, X as XIcon } from 'lucide-react';
+import {
+  CheckCircle2,
+  XCircle,
+  RotateCcw,
+  MessageSquare,
+  Clock,
+  Loader2,
+  Paperclip,
+  Upload,
+  X as XIcon,
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -35,12 +45,12 @@ interface WorkflowLifecycleProps {
 
 // Icon ตาม Action ประเภท (labels resolve ผ่าน t() ใน component)
 const ACTION_ICON_MAP: Record<string, React.ReactNode> = {
-  APPROVE:     <CheckCircle2 className="h-4 w-4" />,
-  REJECT:      <XCircle className="h-4 w-4" />,
-  RETURN:      <RotateCcw className="h-4 w-4" />,
-  COMMENT:     <MessageSquare className="h-4 w-4" />,
+  APPROVE: <CheckCircle2 className="h-4 w-4" />,
+  REJECT: <XCircle className="h-4 w-4" />,
+  RETURN: <RotateCcw className="h-4 w-4" />,
+  COMMENT: <MessageSquare className="h-4 w-4" />,
   ACKNOWLEDGE: <CheckCircle2 className="h-4 w-4" />,
-  SUBMIT:      <Clock className="h-4 w-4" />,
+  SUBMIT: <Clock className="h-4 w-4" />,
 };
 
 // สีของ Node ตาม Action (REQ-03: Active Step Color)
@@ -54,15 +64,15 @@ function getNodeStyle(action: string, isLatest: boolean): { wrapper: string; ico
     };
   }
   if (a === 'APPROVE' || a === 'ACKNOWLEDGE') {
-    return { wrapper: 'bg-green-50 border-green-300', icon: 'text-green-600' };
+    return { wrapper: 'bg-success/10 border-success/30', icon: 'text-success' };
   }
   if (a === 'REJECT') {
-    return { wrapper: 'bg-red-50 border-red-300', icon: 'text-red-600' };
+    return { wrapper: 'bg-destructive/10 border-destructive/30', icon: 'text-destructive' };
   }
   if (a === 'RETURN') {
-    return { wrapper: 'bg-amber-50 border-amber-300', icon: 'text-amber-600' };
+    return { wrapper: 'bg-warning/10 border-warning/30', icon: 'text-warning' };
   }
-  return { wrapper: 'bg-blue-50 border-blue-200', icon: 'text-blue-600' };
+  return { wrapper: 'bg-info/10 border-info/30', icon: 'text-info' };
 }
 
 // แปลง Action key เป็น i18n key
@@ -102,7 +112,8 @@ export function WorkflowLifecycle({
           formData,
           { headers: { 'Content-Type': 'multipart/form-data' } }
         );
-        const att: UploadedAttachment = (res.data as { data?: UploadedAttachment }).data ?? (res.data as UploadedAttachment);
+        const att: UploadedAttachment =
+          (res.data as { data?: UploadedAttachment }).data ?? (res.data as UploadedAttachment);
         if (att?.publicId) newUploaded.push(att);
       } catch {
         toast.error(`${t('workflow.timeline.uploadError')} "${file.name}"`);
@@ -123,7 +134,7 @@ export function WorkflowLifecycle({
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center py-12">
+      <div className="flex items-center justify-center py-12">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
@@ -146,22 +157,16 @@ export function WorkflowLifecycle({
   }
 
   return (
-    <div className="py-4 px-2">
+    <div className="px-2 py-4">
       <div className="relative">
         {/* เส้นแนวตั้งเชื่อม Node */}
-        <div
-          className="absolute left-5 top-5 bottom-5 w-px bg-border"
-          aria-hidden="true"
-        />
+        <div className="absolute bottom-5 left-5 top-5 w-px bg-border" aria-hidden="true" />
 
         <ol className="space-y-6">
           {history.map((item, index) => {
             const isLatest = index === history.length - 1;
             const nodeStyle = getNodeStyle(item.action, isLatest);
-            const icon =
-              ACTION_ICON_MAP[item.action.toUpperCase()] ?? (
-                <Clock className="h-4 w-4" />
-              );
+            const icon = ACTION_ICON_MAP[item.action.toUpperCase()] ?? <Clock className="h-4 w-4" />;
 
             return (
               <li key={item.id} className="relative flex gap-4">
@@ -173,19 +178,17 @@ export function WorkflowLifecycle({
                 </div>
 
                 {/* เนื้อหา Step */}
-                <div className="flex-1 min-w-0 pt-1.5 pb-2">
+                <div className="min-w-0 flex-1 pb-2 pt-1.5">
                   {/* Action + State Transition */}
-                  <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <span className="font-semibold text-sm">
-                      {t(getActionLabelKey(item.action))}
-                    </span>
+                  <div className="mb-1 flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-semibold">{t(getActionLabelKey(item.action))}</span>
                     <Badge variant="outline" className="text-xs font-normal">
                       {item.fromState}
                       <span className="mx-1 text-muted-foreground">→</span>
                       {item.toState}
                     </Badge>
                     {isLatest && currentState && (
-                      <Badge className="text-xs bg-primary text-primary-foreground">
+                      <Badge className="bg-primary text-xs text-primary-foreground">
                         {t('workflow.timeline.current')}
                       </Badge>
                     )}
@@ -193,20 +196,18 @@ export function WorkflowLifecycle({
 
                   {/* ความเห็น */}
                   {item.comment && (
-                    <p className="text-sm text-muted-foreground mb-1 italic">
-                      &ldquo;{item.comment}&rdquo;
-                    </p>
+                    <p className="mb-1 text-sm italic text-muted-foreground">&ldquo;{item.comment}&rdquo;</p>
                   )}
 
                   {/* Attachment Chips — ADR-021 US4 / T041: unavailable chip */}
                   {item.attachments && item.attachments.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mb-2">
+                    <div className="mb-2 flex flex-wrap gap-1">
                       {item.attachments.map((att) => {
                         const isUnavailable = unavailableSet.has(att.publicId);
                         return isUnavailable ? (
                           <span
                             key={att.publicId}
-                            className="inline-flex items-center gap-1 h-6 px-2 rounded border text-xs text-muted-foreground/50 line-through cursor-not-allowed select-none"
+                            className="inline-flex h-6 cursor-not-allowed select-none items-center gap-1 rounded border px-2 text-xs text-muted-foreground/50 line-through"
                             title={t('workflow.timeline.fileUnavailable')}
                           >
                             <Paperclip className="h-3 w-3" />
@@ -217,7 +218,7 @@ export function WorkflowLifecycle({
                             key={att.publicId}
                             variant="outline"
                             size="sm"
-                            className="h-6 px-2 text-xs gap-1"
+                            className="h-6 gap-1 px-2 text-xs"
                             onClick={() => onFileClick?.(att)}
                           >
                             <Paperclip className="h-3 w-3" />
@@ -234,9 +235,7 @@ export function WorkflowLifecycle({
                       locale: th,
                     })}
                     {item.actionByUserId && (
-                      <span className="ml-2 text-muted-foreground/70">
-                        · User #{item.actionByUserId}
-                      </span>
+                      <span className="ml-2 text-muted-foreground/70">· User #{item.actionByUserId}</span>
                     )}
                   </p>
                 </div>
@@ -251,10 +250,12 @@ export function WorkflowLifecycle({
         <div className="mt-4 px-2">
           {/* Dropzone */}
           <div
-            className={`relative flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-5 text-center transition-colors cursor-pointer
-              ${isDragOver ? 'border-primary bg-primary/5' : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/40'}`}
+            className={`relative flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-5 text-center transition-colors ${isDragOver ? 'border-primary bg-primary/5' : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/40'}`}
             onClick={() => fileInputRef.current?.click()}
-            onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDragOver(true);
+            }}
             onDragLeave={() => setIsDragOver(false)}
             onDrop={(e) => {
               e.preventDefault();
@@ -294,7 +295,10 @@ export function WorkflowLifecycle({
                   <button
                     type="button"
                     className="ml-0.5 hover:text-destructive"
-                    onClick={(e) => { e.stopPropagation(); removeUploadedFile(f.publicId); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeUploadedFile(f.publicId);
+                    }}
                     aria-label={t('workflow.timeline.removeFile')}
                   >
                     <XIcon className="h-3 w-3" />

@@ -27,7 +27,7 @@ describe('PromptEditor', () => {
 
   it('renders correctly with initial template', () => {
     render(<PromptEditor {...defaultProps} />);
-    
+
     const textarea = screen.getByPlaceholderText('เขียนพรอมต์ของคุณที่นี่...') as HTMLTextAreaElement;
     expect(textarea.value).toBe('Hello {{ocr_text}}');
   });
@@ -35,7 +35,7 @@ describe('PromptEditor', () => {
   it('disables save button if required placeholders are missing', async () => {
     const user = userEvent.setup();
     render(<PromptEditor {...defaultProps} initialTemplate="Hello world" />);
-    
+
     // Check missing validation message
     expect(screen.getByText(/ต้องมีตัวแปร/i)).toBeInTheDocument();
     expect(screen.getByText('{{ocr_text}}')).toBeInTheDocument();
@@ -47,7 +47,7 @@ describe('PromptEditor', () => {
   it('enables save button when placeholders are present and calls onSave', async () => {
     const user = userEvent.setup();
     render(<PromptEditor {...defaultProps} />);
-    
+
     const textarea = screen.getByPlaceholderText('เขียนพรอมต์ของคุณที่นี่...') as HTMLTextAreaElement;
     await user.type(textarea, ' is awesome');
 

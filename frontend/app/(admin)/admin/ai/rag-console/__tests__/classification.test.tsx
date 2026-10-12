@@ -48,9 +48,7 @@ function renderWithQueryClient(ui: React.ReactElement) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  return render(
-    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>
-  );
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
 }
 
 describe('Classification Tab (US2)', () => {
@@ -146,9 +144,8 @@ describe('Classification Tab (US2)', () => {
 
   it('should hide override form and show permission denied when user lacks document.classification_override (SC-008)', async () => {
     // Override the auth-store mock for this test only
-    vi.mocked(
-      await import('@/lib/stores/auth-store')
-    ).useAuthStore = (() => false) as unknown as typeof import('@/lib/stores/auth-store').useAuthStore;
+    vi.mocked(await import('@/lib/stores/auth-store')).useAuthStore = (() =>
+      false) as unknown as typeof import('@/lib/stores/auth-store').useAuthStore;
 
     mockUseRagClassificationList.mockReturnValue({
       data: {

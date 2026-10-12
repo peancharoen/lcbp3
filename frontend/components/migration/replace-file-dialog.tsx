@@ -37,27 +37,20 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import apiClient from '@/lib/api/client';
-import {
-  migrationService,
-  LegacyFolderNode,
-  LegacyFolderFile,
-} from '@/lib/services/migration.service';
+import { migrationService, LegacyFolderNode, LegacyFolderFile } from '@/lib/services/migration.service';
 import aiMessages from '@/public/locales/th/ai.json';
 
 /** i18n helper — namespace migration_review ใน ai.json (pattern เดียวกับ review page) */
 const t = (key: string, params?: Record<string, string | number>): string => {
   const parts = key.split('.');
-  let current: unknown = (aiMessages as Record<string, unknown>)
-    .migration_review;
+  let current: unknown = (aiMessages as Record<string, unknown>).migration_review;
   for (const part of parts) {
     if (typeof current !== 'object' || current === null) return key;
     current = (current as Record<string, unknown>)[part];
   }
   if (typeof current !== 'string') return key;
   if (!params) return current;
-  return current.replace(/\{\{(\w+)\}\}/g, (_, name: string) =>
-    String(params[name] ?? `{{${name}}}`)
-  );
+  return current.replace(/\{\{(\w+)\}\}/g, (_, name: string) => String(params[name] ?? `{{${name}}}`));
 };
 
 interface UploadedFileResult {
@@ -86,21 +79,14 @@ interface FolderNodeRowProps {
 }
 
 /** แถวโฟลเดอร์ใน tree (recursive, unexported — single-export rule) */
-function FolderNodeRow({
-  node,
-  depth,
-  expanded,
-  selectedFolder,
-  onToggle,
-  onSelect,
-}: FolderNodeRowProps) {
+function FolderNodeRow({ node, depth, expanded, selectedFolder, onToggle, onSelect }: FolderNodeRowProps) {
   const isExpanded = expanded.has(node.path);
   const isSelected = selectedFolder === node.path;
   return (
     <div>
       <button
         type="button"
-        className={`w-full flex items-center gap-1 px-2 py-1 text-left text-sm rounded hover:bg-muted ${
+        className={`flex w-full items-center gap-1 rounded px-2 py-1 text-left text-sm hover:bg-muted ${
           isSelected ? 'bg-primary/10 font-medium' : ''
         }`}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
@@ -119,19 +105,15 @@ function FolderNodeRow({
               onToggle(node.path);
             }}
           >
-            {isExpanded ? (
-              <ChevronDownIcon className="w-3 h-3" />
-            ) : (
-              <ChevronRightIcon className="w-3 h-3" />
-            )}
+            {isExpanded ? <ChevronDownIcon className="h-3 w-3" /> : <ChevronRightIcon className="h-3 w-3" />}
           </span>
         ) : (
           <span className="w-3 shrink-0" />
         )}
         {isSelected ? (
-          <FolderOpenIcon className="w-4 h-4 shrink-0 text-primary" />
+          <FolderOpenIcon className="h-4 w-4 shrink-0 text-primary" />
         ) : (
-          <FolderIcon className="w-4 h-4 shrink-0 text-muted-foreground" />
+          <FolderIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
         )}
         <span className="truncate">{node.name}</span>
       </button>
@@ -171,9 +153,7 @@ export function ReplaceFileDialog({
   const [filesTruncated, setFilesTruncated] = useState(false);
   const [fileFilter, setFileFilter] = useState('');
   const [filesLoading, setFilesLoading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<LegacyFolderFile | null>(
-    null
-  );
+  const [selectedFile, setSelectedFile] = useState<LegacyFolderFile | null>(null);
   const [localFile, setLocalFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -203,10 +183,7 @@ export function ReplaceFileDialog({
     setFilesLoading(true);
     setSelectedFile(null);
     try {
-      const result = await migrationService.listLegacyFolderFiles(
-        folderPath,
-        q
-      );
+      const result = await migrationService.listLegacyFolderFiles(folderPath, q);
       setFolderFiles(result.files);
       setFilesTotal(result.total);
       setFilesTruncated(result.truncated);
@@ -266,11 +243,7 @@ export function ReplaceFileDialog({
       const err = error as {
         response?: { data?: { message?: string; userMessage?: string } };
       };
-      toast.error(
-        err?.response?.data?.userMessage ||
-          err?.response?.data?.message ||
-          t('replace_file_error')
-      );
+      toast.error(err?.response?.data?.userMessage || err?.response?.data?.message || t('replace_file_error'));
     } finally {
       setSubmitting(false);
     }
@@ -283,9 +256,7 @@ export function ReplaceFileDialog({
       // two-phase upload (ADR-016): อัปโหลดเป็น temp attachment ก่อน แล้วค่อยผูกเข้า queue
       const formData = new FormData();
       formData.append('file', localFile);
-      const res = await apiClient.post<
-        { data?: UploadedFileResult } & UploadedFileResult
-      >('/files/upload', formData, {
+      const res = await apiClient.post<{ data?: UploadedFileResult } & UploadedFileResult>('/files/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       const uploaded = res.data?.data ?? res.data;
@@ -304,11 +275,7 @@ export function ReplaceFileDialog({
       const err = error as {
         response?: { data?: { message?: string; userMessage?: string } };
       };
-      toast.error(
-        err?.response?.data?.userMessage ||
-          err?.response?.data?.message ||
-          t('replace_file_error')
-      );
+      toast.error(err?.response?.data?.userMessage || err?.response?.data?.message || t('replace_file_error'));
     } finally {
       setSubmitting(false);
     }
@@ -316,40 +283,29 @@ export function ReplaceFileDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
+      <DialogContent className="flex max-h-[85vh] max-w-4xl flex-col">
         <DialogHeader>
           <DialogTitle>{t('replace_file_title')}</DialogTitle>
           <DialogDescription className="break-all">
-            {currentFilePath
-              ? `${t('replace_file_current')}: ${currentFilePath}`
-              : t('replace_file_no_current')}
+            {currentFilePath ? `${t('replace_file_current')}: ${currentFilePath}` : t('replace_file_no_current')}
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="staging" className="flex-1 flex flex-col min-h-0">
-          <TabsList className="grid grid-cols-2 w-full">
-            <TabsTrigger value="staging">
-              {t('replace_file_tab_staging')}
-            </TabsTrigger>
-            <TabsTrigger value="upload">
-              {t('replace_file_tab_upload')}
-            </TabsTrigger>
+        <Tabs defaultValue="staging" className="flex min-h-0 flex-1 flex-col">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="staging">{t('replace_file_tab_staging')}</TabsTrigger>
+            <TabsTrigger value="upload">{t('replace_file_tab_upload')}</TabsTrigger>
           </TabsList>
 
-          <TabsContent
-            value="staging"
-            className="flex-1 min-h-0 grid grid-cols-[2fr_3fr] gap-3 mt-3"
-          >
-            <div className="border rounded-md overflow-y-auto max-h-[45vh] p-1">
+          <TabsContent value="staging" className="mt-3 grid min-h-0 flex-1 grid-cols-[2fr_3fr] gap-3">
+            <div className="max-h-[45vh] overflow-y-auto rounded-md border p-1">
               {treeLoading ? (
                 <div className="flex items-center justify-center py-8 text-muted-foreground">
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   {t('replace_file_loading')}
                 </div>
               ) : tree.length === 0 ? (
-                <p className="text-sm text-muted-foreground p-3">
-                  {t('replace_file_no_folders')}
-                </p>
+                <p className="p-3 text-sm text-muted-foreground">{t('replace_file_no_folders')}</p>
               ) : (
                 tree.map((node) => (
                   <FolderNodeRow
@@ -364,7 +320,7 @@ export function ReplaceFileDialog({
                 ))
               )}
             </div>
-            <div className="flex flex-col gap-1 min-w-0">
+            <div className="flex min-w-0 flex-col gap-1">
               <Input
                 type="search"
                 value={fileFilter}
@@ -373,104 +329,76 @@ export function ReplaceFileDialog({
                 disabled={!selectedFolder}
                 className="h-8 text-sm"
               />
-              <div className="border rounded-md overflow-y-auto max-h-[45vh] p-1 flex-1">
+              <div className="max-h-[45vh] flex-1 overflow-y-auto rounded-md border p-1">
                 {filesLoading ? (
                   <div className="flex items-center justify-center py-8 text-muted-foreground">
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     {t('replace_file_loading')}
                   </div>
                 ) : !selectedFolder ? (
-                  <p className="text-sm text-muted-foreground p-3">
-                    {t('replace_file_select_folder_hint')}
-                  </p>
+                  <p className="p-3 text-sm text-muted-foreground">{t('replace_file_select_folder_hint')}</p>
                 ) : folderFiles.length === 0 ? (
-                  <p className="text-sm text-muted-foreground p-3">
-                    {t('replace_file_no_files')}
-                  </p>
+                  <p className="p-3 text-sm text-muted-foreground">{t('replace_file_no_files')}</p>
                 ) : (
                   folderFiles.map((file) => (
                     <button
                       key={file.fullPath}
                       type="button"
                       title={file.filename}
-                      className={`w-full flex items-start gap-2 px-2 py-1.5 text-left text-sm rounded hover:bg-muted ${
-                        selectedFile?.fullPath === file.fullPath
-                          ? 'bg-primary/10 font-medium'
-                          : ''
+                      className={`flex w-full items-start gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-muted ${
+                        selectedFile?.fullPath === file.fullPath ? 'bg-primary/10 font-medium' : ''
                       }`}
                       onClick={() => setSelectedFile(file)}
                     >
-                      <FileTextIcon className="w-4 h-4 shrink-0 mt-0.5 text-muted-foreground" />
+                      <FileTextIcon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                       {/* break-all — ชื่อไฟล์ยาวต้องอ่านได้ครบ (wrap แทน truncate) */}
-                      <span className="flex-1 min-w-0 break-all leading-snug">
-                        {file.filename}
-                      </span>
-                      <span className="text-xs text-muted-foreground shrink-0">
-                        {formatSize(file.size)}
-                      </span>
+                      <span className="min-w-0 flex-1 break-all leading-snug">{file.filename}</span>
+                      <span className="shrink-0 text-xs text-muted-foreground">{formatSize(file.size)}</span>
                     </button>
                   ))
                 )}
               </div>
               {selectedFolder && !filesLoading && filesTotal > 0 && (
-                <p className="text-xs text-muted-foreground px-1">
+                <p className="px-1 text-xs text-muted-foreground">
                   {t('replace_file_showing', {
                     shown: folderFiles.length,
                     total: filesTotal,
                   })}
-                  {filesTruncated
-                    ? ` — ${t('replace_file_truncated_hint')}`
-                    : ''}
+                  {filesTruncated ? ` — ${t('replace_file_truncated_hint')}` : ''}
                 </p>
               )}
             </div>
             <div className="col-span-2">
               <DialogFooter>
-                <Button
-                  type="button"
-                  onClick={handleConfirmStaging}
-                  disabled={!selectedFile || submitting}
-                >
-                  {submitting && (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  )}
+                <Button type="button" onClick={handleConfirmStaging} disabled={!selectedFile || submitting}>
+                  {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {t('replace_file_confirm')}
                 </Button>
               </DialogFooter>
             </div>
           </TabsContent>
 
-          <TabsContent value="upload" className="flex-1 mt-3 space-y-4">
-            <div className="border-2 border-dashed rounded-md p-6 text-center">
-              <UploadIcon className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground mb-3">
-                {t('replace_file_upload_hint')}
-              </p>
+          <TabsContent value="upload" className="mt-3 flex-1 space-y-4">
+            <div className="rounded-md border-2 border-dashed p-6 text-center">
+              <UploadIcon className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
+              <p className="mb-3 text-sm text-muted-foreground">{t('replace_file_upload_hint')}</p>
               <Input
                 ref={fileInputRef}
                 type="file"
                 accept=".pdf,application/pdf"
-                className="max-w-xs mx-auto"
+                className="mx-auto max-w-xs"
                 disabled={submitting}
-                onChange={(e) =>
-                  setLocalFile(e.target.files?.[0] ?? null)
-                }
+                onChange={(e) => setLocalFile(e.target.files?.[0] ?? null)}
               />
               {localFile && (
-                <p className="text-sm mt-2 font-medium">
+                <p className="mt-2 text-sm font-medium">
                   {localFile.name} ({formatSize(localFile.size)})
                 </p>
               )}
             </div>
             <DialogFooter>
-              <Button
-                type="button"
-                onClick={handleConfirmUpload}
-                disabled={!localFile || submitting}
-              >
-                {submitting && (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                )}
+              <Button type="button" onClick={handleConfirmUpload} disabled={!localFile || submitting}>
+                {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {t('replace_file_upload_confirm')}
               </Button>
             </DialogFooter>

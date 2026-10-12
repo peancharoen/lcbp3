@@ -45,7 +45,7 @@ export default function TagsPage() {
           project?: { publicId?: string; projectName?: string; projectCode?: string };
         };
         const project = item.project;
-        if (!project) return <span className="text-muted-foreground italic">Global</span>;
+        if (!project) return <span className="italic text-muted-foreground">Global</span>;
         return (project.projectName || project.projectCode || project.publicId || 'Unknown Project') as React.ReactNode;
       },
     },
@@ -58,7 +58,7 @@ export default function TagsPage() {
         return (
           <div className="flex items-center gap-2">
             <span
-              className="w-3 h-3 rounded-full border border-border"
+              className="h-3 w-3 rounded-full border border-border"
               style={{ backgroundColor: getTagColor(row.original.colorCode) }}
             />
             {String(row.original.tagName)}
@@ -149,10 +149,7 @@ export default function TagsPage() {
           required: false,
           defaultValue: 'default',
           render: ({ value, setValue }) => (
-            <ColorPickerField
-              value={value as string | undefined}
-              onChange={(key) => setValue(key)}
-            />
+            <ColorPickerField value={value as string | undefined} onChange={(key) => setValue(key)} />
           ),
         },
         {

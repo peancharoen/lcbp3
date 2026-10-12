@@ -43,10 +43,10 @@ export default function MigrationReviewPage() {
     <div className="flex-1 space-y-6 p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
         <div>
-          <h2 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+          <h2 className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-3xl font-extrabold tracking-tight text-transparent">
             Migration Review Queue
           </h2>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-sm text-muted-foreground">
             จัดการรีวิวเอกสารที่ได้รับการย้ายข้อมูลจากระบบเดิมผ่าน AI Engine และกดยืนยันเพื่อบันทึกเข้าระบบจริง
           </p>
         </div>
@@ -56,75 +56,85 @@ export default function MigrationReviewPage() {
             size="sm"
             onClick={() => refetch()}
             disabled={isFetching}
-            className="h-9 hover:bg-accent/50 transition-colors"
+            className="h-9 transition-colors hover:bg-accent/50"
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
             <span>โหลดใหม่</span>
           </Button>
         </div>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-gradient-to-br from-yellow-500/10 to-transparent border-yellow-500/20 shadow-sm backdrop-blur-sm">
+        <Card className="border-warning/20 bg-gradient-to-br from-warning/10 to-transparent shadow-sm backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-semibold text-yellow-500">รอการตรวจสอบ (Pending)</CardTitle>
-            <BarChart2 className="h-4 w-4 text-yellow-500" />
+            <CardTitle className="text-sm font-semibold text-warning">รอการตรวจสอบ (Pending)</CardTitle>
+            <BarChart2 className="h-4 w-4 text-warning" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-black text-yellow-500 font-mono">
+            <div className="font-mono text-2xl font-black text-warning">
               {statusFilter === MigrationReviewStatus.PENDING ? totalItems : '-'}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">คิวเอกสารที่ต้องการการอนุมัติแบบมีส่วนร่วม</p>
+            <p className="mt-1 text-xs text-muted-foreground">คิวเอกสารที่ต้องการการอนุมัติแบบมีส่วนร่วม</p>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-green-500/10 to-transparent border-green-500/20 shadow-sm backdrop-blur-sm">
+        <Card className="border-success/20 bg-gradient-to-br from-success/10 to-transparent shadow-sm backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-semibold text-green-500">นำเข้าเรียบร้อย (Imported)</CardTitle>
-            <BarChart2 className="h-4 w-4 text-green-500" />
+            <CardTitle className="text-sm font-semibold text-success">นำเข้าเรียบร้อย (Imported)</CardTitle>
+            <BarChart2 className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-black text-green-500 font-mono">
+            <div className="font-mono text-2xl font-black text-success">
               {statusFilter === MigrationReviewStatus.IMPORTED ? totalItems : '-'}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">เอกสารที่นำเข้าสู่ระบบจัดเก็บถาวรแล้ว</p>
+            <p className="mt-1 text-xs text-muted-foreground">เอกสารที่นำเข้าสู่ระบบจัดเก็บถาวรแล้ว</p>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-red-500/10 to-transparent border-red-500/20 shadow-sm backdrop-blur-sm">
+        <Card className="border-destructive/20 bg-gradient-to-br from-destructive/10 to-transparent shadow-sm backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-semibold text-red-500">ปฏิเสธนำเข้า (Rejected)</CardTitle>
-            <ShieldAlert className="h-4 w-4 text-red-500" />
+            <CardTitle className="text-sm font-semibold text-destructive">ปฏิเสธนำเข้า (Rejected)</CardTitle>
+            <ShieldAlert className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-black text-red-500 font-mono">
+            <div className="font-mono text-2xl font-black text-destructive">
               {statusFilter === MigrationReviewStatus.REJECTED ? totalItems : '-'}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">เอกสารที่ปฎิเสธและต้องผ่านการตรวจสอบใหม่</p>
+            <p className="mt-1 text-xs text-muted-foreground">เอกสารที่ปฎิเสธและต้องผ่านการตรวจสอบใหม่</p>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-indigo-500/10 to-transparent border-indigo-500/20 shadow-sm backdrop-blur-sm">
+        <Card className="border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-transparent shadow-sm backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-semibold text-indigo-500">จำนวนทั้งหมดในระบบ (Total)</CardTitle>
             <BarChart2 className="h-4 w-4 text-indigo-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-black text-indigo-500 font-mono">
+            <div className="font-mono text-2xl font-black text-indigo-500">
               {statusFilter === 'ALL' ? totalItems : '-'}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">จำนวนรวมรายการย้ายข้อมูลในระบบคิว</p>
+            <p className="mt-1 text-xs text-muted-foreground">จำนวนรวมรายการย้ายข้อมูลในระบบคิว</p>
           </CardContent>
         </Card>
       </div>
       <Card className="border-muted bg-card shadow-lg backdrop-blur-md">
-        <CardHeader className="pb-3 border-b flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-row items-center justify-between border-b pb-3">
           <div>
             <CardTitle className="text-lg font-bold">คิวเอกสารย้ายข้อมูล</CardTitle>
-            <CardDescription className="text-xs">เลือกรายการเอกสารเพื่อตรวจสอบความสัมพันธ์และแท็กของโครงการ</CardDescription>
+            <CardDescription className="text-xs">
+              เลือกรายการเอกสารเพื่อตรวจสอบความสัมพันธ์และแท็กของโครงการ
+            </CardDescription>
           </div>
           <Tabs value={statusFilter} onValueChange={handleTabChange} className="w-[450px]">
             <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="PENDING" className="text-xs font-semibold">รอตรวจสอบ</TabsTrigger>
-              <TabsTrigger value="IMPORTED" className="text-xs font-semibold">นำเข้าแล้ว</TabsTrigger>
-              <TabsTrigger value="REJECTED" className="text-xs font-semibold">ปฏิเสธ</TabsTrigger>
-              <TabsTrigger value="ALL" className="text-xs font-semibold">ทั้งหมด</TabsTrigger>
+              <TabsTrigger value="PENDING" className="text-xs font-semibold">
+                รอตรวจสอบ
+              </TabsTrigger>
+              <TabsTrigger value="IMPORTED" className="text-xs font-semibold">
+                นำเข้าแล้ว
+              </TabsTrigger>
+              <TabsTrigger value="REJECTED" className="text-xs font-semibold">
+                ปฏิเสธ
+              </TabsTrigger>
+              <TabsTrigger value="ALL" className="text-xs font-semibold">
+                ทั้งหมด
+              </TabsTrigger>
             </TabsList>
           </Tabs>
         </CardHeader>
@@ -132,7 +142,7 @@ export default function MigrationReviewPage() {
           <ReviewQueueTable items={items} isLoading={isLoading} />
           {totalPages > 1 && (
             <div className="flex items-center justify-between space-x-2 pt-6">
-              <div className="text-xs text-muted-foreground font-mono">
+              <div className="font-mono text-xs text-muted-foreground">
                 แสดงหน้า {currentPage} จาก {totalPages} (ทั้งหมด {totalItems} รายการ)
               </div>
               <div className="flex items-center space-x-2">
@@ -145,9 +155,7 @@ export default function MigrationReviewPage() {
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <span className="text-xs font-semibold px-2 font-mono">
-                  {currentPage}
-                </span>
+                <span className="px-2 font-mono text-xs font-semibold">{currentPage}</span>
                 <Button
                   variant="outline"
                   size="sm"

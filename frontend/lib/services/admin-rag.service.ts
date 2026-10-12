@@ -137,7 +137,11 @@ export interface RagAdminMetricsSnapshot {
   cleanup: { processed: number; succeeded: number; failed: number };
   ingestionDuration: { count: number; sumMs: number; buckets: { '100': number; '500': number; '2000': number } };
   chunkCount: { totalChunks: number; ingestions: number };
-  vectorLatency: { count: number; sumMs: number; buckets: { '50': number; '100': number; '500': number; '2000': number } };
+  vectorLatency: {
+    count: number;
+    sumMs: number;
+    buckets: { '50': number; '100': number; '500': number; '2000': number };
+  };
   staleResultRate: { filtered: number; total: number };
   fallbackRate: { fullTextFallbacks: number; totalQueries: number };
   cleanupRetryRate: { retries: number };
@@ -190,7 +194,9 @@ export const adminRagService = {
   },
 
   /** GET /ai/admin/rag/attachments/classification — classification list (US2, Q43) */
-  async listAttachmentsForClassification(params: RagAdminClassificationListParams): Promise<RagAdminClassificationListResponse> {
+  async listAttachmentsForClassification(
+    params: RagAdminClassificationListParams
+  ): Promise<RagAdminClassificationListResponse> {
     const response = await api.get(`${BASE_URL}/attachments/classification`, { params });
     return response.data.data as RagAdminClassificationListResponse; // Unwrap NestJS Interceptor 'data' wrapper
   },
@@ -240,11 +246,15 @@ export const adminRagService = {
   },
 
   /** PATCH /ai/rag/attachments/:id/classification — existing endpoint (US2, no backend change) */
-  async overrideClassification(attachmentPublicId: string, classification: SecurityClassification, reason: string): Promise<{ attachmentPublicId: string; classification: SecurityClassification }> {
-    const response = await api.patch(
-      `/ai/rag/attachments/${attachmentPublicId}/classification`,
-      { classification, reason }
-    );
+  async overrideClassification(
+    attachmentPublicId: string,
+    classification: SecurityClassification,
+    reason: string
+  ): Promise<{ attachmentPublicId: string; classification: SecurityClassification }> {
+    const response = await api.patch(`/ai/rag/attachments/${attachmentPublicId}/classification`, {
+      classification,
+      reason,
+    });
     return response.data.data as { attachmentPublicId: string; classification: SecurityClassification }; // Unwrap NestJS Interceptor 'data' wrapper
   },
 };

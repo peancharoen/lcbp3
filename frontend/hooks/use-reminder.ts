@@ -75,8 +75,7 @@ export function useCreateReminderRule() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreateReminderRuleDto) =>
-      apiClient.post('/admin/reminder-rules', data),
+    mutationFn: (data: CreateReminderRuleDto) => apiClient.post('/admin/reminder-rules', data),
     onSuccess: () => {
       toast.success('Reminder rule created successfully');
       queryClient.invalidateQueries({ queryKey: reminderKeys.all });
@@ -93,13 +92,8 @@ export function useUpdateReminderRule() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      publicId,
-      data,
-    }: {
-      publicId: string;
-      data: Partial<CreateReminderRuleDto>;
-    }) => apiClient.patch(`/admin/reminder-rules/${publicId}`, data),
+    mutationFn: ({ publicId, data }: { publicId: string; data: Partial<CreateReminderRuleDto> }) =>
+      apiClient.patch(`/admin/reminder-rules/${publicId}`, data),
     onSuccess: () => {
       toast.success('Reminder rule updated');
       queryClient.invalidateQueries({ queryKey: reminderKeys.all });
@@ -116,8 +110,7 @@ export function useDeleteReminderRule() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (publicId: string) =>
-      apiClient.delete(`/admin/reminder-rules/${publicId}`),
+    mutationFn: (publicId: string) => apiClient.delete(`/admin/reminder-rules/${publicId}`),
     onSuccess: () => {
       toast.success('Reminder rule deleted');
       queryClient.invalidateQueries({ queryKey: reminderKeys.all });

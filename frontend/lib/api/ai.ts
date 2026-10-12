@@ -63,8 +63,7 @@ export const extractData = <T>(value: unknown): T => {
 
 export const aiStagingKeys = {
   all: ['ai-staging'] as const,
-  queue: (status?: AiStagingStatus) =>
-    [...aiStagingKeys.all, 'queue', status ?? 'ALL'] as const,
+  queue: (status?: AiStagingStatus) => [...aiStagingKeys.all, 'queue', status ?? 'ALL'] as const,
 };
 
 export function useAiStagingQueue(status?: AiStagingStatus) {
@@ -115,7 +114,9 @@ export const ragQueryKeys = {
 
 export function useSubmitRagQuery() {
   return useMutation({
-    mutationFn: async (payload: SubmitRagQueryPayload): Promise<{ requestPublicId: string; jobId: string; status: string }> => {
+    mutationFn: async (
+      payload: SubmitRagQueryPayload
+    ): Promise<{ requestPublicId: string; jobId: string; status: string }> => {
       const response = await apiClient.post('/ai/rag/query', payload, {
         headers: { 'Idempotency-Key': `rag-${Date.now()}` },
       });
@@ -156,20 +157,9 @@ export function useCancelRagJob() {
 export function useApproveAiStagingRecord() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({
-      publicId,
-      payload,
-    }: {
-      publicId: string;
-      payload: ApproveAiStagingPayload;
-    }) => {
-      const response = await apiClient.post(
-        `/ai/legacy-migration/queue/${publicId}/approve`,
-        payload
-      );
-      return extractData<{ record: AiStagingRecord; importResult: unknown }>(
-        response.data
-      );
+    mutationFn: async ({ publicId, payload }: { publicId: string; payload: ApproveAiStagingPayload }) => {
+      const response = await apiClient.post(`/ai/legacy-migration/queue/${publicId}/approve`, payload);
+      return extractData<{ record: AiStagingRecord; importResult: unknown }>(response.data);
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: aiStagingKeys.all });

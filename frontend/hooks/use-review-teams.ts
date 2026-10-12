@@ -98,13 +98,8 @@ export function useRemoveTeamMember() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      teamPublicId,
-      memberPublicId,
-    }: {
-      teamPublicId: string;
-      memberPublicId: string;
-    }) => reviewTeamService.removeMember(teamPublicId, memberPublicId),
+    mutationFn: ({ teamPublicId, memberPublicId }: { teamPublicId: string; memberPublicId: string }) =>
+      reviewTeamService.removeMember(teamPublicId, memberPublicId),
     onSuccess: (_: unknown, { teamPublicId }: { teamPublicId: string; memberPublicId: string }) => {
       toast.success('Member removed from team');
       queryClient.invalidateQueries({ queryKey: reviewTeamKeys.detail(teamPublicId) });

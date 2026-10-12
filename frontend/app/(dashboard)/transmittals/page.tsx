@@ -86,7 +86,7 @@ export default function TransmittalPage() {
           </Button>
           <Link href="/transmittals/new">
             <Button>
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="mr-2 h-4 w-4" />
               New Transmittal
             </Button>
           </Link>
@@ -130,7 +130,7 @@ export default function TransmittalPage() {
       </div>
 
       {error && (
-        <div className="bg-destructive/10 text-destructive px-4 py-3 rounded-md">Failed to load transmittals.</div>
+        <div className="rounded-md bg-destructive/10 px-4 py-3 text-destructive">Failed to load transmittals.</div>
       )}
 
       {isLoading ? (

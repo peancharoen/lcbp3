@@ -28,9 +28,11 @@ export default function RfaTypesPage() {
       cell: ({ row }) => {
         const contract = row.original.contract;
         return contract ? (
-          <span className="text-sm">{contract.contractName} ({contract.contractCode})</span>
+          <span className="text-sm">
+            {contract.contractName} ({contract.contractCode})
+          </span>
         ) : (
-          <span className="text-muted-foreground text-sm">-</span>
+          <span className="text-sm text-muted-foreground">-</span>
         );
       },
     },
@@ -51,8 +53,8 @@ export default function RfaTypesPage() {
       header: 'Status',
       cell: ({ row }) => (
         <span
-          className={`px-2 py-1 rounded-full text-xs ${
-            row.getValue('isActive') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          className={`rounded-full px-2 py-1 text-xs ${
+            row.getValue('isActive') ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'
           }`}
         >
           {row.getValue('isActive') ? 'Active' : 'Inactive'}

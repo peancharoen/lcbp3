@@ -71,12 +71,7 @@ describe('WorkflowLifecycle', () => {
   });
 
   it('renders unavailable attachments as disabled chips', () => {
-    render(
-      <WorkflowLifecycle
-        history={history}
-        unavailableAttachmentIds={['019505a1-7c3e-7000-8000-abc123def901']}
-      />
-    );
+    render(<WorkflowLifecycle history={history} unavailableAttachmentIds={['019505a1-7c3e-7000-8000-abc123def901']} />);
     expect(screen.getByText('workflow.timeline.fileUnavailable')).toBeInTheDocument();
   });
 

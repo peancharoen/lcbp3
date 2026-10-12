@@ -56,7 +56,7 @@ export function CorrespondenceList({ data, rowSelection, onRowSelectionChange }:
       accessorKey: 'correspondence.type.typeCode',
       header: 'Type',
       cell: ({ row }) => (
-        <span className="text-xs font-medium bg-muted px-1.5 py-0.5 rounded">
+        <span className="rounded bg-muted px-1.5 py-0.5 text-xs font-medium">
           {row.original.correspondence?.type?.typeCode || '-'}
         </span>
       ),
@@ -85,7 +85,7 @@ export function CorrespondenceList({ data, rowSelection, onRowSelectionChange }:
         if (!due) return <span className="text-muted-foreground">-</span>;
         const isOverdue = new Date(due) < new Date() && row.original.status?.statusCode !== 'CANCELLED';
         return (
-          <span className={isOverdue ? 'text-destructive font-medium' : ''}>
+          <span className={isOverdue ? 'font-medium text-destructive' : ''}>
             {format(new Date(due), 'dd MMM yyyy')}
           </span>
         );

@@ -39,16 +39,16 @@ export default function ShopMainCategoriesPage() {
     {
       accessorKey: 'description',
       header: 'Description',
-      cell: ({ row }) => <span className="text-muted-foreground text-sm">{row.getValue('description') || '-'}</span>,
+      cell: ({ row }) => <span className="text-sm text-muted-foreground">{row.getValue('description') || '-'}</span>,
     },
     {
       accessorKey: 'isActive',
       header: 'Active',
       cell: ({ row }) =>
         row.getValue('isActive') ? (
-          <CheckCircle className="h-4 w-4 text-green-600" />
+          <CheckCircle className="h-4 w-4 text-success" />
         ) : (
-          <XCircle className="h-4 w-4 text-red-600" />
+          <XCircle className="h-4 w-4 text-destructive" />
         ),
     },
     {
@@ -70,11 +70,13 @@ export default function ShopMainCategoriesPage() {
           )}
         </SelectTrigger>
         <SelectContent>
-          {(projects as { id?: number; publicId?: string; projectCode: string; projectName: string }[]).map((project) => (
-            <SelectItem key={project.publicId || project.id} value={String(project.publicId || project.id)}>
-              {project.projectCode} - {project.projectName}
-            </SelectItem>
-          ))}
+          {(projects as { id?: number; publicId?: string; projectCode: string; projectName: string }[]).map(
+            (project) => (
+              <SelectItem key={project.publicId || project.id} value={String(project.publicId || project.id)}>
+                {project.projectCode} - {project.projectName}
+              </SelectItem>
+            )
+          )}
         </SelectContent>
       </Select>
     </div>
@@ -82,13 +84,13 @@ export default function ShopMainCategoriesPage() {
 
   if (!selectedProjectId) {
     return (
-      <div className="p-6 space-y-6">
+      <div className="space-y-6 p-6">
         <div>
           <h1 className="text-2xl font-bold">Shop Drawing Main Categories</h1>
-          <p className="text-muted-foreground mt-1">Manage main categories (หมวดหมู่หลัก) for shop drawings</p>
+          <p className="mt-1 text-muted-foreground">Manage main categories (หมวดหมู่หลัก) for shop drawings</p>
         </div>
         {projectFilter}
-        <div className="text-center py-12 text-muted-foreground border rounded-lg border-dashed">
+        <div className="rounded-lg border border-dashed py-12 text-center text-muted-foreground">
           Please select a project to manage main categories.
         </div>
       </div>

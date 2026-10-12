@@ -36,13 +36,7 @@ vi.mock('@/hooks/use-response-codes', () => ({
 
 describe('ResponseCodeSelector', () => {
   it('renders the trigger with placeholder text', () => {
-    render(
-      <ResponseCodeSelector
-        documentTypeId={1}
-        value={undefined}
-        onChange={vi.fn()}
-      />,
-    );
+    render(<ResponseCodeSelector documentTypeId={1} value={undefined} onChange={vi.fn()} />);
 
     expect(screen.getByRole('combobox')).toBeTruthy();
     expect(screen.getByText('Select Response Code...')).toBeTruthy();
@@ -55,7 +49,7 @@ describe('ResponseCodeSelector', () => {
         value={undefined}
         onChange={vi.fn()}
         placeholder="Choose a response code"
-      />,
+      />
     );
 
     expect(screen.getByText('Choose a response code')).toBeTruthy();

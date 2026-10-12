@@ -36,20 +36,23 @@ export default function RuntimeParametersPanel({ onProfileChange }: RuntimeParam
   const [isResetting, setIsResetting] = useState<boolean>(false);
   const [isApplying, setIsApplying] = useState<boolean>(false);
 
-  const fetchProfileParams = useCallback(async (profileName: string) => {
-    setIsLoading(true);
-    try {
-      const data = await adminAiService.getSandboxProfile(profileName);
-      setParams(data);
-      if (onProfileChange) {
-        onProfileChange(data);
+  const fetchProfileParams = useCallback(
+    async (profileName: string) => {
+      setIsLoading(true);
+      try {
+        const data = await adminAiService.getSandboxProfile(profileName);
+        setParams(data);
+        if (onProfileChange) {
+          onProfileChange(data);
+        }
+      } catch (_err) {
+        toast.error('ไม่สามารถดึงค่าพารามิเตอร์ Sandbox ได้');
+      } finally {
+        setIsLoading(false);
       }
-    } catch (_err) {
-      toast.error('ไม่สามารถดึงค่าพารามิเตอร์ Sandbox ได้');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [onProfileChange]);
+    },
+    [onProfileChange]
+  );
 
   useEffect(() => {
     fetchProfileParams(selectedProfile);
@@ -130,8 +133,8 @@ export default function RuntimeParametersPanel({ onProfileChange }: RuntimeParam
 
   return (
     <Card className="border border-border/50 bg-background/30 backdrop-blur-md transition-all duration-300 hover:shadow-md">
-      <CardHeader className="pb-3 border-b border-border/10">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <CardHeader className="border-b border-border/10 pb-3">
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
           <div className="space-y-1">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold tracking-wide text-foreground">
               <Sliders className="h-4 w-4 text-primary" />
@@ -143,7 +146,7 @@ export default function RuntimeParametersPanel({ onProfileChange }: RuntimeParam
           </div>
           <div className="w-full sm:w-[200px]">
             <Select value={selectedProfile} onValueChange={setSelectedProfile}>
-              <SelectTrigger className="w-full bg-background/50 border-border/50 backdrop-blur-sm h-8 text-xs">
+              <SelectTrigger className="h-8 w-full border-border/50 bg-background/50 text-xs backdrop-blur-sm">
                 <SelectValue placeholder="เลือกโปรไฟล์..." />
               </SelectTrigger>
               <SelectContent>
@@ -157,15 +160,15 @@ export default function RuntimeParametersPanel({ onProfileChange }: RuntimeParam
           </div>
         </div>
       </CardHeader>
-      <CardContent className="pt-5 space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <CardContent className="space-y-6 pt-5">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <div className="space-y-5">
             <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+              <div className="flex items-center justify-between">
+                <Label className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
                   อุณหภูมิความสร้างสรรค์ (Temperature)
                 </Label>
-                <span className="font-mono text-xs font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                <span className="rounded bg-primary/10 px-1.5 py-0.5 font-mono text-xs font-bold text-primary">
                   {params.temperature.toFixed(2)}
                 </span>
               </div>
@@ -176,18 +179,19 @@ export default function RuntimeParametersPanel({ onProfileChange }: RuntimeParam
                 step="0.05"
                 value={params.temperature}
                 onChange={(e) => handleSliderChange('temperature', Number(e.target.value))}
-                className="w-full h-1.5 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
+                className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-secondary accent-primary"
               />
-              <p className="text-[10px] text-muted-foreground leading-normal">
-                ค่ายิ่งสูงโมเดลยิ่งตอบอย่างอิสระและมีความคิดสร้างสรรค์ (Temperature สูงเหมาะกับการเขียน) ค่ายิ่งต่ำยิ่งมั่นใจในความถูกต้อง (Temperature ต่ำเหมาะกับการสกัดข้อความ)
+              <p className="text-[10px] leading-normal text-muted-foreground">
+                ค่ายิ่งสูงโมเดลยิ่งตอบอย่างอิสระและมีความคิดสร้างสรรค์ (Temperature สูงเหมาะกับการเขียน)
+                ค่ายิ่งต่ำยิ่งมั่นใจในความถูกต้อง (Temperature ต่ำเหมาะกับการสกัดข้อความ)
               </p>
             </div>
             <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+              <div className="flex items-center justify-between">
+                <Label className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
                   Top-P (Nucleus Sampling)
                 </Label>
-                <span className="font-mono text-xs font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                <span className="rounded bg-primary/10 px-1.5 py-0.5 font-mono text-xs font-bold text-primary">
                   {params.topP.toFixed(2)}
                 </span>
               </div>
@@ -198,18 +202,18 @@ export default function RuntimeParametersPanel({ onProfileChange }: RuntimeParam
                 step="0.05"
                 value={params.topP}
                 onChange={(e) => handleSliderChange('topP', Number(e.target.value))}
-                className="w-full h-1.5 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
+                className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-secondary accent-primary"
               />
-              <p className="text-[10px] text-muted-foreground leading-normal">
+              <p className="text-[10px] leading-normal text-muted-foreground">
                 กำหนดขอบเขตของคำที่เป็นไปได้ในการเลือกคำถัดไป แนะนำให้ตั้งไว้ที่ 0.8 - 0.95
               </p>
             </div>
             <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+              <div className="flex items-center justify-between">
+                <Label className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
                   บทลงโทษคำซ้ำ (Repeat Penalty)
                 </Label>
-                <span className="font-mono text-xs font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                <span className="rounded bg-primary/10 px-1.5 py-0.5 font-mono text-xs font-bold text-primary">
                   {params.repeatPenalty.toFixed(2)}
                 </span>
               </div>
@@ -220,9 +224,9 @@ export default function RuntimeParametersPanel({ onProfileChange }: RuntimeParam
                 step="0.05"
                 value={params.repeatPenalty}
                 onChange={(e) => handleSliderChange('repeatPenalty', Number(e.target.value))}
-                className="w-full h-1.5 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
+                className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-secondary accent-primary"
               />
-              <p className="text-[10px] text-muted-foreground leading-normal">
+              <p className="text-[10px] leading-normal text-muted-foreground">
                 ลดโอกาสที่โมเดลจะสร้างคำที่เคยพูดไปแล้วซ้ำๆ ค่ายิ่งสูงยิ่งช่วยลดปัญหาคำซ้ำ
               </p>
             </div>
@@ -239,7 +243,7 @@ export default function RuntimeParametersPanel({ onProfileChange }: RuntimeParam
                   placeholder="เช่น 4096 (null = สูงสุด)"
                   value={params.maxTokens ?? ''}
                   onChange={(e) => handleInputChange('maxTokens', e.target.value)}
-                  className="bg-background/50 border-border/50 h-8 text-xs font-mono"
+                  className="h-8 border-border/50 bg-background/50 font-mono text-xs"
                 />
               </div>
               <div className="space-y-1.5">
@@ -252,7 +256,7 @@ export default function RuntimeParametersPanel({ onProfileChange }: RuntimeParam
                   placeholder="เช่น 8192 (null = สูงสุด)"
                   value={params.numCtx ?? ''}
                   onChange={(e) => handleInputChange('numCtx', e.target.value)}
-                  className="bg-background/50 border-border/50 h-8 text-xs font-mono"
+                  className="h-8 border-border/50 bg-background/50 font-mono text-xs"
                 />
               </div>
             </div>
@@ -266,30 +270,28 @@ export default function RuntimeParametersPanel({ onProfileChange }: RuntimeParam
                 placeholder="เช่น 600 (-1 = โหลดตลอดเวลา, 0 = ยกเลิกทันที)"
                 value={params.keepAliveSeconds}
                 onChange={(e) => handleInputChange('keepAliveSeconds', e.target.value)}
-                className="bg-background/50 border-border/50 h-8 text-xs font-mono"
+                className="h-8 border-border/50 bg-background/50 font-mono text-xs"
               />
               <p className="text-[9px] text-muted-foreground">
                 ระยะเวลาที่โมเดลจะค้างอยู่ใน VRAM หลังจากสิ้นสุดการขอข้อมูลก่อนระบบจะเคลียร์ VRAM
               </p>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-foreground">
-                โมเดลสำหรับโปรไฟล์ (Canonical Model)
-              </Label>
-              <div className="font-mono text-xs font-bold text-foreground bg-secondary/35 border border-border/50 p-2 rounded flex justify-between items-center select-none">
+              <Label className="text-xs font-semibold text-foreground">โมเดลสำหรับโปรไฟล์ (Canonical Model)</Label>
+              <div className="flex select-none items-center justify-between rounded border border-border/50 bg-secondary/35 p-2 font-mono text-xs font-bold text-foreground">
                 <span>{params.canonicalModel}</span>
                 <span className="text-[10px] text-muted-foreground">ระบบเปลี่ยนให้อัตโนมัติ</span>
               </div>
             </div>
           </div>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-2.5 pt-4 border-t border-border/10">
+        <div className="flex flex-wrap items-center justify-end gap-2.5 border-t border-border/10 pt-4">
           <Button
             variant="outline"
             size="sm"
             onClick={handleResetDraft}
             disabled={isResetting || isSaving || isApplying}
-            className="h-8 text-xs border-border/50 bg-background/50"
+            className="h-8 border-border/50 bg-background/50 text-xs"
           >
             <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
             รีเซ็ตแบบร่าง (Reset Draft)
@@ -299,7 +301,7 @@ export default function RuntimeParametersPanel({ onProfileChange }: RuntimeParam
             size="sm"
             onClick={handleSaveDraft}
             disabled={isSaving || isResetting || isApplying}
-            className="h-8 text-xs bg-secondary hover:bg-secondary/80 border border-border/30"
+            className="h-8 border border-border/30 bg-secondary text-xs hover:bg-secondary/80"
           >
             <Save className="mr-1.5 h-3.5 w-3.5 text-primary" />
             บันทึกแบบร่าง (Save Draft)
@@ -308,7 +310,7 @@ export default function RuntimeParametersPanel({ onProfileChange }: RuntimeParam
             size="sm"
             onClick={handleApplyToProduction}
             disabled={isApplying || isSaving || isResetting}
-            className="h-8 text-xs bg-primary hover:bg-primary/95 text-primary-foreground"
+            className="h-8 bg-primary text-xs text-primary-foreground hover:bg-primary/95"
           >
             <CheckCircle className="mr-1.5 h-3.5 w-3.5" />
             ปรับใช้จริง (Apply to Production)

@@ -69,11 +69,7 @@ export function ServerDataTable<TData, TValue>({
         header: ({ table }) => (
           <Checkbox
             checked={
-              table.getIsAllPageRowsSelected()
-                ? true
-                : table.getIsSomePageRowsSelected()
-                  ? 'indeterminate'
-                  : false
+              table.getIsAllPageRowsSelected() ? true : table.getIsSomePageRowsSelected() ? 'indeterminate' : false
             }
             onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
             aria-label={t('common.selectAll')}

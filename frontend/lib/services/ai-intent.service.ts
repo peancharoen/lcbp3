@@ -25,11 +25,7 @@ export type PatternType = 'keyword' | 'regex';
 export type PatternLanguage = 'th' | 'en' | 'any';
 
 /** วิธีที่ใช้จำแนก */
-export type ClassificationMethod =
-  | 'pattern'
-  | 'llm_fallback'
-  | 'semaphore_overflow'
-  | 'llm_error';
+export type ClassificationMethod = 'pattern' | 'llm_fallback' | 'semaphore_overflow' | 'llm_error';
 
 /** Intent Definition */
 export interface IntentDefinition {
@@ -153,10 +149,7 @@ export const aiIntentService = {
   // --- Intent Definitions (Admin) ---
 
   /** ดึงรายการ Intent Definitions ทั้งหมด */
-  getDefinitions: async (params?: {
-    category?: IntentCategory;
-    isActive?: boolean;
-  }): Promise<IntentDefinition[]> => {
+  getDefinitions: async (params?: { category?: IntentCategory; isActive?: boolean }): Promise<IntentDefinition[]> => {
     const { data } = await api.get('/admin/ai/intent-definitions', { params });
     const result = extractData<{ data: IntentDefinition[] } | IntentDefinition[]>(data);
     return Array.isArray(result) ? result : result.data;
@@ -175,10 +168,7 @@ export const aiIntentService = {
   },
 
   /** อัปเดต Intent Definition */
-  updateDefinition: async (
-    intentCode: string,
-    dto: UpdateIntentDefinitionDto
-  ): Promise<IntentDefinition> => {
+  updateDefinition: async (intentCode: string, dto: UpdateIntentDefinitionDto): Promise<IntentDefinition> => {
     const { data } = await api.patch(`/admin/ai/intent-definitions/${intentCode}`, dto);
     return extractData<IntentDefinition>(data);
   },
@@ -193,22 +183,13 @@ export const aiIntentService = {
   },
 
   /** สร้าง Pattern ใหม่ */
-  createPattern: async (
-    intentCode: string,
-    dto: CreateIntentPatternDto
-  ): Promise<IntentPattern> => {
-    const { data } = await api.post(
-      `/admin/ai/intent-definitions/${intentCode}/patterns`,
-      dto
-    );
+  createPattern: async (intentCode: string, dto: CreateIntentPatternDto): Promise<IntentPattern> => {
+    const { data } = await api.post(`/admin/ai/intent-definitions/${intentCode}/patterns`, dto);
     return extractData<IntentPattern>(data);
   },
 
   /** อัปเดต Pattern */
-  updatePattern: async (
-    publicId: string,
-    dto: UpdateIntentPatternDto
-  ): Promise<IntentPattern> => {
+  updatePattern: async (publicId: string, dto: UpdateIntentPatternDto): Promise<IntentPattern> => {
     const { data } = await api.patch(`/admin/ai/intent-patterns/${publicId}`, dto);
     return extractData<IntentPattern>(data);
   },
@@ -221,10 +202,7 @@ export const aiIntentService = {
   // --- Analytics (Admin) ---
 
   /** ดึงสถิติ Classification Analytics */
-  getAnalytics: async (params?: {
-    from?: string;
-    to?: string;
-  }): Promise<ClassificationAnalytics> => {
+  getAnalytics: async (params?: { from?: string; to?: string }): Promise<ClassificationAnalytics> => {
     const { data } = await api.get('/admin/ai/intent-analytics', { params });
     return extractData<ClassificationAnalytics>(data);
   },

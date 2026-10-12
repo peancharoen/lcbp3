@@ -5,10 +5,7 @@
 //   เลขจริงอยู่ใน details.original_document_number / revision_label)
 
 import { MigrationReviewQueueItem } from '@/types/migration';
-import {
-  getQueueBaseDocNumber,
-  getQueueRevisionLabel,
-} from '@/lib/utils/queue-doc-number';
+import { getQueueBaseDocNumber, getQueueRevisionLabel } from '@/lib/utils/queue-doc-number';
 import { Badge } from '@/components/ui/badge';
 
 interface QueueDocNumberProps {
@@ -22,11 +19,7 @@ interface QueueDocNumberProps {
  * แสดงเลขที่เอกสารจริงของ migration queue item พร้อม revision badge
  * staging key (documentNumber) แสดงเป็น tooltip เมื่อต่างจากเลขจริง
  */
-export function QueueDocNumber({
-  item,
-  revisionPrefix = 'Rev.',
-  className,
-}: QueueDocNumberProps) {
+export function QueueDocNumber({ item, revisionPrefix = 'Rev.', className }: QueueDocNumberProps) {
   const base = getQueueBaseDocNumber(item);
   const rev = getQueueRevisionLabel(item);
   return (
@@ -36,10 +29,7 @@ export function QueueDocNumber({
     >
       <span>{base}</span>
       {rev !== undefined && (
-        <Badge
-          variant="outline"
-          className="font-mono text-[10px] px-1 py-0 border-indigo-500/40 text-indigo-500"
-        >
+        <Badge variant="outline" className="border-indigo-500/40 px-1 py-0 font-mono text-[10px] text-indigo-500">
           {revisionPrefix} {rev}
         </Badge>
       )}

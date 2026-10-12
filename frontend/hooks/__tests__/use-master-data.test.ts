@@ -94,7 +94,10 @@ describe('use-master-data hooks', () => {
       await act(async () => {
         await result.current.mutateAsync({ organizationName: 'New Org', organizationCode: 'ORG' });
       });
-      expect(masterDataService.createOrganization).toHaveBeenCalledWith({ organizationName: 'New Org', organizationCode: 'ORG' });
+      expect(masterDataService.createOrganization).toHaveBeenCalledWith({
+        organizationName: 'New Org',
+        organizationCode: 'ORG',
+      });
       expect(toast.success).toHaveBeenCalledWith('Organization created successfully');
     });
 
@@ -128,7 +131,9 @@ describe('use-master-data hooks', () => {
       await act(async () => {
         await result.current.mutateAsync({ uuid: 'uuid-org-1', data: { organizationName: 'Updated Org' } });
       });
-      expect(masterDataService.updateOrganization).toHaveBeenCalledWith('uuid-org-1', { organizationName: 'Updated Org' });
+      expect(masterDataService.updateOrganization).toHaveBeenCalledWith('uuid-org-1', {
+        organizationName: 'Updated Org',
+      });
       expect(toast.success).toHaveBeenCalledWith('Organization updated successfully');
     });
 

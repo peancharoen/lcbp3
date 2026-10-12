@@ -16,13 +16,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   return (
-    <div className="flex h-screen w-full bg-background overflow-hidden">
+    <div className="flex h-screen w-full overflow-hidden bg-background">
       <AdminSidebar />
-      <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
+      <div className="flex min-h-screen flex-1 flex-col overflow-hidden">
         {/* Mobile Header for Admin Panel */}
-        <div className="h-16 border-b flex items-center px-4 md:hidden shrink-0 bg-white">
+        <div className="flex h-16 shrink-0 items-center border-b bg-white px-4 md:hidden">
           <AdminMobileSidebar />
-          <h2 className="text-lg font-semibold ml-4">LCBP3-DMS Admin</h2>
+          <h2 className="ml-4 text-lg font-semibold">LCBP3-DMS Admin</h2>
         </div>
         {/* Main Content */}
         <div className="flex-1 overflow-auto bg-muted/10 p-4">{children}</div>

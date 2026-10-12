@@ -9,7 +9,7 @@ describe('dashboardApi', () => {
   describe('getStats', () => {
     it('ควร return dashboard stats', async () => {
       const stats = await dashboardApi.getStats();
-      
+
       expect(stats).toHaveProperty('totalDocuments');
       expect(stats).toHaveProperty('documentsThisMonth');
       expect(stats).toHaveProperty('pendingApprovals');
@@ -20,7 +20,7 @@ describe('dashboardApi', () => {
 
     it('ควร return numbers สำหรับ stats', async () => {
       const stats = await dashboardApi.getStats();
-      
+
       expect(typeof stats.totalDocuments).toBe('number');
       expect(typeof stats.documentsThisMonth).toBe('number');
       expect(typeof stats.pendingApprovals).toBe('number');
@@ -30,14 +30,14 @@ describe('dashboardApi', () => {
   describe('getRecentActivity', () => {
     it('ควร return array of activity logs', async () => {
       const activities = await dashboardApi.getRecentActivity();
-      
+
       expect(Array.isArray(activities)).toBe(true);
       expect(activities.length).toBeGreaterThan(0);
     });
 
     it('ควร return activities ที่มี id, user, action, description', async () => {
       const activities = await dashboardApi.getRecentActivity();
-      
+
       expect(activities[0]).toHaveProperty('id');
       expect(activities[0]).toHaveProperty('user');
       expect(activities[0]).toHaveProperty('action');
@@ -46,7 +46,7 @@ describe('dashboardApi', () => {
 
     it('ควร return activities ที่มี user.name และ user.initials', async () => {
       const activities = await dashboardApi.getRecentActivity();
-      
+
       expect(activities[0].user).toHaveProperty('name');
       expect(activities[0].user).toHaveProperty('initials');
     });
@@ -55,14 +55,14 @@ describe('dashboardApi', () => {
   describe('getPendingTasks', () => {
     it('ควร return array of pending tasks', async () => {
       const tasks = await dashboardApi.getPendingTasks();
-      
+
       expect(Array.isArray(tasks)).toBe(true);
       expect(tasks.length).toBeGreaterThan(0);
     });
 
     it('ควร return tasks ที่มี publicId, workflowCode, currentState', async () => {
       const tasks = await dashboardApi.getPendingTasks();
-      
+
       expect(tasks[0]).toHaveProperty('publicId');
       expect(tasks[0]).toHaveProperty('workflowCode');
       expect(tasks[0]).toHaveProperty('currentState');
@@ -70,7 +70,7 @@ describe('dashboardApi', () => {
 
     it('ควร return tasks ที่มี entityType, documentNumber, subject', async () => {
       const tasks = await dashboardApi.getPendingTasks();
-      
+
       expect(tasks[0]).toHaveProperty('entityType');
       expect(tasks[0]).toHaveProperty('documentNumber');
       expect(tasks[0]).toHaveProperty('subject');

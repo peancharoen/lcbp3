@@ -62,9 +62,11 @@ describe('RuntimeParametersPanel', () => {
   it('renders loading state initially', async () => {
     // We mock promise without resolving immediately to see loading state
     let resolvePromise: ((value: unknown) => void) | undefined;
-    mockGetSandboxProfile.mockReturnValue(new Promise((resolve) => {
-      resolvePromise = resolve;
-    }));
+    mockGetSandboxProfile.mockReturnValue(
+      new Promise((resolve) => {
+        resolvePromise = resolve;
+      })
+    );
 
     render(<RuntimeParametersPanel />);
     expect(screen.getByText(/กำลังโหลดพารามิเตอร์/)).toBeInTheDocument();

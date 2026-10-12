@@ -22,9 +22,7 @@ vi.mock('@/hooks/use-notification-channels', () => ({
 
 vi.mock('@/hooks/use-projects', () => ({
   useProjects: () => ({
-    data: [
-      { publicId: 'p1', projectCode: 'P1', projectName: 'LCBP3', isActive: true },
-    ],
+    data: [{ publicId: 'p1', projectCode: 'P1', projectName: 'LCBP3', isActive: true }],
     isLoading: false,
   }),
 }));
@@ -43,9 +41,7 @@ vi.mock('@/hooks/use-translations', () => ({
 }));
 
 vi.mock('@/components/common/data-table', () => ({
-  DataTable: ({ data }: { data: unknown[] }) => (
-    <div data-testid="data-table">{JSON.stringify(data)}</div>
-  ),
+  DataTable: ({ data }: { data: unknown[] }) => <div data-testid="data-table">{JSON.stringify(data)}</div>,
 }));
 
 import NotificationChannelsPage from '../page';
@@ -98,8 +94,6 @@ describe('NotificationChannelsPage', () => {
     const submitBtn = screen.getByRole('button', { name: /สร้างรหัสผูกกลุ่ม/ });
     fireEvent.click(submitBtn);
     // validation fail ถ้าไม่เลือก project — ยืนยันว่าไม่เรียก API
-    await waitFor(() =>
-      expect(mockIssueMutateAsync).not.toHaveBeenCalled()
-    );
+    await waitFor(() => expect(mockIssueMutateAsync).not.toHaveBeenCalled());
   });
 });

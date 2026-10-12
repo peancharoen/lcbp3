@@ -15,7 +15,13 @@ vi.mock('@/hooks/use-translations', () => ({
 vi.mock('@tanstack/react-query', () => ({
   useQuery: vi.fn().mockReturnValue({
     data: [
-      { publicId: '1', promptType: 'ocr_extraction', displayName: 'OCR Extraction', isSystemManaged: true, isActive: true },
+      {
+        publicId: '1',
+        promptType: 'ocr_extraction',
+        displayName: 'OCR Extraction',
+        isSystemManaged: true,
+        isActive: true,
+      },
     ],
     isLoading: false,
   }),
@@ -24,12 +30,7 @@ vi.mock('@tanstack/react-query', () => ({
 describe('PromptTypeDropdown', () => {
   it('ควร render dropdown สำหรับเลือกประเภทพรอมต์', () => {
     const handleChange = vi.fn();
-    render(
-      <PromptTypeDropdown
-        value="ocr_extraction"
-        onChange={handleChange}
-      />
-    );
+    render(<PromptTypeDropdown value="ocr_extraction" onChange={handleChange} />);
 
     expect(screen.getByText('prompt_management.prompt_type')).toBeInTheDocument();
     expect(screen.getByRole('combobox')).toBeInTheDocument();
@@ -37,13 +38,7 @@ describe('PromptTypeDropdown', () => {
 
   it('ควร disabled dropdown เมื่อ disabled=true', () => {
     const handleChange = vi.fn();
-    render(
-      <PromptTypeDropdown
-        value="ocr_extraction"
-        onChange={handleChange}
-        disabled={true}
-      />
-    );
+    render(<PromptTypeDropdown value="ocr_extraction" onChange={handleChange} disabled={true} />);
 
     const select = screen.getByRole('combobox');
     expect(select).toBeDisabled();

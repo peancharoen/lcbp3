@@ -4,20 +4,13 @@
 //   (สถานะพบ/ไม่พบไฟล์ + ชื่อไฟล์ที่แสดงใน Legacy Review Queue)
 
 import { describe, it, expect } from 'vitest';
-import {
-  getQueueAttachments,
-  getQueueFileName,
-  hasQueueFile,
-} from '@/lib/utils/queue-file';
+import { getQueueAttachments, getQueueFileName, hasQueueFile } from '@/lib/utils/queue-file';
 
 describe('getQueueAttachments', () => {
   it('คืน attachments จาก details', () => {
     const item = {
       details: {
-        attachments: [
-          { originalFilename: 'a.pdf', isMainDocument: true },
-          { originalFilename: 'b.pdf' },
-        ],
+        attachments: [{ originalFilename: 'a.pdf', isMainDocument: true }, { originalFilename: 'b.pdf' }],
       },
     };
     expect(getQueueAttachments(item)).toHaveLength(2);
@@ -26,9 +19,7 @@ describe('getQueueAttachments', () => {
   it('คืน [] เมื่อ details ไม่มี / attachments ไม่ใช่ array', () => {
     expect(getQueueAttachments({ details: null })).toEqual([]);
     expect(getQueueAttachments({ details: {} })).toEqual([]);
-    expect(
-      getQueueAttachments({ details: { attachments: 'nope' } })
-    ).toEqual([]);
+    expect(getQueueAttachments({ details: { attachments: 'nope' } })).toEqual([]);
   });
 
   it('กรอง non-object entries ออก', () => {
@@ -41,9 +32,7 @@ describe('getQueueAttachments', () => {
 
 describe('hasQueueFile', () => {
   it('true เมื่อมี attachment', () => {
-    expect(
-      hasQueueFile({ details: { attachments: [{ originalFilename: 'a.pdf' }] } })
-    ).toBe(true);
+    expect(hasQueueFile({ details: { attachments: [{ originalFilename: 'a.pdf' }] } })).toBe(true);
   });
 
   it('false เมื่อไม่มี attachment — แม้ originalFilename/storageTempPath จะมี (ไฟล์ resolve ไม่เจอ)', () => {

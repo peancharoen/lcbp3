@@ -14,9 +14,7 @@ export async function POST() {
   }
   try {
     const backendUrl =
-      (process.env.INTERNAL_API_URL ||
-        process.env.NEXT_PUBLIC_API_URL ||
-        'http://localhost:3001/api') + '/auth/logout';
+      (process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api') + '/auth/logout';
     await fetch(backendUrl, {
       method: 'POST',
       headers: {

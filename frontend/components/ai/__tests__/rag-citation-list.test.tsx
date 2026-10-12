@@ -31,32 +31,17 @@ function makeCitation(overrides: Partial<RagCitation> = {}): RagCitation {
 
 describe('RagCitationList', () => {
   it('แสดง retrievalMode badge VECTOR', () => {
-    render(
-      <RagCitationList
-        sources={[makeCitation()]}
-        retrievalMode="VECTOR"
-      />
-    );
+    render(<RagCitationList sources={[makeCitation()]} retrievalMode="VECTOR" />);
     expect(screen.getByText('VECTOR')).toBeInTheDocument();
   });
 
   it('แสดง retrievalMode badge สำหรับ fallback mode (FULL_TEXT)', () => {
-    render(
-      <RagCitationList
-        sources={[makeCitation()]}
-        retrievalMode="FULL_TEXT"
-      />
-    );
+    render(<RagCitationList sources={[makeCitation()]} retrievalMode="FULL_TEXT" />);
     expect(screen.getByText('FULL_TEXT')).toBeInTheDocument();
   });
 
   it('แสดง retrievalMode badge HYBRID', () => {
-    render(
-      <RagCitationList
-        sources={[makeCitation()]}
-        retrievalMode="HYBRID"
-      />
-    );
+    render(<RagCitationList sources={[makeCitation()]} retrievalMode="HYBRID" />);
     expect(screen.getByText('HYBRID')).toBeInTheDocument();
   });
 
@@ -64,12 +49,8 @@ describe('RagCitationList', () => {
     const citation = makeCitation({
       attachmentPublicId: '019505a1-7c3e-7000-8000-attach00001',
     });
-    render(
-      <RagCitationList sources={[citation]} retrievalMode="VECTOR" />
-    );
-    expect(
-      screen.getByText('019505a1-7c3e-7000-8000-attach00001')
-    ).toBeInTheDocument();
+    render(<RagCitationList sources={[citation]} retrievalMode="VECTOR" />);
+    expect(screen.getByText('019505a1-7c3e-7000-8000-attach00001')).toBeInTheDocument();
   });
 
   it('แสดง segment info (segmentLabel) ของ citation', () => {
@@ -78,9 +59,7 @@ describe('RagCitationList', () => {
       segmentType: 'PAGE',
       sourceLocator: undefined,
     });
-    render(
-      <RagCitationList sources={[citation]} retrievalMode="VECTOR" />
-    );
+    render(<RagCitationList sources={[citation]} retrievalMode="VECTOR" />);
     // segmentLabel แสดงเป็น breadcrumb เมื่อไม่มี sourceLocator
     expect(screen.getByText('Page 5')).toBeInTheDocument();
   });
@@ -89,19 +68,13 @@ describe('RagCitationList', () => {
     const citation = makeCitation({
       snippet: 'The latest approved revision is Rev C.',
     });
-    render(
-      <RagCitationList sources={[citation]} retrievalMode="VECTOR" />
-    );
-    expect(
-      screen.getByText('The latest approved revision is Rev C.')
-    ).toBeInTheDocument();
+    render(<RagCitationList sources={[citation]} retrievalMode="VECTOR" />);
+    expect(screen.getByText('The latest approved revision is Rev C.')).toBeInTheDocument();
   });
 
   it('แสดง score ของ citation เป็นเปอร์เซ็นต์', () => {
     const citation = makeCitation({ score: 0.91 });
-    render(
-      <RagCitationList sources={[citation]} retrievalMode="VECTOR" />
-    );
+    render(<RagCitationList sources={[citation]} retrievalMode="VECTOR" />);
     expect(screen.getByText('91.0%')).toBeInTheDocument();
   });
 
@@ -126,9 +99,7 @@ describe('RagCitationList', () => {
 
   it('ไม่แสดง generationUuid ในผลลัพธ์ (ADR-019 publicId เท่านั้น)', () => {
     const citation = makeCitation();
-    const { container } = render(
-      <RagCitationList sources={[citation]} retrievalMode="VECTOR" />
-    );
+    const { container } = render(<RagCitationList sources={[citation]} retrievalMode="VECTOR" />);
     // generationUuid ต้องไม่ปรากฏใน DOM ทั้งหมด
     expect(container.textContent).not.toContain('generationUuid');
     expect(screen.queryByText(/generationUuid/i)).not.toBeInTheDocument();
@@ -145,9 +116,7 @@ describe('RagCitationList', () => {
       sourceLocator: 'drawing-rev-c.pdf',
       segmentLabel: undefined,
     });
-    render(
-      <RagCitationList sources={[citation]} retrievalMode="VECTOR" />
-    );
+    render(<RagCitationList sources={[citation]} retrievalMode="VECTOR" />);
     // sourceLocator แสดงเป็น breadcrumb เมื่อไม่มี segmentLabel
     expect(screen.getByText('drawing-rev-c.pdf')).toBeInTheDocument();
   });
@@ -155,9 +124,7 @@ describe('RagCitationList', () => {
   it('รับ props ตาม type RagRetrievalMode ทั้งสามค่า', () => {
     const modes: RagRetrievalMode[] = ['VECTOR', 'FULL_TEXT', 'HYBRID'];
     for (const mode of modes) {
-      const { unmount } = render(
-        <RagCitationList sources={[makeCitation()]} retrievalMode={mode} />
-      );
+      const { unmount } = render(<RagCitationList sources={[makeCitation()]} retrievalMode={mode} />);
       expect(screen.getByText(mode)).toBeInTheDocument();
       unmount();
     }
@@ -166,9 +133,7 @@ describe('RagCitationList', () => {
   describe('segmentType badge (T062)', () => {
     it('แสดง segmentType badge PAGE', () => {
       const citation = makeCitation({ segmentType: 'PAGE' });
-      render(
-        <RagCitationList sources={[citation]} retrievalMode="VECTOR" />
-      );
+      render(<RagCitationList sources={[citation]} retrievalMode="VECTOR" />);
       expect(screen.getByText('PAGE')).toBeInTheDocument();
     });
 
@@ -177,9 +142,7 @@ describe('RagCitationList', () => {
         segmentType: 'SECTION',
         segmentLabel: 'Section 2',
       });
-      render(
-        <RagCitationList sources={[citation]} retrievalMode="VECTOR" />
-      );
+      render(<RagCitationList sources={[citation]} retrievalMode="VECTOR" />);
       expect(screen.getByText('SECTION')).toBeInTheDocument();
     });
 
@@ -188,9 +151,7 @@ describe('RagCitationList', () => {
         segmentType: 'SHEET',
         segmentLabel: 'Sheet 1',
       });
-      render(
-        <RagCitationList sources={[citation]} retrievalMode="VECTOR" />
-      );
+      render(<RagCitationList sources={[citation]} retrievalMode="VECTOR" />);
       expect(screen.getByText('SHEET')).toBeInTheDocument();
     });
 
@@ -200,9 +161,7 @@ describe('RagCitationList', () => {
         segmentLabel: undefined,
         segmentNumber: undefined,
       });
-      render(
-        <RagCitationList sources={[citation]} retrievalMode="VECTOR" />
-      );
+      render(<RagCitationList sources={[citation]} retrievalMode="VECTOR" />);
       expect(screen.getByText('WHOLE_DOCUMENT')).toBeInTheDocument();
     });
   });
@@ -214,13 +173,9 @@ describe('RagCitationList', () => {
         segmentLabel: 'Page 3',
         segmentType: 'PAGE',
       });
-      render(
-        <RagCitationList sources={[citation]} retrievalMode="VECTOR" />
-      );
+      render(<RagCitationList sources={[citation]} retrievalMode="VECTOR" />);
       // breadcrumb format: "docs/spec.pdf → Page 3"
-      expect(
-        screen.getByText('docs/spec.pdf → Page 3')
-      ).toBeInTheDocument();
+      expect(screen.getByText('docs/spec.pdf → Page 3')).toBeInTheDocument();
     });
 
     it('แสดง sourceLocator สำหรับ ZIP inner file เป็น breadcrumb', () => {
@@ -229,13 +184,9 @@ describe('RagCitationList', () => {
         segmentLabel: 'Section 2',
         segmentType: 'SECTION',
       });
-      render(
-        <RagCitationList sources={[citation]} retrievalMode="VECTOR" />
-      );
+      render(<RagCitationList sources={[citation]} retrievalMode="VECTOR" />);
       // breadcrumb format: "archive.zip → inner.pdf → Section 2"
-      expect(
-        screen.getByText('archive.zip → inner.pdf → Section 2')
-      ).toBeInTheDocument();
+      expect(screen.getByText('archive.zip → inner.pdf → Section 2')).toBeInTheDocument();
     });
 
     it('แสดง sourceLocator เพียงอย่างเดียวเมื่อไม่มี segmentLabel', () => {
@@ -244,9 +195,7 @@ describe('RagCitationList', () => {
         segmentLabel: undefined,
         segmentType: 'WHOLE_DOCUMENT',
       });
-      render(
-        <RagCitationList sources={[citation]} retrievalMode="VECTOR" />
-      );
+      render(<RagCitationList sources={[citation]} retrievalMode="VECTOR" />);
       expect(screen.getByText('drawing.pdf')).toBeInTheDocument();
       // ไม่ควรมีลูกศร breadcrumb ท้าย
       expect(screen.queryByText(/drawing.pdf →/)).not.toBeInTheDocument();
@@ -258,9 +207,7 @@ describe('RagCitationList', () => {
         segmentLabel: 'Page 7',
         segmentType: 'PAGE',
       });
-      render(
-        <RagCitationList sources={[citation]} retrievalMode="VECTOR" />
-      );
+      render(<RagCitationList sources={[citation]} retrievalMode="VECTOR" />);
       expect(screen.getByText('Page 7')).toBeInTheDocument();
     });
 
@@ -270,9 +217,7 @@ describe('RagCitationList', () => {
         segmentLabel: undefined,
         segmentType: 'WHOLE_DOCUMENT',
       });
-      const { container } = render(
-        <RagCitationList sources={[citation]} retrievalMode="VECTOR" />
-      );
+      const { container } = render(<RagCitationList sources={[citation]} retrievalMode="VECTOR" />);
       // ไม่ควรมีลูกศร breadcrumb ใด ๆ
       expect(container.textContent).not.toContain('→');
     });
@@ -285,9 +230,7 @@ describe('RagCitationList', () => {
         segmentType: 'SECTION',
         segmentLabel: 'Section 2',
       });
-      const { container } = render(
-        <RagCitationList sources={[citation]} retrievalMode="HYBRID" />
-      );
+      const { container } = render(<RagCitationList sources={[citation]} retrievalMode="HYBRID" />);
       expect(container.textContent).not.toContain('generationUuid');
       expect(screen.queryByText(/generationUuid/i)).not.toBeInTheDocument();
     });

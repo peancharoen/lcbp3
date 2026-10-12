@@ -90,14 +90,14 @@ export function FilePreviewModal({ attachment, onClose, onUnavailable }: FilePre
 
   return (
     <Dialog open={!!attachment} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl w-full h-[85vh] flex flex-col p-0">
+      <DialogContent className="flex h-[85vh] w-full max-w-4xl flex-col p-0">
         {/* Header — ชื่อไฟล์ + ขนาด */}
-        <DialogHeader className="px-6 pt-5 pb-3 border-b shrink-0">
-          <DialogTitle className="flex items-center gap-2 text-base truncate">
+        <DialogHeader className="shrink-0 border-b px-6 pb-3 pt-5">
+          <DialogTitle className="flex items-center gap-2 truncate text-base">
             <FileIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
             <span className="truncate">{attachment?.originalFilename ?? t('filePreview.fallbackTitle')}</span>
             {attachment?.fileSize && (
-              <span className="ml-auto text-xs text-muted-foreground font-normal shrink-0">
+              <span className="ml-auto shrink-0 text-xs font-normal text-muted-foreground">
                 {formatBytes(attachment.fileSize)}
               </span>
             )}
@@ -109,7 +109,7 @@ export function FilePreviewModal({ attachment, onClose, onUnavailable }: FilePre
         </DialogHeader>
 
         {/* Body — Preview Area */}
-        <div className="flex-1 overflow-hidden relative bg-muted/30">
+        <div className="relative flex-1 overflow-hidden bg-muted/30">
           {isLoading && (
             <div className="absolute inset-0 flex items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -123,19 +123,15 @@ export function FilePreviewModal({ attachment, onClose, onUnavailable }: FilePre
           )}
 
           {!isLoading && !error && blobUrl && previewType === 'pdf' && (
-            <iframe
-              src={blobUrl}
-              className="w-full h-full border-0"
-              title={attachment?.originalFilename}
-            />
+            <iframe src={blobUrl} className="h-full w-full border-0" title={attachment?.originalFilename} />
           )}
 
           {!isLoading && !error && blobUrl && previewType === 'image' && (
-            <div className="w-full h-full flex items-center justify-center p-4">
+            <div className="flex h-full w-full items-center justify-center p-4">
               <img
                 src={blobUrl}
                 alt={attachment?.originalFilename}
-                className="max-w-full max-h-full object-contain rounded"
+                className="max-h-full max-w-full rounded object-contain"
               />
             </div>
           )}
@@ -149,12 +145,12 @@ export function FilePreviewModal({ attachment, onClose, onUnavailable }: FilePre
         </div>
 
         {/* Footer — ปุ่มดาวน์โหลด + ปิด */}
-        <DialogFooter className="px-6 py-3 border-t shrink-0">
+        <DialogFooter className="shrink-0 border-t px-6 py-3">
           {blobUrl && (
             <a
               href={blobUrl}
               download={attachment?.originalFilename}
-              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               <Download className="h-4 w-4" />
               {t('filePreview.download')}

@@ -28,7 +28,7 @@ describe('DocumentCancelDialog (Feature 253 — Phase 2 Frontend Unit)', () => {
         config={config}
         documentLabel="CORR-001"
         onConfirm={mockOnConfirm}
-      />,
+      />
     );
 
     // confirmKey และ description ใช้ key เดียวกัน ('document.cancel.confirm') → มี 2 elements
@@ -44,7 +44,7 @@ describe('DocumentCancelDialog (Feature 253 — Phase 2 Frontend Unit)', () => {
         config={config}
         documentLabel="CORR-001"
         onConfirm={mockOnConfirm}
-      />,
+      />
     );
 
     const textarea = screen.getByRole('textbox');
@@ -62,7 +62,7 @@ describe('DocumentCancelDialog (Feature 253 — Phase 2 Frontend Unit)', () => {
         config={config}
         documentLabel="CORR-001"
         onConfirm={mockOnConfirm}
-      />,
+      />
     );
 
     const textarea = screen.getByRole('textbox');
@@ -80,7 +80,7 @@ describe('DocumentCancelDialog (Feature 253 — Phase 2 Frontend Unit)', () => {
         config={config}
         documentLabel="CORR-001"
         onConfirm={mockOnConfirm}
-      />,
+      />
     );
 
     fireEvent.click(screen.getByText('common.cancel'));
@@ -96,7 +96,7 @@ describe('DocumentCancelDialog (Feature 253 — Phase 2 Frontend Unit)', () => {
         documentLabel="CORR-001"
         isLoading={true}
         onConfirm={mockOnConfirm}
-      />,
+      />
     );
 
     const confirmBtn = screen.getByText('common.processing');
@@ -111,7 +111,7 @@ describe('DocumentCancelDialog (Feature 253 — Phase 2 Frontend Unit)', () => {
         config={config}
         documentLabel="CORR-001"
         onConfirm={mockOnConfirm}
-      />,
+      />
     );
 
     const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;
@@ -126,7 +126,7 @@ describe('DocumentCancelDialog (Feature 253 — Phase 2 Frontend Unit)', () => {
         config={config}
         documentLabel="CORR-001"
         onConfirm={mockOnConfirm}
-      />,
+      />
     );
   });
 });

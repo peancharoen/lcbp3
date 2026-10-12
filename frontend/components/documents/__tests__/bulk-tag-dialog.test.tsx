@@ -19,28 +19,14 @@ describe('BulkTagDialog (Feature 253 — Phase 2 Frontend Unit)', () => {
   });
 
   it('แสดง title + description พร้อม selectedCount', () => {
-    render(
-      <BulkTagDialog
-        open={true}
-        onOpenChange={mockOnOpenChange}
-        selectedCount={5}
-        onConfirm={mockOnConfirm}
-      />,
-    );
+    render(<BulkTagDialog open={true} onOpenChange={mockOnOpenChange} selectedCount={5} onConfirm={mockOnConfirm} />);
 
     expect(screen.getByText('document.bulk.tagDialog.title')).toBeInTheDocument();
     expect(screen.getByText('document.bulk.tagDialog.description')).toBeInTheDocument();
   });
 
   it('แสดง input สำหรับ add tags + remove tags', () => {
-    render(
-      <BulkTagDialog
-        open={true}
-        onOpenChange={mockOnOpenChange}
-        selectedCount={3}
-        onConfirm={mockOnConfirm}
-      />,
-    );
+    render(<BulkTagDialog open={true} onOpenChange={mockOnOpenChange} selectedCount={3} onConfirm={mockOnConfirm} />);
 
     expect(screen.getByText('document.bulk.tagDialog.addTags')).toBeInTheDocument();
     expect(screen.getByText('document.bulk.tagDialog.removeTags')).toBeInTheDocument();
@@ -49,14 +35,7 @@ describe('BulkTagDialog (Feature 253 — Phase 2 Frontend Unit)', () => {
   });
 
   it('กรอก tag IDs + กด confirm → เรียก onConfirm ด้วย number[]', () => {
-    render(
-      <BulkTagDialog
-        open={true}
-        onOpenChange={mockOnOpenChange}
-        selectedCount={3}
-        onConfirm={mockOnConfirm}
-      />,
-    );
+    render(<BulkTagDialog open={true} onOpenChange={mockOnOpenChange} selectedCount={3} onConfirm={mockOnConfirm} />);
 
     const inputs = screen.getAllByRole('textbox');
     fireEvent.change(inputs[0], { target: { value: '1, 2, 3' } });
@@ -67,14 +46,7 @@ describe('BulkTagDialog (Feature 253 — Phase 2 Frontend Unit)', () => {
   });
 
   it('กรองค่าที่ไม่ใช่ positive number ออก', () => {
-    render(
-      <BulkTagDialog
-        open={true}
-        onOpenChange={mockOnOpenChange}
-        selectedCount={3}
-        onConfirm={mockOnConfirm}
-      />,
-    );
+    render(<BulkTagDialog open={true} onOpenChange={mockOnOpenChange} selectedCount={3} onConfirm={mockOnConfirm} />);
 
     const inputs = screen.getAllByRole('textbox');
     fireEvent.change(inputs[0], { target: { value: '1, abc, 0, -5, 2' } });
@@ -92,21 +64,14 @@ describe('BulkTagDialog (Feature 253 — Phase 2 Frontend Unit)', () => {
         selectedCount={3}
         isLoading={true}
         onConfirm={mockOnConfirm}
-      />,
+      />
     );
 
     expect(screen.getByText('common.processing')).toBeInTheDocument();
   });
 
   it('ปิด dialog → reset addTags + removeTags', () => {
-    render(
-      <BulkTagDialog
-        open={true}
-        onOpenChange={mockOnOpenChange}
-        selectedCount={3}
-        onConfirm={mockOnConfirm}
-      />,
-    );
+    render(<BulkTagDialog open={true} onOpenChange={mockOnOpenChange} selectedCount={3} onConfirm={mockOnConfirm} />);
 
     fireEvent.click(screen.getByText('common.cancel'));
     expect(mockOnOpenChange).toHaveBeenCalledWith(false);

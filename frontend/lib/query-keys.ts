@@ -10,20 +10,15 @@
 export const documentActionKeys = {
   all: ['document-actions'] as const,
   /** Key สำหรับ bulk operation progress */
-  bulkProgress: (bulkId: string) =>
-    [...documentActionKeys.all, 'bulk-progress', bulkId] as const,
+  bulkProgress: (bulkId: string) => [...documentActionKeys.all, 'bulk-progress', bulkId] as const,
   /** Key สำหรับ document detail (ใช้ invalidate หลัง action) */
   detail: (documentType: string, publicId: string) =>
     [...documentActionKeys.all, documentType.toLowerCase(), 'detail', publicId] as const,
   /** Key สำหรับ document list (ใช้ invalidate หลัง action) */
-  lists: (documentType: string) =>
-    [...documentActionKeys.all, documentType.toLowerCase(), 'list'] as const,
+  lists: (documentType: string) => [...documentActionKeys.all, documentType.toLowerCase(), 'list'] as const,
 };
 
 /** Helper สำหรับ invalidate ทุก key ที่เกี่ยวข้องกับ document action */
 export function getInvalidationKeys(documentType: string, publicId: string) {
-  return [
-    documentActionKeys.detail(documentType, publicId),
-    documentActionKeys.lists(documentType),
-  ];
+  return [documentActionKeys.detail(documentType, publicId), documentActionKeys.lists(documentType)];
 }

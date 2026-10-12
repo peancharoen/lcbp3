@@ -24,22 +24,15 @@ export interface DocumentRowActionsProps {
   onMetadataEdit: () => void;
 }
 
-export function DocumentRowActions({
-  config,
-  onCancel,
-  onHardDelete,
-  onMetadataEdit,
-}: DocumentRowActionsProps) {
+export function DocumentRowActions({ config, onCancel, onHardDelete, onMetadataEdit }: DocumentRowActionsProps) {
   const t = useTranslations();
   const { hasPermission } = useAuthStore();
   const [open, setOpen] = useState(false);
 
-  const canCancel = hasPermission(`${config.apiBasePath}.cancel`) ||
-    hasPermission('document.cancel');
-  const canHardDelete = hasPermission(`${config.apiBasePath}.delete`) ||
-    hasPermission('system.manage_all');
-  const canEditMetadata = hasPermission(`${config.apiBasePath}.edit_metadata`) ||
-    hasPermission(`${config.apiBasePath}.edit`);
+  const canCancel = hasPermission(`${config.apiBasePath}.cancel`) || hasPermission('document.cancel');
+  const canHardDelete = hasPermission(`${config.apiBasePath}.delete`) || hasPermission('system.manage_all');
+  const canEditMetadata =
+    hasPermission(`${config.apiBasePath}.edit_metadata`) || hasPermission(`${config.apiBasePath}.edit`);
 
   if (!canCancel && !canHardDelete && !canEditMetadata) {
     return null;
@@ -55,17 +48,12 @@ export function DocumentRowActions({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         {canEditMetadata && (
-          <DropdownMenuItem onClick={onMetadataEdit}>
-            {t('document.metadata.title')}
-          </DropdownMenuItem>
+          <DropdownMenuItem onClick={onMetadataEdit}>{t('document.metadata.title')}</DropdownMenuItem>
         )}
         {canCancel && (
           <>
             {canEditMetadata && <DropdownMenuSeparator />}
-            <DropdownMenuItem
-              onClick={onCancel}
-              className="text-amber-600 focus:text-amber-600"
-            >
+            <DropdownMenuItem onClick={onCancel} className="text-warning focus:text-warning">
               {t('document.cancel.title')}
             </DropdownMenuItem>
           </>
@@ -73,10 +61,7 @@ export function DocumentRowActions({
         {canHardDelete && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={onHardDelete}
-              className="text-destructive focus:text-destructive"
-            >
+            <DropdownMenuItem onClick={onHardDelete} className="text-destructive focus:text-destructive">
               {t('document.hardDelete.title')}
             </DropdownMenuItem>
           </>

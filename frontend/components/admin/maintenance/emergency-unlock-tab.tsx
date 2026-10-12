@@ -20,7 +20,9 @@ export function EmergencyUnlockTab() {
   const [locks, setLocks] = useState<string[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [purgeIds, setPurgeIds] = useState('');
-  const [documentType, setDocumentType] = useState<'CORRESPONDENCE' | 'RFA' | 'TRANSMITTAL' | 'DRAWING'>('CORRESPONDENCE');
+  const [documentType, setDocumentType] = useState<'CORRESPONDENCE' | 'RFA' | 'TRANSMITTAL' | 'DRAWING'>(
+    'CORRESPONDENCE'
+  );
   const [loading, setLoading] = useState(false);
 
   const handleScan = async () => {
@@ -62,7 +64,10 @@ export function EmergencyUnlockTab() {
   };
 
   const handlePurge = async () => {
-    const ids = purgeIds.split(',').map((s) => s.trim()).filter(Boolean);
+    const ids = purgeIds
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
     if (ids.length === 0) return;
     setLoading(true);
     try {
@@ -80,7 +85,9 @@ export function EmergencyUnlockTab() {
   return (
     <div className="space-y-4">
       <div className="flex gap-2">
-        <Button onClick={handleScan} disabled={loading}>{t('admin.maintenance.scan')}</Button>
+        <Button onClick={handleScan} disabled={loading}>
+          {t('admin.maintenance.scan')}
+        </Button>
         <Button onClick={handleRelease} disabled={loading || selected.size === 0} variant="destructive">
           {t('admin.maintenance.release.selected')}
         </Button>
@@ -96,7 +103,7 @@ export function EmergencyUnlockTab() {
           ) : (
             <ul className="space-y-2">
               {locks.map((lock) => (
-                <li key={lock} className="flex items-center gap-3 border p-2 rounded">
+                <li key={lock} className="flex items-center gap-3 rounded border p-2">
                   <Checkbox checked={selected.has(lock)} onCheckedChange={() => toggle(lock)} />
                   <span className="text-sm font-medium">{lock}</span>
                 </li>

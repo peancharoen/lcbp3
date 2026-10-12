@@ -46,7 +46,7 @@ export function TagManager({ uuid, canEdit }: TagManagerProps) {
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-base">
           <TagIcon className="h-4 w-4" />
           Tags
           {assigned.length > 0 && (
@@ -69,54 +69,54 @@ export function TagManager({ uuid, canEdit }: TagManagerProps) {
             {assigned.map((tag) => {
               const hex = getTagColor(tag.colorCode);
               return (
-              <span
-                key={tag.publicId}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border"
-                style={{
-                  backgroundColor: `${hex}22`,
-                  borderColor: `${hex}66`,
-                  color: hex === DEFAULT_TAG_COLOR_HEX ? 'inherit' : hex,
-                }}
-              >
                 <span
-                  className="w-1.5 h-1.5 rounded-full shrink-0"
-                  style={{ backgroundColor: hex }}
-                />
-                {tag.tagName}
-                {canEdit && (
-                  <button
-                    onClick={() => handleRemove(tag.publicId)}
-                    disabled={removeMutation.isPending}
-                    className="ml-0.5 opacity-60 hover:opacity-100 transition-opacity"
-                  >
-                    <X className="h-2.5 w-2.5" />
-                  </button>
-                )}
-              </span>
+                  key={tag.publicId}
+                  className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium"
+                  style={{
+                    backgroundColor: `${hex}22`,
+                    borderColor: `${hex}66`,
+                    color: hex === DEFAULT_TAG_COLOR_HEX ? 'inherit' : hex,
+                  }}
+                >
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: hex }} />
+                  {tag.tagName}
+                  {canEdit && (
+                    <button
+                      onClick={() => handleRemove(tag.publicId)}
+                      disabled={removeMutation.isPending}
+                      className="ml-0.5 opacity-60 transition-opacity hover:opacity-100"
+                    >
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  )}
+                </span>
               );
             })}
           </div>
         )}
 
         {canEdit && (
-          <div className="pt-2 border-t">
+          <div className="border-t pt-2">
             {isOpen ? (
               <div className="space-y-2">
-                <div className="max-h-40 overflow-y-auto border rounded-md divide-y">
+                <div className="max-h-40 divide-y overflow-y-auto rounded-md border">
                   {available.length === 0 ? (
-                    <p className="p-2 text-xs text-muted-foreground text-center">
+                    <p className="p-2 text-center text-xs text-muted-foreground">
                       {allTags.length === 0 ? 'Loading...' : 'All tags already assigned'}
                     </p>
                   ) : (
                     available.map((tag) => (
                       <button
                         key={tag.publicId}
-                        className="w-full flex items-center gap-2 p-2 text-xs hover:bg-muted/60 transition-colors text-left"
-                        onClick={() => { handleAdd(tag.publicId); setIsOpen(false); }}
+                        className="flex w-full items-center gap-2 p-2 text-left text-xs transition-colors hover:bg-muted/60"
+                        onClick={() => {
+                          handleAdd(tag.publicId);
+                          setIsOpen(false);
+                        }}
                         disabled={addMutation.isPending}
                       >
                         <span
-                          className="w-2 h-2 rounded-full shrink-0"
+                          className="h-2 w-2 shrink-0 rounded-full"
                           style={{ backgroundColor: getTagColor(tag.colorCode) }}
                         />
                         {tag.tagName}
@@ -124,24 +124,14 @@ export function TagManager({ uuid, canEdit }: TagManagerProps) {
                     ))
                   )}
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full h-7 text-xs"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <ChevronDown className="h-3 w-3 mr-1" />
+                <Button variant="ghost" size="sm" className="h-7 w-full text-xs" onClick={() => setIsOpen(false)}>
+                  <ChevronDown className="mr-1 h-3 w-3" />
                   Close
                 </Button>
               </div>
             ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full h-8 text-xs"
-                onClick={() => setIsOpen(true)}
-              >
-                <Plus className="h-3 w-3 mr-1.5" />
+              <Button variant="outline" size="sm" className="h-8 w-full text-xs" onClick={() => setIsOpen(true)}>
+                <Plus className="mr-1.5 h-3 w-3" />
                 Add Tag
               </Button>
             )}

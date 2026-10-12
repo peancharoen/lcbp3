@@ -20,13 +20,8 @@ const messagesByLocale: Record<Locale, Record<string, unknown>> = {
  * Resolve a dotted key path against a nested object.
  * Returns the found string, or the key itself if not found.
  */
-function resolveKey(
-  root: Record<string, unknown>,
-  key: string
-): string {
-  const ragRoot = (root as Record<string, unknown>).rag as
-    | Record<string, unknown>
-    | undefined;
+function resolveKey(root: Record<string, unknown>, key: string): string {
+  const ragRoot = (root as Record<string, unknown>).rag as Record<string, unknown> | undefined;
   const adminRoot = ragRoot?.admin as Record<string, unknown> | undefined;
   if (!adminRoot) return key;
 
@@ -42,14 +37,9 @@ function resolveKey(
 /**
  * Interpolate {{param}} placeholders in a template string.
  */
-function interpolate(
-  template: string,
-  params?: Record<string, string | number>
-): string {
+function interpolate(template: string, params?: Record<string, string | number>): string {
   if (!params) return template;
-  return template.replace(/\{\{(\w+)\}\}/g, (_, k: string) =>
-    String(params[k] ?? '')
-  );
+  return template.replace(/\{\{(\w+)\}\}/g, (_, k: string) => String(params[k] ?? ''));
 }
 
 /**
@@ -75,10 +65,7 @@ export function useRagAdminT(locale: Locale = 'th') {
  * Plain function variant สำหรับใช้ใน non-component contexts (e.g. module-level constants)
  * Defaults to Thai (project default locale)
  */
-export function ragAdminT(
-  key: string,
-  params?: Record<string, string | number>
-): string {
+export function ragAdminT(key: string, params?: Record<string, string | number>): string {
   const text = resolveKey(messagesByLocale.th, key);
   return interpolate(text, params);
 }

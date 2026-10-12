@@ -40,17 +40,11 @@ interface ColorPickerFieldProps {
 export function ColorPickerField({ value, onChange, id }: ColorPickerFieldProps) {
   const t = useTranslations();
   const selectedKey: TagColorKey =
-    value && TAG_PALETTE.some((e) => e.key === value)
-      ? (value as TagColorKey)
-      : 'default';
+    value && TAG_PALETTE.some((e) => e.key === value) ? (value as TagColorKey) : 'default';
 
   return (
     <div className="space-y-2" id={id}>
-      <div
-        role="radiogroup"
-        aria-label={t('tag.color.fieldLabel')}
-        className="grid grid-cols-7 gap-2"
-      >
+      <div role="radiogroup" aria-label={t('tag.color.fieldLabel')} className="grid grid-cols-7 gap-2">
         {TAG_PALETTE.map((entry) => {
           const isSelected = entry.key === selectedKey;
           return (

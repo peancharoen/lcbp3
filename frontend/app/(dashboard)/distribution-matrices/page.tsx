@@ -76,18 +76,18 @@ export default function DistributionMatricesPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Distribution Matrix</h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <p className="mt-1 text-sm text-muted-foreground">
             ตั้งค่าการกระจาย RFA หลังอนุมัติผ่าน BullMQ และ Transmittal
           </p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
             <Button>
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="mr-2 h-4 w-4" />
               New Matrix
             </Button>
           </DialogTrigger>
@@ -160,9 +160,9 @@ export default function DistributionMatricesPage() {
         </Dialog>
       </div>
 
-      {isLoading && <div className="text-center text-muted-foreground py-8">Loading distribution matrices...</div>}
+      {isLoading && <div className="py-8 text-center text-muted-foreground">Loading distribution matrices...</div>}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {matrices.map((matrix) => (
           <Card key={matrix.publicId}>
             <CardHeader className="pb-2">
@@ -203,8 +203,8 @@ export default function DistributionMatricesPage() {
           </Card>
         ))}
         {!isLoading && matrices.length === 0 && (
-          <div className="lg:col-span-2 text-center py-12 border-2 border-dashed rounded-lg text-muted-foreground">
-            <Network className="h-12 w-12 mx-auto mb-3 opacity-20" />
+          <div className="rounded-lg border-2 border-dashed py-12 text-center text-muted-foreground lg:col-span-2">
+            <Network className="mx-auto mb-3 h-12 w-12 opacity-20" />
             <p>No Distribution Matrix configured.</p>
           </div>
         )}

@@ -10,7 +10,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
     <div
       className={cn(
-        'flex flex-col min-h-screen transition-all duration-300 ease-in-out',
+        'flex min-h-screen flex-col transition-all duration-300 ease-in-out',
         // ปรับ Margin ซ้าย ตามสถานะ Sidebar
         isSidebarOpen ? 'md:ml-[240px]' : 'md:ml-[70px]'
       )}

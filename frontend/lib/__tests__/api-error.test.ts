@@ -41,9 +41,7 @@ describe('getApiErrorMessage', () => {
         },
       },
     };
-    expect(getApiErrorMessage(axiosError, 'Fallback')).toBe(
-      'กรุณาเข้าสู่ระบบก่อนใช้งาน'
-    );
+    expect(getApiErrorMessage(axiosError, 'Fallback')).toBe('กรุณาเข้าสู่ระบบก่อนใช้งาน');
   });
 
   it('อ่าน message จาก legacy Axios shape { response: { data: { message } } }', () => {
@@ -62,12 +60,8 @@ describe('getApiErrorMessage', () => {
   });
 
   it('คืน fallback เมื่อ error เป็น null/undefined', () => {
-    expect(getApiErrorMessage(null, 'Failed to load queue')).toBe(
-      'Failed to load queue'
-    );
-    expect(getApiErrorMessage(undefined, 'Failed to load queue')).toBe(
-      'Failed to load queue'
-    );
+    expect(getApiErrorMessage(null, 'Failed to load queue')).toBe('Failed to load queue');
+    expect(getApiErrorMessage(undefined, 'Failed to load queue')).toBe('Failed to load queue');
   });
 
   it('คืน fallback เมื่อ structured error ไม่มี message', () => {

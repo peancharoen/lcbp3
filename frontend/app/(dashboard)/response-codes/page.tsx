@@ -13,24 +13,24 @@ import { useProjectStore } from '@/lib/stores/project-store';
 export default function ResponseCodesPage() {
   const [activeTab, setActiveTab] = useState('global');
   const selectedProjectId = useProjectStore((state) => state.selectedProjectId);
-  
+
   // Dummy data for example - in real app, these would come from specialized hooks
   const { data: globalRules = [] } = useResponseCodes();
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+          <div className="mb-1 flex items-center gap-2 text-sm text-muted-foreground">
             <span>Admin</span>
             <ChevronRight className="h-3 w-3" />
             <span>Master Data</span>
           </div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
+          <h1 className="flex items-center gap-2 text-2xl font-bold">
             <ShieldCheck className="h-6 w-6 text-primary" />
             Approval Matrix & Response Codes
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <p className="mt-1 text-sm text-muted-foreground">
             Manage global response codes and document-specific approval rules.
           </p>
         </div>
@@ -51,20 +51,20 @@ export default function ResponseCodesPage() {
 
         <TabsContent value="global" className="space-y-4">
           <div className="grid grid-cols-1 gap-4">
-            <MatrixEditor 
-              documentTypeCode="SDW" 
-              rules={globalRules.map(r => ({
+            <MatrixEditor
+              documentTypeCode="SDW"
+              rules={globalRules.map((r) => ({
                 publicId: r.publicId,
                 responseCode: {
                   publicId: r.publicId,
                   code: r.code,
                   descriptionEn: r.descriptionEn || '',
-                  category: r.category || 'ENGINEERING'
+                  category: r.category || 'ENGINEERING',
                 },
                 isEnabled: true,
                 requiresComments: false,
                 triggersNotification: false,
-                isOverridden: false
+                isOverridden: false,
               }))}
               onToggleEnabled={() => {}}
               onToggleRequiresComments={() => {}}
@@ -74,8 +74,8 @@ export default function ResponseCodesPage() {
         </TabsContent>
 
         <TabsContent value="project">
-          <ProjectOverrideManager 
-            projectPublicId={selectedProjectId ?? ''} 
+          <ProjectOverrideManager
+            projectPublicId={selectedProjectId ?? ''}
             projectName="Selected Project"
             overrides={[]}
             onDeleteOverride={() => {}}
@@ -84,8 +84,8 @@ export default function ResponseCodesPage() {
         </TabsContent>
 
         <TabsContent value="codes">
-          <div className="bg-muted/30 border rounded-lg p-12 text-center text-muted-foreground">
-            <Settings className="h-12 w-12 mx-auto mb-4 opacity-20" />
+          <div className="rounded-lg border bg-muted/30 p-12 text-center text-muted-foreground">
+            <Settings className="mx-auto mb-4 h-12 w-12 opacity-20" />
             <p>Response Code definition management is coming soon.</p>
           </div>
         </TabsContent>

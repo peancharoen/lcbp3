@@ -36,9 +36,9 @@ export function BulkImportForm({ projectId = 1 }: { projectId?: number | string 
   };
 
   return (
-    <div className="border p-4 rounded-md space-y-4">
+    <div className="space-y-4 rounded-md border p-4">
       <h3 className="text-lg font-medium">Bulk Import Numbers</h3>
-      <p className="text-sm text-gray-500">Import legacy numbers via CSV to reserve them in the system.</p>
+      <p className="text-sm text-muted-foreground">Import legacy numbers via CSV to reserve them in the system.</p>
 
       <div className="grid w-full max-w-sm items-center gap-1.5">
         <Label htmlFor="csv-file">CSV File</Label>

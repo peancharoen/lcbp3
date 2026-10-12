@@ -24,24 +24,22 @@ interface ResponseCodeSelectorProps {
 }
 
 const SEVERITY_COLORS: Record<string, string> = {
-  '1A': 'bg-green-100 text-green-800',
-  '1B': 'bg-emerald-100 text-emerald-800',
-  '1C': 'bg-yellow-100 text-yellow-800',
+  '1A': 'bg-success/10 text-success',
+  '1B': 'bg-success/10 text-success',
+  '1C': 'bg-warning/10 text-warning',
   '1D': 'bg-orange-100 text-orange-800',
-  '1E': 'bg-blue-100 text-blue-800',
-  '1F': 'bg-sky-100 text-sky-800',
+  '1E': 'bg-info/10 text-info',
+  '1F': 'bg-info/10 text-info',
   '1G': 'bg-purple-100 text-purple-800',
-  '2': 'bg-amber-100 text-amber-800',
-  '3': 'bg-red-100 text-red-800',
-  '4': 'bg-gray-100 text-gray-600',
+  '2': 'bg-warning/10 text-warning',
+  '3': 'bg-destructive/10 text-destructive',
+  '4': 'bg-muted text-muted-foreground',
 };
 
 function CodeBadge({ code }: { code: string }) {
-  const colorClass = SEVERITY_COLORS[code] ?? 'bg-gray-100 text-gray-600';
+  const colorClass = SEVERITY_COLORS[code] ?? 'bg-muted text-muted-foreground';
   return (
-    <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-bold ${colorClass}`}>
-      {code}
-    </span>
+    <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-bold ${colorClass}`}>{code}</span>
   );
 }
 
@@ -56,15 +54,12 @@ export function ResponseCodeSelector({
   const { data: codes = [], isLoading } = useResponseCodesByDocType(documentTypeId, projectId);
 
   // กลุ่ม codes ตาม category
-  const grouped = (codes as ResponseCode[]).reduce<Record<string, ResponseCode[]>>(
-    (acc, code) => {
-      const cat = code.category;
-      if (!acc[cat]) acc[cat] = [];
-      acc[cat].push(code);
-      return acc;
-    },
-    {},
-  );
+  const grouped = (codes as ResponseCode[]).reduce<Record<string, ResponseCode[]>>((acc, code) => {
+    const cat = code.category;
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(code);
+    return acc;
+  }, {});
 
   const categories = Object.keys(grouped);
 
@@ -79,16 +74,14 @@ export function ResponseCodeSelector({
         )}
         {categories.map((cat) => (
           <SelectGroup key={cat}>
-            <SelectLabel className="text-xs text-muted-foreground uppercase tracking-wide">
-              {cat}
-            </SelectLabel>
+            <SelectLabel className="text-xs uppercase tracking-wide text-muted-foreground">{cat}</SelectLabel>
             {grouped[cat].map((code) => (
               <SelectItem key={code.publicId} value={code.publicId}>
                 <div className="flex items-center gap-2">
                   <CodeBadge code={code.code} />
                   <span className="text-sm">{code.descriptionEn}</span>
                   {(code.implications?.affectsCost || code.implications?.requiresContractReview) && (
-                    <span className="text-xs text-orange-600 font-medium">⚠ Action Required</span>
+                    <span className="text-xs font-medium text-orange-600">⚠ Action Required</span>
                   )}
                 </div>
               </SelectItem>

@@ -4,13 +4,7 @@
 import * as React from 'react';
 import { useProjects } from '@/hooks/use-projects';
 import { useProjectStore } from '@/lib/stores/project-store';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Building2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -37,8 +31,8 @@ export function ProjectSwitcher() {
   // If user has exactly one project, show it as text (no dropdown needed)
   if (projects.length === 1) {
     return (
-      <div className="flex h-9 items-center px-3 py-2 text-sm border rounded-md bg-muted/50 w-[200px] lg:w-[250px]">
-        <Building2 className="h-4 w-4 mr-2 opacity-50 flex-shrink-0" />
+      <div className="flex h-9 w-[200px] items-center rounded-md border bg-muted/50 px-3 py-2 text-sm lg:w-[250px]">
+        <Building2 className="mr-2 h-4 w-4 flex-shrink-0 opacity-50" />
         <span className="truncate font-medium">{projects[0].projectName}</span>
       </div>
     );
@@ -49,9 +43,9 @@ export function ProjectSwitcher() {
       value={selectedProjectId || 'global'}
       onValueChange={(value) => setSelectedProjectId(value === 'global' ? null : value)}
     >
-      <SelectTrigger className="w-[200px] lg:w-[250px] h-9">
+      <SelectTrigger className="h-9 w-[200px] lg:w-[250px]">
         <div className="flex items-center gap-2 truncate">
-          <Building2 className="h-4 w-4 opacity-50 flex-shrink-0" />
+          <Building2 className="h-4 w-4 flex-shrink-0 opacity-50" />
           <SelectValue placeholder="Select Project..." className="truncate" />
         </div>
       </SelectTrigger>

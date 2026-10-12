@@ -15,9 +15,7 @@ type QueueItemLike = Pick<MigrationReviewQueueItem, 'documentNumber' | 'details'
 export function getQueueBaseDocNumber(item: QueueItemLike): string {
   const details = item.details;
   if (details && typeof details === 'object') {
-    const original = (details as Record<string, unknown>)[
-      'original_document_number'
-    ];
+    const original = (details as Record<string, unknown>)['original_document_number'];
     if (typeof original === 'string' && original.trim() !== '') {
       return original.trim();
     }
@@ -30,9 +28,7 @@ export function getQueueBaseDocNumber(item: QueueItemLike): string {
  * — undefined เมื่อ item ไม่ได้มาจาก register ที่มี revision column
  * (ไม่อ่าน details.revision_number เพราะ key นั้นเป็น dedup counter ของ legacy)
  */
-export function getQueueRevisionLabel(
-  item: QueueItemLike
-): string | undefined {
+export function getQueueRevisionLabel(item: QueueItemLike): string | undefined {
   const details = item.details;
   if (!details || typeof details !== 'object') return undefined;
   const label = (details as Record<string, unknown>)['revision_label'];

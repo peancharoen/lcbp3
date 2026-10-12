@@ -121,7 +121,7 @@ export function CirculationList({ data }: CirculationListProps) {
         const percent = Math.round((completed / total) * 100);
         return (
           <div className="flex items-center gap-2">
-            <div className="w-20 h-2 bg-muted rounded-full overflow-hidden">
+            <div className="h-2 w-20 overflow-hidden rounded-full bg-muted">
               <div className="h-full bg-primary transition-all" style={{ width: `${percent}%` }} />
             </div>
             <span className="text-xs text-muted-foreground">
@@ -170,7 +170,7 @@ export function CirculationList({ data }: CirculationListProps) {
     <div>
       <DataTable columns={columns} data={data.data || []} />
       {data.meta && (
-        <div className="mt-4 text-sm text-muted-foreground text-center">
+        <div className="mt-4 text-center text-sm text-muted-foreground">
           Showing {data.data?.length || 0} of {data.meta.total} circulations
         </div>
       )}

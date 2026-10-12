@@ -45,29 +45,20 @@ interface BatchRunSummaryProps {
  * แสดงสรุปผลลัพธ์ batch run — success/skip/fail counts (FR-026b, FR-020)
  * รองรับทั้ง resolve-batch และ trigger-rag-batch
  */
-export function BatchRunSummary({
-  result,
-  variant = 'resolve',
-  className,
-}: BatchRunSummaryProps) {
+export function BatchRunSummary({ result, variant = 'resolve', className }: BatchRunSummaryProps) {
   const isRag = variant === 'rag';
   const hasFailures = result.failures && result.failures.length > 0;
   const durationMs =
     result.startedAt && result.completedAt
-      ? new Date(result.completedAt).getTime() -
-        new Date(result.startedAt).getTime()
+      ? new Date(result.completedAt).getTime() - new Date(result.startedAt).getTime()
       : undefined;
 
   return (
     <Card className={cn('border-muted shadow-sm', className)}>
-      <CardHeader className="pb-3 border-b">
+      <CardHeader className="border-b pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-bold flex items-center gap-2">
-            {isRag ? (
-              <FileText className="h-5 w-5 text-blue-500" />
-            ) : (
-              <Tags className="h-5 w-5 text-purple-500" />
-            )}
+          <CardTitle className="flex items-center gap-2 text-base font-bold">
+            {isRag ? <FileText className="h-5 w-5 text-info" /> : <Tags className="h-5 w-5 text-purple-500" />}
             {isRag ? 'สรุปการ RAG Batch' : 'สรุปการ Resolve Batch'}
           </CardTitle>
           {result.batchId && (
@@ -77,7 +68,7 @@ export function BatchRunSummary({
           )}
         </div>
         {result.warning && (
-          <div className="flex items-center gap-2 mt-2 text-xs text-orange-600 bg-orange-500/5 p-2 rounded">
+          <div className="mt-2 flex items-center gap-2 rounded bg-orange-500/5 p-2 text-xs text-orange-600">
             <AlertCircle className="h-4 w-4 flex-shrink-0" />
             <span>
               {result.warning === 'IMPORT_IN_PROGRESS'
@@ -88,7 +79,7 @@ export function BatchRunSummary({
         )}
       </CardHeader>
       <CardContent className="pt-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <SummaryStat
             label="ทั้งหมด"
             value={result.total}
@@ -98,29 +89,27 @@ export function BatchRunSummary({
           <SummaryStat
             label="สำเร็จ"
             value={result.succeeded}
-            icon={<CheckCircle2 className="h-4 w-4 text-green-500" />}
-            color="text-green-600"
+            icon={<CheckCircle2 className="h-4 w-4 text-success" />}
+            color="text-success"
           />
           <SummaryStat
             label="ข้าม"
             value={result.skipped}
-            icon={<SkipForward className="h-4 w-4 text-yellow-500" />}
-            color="text-yellow-600"
+            icon={<SkipForward className="h-4 w-4 text-warning" />}
+            color="text-warning"
           />
           <SummaryStat
             label="ล้มเหลว"
             value={result.failed}
-            icon={<XCircle className="h-4 w-4 text-red-500" />}
-            color="text-red-600"
+            icon={<XCircle className="h-4 w-4 text-destructive" />}
+            color="text-destructive"
           />
         </div>
 
         {/* Skip breakdown สำหรับ RAG batch */}
         {isRag && result.skipBreakdown && (
-          <div className="mt-4 pt-3 border-t">
-            <h4 className="text-xs font-semibold text-muted-foreground mb-2">
-              สาเหตุการข้าม
-            </h4>
+          <div className="mt-4 border-t pt-3">
+            <h4 className="mb-2 text-xs font-semibold text-muted-foreground">สาเหตุการข้าม</h4>
             <div className="flex flex-wrap gap-2">
               <Badge variant="outline" className="text-xs">
                 ไม่มี text layer: {result.skipBreakdown.noTextLayer}
@@ -137,7 +126,7 @@ export function BatchRunSummary({
 
         {/* Tags summary สำหรับ resolve batch */}
         {!isRag && (result.tagsCreated || result.tagsLinked) && (
-          <div className="mt-4 pt-3 border-t">
+          <div className="mt-4 border-t pt-3">
             <div className="flex gap-4 text-sm">
               <span className="text-muted-foreground">
                 แท็กที่สร้าง: <span className="font-semibold text-foreground">{result.tagsCreated ?? 0}</span>
@@ -151,25 +140,20 @@ export function BatchRunSummary({
 
         {/* Duration */}
         {durationMs !== undefined && (
-          <div className="mt-3 text-xs text-muted-foreground font-mono">
-            ใช้เวลา: {durationMs}ms
-          </div>
+          <div className="mt-3 font-mono text-xs text-muted-foreground">ใช้เวลา: {durationMs}ms</div>
         )}
 
         {/* Failures detail */}
         {hasFailures && (
-          <div className="mt-4 pt-3 border-t">
-            <h4 className="text-xs font-semibold text-red-600 mb-2">
+          <div className="mt-4 border-t pt-3">
+            <h4 className="mb-2 text-xs font-semibold text-destructive">
               รายการที่ล้มเหลว ({result.failures!.length} รายการ)
             </h4>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
+            <div className="max-h-48 space-y-2 overflow-y-auto">
               {result.failures!.map((f, i) => (
-                <div
-                  key={i}
-                  className="text-xs bg-red-500/5 border border-red-500/20 rounded p-2"
-                >
+                <div key={i} className="rounded border border-destructive/20 bg-destructive/5 p-2 text-xs">
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs font-mono">
+                    <Badge variant="outline" className="font-mono text-xs">
                       {f.correspondencePublicId.substring(0, 8)}...
                     </Badge>
                     <span className="font-medium">{f.field}</span>
@@ -201,14 +185,12 @@ function SummaryStat({
   color: string;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center p-3 rounded-md bg-muted/30">
-      <div className="flex items-center gap-1.5 mb-1">
+    <div className="flex flex-col items-center justify-center rounded-md bg-muted/30 p-3">
+      <div className="mb-1 flex items-center gap-1.5">
         {icon}
         <span className="text-xs text-muted-foreground">{label}</span>
       </div>
-      <span className={cn('text-2xl font-black font-mono', color)}>
-        {value}
-      </span>
+      <span className={cn('font-mono text-2xl font-black', color)}>{value}</span>
     </div>
   );
 }

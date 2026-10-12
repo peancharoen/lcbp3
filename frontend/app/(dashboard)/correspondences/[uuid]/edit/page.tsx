@@ -15,15 +15,15 @@ export default function EditCorrespondencePage() {
 
   if (!uuid) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <h1 className="text-xl font-bold text-red-500">Invalid Correspondence UUID</h1>
+      <div className="flex min-h-screen flex-col items-center justify-center">
+        <h1 className="text-xl font-bold text-destructive">Invalid Correspondence UUID</h1>
       </div>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="flex bg-muted/20 min-h-screen justify-center items-center">
+      <div className="flex min-h-screen items-center justify-center bg-muted/20">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
@@ -31,23 +31,23 @@ export default function EditCorrespondencePage() {
 
   if (isError || !correspondence) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <h1 className="text-xl font-bold text-red-500">Failed to load correspondence</h1>
+      <div className="flex min-h-screen flex-col items-center justify-center">
+        <h1 className="text-xl font-bold text-destructive">Failed to load correspondence</h1>
         <p>Please try again later or verify the UUID.</p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-6">
+    <div className="mx-auto max-w-4xl py-6">
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Edit Correspondence</h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="mt-1 text-muted-foreground">
           Editing: <span className="font-mono font-semibold">{correspondence.correspondenceNumber}</span>
         </p>
       </div>
 
-      <div className="bg-card border rounded-lg p-6 shadow-sm">
+      <div className="rounded-lg border bg-card p-6 shadow-sm">
         <CorrespondenceForm initialData={correspondence} uuid={uuid} selectedRevisionId={selectedRevisionId} />
       </div>
     </div>

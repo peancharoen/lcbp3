@@ -4,14 +4,7 @@
 
 'use client';
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
 import type { IntentStats } from '@/lib/services/ai-intent.service';
 
@@ -41,25 +34,18 @@ export function IntentBreakdownTable({ data }: IntentBreakdownTableProps) {
       </TableHeader>
       <TableBody>
         {data.map((row) => {
-          const patternRate =
-            row.count > 0 ? (row.patternHits / row.count) * 100 : 0;
+          const patternRate = row.count > 0 ? (row.patternHits / row.count) * 100 : 0;
           return (
             <TableRow key={row.intentCode}>
-              <TableCell className="font-mono text-sm">
-                {row.intentCode}
-              </TableCell>
+              <TableCell className="font-mono text-sm">{row.intentCode}</TableCell>
               <TableCell className="text-right">{row.count}</TableCell>
               <TableCell className="text-right">{row.patternHits}</TableCell>
               <TableCell className="text-right">{row.llmHits}</TableCell>
-              <TableCell className="text-right">
-                {row.avgConfidence.toFixed(2)}
-              </TableCell>
+              <TableCell className="text-right">{row.avgConfidence.toFixed(2)}</TableCell>
               <TableCell>
                 <div className="flex items-center gap-2">
                   <Progress value={patternRate} className="h-2" />
-                  <span className="text-xs text-muted-foreground w-10 text-right">
-                    {patternRate.toFixed(0)}%
-                  </span>
+                  <span className="w-10 text-right text-xs text-muted-foreground">{patternRate.toFixed(0)}%</span>
                 </div>
               </TableCell>
             </TableRow>

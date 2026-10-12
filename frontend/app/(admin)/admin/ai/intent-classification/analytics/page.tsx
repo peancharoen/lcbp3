@@ -36,7 +36,7 @@ export default function IntentAnalyticsPage() {
   if (isError) {
     return (
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-4">Intent Classification Analytics</h1>
+        <h1 className="mb-4 text-2xl font-bold">Intent Classification Analytics</h1>
         <Card>
           <CardContent className="p-6">
             <p className="text-destructive">

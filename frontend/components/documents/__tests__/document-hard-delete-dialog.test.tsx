@@ -28,7 +28,7 @@ describe('DocumentHardDeleteDialog (Feature 253 — Phase 2 Frontend Unit)', () 
         config={config}
         documentLabel="CORR-001"
         onConfirm={mockOnConfirm}
-      />,
+      />
     );
 
     expect(screen.getByText('document.hardDelete.title')).toBeInTheDocument();
@@ -44,7 +44,7 @@ describe('DocumentHardDeleteDialog (Feature 253 — Phase 2 Frontend Unit)', () 
         config={config}
         documentLabel="CORR-001"
         onConfirm={mockOnConfirm}
-      />,
+      />
     );
 
     expect(screen.getByText('document.hardDelete.understand')).toBeInTheDocument();
@@ -59,7 +59,7 @@ describe('DocumentHardDeleteDialog (Feature 253 — Phase 2 Frontend Unit)', () 
         config={config}
         documentLabel="CORR-001"
         onConfirm={mockOnConfirm}
-      />,
+      />
     );
 
     fireEvent.click(screen.getByText('document.hardDelete.understand'));
@@ -77,7 +77,7 @@ describe('DocumentHardDeleteDialog (Feature 253 — Phase 2 Frontend Unit)', () 
         config={config}
         documentLabel="CORR-001"
         onConfirm={mockOnConfirm}
-      />,
+      />
     );
 
     fireEvent.click(screen.getByText('document.hardDelete.understand'));
@@ -93,7 +93,7 @@ describe('DocumentHardDeleteDialog (Feature 253 — Phase 2 Frontend Unit)', () 
         config={config}
         documentLabel="CORR-001"
         onConfirm={mockOnConfirm}
-      />,
+      />
     );
 
     fireEvent.click(screen.getByText('document.hardDelete.understand'));
@@ -109,7 +109,7 @@ describe('DocumentHardDeleteDialog (Feature 253 — Phase 2 Frontend Unit)', () 
         config={config}
         documentLabel="CORR-001"
         onConfirm={mockOnConfirm}
-      />,
+      />
     );
 
     fireEvent.click(screen.getByText('document.hardDelete.understand'));
@@ -129,7 +129,7 @@ describe('DocumentHardDeleteDialog (Feature 253 — Phase 2 Frontend Unit)', () 
         documentLabel="CORR-001"
         isLoading={true}
         onConfirm={mockOnConfirm}
-      />,
+      />
     );
 
     fireEvent.click(screen.getByText('document.hardDelete.understand'));
@@ -147,7 +147,7 @@ describe('DocumentHardDeleteDialog (Feature 253 — Phase 2 Frontend Unit)', () 
         config={config}
         documentLabel="CORR-001"
         onConfirm={mockOnConfirm}
-      />,
+      />
     );
 
     // ไป step 2 และพิมพ์ DELETE
@@ -162,7 +162,7 @@ describe('DocumentHardDeleteDialog (Feature 253 — Phase 2 Frontend Unit)', () 
         config={config}
         documentLabel="CORR-001"
         onConfirm={mockOnConfirm}
-      />,
+      />
     );
   });
 });

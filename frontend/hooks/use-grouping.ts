@@ -37,9 +37,7 @@ export function useDepartments(orgPublicId?: string) {
     queryKey: ['departments', orgPublicId],
     enabled: Boolean(orgPublicId),
     queryFn: async () => {
-      const response = await apiClient.get(
-        `/organizations/${orgPublicId}/departments`
-      );
+      const response = await apiClient.get(`/organizations/${orgPublicId}/departments`);
       const data = response.data?.data ?? response.data;
       return Array.isArray(data) ? (data as DepartmentOption[]) : [];
     },

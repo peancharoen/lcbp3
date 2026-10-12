@@ -52,12 +52,12 @@ export default function OcrEngineSelector() {
     return (
       <Card className="border border-border/50 bg-background/50 backdrop-blur-md">
         <CardHeader className="pb-3">
-          <div className="h-6 w-48 bg-muted animate-pulse rounded" />
-          <div className="h-4 w-64 bg-muted animate-pulse rounded mt-2" />
+          <div className="h-6 w-48 animate-pulse rounded bg-muted" />
+          <div className="mt-2 h-4 w-64 animate-pulse rounded bg-muted" />
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="h-20 bg-muted animate-pulse rounded" />
-          <div className="h-20 bg-muted animate-pulse rounded" />
+          <div className="h-20 animate-pulse rounded bg-muted" />
+          <div className="h-20 animate-pulse rounded bg-muted" />
         </CardContent>
       </Card>
     );
@@ -66,13 +66,11 @@ export default function OcrEngineSelector() {
   return (
     <Card className="border border-border/50 bg-background/50 backdrop-blur-md">
       <CardHeader className="pb-3">
-        <CardTitle className="text-base font-semibold flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-base font-semibold">
           <ScanText className="h-4 w-4 text-primary" />
           ระบบจัดการ OCR Engine
         </CardTitle>
-        <CardDescription>
-          เลือกเอนจินประมวลผลหลักสำหรับระบบสกัดเอกสารและการรัน Sandbox
-        </CardDescription>
+        <CardDescription>เลือกเอนจินประมวลผลหลักสำหรับระบบสกัดเอกสารและการรัน Sandbox</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {engines.map((engine) => {
@@ -80,33 +78,36 @@ export default function OcrEngineSelector() {
           return (
             <div
               key={engine.engineId}
-              className={`relative flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg border transition-all duration-300 ${
+              className={`relative flex flex-col justify-between rounded-lg border p-4 transition-all duration-300 sm:flex-row sm:items-center ${
                 engine.isCurrentActive
                   ? 'border-primary/50 bg-primary/5 shadow-sm'
-                  : 'border-border/30 hover:border-border/60 bg-background/30'
+                  : 'border-border/30 bg-background/30 hover:border-border/60'
               }`}
             >
               <div className="space-y-1.5 pr-4">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold text-sm">{engine.engineName}</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-semibold">{engine.engineName}</span>
                   {engine.isCurrentActive && (
-                    <Badge variant="default" className="text-[10px] h-4 flex items-center gap-0.5">
+                    <Badge variant="default" className="flex h-4 items-center gap-0.5 text-[10px]">
                       <CheckCircle2 className="h-2.5 w-2.5" />
                       กำลังใช้งาน
                     </Badge>
                   )}
                   {isAiPowered && (
-                    <Badge variant="secondary" className="text-[10px] h-4 bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20">
+                    <Badge
+                      variant="secondary"
+                      className="h-4 border-purple-500/20 bg-purple-500/10 text-[10px] text-purple-600 dark:text-purple-400"
+                    >
                       AI Powered
                     </Badge>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">
+                <p className="text-xs leading-relaxed text-muted-foreground">
                   {isAiPowered
                     ? 'สกัดภาษาไทยความแม่นยำสูง (95%+) เหมาะสำหรับภาษาไทยผสมอังกฤษ'
                     : 'เอนจินมาตรฐานเบสไลน์ ประมวลผลรวดเร็วและใช้ทรัพยากรต่ำ'}
                 </p>
-                <div className="flex gap-4 text-[10px] text-muted-foreground flex-wrap pt-1">
+                <div className="flex flex-wrap gap-4 pt-1 text-[10px] text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <Server className="h-3 w-3" />
                     จำกัดพร้อมกัน: {engine.concurrentLimit} งาน
@@ -117,7 +118,7 @@ export default function OcrEngineSelector() {
                         <Cpu className="h-3 w-3" />
                         ต้องการ VRAM: {(engine.vramRequirementMB / 1024).toFixed(1)} GB
                       </span>
-                      <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                      <span className="flex items-center gap-1 text-success">
                         <CheckCircle2 className="h-3 w-3" />
                         Fast Path: PyMuPDF Text Layer
                       </span>
@@ -125,15 +126,19 @@ export default function OcrEngineSelector() {
                   )}
                 </div>
               </div>
-              <div className="mt-3 sm:mt-0 flex items-center justify-end">
+              <div className="mt-3 flex items-center justify-end sm:mt-0">
                 <Button
                   size="sm"
                   variant={engine.isCurrentActive ? 'secondary' : 'default'}
                   disabled={engine.isCurrentActive || isUpdating === engine.engineId}
                   onClick={() => handleSelectEngine(engine.engineId, engine.engineName)}
-                  className="w-full sm:w-auto text-xs min-w-[100px]"
+                  className="w-full min-w-[100px] text-xs sm:w-auto"
                 >
-                  {isUpdating === engine.engineId ? 'กำลังเปลี่ยน...' : engine.isCurrentActive ? 'เลือกอยู่แล้ว' : 'สลับใช้งาน'}
+                  {isUpdating === engine.engineId
+                    ? 'กำลังเปลี่ยน...'
+                    : engine.isCurrentActive
+                      ? 'เลือกอยู่แล้ว'
+                      : 'สลับใช้งาน'}
                 </Button>
               </div>
             </div>

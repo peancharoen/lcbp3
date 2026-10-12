@@ -8,13 +8,13 @@ export const fetchCache = 'force-no-store';
 
 export default function NewCorrespondencePage() {
   return (
-    <div className="max-w-4xl mx-auto py-6">
+    <div className="mx-auto max-w-4xl py-6">
       <div className="mb-8">
         <h1 className="text-3xl font-bold">New Correspondence</h1>
-        <p className="text-muted-foreground mt-1">Create a new official letter or communication record.</p>
+        <p className="mt-1 text-muted-foreground">Create a new official letter or communication record.</p>
       </div>
 
-      <div className="bg-card border rounded-lg p-6 shadow-sm">
+      <div className="rounded-lg border bg-card p-6 shadow-sm">
         <CorrespondenceForm />
       </div>
     </div>

@@ -4,19 +4,12 @@
 //   สำหรับ Legacy Review Queue (attachments จาก details.attachments)
 
 import { MigrationReviewQueueItem } from '@/types/migration';
-import {
-  getQueueAttachments,
-  getQueueFileName,
-  hasQueueFile,
-} from '@/lib/utils/queue-file';
+import { getQueueAttachments, getQueueFileName, hasQueueFile } from '@/lib/utils/queue-file';
 import { Badge } from '@/components/ui/badge';
 import { FileCheck2, FileX2 } from 'lucide-react';
 
 interface QueueFileCellProps {
-  item: Pick<
-    MigrationReviewQueueItem,
-    'details' | 'originalFilename' | 'storageTempPath'
-  >;
+  item: Pick<MigrationReviewQueueItem, 'details' | 'originalFilename' | 'storageTempPath'>;
   /** ข้อความ badge เมื่อไม่พบไฟล์ */
   notFoundText?: string;
 }
@@ -27,28 +20,22 @@ interface QueueFileCellProps {
  * - ไม่พบแต่มีชื่อที่ register อ้างถึง: badge แดง + ชื่อที่คาดไว้ (จาง)
  * - ไม่มีข้อมูลไฟล์เลย: —
  */
-export function QueueFileCell({
-  item,
-  notFoundText = 'ไม่พบไฟล์',
-}: QueueFileCellProps) {
+export function QueueFileCell({ item, notFoundText = 'ไม่พบไฟล์' }: QueueFileCellProps) {
   const attachments = getQueueAttachments(item);
   const found = hasQueueFile(item);
   const name = getQueueFileName(item);
 
   if (!found) {
     if (!name) {
-      return <span className="text-muted-foreground text-xs">—</span>;
+      return <span className="text-xs text-muted-foreground">—</span>;
     }
     return (
-      <span className="flex items-center gap-1.5 max-w-[220px]" title={name}>
-        <Badge
-          variant="outline"
-          className="shrink-0 text-red-600 border-red-500/30 bg-red-500/5"
-        >
-          <FileX2 className="h-3 w-3 mr-1" />
+      <span className="flex max-w-[220px] items-center gap-1.5" title={name}>
+        <Badge variant="outline" className="shrink-0 border-destructive/30 bg-destructive/5 text-destructive">
+          <FileX2 className="mr-1 h-3 w-3" />
           {notFoundText}
         </Badge>
-        <span className="text-xs text-muted-foreground truncate">{name}</span>
+        <span className="truncate text-xs text-muted-foreground">{name}</span>
       </span>
     );
   }
@@ -58,14 +45,11 @@ export function QueueFileCell({
     .filter((n): n is string => typeof n === 'string' && n !== '')
     .join('\n');
   return (
-    <span
-      className="flex items-center gap-1.5 max-w-[220px]"
-      title={allNames || name}
-    >
-      <FileCheck2 className="h-4 w-4 shrink-0 text-green-600" />
-      <span className="text-xs truncate">{name}</span>
+    <span className="flex max-w-[220px] items-center gap-1.5" title={allNames || name}>
+      <FileCheck2 className="h-4 w-4 shrink-0 text-success" />
+      <span className="truncate text-xs">{name}</span>
       {attachments.length > 1 && (
-        <Badge variant="secondary" className="shrink-0 text-[10px] px-1 py-0">
+        <Badge variant="secondary" className="shrink-0 px-1 py-0 text-[10px]">
           +{attachments.length - 1}
         </Badge>
       )}

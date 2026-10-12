@@ -65,19 +65,17 @@ export function ProjectOverrideManager({
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-base">{projectName}</CardTitle>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {overrides.length} project-specific override(s)
-            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{overrides.length} project-specific override(s)</p>
           </div>
           <Button size="sm" onClick={onAddOverride} disabled={isLoading}>
-            <Plus className="h-4 w-4 mr-1" />
+            <Plus className="mr-1 h-4 w-4" />
             Add Override
           </Button>
         </div>
       </CardHeader>
       <CardContent className="pt-0">
         {overrides.length === 0 ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+          <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
             <ArrowDownToLine className="h-4 w-4" />
             <span>Inheriting all rules from global defaults</span>
           </div>
@@ -85,25 +83,23 @@ export function ProjectOverrideManager({
           <div className="space-y-4">
             {Object.entries(grouped).map(([docType, rules]) => (
               <div key={docType}>
-                <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">
-                  {docType}
-                </p>
+                <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">{docType}</p>
                 <div className="space-y-1.5">
                   {rules.map((rule) => (
                     <div
                       key={rule.publicId}
-                      className="flex items-center justify-between py-1.5 px-2 rounded bg-muted/40"
+                      className="flex items-center justify-between rounded bg-muted/40 px-2 py-1.5"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-bold">
-                          {rule.responseCode.code}
-                        </span>
+                        <span className="font-mono text-xs font-bold">{rule.responseCode.code}</span>
                         <span className="text-sm">{rule.responseCode.descriptionEn}</span>
                         <Badge variant={rule.isEnabled ? 'default' : 'outline'} className="text-xs">
                           {rule.isEnabled ? 'Enabled' : 'Disabled'}
                         </Badge>
                         {rule.requiresComments && (
-                          <Badge variant="secondary" className="text-xs">Req. Comments</Badge>
+                          <Badge variant="secondary" className="text-xs">
+                            Req. Comments
+                          </Badge>
                         )}
                       </div>
 
@@ -125,8 +121,8 @@ export function ProjectOverrideManager({
                           <AlertDialogHeader>
                             <AlertDialogTitle>Remove Override?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              This will revert code <strong>{rule.responseCode.code}</strong> to the
-                              global default settings for this project.
+                              This will revert code <strong>{rule.responseCode.code}</strong> to the global default
+                              settings for this project.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>

@@ -40,7 +40,9 @@ describe('PromptVersionHistory', () => {
       <PromptVersionHistory versions={[]} isLoading {...callbacks} isActivating={false} isDeleting={false} />
     );
     expect(screen.getByText('กำลังโหลดประวัติเวอร์ชัน...')).toBeInTheDocument();
-    rerender(<PromptVersionHistory versions={[]} isLoading={false} {...callbacks} isActivating={false} isDeleting={false} />);
+    rerender(
+      <PromptVersionHistory versions={[]} isLoading={false} {...callbacks} isActivating={false} isDeleting={false} />
+    );
     expect(screen.getByText('ไม่พบเวอร์ชันอื่นในระบบ')).toBeInTheDocument();
   });
 

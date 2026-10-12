@@ -9,7 +9,12 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts'],
-    include: ['hooks/**/*.test.{ts,tsx}', 'lib/**/*.test.{ts,tsx}', 'components/**/*.test.{ts,tsx}', 'app/**/*.test.{ts,tsx}'],
+    include: [
+      'hooks/**/*.test.{ts,tsx}',
+      'lib/**/*.test.{ts,tsx}',
+      'components/**/*.test.{ts,tsx}',
+      'app/**/*.test.{ts,tsx}',
+    ],
     exclude: ['**/node_modules/**', '**/.ignored_node_modules/**', '**/.next/**', '**/dist/**'],
     testTimeout: 60000,
     // ASUSTOR runner resource constraints — ใช้ singleFork เพื่อกัน worker starvation

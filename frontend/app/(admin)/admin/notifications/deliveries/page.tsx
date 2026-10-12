@@ -90,11 +90,11 @@ export default function NotificationDeliveriesPage() {
     <div className="space-y-6 p-6">
       <div>
         <h1 className="text-3xl font-bold">Notification Deliveries</h1>
-        <p className="text-muted-foreground mt-1">Telegram send-attempt audit trail</p>
+        <p className="mt-1 text-muted-foreground">Telegram send-attempt audit trail</p>
       </div>
 
-      <div className="flex gap-4 items-center bg-muted/30 p-4 rounded-lg">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex items-center gap-4 rounded-lg bg-muted/30 p-4">
+        <div className="relative max-w-sm flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Filter by target chat ID..."
@@ -103,7 +103,7 @@ export default function NotificationDeliveriesPage() {
               setTarget(e.target.value);
               setPage(1);
             }}
-            className="pl-8 bg-background"
+            className="bg-background pl-8"
           />
         </div>
         <div className="w-[180px]">

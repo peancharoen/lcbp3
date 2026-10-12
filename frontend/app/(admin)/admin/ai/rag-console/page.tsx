@@ -20,15 +20,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useRagAdminT } from '@/components/admin/ai/rag-console/rag-admin-i18n';
-import { useRagAttachments, useRagClassificationList, useRagClassificationOverride, useRagGenerations, useRagReingest, useRagMetrics, useRagMetricsReset, useRagFailedIngestions, useRagBatchRetry } from '@/hooks/ai/use-rag-admin';
+import {
+  useRagAttachments,
+  useRagClassificationList,
+  useRagClassificationOverride,
+  useRagGenerations,
+  useRagReingest,
+  useRagMetrics,
+  useRagMetricsReset,
+  useRagFailedIngestions,
+  useRagBatchRetry,
+} from '@/hooks/ai/use-rag-admin';
 import { RagStatusBadge } from '@/components/admin/ai/rag-console/RagStatusBadge';
 import { ClassificationBadge } from '@/components/admin/ai/rag-console/ClassificationBadge';
 import { ServiceUnavailableBanner } from '@/components/admin/ai/rag-console/ServiceUnavailableBanner';
@@ -38,10 +42,7 @@ import { MetricsCard } from '@/components/admin/ai/rag-console/MetricsCard';
 import { RetryButton } from '@/components/admin/ai/rag-console/RetryButton';
 import { ReOcrButton } from '@/components/admin/ai/rag-console/ReOcrButton';
 import { useAuthStore } from '@/lib/stores/auth-store';
-import type {
-  RagAdminStatus,
-  SecurityClassification,
-} from '@/lib/services/admin-rag.service';
+import type { RagAdminStatus, SecurityClassification } from '@/lib/services/admin-rag.service';
 
 /** Tab type */
 type RagAdminTab = 'dashboard' | 'classification' | 'lifecycle' | 'metrics' | 'retry';
@@ -73,10 +74,7 @@ export default function RagAdminConsolePage() {
         </TabsList>
 
         <TabsContent value="dashboard">
-          <DashboardTab
-            statusFilter={statusFilter}
-            setStatusFilter={setStatusFilter}
-          />
+          <DashboardTab statusFilter={statusFilter} setStatusFilter={setStatusFilter} />
         </TabsContent>
 
         <TabsContent value="classification">
@@ -143,14 +141,14 @@ function DashboardTab({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex flex-wrap items-center gap-2">
         <div className="relative w-[240px]">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={filenameInput}
             onChange={(e) => setFilenameInput(e.target.value)}
             placeholder={ragAdminT('dashboard.filter_filename')}
-            className="pl-8 h-9 text-sm"
+            className="h-9 pl-8 text-sm"
           />
         </div>
 
@@ -168,24 +166,16 @@ function DashboardTab({
           </SelectContent>
         </Select>
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => refetch()}
-          disabled={isFetching}
-        >
+        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
           <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
           {ragAdminT('dashboard.refresh')}
         </Button>
       </div>
 
       {isLoading ? (
-        <div className="py-12 text-center text-muted-foreground">{ragAdminT("common.loading")}</div>
+        <div className="py-12 text-center text-muted-foreground">{ragAdminT('common.loading')}</div>
       ) : !data || data.items.length === 0 ? (
-        <EmptyState
-          titleKey="dashboard.empty_state.no_data"
-          suggestionKey="dashboard.empty_state.suggestion"
-        />
+        <EmptyState titleKey="dashboard.empty_state.no_data" suggestionKey="dashboard.empty_state.suggestion" />
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -212,9 +202,7 @@ function DashboardTab({
                   <td className="p-2">
                     <ClassificationBadge classification={item.effectiveClassification as SecurityClassification} />
                   </td>
-                  <td className="p-2">
-                    {item.lastUpdated ? new Date(item.lastUpdated).toLocaleString() : '-'}
-                  </td>
+                  <td className="p-2">{item.lastUpdated ? new Date(item.lastUpdated).toLocaleString() : '-'}</td>
                   <td className="flex gap-2 p-2">
                     <ReOcrButton
                       attachmentPublicId={item.attachmentPublicId}
@@ -227,9 +215,7 @@ function DashboardTab({
                         size="sm"
                         onClick={() => setReingestTarget(item.attachmentPublicId)}
                         disabled={
-                          item.ragStatus === 'BUILDING' ||
-                          item.hasOcrText === false ||
-                          reingestMutation.isPending
+                          item.ragStatus === 'BUILDING' || item.hasOcrText === false || reingestMutation.isPending
                         }
                         title={item.hasOcrText === false ? ragAdminT('dashboard.no_ocr_hint') : undefined}
                       >
@@ -294,13 +280,11 @@ function ClassificationTab() {
   };
 
   if (isLoading) {
-    return <div className="py-12 text-center text-muted-foreground">{ragAdminT("common.loading")}</div>;
+    return <div className="py-12 text-center text-muted-foreground">{ragAdminT('common.loading')}</div>;
   }
 
   if (!data || data.items.length === 0) {
-    return (
-      <EmptyState titleKey="classification.empty_state.no_data" />
-    );
+    return <EmptyState titleKey="classification.empty_state.no_data" />;
   }
 
   return (
@@ -338,12 +322,8 @@ function ClassificationTab() {
                     </span>
                   )}
                 </td>
-                <td className="p-2">
-                  {item.classificationOverride?.reason ?? '-'}
-                </td>
-                <td className="p-2">
-                  {item.classificationOverride?.overriddenBy ?? '-'}
-                </td>
+                <td className="p-2">{item.classificationOverride?.reason ?? '-'}</td>
+                <td className="p-2">{item.classificationOverride?.overriddenBy ?? '-'}</td>
               </tr>
             ))}
           </tbody>
@@ -351,7 +331,7 @@ function ClassificationTab() {
       </div>
 
       {selectedAttachment && hasOverridePermission && (
-        <div className="rounded-md border p-4 space-y-3">
+        <div className="space-y-3 rounded-md border p-4">
           <h3 className="font-medium">{ragAdminT('classification.title')}</h3>
           <div className="space-y-2">
             <label className="text-sm">{ragAdminT('classification.new_classification')}</label>
@@ -376,10 +356,7 @@ function ClassificationTab() {
               rows={3}
             />
           </div>
-          <Button
-            onClick={handleOverride}
-            disabled={!reason.trim() || overrideMutation.isPending}
-          >
+          <Button onClick={handleOverride} disabled={!reason.trim() || overrideMutation.isPending}>
             {ragAdminT('classification.submit')}
           </Button>
         </div>
@@ -427,19 +404,13 @@ function LifecycleTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <Select
-          value={selectedAttachment ?? ''}
-          onValueChange={setSelectedAttachment}
-        >
+        <Select value={selectedAttachment ?? ''} onValueChange={setSelectedAttachment}>
           <SelectTrigger className="w-[300px]">
             <SelectValue placeholder={ragAdminT('lifecycle.select_attachment')} />
           </SelectTrigger>
           <SelectContent>
             {attachmentsData?.items.map((item) => (
-              <SelectItem
-                key={item.attachmentPublicId}
-                value={item.attachmentPublicId}
-              >
+              <SelectItem key={item.attachmentPublicId} value={item.attachmentPublicId}>
                 {item.originalFilename}
               </SelectItem>
             ))}
@@ -447,28 +418,18 @@ function LifecycleTab() {
         </Select>
 
         {selectedAttachment && (
-          <Button
-            variant="outline"
-            onClick={() => setConfirmDialogOpen(true)}
-            disabled={reingestMutation.isPending}
-          >
+          <Button variant="outline" onClick={() => setConfirmDialogOpen(true)} disabled={reingestMutation.isPending}>
             {ragAdminT('lifecycle.force_reingest')}
           </Button>
         )}
       </div>
 
       {isLoading ? (
-        <div className="py-12 text-center text-muted-foreground">{ragAdminT("common.loading")}</div>
+        <div className="py-12 text-center text-muted-foreground">{ragAdminT('common.loading')}</div>
       ) : !selectedAttachment ? (
-        <EmptyState
-          titleKey="lifecycle.empty_state.no_generation"
-          suggestionKey="lifecycle.empty_state.suggestion"
-        />
+        <EmptyState titleKey="lifecycle.empty_state.no_generation" suggestionKey="lifecycle.empty_state.suggestion" />
       ) : !data || data.generations.length === 0 ? (
-        <EmptyState
-          titleKey="lifecycle.empty_state.no_generation"
-          suggestionKey="lifecycle.empty_state.suggestion"
-        />
+        <EmptyState titleKey="lifecycle.empty_state.no_generation" suggestionKey="lifecycle.empty_state.suggestion" />
       ) : (
         <GenerationTimeline generations={data.generations} />
       )}
@@ -522,7 +483,7 @@ function MetricsTab() {
   };
 
   if (isLoading) {
-    return <div className="py-12 text-center text-muted-foreground">{ragAdminT("common.loading")}</div>;
+    return <div className="py-12 text-center text-muted-foreground">{ragAdminT('common.loading')}</div>;
   }
 
   if (!data) {
@@ -535,11 +496,7 @@ function MetricsTab() {
         <p className="text-xs text-muted-foreground">
           {ragAdminT('metrics.since_process_start', { uptime: formatUptimeMs(data.uptimeMs) })}
         </p>
-        <Button
-          variant="outline"
-          onClick={() => setConfirmDialogOpen(true)}
-          disabled={resetMutation.isPending}
-        >
+        <Button variant="outline" onClick={() => setConfirmDialogOpen(true)} disabled={resetMutation.isPending}>
           {ragAdminT('metrics.reset')}
         </Button>
       </div>
@@ -550,22 +507,21 @@ function MetricsTab() {
           value={`${data.ingestionDuration?.count ?? 0}`}
           details={[
             { label: ragAdminT('metrics.labels.sum_ms'), value: data.ingestionDuration?.sumMs ?? 0 },
-            { label: ragAdminT('metrics.labels.buckets'), value: JSON.stringify(data.ingestionDuration?.buckets ?? {}) },
+            {
+              label: ragAdminT('metrics.labels.buckets'),
+              value: JSON.stringify(data.ingestionDuration?.buckets ?? {}),
+            },
           ]}
         />
         <MetricsCard
           titleKey={ragAdminT('metrics.cards.chunk_count')}
           value={`${data.chunkCount?.totalChunks ?? 0}`}
-          details={[
-            { label: ragAdminT('metrics.labels.ingestions'), value: data.chunkCount?.ingestions ?? 0 },
-          ]}
+          details={[{ label: ragAdminT('metrics.labels.ingestions'), value: data.chunkCount?.ingestions ?? 0 }]}
         />
         <MetricsCard
           titleKey={ragAdminT('metrics.cards.vector_latency')}
           value={`${data.vectorLatency?.count ?? 0}`}
-          details={[
-            { label: ragAdminT('metrics.labels.sum_ms'), value: data.vectorLatency?.sumMs ?? 0 },
-          ]}
+          details={[{ label: ragAdminT('metrics.labels.sum_ms'), value: data.vectorLatency?.sumMs ?? 0 }]}
         />
         <MetricsCard
           titleKey={ragAdminT('metrics.cards.stale_result_rate')}
@@ -579,16 +535,17 @@ function MetricsTab() {
           titleKey={ragAdminT('metrics.cards.fallback_rate')}
           value={`${data.fallbackRate?.fullTextFallbacks ?? 0}/${data.fallbackRate?.totalQueries ?? 0}`}
           details={[
-            { label: ragAdminT('metrics.labels.full_text_fallbacks'), value: data.fallbackRate?.fullTextFallbacks ?? 0 },
+            {
+              label: ragAdminT('metrics.labels.full_text_fallbacks'),
+              value: data.fallbackRate?.fullTextFallbacks ?? 0,
+            },
             { label: ragAdminT('metrics.labels.total_queries'), value: data.fallbackRate?.totalQueries ?? 0 },
           ]}
         />
         <MetricsCard
           titleKey={ragAdminT('metrics.cards.cleanup_retry_rate')}
           value={`${data.cleanupRetryRate?.retries ?? 0}`}
-          details={[
-            { label: ragAdminT('metrics.labels.retries'), value: data.cleanupRetryRate?.retries ?? 0 },
-          ]}
+          details={[{ label: ragAdminT('metrics.labels.retries'), value: data.cleanupRetryRate?.retries ?? 0 }]}
         />
         {data.lifetime && (
           <MetricsCard
@@ -667,7 +624,7 @@ function RetryTab() {
   };
 
   if (isLoading) {
-    return <div className="py-12 text-center text-muted-foreground">{ragAdminT("common.loading")}</div>;
+    return <div className="py-12 text-center text-muted-foreground">{ragAdminT('common.loading')}</div>;
   }
 
   if (!data || (data.ragFailures.items.length === 0 && data.aiPipelineFailures.items.length === 0)) {
@@ -677,7 +634,7 @@ function RetryTab() {
   return (
     <div className="space-y-6">
       {partialSuccess && (
-        <div className="rounded-md border border-blue-500/50 bg-blue-500/10 p-3 text-sm">
+        <div className="rounded-md border border-info/50 bg-info/10 p-3 text-sm">
           {ragAdminT('retry.partial_success', {
             succeeded: partialSuccess.succeeded,
             failed: partialSuccess.failed,
@@ -705,7 +662,7 @@ function RetryTab() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b text-left">
-                  <th className="p-2 w-8">
+                  <th className="w-8 p-2">
                     <input
                       type="checkbox"
                       onChange={(e) => {
@@ -736,9 +693,7 @@ function RetryTab() {
                     <td className="p-2">{item.originalFilename}</td>
                     <td className="p-2">{item.errorCode ?? '-'}</td>
                     <td className="p-2">{item.errorMessage ?? '-'}</td>
-                    <td className="p-2">
-                      {item.failedAt ? new Date(item.failedAt).toLocaleString() : '-'}
-                    </td>
+                    <td className="p-2">{item.failedAt ? new Date(item.failedAt).toLocaleString() : '-'}</td>
                   </tr>
                 ))}
               </tbody>

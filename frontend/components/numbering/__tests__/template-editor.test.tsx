@@ -52,12 +52,14 @@ describe('TemplateEditor', () => {
   it('renders correctly with existing template data', () => {
     render(
       <TemplateEditor
-        template={{
-          formatTemplate: '{ORG}-{TYPE}-{SEQ:4}',
-          correspondenceTypeId: 'type1' as any,
-          disciplineId: 'disc1' as any,
-          resetSequenceYearly: false,
-        } as any}
+        template={
+          {
+            formatTemplate: '{ORG}-{TYPE}-{SEQ:4}',
+            correspondenceTypeId: 'type1' as any,
+            disciplineId: 'disc1' as any,
+            resetSequenceYearly: false,
+          } as any
+        }
         projectId={1}
         projectName="Test Project"
         correspondenceTypes={mockTypes}
@@ -155,12 +157,14 @@ describe('TemplateEditor', () => {
     const saveButton = screen.getByRole('button', { name: 'Save Template' });
     await user.click(saveButton);
 
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
-      projectId: 1,
-      formatTemplate: '{PROJECT}-{SEQ:4}',
-      resetSequenceYearly: true,
-      correspondenceTypeId: null,
-      disciplineId: 0,
-    }));
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: 1,
+        formatTemplate: '{PROJECT}-{SEQ:4}',
+        resetSequenceYearly: true,
+        correspondenceTypeId: null,
+        disciplineId: 0,
+      })
+    );
   });
 });

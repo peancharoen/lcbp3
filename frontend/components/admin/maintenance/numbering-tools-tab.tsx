@@ -73,8 +73,12 @@ export function NumberingToolsTab() {
   return (
     <div className="space-y-4">
       <div className="flex gap-2">
-        <Button onClick={handleScan} disabled={loading}>{t('admin.maintenance.scan')}</Button>
-        <Button onClick={handleSync} disabled={loading} variant="outline">{t('admin.maintenance.sync')}</Button>
+        <Button onClick={handleScan} disabled={loading}>
+          {t('admin.maintenance.scan')}
+        </Button>
+        <Button onClick={handleSync} disabled={loading} variant="outline">
+          {t('admin.maintenance.sync')}
+        </Button>
       </div>
 
       <Card>
@@ -87,7 +91,7 @@ export function NumberingToolsTab() {
           ) : (
             <ul className="space-y-2">
               {gaps.map((gap) => (
-                <li key={gap.counterKey} className="border p-2 rounded">
+                <li key={gap.counterKey} className="rounded border p-2">
                   <p className="font-medium">{gap.counterKey}</p>
                   <p className="text-sm text-muted-foreground">
                     {t('admin.maintenance.vector.expectedLabel')}: {gap.expectedNext},{' '}

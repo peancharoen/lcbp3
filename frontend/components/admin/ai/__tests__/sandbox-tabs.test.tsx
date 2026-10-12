@@ -35,11 +35,7 @@ describe('SandboxTabs', () => {
 
   it('ควร render 3-step sandbox testing interface', () => {
     render(
-      <SandboxTabs
-        promptType="ocr_extraction"
-        selectedVersionNumber={1}
-        onActivateVersion={mockOnActivateVersion}
-      />
+      <SandboxTabs promptType="ocr_extraction" selectedVersionNumber={1} onActivateVersion={mockOnActivateVersion} />
     );
 
     expect(screen.getByText('รันบอร์ดทดลองการทำงาน (3-Step Sandbox Testing)')).toBeInTheDocument();
@@ -50,11 +46,7 @@ describe('SandboxTabs', () => {
 
   it('ควร disabled ปุ่ม Run OCR เมื่อไม่มีไฟล์', () => {
     render(
-      <SandboxTabs
-        promptType="ocr_extraction"
-        selectedVersionNumber={1}
-        onActivateVersion={mockOnActivateVersion}
-      />
+      <SandboxTabs promptType="ocr_extraction" selectedVersionNumber={1} onActivateVersion={mockOnActivateVersion} />
     );
 
     const runButton = screen.queryByText('เริ่มรัน OCR (Run OCR)');

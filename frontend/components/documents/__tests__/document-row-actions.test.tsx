@@ -35,7 +35,7 @@ describe('DocumentRowActions (Feature 253 — Phase 2 Frontend Unit)', () => {
         onCancel={mockOnCancel}
         onHardDelete={mockOnHardDelete}
         onMetadataEdit={mockOnMetadataEdit}
-      />,
+      />
     );
     expect(container.firstChild).toBeNull();
   });
@@ -48,7 +48,7 @@ describe('DocumentRowActions (Feature 253 — Phase 2 Frontend Unit)', () => {
         onCancel={mockOnCancel}
         onHardDelete={mockOnHardDelete}
         onMetadataEdit={mockOnMetadataEdit}
-      />,
+      />
     );
     expect(screen.getByRole('button')).toBeInTheDocument();
   });
@@ -62,7 +62,7 @@ describe('DocumentRowActions (Feature 253 — Phase 2 Frontend Unit)', () => {
         onCancel={mockOnCancel}
         onHardDelete={mockOnHardDelete}
         onMetadataEdit={mockOnMetadataEdit}
-      />,
+      />
     );
     await user.click(screen.getByRole('button'));
     await waitFor(() => {
@@ -79,7 +79,7 @@ describe('DocumentRowActions (Feature 253 — Phase 2 Frontend Unit)', () => {
         onCancel={mockOnCancel}
         onHardDelete={mockOnHardDelete}
         onMetadataEdit={mockOnMetadataEdit}
-      />,
+      />
     );
     await user.click(screen.getByRole('button'));
     await waitFor(() => {
@@ -88,9 +88,7 @@ describe('DocumentRowActions (Feature 253 — Phase 2 Frontend Unit)', () => {
   });
 
   it('แสดง metadata edit action เมื่อมี edit_metadata permission', async () => {
-    mockHasPermission.mockImplementation(
-      (perm: string) => perm === '/api/v1/correspondences.edit_metadata',
-    );
+    mockHasPermission.mockImplementation((perm: string) => perm === '/api/v1/correspondences.edit_metadata');
     const user = userEvent.setup();
     render(
       <DocumentRowActions
@@ -98,7 +96,7 @@ describe('DocumentRowActions (Feature 253 — Phase 2 Frontend Unit)', () => {
         onCancel={mockOnCancel}
         onHardDelete={mockOnHardDelete}
         onMetadataEdit={mockOnMetadataEdit}
-      />,
+      />
     );
     await user.click(screen.getByRole('button'));
     await waitFor(() => {
@@ -115,7 +113,7 @@ describe('DocumentRowActions (Feature 253 — Phase 2 Frontend Unit)', () => {
         onCancel={mockOnCancel}
         onHardDelete={mockOnHardDelete}
         onMetadataEdit={mockOnMetadataEdit}
-      />,
+      />
     );
     await user.click(screen.getByRole('button'));
     await waitFor(() => {
@@ -134,7 +132,7 @@ describe('DocumentRowActions (Feature 253 — Phase 2 Frontend Unit)', () => {
         onCancel={mockOnCancel}
         onHardDelete={mockOnHardDelete}
         onMetadataEdit={mockOnMetadataEdit}
-      />,
+      />
     );
     await user.click(screen.getByRole('button'));
     await waitFor(() => {
@@ -145,9 +143,7 @@ describe('DocumentRowActions (Feature 253 — Phase 2 Frontend Unit)', () => {
   });
 
   it('คลิก metadata edit action → เรียก onMetadataEdit', async () => {
-    mockHasPermission.mockImplementation(
-      (perm: string) => perm === '/api/v1/correspondences.edit_metadata',
-    );
+    mockHasPermission.mockImplementation((perm: string) => perm === '/api/v1/correspondences.edit_metadata');
     const user = userEvent.setup();
     render(
       <DocumentRowActions
@@ -155,7 +151,7 @@ describe('DocumentRowActions (Feature 253 — Phase 2 Frontend Unit)', () => {
         onCancel={mockOnCancel}
         onHardDelete={mockOnHardDelete}
         onMetadataEdit={mockOnMetadataEdit}
-      />,
+      />
     );
     await user.click(screen.getByRole('button'));
     await waitFor(() => {

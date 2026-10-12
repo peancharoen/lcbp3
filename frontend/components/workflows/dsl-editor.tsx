@@ -16,7 +16,6 @@ import { useTheme } from 'next-themes';
 // เพื่อผ่าน CSP directive: style-src 'self' 'unsafe-inline'
 loader.config({ paths: { vs: '/monaco-vs' } });
 
-
 interface DSLEditorProps {
   initialValue?: string;
   onChange?: (value: string) => void;
@@ -91,7 +90,7 @@ export function DSLEditor({ initialValue = '', onChange, readOnly = false, onVal
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Workflow DSL</h3>
         <div className="flex gap-2">
           <Button variant="outline" onClick={validateDSL} disabled={isValidating || readOnly}>
@@ -133,7 +132,7 @@ export function DSLEditor({ initialValue = '', onChange, readOnly = false, onVal
       {validationResult && (
         <Alert
           variant={validationResult.valid ? 'default' : 'destructive'}
-          className={validationResult.valid ? 'border-green-500 text-green-700 dark:text-green-400' : ''}
+          className={validationResult.valid ? 'border-success text-success' : ''}
         >
           {validationResult.valid ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
           <AlertDescription>
@@ -141,8 +140,8 @@ export function DSLEditor({ initialValue = '', onChange, readOnly = false, onVal
               <span className="font-semibold">DSL is valid and ready to deploy.</span>
             ) : (
               <div>
-                <p className="font-medium mb-2">Validation Errors:</p>
-                <ul className="list-disc list-inside space-y-1">
+                <p className="mb-2 font-medium">Validation Errors:</p>
+                <ul className="list-inside list-disc space-y-1">
                   {validationResult.errors?.map((error: string, i: number) => (
                     <li key={i} className="text-sm">
                       {error}
@@ -158,7 +157,7 @@ export function DSLEditor({ initialValue = '', onChange, readOnly = false, onVal
       {testResult && (
         <Alert
           variant={testResult.success ? 'default' : 'destructive'}
-          className={testResult.success ? 'border-blue-500 text-blue-700 dark:text-blue-400' : ''}
+          className={testResult.success ? 'border-info text-info' : ''}
         >
           {testResult.success ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
           <AlertDescription>{testResult.message}</AlertDescription>

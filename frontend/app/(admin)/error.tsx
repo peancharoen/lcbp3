@@ -11,14 +11,14 @@ export default function AdminError({ error, reset }: { error: Error & { digest?:
   }, [error]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center px-4">
-      <AlertTriangle className="h-10 w-10 text-amber-500" />
+    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-4 text-center">
+      <AlertTriangle className="h-10 w-10 text-warning" />
       <div>
         <h2 className="text-lg font-semibold">Admin Panel Error</h2>
-        <p className="text-muted-foreground mt-1 text-sm max-w-md">
+        <p className="mt-1 max-w-md text-sm text-muted-foreground">
           {error.message || 'An error occurred in the admin panel.'}
         </p>
-        {error.digest && <p className="text-xs text-muted-foreground mt-2">Error ID: {error.digest}</p>}
+        {error.digest && <p className="mt-2 text-xs text-muted-foreground">Error ID: {error.digest}</p>}
       </div>
       <div className="flex gap-3">
         <Button onClick={reset} variant="outline" size="sm">

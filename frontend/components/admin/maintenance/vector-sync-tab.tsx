@@ -46,7 +46,9 @@ export function VectorSyncTab() {
 
   return (
     <div className="space-y-4">
-      <Button onClick={handleScan} disabled={loading}>{t('admin.maintenance.scan')}</Button>
+      <Button onClick={handleScan} disabled={loading}>
+        {t('admin.maintenance.scan')}
+      </Button>
 
       <Card>
         <CardHeader>
@@ -58,9 +60,9 @@ export function VectorSyncTab() {
           ) : (
             <ul className="space-y-2">
               {items.map((item) => (
-                <li key={item.documentPublicId} className="flex justify-between items-center border p-2 rounded">
+                <li key={item.documentPublicId} className="flex items-center justify-between rounded border p-2">
                   <div>
-                    <p className="font-medium text-sm">{item.documentPublicId}</p>
+                    <p className="text-sm font-medium">{item.documentPublicId}</p>
                     <p className="text-xs text-muted-foreground">
                       {t('admin.maintenance.vector.project')}: {item.projectPublicId}
                     </p>

@@ -26,41 +26,11 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTranslations } from '@/hooks/use-translations';
 
 interface ProjectOption {
@@ -94,10 +64,7 @@ const approveSchema = z.object({
 
 type ApproveFormValues = z.infer<typeof approveSchema>;
 
-const getMetadataText = (
-  metadata: Record<string, unknown> | undefined,
-  keys: string[]
-): string => {
+const getMetadataText = (metadata: Record<string, unknown> | undefined, keys: string[]): string => {
   for (const key of keys) {
     const value = metadata?.[key];
     if (typeof value === 'string') return value;
@@ -105,9 +72,7 @@ const getMetadataText = (
   return '';
 };
 
-function getStatusVariant(
-  status: AiStagingStatus
-): 'default' | 'secondary' | 'destructive' | 'outline' {
+function getStatusVariant(status: AiStagingStatus): 'default' | 'secondary' | 'destructive' | 'outline' {
   if (status === AiStagingStatus.PENDING) return 'secondary';
   if (status === AiStagingStatus.REJECTED) return 'destructive';
   if (status === AiStagingStatus.IMPORTED) return 'default';
@@ -117,9 +82,7 @@ function getStatusVariant(
 export default function AiStagingPage() {
   const t = useTranslations();
   const [activeTab, setActiveTab] = useState('queue');
-  const [selectedRecord, setSelectedRecord] = useState<AiStagingRecord | null>(
-    null
-  );
+  const [selectedRecord, setSelectedRecord] = useState<AiStagingRecord | null>(null);
   const queueQuery = useAiStagingQueue();
   const analyticsQuery = useAiAnalyticsSummary();
   const approveMutation = useApproveAiStagingRecord();
@@ -157,17 +120,11 @@ export default function AiStagingPage() {
     [projectsQuery.data]
   );
   const organizations = useMemo(
-    () =>
-      Array.isArray(organizationsQuery.data)
-        ? (organizationsQuery.data as OrganizationOption[])
-        : [],
+    () => (Array.isArray(organizationsQuery.data) ? (organizationsQuery.data as OrganizationOption[]) : []),
     [organizationsQuery.data]
   );
   const correspondenceTypes = useMemo(
-    () =>
-      Array.isArray(typesQuery.data)
-        ? (typesQuery.data as CorrespondenceTypeOption[])
-        : [],
+    () => (Array.isArray(typesQuery.data) ? (typesQuery.data as CorrespondenceTypeOption[]) : []),
     [typesQuery.data]
   );
 
@@ -208,12 +165,8 @@ export default function AiStagingPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-normal">
-            {t('ai.staging.title')}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {t('ai.staging.subtitle')}
-          </p>
+          <h1 className="text-2xl font-semibold tracking-normal">{t('ai.staging.title')}</h1>
+          <p className="text-sm text-muted-foreground">{t('ai.staging.subtitle')}</p>
         </div>
         <Button
           type="button"
@@ -257,11 +210,7 @@ export default function AiStagingPage() {
                   <TableRow key={record.publicId}>
                     <TableCell className="font-medium">
                       {record.originalFileName}
-                      {record.errorReason ? (
-                        <p className="text-xs text-destructive">
-                          {record.errorReason}
-                        </p>
-                      ) : null}
+                      {record.errorReason ? <p className="text-xs text-destructive">{record.errorReason}</p> : null}
                     </TableCell>
                     <TableCell>{record.batchId}</TableCell>
                     <TableCell>
@@ -270,9 +219,7 @@ export default function AiStagingPage() {
                         : `${Math.round(record.confidenceScore * 100)}%`}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={getStatusVariant(record.status)}>
-                        {record.status}
-                      </Badge>
+                      <Badge variant={getStatusVariant(record.status)}>{record.status}</Badge>
                     </TableCell>
                     <TableCell>
                       <Button
@@ -290,9 +237,7 @@ export default function AiStagingPage() {
                 {records.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                      {queueQuery.isLoading
-                        ? t('ai.staging.loading')
-                        : t('ai.staging.emptyQueue')}
+                      {queueQuery.isLoading ? t('ai.staging.loading') : t('ai.staging.emptyQueue')}
                     </TableCell>
                   </TableRow>
                 ) : null}
@@ -305,21 +250,15 @@ export default function AiStagingPage() {
           <div className="space-y-6">
             {/* Phase 6 T038: AI Analytics Summary */}
             {analyticsQuery.isLoading ? (
-              <div className="text-center text-muted-foreground">
-                {t('ai.staging.loading')}
-              </div>
+              <div className="text-center text-muted-foreground">{t('ai.staging.loading')}</div>
             ) : analyticsQuery.error ? (
-              <div className="text-center text-destructive">
-                {t('ai.staging.analyticsError')}
-              </div>
+              <div className="text-center text-destructive">{t('ai.staging.analyticsError')}</div>
             ) : analyticsQuery.data ? (
               <>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                   <Card>
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-medium">
-                        {t('ai.staging.avgConfidence')}
-                      </CardTitle>
+                      <CardTitle className="text-sm font-medium">{t('ai.staging.avgConfidence')}</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold">
@@ -329,26 +268,18 @@ export default function AiStagingPage() {
                   </Card>
                   <Card>
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-medium">
-                        {t('ai.staging.overrideRate')}
-                      </CardTitle>
+                      <CardTitle className="text-sm font-medium">{t('ai.staging.overrideRate')}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">
-                        {analyticsQuery.data.overall.overrideRate.toFixed(1)}%
-                      </div>
+                      <div className="text-2xl font-bold">{analyticsQuery.data.overall.overrideRate.toFixed(1)}%</div>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-medium">
-                        {t('ai.staging.rejectedRate')}
-                      </CardTitle>
+                      <CardTitle className="text-sm font-medium">{t('ai.staging.rejectedRate')}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">
-                        {analyticsQuery.data.overall.rejectedRate.toFixed(1)}%
-                      </div>
+                      <div className="text-2xl font-bold">{analyticsQuery.data.overall.rejectedRate.toFixed(1)}%</div>
                     </CardContent>
                   </Card>
                 </div>
@@ -356,9 +287,7 @@ export default function AiStagingPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle>{t('ai.staging.byDocumentType')}</CardTitle>
-                    <CardDescription>
-                      {t('ai.staging.byDocumentTypeDesc')}
-                    </CardDescription>
+                    <CardDescription>{t('ai.staging.byDocumentTypeDesc')}</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
@@ -372,31 +301,19 @@ export default function AiStagingPage() {
                           </div>
                           <div className="grid grid-cols-3 gap-4 text-xs">
                             <div>
-                              <div className="text-muted-foreground">
-                                {t('ai.staging.confidence')}
-                              </div>
-                              <div className="font-medium">
-                                {Math.round(item.avgConfidence * 100)}%
-                              </div>
+                              <div className="text-muted-foreground">{t('ai.staging.confidence')}</div>
+                              <div className="font-medium">{Math.round(item.avgConfidence * 100)}%</div>
                             </div>
                             <div>
-                              <div className="text-muted-foreground">
-                                {t('ai.staging.override')}
-                              </div>
-                              <div className="font-medium">
-                                {item.overrideRate.toFixed(1)}%
-                              </div>
+                              <div className="text-muted-foreground">{t('ai.staging.override')}</div>
+                              <div className="font-medium">{item.overrideRate.toFixed(1)}%</div>
                             </div>
                             <div>
-                              <div className="text-muted-foreground">
-                                {t('ai.staging.rejected')}
-                              </div>
-                              <div className="font-medium">
-                                {item.rejectedRate.toFixed(1)}%
-                              </div>
+                              <div className="text-muted-foreground">{t('ai.staging.rejected')}</div>
+                              <div className="font-medium">{item.rejectedRate.toFixed(1)}%</div>
                             </div>
                           </div>
-                          <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+                          <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
                             <div
                               className="h-full bg-primary transition-all"
                               style={{ width: `${item.avgConfidence * 100}%` }}
@@ -415,35 +332,27 @@ export default function AiStagingPage() {
                       <AlertTriangle className="h-5 w-5" />
                       {t('ai.staging.thresholdRecalibration')}
                     </CardTitle>
-                    <CardDescription>
-                      {t('ai.staging.thresholdDesc')}
-                    </CardDescription>
+                    <CardDescription>{t('ai.staging.thresholdDesc')}</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                       <div className="space-y-2">
                         <Label>{t('ai.staging.highThreshold')}</Label>
-                        <div className="text-2xl font-bold">
-                          {process.env.NEXT_PUBLIC_AI_CONFIDENCE_HIGH || '0.85'}
-                        </div>
+                        <div className="text-2xl font-bold">{process.env.NEXT_PUBLIC_AI_CONFIDENCE_HIGH || '0.85'}</div>
                       </div>
                       <div className="space-y-2">
                         <Label>{t('ai.staging.midThreshold')}</Label>
-                        <div className="text-2xl font-bold">
-                          {process.env.NEXT_PUBLIC_AI_CONFIDENCE_MID || '0.60'}
-                        </div>
+                        <div className="text-2xl font-bold">{process.env.NEXT_PUBLIC_AI_CONFIDENCE_MID || '0.60'}</div>
                       </div>
                     </div>
 
                     {analyticsQuery.data.overall.overrideRate > 40 && (
-                      <div className="rounded-md bg-yellow-50 border border-yellow-200 p-4">
+                      <div className="rounded-md border border-warning/30 bg-warning/10 p-4">
                         <div className="flex items-start gap-3">
-                          <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                          <AlertTriangle className="mt-0.5 h-5 w-5 text-warning" />
                           <div className="space-y-1">
-                            <div className="text-sm font-medium text-yellow-800">
-                              {t('ai.staging.thresholdWarning')}
-                            </div>
-                            <div className="text-sm text-yellow-700">
+                            <div className="text-sm font-medium text-warning">{t('ai.staging.thresholdWarning')}</div>
+                            <div className="text-sm text-warning">
                               {t('ai.staging.thresholdWarningDesc', {
                                 rate: analyticsQuery.data.overall.overrideRate.toFixed(1),
                               })}
@@ -459,7 +368,7 @@ export default function AiStagingPage() {
                         href="/docs/ai-configuration"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-primary hover:underline ml-1"
+                        className="ml-1 text-primary hover:underline"
                       >
                         {t('ai.staging.thresholdDocs')}
                       </a>
@@ -485,18 +394,14 @@ export default function AiStagingPage() {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="documentNumber">
-                  {t('ai.staging.documentNumber')}
-                </Label>
+                <Label htmlFor="documentNumber">{t('ai.staging.documentNumber')}</Label>
                 <Input id="documentNumber" {...form.register('documentNumber')} />
               </div>
               <div className="space-y-2">
                 <Label>{t('ai.staging.category')}</Label>
                 <Select
                   value={form.watch('categoryCode')}
-                  onValueChange={(value) =>
-                    form.setValue('categoryCode', value, { shouldValidate: true })
-                  }
+                  onValueChange={(value) => form.setValue('categoryCode', value, { shouldValidate: true })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder={t('ai.staging.selectCategory')} />
@@ -533,10 +438,7 @@ export default function AiStagingPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {projects.map((project) => (
-                      <SelectItem
-                        key={project.publicId ?? project.projectCode}
-                        value={project.publicId ?? ''}
-                      >
+                      <SelectItem key={project.publicId ?? project.projectCode} value={project.publicId ?? ''}>
                         {project.projectName ?? project.projectCode}
                       </SelectItem>
                     ))}
@@ -562,8 +464,7 @@ export default function AiStagingPage() {
                         key={organization.publicId ?? organization.organizationCode}
                         value={organization.publicId ?? ''}
                       >
-                        {organization.organizationName ??
-                          organization.organizationCode}
+                        {organization.organizationName ?? organization.organizationCode}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -591,8 +492,7 @@ export default function AiStagingPage() {
                         key={organization.publicId ?? organization.organizationCode}
                         value={organization.publicId ?? ''}
                       >
-                        {organization.organizationName ??
-                          organization.organizationCode}
+                        {organization.organizationName ?? organization.organizationCode}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -604,14 +504,8 @@ export default function AiStagingPage() {
                   <Input id="issuedDate" type="date" {...form.register('issuedDate')} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="receivedDate">
-                    {t('ai.staging.receivedDate')}
-                  </Label>
-                  <Input
-                    id="receivedDate"
-                    type="date"
-                    {...form.register('receivedDate')}
-                  />
+                  <Label htmlFor="receivedDate">{t('ai.staging.receivedDate')}</Label>
+                  <Input id="receivedDate" type="date" {...form.register('receivedDate')} />
                 </div>
               </div>
             </div>

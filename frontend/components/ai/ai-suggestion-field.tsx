@@ -12,8 +12,8 @@ import { cn } from '@/lib/utils';
 
 // สีตาม confidence score ของ ADR-023A
 const getConfidenceClass = (confidence: number): string => {
-  if (confidence >= 0.85) return 'text-green-700 bg-green-50 border-green-400';
-  if (confidence >= 0.6) return 'text-yellow-700 bg-yellow-50 border-yellow-400';
+  if (confidence >= 0.85) return 'text-success bg-success/10 border-success';
+  if (confidence >= 0.6) return 'text-warning bg-warning/10 border-warning';
   return 'text-muted-foreground bg-muted border-border';
 };
 
@@ -100,10 +100,7 @@ export function AiSuggestionField({
       <div className="flex items-center gap-2">
         <label className="text-sm font-medium">{label}</label>
         {hasSuggestion && confidence !== undefined && getConfidenceLabel(confidence) && (
-          <Badge
-            variant="outline"
-            className={cn('text-xs gap-1 px-1.5 py-0', getConfidenceClass(confidence))}
-          >
+          <Badge variant="outline" className={cn('gap-1 px-1.5 py-0 text-xs', getConfidenceClass(confidence))}>
             <Sparkles className="h-3 w-3" />
             {getConfidenceLabel(confidence)} {Math.round(confidence * 100)}%
           </Badge>
@@ -111,7 +108,7 @@ export function AiSuggestionField({
         {hasSuggestion && isUnknown && (
           <Badge
             variant="outline"
-            className="text-xs px-1.5 py-0 text-red-700 bg-red-50 border-red-300"
+            className="border-destructive/30 bg-destructive/10 px-1.5 py-0 text-xs text-destructive"
           >
             ไม่รู้จัก
           </Badge>
@@ -121,8 +118,8 @@ export function AiSuggestionField({
       {/* Field Content — highlight สีเหลืองเมื่อใช้ค่าจาก AI */}
       <div
         className={cn(
-          'rounded border px-3 py-2 text-sm min-h-[2.25rem]',
-          isAiValue && 'bg-yellow-50 border-l-4 border-yellow-400'
+          'min-h-[2.25rem] rounded border px-3 py-2 text-sm',
+          isAiValue && 'border-l-4 border-warning bg-warning/10'
         )}
       >
         {isEditing ? (
@@ -140,23 +137,15 @@ export function AiSuggestionField({
             <Button type="button" size="sm" variant="outline" onClick={handleSave} className="h-7 px-2">
               <Check className="h-3 w-3" />
             </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={() => setIsEditing(false)}
-              className="h-7 px-2"
-            >
+            <Button type="button" size="sm" variant="ghost" onClick={() => setIsEditing(false)} className="h-7 px-2">
               <X className="h-3 w-3" />
             </Button>
           </div>
         ) : (
           <div className="flex items-center justify-between gap-2">
-            <span>
-              {value !== '' ? value : <span className="text-muted-foreground italic">—</span>}
-            </span>
+            <span>{value !== '' ? value : <span className="italic text-muted-foreground">—</span>}</span>
             {hasSuggestion && (
-              <div className="flex gap-1 shrink-0">
+              <div className="flex shrink-0 gap-1">
                 {/* ปุ่ม "รับ" จะแสดงเมื่อค่าปัจจุบันยังไม่ใช่ค่า AI */}
                 {!isAiValue && (
                   <Button
@@ -164,10 +153,10 @@ export function AiSuggestionField({
                     size="sm"
                     variant="outline"
                     onClick={onAccept}
-                    className="h-6 px-2 text-xs text-green-700 border-green-300 hover:bg-green-50"
+                    className="h-6 border-success/30 px-2 text-xs text-success hover:bg-success/10"
                     title={`รับค่าจาก AI: ${suggestion}`}
                   >
-                    <Check className="h-3 w-3 mr-1" />
+                    <Check className="mr-1 h-3 w-3" />
                     รับ
                   </Button>
                 )}
@@ -178,10 +167,10 @@ export function AiSuggestionField({
                     size="sm"
                     variant="outline"
                     onClick={onReject}
-                    className="h-6 px-2 text-xs text-red-700 border-red-300 hover:bg-red-50"
+                    className="h-6 border-destructive/30 px-2 text-xs text-destructive hover:bg-destructive/10"
                     title="ปฏิเสธค่า AI"
                   >
-                    <X className="h-3 w-3 mr-1" />
+                    <X className="mr-1 h-3 w-3" />
                     ปฏิเสธ
                   </Button>
                 )}
@@ -203,14 +192,11 @@ export function AiSuggestionField({
 
       {/* แสดง AI Suggestion hint เมื่อค่าปัจจุบันต่างจาก AI */}
       {hasSuggestion && !isAiValue && (
-        <p className="text-xs text-muted-foreground pl-1">
+        <p className="pl-1 text-xs text-muted-foreground">
           {isUnknown ? 'ไม่รู้จัก — กรุณาเลือกจาก dropdown: ' : 'AI แนะนำ: '}
           <button
             type="button"
-            className={cn(
-              'font-medium hover:underline',
-              isUnknown ? 'text-red-700' : 'text-yellow-700'
-            )}
+            className={cn('font-medium hover:underline', isUnknown ? 'text-destructive' : 'text-warning')}
             onClick={onAccept}
           >
             {suggestion}

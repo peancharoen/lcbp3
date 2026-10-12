@@ -173,14 +173,8 @@ export const workflowEngineService = {
    */
   validateDsl: async (
     dsl: Record<string, unknown>
-  ): Promise<
-    | { valid: true }
-    | { valid: false; errors: { path: string; message: string }[] }
-  > => {
-    const response = await apiClient.post(
-      '/workflow-engine/definitions/validate',
-      { dsl }
-    );
+  ): Promise<{ valid: true } | { valid: false; errors: { path: string; message: string }[] }> => {
+    const response = await apiClient.post('/workflow-engine/definitions/validate', { dsl });
     return (response.data as { data?: unknown })?.data ?? response.data;
   },
 
@@ -199,16 +193,10 @@ export const workflowEngineService = {
    * ส่ง Action เพื่อเปลี่ยนสถานะ Workflow (พร้อมไฟล์แนบและ Idempotency-Key)
    * POST /workflow-engine/instances/:id/transition
    */
-  transition: async (
-    instanceId: string,
-    dto: WorkflowTransitionWithAttachmentsDto,
-    idempotencyKey: string
-  ) => {
-    const response = await apiClient.post(
-      `/workflow-engine/instances/${instanceId}/transition`,
-      dto,
-      { headers: { 'Idempotency-Key': idempotencyKey } }
-    );
+  transition: async (instanceId: string, dto: WorkflowTransitionWithAttachmentsDto, idempotencyKey: string) => {
+    const response = await apiClient.post(`/workflow-engine/instances/${instanceId}/transition`, dto, {
+      headers: { 'Idempotency-Key': idempotencyKey },
+    });
     return response.data?.data ?? response.data;
   },
 
@@ -217,9 +205,7 @@ export const workflowEngineService = {
    * GET /workflow-engine/instances/:id/history
    */
   getHistory: async (instanceId: string): Promise<WorkflowHistoryItem[]> => {
-    const response = await apiClient.get(
-      `/workflow-engine/instances/${instanceId}/history`
-    );
+    const response = await apiClient.get(`/workflow-engine/instances/${instanceId}/history`);
     const payload = response.data?.data ?? response.data;
     return Array.isArray(payload) ? (payload as WorkflowHistoryItem[]) : [];
   },

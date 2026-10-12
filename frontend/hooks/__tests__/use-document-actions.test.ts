@@ -42,19 +42,12 @@ describe('useDocumentActions (Feature 253 — Phase 2 Frontend Unit)', () => {
       action: 'cancel',
     });
 
-    const { result } = renderHook(
-      () => useDocumentActions({ config }),
-      { wrapper },
-    );
+    const { result } = renderHook(() => useDocumentActions({ config }), { wrapper });
 
     result.current.cancel({ publicId, reason: 'test' });
 
     await waitFor(() => {
-      expect(documentActionService.cancel).toHaveBeenCalledWith(
-        config.apiBasePath,
-        publicId,
-        'test',
-      );
+      expect(documentActionService.cancel).toHaveBeenCalledWith(config.apiBasePath, publicId, 'test');
     });
     await waitFor(() => {
       expect(toast.success).toHaveBeenCalledWith(config.successKey);
@@ -63,14 +56,9 @@ describe('useDocumentActions (Feature 253 — Phase 2 Frontend Unit)', () => {
 
   it('cancel: เรียก toast.error เมื่อ error', async () => {
     const { wrapper } = createTestQueryClient();
-    (documentActionService.cancel as jest.Mock).mockRejectedValue(
-      new Error('fail'),
-    );
+    (documentActionService.cancel as jest.Mock).mockRejectedValue(new Error('fail'));
 
-    const { result } = renderHook(
-      () => useDocumentActions({ config }),
-      { wrapper },
-    );
+    const { result } = renderHook(() => useDocumentActions({ config }), { wrapper });
 
     result.current.cancel({ publicId });
 
@@ -87,18 +75,12 @@ describe('useDocumentActions (Feature 253 — Phase 2 Frontend Unit)', () => {
       action: 'hardDelete',
     });
 
-    const { result } = renderHook(
-      () => useDocumentActions({ config }),
-      { wrapper },
-    );
+    const { result } = renderHook(() => useDocumentActions({ config }), { wrapper });
 
     result.current.hardDelete({ publicId });
 
     await waitFor(() => {
-      expect(documentActionService.hardDelete).toHaveBeenCalledWith(
-        config.apiBasePath,
-        publicId,
-      );
+      expect(documentActionService.hardDelete).toHaveBeenCalledWith(config.apiBasePath, publicId);
     });
     await waitFor(() => {
       expect(toast.success).toHaveBeenCalledWith('document.hardDelete.success');
@@ -114,10 +96,7 @@ describe('useDocumentActions (Feature 253 — Phase 2 Frontend Unit)', () => {
       newVersion: 2,
     });
 
-    const { result } = renderHook(
-      () => useDocumentActions({ config }),
-      { wrapper },
-    );
+    const { result } = renderHook(() => useDocumentActions({ config }), { wrapper });
 
     result.current.metadataPatch({
       publicId,
@@ -130,7 +109,7 @@ describe('useDocumentActions (Feature 253 — Phase 2 Frontend Unit)', () => {
         config.apiBasePath,
         publicId,
         { subject: 'new subject' },
-        1,
+        1
       );
     });
     await waitFor(() => {
@@ -147,10 +126,7 @@ describe('useDocumentActions (Feature 253 — Phase 2 Frontend Unit)', () => {
       action: 'cancel',
     });
 
-    const { result } = renderHook(
-      () => useDocumentActions({ config, onSuccess }),
-      { wrapper },
-    );
+    const { result } = renderHook(() => useDocumentActions({ config, onSuccess }), { wrapper });
 
     result.current.cancel({ publicId });
 

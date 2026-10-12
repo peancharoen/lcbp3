@@ -69,7 +69,14 @@ export const circulationService = {
     const response = await apiClient.post(
       `/circulations/${uuid}/force-close`,
       { reason },
-      { headers: { 'Idempotency-Key': typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : Math.random().toString(36).slice(2) } },
+      {
+        headers: {
+          'Idempotency-Key':
+            typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+              ? crypto.randomUUID()
+              : Math.random().toString(36).slice(2),
+        },
+      }
     );
     return response.data;
   },

@@ -4,14 +4,7 @@
 
 'use client';
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import type { MethodStats } from '@/lib/services/ai-intent.service';
 
@@ -61,15 +54,9 @@ export function MethodBreakdownTable({ data }: MethodBreakdownTableProps) {
           <TableRow key={row.method}>
             <TableCell>{methodBadge(row.method)}</TableCell>
             <TableCell className="text-right">{row.count}</TableCell>
-            <TableCell className="text-right">
-              {total > 0 ? ((row.count / total) * 100).toFixed(1) : 0}%
-            </TableCell>
-            <TableCell className="text-right">
-              {row.avgConfidence.toFixed(2)}
-            </TableCell>
-            <TableCell className="text-right">
-              {row.avgLatencyMs.toFixed(1)}ms
-            </TableCell>
+            <TableCell className="text-right">{total > 0 ? ((row.count / total) * 100).toFixed(1) : 0}%</TableCell>
+            <TableCell className="text-right">{row.avgConfidence.toFixed(2)}</TableCell>
+            <TableCell className="text-right">{row.avgLatencyMs.toFixed(1)}ms</TableCell>
           </TableRow>
         ))}
       </TableBody>

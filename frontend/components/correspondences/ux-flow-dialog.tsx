@@ -18,24 +18,21 @@ const flowSteps = [
     icon: '📝',
     title: 'Create Correspondence Master',
     table: 'correspondences',
-    detail:
-      'Create parent record with number, type, project, originator, and recipients (TO/CC).',
+    detail: 'Create parent record with number, type, project, originator, and recipients (TO/CC).',
   },
   {
     step: '2',
     icon: '📋',
     title: 'Create Current Revision',
     table: 'correspondence_revisions',
-    detail:
-      'Create revision 0 as current revision (is_current=true) with subject/body/date fields and initial status.',
+    detail: 'Create revision 0 as current revision (is_current=true) with subject/body/date fields and initial status.',
   },
   {
     step: '3',
     icon: '⬆️',
     title: 'Two-Phase Attachment',
     table: 'attachments (temp) -> correspondence_revision_attachments',
-    detail:
-      'Upload files into temporary storage first, then commit and link each file to a specific revision.',
+    detail: 'Upload files into temporary storage first, then commit and link each file to a specific revision.',
   },
   {
     step: '4',
@@ -50,16 +47,14 @@ const flowSteps = [
     icon: '🔄',
     title: 'New Revision Cycle',
     table: 'correspondence_revisions',
-    detail:
-      'When editing after response, create a new revision and switch previous current revision to non-current.',
+    detail: 'When editing after response, create a new revision and switch previous current revision to non-current.',
   },
   {
     step: '6',
     icon: '🧩',
     title: 'RFA Extension Path',
     table: 'rfas + rfa_revisions + rfa_items',
-    detail:
-      'RFA list is unified in Correspondences (?type=RFA), while RFA new/detail/edit remain specialized routes.',
+    detail: 'RFA list is unified in Correspondences (?type=RFA), while RFA new/detail/edit remain specialized routes.',
   },
 ];
 
@@ -98,7 +93,7 @@ export function CorrespondenceUxFlowDialog() {
           UX Flow
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Correspondence UX Flow Diagram</DialogTitle>
           <DialogDescription>
@@ -106,17 +101,17 @@ export function CorrespondenceUxFlowDialog() {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="rounded-md border bg-card p-4 space-y-3">
-          <div className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+        <div className="space-y-3 rounded-md border bg-card p-4">
+          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Table Relationship (Master-Revision Pattern)
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-md border border-amber-400/40 bg-amber-500/10 px-2 py-1 text-xs font-medium">
+            <span className="rounded-md border border-warning/40 bg-warning/10 px-2 py-1 text-xs font-medium">
               correspondences
             </span>
             <span className="text-xs text-muted-foreground">1:N</span>
-            <span className="rounded-md border border-sky-400/40 bg-sky-500/10 px-2 py-1 text-xs font-medium">
+            <span className="rounded-md border border-info/40 bg-info/10 px-2 py-1 text-xs font-medium">
               correspondence_revisions
             </span>
             <span className="text-xs text-muted-foreground">M:N</span>
@@ -127,10 +122,7 @@ export function CorrespondenceUxFlowDialog() {
 
           <div className="flex flex-wrap gap-2">
             {relationshipChips.map((chip) => (
-              <span
-                key={chip}
-                className="rounded border bg-muted/60 px-2 py-1 text-[11px] text-muted-foreground"
-              >
+              <span key={chip} className="rounded border bg-muted/60 px-2 py-1 text-[11px] text-muted-foreground">
                 {chip}
               </span>
             ))}
@@ -142,29 +134,25 @@ export function CorrespondenceUxFlowDialog() {
             <div key={item.step} className="rounded-md border bg-card">
               <button
                 type="button"
-                className="w-full p-2.5 flex items-center gap-2 text-left"
-                onClick={() =>
-                  setOpenStep((current) =>
-                    current === item.step ? '' : item.step
-                  )
-                }
+                className="flex w-full items-center gap-2 p-2.5 text-left"
+                onClick={() => setOpenStep((current) => (current === item.step ? '' : item.step))}
               >
-                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/15 text-primary text-xs font-semibold shrink-0">
+                <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-semibold text-primary">
                   {item.step}
                 </span>
-                <h4 className="font-semibold text-sm flex-1 min-w-0 truncate pr-2">
+                <h4 className="min-w-0 flex-1 truncate pr-2 text-sm font-semibold">
                   {item.icon} {item.title}
                 </h4>
                 <ChevronDown
-                  className={`h-4 w-4 text-muted-foreground transition-transform shrink-0 ${
+                  className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
                     openStep === item.step ? 'rotate-180' : ''
                   }`}
                 />
               </button>
 
               {openStep === item.step && (
-                <div className="px-2.5 pb-2.5 space-y-1.5">
-                  <div className="rounded border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] text-primary w-fit">
+                <div className="space-y-1.5 px-2.5 pb-2.5">
+                  <div className="w-fit rounded border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] text-primary">
                     {item.table}
                   </div>
                   <p className="text-sm text-muted-foreground">{item.detail}</p>
@@ -178,10 +166,7 @@ export function CorrespondenceUxFlowDialog() {
           <div className="mb-2 text-sm font-semibold">Status Legend</div>
           <div className="flex flex-wrap gap-2">
             {statusLegend.map((item) => (
-              <span
-                key={item.code}
-                className="rounded border px-1.5 py-0.5 text-xs bg-muted/60 text-foreground"
-              >
+              <span key={item.code} className="rounded border bg-muted/60 px-1.5 py-0.5 text-xs text-foreground">
                 {item.code} - {item.label}
               </span>
             ))}

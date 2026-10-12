@@ -5,20 +5,9 @@ export type ReviewTeamMemberRole = 'REVIEWER' | 'LEAD' | 'MANAGER';
 
 export type DelegationScope = 'ALL' | 'RFA_ONLY' | 'CORRESPONDENCE_ONLY' | 'SPECIFIC_TYPES';
 
-export type ReviewTaskStatus =
-  | 'PENDING'
-  | 'IN_PROGRESS'
-  | 'COMPLETED'
-  | 'DELEGATED'
-  | 'EXPIRED'
-  | 'CANCELLED';
+export type ReviewTaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'DELEGATED' | 'EXPIRED' | 'CANCELLED';
 
-export type ResponseCodeCategory =
-  | 'ENGINEERING'
-  | 'MATERIAL'
-  | 'CONTRACT'
-  | 'TESTING'
-  | 'ESG';
+export type ResponseCodeCategory = 'ENGINEERING' | 'MATERIAL' | 'CONTRACT' | 'TESTING' | 'ESG';
 
 export interface ReviewTeam {
   publicId: string;

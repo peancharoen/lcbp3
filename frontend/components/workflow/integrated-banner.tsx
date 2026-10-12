@@ -7,11 +7,7 @@ import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
 import { CheckCircle2, XCircle, RotateCcw, MessageSquare, Loader2, AlertTriangle } from 'lucide-react';
 import { WorkflowPriority } from '@/types/workflow';
@@ -20,10 +16,13 @@ import { useTranslations } from '@/hooks/use-translations';
 
 // สีของ Priority Badge (label ถูก resolve ผ่าน t() ใน component)
 const PRIORITY_CONFIG: Record<WorkflowPriority, { labelKey: string; className: string }> = {
-  URGENT: { labelKey: 'workflow.priority.URGENT', className: 'bg-red-600 text-white animate-pulse' },
-  HIGH:   { labelKey: 'workflow.priority.HIGH',   className: 'bg-orange-500 text-white' },
-  MEDIUM: { labelKey: 'workflow.priority.MEDIUM', className: 'bg-yellow-500 text-white' },
-  LOW:    { labelKey: 'workflow.priority.LOW',    className: 'bg-green-600 text-white' },
+  URGENT: {
+    labelKey: 'workflow.priority.URGENT',
+    className: 'bg-destructive text-destructive-foreground animate-pulse',
+  },
+  HIGH: { labelKey: 'workflow.priority.HIGH', className: 'bg-orange-500 text-white' },
+  MEDIUM: { labelKey: 'workflow.priority.MEDIUM', className: 'bg-warning text-warning-foreground' },
+  LOW: { labelKey: 'workflow.priority.LOW', className: 'bg-success text-success-foreground' },
 };
 
 // สีของ Status Badge
@@ -39,19 +38,52 @@ function getStatusVariant(status: string): 'default' | 'secondary' | 'destructiv
 function getStateColor(state?: string): string {
   if (!state) return 'text-muted-foreground';
   const s = state.toUpperCase();
-  if (s.includes('APPROV') || s.includes('COMPLET') || s.includes('ISSUED')) return 'text-green-600';
-  if (s.includes('REJECT') || s.includes('CANCEL')) return 'text-red-600';
-  if (s.includes('REVIEW') || s.includes('PENDING') || s.includes('IN_')) return 'text-blue-600';
-  return 'text-amber-600';
+  if (s.includes('APPROV') || s.includes('COMPLET') || s.includes('ISSUED')) return 'text-success';
+  if (s.includes('REJECT') || s.includes('CANCEL')) return 'text-destructive';
+  if (s.includes('REVIEW') || s.includes('PENDING') || s.includes('IN_')) return 'text-info';
+  return 'text-warning';
 }
 
 // Action button config (label ถูก resolve ผ่าน t() ใน component)
-const ACTION_CONFIG: Record<string, { labelKey: string; icon: React.ReactNode; variant: 'default' | 'destructive' | 'outline' | 'secondary'; requiresComment: boolean }> = {
-  APPROVE:     { labelKey: 'workflow.action.APPROVE',     icon: <CheckCircle2 className="h-4 w-4" />, variant: 'default',     requiresComment: false },
-  REJECT:      { labelKey: 'workflow.action.REJECT',      icon: <XCircle className="h-4 w-4" />,      variant: 'destructive', requiresComment: true  },
-  RETURN:      { labelKey: 'workflow.action.RETURN',      icon: <RotateCcw className="h-4 w-4" />,    variant: 'outline',     requiresComment: true  },
-  ACKNOWLEDGE: { labelKey: 'workflow.action.ACKNOWLEDGE', icon: <CheckCircle2 className="h-4 w-4" />, variant: 'secondary',   requiresComment: false },
-  COMMENT:     { labelKey: 'workflow.action.COMMENT',     icon: <MessageSquare className="h-4 w-4" />, variant: 'outline',     requiresComment: true  },
+const ACTION_CONFIG: Record<
+  string,
+  {
+    labelKey: string;
+    icon: React.ReactNode;
+    variant: 'default' | 'destructive' | 'outline' | 'secondary';
+    requiresComment: boolean;
+  }
+> = {
+  APPROVE: {
+    labelKey: 'workflow.action.APPROVE',
+    icon: <CheckCircle2 className="h-4 w-4" />,
+    variant: 'default',
+    requiresComment: false,
+  },
+  REJECT: {
+    labelKey: 'workflow.action.REJECT',
+    icon: <XCircle className="h-4 w-4" />,
+    variant: 'destructive',
+    requiresComment: true,
+  },
+  RETURN: {
+    labelKey: 'workflow.action.RETURN',
+    icon: <RotateCcw className="h-4 w-4" />,
+    variant: 'outline',
+    requiresComment: true,
+  },
+  ACKNOWLEDGE: {
+    labelKey: 'workflow.action.ACKNOWLEDGE',
+    icon: <CheckCircle2 className="h-4 w-4" />,
+    variant: 'secondary',
+    requiresComment: false,
+  },
+  COMMENT: {
+    labelKey: 'workflow.action.COMMENT',
+    icon: <MessageSquare className="h-4 w-4" />,
+    variant: 'outline',
+    requiresComment: true,
+  },
 };
 
 export interface IntegratedBannerProps {
@@ -101,12 +133,7 @@ function ActionButton({
 
   if (!config.requiresComment) {
     return (
-      <Button
-        size="sm"
-        variant={config.variant}
-        disabled={disabled}
-        onClick={() => onAction(actionKey)}
-      >
+      <Button size="sm" variant={config.variant} disabled={disabled} onClick={() => onAction(actionKey)}>
         {config.icon}
         <span className="ml-1">{t(config.labelKey)}</span>
       </Button>
@@ -131,7 +158,7 @@ function ActionButton({
             rows={3}
             className="text-sm"
           />
-          <div className="flex gap-2 justify-end">
+          <div className="flex justify-end gap-2">
             <Button size="sm" variant="outline" onClick={() => setOpen(false)}>
               {t('workflow.action.cancel')}
             </Button>
@@ -181,18 +208,18 @@ export function IntegratedBanner({
   return (
     <div className="flex flex-col gap-2 rounded-lg border bg-card px-4 py-3 shadow-sm">
       {/* แถวหลัก */}
-      <div className="flex flex-wrap items-center gap-3 min-w-0">
+      <div className="flex min-w-0 flex-wrap items-center gap-3">
         {/* เลขที่เอกสาร + หัวข้อ */}
-        <div className="flex flex-col min-w-0 flex-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-sm text-foreground shrink-0">{docNo || '—'}</span>
-            <Separator orientation="vertical" className="h-4 hidden sm:block" />
-            <span className="text-sm text-muted-foreground truncate">{subject || '—'}</span>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="shrink-0 text-sm font-semibold text-foreground">{docNo || '—'}</span>
+            <Separator orientation="vertical" className="hidden h-4 sm:block" />
+            <span className="truncate text-sm text-muted-foreground">{subject || '—'}</span>
           </div>
         </div>
 
         {/* Badges + Actions */}
-        <div className="flex items-center gap-2 flex-wrap shrink-0">
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
           {/* Status Badge */}
           <Badge variant={getStatusVariant(status)} className="text-xs">
             {status || '—'}
@@ -200,7 +227,9 @@ export function IntegratedBanner({
 
           {/* Priority Badge */}
           {priorityConfig && (
-            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${priorityConfig.className}`}>
+            <span
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${priorityConfig.className}`}
+            >
               <AlertTriangle className="h-3 w-3" />
               {t(priorityConfig.labelKey)}
             </span>
@@ -208,9 +237,7 @@ export function IntegratedBanner({
 
           {/* Workflow State */}
           {workflowState && (
-            <span className={`text-xs font-medium ${getStateColor(workflowState)}`}>
-              [{workflowState}]
-            </span>
+            <span className={`text-xs font-medium ${getStateColor(workflowState)}`}>[{workflowState}]</span>
           )}
 
           {/* Action Buttons — แสดง spinner เมื่อ mutation กำลัง pending */}
@@ -219,13 +246,7 @@ export function IntegratedBanner({
           ) : (
             hasActions &&
             availableActions!.map((actionKey) => (
-              <ActionButton
-                key={actionKey}
-                actionKey={actionKey}
-                onAction={handleAction}
-                disabled={isBusy}
-                t={t}
-              />
+              <ActionButton key={actionKey} actionKey={actionKey} onAction={handleAction} disabled={isBusy} t={t} />
             ))
           )}
         </div>

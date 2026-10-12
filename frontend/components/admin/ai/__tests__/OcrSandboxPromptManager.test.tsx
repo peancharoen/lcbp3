@@ -64,11 +64,11 @@ describe('OcrSandboxPromptManager', () => {
 
   it('renders correctly and defaults to sandbox tab', async () => {
     const { container } = render(<OcrSandboxPromptManager />);
-    
+
     await waitFor(() => {
       expect(screen.getByText('ai.prompt.sandboxCardTitle')).toBeInTheDocument();
     });
-    
+
     expect(screen.getByText('ai.prompt.tabSandbox')).toBeInTheDocument();
     expect(screen.getByText('ai.prompt.tabEditor')).toBeInTheDocument();
   });
@@ -76,7 +76,7 @@ describe('OcrSandboxPromptManager', () => {
   it('switches to editor tab', async () => {
     const user = userEvent.setup();
     render(<OcrSandboxPromptManager />);
-    
+
     await waitFor(() => {
       expect(screen.getByText('ai.prompt.tabEditor')).toBeInTheDocument();
     });
@@ -90,9 +90,9 @@ describe('OcrSandboxPromptManager', () => {
   it('handles rate limiting (429/503) errors gracefully on OCR submission', async () => {
     const user = userEvent.setup();
     const mockSubmitOcr = vi.fn().mockRejectedValue({
-      response: { data: { message: 'Rate limit exceeded. Try again later.' } }
+      response: { data: { message: 'Rate limit exceeded. Try again later.' } },
     });
-    
+
     // Override the mock implementation for this test
     const { adminAiService } = await import('@/lib/services/admin-ai.service');
     (adminAiService.submitSandboxOcr as any) = mockSubmitOcr;

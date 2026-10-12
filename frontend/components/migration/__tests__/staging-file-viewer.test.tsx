@@ -53,9 +53,7 @@ describe('StagingFileViewer', () => {
 
     render(<StagingFileViewer sourceFilePath={sourceFilePath} />);
 
-    const iframe = (await waitFor(() =>
-      screen.getByTitle('Document Viewer')
-    )) as HTMLIFrameElement;
+    const iframe = (await waitFor(() => screen.getByTitle('Document Viewer'))) as HTMLIFrameElement;
 
     expect(iframe.tagName).toBe('IFRAME');
     // สำคัญ: src ต้องเป็น blob: URL ไม่ใช่ raw /api/migration/staging-file?...

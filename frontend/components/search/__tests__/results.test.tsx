@@ -23,7 +23,7 @@ describe('SearchResults', () => {
   it('ควร render loading state เมื่อ loading=true', () => {
     render(<SearchResults results={[]} query="" loading={true} />);
 
-    const spinners = screen.getAllByRole('generic', { name: '' }).filter(el => el.querySelector('.animate-spin'));
+    const spinners = screen.getAllByRole('generic', { name: '' }).filter((el) => el.querySelector('.animate-spin'));
     if (spinners.length > 0) {
       expect(spinners[0]).toBeInTheDocument();
     }

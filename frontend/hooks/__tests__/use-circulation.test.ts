@@ -5,10 +5,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { createTestQueryClient } from '@/lib/test-utils';
-import {
-  useCirculationsByCorrespondence,
-  circulationKeys,
-} from '../use-circulation';
+import { useCirculationsByCorrespondence, circulationKeys } from '../use-circulation';
 import { circulationService } from '@/lib/services/circulation.service';
 
 vi.mock('@/lib/services/circulation.service', () => ({
@@ -25,11 +22,7 @@ describe('use-circulation hooks', () => {
   describe('circulationKeys', () => {
     it('should generate correct cache keys', () => {
       expect(circulationKeys.all).toEqual(['circulations']);
-      expect(circulationKeys.byCorrespondence('uuid-abc')).toEqual([
-        'circulations',
-        'byCorrespondence',
-        'uuid-abc',
-      ]);
+      expect(circulationKeys.byCorrespondence('uuid-abc')).toEqual(['circulations', 'byCorrespondence', 'uuid-abc']);
     });
   });
 
@@ -51,10 +44,7 @@ describe('use-circulation hooks', () => {
       vi.mocked(circulationService.getByCorrespondenceUuid).mockResolvedValue(mockData);
 
       const { wrapper } = createTestQueryClient();
-      const { result } = renderHook(
-        () => useCirculationsByCorrespondence('corr-uuid-1'),
-        { wrapper }
-      );
+      const { result } = renderHook(() => useCirculationsByCorrespondence('corr-uuid-1'), { wrapper });
 
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
@@ -66,25 +56,17 @@ describe('use-circulation hooks', () => {
 
     it('should not fetch when correspondencePublicId is empty', () => {
       const { wrapper } = createTestQueryClient();
-      const { result } = renderHook(
-        () => useCirculationsByCorrespondence(''),
-        { wrapper }
-      );
+      const { result } = renderHook(() => useCirculationsByCorrespondence(''), { wrapper });
 
       expect(result.current.fetchStatus).toBe('idle');
       expect(circulationService.getByCorrespondenceUuid).not.toHaveBeenCalled();
     });
 
     it('should handle fetch error gracefully', async () => {
-      vi.mocked(circulationService.getByCorrespondenceUuid).mockRejectedValue(
-        new Error('Network error')
-      );
+      vi.mocked(circulationService.getByCorrespondenceUuid).mockRejectedValue(new Error('Network error'));
 
       const { wrapper } = createTestQueryClient();
-      const { result } = renderHook(
-        () => useCirculationsByCorrespondence('corr-uuid-error'),
-        { wrapper }
-      );
+      const { result } = renderHook(() => useCirculationsByCorrespondence('corr-uuid-error'), { wrapper });
 
       await waitFor(() => {
         expect(result.current.isError).toBe(true);
@@ -95,17 +77,10 @@ describe('use-circulation hooks', () => {
       vi.mocked(circulationService.getByCorrespondenceUuid).mockResolvedValue([]);
 
       const { wrapper } = createTestQueryClient();
-      const { result } = renderHook(
-        () => useCirculationsByCorrespondence('test-uuid'),
-        { wrapper }
-      );
+      const { result } = renderHook(() => useCirculationsByCorrespondence('test-uuid'), { wrapper });
 
       expect(result.current.status).toBeDefined();
-      expect(circulationKeys.byCorrespondence('test-uuid')).toEqual([
-        'circulations',
-        'byCorrespondence',
-        'test-uuid',
-      ]);
+      expect(circulationKeys.byCorrespondence('test-uuid')).toEqual(['circulations', 'byCorrespondence', 'test-uuid']);
     });
   });
 });

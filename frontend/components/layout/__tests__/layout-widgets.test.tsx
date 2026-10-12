@@ -126,7 +126,9 @@ vi.mock('@/components/ui/select', () => ({
   SelectTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   SelectContent: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   SelectValue: ({ placeholder }: { placeholder?: string }) => <option value="">{placeholder}</option>,
-  SelectItem: ({ children, value }: { children: React.ReactNode; value: string }) => <option value={value}>{children}</option>,
+  SelectItem: ({ children, value }: { children: React.ReactNode; value: string }) => (
+    <option value={value}>{children}</option>
+  ),
 }));
 
 vi.mock('@/components/ui/dropdown-menu', () => ({
@@ -269,7 +271,9 @@ describe('layout widgets', () => {
   it('ProjectSwitcher ควร auto-select เมื่อมี project เดียวและแสดง loading/empty state ได้', async () => {
     mocks.projects = [{ publicId: '019505a1-7c3e-7000-8000-abc123def603', projectName: 'Single Project' }];
     const { rerender, container } = render(<ProjectSwitcher />);
-    await waitFor(() => expect(useProjectStore.getState().selectedProjectId).toBe('019505a1-7c3e-7000-8000-abc123def603'));
+    await waitFor(() =>
+      expect(useProjectStore.getState().selectedProjectId).toBe('019505a1-7c3e-7000-8000-abc123def603')
+    );
     expect(screen.getByText('Single Project')).toBeInTheDocument();
     mocks.projectsLoading = true;
     rerender(<ProjectSwitcher />);

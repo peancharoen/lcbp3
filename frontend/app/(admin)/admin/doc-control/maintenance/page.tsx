@@ -24,7 +24,7 @@ export default function MaintenancePage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 max-w-[600px]">
+        <TabsList className="grid w-full max-w-[600px] grid-cols-4">
           <TabsTrigger value="numbering">{t('admin.maintenance.numbering.title')}</TabsTrigger>
           <TabsTrigger value="orphan">{t('admin.maintenance.orphan.title')}</TabsTrigger>
           <TabsTrigger value="vector">{t('admin.maintenance.vector.title')}</TabsTrigger>

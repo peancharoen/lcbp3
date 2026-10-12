@@ -40,7 +40,7 @@ export default function CirculationPage() {
           </Button>
           <Link href="/circulation/new">
             <Button>
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="mr-2 h-4 w-4" />
               Create Circulation
             </Button>
           </Link>
@@ -48,7 +48,7 @@ export default function CirculationPage() {
       </div>
 
       {error && (
-        <div className="bg-destructive/10 text-destructive px-4 py-3 rounded-md">
+        <div className="rounded-md bg-destructive/10 px-4 py-3 text-destructive">
           Failed to load circulations. Please try again.
         </div>
       )}
@@ -60,7 +60,7 @@ export default function CirculationPage() {
       ) : data ? (
         <CirculationList data={data} />
       ) : (
-        <div className="text-center py-12 text-muted-foreground">No circulations found</div>
+        <div className="py-12 text-center text-muted-foreground">No circulations found</div>
       )}
     </section>
   );

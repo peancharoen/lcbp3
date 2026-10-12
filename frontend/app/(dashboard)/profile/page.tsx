@@ -126,7 +126,7 @@ export default function ProfilePage() {
                 <div>
                   <h4 className="text-lg font-semibold">{userName}</h4>
                   <p className="text-sm text-muted-foreground">{session?.user?.email}</p>
-                  <div className="mt-2 inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary text-primary-foreground hover:bg-primary/80">
+                  <div className="mt-2 inline-flex items-center rounded-full border border-transparent bg-primary px-2.5 py-0.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/80 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
                     {session?.user?.role || 'Member'}
                   </div>
                 </div>
@@ -209,7 +209,7 @@ export default function ProfilePage() {
               <div className="flex items-center justify-between space-x-2">
                 <Label htmlFor="notify-email" className="flex flex-col space-y-1">
                   <span>Email Notifications</span>
-                  <span className="font-normal text-xs text-muted-foreground">
+                  <span className="text-xs font-normal text-muted-foreground">
                     รับแจ้งเตือนงานใหม่และการอนุมัติผ่านทางอีเมล
                   </span>
                 </Label>
@@ -223,7 +223,7 @@ export default function ProfilePage() {
               <div className="flex items-center justify-between space-x-2">
                 <Label htmlFor="notify-line" className="flex flex-col space-y-1">
                   <span>LINE Notifications</span>
-                  <span className="font-normal text-xs text-muted-foreground">
+                  <span className="text-xs font-normal text-muted-foreground">
                     รับแจ้งเตือนด่วนผ่าน LINE Official Account
                   </span>
                 </Label>
@@ -238,7 +238,7 @@ export default function ProfilePage() {
               <div className="flex items-center justify-between space-x-2">
                 <Label htmlFor="notify-telegram" className="flex flex-col space-y-1">
                   <span>{t('notification.telegram.toggleLabel')}</span>
-                  <span className="font-normal text-xs text-muted-foreground">
+                  <span className="text-xs font-normal text-muted-foreground">
                     {telegramLinked
                       ? t('notification.telegram.toggleDesc')
                       : t('notification.telegram.toggleRequiresLink')}
@@ -255,7 +255,7 @@ export default function ProfilePage() {
               <div className="flex items-center justify-between space-x-2">
                 <Label htmlFor="digest-mode" className="flex flex-col space-y-1">
                   <span>Digest Mode (รวมแจ้งเตือน)</span>
-                  <span className="font-normal text-xs text-muted-foreground">
+                  <span className="text-xs font-normal text-muted-foreground">
                     รับสรุปแจ้งเตือนวันละครั้ง แทนการแจ้งเตือนทันที (ลด Spam)
                   </span>
                 </Label>

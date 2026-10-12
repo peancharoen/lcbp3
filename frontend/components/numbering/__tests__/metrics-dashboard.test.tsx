@@ -79,7 +79,10 @@ describe('MetricsDashboard', () => {
 
   it('should display error count from metrics', async () => {
     const mockMetrics = {
-      errors: [{ id: 1, message: 'Error 1' }, { id: 2, message: 'Error 2' }],
+      errors: [
+        { id: 1, message: 'Error 1' },
+        { id: 2, message: 'Error 2' },
+      ],
     };
     (documentNumberingService.getMetrics as any).mockResolvedValue(mockMetrics);
     render(<MetricsDashboard />);

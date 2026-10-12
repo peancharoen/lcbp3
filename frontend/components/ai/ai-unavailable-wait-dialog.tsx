@@ -42,10 +42,7 @@ export function AiUnavailableWaitDialog({
         if (!next) onCancel();
       }}
     >
-      <DialogContent
-        onInteractOutside={(e) => e.preventDefault()}
-        onEscapeKeyDown={(e) => e.preventDefault()}
-      >
+      <DialogContent onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>{t('ai.unavailable.title')}</DialogTitle>
           <DialogDescription>{t('ai.unavailable.description')}</DialogDescription>
@@ -53,18 +50,14 @@ export function AiUnavailableWaitDialog({
         {isRetrying ? (
           <div className="flex items-center justify-center gap-2 py-4 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-            <span>
-              {t('ai.unavailable.retrying', { seconds: elapsedSeconds })}
-            </span>
+            <span>{t('ai.unavailable.retrying', { seconds: elapsedSeconds })}</span>
           </div>
         ) : null}
         <DialogFooter>
           <Button variant="outline" onClick={onCancel}>
             {t('ai.unavailable.cancel')}
           </Button>
-          {!isRetrying ? (
-            <Button onClick={onWait}>{t('ai.unavailable.wait')}</Button>
-          ) : null}
+          {!isRetrying ? <Button onClick={onWait}>{t('ai.unavailable.wait')}</Button> : null}
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -15,7 +15,10 @@ import { AxiosError } from 'axios';
 
 interface UseBulkActionsOptions {
   documentType: string;
-  onComplete?: (bulkId: string, results: { completed: number; failed: number; total: number; failedItems?: string[] }) => void;
+  onComplete?: (
+    bulkId: string,
+    results: { completed: number; failed: number; total: number; failedItems?: string[] }
+  ) => void;
 }
 
 /** Max poll attempts before timeout (150 × 2s = 5 minutes) */
@@ -89,7 +92,7 @@ export function useBulkActions({ documentType, onComplete }: UseBulkActionsOptio
                 t('document.bulk.partial', {
                   success: progress.completed,
                   failed: progress.failed,
-                }),
+                })
               );
             }
             invalidate();
@@ -106,7 +109,7 @@ export function useBulkActions({ documentType, onComplete }: UseBulkActionsOptio
       };
       void check();
     },
-    [t, invalidate],
+    [t, invalidate]
   );
 
   const bulkCancelMutation = useMutation({
@@ -132,8 +135,7 @@ export function useBulkActions({ documentType, onComplete }: UseBulkActionsOptio
       publicIds: string[];
       addTags: number[];
       removeTags?: number[];
-    }) =>
-      documentActionService.bulkTag(publicIds, documentType, addTags, removeTags),
+    }) => documentActionService.bulkTag(publicIds, documentType, addTags, removeTags),
     onSuccess: (data, { publicIds }) => {
       setActiveBulkId(data.bulkId);
       toast.info(t('document.bulk.started', { count: publicIds.length }));
@@ -154,8 +156,7 @@ export function useBulkActions({ documentType, onComplete }: UseBulkActionsOptio
       publicIds: string[];
       format: 'CSV' | 'XLSX' | 'JSON';
       columns?: string[];
-    }) =>
-      documentActionService.bulkExport(publicIds, documentType, format, columns),
+    }) => documentActionService.bulkExport(publicIds, documentType, format, columns),
     onSuccess: (data) => {
       if (data.downloadUrl) {
         // Export เสร็จทันที — download

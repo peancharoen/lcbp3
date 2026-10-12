@@ -134,8 +134,7 @@ export default function UsersPage() {
     {
       id: 'name',
       header: 'Name',
-      cell: ({ row }) =>
-        [row.original.firstName, row.original.lastName].filter(Boolean).join(' ') || '—',
+      cell: ({ row }) => [row.original.firstName, row.original.lastName].filter(Boolean).join(' ') || '—',
     },
     {
       accessorKey: 'email',
@@ -251,7 +250,10 @@ export default function UsersPage() {
                   <Send className="mr-2 h-4 w-4" /> Unlink Telegram
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem className="text-red-600 focus:text-red-600" onClick={() => handleDeleteClick(user)}>
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={() => handleDeleteClick(user)}
+              >
                 <Trash className="mr-2 h-4 w-4" /> Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -263,10 +265,10 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">User Management</h1>
-          <p className="text-muted-foreground mt-1">Manage system users and roles</p>
+          <p className="mt-1 text-muted-foreground">Manage system users and roles</p>
         </div>
         <Button
           onClick={() => {
@@ -278,14 +280,14 @@ export default function UsersPage() {
         </Button>
       </div>
 
-      <div className="flex gap-4 items-center bg-muted/30 p-4 rounded-lg flex-wrap">
-        <div className="relative flex-1 max-w-sm min-w-[200px]">
+      <div className="flex flex-wrap items-center gap-4 rounded-lg bg-muted/30 p-4">
+        <div className="relative min-w-[200px] max-w-sm flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search users..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="pl-8 bg-background"
+            className="bg-background pl-8"
           />
         </div>
         <div className="w-[250px]">
@@ -357,7 +359,7 @@ export default function UsersPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
               {deleteMutation.isPending ? 'Deleting...' : 'Delete User'}
             </AlertDialogAction>
           </AlertDialogFooter>

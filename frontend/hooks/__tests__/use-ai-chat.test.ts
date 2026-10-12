@@ -90,8 +90,7 @@ describe('useAiChat hook', () => {
 
     beforeEach(() => {
       vi.mocked(axios.isAxiosError).mockImplementation(
-        (err: unknown): err is import('axios').AxiosError =>
-          !!(err as { isAxiosError?: boolean })?.isAxiosError
+        (err: unknown): err is import('axios').AxiosError => !!(err as { isAxiosError?: boolean })?.isAxiosError
       );
     });
 
@@ -107,9 +106,7 @@ describe('useAiChat hook', () => {
       });
       // ข้อความ assistant ยังเป็น placeholder ที่กำลัง stream อยู่ ไม่ใช่ error bubble คงที่
       expect(result.current.messages[1].isStreaming).toBe(true);
-      expect(result.current.messages[1].content).not.toContain(
-        'ไม่สามารถเชื่อมต่อ AI ได้'
-      );
+      expect(result.current.messages[1].content).not.toContain('ไม่สามารถเชื่อมต่อ AI ได้');
     });
 
     it('กด "รอ" แล้ว retry สำเร็จ → ปิด dialog และแสดงคำตอบจริง', async () => {

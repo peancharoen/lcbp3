@@ -63,7 +63,13 @@ export function CorrespondencesContent() {
   const revision = searchParams.get('revision') || undefined;
   const createdDate = searchParams.get('createdDate') || undefined;
   const documentDate = searchParams.get('documentDate') || undefined;
-  const sortBy = searchParams.get('sortBy') as 'documentNumber' | 'revision' | 'createdAt' | 'status' | 'documentDate' | null;
+  const sortBy = searchParams.get('sortBy') as
+    | 'documentNumber'
+    | 'revision'
+    | 'createdAt'
+    | 'status'
+    | 'documentDate'
+    | null;
   const sortOrder = searchParams.get('sortOrder') as 'ASC' | 'DESC' | null;
 
   const [searchInput, setSearchInput] = useState(search || '');
@@ -183,16 +189,16 @@ export function CorrespondencesContent() {
   }
 
   if (isError) {
-    return <div className="text-red-500 text-center py-8">Failed to load correspondences.</div>;
+    return <div className="py-8 text-center text-destructive">Failed to load correspondences.</div>;
   }
 
   return (
     <>
       {/* Filters bar */}
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <div className="flex gap-1 bg-muted p-1 rounded-md">
+        <div className="flex gap-1 rounded-md bg-muted p-1">
           <Link key="type-all" href={buildUrl({ type: '' })}>
-            <Button variant={!typeFilter ? 'default' : 'ghost'} size="sm" className="text-xs px-3 h-7">
+            <Button variant={!typeFilter ? 'default' : 'ghost'} size="sm" className="h-7 px-3 text-xs">
               All Types
             </Button>
           </Link>
@@ -205,7 +211,7 @@ export function CorrespondencesContent() {
                   <Button
                     variant={typeFilter === normalizedTypeCode ? 'default' : 'ghost'}
                     size="sm"
-                    className="text-xs px-3 h-7"
+                    className="h-7 px-3 text-xs"
                   >
                     {type.typeCode}
                   </Button>
@@ -215,15 +221,15 @@ export function CorrespondencesContent() {
         </div>
 
         {/* Search */}
-        <div className="flex items-center gap-1 flex-1 min-w-[200px] max-w-sm">
+        <div className="flex min-w-[200px] max-w-sm flex-1 items-center gap-1">
           <div className="relative w-full">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               placeholder="Search by number or subject..."
-              className="pl-8 pr-8 h-9 text-sm"
+              className="h-9 pl-8 pr-8 text-sm"
             />
             {searchInput && (
               <button
@@ -240,10 +246,10 @@ export function CorrespondencesContent() {
         </div>
 
         {/* Status filter */}
-        <div className="flex gap-1 bg-muted p-1 rounded-md">
+        <div className="flex gap-1 rounded-md bg-muted p-1">
           {STATUS_FILTERS.map(({ value, label }) => (
             <Link key={value} href={buildUrl({ status: value })}>
-              <Button variant={statusFilter === value ? 'default' : 'ghost'} size="sm" className="text-xs px-3 h-7">
+              <Button variant={statusFilter === value ? 'default' : 'ghost'} size="sm" className="h-7 px-3 text-xs">
                 {label}
               </Button>
             </Link>
@@ -251,10 +257,10 @@ export function CorrespondencesContent() {
         </div>
 
         {/* Revision filter */}
-        <div className="flex gap-1 bg-muted p-1 rounded-md">
+        <div className="flex gap-1 rounded-md bg-muted p-1">
           {(['CURRENT', 'ALL', 'OLD'] as const).map((rs) => (
             <Link key={rs} href={buildUrl({ revisionStatus: rs })}>
-              <Button variant={revisionStatus === rs ? 'default' : 'ghost'} size="sm" className="text-xs px-3 h-7">
+              <Button variant={revisionStatus === rs ? 'default' : 'ghost'} size="sm" className="h-7 px-3 text-xs">
                 {rs === 'CURRENT' ? 'Latest' : rs === 'OLD' ? 'Previous' : 'All'}
               </Button>
             </Link>
@@ -271,7 +277,7 @@ export function CorrespondencesContent() {
       </div>
 
       <CorrespondenceList data={data?.data || []} rowSelection={rowSelection} onRowSelectionChange={setRowSelection} />
-      <div className="mt-4 flex items-center justify-between gap-4 flex-wrap">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
         <Pagination
           currentPage={data?.meta?.page || 1}
           totalPages={data?.meta?.totalPages || 1}
@@ -279,10 +285,7 @@ export function CorrespondencesContent() {
         />
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Rows per page:</span>
-          <Select
-            value={String(limit)}
-            onValueChange={(v) => router.push(buildUrl({ limit: v }))}
-          >
+          <Select value={String(limit)} onValueChange={(v) => router.push(buildUrl({ limit: v }))}>
             <SelectTrigger className="h-8 w-[70px]">
               <SelectValue />
             </SelectTrigger>

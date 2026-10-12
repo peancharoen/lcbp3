@@ -55,12 +55,10 @@ export function DocumentMetadataEditDialog({
   };
 
   const hasChanges = Object.keys(values).some(
-    (key) => values[key] !== (fields.find((f) => f.key === key)?.value ?? ''),
+    (key) => values[key] !== (fields.find((f) => f.key === key)?.value ?? '')
   );
 
-  const hasTier2Changes = fields.some(
-    (f) => f.tier === 2 && values[f.key] !== undefined && values[f.key] !== f.value,
-  );
+  const hasTier2Changes = fields.some((f) => f.tier === 2 && values[f.key] !== undefined && values[f.key] !== f.value);
 
   const canConfirm = hasChanges && (!hasTier2Changes || tier2Confirmed);
 
@@ -92,7 +90,7 @@ export function DocumentMetadataEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-h-[80vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{t('document.metadata.title')}</DialogTitle>
           <DialogDescription>
@@ -103,9 +101,7 @@ export function DocumentMetadataEditDialog({
         <div className="space-y-6 py-2">
           {tier1Fields.length > 0 && (
             <div className="space-y-3">
-              <h4 className="text-sm font-medium text-muted-foreground">
-                {t('document.metadata.tier1')}
-              </h4>
+              <h4 className="text-sm font-medium text-muted-foreground">{t('document.metadata.tier1')}</h4>
               {tier1Fields.map((field) => (
                 <div key={field.key} className="space-y-1">
                   <Label htmlFor={`field-${field.key}`}>{field.label}</Label>
@@ -121,9 +117,7 @@ export function DocumentMetadataEditDialog({
 
           {tier2Fields.length > 0 && (
             <div className="space-y-3">
-              <h4 className="text-sm font-medium text-amber-600">
-                {t('document.metadata.tier2')}
-              </h4>
+              <h4 className="text-sm font-medium text-warning">{t('document.metadata.tier2')}</h4>
               {tier2Fields.map((field) => (
                 <div key={field.key} className="space-y-1">
                   <Label htmlFor={`field-${field.key}`}>{field.label}</Label>
@@ -149,12 +143,8 @@ export function DocumentMetadataEditDialog({
 
           {tier3Fields.length > 0 && (
             <div className="space-y-3">
-              <h4 className="text-sm font-medium text-destructive">
-                {t('document.metadata.tier3')}
-              </h4>
-              <p className="text-sm text-muted-foreground">
-                {t('document.metadata.tier3Hint')}
-              </p>
+              <h4 className="text-sm font-medium text-destructive">{t('document.metadata.tier3')}</h4>
+              <p className="text-sm text-muted-foreground">{t('document.metadata.tier3Hint')}</p>
               {tier3Fields.map((field) => (
                 <div key={field.key} className="space-y-1">
                   <Label htmlFor={`field-${field.key}`}>{field.label}</Label>
@@ -171,17 +161,10 @@ export function DocumentMetadataEditDialog({
         </div>
 
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isLoading}
-          >
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
             {t('common.cancel')}
           </Button>
-          <Button
-            onClick={handleConfirm}
-            disabled={!canConfirm || isLoading}
-          >
+          <Button onClick={handleConfirm} disabled={!canConfirm || isLoading}>
             {isLoading ? t('common.processing') : t('common.save')}
           </Button>
         </DialogFooter>

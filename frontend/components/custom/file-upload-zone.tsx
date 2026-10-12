@@ -56,18 +56,21 @@ export function FileUploadZone({
   const [isDragging, setIsDragging] = useState(false);
 
   // ตรวจสอบไฟล์
-  const validateFile = useCallback((file: File): string | undefined => {
-    // 1. Check Size
-    if (file.size > maxSize) {
-      return `ขนาดไฟล์เกินกำหนด (${formatBytes(maxSize)})`;
-    }
-    // 2. Check Type (Extension based validation for simplicity on client)
-    const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
-    if (accept.length > 0 && !accept.includes(fileExtension)) {
-      return `ประเภทไฟล์ไม่รองรับ (อนุญาต: ${accept.join(', ')})`;
-    }
-    return undefined;
-  }, [maxSize, accept]);
+  const validateFile = useCallback(
+    (file: File): string | undefined => {
+      // 1. Check Size
+      if (file.size > maxSize) {
+        return `ขนาดไฟล์เกินกำหนด (${formatBytes(maxSize)})`;
+      }
+      // 2. Check Type (Extension based validation for simplicity on client)
+      const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+      if (accept.length > 0 && !accept.includes(fileExtension)) {
+        return `ประเภทไฟล์ไม่รองรับ (อนุญาต: ${accept.join(', ')})`;
+      }
+      return undefined;
+    },
+    [maxSize, accept]
+  );
 
   const handleFileSelect = useCallback(
     (newFiles: File[]) => {
@@ -118,7 +121,7 @@ export function FileUploadZone({
       {/* Drop Zone */}
       <div
         className={cn(
-          'border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer flex flex-col items-center justify-center gap-2',
+          'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-8 text-center transition-colors',
           isDragging ? 'border-primary bg-primary/10' : 'border-muted-foreground/25 hover:border-primary/50',
           'h-48'
         )}
@@ -137,8 +140,8 @@ export function FileUploadZone({
             if (e.target.files) handleFileSelect(Array.from(e.target.files));
           }}
         />
-        <div className="p-3 bg-muted rounded-full">
-          <UploadCloud className="w-8 h-8 text-muted-foreground" />
+        <div className="rounded-full bg-muted p-3">
+          <UploadCloud className="h-8 w-8 text-muted-foreground" />
         </div>
         <div className="space-y-1">
           <p className="text-sm font-medium">คลิกเพื่อเลือกไฟล์ หรือ ลากไฟล์มาวางที่นี่</p>
@@ -155,26 +158,26 @@ export function FileUploadZone({
             {files.map((file, index) => (
               <div
                 key={`${file.name}-${index}`}
-                className="flex items-center justify-between p-3 bg-card rounded-md border shadow-sm group"
+                className="group flex items-center justify-between rounded-md border bg-card p-3 shadow-sm"
               >
                 <div className="flex items-center gap-3 overflow-hidden">
-                  <div className="p-2 bg-primary/10 rounded-md shrink-0">
-                    <FileIcon className="w-5 h-5 text-primary" />
+                  <div className="shrink-0 rounded-md bg-primary/10 p-2">
+                    <FileIcon className="h-5 w-5 text-primary" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium truncate max-w-[200px] sm:max-w-md">{file.name}</p>
+                    <p className="max-w-[200px] truncate text-sm font-medium sm:max-w-md">{file.name}</p>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-muted-foreground">{formatBytes(file.size)}</span>
                       {file.validationError ? (
-                        <Badge variant="destructive" className="text-[10px] px-1 h-5 flex gap-1">
-                          <AlertTriangle className="w-3 h-3" /> {file.validationError}
+                        <Badge variant="destructive" className="flex h-5 gap-1 px-1 text-[10px]">
+                          <AlertTriangle className="h-3 w-3" /> {file.validationError}
                         </Badge>
                       ) : (
                         <Badge
                           variant="outline"
-                          className="text-[10px] px-1 h-5 text-green-600 bg-green-50 border-green-200 flex gap-1"
+                          className="flex h-5 gap-1 border-success/30 bg-success/10 px-1 text-[10px] text-success"
                         >
-                          <CheckCircle className="w-3 h-3" /> Ready
+                          <CheckCircle className="h-3 w-3" /> Ready
                         </Badge>
                       )}
                     </div>
@@ -186,7 +189,7 @@ export function FileUploadZone({
                   className="shrink-0 text-muted-foreground hover:text-destructive"
                   onClick={() => removeFile(index)}
                 >
-                  <X className="w-4 h-4" />
+                  <X className="h-4 w-4" />
                 </Button>
               </div>
             ))}

@@ -25,7 +25,7 @@ describe('AuditLogsTable', () => {
   it('renders empty state when no logs returned', async () => {
     vi.mocked(documentNumberingService.getMetrics).mockResolvedValue({ audit: [] } as any);
     render(<AuditLogsTable />);
-    
+
     await waitFor(() => {
       expect(screen.getByText('No logs found.')).toBeInTheDocument();
     });
@@ -34,7 +34,7 @@ describe('AuditLogsTable', () => {
   it('renders error state silently as empty state when API fails', async () => {
     vi.mocked(documentNumberingService.getMetrics).mockRejectedValue(new Error('API failed'));
     render(<AuditLogsTable />);
-    
+
     await waitFor(() => {
       expect(screen.getByText('No logs found.')).toBeInTheDocument();
     });
@@ -60,9 +60,9 @@ describe('AuditLogsTable', () => {
       },
     ];
     vi.mocked(documentNumberingService.getMetrics).mockResolvedValue({ audit: mockLogs } as any);
-    
+
     render(<AuditLogsTable />);
-    
+
     await waitFor(() => {
       expect(screen.getByText('DOC-001')).toBeInTheDocument();
     });

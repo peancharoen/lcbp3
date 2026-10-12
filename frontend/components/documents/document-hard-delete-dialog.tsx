@@ -61,12 +61,8 @@ export function DocumentHardDeleteDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle className="text-destructive">
-            {t('document.hardDelete.title')}
-          </DialogTitle>
-          <DialogDescription>
-            {t('document.hardDelete.confirm')}
-          </DialogDescription>
+          <DialogTitle className="text-destructive">{t('document.hardDelete.title')}</DialogTitle>
+          <DialogDescription>{t('document.hardDelete.confirm')}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
@@ -77,14 +73,8 @@ export function DocumentHardDeleteDialog({
 
           {step === 1 && (
             <div className="space-y-2">
-              <p className="text-sm text-destructive font-medium">
-                {t('document.hardDelete.warning')}
-              </p>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => setStep(2)}
-              >
+              <p className="text-sm font-medium text-destructive">{t('document.hardDelete.warning')}</p>
+              <Button variant="outline" className="w-full" onClick={() => setStep(2)}>
                 {t('document.hardDelete.understand')}
               </Button>
             </div>
@@ -92,9 +82,7 @@ export function DocumentHardDeleteDialog({
 
           {step === 2 && (
             <div className="space-y-2">
-              <Label htmlFor="confirm-delete">
-                {t('document.hardDelete.typeDelete')}
-              </Label>
+              <Label htmlFor="confirm-delete">{t('document.hardDelete.typeDelete')}</Label>
               <Input
                 id="confirm-delete"
                 value={confirmText}
@@ -107,22 +95,12 @@ export function DocumentHardDeleteDialog({
         </div>
 
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isLoading}
-          >
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
             {t('common.cancel')}
           </Button>
           {step === 2 && (
-            <Button
-              variant="destructive"
-              onClick={handleConfirm}
-              disabled={!canProceed || isLoading}
-            >
-              {isLoading
-                ? t('common.processing')
-                : t('document.hardDelete.confirmAction')}
+            <Button variant="destructive" onClick={handleConfirm} disabled={!canProceed || isLoading}>
+              {isLoading ? t('common.processing') : t('document.hardDelete.confirmAction')}
             </Button>
           )}
         </DialogFooter>

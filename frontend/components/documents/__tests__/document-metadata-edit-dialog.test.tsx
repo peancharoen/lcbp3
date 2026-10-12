@@ -36,7 +36,7 @@ describe('DocumentMetadataEditDialog (Feature 253 — Phase 2 Frontend Unit)', (
         currentVersion={1}
         fields={fields}
         onConfirm={mockOnConfirm}
-      />,
+      />
     );
 
     expect(screen.getByText('document.metadata.title')).toBeInTheDocument();
@@ -54,7 +54,7 @@ describe('DocumentMetadataEditDialog (Feature 253 — Phase 2 Frontend Unit)', (
         currentVersion={1}
         fields={fields}
         onConfirm={mockOnConfirm}
-      />,
+      />
     );
 
     expect(screen.getByText('document.metadata.tier1')).toBeInTheDocument();
@@ -72,7 +72,7 @@ describe('DocumentMetadataEditDialog (Feature 253 — Phase 2 Frontend Unit)', (
         currentVersion={1}
         fields={fields}
         onConfirm={mockOnConfirm}
-      />,
+      />
     );
 
     const numberInput = screen.getByDisplayValue('CORR-001');
@@ -89,7 +89,7 @@ describe('DocumentMetadataEditDialog (Feature 253 — Phase 2 Frontend Unit)', (
         currentVersion={1}
         fields={fields}
         onConfirm={mockOnConfirm}
-      />,
+      />
     );
 
     expect(screen.getByText('common.save')).toBeDisabled();
@@ -105,7 +105,7 @@ describe('DocumentMetadataEditDialog (Feature 253 — Phase 2 Frontend Unit)', (
         currentVersion={1}
         fields={fields}
         onConfirm={mockOnConfirm}
-      />,
+      />
     );
 
     const subjectInput = screen.getByDisplayValue('Old Subject');
@@ -128,7 +128,7 @@ describe('DocumentMetadataEditDialog (Feature 253 — Phase 2 Frontend Unit)', (
         currentVersion={1}
         fields={fields}
         onConfirm={mockOnConfirm}
-      />,
+      />
     );
 
     const originatorInput = screen.getByDisplayValue('org-1');
@@ -162,7 +162,7 @@ describe('DocumentMetadataEditDialog (Feature 253 — Phase 2 Frontend Unit)', (
         fields={fields}
         isLoading={true}
         onConfirm={mockOnConfirm}
-      />,
+      />
     );
 
     expect(screen.getByText('common.processing')).toBeInTheDocument();
@@ -178,7 +178,7 @@ describe('DocumentMetadataEditDialog (Feature 253 — Phase 2 Frontend Unit)', (
         currentVersion={1}
         fields={fields}
         onConfirm={mockOnConfirm}
-      />,
+      />
     );
 
     fireEvent.change(screen.getByDisplayValue('Old Subject'), { target: { value: 'Changed' } });

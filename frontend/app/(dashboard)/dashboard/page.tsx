@@ -16,17 +16,17 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Welcome back! Here's an overview of your project status.</p>
+          <p className="mt-1 text-muted-foreground">Welcome back! Here's an overview of your project status.</p>
         </div>
         <QuickActions />
       </div>
 
       <StatsCards stats={stats} isLoading={statsLoading} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <RecentActivity activities={activities} isLoading={activityLoading} />
         </div>

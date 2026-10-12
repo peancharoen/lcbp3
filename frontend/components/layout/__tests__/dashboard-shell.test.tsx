@@ -19,7 +19,7 @@ describe('DashboardShell', () => {
     render(
       <DashboardShell>
         <div>Test Content</div>
-      </DashboardShell>,
+      </DashboardShell>
     );
     expect(screen.getByText('Test Content')).toBeInTheDocument();
   });
@@ -31,7 +31,7 @@ describe('DashboardShell', () => {
     const { container } = render(
       <DashboardShell>
         <div>Content</div>
-      </DashboardShell>,
+      </DashboardShell>
     );
     const wrapper = container.firstChild as HTMLElement;
     expect(wrapper.className).toContain('md:ml-[240px]');
@@ -44,7 +44,7 @@ describe('DashboardShell', () => {
     const { container } = render(
       <DashboardShell>
         <div>Content</div>
-      </DashboardShell>,
+      </DashboardShell>
     );
     const wrapper = container.firstChild as HTMLElement;
     expect(wrapper.className).toContain('md:ml-[70px]');

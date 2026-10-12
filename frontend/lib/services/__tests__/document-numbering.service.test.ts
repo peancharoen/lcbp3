@@ -42,10 +42,7 @@ describe('documentNumberingService', () => {
       };
       (apiClient.post as any).mockResolvedValue({ data: { success: true } });
       await documentNumberingService.manualOverride(mockDto);
-      expect(apiClient.post).toHaveBeenCalledWith(
-        '/admin/document-numbering/manual-override',
-        mockDto
-      );
+      expect(apiClient.post).toHaveBeenCalledWith('/admin/document-numbering/manual-override', mockDto);
     });
 
     it('should void and replace number', async () => {
@@ -58,10 +55,7 @@ describe('documentNumberingService', () => {
       (apiClient.post as any).mockResolvedValue({ data: mockResponse });
       const result = await documentNumberingService.voidAndReplace(mockDto);
       expect(result).toEqual(mockResponse);
-      expect(apiClient.post).toHaveBeenCalledWith(
-        '/admin/document-numbering/void-and-replace',
-        mockDto
-      );
+      expect(apiClient.post).toHaveBeenCalledWith('/admin/document-numbering/void-and-replace', mockDto);
     });
 
     it('should cancel number', async () => {
@@ -72,10 +66,7 @@ describe('documentNumberingService', () => {
       };
       (apiClient.post as any).mockResolvedValue({ data: { success: true } });
       await documentNumberingService.cancelNumber(mockDto);
-      expect(apiClient.post).toHaveBeenCalledWith(
-        '/admin/document-numbering/cancel',
-        mockDto
-      );
+      expect(apiClient.post).toHaveBeenCalledWith('/admin/document-numbering/cancel', mockDto);
     });
 
     it('should bulk import with FormData', async () => {
@@ -85,11 +76,9 @@ describe('documentNumberingService', () => {
       (apiClient.post as any).mockResolvedValue({ data: mockResponse });
       const result = await documentNumberingService.bulkImport(mockFormData);
       expect(result).toEqual(mockResponse);
-      expect(apiClient.post).toHaveBeenCalledWith(
-        '/admin/document-numbering/bulk-import',
-        mockFormData,
-        { headers: { 'Content-Type': 'multipart/form-data' } }
-      );
+      expect(apiClient.post).toHaveBeenCalledWith('/admin/document-numbering/bulk-import', mockFormData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
     });
 
     it('should bulk import with array data', async () => {
@@ -101,11 +90,7 @@ describe('documentNumberingService', () => {
       (apiClient.post as any).mockResolvedValue({ data: mockResponse });
       const result = await documentNumberingService.bulkImport(mockData);
       expect(result).toEqual(mockResponse);
-      expect(apiClient.post).toHaveBeenCalledWith(
-        '/admin/document-numbering/bulk-import',
-        mockData,
-        {}
-      );
+      expect(apiClient.post).toHaveBeenCalledWith('/admin/document-numbering/bulk-import', mockData, {});
     });
   });
 

@@ -41,7 +41,7 @@ export function SequenceViewer() {
 
   return (
     <Card className="p-6">
-      <div className="flex justify-between items-center mb-4">
+      <div className="mb-4 flex items-center justify-between">
         <h3 className="text-lg font-semibold">Number Counters</h3>
         <Button variant="outline" size="sm" onClick={fetchSequences} disabled={loading}>
           <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
@@ -59,22 +59,22 @@ export function SequenceViewer() {
 
       <div className="space-y-2">
         {filteredSequences.length === 0 && (
-          <div className="text-center text-muted-foreground py-4">No sequences found</div>
+          <div className="py-4 text-center text-muted-foreground">No sequences found</div>
         )}
         {filteredSequences.map((seq, index) => (
           <div
             key={`${seq.projectId}-${seq.typeId}-${seq.year}-${index}`}
-            className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 rounded border"
+            className="flex items-center justify-between rounded border bg-muted/50 p-3"
           >
             <div>
-              <div className="flex items-center gap-2 mb-1">
+              <div className="mb-1 flex items-center gap-2">
                 <span className="font-medium">Year {seq.year}</span>
                 <Badge variant="outline">Project: {seq.projectId}</Badge>
                 <Badge>Type: {seq.typeId}</Badge>
                 {seq.disciplineId > 0 && <Badge variant="secondary">Disc: {seq.disciplineId}</Badge>}
               </div>
               <div className="text-sm text-muted-foreground">
-                <span className="text-foreground font-medium">Counter: {seq.lastNumber}</span> | Originator:{' '}
+                <span className="font-medium text-foreground">Counter: {seq.lastNumber}</span> | Originator:{' '}
                 {seq.originatorId} | Recipient:{' '}
                 {seq.recipientOrganizationId === -1 ? 'All' : seq.recipientOrganizationId}
               </div>

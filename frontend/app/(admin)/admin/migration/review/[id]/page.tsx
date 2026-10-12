@@ -57,12 +57,29 @@ import {
 import { Organization } from '@/types/organization';
 import { Discipline, CorrespondenceType } from '@/types/master-data';
 import { Button } from '@/components/ui/button';
-import { Form, FormControl, FormDescription as _FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import {
+  Form,
+  FormControl,
+  FormDescription as _FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeftIcon, CheckCircleIcon, XCircleIcon, RefreshCwIcon, ShieldAlertIcon, AlertTriangleIcon, RotateCcwIcon, FileUpIcon } from 'lucide-react';
+import {
+  ArrowLeftIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  RefreshCwIcon,
+  ShieldAlertIcon,
+  AlertTriangleIcon,
+  RotateCcwIcon,
+  FileUpIcon,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { CompareResultTable } from '@/components/migration/compare-result-table';
@@ -100,9 +117,7 @@ const getOcrQuality = (details: MigrationReviewQueueItem['details']): MigrationO
 
 /** ดึง publicId ของ attachment หลัก (index 0) ที่ enrichWithAttachments ฉีดใน details —
  *  ใช้เป็น fallback viewer source สำหรับไฟล์ที่เปลี่ยนใหม่ผ่าน /files/upload */
-const getPrimaryAttachmentPublicId = (
-  details: MigrationReviewQueueItem['details']
-): string | null => {
+const getPrimaryAttachmentPublicId = (details: MigrationReviewQueueItem['details']): string | null => {
   if (!details || typeof details !== 'object') return null;
   const attachments = (details as Record<string, unknown>).attachments;
   if (!Array.isArray(attachments) || attachments.length === 0) return null;
@@ -155,9 +170,9 @@ const formatConfidence = (confidence: number): string => `${(confidence * 100).t
 
 /** สีตามระดับ confidence (รองรับ dark mode — ใช้โทนสว่างขึ้นใน dark theme) */
 const getConfidenceColor = (confidence: number): string => {
-  if (confidence < 0.5) return 'text-red-600 dark:text-red-400';
-  if (confidence < 0.75) return 'text-yellow-600 dark:text-yellow-400';
-  return 'text-green-600 dark:text-green-400';
+  if (confidence < 0.5) return 'text-destructive';
+  if (confidence < 0.75) return 'text-warning';
+  return 'text-success';
 };
 
 interface MigrationAiIssues {
@@ -274,8 +289,7 @@ export default function MigrationReviewPage() {
           const details = res.details || {};
           // ถ้า queue item มี contract ที่เลือกตอน ingest — โหลด disciplines เฉพาะ
           // contract นั้น (discipline_code unique แค่ระดับ contract, GEN ซ้ำข้าม C1/C2 ได้)
-          const queueContractId =
-            typeof details.contractId === 'number' ? details.contractId : undefined;
+          const queueContractId = typeof details.contractId === 'number' ? details.contractId : undefined;
           if (queueContractId) {
             masterDataService
               .getDisciplines(queueContractId)
@@ -287,12 +301,8 @@ export default function MigrationReviewPage() {
             documentNumber: getQueueBaseDocNumber(res),
             subject: res.subject || res.originalSubject || '',
             correspondenceType: res.aiSuggestedCorrespondenceType || '',
-            documentDate: res.issuedDate
-              ? String(res.issuedDate).split('T')[0]
-              : issues.documentDate || '',
-            receivedDate: res.receivedDate
-              ? String(res.receivedDate).split('T')[0]
-              : issues.receivedDate || '',
+            documentDate: res.issuedDate ? String(res.issuedDate).split('T')[0] : issues.documentDate || '',
+            receivedDate: res.receivedDate ? String(res.receivedDate).split('T')[0] : issues.receivedDate || '',
             senderPublicId: res.senderOrganizationPublicId || '',
             receiverPublicId: res.receiverOrganizationPublicId || '',
             // อ่าน disciplineId จาก details ที่ AI enrichment เก็บไว้
@@ -304,9 +314,7 @@ export default function MigrationReviewPage() {
           // ADR-054 (FR-011): hydrate review state จาก review_state_json (D9)
           // — reviewer decisions เดิมต้องแสดงกลับเมื่อเปิดรายการซ้ำ
           setFieldResolutions(res.reviewState?.fieldResolutions ?? []);
-          setFieldAcknowledgments(
-            (res.reviewState?.fieldAcknowledgments ?? []) as AcknowledgeableField[],
-          );
+          setFieldAcknowledgments((res.reviewState?.fieldAcknowledgments ?? []) as AcknowledgeableField[]);
         }
       } catch (error: unknown) {
         // เก็บ error object สำหรับ pretty print บนหน้า
@@ -436,9 +444,7 @@ export default function MigrationReviewPage() {
 
   /** ADR-050 (T039): toggle field acknowledgment — เพิ่ม/ลบ field จาก fieldAcknowledgments */
   const toggleAcknowledgment = (field: AcknowledgeableField) => {
-    setFieldAcknowledgments((prev) =>
-      prev.includes(field) ? prev.filter((f) => f !== field) : [...prev, field]
-    );
+    setFieldAcknowledgments((prev) => (prev.includes(field) ? prev.filter((f) => f !== field) : [...prev, field]));
   };
 
   /** ADR-050 (T043): toggle tag decision — ตั้งค่า tag เป็น 'accepted' หรือ 'rejected'
@@ -473,16 +479,15 @@ export default function MigrationReviewPage() {
         error?: { message?: string };
         response?: { data?: { message?: string } };
       };
-      toast.error(
-        err?.error?.message || err?.response?.data?.message || migrationReviewT('restore_ocr_error')
-      );
+      toast.error(err?.error?.message || err?.response?.data?.message || migrationReviewT('restore_ocr_error'));
     } finally {
       setSubmitting(false);
     }
   };
 
   const onReject = async () => {
-    if (!item || !item.publicId || !confirm('Are you sure you want to REJECT this document? It will not be imported.')) return;
+    if (!item || !item.publicId || !confirm('Are you sure you want to REJECT this document? It will not be imported.'))
+      return;
 
     try {
       setSubmitting(true);
@@ -504,10 +509,10 @@ export default function MigrationReviewPage() {
 
   if (!item) {
     return (
-      <div className="py-10 text-center space-y-4">
-        <div className="text-red-500 font-medium">Document not found</div>
+      <div className="space-y-4 py-10 text-center">
+        <div className="font-medium text-destructive">Document not found</div>
         {loadError && (
-          <pre className="text-left text-xs text-muted-foreground bg-muted p-4 rounded-md overflow-auto max-w-2xl mx-auto">
+          <pre className="mx-auto max-w-2xl overflow-auto rounded-md bg-muted p-4 text-left text-xs text-muted-foreground">
             {JSON.stringify(loadError, null, 2)}
           </pre>
         )}
@@ -533,8 +538,8 @@ export default function MigrationReviewPage() {
   const hasAiIssues = (aiIssuesKeyPoints && aiIssuesKeyPoints.length > 0) || aiIssuesArray.length > 0;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-6rem)] space-y-4">
-      <div className="flex justify-between items-center shrink-0">
+    <div className="flex h-[calc(100vh-6rem)] flex-col space-y-4">
+      <div className="flex shrink-0 items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="outline" size="icon" onClick={handleBack}>
             <ArrowLeftIcon className="h-4 w-4" />
@@ -548,10 +553,10 @@ export default function MigrationReviewPage() {
                 </Badge>
               )}
             </h1>
-            <p className="text-sm text-muted-foreground flex items-center gap-2">
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
               Status: <span className="font-semibold text-primary">{item.status}</span>
               {' | '} Confidence:{' '}
-              <span className={item.aiConfidence && item.aiConfidence < 0.8 ? 'text-red-500' : 'text-green-500'}>
+              <span className={item.aiConfidence && item.aiConfidence < 0.8 ? 'text-destructive' : 'text-success'}>
                 {item.aiConfidence ? (item.aiConfidence * 100).toFixed(1) + '%' : 'N/A'}
               </span>
             </p>
@@ -561,13 +566,10 @@ export default function MigrationReviewPage() {
 
       <div className="flex flex-1 gap-6 overflow-hidden">
         {/* Left Side: PDF Viewer + Compare Result */}
-        <div className="flex-1 hidden md:flex flex-col gap-4 overflow-hidden">
-          <Card className="flex-1 flex flex-col overflow-hidden border-2 border-primary/10 shadow-md">
-            <CardContent className="p-0 flex-1 relative bg-slate-100">
-              <StagingFileViewer
-                sourceFilePath={sourceFilePath}
-                attachmentPublicId={primaryAttachmentPublicId}
-              />
+        <div className="hidden flex-1 flex-col gap-4 overflow-hidden md:flex">
+          <Card className="flex flex-1 flex-col overflow-hidden border-2 border-primary/10 shadow-md">
+            <CardContent className="relative flex-1 bg-muted p-0">
+              <StagingFileViewer sourceFilePath={sourceFilePath} attachmentPublicId={primaryAttachmentPublicId} />
             </CardContent>
           </Card>
           {/* Feature 242: Compare Result Table (FR-007, FR-011, FR-012c)
@@ -597,12 +599,10 @@ export default function MigrationReviewPage() {
                 onClick={handleRestoreOcr}
                 disabled={submitting}
               >
-                <RotateCcwIcon className="w-4 h-4 mr-2" />
+                <RotateCcwIcon className="mr-2 h-4 w-4" />
                 {migrationReviewT('restore_ocr_button')}
               </Button>
-              <span className="text-xs text-muted-foreground">
-                {migrationReviewT('restore_ocr_note')}
-              </span>
+              <span className="text-xs text-muted-foreground">{migrationReviewT('restore_ocr_note')}</span>
             </div>
           )}
 
@@ -611,24 +611,22 @@ export default function MigrationReviewPage() {
             <OcrTextEditor
               publicId={item.publicId}
               initialOcrText={item.ocrText}
-              onSaved={(newText) =>
-                setItem((prev) => (prev ? { ...prev, ocrText: newText } : prev))
-              }
+              onSaved={(newText) => setItem((prev) => (prev ? { ...prev, ocrText: newText } : prev))}
             />
           )}
         </div>
 
         {/* Right Side: Form */}
-        <Card className="w-full md:w-[450px] lg:w-[500px] flex-shrink-0 flex flex-col overflow-hidden border-2 border-primary/10 shadow-md">
-          <div className="p-4 border-b bg-muted/30">
-            <h2 className="font-semibold text-lg flex items-center gap-2">Extracted Information</h2>
+        <Card className="flex w-full flex-shrink-0 flex-col overflow-hidden border-2 border-primary/10 shadow-md md:w-[450px] lg:w-[500px]">
+          <div className="border-b bg-muted/30 p-4">
+            <h2 className="flex items-center gap-2 text-lg font-semibold">Extracted Information</h2>
             {item.reviewReason && (
-              <p className="text-sm text-red-500 mt-1 font-medium bg-red-50 p-2 rounded border border-red-100 dark:bg-red-950/40 dark:border-red-900">
+              <p className="mt-1 rounded border border-destructive/30 bg-destructive/10 p-2 text-sm font-medium text-destructive">
                 Reason: {item.reviewReason}
               </p>
             )}
           </div>
-          <CardContent className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+          <CardContent className="custom-scrollbar flex-1 overflow-y-auto p-4">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
@@ -804,9 +802,9 @@ export default function MigrationReviewPage() {
                 {commitError?.unresolvedFields && commitError.unresolvedFields.length > 0 && (
                   <div
                     data-testid="unresolved-fields-warning"
-                    className="mt-4 p-3 rounded-md border border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950/40 text-sm"
+                    className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm"
                   >
-                    <div className="flex items-center gap-2 font-semibold text-red-700 dark:text-red-300">
+                    <div className="flex items-center gap-2 font-semibold text-destructive">
                       <AlertTriangleIcon className="h-4 w-4" />
                       {migrationReviewT('commit_unresolved_fields_error').replace(
                         '{{fields}}',
@@ -821,15 +819,15 @@ export default function MigrationReviewPage() {
                 {(ocrQuality || item.aiFailed) && (
                   <div
                     data-testid="ocr-quality-section"
-                    className="mt-4 p-3 rounded-md border border-blue-200 bg-blue-50/50 dark:border-blue-900 dark:bg-blue-950/40 space-y-2"
+                    className="mt-4 space-y-2 rounded-md border border-info/30 bg-info/50 p-3"
                   >
                     <div className="flex items-center justify-between">
-                      <h3 className="font-semibold text-sm flex items-center gap-1.5 text-blue-700 dark:text-blue-300">
+                      <h3 className="flex items-center gap-1.5 text-sm font-semibold text-info">
                         <ShieldAlertIcon className="h-4 w-4" />
                         {migrationReviewT('ocr_quality_title')}
                       </h3>
                       <span
-                        className={`font-mono text-sm font-semibold ${ocrQuality ? getConfidenceColor(ocrQuality.confidence) : 'text-red-600 dark:text-red-400'}`}
+                        className={`font-mono text-sm font-semibold ${ocrQuality ? getConfidenceColor(ocrQuality.confidence) : 'text-destructive'}`}
                       >
                         {migrationReviewT('ocr_quality_confidence')}:{' '}
                         {ocrQuality
@@ -838,9 +836,7 @@ export default function MigrationReviewPage() {
                       </span>
                     </div>
                     {!ocrQuality && item.aiFailed && (
-                      <p className="text-xs text-red-700 dark:text-red-300">
-                        {migrationReviewT('ocr_hard_failure_guidance')}
-                      </p>
+                      <p className="text-xs text-destructive">{migrationReviewT('ocr_hard_failure_guidance')}</p>
                     )}
                     {ocrQuality && ocrQuality.issues.length > 0 && (
                       <div className="space-y-1.5">
@@ -848,12 +844,10 @@ export default function MigrationReviewPage() {
                           {migrationReviewT('ocr_quality_issues')}
                         </p>
                         {ocrQuality.issues.map((issue, idx) => (
-                          <div key={idx} className="text-xs space-y-0.5 pl-2 border-l-2 border-blue-200 dark:border-blue-800">
-                            <p className="font-medium text-blue-800 dark:text-blue-200">{issue.type}</p>
+                          <div key={idx} className="space-y-0.5 border-l-2 border-info/30 pl-2 text-xs">
+                            <p className="font-medium text-info">{issue.type}</p>
                             <p className="text-muted-foreground">{issue.message}</p>
-                            {issue.evidence && (
-                              <p className="text-muted-foreground/70 italic">"{issue.evidence}"</p>
-                            )}
+                            {issue.evidence && <p className="italic text-muted-foreground/70">"{issue.evidence}"</p>}
                           </div>
                         ))}
                       </div>
@@ -867,7 +861,9 @@ export default function MigrationReviewPage() {
                       onClick={() => toggleAcknowledgment('ocrQuality')}
                       className="w-full"
                     >
-                      {fieldAcknowledgments.includes('ocrQuality') ? `✓ ${migrationReviewT('acknowledged')}` : migrationReviewT('acknowledge_ocr_quality')}
+                      {fieldAcknowledgments.includes('ocrQuality')
+                        ? `✓ ${migrationReviewT('acknowledged')}`
+                        : migrationReviewT('acknowledge_ocr_quality')}
                     </Button>
                   </div>
                 )}
@@ -877,22 +873,31 @@ export default function MigrationReviewPage() {
                 {metadataConfidence && (
                   <div
                     data-testid="metadata-confidence-section"
-                    className="mt-4 p-3 rounded-md border border-amber-200 bg-amber-50/50 dark:border-amber-900 dark:bg-amber-950/40 space-y-2"
+                    className="mt-4 space-y-2 rounded-md border border-warning/30 bg-warning/50 p-3"
                   >
-                    <h3 className="font-semibold text-sm text-amber-700 dark:text-amber-300">{migrationReviewT('metadata_confidence_title')}</h3>
+                    <h3 className="text-sm font-semibold text-warning">
+                      {migrationReviewT('metadata_confidence_title')}
+                    </h3>
                     <div className="flex flex-wrap gap-2">
                       <Badge variant="outline" className="text-xs">
-                        Summary: <span className={`ml-1 font-mono font-semibold ${getConfidenceColor(metadataConfidence.summary)}`}>
+                        Summary:{' '}
+                        <span
+                          className={`ml-1 font-mono font-semibold ${getConfidenceColor(metadataConfidence.summary)}`}
+                        >
                           {formatConfidence(metadataConfidence.summary)}
                         </span>
                       </Badge>
                       <Badge variant="outline" className="text-xs">
-                        Category: <span className={`ml-1 font-mono font-semibold ${getConfidenceColor(metadataConfidence.correspondenceType)}`}>
+                        Category:{' '}
+                        <span
+                          className={`ml-1 font-mono font-semibold ${getConfidenceColor(metadataConfidence.correspondenceType)}`}
+                        >
                           {formatConfidence(metadataConfidence.correspondenceType)}
                         </span>
                       </Badge>
                       <Badge variant="outline" className="text-xs">
-                        Tags: <span className={`ml-1 font-mono font-semibold ${getConfidenceColor(metadataConfidence.tags)}`}>
+                        Tags:{' '}
+                        <span className={`ml-1 font-mono font-semibold ${getConfidenceColor(metadataConfidence.tags)}`}>
                           {formatConfidence(metadataConfidence.tags)}
                         </span>
                       </Badge>
@@ -907,7 +912,9 @@ export default function MigrationReviewPage() {
                         onClick={() => toggleAcknowledgment('summary')}
                         className="flex-1"
                       >
-                        {fieldAcknowledgments.includes('summary') ? `✓ ${migrationReviewT('acknowledged')}` : migrationReviewT('ack_summary')}
+                        {fieldAcknowledgments.includes('summary')
+                          ? `✓ ${migrationReviewT('acknowledged')}`
+                          : migrationReviewT('ack_summary')}
                       </Button>
                       <Button
                         type="button"
@@ -917,7 +924,9 @@ export default function MigrationReviewPage() {
                         onClick={() => toggleAcknowledgment('correspondenceType')}
                         className="flex-1"
                       >
-                        {fieldAcknowledgments.includes('correspondenceType') ? `✓ ${migrationReviewT('acknowledged')}` : migrationReviewT('ack_correspondenceType')}
+                        {fieldAcknowledgments.includes('correspondenceType')
+                          ? `✓ ${migrationReviewT('acknowledged')}`
+                          : migrationReviewT('ack_correspondenceType')}
                       </Button>
                       {/* Orchestrator review fix: when metadata.tags is empty but confidence.tags is
                           still low, there are no tag chips to accept/reject (see the section below,
@@ -932,7 +941,9 @@ export default function MigrationReviewPage() {
                           onClick={() => toggleAcknowledgment('tags')}
                           className="flex-1"
                         >
-                          {fieldAcknowledgments.includes('tags') ? `✓ ${migrationReviewT('acknowledged')}` : migrationReviewT('ack_tags')}
+                          {fieldAcknowledgments.includes('tags')
+                            ? `✓ ${migrationReviewT('acknowledged')}`
+                            : migrationReviewT('ack_tags')}
                         </Button>
                       )}
                     </div>
@@ -943,7 +954,7 @@ export default function MigrationReviewPage() {
                 {commitError?.correspondenceTypeError && (
                   <div
                     data-testid="correspondenceType-error-warning"
-                    className="mt-2 p-2 rounded-md border border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950/40 text-xs text-red-700 dark:text-red-300"
+                    className="mt-2 rounded-md border border-destructive/30 bg-destructive/10 p-2 text-xs text-destructive"
                   >
                     <div className="flex items-center gap-1.5">
                       <AlertTriangleIcon className="h-3.5 w-3.5" />
@@ -958,9 +969,9 @@ export default function MigrationReviewPage() {
                 {tagSuggestions.length > 0 && (
                   <div
                     data-testid="tag-suggestions-section"
-                    className="mt-4 p-3 rounded-md border border-purple-200 bg-purple-50/50 dark:border-purple-900 dark:bg-purple-950/40 space-y-2"
+                    className="mt-4 space-y-2 rounded-md border border-purple-200 bg-purple-50/50 p-3 dark:border-purple-900 dark:bg-purple-950/40"
                   >
-                    <h3 className="font-semibold text-sm text-purple-700 dark:text-purple-300">
+                    <h3 className="text-sm font-semibold text-purple-700 dark:text-purple-300">
                       {migrationReviewT('tag_suggestions_title')}
                     </h3>
                     <div className="space-y-2">
@@ -971,14 +982,14 @@ export default function MigrationReviewPage() {
                             key={tag.name}
                             data-testid={`tag-chip-${tag.name}`}
                             title={tag.evidence}
-                            className="flex items-center gap-2 p-2 rounded-md border border-purple-200 bg-white dark:border-purple-800 dark:bg-purple-950/30"
+                            className="flex items-center gap-2 rounded-md border border-purple-200 bg-white p-2 dark:border-purple-800 dark:bg-purple-950/30"
                           >
-                            <span className="text-sm font-medium flex-1">{tag.name}</span>
+                            <span className="flex-1 text-sm font-medium">{tag.name}</span>
                             {tag.isNew && (
                               <Badge
                                 data-testid={`tag-is-new-badge-${tag.name}`}
                                 variant="secondary"
-                                className="text-xs bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-200"
+                                className="bg-purple-100 text-xs text-purple-700 dark:bg-purple-900 dark:text-purple-200"
                               >
                                 {migrationReviewT('tag_is_new_badge')}
                               </Badge>
@@ -992,7 +1003,7 @@ export default function MigrationReviewPage() {
                               onClick={() => toggleTagDecision(tag.name, 'accepted')}
                               className="h-7 px-2 text-xs"
                             >
-                              <CheckCircleIcon className="h-3 w-3 mr-1" />
+                              <CheckCircleIcon className="mr-1 h-3 w-3" />
                               {migrationReviewT('tag_accept')}
                             </Button>
                             <Button
@@ -1004,7 +1015,7 @@ export default function MigrationReviewPage() {
                               onClick={() => toggleTagDecision(tag.name, 'rejected')}
                               className="h-7 px-2 text-xs"
                             >
-                              <XCircleIcon className="h-3 w-3 mr-1" />
+                              <XCircleIcon className="mr-1 h-3 w-3" />
                               {migrationReviewT('tag_reject')}
                             </Button>
                           </div>
@@ -1018,20 +1029,21 @@ export default function MigrationReviewPage() {
                     แยกจาก ocrQuality — ไม่ merge หรือ relabel */}
                 {hasAiIssues && (
                   <div data-testid="ai-issues-section" className="mt-6 border-t pt-4">
-                    <h3 className="font-semibold text-sm mb-2 text-muted-foreground">AI Extracted Key Points</h3>
+                    <h3 className="mb-2 text-sm font-semibold text-muted-foreground">AI Extracted Key Points</h3>
                     {aiIssuesKeyPoints && aiIssuesKeyPoints.length > 0 && (
-                      <ul className="text-sm space-y-1 list-disc pl-4 text-muted-foreground">
+                      <ul className="list-disc space-y-1 pl-4 text-sm text-muted-foreground">
                         {aiIssuesKeyPoints.map((point: string, i: number) => (
                           <li key={i}>{point}</li>
                         ))}
                       </ul>
                     )}
                     {aiIssuesArray.length > 0 && (
-                      <ul className="text-sm space-y-1 list-disc pl-4 text-muted-foreground">
+                      <ul className="list-disc space-y-1 pl-4 text-sm text-muted-foreground">
                         {aiIssuesArray.map((issue, i) => {
-                          const msg = typeof issue === 'object' && issue !== null && 'message' in issue
-                            ? String((issue as Record<string, unknown>).message)
-                            : String(issue);
+                          const msg =
+                            typeof issue === 'object' && issue !== null && 'message' in issue
+                              ? String((issue as Record<string, unknown>).message)
+                              : String(issue);
                           return <li key={i}>{msg}</li>;
                         })}
                       </ul>
@@ -1039,7 +1051,7 @@ export default function MigrationReviewPage() {
                   </div>
                 )}
 
-                <div className="flex gap-4 pt-6 mt-4 border-t sticky bottom-0 bg-background/95 backdrop-blur z-10">
+                <div className="sticky bottom-0 z-10 mt-4 flex gap-4 border-t bg-background/95 pt-6 backdrop-blur">
                   <Button
                     type="button"
                     variant="destructive"
@@ -1047,7 +1059,7 @@ export default function MigrationReviewPage() {
                     disabled={submitting || item.status === 'IMPORTED'}
                     onClick={onReject}
                   >
-                    <XCircleIcon className="w-4 h-4 mr-2" />
+                    <XCircleIcon className="mr-2 h-4 w-4" />
                     Reject
                   </Button>
                   {(item.status === MigrationReviewStatus.PENDING ||
@@ -1061,7 +1073,7 @@ export default function MigrationReviewPage() {
                         onClick={() => setReplaceFileOpen(true)}
                         disabled={submitting}
                       >
-                        <FileUpIcon className="w-4 h-4 mr-2" />
+                        <FileUpIcon className="mr-2 h-4 w-4" />
                         {migrationReviewT('replace_file_button')}
                       </Button>
                     )}
@@ -1076,13 +1088,12 @@ export default function MigrationReviewPage() {
                         onClick={handleStartExtract}
                         disabled={submitting}
                       >
-                        <RefreshCwIcon className="w-4 h-4 mr-2" />
+                        <RefreshCwIcon className="mr-2 h-4 w-4" />
                         Start Extract
                       </Button>
                     )}
                   {(item.status === MigrationReviewStatus.PENDING_REVIEW ||
-                    (item.aiStatus === MigrationAiStatus.FAILED &&
-                      item.status !== MigrationReviewStatus.PENDING)) &&
+                    (item.aiStatus === MigrationAiStatus.FAILED && item.status !== MigrationReviewStatus.PENDING)) &&
                     item.aiStatus !== MigrationAiStatus.RUNNING &&
                     item.aiStatus !== MigrationAiStatus.WAITING && (
                       <Button
@@ -1092,19 +1103,16 @@ export default function MigrationReviewPage() {
                         onClick={handleReExtract}
                         disabled={submitting || reExtractMutation.isPending}
                       >
-                        <RefreshCwIcon className="w-4 h-4 mr-2" />
+                        <RefreshCwIcon className="mr-2 h-4 w-4" />
                         Re Extract
                       </Button>
                     )}
                   <Button
                     type="submit"
-                    className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                    disabled={
-                      submitting ||
-                      item.status !== MigrationReviewStatus.PENDING_REVIEW
-                    }
+                    className="flex-1 bg-success text-white hover:bg-success/90"
+                    disabled={submitting || item.status !== MigrationReviewStatus.PENDING_REVIEW}
                   >
-                    <CheckCircleIcon className="w-4 h-4 mr-2" />
+                    <CheckCircleIcon className="mr-2 h-4 w-4" />
                     {submitting ? 'Processing...' : 'Execute Import'}
                   </Button>
                 </div>

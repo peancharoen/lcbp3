@@ -42,16 +42,10 @@ vi.mock('../rag-console/ReOcrDiffView', () => ({
   ),
 }));
 vi.mock('../rag-console/ReOcrReplacePicker', () => ({
-  ReOcrReplacePicker: ({
-    onChange,
-  }: {
-    onChange: (s: { storageTempPath: string; filename: string }) => void;
-  }) => (
+  ReOcrReplacePicker: ({ onChange }: { onChange: (s: { storageTempPath: string; filename: string }) => void }) => (
     <button
       data-testid="pick-file"
-      onClick={() =>
-        onChange({ storageTempPath: '/staging/new.pdf', filename: 'new.pdf' })
-      }
+      onClick={() => onChange({ storageTempPath: '/staging/new.pdf', filename: 'new.pdf' })}
     >
       pick
     </button>
@@ -82,9 +76,7 @@ const completed = (over: Record<string, unknown> = {}): ReOcrStatusResponse =>
   }) as ReOcrStatusResponse;
 
 const renderDialog = () =>
-  render(
-    <ReOcrDialog attachmentPublicId="att-1" originalFilename="a.pdf" open onOpenChange={vi.fn()} />
-  );
+  render(<ReOcrDialog attachmentPublicId="att-1" originalFilename="a.pdf" open onOpenChange={vi.fn()} />);
 
 describe('ReOcrDialog (ADR-055 D16)', () => {
   beforeEach(() => {
@@ -140,9 +132,7 @@ describe('ReOcrDialog (ADR-055 D16)', () => {
     await userEvent.click(screen.getByRole('button', { name: ragAdminT('re_ocr.diff.confirm') }));
     expect(mocks.confirmMutate).not.toHaveBeenCalled();
     expect(screen.getByText(ragAdminT('re_ocr.confirm_dialog.title'))).toBeInTheDocument();
-    await userEvent.click(
-      screen.getByRole('button', { name: ragAdminT('re_ocr.confirm_dialog.confirm') })
-    );
+    await userEvent.click(screen.getByRole('button', { name: ragAdminT('re_ocr.confirm_dialog.confirm') }));
     expect(mocks.confirmMutate).toHaveBeenCalledWith('tok', expect.any(Object));
   });
 
@@ -155,9 +145,7 @@ describe('ReOcrDialog (ADR-055 D16)', () => {
     expect(screen.getByText('engine คืนผลลัพธ์ว่างเปล่า')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: ragAdminT('re_ocr.error.retry_auto') }));
     expect(mocks.triggerMutate).toHaveBeenLastCalledWith('auto', expect.any(Object));
-    await userEvent.click(
-      screen.getByRole('button', { name: ragAdminT('re_ocr.error.retry_np_dms_ocr') })
-    );
+    await userEvent.click(screen.getByRole('button', { name: ragAdminT('re_ocr.error.retry_np_dms_ocr') }));
     expect(mocks.triggerMutate).toHaveBeenLastCalledWith('np-dms-ocr', expect.any(Object));
   });
 });
@@ -202,9 +190,7 @@ describe('ReOcrDialog — replace mode (ADR-055 D17–D22)', () => {
   it('link picker: เลือกได้เฉพาะ link ที่เป็น current revision; start ปิดจนกว่าจะเลือก link + ไฟล์', async () => {
     renderReplace();
     expect(screen.getByText(ragAdminT('re_ocr.replace.link_picker'))).toBeInTheDocument();
-    const linkRadios = screen
-      .getAllByRole('radio')
-      .filter((r) => r.getAttribute('name') === 're-ocr-target-link');
+    const linkRadios = screen.getAllByRole('radio').filter((r) => r.getAttribute('name') === 're-ocr-target-link');
     expect(linkRadios).toHaveLength(2);
     expect(linkRadios[1]).toBeDisabled(); // non-current link
     const startBtn = screen.getByRole('button', {
@@ -231,9 +217,7 @@ describe('ReOcrDialog — replace mode (ADR-055 D17–D22)', () => {
   it('preselect link (detail page) → แสดง link_fixed ไม่มี link picker', () => {
     renderReplace({ replaceTargetCorrespondencePublicId: 'corr-1' });
     expect(screen.getByText(ragAdminT('re_ocr.replace.link_fixed'))).toBeInTheDocument();
-    expect(
-      screen.queryByText(ragAdminT('re_ocr.replace.link_picker'))
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(ragAdminT('re_ocr.replace.link_picker'))).not.toBeInTheDocument();
   });
 
   it('resume failed replace job → retry ใช้ candidate เดิมจาก status (ไม่ต้องเลือกใหม่)', async () => {
@@ -250,9 +234,7 @@ describe('ReOcrDialog — replace mode (ADR-055 D17–D22)', () => {
       isLoading: false,
     };
     renderReplace();
-    await userEvent.click(
-      screen.getByRole('button', { name: ragAdminT('re_ocr.error.retry_np_dms_ocr') })
-    );
+    await userEvent.click(screen.getByRole('button', { name: ragAdminT('re_ocr.error.retry_np_dms_ocr') }));
     expect(mocks.replaceMutate).toHaveBeenCalledWith(
       {
         engineType: 'np-dms-ocr',
@@ -306,16 +288,9 @@ describe('ReOcrDialog — replace mode (ADR-055 D17–D22)', () => {
       isLoading: false,
     };
     renderReplace();
-    await userEvent.click(
-      screen.getByRole('button', { name: ragAdminT('re_ocr.replace.confirm') })
-    );
-    await userEvent.click(
-      screen.getByRole('button', { name: ragAdminT('re_ocr.replace.confirm_action') })
-    );
-    expect(mocks.confirmReplaceMutate).toHaveBeenCalledWith(
-      'tok',
-      expect.any(Object)
-    );
+    await userEvent.click(screen.getByRole('button', { name: ragAdminT('re_ocr.replace.confirm') }));
+    await userEvent.click(screen.getByRole('button', { name: ragAdminT('re_ocr.replace.confirm_action') }));
+    expect(mocks.confirmReplaceMutate).toHaveBeenCalledWith('tok', expect.any(Object));
     expect(mocks.confirmMutate).not.toHaveBeenCalled();
   });
 });

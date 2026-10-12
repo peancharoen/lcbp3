@@ -347,12 +347,12 @@ export function RFAForm({ defaultValues }: { defaultValues?: Partial<RFAFormData
   return (
     <form onSubmit={handleFormSubmit} className="max-w-4xl space-y-6">
       {preview && (
-        <Card className="p-4 bg-muted border-l-4 border-l-primary">
-          <p className="text-sm text-muted-foreground mb-1">Document Number Preview</p>
+        <Card className="border-l-4 border-l-primary bg-muted p-4">
+          <p className="mb-1 text-sm text-muted-foreground">Document Number Preview</p>
           <div className="flex items-center gap-3">
-            <span className="text-xl font-bold font-mono text-primary tracking-wide">{preview.number}</span>
+            <span className="font-mono text-xl font-bold tracking-wide text-primary">{preview.number}</span>
             {preview.isDefaultTemplate && (
-              <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 border border-yellow-200">
+              <span className="rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-warning">
                 Default Template
               </span>
             )}
@@ -361,7 +361,7 @@ export function RFAForm({ defaultValues }: { defaultValues?: Partial<RFAFormData
       )}
 
       <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4">RFA Information</h3>
+        <h3 className="mb-4 text-lg font-semibold">RFA Information</h3>
 
         <div className="space-y-4">
           <div>
@@ -397,10 +397,10 @@ export function RFAForm({ defaultValues }: { defaultValues?: Partial<RFAFormData
                 })}
               </SelectContent>
             </Select>
-            {errors.projectId && <p className="text-sm text-destructive mt-1">{errors.projectId.message}</p>}
+            {errors.projectId && <p className="mt-1 text-sm text-destructive">{errors.projectId.message}</p>}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <Label>Contract *</Label>
               <Select
@@ -433,7 +433,7 @@ export function RFAForm({ defaultValues }: { defaultValues?: Partial<RFAFormData
                   })}
                 </SelectContent>
               </Select>
-              {errors.contractId && <p className="text-sm text-destructive mt-1">{errors.contractId.message}</p>}
+              {errors.contractId && <p className="mt-1 text-sm text-destructive">{errors.contractId.message}</p>}
             </div>
 
             <div>
@@ -469,11 +469,11 @@ export function RFAForm({ defaultValues }: { defaultValues?: Partial<RFAFormData
                   )}
                 </SelectContent>
               </Select>
-              {errors.disciplineId && <p className="text-sm text-destructive mt-1">{errors.disciplineId.message}</p>}
+              {errors.disciplineId && <p className="mt-1 text-sm text-destructive">{errors.disciplineId.message}</p>}
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <Label>RFA Type *</Label>
               <Select
@@ -504,7 +504,7 @@ export function RFAForm({ defaultValues }: { defaultValues?: Partial<RFAFormData
                   })}
                 </SelectContent>
               </Select>
-              {errors.rfaTypeId && <p className="text-sm text-destructive mt-1">{errors.rfaTypeId.message}</p>}
+              {errors.rfaTypeId && <p className="mt-1 text-sm text-destructive">{errors.rfaTypeId.message}</p>}
             </div>
 
             <div>
@@ -534,7 +534,7 @@ export function RFAForm({ defaultValues }: { defaultValues?: Partial<RFAFormData
                 </SelectContent>
               </Select>
               {errors.toOrganizationId && (
-                <p className="text-sm text-destructive mt-1">{errors.toOrganizationId.message}</p>
+                <p className="mt-1 text-sm text-destructive">{errors.toOrganizationId.message}</p>
               )}
             </div>
           </div>
@@ -548,7 +548,7 @@ export function RFAForm({ defaultValues }: { defaultValues?: Partial<RFAFormData
               />
             </div>
             <Input id="subject" {...register('subject')} placeholder="Enter subject" />
-            {errors.subject && <p className="text-sm text-destructive mt-1">{errors.subject.message}</p>}
+            {errors.subject && <p className="mt-1 text-sm text-destructive">{errors.subject.message}</p>}
           </div>
 
           <div>
@@ -570,7 +570,7 @@ export function RFAForm({ defaultValues }: { defaultValues?: Partial<RFAFormData
 
       {(requiresShopDrawings || requiresAsBuiltDrawings) && (
         <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-4">New Item</h3>
+          <h3 className="mb-4 text-lg font-semibold">New Item</h3>
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
               {requiresShopDrawings
@@ -580,7 +580,7 @@ export function RFAForm({ defaultValues }: { defaultValues?: Partial<RFAFormData
 
             {requiresShopDrawings && (
               <div className="space-y-3">
-                <div className="flex items-center gap-2 mb-2">
+                <div className="mb-2 flex items-center gap-2">
                   <Input
                     placeholder="ค้นหาตาม Drawing Number..."
                     value={shopDrawingSearch}
@@ -607,7 +607,7 @@ export function RFAForm({ defaultValues }: { defaultValues?: Partial<RFAFormData
                     return (
                       <label
                         key={revisionPublicId}
-                        className="flex items-start gap-3 rounded-lg border p-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                        className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
                       >
                         <Checkbox
                           checked={selectedShopDrawingRevisionIds.includes(revisionPublicId)}
@@ -639,7 +639,7 @@ export function RFAForm({ defaultValues }: { defaultValues?: Partial<RFAFormData
                 </div>
 
                 {shopDrawingsData?.meta && shopDrawingsData.meta.totalPages > 1 && (
-                  <div className="flex items-center justify-between mt-4">
+                  <div className="mt-4 flex items-center justify-between">
                     <p className="text-xs text-muted-foreground">
                       Page {shopDrawingPage} of {shopDrawingsData.meta.totalPages}
                     </p>
@@ -667,14 +667,14 @@ export function RFAForm({ defaultValues }: { defaultValues?: Partial<RFAFormData
                 )}
 
                 {errors.shopDrawingRevisionIds && (
-                  <p className="text-sm text-destructive mt-2">{errors.shopDrawingRevisionIds.message}</p>
+                  <p className="mt-2 text-sm text-destructive">{errors.shopDrawingRevisionIds.message}</p>
                 )}
               </div>
             )}
 
             {requiresAsBuiltDrawings && (
               <div className="space-y-3">
-                <div className="flex items-center gap-2 mb-2">
+                <div className="mb-2 flex items-center gap-2">
                   <Input
                     placeholder="ค้นหาตาม Drawing Number..."
                     value={asBuiltDrawingSearch}
@@ -703,7 +703,7 @@ export function RFAForm({ defaultValues }: { defaultValues?: Partial<RFAFormData
                     return (
                       <label
                         key={revisionPublicId}
-                        className="flex items-start gap-3 rounded-lg border p-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                        className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
                       >
                         <Checkbox
                           checked={selectedAsBuiltDrawingRevisionIds.includes(revisionPublicId)}
@@ -738,7 +738,7 @@ export function RFAForm({ defaultValues }: { defaultValues?: Partial<RFAFormData
                 </div>
 
                 {asBuiltDrawingsData?.meta && asBuiltDrawingsData.meta.totalPages > 1 && (
-                  <div className="flex items-center justify-between mt-4">
+                  <div className="mt-4 flex items-center justify-between">
                     <p className="text-xs text-muted-foreground">
                       Page {asBuiltDrawingPage} of {asBuiltDrawingsData.meta.totalPages}
                     </p>
@@ -766,7 +766,7 @@ export function RFAForm({ defaultValues }: { defaultValues?: Partial<RFAFormData
                 )}
 
                 {errors.asBuiltDrawingRevisionIds && (
-                  <p className="text-sm text-destructive mt-2">{errors.asBuiltDrawingRevisionIds.message}</p>
+                  <p className="mt-2 text-sm text-destructive">{errors.asBuiltDrawingRevisionIds.message}</p>
                 )}
               </div>
             )}

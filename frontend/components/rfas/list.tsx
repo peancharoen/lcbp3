@@ -109,9 +109,15 @@ export function RFAList({ data }: RFAListProps) {
             </Link>
             <DocumentRowActions
               config={getDocumentActionConfig('RFA')}
-              onCancel={() => {/* TODO: open cancel dialog */}}
-              onHardDelete={() => {/* TODO: open hard-delete dialog */}}
-              onMetadataEdit={() => {/* TODO: open metadata edit dialog */}}
+              onCancel={() => {
+                /* TODO: open cancel dialog */
+              }}
+              onHardDelete={() => {
+                /* TODO: open hard-delete dialog */
+              }}
+              onMetadataEdit={() => {
+                /* TODO: open metadata edit dialog */
+              }}
             />
           </div>
         );

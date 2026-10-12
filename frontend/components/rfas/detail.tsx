@@ -133,13 +133,13 @@ export function RFADetail({ data }: RFADetailProps) {
           <div className="flex gap-2">
             <Button
               variant="outline"
-              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
               onClick={() => setActionState('reject')}
             >
               <XCircle className="mr-2 h-4 w-4" />
               Reject
             </Button>
-            <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={() => setActionState('approve')}>
+            <Button className="bg-success text-white hover:bg-success/90" onClick={() => setActionState('approve')}>
               <CheckCircle className="mr-2 h-4 w-4" />
               Approve
             </Button>
@@ -163,7 +163,9 @@ export function RFADetail({ data }: RFADetailProps) {
               />
             )}
             <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setActionState(null)}>Cancel</Button>
+              <Button variant="ghost" onClick={() => setActionState(null)}>
+                Cancel
+              </Button>
               <Button onClick={handleSubmit} disabled={submitMutation.isPending}>
                 {submitMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Confirm Submit
@@ -198,7 +200,7 @@ export function RFADetail({ data }: RFADetailProps) {
                 variant={actionState === 'approve' ? 'default' : 'destructive'}
                 onClick={handleProcess}
                 disabled={processMutation.isPending}
-                className={actionState === 'approve' ? 'bg-green-600 hover:bg-green-700' : ''}
+                className={actionState === 'approve' ? 'bg-success hover:bg-success/90' : ''}
               >
                 {processMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Confirm {actionState === 'approve' ? 'Approve' : 'Reject'}
@@ -208,20 +210,20 @@ export function RFADetail({ data }: RFADetailProps) {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6 lg:col-span-2">
           <Card>
             <CardHeader>
-              <div className="flex justify-between items-start">
+              <div className="flex items-start justify-between">
                 <CardTitle className="text-xl">{currentRevision?.subject || 'Untitled RFA'}</CardTitle>
                 <StatusBadge status={currentStatus} />
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <h3 className="font-semibold mb-2">Description</h3>
-                <p className="text-gray-700 whitespace-pre-wrap">
+                <h3 className="mb-2 font-semibold">Description</h3>
+                <p className="whitespace-pre-wrap text-foreground">
                   {currentRevision?.description || 'No description provided.'}
                 </p>
               </div>
@@ -229,11 +231,11 @@ export function RFADetail({ data }: RFADetailProps) {
               <hr className="my-4 border-t" />
 
               <div>
-                <h3 className="font-semibold mb-3">RFA Items</h3>
+                <h3 className="mb-3 font-semibold">RFA Items</h3>
                 {currentItems.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No drawing items linked to this RFA.</p>
                 ) : (
-                  <div className="border rounded-lg overflow-hidden">
+                  <div className="overflow-hidden rounded-lg border">
                     <table className="w-full text-sm">
                       <thead className="bg-muted/50">
                         <tr>
@@ -270,14 +272,14 @@ export function RFADetail({ data }: RFADetailProps) {
             <CardContent className="space-y-4">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Project</p>
-                <p className="font-medium mt-1">{data.correspondence?.project?.projectName || '-'}</p>
+                <p className="mt-1 font-medium">{data.correspondence?.project?.projectName || '-'}</p>
               </div>
 
               <hr className="my-4 border-t" />
 
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Discipline</p>
-                <p className="font-medium mt-1">
+                <p className="mt-1 font-medium">
                   {data.correspondence?.discipline?.codeNameEn ||
                     data.correspondence?.discipline?.codeNameTh ||
                     data.correspondence?.discipline?.disciplineCode ||

@@ -11,11 +11,11 @@ interface RevisionHistoryProps {
 }
 
 const STATUS_CLASS: Record<string, string> = {
-  DRAFT: 'bg-gray-100 text-gray-700',
-  SUBOWN: 'bg-yellow-100 text-yellow-700',
-  CLBOWN: 'bg-green-100 text-green-700',
-  CCBOWN: 'bg-red-100 text-red-700',
-  CANCELLED: 'bg-slate-100 text-slate-500',
+  DRAFT: 'bg-muted text-foreground',
+  SUBOWN: 'bg-warning/10 text-warning',
+  CLBOWN: 'bg-success/10 text-success',
+  CCBOWN: 'bg-destructive/10 text-destructive',
+  CANCELLED: 'bg-muted text-muted-foreground',
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -34,7 +34,7 @@ export function RevisionHistory({ revisions }: RevisionHistoryProps) {
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-base">
           <History className="h-4 w-4" />
           Revision History
           <Badge variant="secondary" className="ml-auto text-xs">
@@ -44,48 +44,40 @@ export function RevisionHistory({ revisions }: RevisionHistoryProps) {
       </CardHeader>
       <CardContent>
         <div className="relative">
-          <div className="absolute left-3 top-0 bottom-0 w-px bg-border" />
+          <div className="absolute bottom-0 left-3 top-0 w-px bg-border" />
 
           <div className="space-y-4">
             {sorted.map((rev) => {
               const statusCode = rev.status?.statusCode ?? '';
               const statusLabel = STATUS_LABEL[statusCode] ?? statusCode;
-              const statusClass = STATUS_CLASS[statusCode] ?? 'bg-gray-100 text-gray-700';
+              const statusClass = STATUS_CLASS[statusCode] ?? 'bg-muted text-foreground';
               const isCurrent = rev.isCurrent;
 
               return (
-                <div key={rev.publicId ?? rev.revisionNumber} className="flex gap-3 pl-7 relative">
+                <div key={rev.publicId ?? rev.revisionNumber} className="relative flex gap-3 pl-7">
                   <div
-                    className={`absolute left-1.5 top-1 w-3 h-3 rounded-full border-2 ${
-                      isCurrent
-                        ? 'bg-primary border-primary'
-                        : 'bg-background border-muted-foreground/40'
+                    className={`absolute left-1.5 top-1 h-3 w-3 rounded-full border-2 ${
+                      isCurrent ? 'border-primary bg-primary' : 'border-muted-foreground/40 bg-background'
                     }`}
                   />
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="text-xs font-semibold">
                         Rev. {rev.revisionLabel ?? String(rev.revisionNumber).padStart(2, '0')}
                       </span>
-                      {isCurrent && (
-                        <CheckCircle2 className="h-3 w-3 text-primary shrink-0" />
-                      )}
-                      <Badge className={`text-xs px-1.5 py-0 border-0 ${statusClass}`}>
-                        {statusLabel}
-                      </Badge>
+                      {isCurrent && <CheckCircle2 className="h-3 w-3 shrink-0 text-primary" />}
+                      <Badge className={`border-0 px-1.5 py-0 text-xs ${statusClass}`}>{statusLabel}</Badge>
                     </div>
 
-                    <p className="text-sm mt-0.5 line-clamp-1">{rev.subject}</p>
+                    <p className="mt-0.5 line-clamp-1 text-sm">{rev.subject}</p>
 
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <p className="mt-0.5 text-xs text-muted-foreground">
                       {format(new Date(rev.createdAt), 'dd MMM yyyy, HH:mm')}
                     </p>
 
                     {rev.remarks && (
-                      <p className="text-xs text-muted-foreground italic mt-0.5 line-clamp-1">
-                        {rev.remarks}
-                      </p>
+                      <p className="mt-0.5 line-clamp-1 text-xs italic text-muted-foreground">{rev.remarks}</p>
                     )}
                   </div>
                 </div>

@@ -59,7 +59,7 @@ export function TelegramBindingCard() {
   const linked = status?.linked === true;
 
   return (
-    <div className="rounded-lg border p-4 space-y-3">
+    <div className="space-y-3 rounded-lg border p-4">
       <div className="flex items-center justify-between">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
@@ -75,7 +75,7 @@ export function TelegramBindingCard() {
       </div>
 
       {linked && status && (
-        <div className="text-sm space-y-1">
+        <div className="space-y-1 text-sm">
           <p>
             {t('notification.telegram.account')}:{' '}
             <span className="font-medium">{status.telegramUsername ? `@${status.telegramUsername}` : '—'}</span>
@@ -135,7 +135,7 @@ export function TelegramBindingCard() {
       </div>
 
       {deepLink && !linked && (
-        <p className="text-xs text-muted-foreground break-all">
+        <p className="break-all text-xs text-muted-foreground">
           {t('notification.telegram.linkHint')}{' '}
           <a href={deepLink} target="_blank" rel="noopener noreferrer" className="underline">
             {deepLink}

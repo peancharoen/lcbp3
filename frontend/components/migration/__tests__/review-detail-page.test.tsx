@@ -136,9 +136,7 @@ const mockItem: MigrationReviewQueueItem = {
   },
   // ADR-054 (D9, FR-010): review state เป็น first-class field — fieldResolutions ย้ายมาที่นี่
   reviewState: {
-    fieldResolutions: [
-      { field: 'subject', source: 'EXCEL', finalValue: 'Test Document Subject' },
-    ],
+    fieldResolutions: [{ field: 'subject', source: 'EXCEL', finalValue: 'Test Document Subject' }],
     fieldAcknowledgments: ['tags'],
   },
   // ADR-054 (FR-010): path ไฟล์ staging เป็น first-class field (ไม่ใช่ details.source_file_path)
@@ -489,12 +487,8 @@ describe('MigrationReviewPage — detail page diagnostics', () => {
     expect(Array.isArray(callArg.tagDecisions)).toBe(true);
     // Both the accepted and the rejected tag are in the payload
     expect(callArg.tagDecisions).toHaveLength(2);
-    const urgentDecision = callArg.tagDecisions.find(
-      (d: { name: string }) => d.name === 'Urgent'
-    );
-    const safetyDecision = callArg.tagDecisions.find(
-      (d: { name: string }) => d.name === 'Safety'
-    );
+    const urgentDecision = callArg.tagDecisions.find((d: { name: string }) => d.name === 'Urgent');
+    const safetyDecision = callArg.tagDecisions.find((d: { name: string }) => d.name === 'Safety');
     expect(urgentDecision?.accepted).toBe(true);
     expect(safetyDecision?.accepted).toBe(false);
   });
@@ -597,9 +591,7 @@ describe('MigrationReviewPage — detail page diagnostics', () => {
     // Urgent's final decision is reject (accept→reject toggle) — it IS still sent,
     // with accepted:false (backend needs the explicit decision, not omission — see
     // the "reject all tags" regression test above)
-    const urgentDecision = callArg.tagDecisions?.find(
-      (d: { name: string }) => d.name === 'Urgent'
-    );
+    const urgentDecision = callArg.tagDecisions?.find((d: { name: string }) => d.name === 'Urgent');
     expect(urgentDecision).toBeDefined();
     expect(urgentDecision.accepted).toBe(false);
   });

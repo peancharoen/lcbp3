@@ -6,14 +6,7 @@
 
 import { AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { RecalibrationRecommendation } from '@/lib/services/ai-intent.service';
 
 interface RecalibrationPanelProps {
@@ -29,9 +22,7 @@ export function RecalibrationPanel({ data }: RecalibrationPanelProps) {
     return (
       <Alert>
         <AlertTitle>ไม่มีคำแนะนำ</AlertTitle>
-        <AlertDescription>
-          ยังไม่มี Intent ที่ต้องเพิ่ม Pattern — Pattern Hit Rate อยู่ในระดับดี
-        </AlertDescription>
+        <AlertDescription>ยังไม่มี Intent ที่ต้องเพิ่ม Pattern — Pattern Hit Rate อยู่ในระดับดี</AlertDescription>
       </Alert>
     );
   }
@@ -42,8 +33,7 @@ export function RecalibrationPanel({ data }: RecalibrationPanelProps) {
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>ควรเพิ่ม Pattern</AlertTitle>
         <AlertDescription>
-          Intent ด้านล่างถูก classify ด้วย LLM บ่อย — การเพิ่ม keyword/regex pattern
-          จะช่วยลดภาระ LLM และเพิ่มความเร็ว
+          Intent ด้านล่างถูก classify ด้วย LLM บ่อย — การเพิ่ม keyword/regex pattern จะช่วยลดภาระ LLM และเพิ่มความเร็ว
         </AlertDescription>
       </Alert>
 
@@ -59,16 +49,10 @@ export function RecalibrationPanel({ data }: RecalibrationPanelProps) {
         <TableBody>
           {data.map((row) => (
             <TableRow key={row.intentCode}>
-              <TableCell className="font-mono text-sm">
-                {row.intentCode}
-              </TableCell>
+              <TableCell className="font-mono text-sm">{row.intentCode}</TableCell>
               <TableCell className="text-right">{row.llmCallCount}</TableCell>
-              <TableCell className="text-right">
-                {row.avgConfidence.toFixed(2)}
-              </TableCell>
-              <TableCell className="text-right font-medium text-amber-600">
-                {row.priority}
-              </TableCell>
+              <TableCell className="text-right">{row.avgConfidence.toFixed(2)}</TableCell>
+              <TableCell className="text-right font-medium text-warning">{row.priority}</TableCell>
             </TableRow>
           ))}
         </TableBody>

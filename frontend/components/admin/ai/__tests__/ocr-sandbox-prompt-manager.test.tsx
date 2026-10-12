@@ -193,7 +193,9 @@ describe('OcrSandboxPromptManager', () => {
     fireEvent.click(screen.getByText('ai.prompt.tabEditor'));
     expect(await screen.findByDisplayValue('Extract {{ocr_text}} with {{master_data_context}}')).toBeInTheDocument();
     fireEvent.click(screen.getByText('ai.prompt.saveVersion'));
-    await waitFor(() => expect(mocks.createVersion).toHaveBeenCalledWith('Extract {{ocr_text}} with {{master_data_context}}'));
+    await waitFor(() =>
+      expect(mocks.createVersion).toHaveBeenCalledWith('Extract {{ocr_text}} with {{master_data_context}}')
+    );
     expect(mocks.toastSuccess).toHaveBeenCalledWith('ai.prompt.saveVersionSuccess');
   });
 

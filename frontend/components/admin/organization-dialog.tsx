@@ -82,15 +82,14 @@ export function OrganizationDialog({ open, onOpenChange, organization }: Organiz
             <div className="space-y-2">
               <Label>Organization Code *</Label>
               <Input placeholder="e.g. OWNER" {...register('organizationCode')} />
-              {errors.organizationCode && <p className="text-sm text-red-500">{errors.organizationCode.message}</p>}
+              {errors.organizationCode && <p className="text-sm text-destructive">{errors.organizationCode.message}</p>}
             </div>
-
           </div>
 
           <div className="space-y-2">
             <Label>Organization Name *</Label>
             <Input placeholder="e.g. Project Owner Co., Ltd." {...register('organizationName')} />
-            {errors.organizationName && <p className="text-sm text-red-500">{errors.organizationName.message}</p>}
+            {errors.organizationName && <p className="text-sm text-destructive">{errors.organizationName.message}</p>}
           </div>
 
           <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">

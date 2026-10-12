@@ -90,9 +90,7 @@ describe('TagManager Component', () => {
   });
 
   it('ควรเรียก remove mutation เมื่อคลิกปุ่มลบ tag และมีสิทธิ์แก้ไข', () => {
-    const mockTags = [
-      { publicId: '019505a1-7c3e-7000-8000-tag111111111', tagName: 'Critical', colorCode: 'red' },
-    ];
+    const mockTags = [{ publicId: '019505a1-7c3e-7000-8000-tag111111111', tagName: 'Critical', colorCode: 'red' }];
 
     vi.mocked(useCorrespondenceTags).mockReturnValue({
       data: mockTags,
@@ -111,9 +109,7 @@ describe('TagManager Component', () => {
   });
 
   it('ควรเปิดส่วนเลือก tag และแสดง tag ที่พร้อมให้เพิ่มเมื่อคลิก Add Tag', async () => {
-    const mockAssigned = [
-      { publicId: '019505a1-7c3e-7000-8000-tag111111111', tagName: 'Critical', colorCode: 'red' },
-    ];
+    const mockAssigned = [{ publicId: '019505a1-7c3e-7000-8000-tag111111111', tagName: 'Critical', colorCode: 'red' }];
     const mockAllTags = [
       { publicId: '019505a1-7c3e-7000-8000-tag111111111', tagName: 'Critical', colorCode: 'red' },
       { publicId: '019505a1-7c3e-7000-8000-tag222222222', tagName: 'Draft', colorCode: 'green' },
@@ -142,7 +138,7 @@ describe('TagManager Component', () => {
 
     // Tag 'Critical' มีอยู่แล้ว จึงไม่ควรปรากฏในส่วน list ที่พร้อมเพิ่ม
     const listButtons = screen.getAllByRole('button');
-    const hasCriticalInList = listButtons.some(btn => btn.textContent === 'Critical');
+    const hasCriticalInList = listButtons.some((btn) => btn.textContent === 'Critical');
     expect(hasCriticalInList).toBe(false);
 
     // คลิกเพื่อเพิ่ม tag 'Draft'

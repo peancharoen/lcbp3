@@ -321,9 +321,7 @@ export function CorrespondenceForm({
       });
       return;
     }
-    const validFiles = (watch('attachments') || []).filter(
-      (f): f is File => f instanceof File
-    );
+    const validFiles = (watch('attachments') || []).filter((f): f is File => f instanceof File);
     if (validFiles.length === 0) {
       toast.error('Please attach a file first', {
         description: 'AI suggestion ต้องการไฟล์เพื่อวิเคราะห์เนื้อหา',
@@ -496,7 +494,7 @@ export function CorrespondenceForm({
               value={initialData.correspondenceNumber}
               disabled
               readOnly
-              className="bg-muted font-mono font-bold text-lg w-full"
+              className="w-full bg-muted font-mono text-lg font-bold"
             />
           </div>
         </div>
@@ -504,12 +502,12 @@ export function CorrespondenceForm({
 
       {/* Preview Section - Only for New Documents */}
       {preview && !uuid && (
-        <div className="p-4 rounded-md border bg-muted border-border">
-          <p className="text-sm font-semibold mb-1 flex items-center gap-2">Document Number Preview</p>
+        <div className="rounded-md border border-border bg-muted p-4">
+          <p className="mb-1 flex items-center gap-2 text-sm font-semibold">Document Number Preview</p>
           <div className="flex items-center gap-3">
-            <span className="text-xl font-bold font-mono tracking-wide text-primary">{preview.number}</span>
+            <span className="font-mono text-xl font-bold tracking-wide text-primary">{preview.number}</span>
             {preview.isDefaultTemplate && (
-              <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 border border-yellow-200">
+              <span className="rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-warning">
                 Default Template
               </span>
             )}
@@ -518,7 +516,7 @@ export function CorrespondenceForm({
       )}
 
       {/* Document Metadata Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {/* Project Dropdown */}
         <div className="space-y-2">
           <Label>Project *</Label>
@@ -626,7 +624,7 @@ export function CorrespondenceForm({
       </div>
 
       {/* Organizations */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <div className="space-y-2">
           <Label>From Organization *</Label>
           <Select
@@ -671,7 +669,7 @@ export function CorrespondenceForm({
 
         <div className="space-y-2">
           <Label>CC Organizations (Optional)</Label>
-          <div className="space-y-2 max-h-32 overflow-y-auto border rounded-md p-3">
+          <div className="max-h-32 space-y-2 overflow-y-auto rounded-md border p-3">
             {organizationOptions
               .filter((org) => org.publicId !== toOrgId) // Exclude TO organization
               .map((org) => (
@@ -719,11 +717,7 @@ export function CorrespondenceForm({
       {aiSuggestedTags.length > 0 && (
         <div className="space-y-2">
           <Label>AI Tag Suggestions</Label>
-          <TagSuggestionInput
-            suggestedTags={aiSuggestedTags}
-            selectedTags={selectedTags}
-            onChange={setSelectedTags}
-          />
+          <TagSuggestionInput suggestedTags={aiSuggestedTags} selectedTags={selectedTags} onChange={setSelectedTags} />
         </div>
       )}
 
@@ -734,7 +728,7 @@ export function CorrespondenceForm({
       </div>
 
       {/* Date Fields */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <div className="space-y-2">
           <Label htmlFor="documentDate">Document Date</Label>
           <Input
@@ -798,16 +792,16 @@ export function CorrespondenceForm({
       {/* Importance */}
       <div className="space-y-2">
         <Label>Importance</Label>
-        <div className="flex gap-6 mt-2">
-          <label className="flex items-center space-x-2 cursor-pointer">
+        <div className="mt-2 flex gap-6">
+          <label className="flex cursor-pointer items-center space-x-2">
             <input type="radio" value="NORMAL" {...register('importance')} className="accent-primary" />
             <span>Normal</span>
           </label>
-          <label className="flex items-center space-x-2 cursor-pointer">
+          <label className="flex cursor-pointer items-center space-x-2">
             <input type="radio" value="HIGH" {...register('importance')} className="accent-primary" />
             <span>High</span>
           </label>
-          <label className="flex items-center space-x-2 cursor-pointer">
+          <label className="flex cursor-pointer items-center space-x-2">
             <input type="radio" value="URGENT" {...register('importance')} className="accent-primary" />
             <span>Urgent</span>
           </label>
@@ -827,7 +821,7 @@ export function CorrespondenceForm({
       )}
 
       {/* Actions */}
-      <div className="flex justify-end gap-4 pt-6 border-t">
+      <div className="flex justify-end gap-4 border-t pt-6">
         <Button type="button" variant="outline" onClick={() => router.back()}>
           Cancel
         </Button>

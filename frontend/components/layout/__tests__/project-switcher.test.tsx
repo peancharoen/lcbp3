@@ -27,11 +27,14 @@ describe('ProjectSwitcher', () => {
 
   it('ควร render skeleton เมื่อกำลังโหลด', () => {
     vi.mocked(useProjects).mockReturnValue({ data: null, isLoading: true });
-    vi.mocked(useProjectStore).mockReturnValue({ selectedProjectId: null, setSelectedProjectId: mockSetSelectedProjectId });
+    vi.mocked(useProjectStore).mockReturnValue({
+      selectedProjectId: null,
+      setSelectedProjectId: mockSetSelectedProjectId,
+    });
 
     render(<ProjectSwitcher />);
 
-    const skeletons = screen.getAllByRole('generic', { name: '' }).filter(el => el.querySelector('.animate-pulse'));
+    const skeletons = screen.getAllByRole('generic', { name: '' }).filter((el) => el.querySelector('.animate-pulse'));
     if (skeletons.length > 0) {
       expect(skeletons[0]).toBeInTheDocument();
     }
@@ -39,18 +42,22 @@ describe('ProjectSwitcher', () => {
 
   it('ควร return null เมื่อไม่มี projects', () => {
     vi.mocked(useProjects).mockReturnValue({ data: [], isLoading: false });
-    vi.mocked(useProjectStore).mockReturnValue({ selectedProjectId: null, setSelectedProjectId: mockSetSelectedProjectId });
+    vi.mocked(useProjectStore).mockReturnValue({
+      selectedProjectId: null,
+      setSelectedProjectId: mockSetSelectedProjectId,
+    });
 
     const { container } = render(<ProjectSwitcher />);
     expect(container.firstChild).toBeNull();
   });
 
   it('ควรแสดง project name เป็น text เมื่อมี project เดียว', () => {
-    const mockProjects = [
-      { publicId: '019505a1-7c3e-7000-8000-abc123def456', projectName: 'Project A' },
-    ];
+    const mockProjects = [{ publicId: '019505a1-7c3e-7000-8000-abc123def456', projectName: 'Project A' }];
     vi.mocked(useProjects).mockReturnValue({ data: mockProjects, isLoading: false });
-    vi.mocked(useProjectStore).mockReturnValue({ selectedProjectId: null, setSelectedProjectId: mockSetSelectedProjectId });
+    vi.mocked(useProjectStore).mockReturnValue({
+      selectedProjectId: null,
+      setSelectedProjectId: mockSetSelectedProjectId,
+    });
 
     render(<ProjectSwitcher />);
 

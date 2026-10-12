@@ -15,9 +15,7 @@ vi.mock('@/hooks/use-drawing', () => ({
 // Mock ServerDataTable
 vi.mock('@/components/documents/common/server-data-table', () => ({
   ServerDataTable: ({ isLoading, data }: { isLoading: boolean; data: unknown[] }) => (
-    <div>
-      {isLoading ? <div>Loading...</div> : <div>{data.length} items</div>}
-    </div>
+    <div>{isLoading ? <div>Loading...</div> : <div>{data.length} items</div>}</div>
   ),
 }));
 
@@ -122,13 +120,7 @@ describe('DrawingList', () => {
       isError: false,
       error: null,
     });
-    render(
-      <DrawingList
-        type="SHOP"
-        projectUuid={mockProjectUuid}
-        filters={{ search: 'test' }}
-      />
-    );
+    render(<DrawingList type="SHOP" projectUuid={mockProjectUuid} filters={{ search: 'test' }} />);
     expect(useDrawings).toHaveBeenCalledWith('SHOP', {
       projectUuid: mockProjectUuid,
       search: 'test',

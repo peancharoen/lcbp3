@@ -48,9 +48,7 @@ export const aiPromptsService = {
    * เปิดใช้งาน Prompt Version เพื่อใช้เป็น active version
    */
   activateVersion: async (promptType: string, versionNumber: number): Promise<AiPrompt> => {
-    const { data } = await api.post(
-      `/ai/prompts/${encodeURIComponent(promptType)}/${versionNumber}/activate`
-    );
+    const { data } = await api.post(`/ai/prompts/${encodeURIComponent(promptType)}/${versionNumber}/activate`);
     return unwrapResponse<AiPrompt>(data);
   },
 
@@ -64,16 +62,10 @@ export const aiPromptsService = {
   /**
    * อัปเดต manual note ของเวอร์ชันที่กำหนด
    */
-  updateNote: async (
-    promptType: string,
-    versionNumber: number,
-    manualNote: string | null
-  ): Promise<AiPrompt> => {
-    const { data } = await api.patch(
-      `/ai/prompts/${encodeURIComponent(promptType)}/${versionNumber}/note`,
-      { manualNote }
-    );
+  updateNote: async (promptType: string, versionNumber: number, manualNote: string | null): Promise<AiPrompt> => {
+    const { data } = await api.patch(`/ai/prompts/${encodeURIComponent(promptType)}/${versionNumber}/note`, {
+      manualNote,
+    });
     return unwrapResponse<AiPrompt>(data);
   },
 };
-

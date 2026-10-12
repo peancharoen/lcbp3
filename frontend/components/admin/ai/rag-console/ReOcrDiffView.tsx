@@ -39,7 +39,7 @@ function highlight(text: string, term: string): { nodes: ReactNode; count: numbe
     if (count <= MAX_HIGHLIGHTS) {
       nodes.push(text.slice(cursor, idx));
       nodes.push(
-        <mark key={idx} data-testid="re-ocr-match" className="bg-yellow-200 text-foreground">
+        <mark key={idx} data-testid="re-ocr-match" className="bg-warning/20 text-foreground">
           {text.slice(idx, idx + needle.length)}
         </mark>
       );
@@ -96,11 +96,7 @@ function TextPane({ label, charCount, text, placeholder, scrollRef, onScroll }: 
         onScroll={onScroll}
         className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words rounded border bg-muted/30 p-3 font-mono text-xs"
       >
-        {text.length === 0 && placeholder ? (
-          <span className="italic text-muted-foreground">{placeholder}</span>
-        ) : (
-          nodes
-        )}
+        {text.length === 0 && placeholder ? <span className="italic text-muted-foreground">{placeholder}</span> : nodes}
       </pre>
     </div>
   );
@@ -168,10 +164,10 @@ export function ReOcrDiffView({
   const syncing = useRef(false);
   // replace mode: PDF pane เลือกดูไฟล์เดิม/ใหม่ได้ — default = ไฟล์ใหม่ (Q7)
   const [pdfSource, setPdfSource] = useState<'old' | 'new'>('new');
-  const pdfPublicId =
-    candidatePublicId && pdfSource === 'new' ? candidatePublicId : attachmentPublicId;
+  const pdfPublicId = candidatePublicId && pdfSource === 'new' ? candidatePublicId : attachmentPublicId;
 
-  const sync = (source: RefObject<HTMLPreElement | null>, target: RefObject<HTMLPreElement | null>) =>
+  const sync =
+    (source: RefObject<HTMLPreElement | null>, target: RefObject<HTMLPreElement | null>) =>
     (e: UIEvent<HTMLPreElement>) => {
       if (syncing.current || !target.current) return;
       syncing.current = true;

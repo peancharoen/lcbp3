@@ -46,7 +46,7 @@ export function VetoOverrideDialog({ rfaNumber, onConfirm, isLoading }: VetoOver
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="destructive" size="sm">
-          <AlertTriangle className="h-4 w-4 mr-1.5" />
+          <AlertTriangle className="mr-1.5 h-4 w-4" />
           PM Override
         </Button>
       </DialogTrigger>
@@ -57,8 +57,8 @@ export function VetoOverrideDialog({ rfaNumber, onConfirm, isLoading }: VetoOver
             PM Veto Override
           </DialogTitle>
           <DialogDescription>
-            Override the Code 3 rejection for <strong>{rfaNumber}</strong> and force-approve.
-            This action will be permanently logged in the audit trail.
+            Override the Code 3 rejection for <strong>{rfaNumber}</strong> and force-approve. This action will be
+            permanently logged in the audit trail.
           </DialogDescription>
         </DialogHeader>
 
@@ -71,13 +71,13 @@ export function VetoOverrideDialog({ rfaNumber, onConfirm, isLoading }: VetoOver
               placeholder="Provide a detailed reason for overriding the rejection (minimum 10 characters)..."
               className="mt-1.5 min-h-[100px]"
             />
-            <p className={`text-xs mt-1 ${isValid ? 'text-green-600' : 'text-muted-foreground'}`}>
+            <p className={`mt-1 text-xs ${isValid ? 'text-success' : 'text-muted-foreground'}`}>
               {reason.trim().length}/{MIN_REASON_LENGTH} minimum characters
             </p>
           </div>
 
-          <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3">
-            <p className="text-xs text-destructive font-medium">
+          <div className="rounded-md border border-destructive/20 bg-destructive/10 p-3">
+            <p className="text-xs font-medium text-destructive">
               ⚠ This override is irreversible. All reviewers and stakeholders will be notified.
             </p>
           </div>
@@ -87,11 +87,7 @@ export function VetoOverrideDialog({ rfaNumber, onConfirm, isLoading }: VetoOver
           <Button variant="outline" onClick={() => setOpen(false)}>
             Cancel
           </Button>
-          <Button
-            variant="destructive"
-            onClick={handleConfirm}
-            disabled={!isValid || isLoading}
-          >
+          <Button variant="destructive" onClick={handleConfirm} disabled={!isValid || isLoading}>
             {isLoading ? 'Processing...' : 'Confirm Override'}
           </Button>
         </DialogFooter>

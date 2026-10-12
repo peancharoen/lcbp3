@@ -24,10 +24,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head />
-      <body
-        className={cn('min-h-screen bg-background font-sans antialiased')}
-        suppressHydrationWarning
-      >
+      <body className={cn('min-h-screen bg-background font-sans antialiased')} suppressHydrationWarning>
         <SessionProvider>
           <ThemeProvider nonce={nonce}>
             <QueryProvider>

@@ -19,16 +19,9 @@ export interface RetryButtonProps {
 /** Reusable retry button with disabled state while processing */
 export function RetryButton({ selectedCount, isPending, onClick }: RetryButtonProps) {
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={onClick}
-      disabled={selectedCount === 0 || isPending}
-    >
+    <Button variant="outline" size="sm" onClick={onClick} disabled={selectedCount === 0 || isPending}>
       <RotateCcw className={`h-4 w-4 ${isPending ? 'animate-spin' : ''}`} />
-      {selectedCount > 0
-        ? ragAdminT('retry.retry_selected')
-        : ragAdminT('retry.retry_all')}
+      {selectedCount > 0 ? ragAdminT('retry.retry_selected') : ragAdminT('retry.retry_all')}
       {selectedCount > 0 && ` (${selectedCount})`}
     </Button>
   );

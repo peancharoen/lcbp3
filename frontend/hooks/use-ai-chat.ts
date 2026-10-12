@@ -48,12 +48,15 @@ export function useAiChat(context: ChatContext) {
       }
     }
   }, [storageKey]);
-  const saveMessages = useCallback((newMsgs: ChatMessage[]) => {
-    setMessages(newMsgs);
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem(storageKey, JSON.stringify(newMsgs));
-    }
-  }, [storageKey]);
+  const saveMessages = useCallback(
+    (newMsgs: ChatMessage[]) => {
+      setMessages(newMsgs);
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem(storageKey, JSON.stringify(newMsgs));
+      }
+    },
+    [storageKey]
+  );
   const chatMutation = useMutation({
     mutationFn: async (queryText: string): Promise<ChatResponseDto> => {
       const response = await axios.post('/api/ai/chat', {
@@ -66,59 +69,62 @@ export function useAiChat(context: ChatContext) {
   // ADR-051 D2: ถ้า request รอนานเกิน threshold ให้ถือว่าน่าจะ cold-start (main model
   // ถูก unload โดย mid-flight ocr-extract race) — UI จะสลับข้อความ loading ให้มีบริบท
   const isColdStartLikely = useColdStartHint(chatMutation.isPending);
-  const sendMessage = useCallback(async (queryText: string) => {
-    if (!queryText.trim()) return;
-    const userMsg: ChatMessage = {
-      id: crypto.randomUUID(),
-      role: 'user',
-      content: queryText,
-      timestamp: new Date().toISOString(),
-    };
-    const currentMsgs = [...messages, userMsg];
-    saveMessages(currentMsgs);
-    const systemLoadingMsg: ChatMessage = {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content: '',
-      timestamp: new Date().toISOString(),
-      isStreaming: true,
-    };
-    pendingMessageIdRef.current = systemLoadingMsg.id;
-    setMessages([...currentMsgs, systemLoadingMsg]);
-    const applyAssistantResult = (result: ChatResponseDto) => {
-      const assistantMsg: ChatMessage = {
-        id: result.messageId || crypto.randomUUID(),
-        role: 'assistant',
-        content: result.content,
+  const sendMessage = useCallback(
+    async (queryText: string) => {
+      if (!queryText.trim()) return;
+      const userMsg: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: 'user',
+        content: queryText,
         timestamp: new Date().toISOString(),
-        suggestedActions: result.suggestedActions,
       };
-      pendingMessageIdRef.current = null;
-      saveMessages([...currentMsgs, assistantMsg]);
-    };
-    try {
-      const result = await chatMutation.mutateAsync(queryText);
-      applyAssistantResult(result);
-    } catch (err: unknown) {
-      // D267: main model ถูก unload ระหว่าง legacy batch OCR phase — แสดง dialog รอ/ยกเลิก
-      // แทนการ append error bubble คงที่ทันที (ผู้ใช้เลือกเองว่าจะรอหรือยกเลิก)
-      if (isAiFeaturesUnavailableError(err)) {
-        triggerAiUnavailableRetry(async () => {
-          const result = await chatMutation.mutateAsync(queryText);
-          applyAssistantResult(result);
-        });
-        return;
-      }
-      pendingMessageIdRef.current = null;
-      const errorMsg: ChatMessage = {
+      const currentMsgs = [...messages, userMsg];
+      saveMessages(currentMsgs);
+      const systemLoadingMsg: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: 'ไม่สามารถเชื่อมต่อ AI ได้ กรุณาลองใหม่',
+        content: '',
         timestamp: new Date().toISOString(),
+        isStreaming: true,
       };
-      saveMessages([...currentMsgs, errorMsg]);
-    }
-  }, [messages, saveMessages, chatMutation, triggerAiUnavailableRetry]);
+      pendingMessageIdRef.current = systemLoadingMsg.id;
+      setMessages([...currentMsgs, systemLoadingMsg]);
+      const applyAssistantResult = (result: ChatResponseDto) => {
+        const assistantMsg: ChatMessage = {
+          id: result.messageId || crypto.randomUUID(),
+          role: 'assistant',
+          content: result.content,
+          timestamp: new Date().toISOString(),
+          suggestedActions: result.suggestedActions,
+        };
+        pendingMessageIdRef.current = null;
+        saveMessages([...currentMsgs, assistantMsg]);
+      };
+      try {
+        const result = await chatMutation.mutateAsync(queryText);
+        applyAssistantResult(result);
+      } catch (err: unknown) {
+        // D267: main model ถูก unload ระหว่าง legacy batch OCR phase — แสดง dialog รอ/ยกเลิก
+        // แทนการ append error bubble คงที่ทันที (ผู้ใช้เลือกเองว่าจะรอหรือยกเลิก)
+        if (isAiFeaturesUnavailableError(err)) {
+          triggerAiUnavailableRetry(async () => {
+            const result = await chatMutation.mutateAsync(queryText);
+            applyAssistantResult(result);
+          });
+          return;
+        }
+        pendingMessageIdRef.current = null;
+        const errorMsg: ChatMessage = {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: 'ไม่สามารถเชื่อมต่อ AI ได้ กรุณาลองใหม่',
+          timestamp: new Date().toISOString(),
+        };
+        saveMessages([...currentMsgs, errorMsg]);
+      }
+    },
+    [messages, saveMessages, chatMutation, triggerAiUnavailableRetry]
+  );
   const cancelAiUnavailableWait = useCallback(() => {
     cancelAiUnavailableRetry();
     const pendingId = pendingMessageIdRef.current;

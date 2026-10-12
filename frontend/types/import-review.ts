@@ -17,14 +17,7 @@ export type AiReviewerProvider = 'LOCAL_OLLAMA' | 'GEMINI' | 'CLAUDE';
 export type BatchStrategy = 'FULL' | 'FAST_SELECTIVE';
 
 /** Session status สำหรับ async pattern (ADR-008) */
-export type ReviewSessionStatus =
-  | 'PENDING'
-  | 'PROCESSING'
-  | 'READY'
-  | 'FAILED'
-  | 'CONFIRMED'
-  | 'CANCELLED'
-  | 'EXPIRED';
+export type ReviewSessionStatus = 'PENDING' | 'PROCESSING' | 'READY' | 'FAILED' | 'CONFIRMED' | 'CANCELLED' | 'EXPIRED';
 
 export interface ReviewFinding {
   row: number;

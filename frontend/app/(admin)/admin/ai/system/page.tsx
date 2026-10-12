@@ -46,18 +46,18 @@ export default function SystemTogglePage() {
               <div className="text-sm text-muted-foreground">
                 Superadmin ยังสามารถเข้าถึงส่วนทดสอบและดูแลระบบได้ตามสิทธิ์
               </div>
-              <div className="text-xs text-muted-foreground flex items-center gap-1.5 pt-1 flex-wrap">
+              <div className="flex flex-wrap items-center gap-1.5 pt-1 text-xs text-muted-foreground">
                 <span>Configured Models:</span>
                 <Badge
                   variant="outline"
-                  className="text-[10px] py-0 px-1.5 border-primary/20 text-primary bg-primary/5 font-semibold"
+                  className="border-primary/20 bg-primary/5 px-1.5 py-0 text-[10px] font-semibold text-primary"
                 >
                   {isHealthLoading ? 'Loading...' : toCanonicalModel(health?.activeModels?.main ?? 'np-dms-ai')}
                 </Badge>
                 <span className="text-muted-foreground/50">+</span>
                 <Badge
                   variant="outline"
-                  className="text-[10px] py-0 px-1.5 border-purple-500/20 text-purple-600 dark:text-purple-400 bg-purple-500/5 font-semibold"
+                  className="border-purple-500/20 bg-purple-500/5 px-1.5 py-0 text-[10px] font-semibold text-purple-600 dark:text-purple-400"
                 >
                   {isHealthLoading ? 'Loading...' : toCanonicalModel(health?.activeModels?.ocr ?? 'np-dms-ocr')}
                 </Badge>

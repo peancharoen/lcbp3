@@ -38,7 +38,7 @@ export default function ContractSubCategoriesPage() {
     {
       accessorKey: 'description',
       header: 'Description',
-      cell: ({ row }) => <span className="text-muted-foreground text-sm">{row.getValue('description') || '-'}</span>,
+      cell: ({ row }) => <span className="text-sm text-muted-foreground">{row.getValue('description') || '-'}</span>,
     },
     {
       accessorKey: 'sortOrder',
@@ -59,11 +59,13 @@ export default function ContractSubCategoriesPage() {
           )}
         </SelectTrigger>
         <SelectContent>
-          {(projects as { id?: number; publicId?: string; projectCode: string; projectName: string }[]).map((project) => (
-            <SelectItem key={project.publicId || project.id} value={String(project.publicId || project.id)}>
-              {project.projectCode} - {project.projectName}
-            </SelectItem>
-          ))}
+          {(projects as { id?: number; publicId?: string; projectCode: string; projectName: string }[]).map(
+            (project) => (
+              <SelectItem key={project.publicId || project.id} value={String(project.publicId || project.id)}>
+                {project.projectCode} - {project.projectName}
+              </SelectItem>
+            )
+          )}
         </SelectContent>
       </Select>
     </div>
@@ -71,13 +73,13 @@ export default function ContractSubCategoriesPage() {
 
   if (!selectedProjectId) {
     return (
-      <div className="p-6 space-y-6">
+      <div className="space-y-6 p-6">
         <div>
           <h1 className="text-2xl font-bold">Contract Drawing Sub-categories</h1>
-          <p className="text-muted-foreground mt-1">Manage sub-categories (หมวดหมู่ย่อย) for contract drawings</p>
+          <p className="mt-1 text-muted-foreground">Manage sub-categories (หมวดหมู่ย่อย) for contract drawings</p>
         </div>
         {projectFilter}
-        <div className="text-center py-12 text-muted-foreground border rounded-lg border-dashed">
+        <div className="rounded-lg border border-dashed py-12 text-center text-muted-foreground">
           Please select a project to manage sub-categories.
         </div>
       </div>

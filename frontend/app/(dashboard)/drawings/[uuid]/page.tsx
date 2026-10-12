@@ -21,10 +21,7 @@ import { useUpdateContractDrawing, useUploadRevision } from '@/hooks/use-drawing
 import { useTranslations } from '@/hooks/use-translations';
 import { AiChatToggle } from '@/components/ai/ai-chat-toggle';
 import { AiChatPanel } from '@/components/ai/ai-chat-panel';
-import {
-  DocumentMetadataEditDialog,
-  type MetadataField,
-} from '@/components/documents/document-metadata-edit-dialog';
+import { DocumentMetadataEditDialog, type MetadataField } from '@/components/documents/document-metadata-edit-dialog';
 import { DocumentHardDeleteDialog } from '@/components/documents/document-hard-delete-dialog';
 import { getDocumentActionConfig } from '@/components/documents/document-action-strategy';
 import { useDocumentActions } from '@/hooks/use-document-actions';
@@ -149,8 +146,7 @@ export default function DrawingDetailPage({ params }: { params: Promise<{ uuid: 
   // Feature 253: metadata fields — Contract Drawing เท่านั้นที่มี endpoint
   const canEditMetadata = hasPermission('drawing.edit') && drawing._type === 'CONTRACT';
   const canHardDelete =
-    (hasPermission('system.manage_all') || hasPermission('drawing.delete')) &&
-    drawing._type === 'CONTRACT';
+    (hasPermission('system.manage_all') || hasPermission('drawing.delete')) && drawing._type === 'CONTRACT';
   const metaFields: MetadataField[] = [
     { key: 'title', label: 'Title', value: drawing.title ?? '', tier: 1 },
     { key: 'description', label: 'Description', value: drawing.description ?? '', tier: 1 },
@@ -159,128 +155,128 @@ export default function DrawingDetailPage({ params }: { params: Promise<{ uuid: 
   return (
     <div className={`relative transition-all duration-300 ${isChatOpen ? 'lg:pr-[400px]' : ''}`}>
       <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/drawings">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold">{drawingNumber}</h1>
-            <p className="text-muted-foreground">{title}</p>
-          </div>
-        </div>
-
-        <div className="flex gap-2">
-          {!isEditMode && !isUploadMode && (
-            <>
-              <Button variant="outline" asChild>
-                <Link href={`/drawings/${uuid}?edit=true`}>
-                  <Pencil className="mr-2 h-4 w-4" />
-                  {t('document.action.editContent')}
-                </Link>
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/drawings">
+              <Button variant="ghost" size="icon">
+                <ArrowLeft className="h-5 w-5" />
               </Button>
-              {drawing._type !== 'CONTRACT' && (
+            </Link>
+            <div>
+              <h1 className="text-2xl font-bold">{drawingNumber}</h1>
+              <p className="text-muted-foreground">{title}</p>
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            {!isEditMode && !isUploadMode && (
+              <>
                 <Button variant="outline" asChild>
-                  <Link href={`/drawings/${uuid}?upload=true`}>
-                    <Upload className="mr-2 h-4 w-4" />
-                    {t('drawing.action.uploadRevision')}
+                  <Link href={`/drawings/${uuid}?edit=true`}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    {t('document.action.editContent')}
                   </Link>
                 </Button>
-              )}
-              {canEditMetadata && (
-                <Button variant="outline" onClick={() => setShowMetaEdit(true)}>
-                  <Pencil className="mr-2 h-4 w-4" />
-                  {t('document.action.editMetadata')}
+                {drawing._type !== 'CONTRACT' && (
+                  <Button variant="outline" asChild>
+                    <Link href={`/drawings/${uuid}?upload=true`}>
+                      <Upload className="mr-2 h-4 w-4" />
+                      {t('drawing.action.uploadRevision')}
+                    </Link>
+                  </Button>
+                )}
+                {canEditMetadata && (
+                  <Button variant="outline" onClick={() => setShowMetaEdit(true)}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    {t('document.action.editMetadata')}
+                  </Button>
+                )}
+                {canHardDelete && (
+                  <Button variant="destructive" onClick={() => setShowHardDelete(true)}>
+                    {t('document.action.hardDelete')}
+                  </Button>
+                )}
+                <Button variant="outline">
+                  <Download className="mr-2 h-4 w-4" />
+                  {t('drawing.action.downloadCurrent')}
                 </Button>
-              )}
-              {canHardDelete && (
-                <Button variant="destructive" onClick={() => setShowHardDelete(true)}>
-                  {t('document.action.hardDelete')}
-                </Button>
-              )}
-              <Button variant="outline">
-                <Download className="mr-2 h-4 w-4" />
-                {t('drawing.action.downloadCurrent')}
+              </>
+            )}
+            {(isEditMode || isUploadMode) && (
+              <Button variant="ghost" asChild>
+                <Link href={`/drawings/${uuid}`}>
+                  <X className="mr-2 h-4 w-4" />
+                  {t('common.cancel')}
+                </Link>
               </Button>
-            </>
-          )}
-          {(isEditMode || isUploadMode) && (
-            <Button variant="ghost" asChild>
-              <Link href={`/drawings/${uuid}`}>
-                <X className="mr-2 h-4 w-4" />
-                {t('common.cancel')}
-              </Link>
-            </Button>
-          )}
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Edit Detail Form */}
-      {isEditMode && <EditDetailForm drawing={drawing} uuid={uuid} onDone={() => router.push(`/drawings/${uuid}`)} />}
+        {/* Edit Detail Form */}
+        {isEditMode && <EditDetailForm drawing={drawing} uuid={uuid} onDone={() => router.push(`/drawings/${uuid}`)} />}
 
-      {/* Upload Revision Form */}
-      {isUploadMode && drawing._type !== 'CONTRACT' && (
-        <UploadRevisionForm drawingType={drawing._type} uuid={uuid} onDone={() => router.push(`/drawings/${uuid}`)} />
-      )}
+        {/* Upload Revision Form */}
+        {isUploadMode && drawing._type !== 'CONTRACT' && (
+          <UploadRevisionForm drawingType={drawing._type} uuid={uuid} onDone={() => router.push(`/drawings/${uuid}`)} />
+        )}
 
-      {/* Detail View (shown when not in edit/upload mode) */}
-      {!isEditMode && !isUploadMode && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <CardTitle className="text-xl">Drawing Details</CardTitle>
-                  <Badge>{drawing._type}</Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-2 gap-6">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Drawing Number</p>
-                    <p className="font-medium mt-1">{drawingNumber}</p>
+        {/* Detail View (shown when not in edit/upload mode) */}
+        {!isEditMode && !isUploadMode && (
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div className="space-y-6 lg:col-span-2">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <CardTitle className="text-xl">Drawing Details</CardTitle>
+                    <Badge>{drawing._type}</Badge>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Type</p>
-                    <p className="font-medium mt-1">{drawing._type}</p>
-                  </div>
-                  {drawing.volumePage && (
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-2 gap-6">
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Volume Page</p>
-                      <p className="font-medium mt-1">{drawing.volumePage}</p>
+                      <p className="text-sm font-medium text-muted-foreground">Drawing Number</p>
+                      <p className="mt-1 font-medium">{drawingNumber}</p>
                     </div>
-                  )}
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Type</p>
+                      <p className="mt-1 font-medium">{drawing._type}</p>
+                    </div>
+                    {drawing.volumePage && (
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Volume Page</p>
+                        <p className="mt-1 font-medium">{drawing.volumePage}</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Created</p>
+                      <p className="mt-1 font-medium">
+                        {drawing.createdAt ? format(new Date(drawing.createdAt), 'dd MMM yyyy') : 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <Separator />
+
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Created</p>
-                    <p className="font-medium mt-1">
-                      {drawing.createdAt ? format(new Date(drawing.createdAt), 'dd MMM yyyy') : 'N/A'}
-                    </p>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div>
-                  <h3 className="font-semibold mb-3">Preview</h3>
-                  <div className="aspect-video bg-muted rounded-lg flex items-center justify-center border-2 border-dashed">
-                    <div className="text-center">
-                      <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-                      <p className="text-muted-foreground">PDF Preview Placeholder</p>
+                    <h3 className="mb-3 font-semibold">Preview</h3>
+                    <div className="flex aspect-video items-center justify-center rounded-lg border-2 border-dashed bg-muted">
+                      <div className="text-center">
+                        <FileText className="mx-auto mb-2 h-12 w-12 text-muted-foreground" />
+                        <p className="text-muted-foreground">PDF Preview Placeholder</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                </CardContent>
+              </Card>
+            </div>
 
-          <div className="space-y-6">
-            <RevisionHistory revisions={revisions} />
+            <div className="space-y-6">
+              <RevisionHistory revisions={revisions} />
+            </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
       {/* Feature 253 T073: Hard-Delete Dialog */}
       <DocumentHardDeleteDialog
@@ -301,9 +297,7 @@ export default function DrawingDetailPage({ params }: { params: Promise<{ uuid: 
         currentVersion={drawing.version ?? 0}
         fields={metaFields}
         isLoading={isPatching}
-        onConfirm={(patch, version) =>
-          metadataPatch({ publicId: uuid, patch, version })
-        }
+        onConfirm={(patch, version) => metadataPatch({ publicId: uuid, patch, version })}
       />
       <AiChatToggle isOpen={isChatOpen} onClick={() => setIsChatOpen(!isChatOpen)} />
       <AiChatPanel
@@ -348,8 +342,8 @@ function EditDetailForm({ drawing, uuid, onDone }: { drawing: FetchedDrawing; uu
 
   return (
     <Card className="p-6">
-      <h3 className="text-lg font-semibold mb-4">Edit Drawing Details</h3>
-      <div className="space-y-4 max-w-xl">
+      <h3 className="mb-4 text-lg font-semibold">Edit Drawing Details</h3>
+      <div className="max-w-xl space-y-4">
         <div>
           <Label>Drawing Number</Label>
           <Input value={formDrawingNo} onChange={(e) => setFormDrawingNo(e.target.value)} />
@@ -421,8 +415,8 @@ function UploadRevisionForm({
 
   return (
     <Card className="p-6">
-      <h3 className="text-lg font-semibold mb-4">Upload New Revision</h3>
-      <div className="space-y-4 max-w-xl">
+      <h3 className="mb-4 text-lg font-semibold">Upload New Revision</h3>
+      <div className="max-w-xl space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label>Revision Label *</Label>

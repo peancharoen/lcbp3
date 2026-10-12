@@ -49,7 +49,9 @@ export default function NumberingPage() {
   const [isTesting, setIsTesting] = useState(false);
   const [testTemplate, setTestTemplate] = useState<NumberingTemplate | null>(null);
 
-  const selectedProject = Array.isArray(projects) ? (projects as ProjectItem[]).find((p) => String(p.publicId) === selectedProjectId) : undefined;
+  const selectedProject = Array.isArray(projects)
+    ? (projects as ProjectItem[]).find((p) => String(p.publicId) === selectedProjectId)
+    : undefined;
   const selectedProjectName = selectedProject?.projectName || 'Unknown Project';
 
   // Master Data
@@ -90,7 +92,7 @@ export default function NumberingPage() {
 
   if (isEditing) {
     return (
-      <div className="p-6 max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4">
+      <div className="mx-auto max-w-4xl p-6 animate-in fade-in slide-in-from-bottom-4">
         <TemplateEditor
           template={activeTemplate}
           projectId={selectedProjectId}
@@ -105,11 +107,11 @@ export default function NumberingPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6 p-6">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Document Numbering</h1>
-          <p className="text-muted-foreground mt-1">Manage numbering templates, audit logs, and tools</p>
+          <p className="mt-1 text-muted-foreground">Manage numbering templates, audit logs, and tools</p>
         </div>
         <div className="flex gap-2">
           <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
@@ -142,20 +144,16 @@ export default function NumberingPage() {
             </Button>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-4">
+          <div className="grid gap-6 lg:grid-cols-3">
+            <div className="space-y-4 lg:col-span-2">
               <div className="grid gap-4">
                 {templates
-                  .filter(
-                    (t) =>
-                      !t.projectId ||
-                      String(t.project?.publicId) === selectedProjectId
-                  )
+                  .filter((t) => !t.projectId || String(t.project?.publicId) === selectedProjectId)
                   .map((template) => (
-                    <Card key={template.id} className="p-6 hover:shadow-md transition-shadow">
-                      <div className="flex justify-between items-start">
+                    <Card key={template.id} className="p-6 transition-shadow hover:shadow-md">
+                      <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
+                          <div className="mb-2 flex items-center gap-3">
                             <h3 className="text-lg font-semibold">
                               {template.correspondenceType?.typeName || 'Default Format'}
                             </h3>
@@ -165,14 +163,14 @@ export default function NumberingPage() {
                             {template.description && <Badge variant="secondary">{template.description}</Badge>}
                           </div>
 
-                          <div className="bg-slate-100 dark:bg-slate-900 rounded px-3 py-2 mb-3 font-mono text-sm inline-block border">
+                          <div className="mb-3 inline-block rounded border bg-muted px-3 py-2 font-mono text-sm">
                             {template.formatTemplate}
                           </div>
 
-                          <div className="grid grid-cols-2 gap-4 text-sm mt-2">
+                          <div className="mt-2 grid grid-cols-2 gap-4 text-sm">
                             <div>
                               <span className="text-muted-foreground">Type Code: </span>
-                              <span className="font-medium font-mono text-green-600 dark:text-green-400">
+                              <span className="font-mono font-medium text-success">
                                 {template.correspondenceType?.typeCode || 'DEFAULT'}
                               </span>
                             </div>
@@ -208,7 +206,7 @@ export default function NumberingPage() {
         <TabsContent value="metrics" className="space-y-4">
           <MetricsDashboard />
           <div className="mt-6">
-            <h3 className="text-lg font-medium mb-4">Audit Logs</h3>
+            <h3 className="mb-4 text-lg font-medium">Audit Logs</h3>
             <AuditLogsTable />
           </div>
         </TabsContent>

@@ -38,15 +38,15 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
       break;
     case 'warning':
       badgeVariant = 'secondary'; // Fallback
-      customClass = 'bg-yellow-500 hover:bg-yellow-600 text-white';
+      customClass = 'bg-warning hover:bg-warning/90 text-warning-foreground';
       break;
     case 'success':
       badgeVariant = 'default'; // Fallback
-      customClass = 'bg-green-500 hover:bg-green-600 text-white';
+      customClass = 'bg-success hover:bg-success/90 text-success-foreground';
       break;
     case 'info':
       badgeVariant = 'default';
-      customClass = 'bg-blue-500 hover:bg-blue-600 text-white';
+      customClass = 'bg-info hover:bg-info/90 text-info-foreground';
       break;
     default:
       badgeVariant = 'default';

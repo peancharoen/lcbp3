@@ -16,10 +16,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: 1, // single worker — ป้องกัน resource starvation บน ASUSTOR runner
-  reporter: [
-    ['html', { outputFolder: 'playwright-report' }],
-    ['list'],
-  ],
+  reporter: [['html', { outputFolder: 'playwright-report' }], ['list']],
   use: {
     baseURL: process.env.BASE_URL || 'https://lcbp3.np-dms.work',
     trace: 'on-first-retry',

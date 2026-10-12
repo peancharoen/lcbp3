@@ -12,9 +12,9 @@ export interface StatsCardsProps {
 export function StatsCards({ stats, isLoading }: StatsCardsProps) {
   if (isLoading || !stats) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {[...Array(4)].map((_, i) => (
-          <Card key={i} className="p-6 h-[100px] animate-pulse bg-muted" />
+          <Card key={i} className="h-[100px] animate-pulse bg-muted p-6" />
         ))}
       </div>
     );
@@ -24,8 +24,8 @@ export function StatsCards({ stats, isLoading }: StatsCardsProps) {
       title: 'Total Correspondences',
       value: stats.totalDocuments,
       icon: FileText,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
+      color: 'text-info',
+      bgColor: 'bg-info/10',
     },
     {
       title: 'Active RFAs',
@@ -38,8 +38,8 @@ export function StatsCards({ stats, isLoading }: StatsCardsProps) {
       title: 'Approved Documents',
       value: stats.approved,
       icon: CheckCircle,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
+      color: 'text-success',
+      bgColor: 'bg-success/10',
     },
     {
       title: 'Pending Approvals',
@@ -51,18 +51,18 @@ export function StatsCards({ stats, isLoading }: StatsCardsProps) {
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
       {cards.map((card) => {
         const Icon = card.icon;
 
         return (
-          <Card key={card.title} className="p-6 hover:shadow-sm transition-shadow">
+          <Card key={card.title} className="p-6 transition-shadow hover:shadow-sm">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">{card.title}</p>
-                <p className="text-3xl font-bold mt-2">{card.value}</p>
+                <p className="mt-2 text-3xl font-bold">{card.value}</p>
               </div>
-              <div className={`p-3 rounded-lg ${card.bgColor}`}>
+              <div className={`rounded-lg p-3 ${card.bgColor}`}>
                 <Icon className={`h-6 w-6 ${card.color}`} />
               </div>
             </div>

@@ -68,16 +68,11 @@ export default function MigrationErrorsPage() {
   // ADR-047: ลบ errors ตาม batch หรือทั้งหมด
   const handleDeleteByBatch = async () => {
     const isAll = batchFilter === 'ALL';
-    const confirmMsg = isAll
-      ? 'ยืนยันลบ error records ทั้งหมด?'
-      : `ยืนยันลบ error records ใน batch ${batchFilter}?`;
+    const confirmMsg = isAll ? 'ยืนยันลบ error records ทั้งหมด?' : `ยืนยันลบ error records ใน batch ${batchFilter}?`;
     if (!window.confirm(confirmMsg)) return;
     try {
       setDeleting(true);
-      const result = await migrationService.deleteErrors(
-        isAll ? undefined : batchFilter,
-        isAll
-      );
+      const result = await migrationService.deleteErrors(isAll ? undefined : batchFilter, isAll);
       toast.success(`ลบ ${result.deleted} รายการเรียบร้อย`);
       await fetchData();
       await fetchBatches();
@@ -90,10 +85,10 @@ export default function MigrationErrorsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-red-600">Migration Errors</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-3xl font-bold tracking-tight text-destructive">Migration Errors</h1>
+          <p className="mt-1 text-muted-foreground">
             Systemic errors encountered during the background migration process.
           </p>
         </div>
@@ -106,9 +101,9 @@ export default function MigrationErrorsPage() {
 
       <Card>
         <CardHeader>
-          <div className="flex flex-wrap justify-between items-center gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <CardTitle>Error Audit Log</CardTitle>
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex flex-wrap items-center gap-3">
               <Select value={batchFilter} onValueChange={setBatchFilter}>
                 <SelectTrigger className="w-[200px]">
                   <SelectValue placeholder="Batch" />
@@ -116,7 +111,9 @@ export default function MigrationErrorsPage() {
                 <SelectContent>
                   <SelectItem value="ALL">All Batches</SelectItem>
                   {batchOptions.map((b) => (
-                    <SelectItem key={b} value={b}>{b}</SelectItem>
+                    <SelectItem key={b} value={b}>
+                      {b}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -163,7 +160,7 @@ export default function MigrationErrorsPage() {
                         <Badge variant="destructive">{item.errorType || 'UNKNOWN'}</Badge>
                       </TableCell>
                       <TableCell className="max-w-md break-words">
-                        <span className="text-sm text-muted-foreground line-clamp-2" title={item.errorMessage}>
+                        <span className="line-clamp-2 text-sm text-muted-foreground" title={item.errorMessage}>
                           {item.errorMessage || '-'}
                         </span>
                       </TableCell>
@@ -175,7 +172,7 @@ export default function MigrationErrorsPage() {
             </div>
           )}
           {/* Pagination + row count */}
-          <div className="flex items-center justify-between mt-4 pt-4 border-t">
+          <div className="mt-4 flex items-center justify-between border-t pt-4">
             <div className="text-sm text-muted-foreground">
               ทั้งหมด {totalRows} รายการ (หน้า {page}/{totalPages})
             </div>

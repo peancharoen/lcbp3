@@ -23,17 +23,17 @@ interface SearchResultsProps {
 }
 
 const TYPE_META: Record<string, { icon: React.ElementType; label: string; color: string }> = {
-  correspondence: { icon: FileText, label: 'Correspondence', color: 'text-blue-600' },
+  correspondence: { icon: FileText, label: 'Correspondence', color: 'text-info' },
   rfa: { icon: Clipboard, label: 'RFA', color: 'text-purple-600' },
-  drawing: { icon: Image, label: 'Drawing', color: 'text-green-600' },
+  drawing: { icon: Image, label: 'Drawing', color: 'text-success' },
 };
 
 const STATUS_VARIANT: Record<string, string> = {
-  DRAFT: 'bg-gray-100 text-gray-700',
-  SUBOWN: 'bg-yellow-100 text-yellow-700',
-  CLBOWN: 'bg-green-100 text-green-700',
-  CCBOWN: 'bg-red-100 text-red-700',
-  CANCELLED: 'bg-slate-100 text-slate-500 line-through',
+  DRAFT: 'bg-muted text-foreground',
+  SUBOWN: 'bg-warning/10 text-warning',
+  CLBOWN: 'bg-success/10 text-success',
+  CCBOWN: 'bg-destructive/10 text-destructive',
+  CANCELLED: 'bg-muted text-muted-foreground line-through',
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -71,50 +71,43 @@ export function SearchResults({ results, query, loading }: SearchResultsProps) {
       {results.map((result, index) => {
         const meta = TYPE_META[result.type] ?? TYPE_META.correspondence;
         const Icon = meta.icon;
-        const statusClass = STATUS_VARIANT[result.status] ?? 'bg-gray-100 text-gray-700';
+        const statusClass = STATUS_VARIANT[result.status] ?? 'bg-muted text-foreground';
         const statusLabel = STATUS_LABEL[result.status] ?? result.status;
 
         return (
           <Card
             key={`${result.type}-${result.publicId ?? index}`}
-            className="px-5 py-4 hover:shadow-md transition-shadow group"
+            className="group px-5 py-4 transition-shadow hover:shadow-md"
           >
             <Link href={getLink(result)}>
               <div className="flex gap-4">
-                <div className={`flex-shrink-0 mt-0.5 ${meta.color}`}>
+                <div className={`mt-0.5 flex-shrink-0 ${meta.color}`}>
                   <Icon className="h-5 w-5" />
                 </div>
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start gap-2 flex-wrap mb-1">
-                    <span className="text-xs font-mono text-muted-foreground shrink-0">
-                      {result.documentNumber}
-                    </span>
-                    <Badge
-                      variant="secondary"
-                      className={`text-xs px-1.5 py-0 shrink-0 ${statusClass}`}
-                    >
+                <div className="min-w-0 flex-1">
+                  <div className="mb-1 flex flex-wrap items-start gap-2">
+                    <span className="shrink-0 font-mono text-xs text-muted-foreground">{result.documentNumber}</span>
+                    <Badge variant="secondary" className={`shrink-0 px-1.5 py-0 text-xs ${statusClass}`}>
                       {statusLabel}
                     </Badge>
-                    <Badge variant="outline" className="text-xs px-1.5 py-0 shrink-0">
+                    <Badge variant="outline" className="shrink-0 px-1.5 py-0 text-xs">
                       {meta.label}
                     </Badge>
                   </div>
 
                   <h3
-                    className="text-sm font-semibold group-hover:text-primary transition-colors line-clamp-1"
+                    className="line-clamp-1 text-sm font-semibold transition-colors group-hover:text-primary"
                     dangerouslySetInnerHTML={{
                       __html: sanitizeHighlight(result.highlight || result.title),
                     }}
                   />
 
                   {result.description && (
-                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                      {result.description}
-                    </p>
+                    <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{result.description}</p>
                   )}
 
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="mt-1 text-xs text-muted-foreground">
                     {format(new Date(result.createdAt), 'dd MMM yyyy')}
                   </p>
                 </div>

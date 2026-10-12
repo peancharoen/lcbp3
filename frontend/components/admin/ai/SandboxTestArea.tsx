@@ -13,16 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { adminAiService } from '@/lib/services/admin-ai.service';
 import { useProjects, useContracts } from '@/hooks/use-master-data';
 import { toast } from 'sonner';
-import {
-  Upload,
-  Play,
-  FileText,
-  FileJson,
-  Database,
-  ArrowRight,
-  Loader2,
-  CheckCircle,
-} from 'lucide-react';
+import { Upload, Play, FileText, FileJson, Database, ArrowRight, Loader2, CheckCircle } from 'lucide-react';
 
 interface SandboxTestAreaProps {
   promptType: string;
@@ -206,7 +197,7 @@ export default function SandboxTestArea({
 
   return (
     <Card className="border border-border/50 bg-background/30 backdrop-blur-md transition-all duration-300 hover:shadow-md">
-      <CardHeader className="pb-3 border-b border-border/10">
+      <CardHeader className="border-b border-border/10 pb-3">
         <CardTitle className="flex items-center gap-2 text-sm font-semibold tracking-wide text-foreground">
           <Play className="h-4 w-4 text-primary" />
           รันบอร์ดทดลองการทำงาน (3-Step Sandbox Testing)
@@ -215,12 +206,12 @@ export default function SandboxTestArea({
           ทดสอบความถูกต้องของเวอร์ชันพรอมต์จำลองกระบวนการจริง (OCR → AI Extract → RAG Prep)
         </CardDescription>
       </CardHeader>
-      <CardContent className="pt-5 space-y-6">
+      <CardContent className="space-y-6 pt-5">
         <div className="flex flex-wrap items-center gap-4 border-b border-border/10 pb-4">
-          <div className="flex-1 min-w-[200px] space-y-1">
+          <div className="min-w-[200px] flex-1 space-y-1">
             <Label className="text-[11px] font-semibold text-muted-foreground">โครงการสำหรับสกัดบริบท</Label>
             <Select value={selectedProject} onValueChange={setSelectedProject}>
-              <SelectTrigger className="h-8 text-xs bg-background/50 border-border/50">
+              <SelectTrigger className="h-8 border-border/50 bg-background/50 text-xs">
                 <SelectValue placeholder="เลือกโครงการ..." />
               </SelectTrigger>
               <SelectContent>
@@ -232,10 +223,10 @@ export default function SandboxTestArea({
               </SelectContent>
             </Select>
           </div>
-          <div className="flex-1 min-w-[200px] space-y-1">
+          <div className="min-w-[200px] flex-1 space-y-1">
             <Label className="text-[11px] font-semibold text-muted-foreground">สัญญา (ถ้ามี)</Label>
             <Select value={selectedContract} onValueChange={setSelectedContract} disabled={!selectedProject}>
-              <SelectTrigger className="h-8 text-xs bg-background/50 border-border/50">
+              <SelectTrigger className="h-8 border-border/50 bg-background/50 text-xs">
                 <SelectValue placeholder="เลือกสัญญา..." />
               </SelectTrigger>
               <SelectContent>
@@ -250,20 +241,24 @@ export default function SandboxTestArea({
           <div className="w-[150px] space-y-1">
             <Label className="text-[11px] font-semibold text-muted-foreground">OCR Engine</Label>
             <Select value={ocrEngine} onValueChange={setOcrEngine}>
-              <SelectTrigger className="h-8 text-xs bg-background/50 border-border/50">
+              <SelectTrigger className="h-8 border-border/50 bg-background/50 text-xs">
                 <SelectValue placeholder="เลือกเอนจิน..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="auto" className="text-xs">Auto (Fast Path / np-dms-ocr)</SelectItem>
-                <SelectItem value="np-dms-ocr" className="text-xs">np-dms-ocr (AI Vision)</SelectItem>
+                <SelectItem value="auto" className="text-xs">
+                  Auto (Fast Path / np-dms-ocr)
+                </SelectItem>
+                <SelectItem value="np-dms-ocr" className="text-xs">
+                  np-dms-ocr (AI Vision)
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-4 bg-background/40 p-4 border border-border/30 rounded-lg">
-          <div className="flex items-center gap-3 flex-1">
-            <div className="p-2 bg-primary/10 rounded">
+        <div className="flex flex-col items-center gap-4 rounded-lg border border-border/30 bg-background/40 p-4 sm:flex-row">
+          <div className="flex flex-1 items-center gap-3">
+            <div className="rounded bg-primary/10 p-2">
               <Upload className="h-5 w-5 text-primary" />
             </div>
             <div className="space-y-0.5">
@@ -271,29 +266,29 @@ export default function SandboxTestArea({
               <p className="text-[10px] text-muted-foreground">เลือกไฟล์ PDF วิศวกรรม/ก่อสร้าง ขนาดไม่เกิน 50MB</p>
             </div>
           </div>
-          <div className="relative overflow-hidden cursor-pointer bg-primary/90 hover:bg-primary/95 text-primary-foreground font-semibold px-4 py-2 rounded text-xs select-none flex items-center gap-2">
+          <div className="relative flex cursor-pointer select-none items-center gap-2 overflow-hidden rounded bg-primary/90 px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/95">
             <span>เลือกไฟล์เอกสาร...</span>
             <input
               type="file"
               accept=".pdf"
               onChange={handleFileChange}
-              className="absolute inset-0 opacity-0 cursor-pointer"
+              className="absolute inset-0 cursor-pointer opacity-0"
             />
           </div>
         </div>
 
         {file && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono bg-secondary/20 border border-border/50 px-3 py-1.5 rounded">
-            <FileText className="h-4 w-4 text-primary shrink-0" />
-            <span className="truncate flex-1">{file.name}</span>
+          <div className="flex items-center gap-2 rounded border border-border/50 bg-secondary/20 px-3 py-1.5 font-mono text-xs text-muted-foreground">
+            <FileText className="h-4 w-4 shrink-0 text-primary" />
+            <span className="flex-1 truncate">{file.name}</span>
             <span>({(file.size / (1024 * 1024)).toFixed(2)} MB)</span>
           </div>
         )}
 
         {/* Status indicator */}
         {jobStatus === 'running' && (
-          <div className="space-y-2.5 p-4 border border-primary/20 bg-primary/[0.02] rounded-lg">
-            <div className="flex justify-between items-center text-xs">
+          <div className="space-y-2.5 rounded-lg border border-primary/20 bg-primary/[0.02] p-4">
+            <div className="flex items-center justify-between text-xs">
               <span className="flex items-center font-semibold text-primary">
                 <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                 {statusText}
@@ -305,61 +300,68 @@ export default function SandboxTestArea({
         )}
 
         {/* Steps navigation and panels */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-2">
+        <div className="grid grid-cols-1 gap-6 pt-2 lg:grid-cols-12">
           {/* Step buttons */}
-          <div className="lg:col-span-3 flex lg:flex-col gap-2.5">
+          <div className="flex gap-2.5 lg:col-span-3 lg:flex-col">
             <Button
               variant={currentStep === 1 ? 'default' : 'outline'}
               disabled={jobStatus === 'running' || !file}
               onClick={() => setCurrentStep(1)}
-              className="w-full h-9 justify-start text-xs font-semibold"
+              className="h-9 w-full justify-start text-xs font-semibold"
             >
-              <Badge className="mr-2 h-4 min-w-4 px-1 flex items-center justify-center text-[9px] bg-secondary text-secondary-foreground select-none">1</Badge>
+              <Badge className="mr-2 flex h-4 min-w-4 select-none items-center justify-center bg-secondary px-1 text-[9px] text-secondary-foreground">
+                1
+              </Badge>
               Step 1: Run OCR
             </Button>
             <Button
               variant={currentStep === 2 ? 'default' : 'outline'}
               disabled={jobStatus === 'running' || !ocrText}
               onClick={() => setCurrentStep(2)}
-              className="w-full h-9 justify-start text-xs font-semibold"
+              className="h-9 w-full justify-start text-xs font-semibold"
             >
-              <Badge className="mr-2 h-4 min-w-4 px-1 flex items-center justify-center text-[9px] bg-secondary text-secondary-foreground select-none">2</Badge>
+              <Badge className="mr-2 flex h-4 min-w-4 select-none items-center justify-center bg-secondary px-1 text-[9px] text-secondary-foreground">
+                2
+              </Badge>
               Step 2: AI Extract
             </Button>
             <Button
               variant={currentStep === 3 ? 'default' : 'outline'}
               disabled={jobStatus === 'running' || !extractedMetadata}
               onClick={() => setCurrentStep(3)}
-              className="w-full h-9 justify-start text-xs font-semibold"
+              className="h-9 w-full justify-start text-xs font-semibold"
             >
-              <Badge className="mr-2 h-4 min-w-4 px-1 flex items-center justify-center text-[9px] bg-secondary text-secondary-foreground select-none">3</Badge>
+              <Badge className="mr-2 flex h-4 min-w-4 select-none items-center justify-center bg-secondary px-1 text-[9px] text-secondary-foreground">
+                3
+              </Badge>
               Step 3: RAG Prep
             </Button>
           </div>
 
           {/* Step detail views */}
-          <div className="lg:col-span-9 border border-border/30 rounded-lg p-4 bg-background/50 min-h-[300px] flex flex-col justify-between">
+          <div className="flex min-h-[300px] flex-col justify-between rounded-lg border border-border/30 bg-background/50 p-4 lg:col-span-9">
             {currentStep === 1 && (
-              <div className="space-y-4 flex-1 flex flex-col justify-between">
+              <div className="flex flex-1 flex-col justify-between space-y-4">
                 <div className="space-y-2">
-                  <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <h4 className="flex items-center gap-1.5 text-xs font-bold text-foreground">
                     <FileText className="h-4 w-4 text-primary" />
                     Step 1: สกัดข้อความ OCR (OCR Extraction)
                   </h4>
-                  <p className="text-[11px] text-muted-foreground leading-normal">
-                    รันเอนจินสกัดข้อความเพื่อดึงตัวหนังสือดิบออกมาจากหน้าไฟล์ PDF ที่ส่งขึ้นไป สามารถดูผลลัพธ์ข้อความดิบเพื่อประเมินความคมชัดของ OCR
+                  <p className="text-[11px] leading-normal text-muted-foreground">
+                    รันเอนจินสกัดข้อความเพื่อดึงตัวหนังสือดิบออกมาจากหน้าไฟล์ PDF ที่ส่งขึ้นไป
+                    สามารถดูผลลัพธ์ข้อความดิบเพื่อประเมินความคมชัดของ OCR
                   </p>
                 </div>
                 {ocrText ? (
-                  <div className="flex-1 min-h-[150px] max-h-[250px] overflow-y-auto rounded bg-secondary/30 border border-border/50 p-3 font-mono text-[10px] whitespace-pre-wrap select-text leading-relaxed mt-3">
+                  <div className="mt-3 max-h-[250px] min-h-[150px] flex-1 select-text overflow-y-auto whitespace-pre-wrap rounded border border-border/50 bg-secondary/30 p-3 font-mono text-[10px] leading-relaxed">
                     {ocrText}
                   </div>
                 ) : (
-                  <div className="flex-1 min-h-[150px] flex items-center justify-center border border-dashed border-border/70 rounded mt-3 text-xs text-muted-foreground italic">
+                  <div className="mt-3 flex min-h-[150px] flex-1 items-center justify-center rounded border border-dashed border-border/70 text-xs italic text-muted-foreground">
                     ยังไม่มีข้อมูล OCR คลิก "เริ่มรัน OCR" ด้านล่าง
                   </div>
                 )}
-                <div className="flex justify-end pt-4 border-t border-border/10 mt-4">
+                <div className="mt-4 flex justify-end border-t border-border/10 pt-4">
                   <Button
                     size="sm"
                     onClick={handleRunOcr}
@@ -374,32 +376,33 @@ export default function SandboxTestArea({
             )}
 
             {currentStep === 2 && (
-              <div className="space-y-4 flex-1 flex flex-col justify-between">
+              <div className="flex flex-1 flex-col justify-between space-y-4">
                 <div className="space-y-2">
-                  <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <h4 className="flex items-center gap-1.5 text-xs font-bold text-foreground">
                     <FileJson className="h-4 w-4 text-primary" />
                     Step 2: สกัดข้อมูลอัจฉริยะ (AI Metadata Extraction)
                   </h4>
-                  <p className="text-[11px] text-muted-foreground leading-normal">
-                    ส่งข้อความ OCR พร้อมบริบท Master data (โครงการ/สัญญา) เข้าไปประมวลผลร่วมกับโมเดลหลักและเวอร์ชันพรอมต์ที่เลือก เพื่อแปลงเป็นโครงสร้างข้อมูล JSON อัจฉริยะ
+                  <p className="text-[11px] leading-normal text-muted-foreground">
+                    ส่งข้อความ OCR พร้อมบริบท Master data (โครงการ/สัญญา)
+                    เข้าไปประมวลผลร่วมกับโมเดลหลักและเวอร์ชันพรอมต์ที่เลือก เพื่อแปลงเป็นโครงสร้างข้อมูล JSON อัจฉริยะ
                   </p>
                 </div>
                 {extractedMetadata ? (
-                  <div className="flex-1 min-h-[150px] max-h-[250px] overflow-y-auto rounded bg-secondary/30 border border-border/50 p-3 font-mono text-[10px] text-emerald-400 select-text leading-relaxed mt-3">
+                  <div className="mt-3 max-h-[250px] min-h-[150px] flex-1 select-text overflow-y-auto rounded border border-border/50 bg-secondary/30 p-3 font-mono text-[10px] leading-relaxed text-success">
                     <pre>{JSON.stringify(extractedMetadata, null, 2)}</pre>
                   </div>
                 ) : (
-                  <div className="flex-1 min-h-[150px] flex items-center justify-center border border-dashed border-border/70 rounded mt-3 text-xs text-muted-foreground italic">
+                  <div className="mt-3 flex min-h-[150px] flex-1 items-center justify-center rounded border border-dashed border-border/70 text-xs italic text-muted-foreground">
                     ยังไม่มีผลลัพธ์การสกัดข้อมูล คลิก "เริ่มรันสกัดข้อมูล" ด้านล่าง
                   </div>
                 )}
-                <div className="flex justify-between items-center pt-4 border-t border-border/10 mt-4">
+                <div className="mt-4 flex items-center justify-between border-t border-border/10 pt-4">
                   {selectedVersionNumber && onActivateVersion && (
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={handleActivate}
-                      className="h-8 text-xs border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10"
+                      className="h-8 border-success/30 text-xs text-success hover:bg-success/10"
                     >
                       <CheckCircle className="mr-1.5 h-3.5 w-3.5" />
                       เปิดใช้งานเวอร์ชัน v{selectedVersionNumber} ทันที
@@ -410,7 +413,7 @@ export default function SandboxTestArea({
                       size="sm"
                       onClick={handleRunExtract}
                       disabled={jobStatus === 'running' || !ocrText}
-                      className="h-8 text-xs bg-primary hover:bg-primary/95 text-primary-foreground"
+                      className="h-8 bg-primary text-xs text-primary-foreground hover:bg-primary/95"
                     >
                       เริ่มรันสกัดข้อมูล (Run AI Extract)
                       <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
@@ -421,31 +424,38 @@ export default function SandboxTestArea({
             )}
 
             {currentStep === 3 && (
-              <div className="space-y-4 flex-1 flex flex-col justify-between">
+              <div className="flex flex-1 flex-col justify-between space-y-4">
                 <div className="space-y-2">
-                  <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <h4 className="flex items-center gap-1.5 text-xs font-bold text-foreground">
                     <Database className="h-4 w-4 text-primary" />
                     Step 3: เตรียมฐานข้อมูลค้นหา (RAG Prep Sandbox)
                   </h4>
-                  <p className="text-[11px] text-muted-foreground leading-normal">
-                    จำลองกระบวนการแบ่งข้อความออกเป็นส่วนๆ (Semantic Chunking) ตามความเหมาะสมทางภาษาและความหมายของเอกสาร พร้อมแสดงขนาดเวกเตอร์ Dense/Sparse ที่สกัดสำหรับใช้ใน Qdrant
+                  <p className="text-[11px] leading-normal text-muted-foreground">
+                    จำลองกระบวนการแบ่งข้อความออกเป็นส่วนๆ (Semantic Chunking) ตามความเหมาะสมทางภาษาและความหมายของเอกสาร
+                    พร้อมแสดงขนาดเวกเตอร์ Dense/Sparse ที่สกัดสำหรับใช้ใน Qdrant
                   </p>
                 </div>
                 {ragChunks ? (
-                  <div className="flex-1 flex flex-col gap-3 mt-3 overflow-hidden">
-                    <div className="flex justify-between items-center bg-secondary/40 border border-border/50 px-3 py-2 rounded text-xs select-none">
-                      <span className="font-semibold text-foreground flex items-center gap-1">
-                        <CheckCircle className="h-4 w-4 text-emerald-500" />
+                  <div className="mt-3 flex flex-1 flex-col gap-3 overflow-hidden">
+                    <div className="flex select-none items-center justify-between rounded border border-border/50 bg-secondary/40 px-3 py-2 text-xs">
+                      <span className="flex items-center gap-1 font-semibold text-foreground">
+                        <CheckCircle className="h-4 w-4 text-success" />
                         ทำเวกเตอร์สำเร็จ: {ragVectorsCount} เวกเตอร์
                       </span>
-                      <Badge variant="outline" className="text-[10px] border-border/50"> chunks: {ragChunks.length}</Badge>
+                      <Badge variant="outline" className="border-border/50 text-[10px]">
+                        {' '}
+                        chunks: {ragChunks.length}
+                      </Badge>
                     </div>
-                    <div className="flex-1 min-h-[120px] max-h-[200px] overflow-y-auto space-y-2 mt-1">
+                    <div className="mt-1 max-h-[200px] min-h-[120px] flex-1 space-y-2 overflow-y-auto">
                       {ragChunks.map((chunk, idx) => (
-                        <div key={idx} className="bg-background/80 border border-border/30 rounded p-2.5 text-[10px] space-y-1 hover:border-primary/20 transition-all select-text">
-                          <div className="flex justify-between items-center text-primary font-bold">
+                        <div
+                          key={idx}
+                          className="select-text space-y-1 rounded border border-border/30 bg-background/80 p-2.5 text-[10px] transition-all hover:border-primary/20"
+                        >
+                          <div className="flex items-center justify-between font-bold text-primary">
                             <span>#Chunk {idx + 1}</span>
-                            <Badge className="text-[8px] py-0 px-1 select-none">{chunk.summary || 'หัวข้อหลัก'}</Badge>
+                            <Badge className="select-none px-1 py-0 text-[8px]">{chunk.summary || 'หัวข้อหลัก'}</Badge>
                           </div>
                           <p className="leading-relaxed text-muted-foreground">{chunk.text}</p>
                         </div>
@@ -453,16 +463,16 @@ export default function SandboxTestArea({
                     </div>
                   </div>
                 ) : (
-                  <div className="flex-1 min-h-[150px] flex items-center justify-center border border-dashed border-border/70 rounded mt-3 text-xs text-muted-foreground italic">
+                  <div className="mt-3 flex min-h-[150px] flex-1 items-center justify-center rounded border border-dashed border-border/70 text-xs italic text-muted-foreground">
                     ยังไม่มีผลลัพธ์ RAG Prep คลิก "เริ่มทดสอบ RAG Prep" ด้านล่าง
                   </div>
                 )}
-                <div className="flex justify-end pt-4 border-t border-border/10 mt-4">
+                <div className="mt-4 flex justify-end border-t border-border/10 pt-4">
                   <Button
                     size="sm"
                     onClick={handleRunRagPrep}
                     disabled={jobStatus === 'running' || !ocrText}
-                    className="h-8 text-xs bg-emerald-500 hover:bg-emerald-600 text-white"
+                    className="h-8 bg-success text-xs text-white hover:bg-success/90"
                   >
                     เริ่มทดสอบ RAG Prep (Test RAG Prep)
                     <CheckCircle className="ml-1.5 h-3.5 w-3.5" />

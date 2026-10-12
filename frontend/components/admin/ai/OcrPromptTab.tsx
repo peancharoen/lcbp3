@@ -73,7 +73,7 @@ export function OcrPromptTab() {
   };
 
   const handleActivate = async (versionNumber: number) => {
-    const version = versions.find(v => v.versionNumber === versionNumber);
+    const version = versions.find((v) => v.versionNumber === versionNumber);
     setIsActivating(true);
     setError(null);
     try {
@@ -148,16 +148,9 @@ export function OcrPromptTab() {
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              {activeVersion && (
-                <Badge variant="outline">
-                  Active: v{activeVersion.versionNumber}
-                </Badge>
-              )}
+              {activeVersion && <Badge variant="outline">Active: v{activeVersion.versionNumber}</Badge>}
             </div>
-            <Button
-              onClick={handleSaveNewVersion}
-              disabled={isSaving || !newTemplate.trim()}
-            >
+            <Button onClick={handleSaveNewVersion} disabled={isSaving || !newTemplate.trim()}>
               {isSaving ? (
                 <>
                   <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
@@ -177,9 +170,7 @@ export function OcrPromptTab() {
       <Card>
         <CardHeader>
           <CardTitle>Version History</CardTitle>
-          <CardDescription>
-            ประวัติเวอร์ชันทั้งหมดของ OCR System Prompt
-          </CardDescription>
+          <CardDescription>ประวัติเวอร์ชันทั้งหมดของ OCR System Prompt</CardDescription>
         </CardHeader>
         <CardContent>
           <PromptVersionHistory
@@ -198,9 +189,7 @@ export function OcrPromptTab() {
         <Card className="border-warning">
           <CardHeader>
             <CardTitle className="text-warning">Data Modified</CardTitle>
-            <CardDescription>
-              ข้อมูลถูกแก้ไขโดยผู้ใช้อื่น กรุณารีเฟรชข้อมูล
-            </CardDescription>
+            <CardDescription>ข้อมูลถูกแก้ไขโดยผู้ใช้อื่น กรุณารีเฟรชข้อมูล</CardDescription>
           </CardHeader>
           <CardContent>
             <Button onClick={handleRefresh}>Refresh Data</Button>

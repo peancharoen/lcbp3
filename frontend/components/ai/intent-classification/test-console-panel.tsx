@@ -18,9 +18,7 @@ import type { ClassificationResult } from '@/lib/services/ai-intent.service';
  */
 export function TestConsolePanel() {
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<
-    Array<{ query: string; result: ClassificationResult; timestamp: Date }>
-  >([]);
+  const [results, setResults] = useState<Array<{ query: string; result: ClassificationResult; timestamp: Date }>>([]);
 
   const classifyMutation = useClassifyIntent();
 
@@ -31,10 +29,7 @@ export function TestConsolePanel() {
 
     try {
       const result = await classifyMutation.mutateAsync({ query: trimmed });
-      setResults((prev) => [
-        { query: trimmed, result, timestamp: new Date() },
-        ...prev,
-      ]);
+      setResults((prev) => [{ query: trimmed, result, timestamp: new Date() }, ...prev]);
       setQuery('');
     } catch {
       // Error state จัดการโดย TanStack Query (classifyMutation.isError)
@@ -59,29 +54,20 @@ export function TestConsolePanel() {
             maxLength={200}
             disabled={classifyMutation.isPending}
           />
-          <Button
-            type="submit"
-            disabled={!query.trim() || classifyMutation.isPending}
-          >
-            {classifyMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
+          <Button type="submit" disabled={!query.trim() || classifyMutation.isPending}>
+            {classifyMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </Button>
         </form>
 
         {/* Error Display */}
         {classifyMutation.isError && (
-          <p className="text-sm text-destructive">
-            เกิดข้อผิดพลาด: ไม่สามารถเชื่อมต่อ AI ได้ กรุณาลองใหม่
-          </p>
+          <p className="text-sm text-destructive">เกิดข้อผิดพลาด: ไม่สามารถเชื่อมต่อ AI ได้ กรุณาลองใหม่</p>
         )}
 
         {/* Results List */}
-        <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+        <div className="max-h-[60vh] space-y-3 overflow-y-auto">
           {results.length === 0 && (
-            <p className="text-muted-foreground text-sm text-center py-8">
+            <p className="py-8 text-center text-sm text-muted-foreground">
               พิมพ์คำถามด้านบนเพื่อทดสอบ Intent Classification
             </p>
           )}

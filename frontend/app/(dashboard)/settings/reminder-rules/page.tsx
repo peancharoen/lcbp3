@@ -6,13 +6,7 @@ import { Plus, Bell, Trash2, Edit2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import {
   useReminderRules,
   useCreateReminderRule,
@@ -35,26 +29,26 @@ export default function ReminderRulesPage() {
   const getReminderTypeColor = (type: ReminderType) => {
     switch (type) {
       case ReminderType.DUE_SOON:
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'bg-info/10 text-info border-info/30';
       case ReminderType.ON_DUE:
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return 'bg-warning/10 text-warning border-warning/30';
       case ReminderType.OVERDUE:
         return 'bg-orange-100 text-orange-800 border-orange-200';
       case ReminderType.ESCALATION_L1:
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-destructive/10 text-destructive border-destructive/30';
       case ReminderType.ESCALATION_L2:
         return 'bg-purple-100 text-purple-800 border-purple-200';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-muted text-foreground border-border';
     }
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Reminder & Escalation Rules</h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <p className="mt-1 text-sm text-muted-foreground">
             ตั้งค่าการแจ้งเตือนและการยกระดับ (Escalation) เมื่อเกินกำหนด
           </p>
         </div>
@@ -62,7 +56,7 @@ export default function ReminderRulesPage() {
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
             <Button>
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="mr-2 h-4 w-4" />
               New Rule
             </Button>
           </DialogTrigger>
@@ -82,13 +76,9 @@ export default function ReminderRulesPage() {
         </Dialog>
       </div>
 
-      {isLoading && (
-        <div className="text-center text-muted-foreground py-8">
-          Loading rules...
-        </div>
-      )}
+      {isLoading && <div className="py-8 text-center text-muted-foreground">Loading rules...</div>}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {rules.map((rule) => (
           <Card key={rule.publicId} className={!rule.isActive ? 'opacity-60' : ''}>
             <CardHeader className="pb-2">
@@ -98,12 +88,10 @@ export default function ReminderRulesPage() {
                     <Bell className="h-4 w-4 text-muted-foreground" />
                     <CardTitle className="text-base">{rule.name}</CardTitle>
                   </div>
-                  <div className="flex flex-wrap gap-1 mt-1">
+                  <div className="mt-1 flex flex-wrap gap-1">
                     <Badge
                       variant="outline"
-                      className={`text-[10px] uppercase font-bold ${getReminderTypeColor(
-                        rule.reminderType
-                      )}`}
+                      className={`text-[10px] font-bold uppercase ${getReminderTypeColor(rule.reminderType)}`}
                     >
                       {rule.reminderType}
                     </Badge>
@@ -120,12 +108,7 @@ export default function ReminderRulesPage() {
                   </div>
                 </div>
                 <div className="flex gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => setEditingRule(rule)}
-                  >
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingRule(rule)}>
                     <Edit2 className="h-3.5 w-3.5" />
                   </Button>
                   <Button
@@ -151,39 +134,28 @@ export default function ReminderRulesPage() {
                     {rule.daysBeforeDue === 0
                       ? 'On Due Date'
                       : rule.daysBeforeDue > 0
-                      ? `${rule.daysBeforeDue} days before`
-                      : `${Math.abs(rule.daysBeforeDue)} days after`}
+                        ? `${rule.daysBeforeDue} days before`
+                        : `${Math.abs(rule.daysBeforeDue)} days after`}
                   </span>
                 </p>
-                {rule.messageTemplate && (
-                  <p className="mt-2 text-xs italic line-clamp-2">
-                    "{rule.messageTemplate}"
-                  </p>
-                )}
+                {rule.messageTemplate && <p className="mt-2 line-clamp-2 text-xs italic">"{rule.messageTemplate}"</p>}
               </div>
             </CardContent>
           </Card>
         ))}
 
         {!isLoading && rules.length === 0 && (
-          <div className="col-span-full text-center py-12 border-2 border-dashed rounded-lg text-muted-foreground">
-            <Bell className="h-12 w-12 mx-auto mb-3 opacity-20" />
+          <div className="col-span-full rounded-lg border-2 border-dashed py-12 text-center text-muted-foreground">
+            <Bell className="mx-auto mb-3 h-12 w-12 opacity-20" />
             <p>No reminder rules defined.</p>
-            <Button
-              variant="link"
-              className="mt-2"
-              onClick={() => setCreateOpen(true)}
-            >
+            <Button variant="link" className="mt-2" onClick={() => setCreateOpen(true)}>
               Create your first rule
             </Button>
           </div>
         )}
       </div>
 
-      <Dialog
-        open={!!editingRule}
-        onOpenChange={(open) => !open && setEditingRule(null)}
-      >
+      <Dialog open={!!editingRule} onOpenChange={(open) => !open && setEditingRule(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Reminder Rule</DialogTitle>

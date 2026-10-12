@@ -139,9 +139,7 @@ describe('CorrespondenceList Component', () => {
 
     const actionButtons = screen.getAllByRole('button');
     await user.click(actionButtons[actionButtons.length - 1]);
-    await user.click(
-      await screen.findByText(/แก้ไขข้อมูลกำกับ|Edit Metadata|document\.metadata\.title/i)
-    );
+    await user.click(await screen.findByText(/แก้ไขข้อมูลกำกับ|Edit Metadata|document\.metadata\.title/i));
 
     expect(mockRouterPush).toHaveBeenCalledWith(
       '/correspondences/019505a1-7c3e-7000-8000-corr1111111?revId=019505a1-7c3e-7000-8000-rev111111111&action=edit-metadata'

@@ -4,11 +4,7 @@
 //   (revision-chain import: document_number = staging key)
 
 import { describe, it, expect } from 'vitest';
-import {
-  getQueueBaseDocNumber,
-  getQueueRevisionLabel,
-  getQueueDocDisplayText,
-} from '@/lib/utils/queue-doc-number';
+import { getQueueBaseDocNumber, getQueueRevisionLabel, getQueueDocDisplayText } from '@/lib/utils/queue-doc-number';
 
 describe('getQueueBaseDocNumber', () => {
   it('คืน original_document_number เมื่อมีใน details', () => {
@@ -20,12 +16,8 @@ describe('getQueueBaseDocNumber', () => {
   });
 
   it('fallback เป็น documentNumber เมื่อไม่มี details', () => {
-    expect(
-      getQueueBaseDocNumber({ documentNumber: 'DOC-002', details: null })
-    ).toBe('DOC-002');
-    expect(
-      getQueueBaseDocNumber({ documentNumber: 'DOC-002', details: undefined })
-    ).toBe('DOC-002');
+    expect(getQueueBaseDocNumber({ documentNumber: 'DOC-002', details: null })).toBe('DOC-002');
+    expect(getQueueBaseDocNumber({ documentNumber: 'DOC-002', details: undefined })).toBe('DOC-002');
   });
 
   it('fallback เป็น documentNumber เมื่อ original_document_number ว่าง/ไม่ใช่ string', () => {
@@ -70,9 +62,7 @@ describe('getQueueRevisionLabel', () => {
   });
 
   it('คืน undefined เมื่อไม่มี label (legacy item)', () => {
-    expect(
-      getQueueRevisionLabel({ documentNumber: 'DOC', details: null })
-    ).toBeUndefined();
+    expect(getQueueRevisionLabel({ documentNumber: 'DOC', details: null })).toBeUndefined();
     // legacy revision_number (dedup counter) ไม่ใช่ label — ห้ามเอามาแสดง
     expect(
       getQueueRevisionLabel({
@@ -109,8 +99,6 @@ describe('getQueueDocDisplayText', () => {
   });
 
   it('คืนเลขเอกสารอย่างเดียวเมื่อไม่มี revision label', () => {
-    expect(
-      getQueueDocDisplayText({ documentNumber: 'DOC-002', details: null })
-    ).toBe('DOC-002');
+    expect(getQueueDocDisplayText({ documentNumber: 'DOC-002', details: null })).toBe('DOC-002');
   });
 });

@@ -37,9 +37,7 @@ describe('document-action-strategy (Feature 253 — Phase 2 Frontend Unit)', () 
     });
 
     it('throw Error สำหรับ unknown document type', () => {
-      expect(() => getDocumentActionConfig('UNKNOWN')).toThrow(
-        'Unknown document type: UNKNOWN',
-      );
+      expect(() => getDocumentActionConfig('UNKNOWN')).toThrow('Unknown document type: UNKNOWN');
     });
 
     it('ทุก config มี patchableFields ครบ 3 tier (ADR-019 + 3-tier metadata)', () => {

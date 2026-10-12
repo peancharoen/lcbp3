@@ -22,7 +22,13 @@ interface DocumentListHeaderProps {
 }
 
 /** Header กลางที่เก็บ filter/sort ใน URL เพื่อให้ server query และ browser history ใช้ state เดียวกัน */
-export function DocumentListHeader({ title, field, filter, statusOptions = [], compact = false }: DocumentListHeaderProps) {
+export function DocumentListHeader({
+  title,
+  field,
+  filter,
+  statusOptions = [],
+  compact = false,
+}: DocumentListHeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -52,7 +58,7 @@ export function DocumentListHeader({ title, field, filter, statusOptions = [], c
         type="button"
         variant="ghost"
         size="sm"
-        className="h-7 -ml-2 px-2 font-medium"
+        className="-ml-2 h-7 px-2 font-medium"
         onClick={toggleSort}
         aria-label={`Sort ${title}`}
       >

@@ -11,11 +11,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { importReviewService } from '@/lib/services/import-review.service';
 import { getApiErrorMessage } from '@/types/api-error';
-import {
-  AiReviewerProvider,
-  BatchStrategy,
-  ReviewTargetMode,
-} from '@/types/import-review';
+import { AiReviewerProvider, BatchStrategy, ReviewTargetMode } from '@/types/import-review';
 
 /** Poll interval สำหรับ async status (2 วินาที) */
 const POLL_INTERVAL_MS = 2000;
@@ -33,8 +29,7 @@ export function useCheckImportReview() {
       batchStrategy: BatchStrategy;
       file: File;
       nasFolderPath?: string;
-    }): Promise<{ reviewSessionPublicId: string }> =>
-      importReviewService.check(params),
+    }): Promise<{ reviewSessionPublicId: string }> => importReviewService.check(params),
     onError: (error: unknown) => {
       toast.error('ตรวจสอบไฟล์ไม่สำเร็จ', {
         description: getApiErrorMessage(error, 'เกิดข้อผิดพลาดระหว่างตรวจสอบไฟล์ Excel'),

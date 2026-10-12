@@ -42,25 +42,25 @@ const shopDrawingMenu = [
 
 export default function DrawingsAdminPage() {
   return (
-    <div className="p-6 space-y-8">
+    <div className="space-y-8 p-6">
       <div>
         <h1 className="text-2xl font-bold">Drawing Master Data</h1>
-        <p className="text-muted-foreground mt-1">Manage categories and volumes for Contract and Shop Drawings</p>
+        <p className="mt-1 text-muted-foreground">Manage categories and volumes for Contract and Shop Drawings</p>
       </div>
 
       {/* Contract Drawings Section */}
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <FileStack className="h-5 w-5 text-blue-600" />
+          <FileStack className="h-5 w-5 text-info" />
           <h2 className="text-lg font-semibold">Contract Drawings</h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {contractDrawingMenu.map((item) => (
             <Link key={item.href} href={item.href}>
-              <Card className="hover:shadow-md transition-shadow cursor-pointer h-full border-blue-200 hover:border-blue-400">
+              <Card className="h-full cursor-pointer border-info/30 transition-shadow hover:border-info hover:shadow-md">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">{item.title}</CardTitle>
-                  <item.icon className="h-4 w-4 text-blue-600" />
+                  <item.icon className="h-4 w-4 text-info" />
                 </CardHeader>
                 <CardContent>
                   <p className="text-xs text-muted-foreground">{item.description}</p>
@@ -74,16 +74,16 @@ export default function DrawingsAdminPage() {
       {/* Shop Drawings Section */}
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <FileBox className="h-5 w-5 text-green-600" />
+          <FileBox className="h-5 w-5 text-success" />
           <h2 className="text-lg font-semibold">Shop Drawings / As Built</h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {shopDrawingMenu.map((item) => (
             <Link key={item.href} href={item.href}>
-              <Card className="hover:shadow-md transition-shadow cursor-pointer h-full border-green-200 hover:border-green-400">
+              <Card className="h-full cursor-pointer border-success/30 transition-shadow hover:border-success hover:shadow-md">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">{item.title}</CardTitle>
-                  <item.icon className="h-4 w-4 text-green-600" />
+                  <item.icon className="h-4 w-4 text-success" />
                 </CardHeader>
                 <CardContent>
                   <p className="text-xs text-muted-foreground">{item.description}</p>

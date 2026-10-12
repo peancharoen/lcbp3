@@ -6,11 +6,7 @@
 // - 2026-06-13: Capture rejectedHandler at module scope before beforeEach clears mock history
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  parseApiError,
-  AI_FEATURES_UNAVAILABLE_EVENT,
-  getAuthToken,
-} from '../client';
+import { parseApiError, AI_FEATURES_UNAVAILABLE_EVENT, getAuthToken } from '../client';
 import { getSession } from 'next-auth/react';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import apiClient from '@/lib/api/client';

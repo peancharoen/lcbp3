@@ -15,13 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,14 +36,7 @@ interface QueueJobDrawerProps {
 }
 
 /** คิวทีรองรับใน AI Engine Control Center */
-const AI_QUEUES: string[] = [
-  'ai-realtime',
-  'ai-batch',
-  'ai-ingest',
-  'ai-rag',
-  'ai-rag-ingest',
-  'ai-vector-deletion',
-];
+const AI_QUEUES: string[] = ['ai-realtime', 'ai-batch', 'ai-ingest', 'ai-rag', 'ai-rag-ingest', 'ai-vector-deletion'];
 
 /** Tabs สำหรับกรองสถานะงาน */
 const STATUS_TABS: { key: string; value: string | 'all' }[] = [
@@ -60,8 +47,8 @@ const STATUS_TABS: { key: string; value: string | 'all' }[] = [
 ];
 
 /**
-* ดึงข้อความผิดพลาดจาก error object ของ axios interceptor
-*/
+ * ดึงข้อความผิดพลาดจาก error object ของ axios interceptor
+ */
 function getErrorMessage(error: unknown): string {
   if (!error) return 'Unknown error';
   if (typeof error === 'string') return error;
@@ -73,17 +60,19 @@ function getErrorMessage(error: unknown): string {
 }
 
 /**
-* แปลง timestamp เป็นรูปแบบไทยที่อ่านง่าย
-*/
+ * แปลง timestamp เป็นรูปแบบไทยที่อ่านง่าย
+ */
 function formatTimestamp(value: number | undefined): string {
   if (!value) return '—';
   return new Date(value).toLocaleString('th-TH', { hour12: false });
 }
 
 /**
-* คืนสี Badge ตามสถานะงาน
-*/
-function getStatusBadgeVariant(status: string): 'default' | 'secondary' | 'outline' | 'destructive' | 'success' | 'warning' {
+ * คืนสี Badge ตามสถานะงาน
+ */
+function getStatusBadgeVariant(
+  status: string
+): 'default' | 'secondary' | 'outline' | 'destructive' | 'success' | 'warning' {
   switch (status) {
     case 'active':
       return 'default';
@@ -196,14 +185,11 @@ export default function QueueJobDrawer({ queueName, open, onOpenChange }: QueueJ
 
   const jobs: QueueJobItem[] = queueData?.jobs ?? [];
   const totalPages = queueData?.totalPages ?? 1;
-  const currentQueueLabel = useMemo(
-    () => t('ai.queue.drawer.title', { queueName: selectedQueue }),
-    [selectedQueue, t]
-  );
+  const currentQueueLabel = useMemo(() => t('ai.queue.drawer.title', { queueName: selectedQueue }), [selectedQueue, t]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto" side="right">
+      <SheetContent className="w-full overflow-y-auto sm:max-w-2xl" side="right">
         <SheetHeader className="space-y-1">
           <SheetTitle className="text-base">{currentQueueLabel}</SheetTitle>
           <SheetDescription>{t('ai.queue.drawer.description')}</SheetDescription>
@@ -276,9 +262,7 @@ export default function QueueJobDrawer({ queueName, open, onOpenChange }: QueueJ
                 <span className="ml-2 text-sm text-muted-foreground">{t('ai.queue.loading')}</span>
               </div>
             ) : jobs.length === 0 ? (
-              <div className="py-12 text-center text-sm text-muted-foreground">
-                {t('ai.queue.empty')}
-              </div>
+              <div className="py-12 text-center text-sm text-muted-foreground">{t('ai.queue.empty')}</div>
             ) : (
               <Table>
                 <TableHeader>
@@ -294,22 +278,22 @@ export default function QueueJobDrawer({ queueName, open, onOpenChange }: QueueJ
                 <TableBody>
                   {jobs.map((job) => (
                     <TableRow key={job.id}>
-                      <TableCell className="py-2 px-3 text-xs font-mono break-all max-w-[260px]" title={job.id}>
+                      <TableCell className="max-w-[260px] break-all px-3 py-2 font-mono text-xs" title={job.id}>
                         {job.id}
                       </TableCell>
-                      <TableCell className="py-2 px-3 text-xs">{job.jobType}</TableCell>
-                      <TableCell className="py-2 px-3">
+                      <TableCell className="px-3 py-2 text-xs">{job.jobType}</TableCell>
+                      <TableCell className="px-3 py-2">
                         <Badge variant={getStatusBadgeVariant(job.status)} className="text-[10px]">
                           {job.status}
                         </Badge>
                       </TableCell>
-                      <TableCell className="py-2 px-3 text-xs text-muted-foreground hidden sm:table-cell">
+                      <TableCell className="hidden px-3 py-2 text-xs text-muted-foreground sm:table-cell">
                         {formatTimestamp(job.createdAt)}
                       </TableCell>
-                      <TableCell className="py-2 px-3 text-xs text-muted-foreground hidden sm:table-cell">
+                      <TableCell className="hidden px-3 py-2 text-xs text-muted-foreground sm:table-cell">
                         {formatTimestamp(job.finishedOn)}
                       </TableCell>
-                      <TableCell className="py-2 px-3">
+                      <TableCell className="px-3 py-2">
                         <div className="flex items-center gap-1">
                           {job.status === 'failed' && (
                             <Button

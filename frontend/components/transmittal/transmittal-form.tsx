@@ -136,7 +136,7 @@ export function TransmittalForm() {
           </CardHeader>
           <CardContent className="space-y-6">
             {/* ADR-019: Project & Recipient Organization selectors */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <FormField
                 control={form.control}
                 name="projectId"
@@ -192,7 +192,7 @@ export function TransmittalForm() {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               {/* Linked Correspondence (Ref No) */}
               <FormField
                 control={form.control}
@@ -332,14 +332,14 @@ export function TransmittalForm() {
                 )
               }
             >
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="mr-2 h-4 w-4" />
               Add Item
             </Button>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {fields.map((field, index) => (
-                <div key={field.id} className="grid grid-cols-12 gap-4 items-end border p-4 rounded-lg bg-muted/20">
+                <div key={field.id} className="grid grid-cols-12 items-end gap-4 rounded-lg border bg-muted/20 p-4">
                   {/* Item Type */}
                   <div className="col-span-3">
                     <FormField

@@ -81,7 +81,6 @@ export const useGetAvailableActions = () => {
 // FR-025: Inline DSL validation (POST /workflow-engine/definitions/validate)
 export const useValidateDsl = () => {
   return useMutation({
-    mutationFn: (dsl: Record<string, unknown>) =>
-      workflowEngineService.validateDsl(dsl),
+    mutationFn: (dsl: Record<string, unknown>) => workflowEngineService.validateDsl(dsl),
   });
 };

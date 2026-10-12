@@ -12,12 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Search, X, Link2, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
-import {
-  useReferences,
-  useAddReference,
-  useRemoveReference,
-  useCorrespondences,
-} from '@/hooks/use-correspondence';
+import { useReferences, useAddReference, useRemoveReference, useCorrespondences } from '@/hooks/use-correspondence';
 
 interface LinkedDoc {
   publicId: string;
@@ -58,9 +53,7 @@ export function ReferenceSelector({ uuid, canEdit }: ReferenceSelectorProps) {
   const incoming: RefItem[] = refsPayload?.incoming ?? [];
   const totalCount = outgoing.length + incoming.length;
 
-  const searchItems = Array.isArray(searchResults?.data)
-    ? searchResults.data
-    : [];
+  const searchItems = Array.isArray(searchResults?.data) ? searchResults.data : [];
 
   const existingRefIds = new Set([
     ...outgoing.map((r) => r.target?.publicId).filter(Boolean),
@@ -78,22 +71,21 @@ export function ReferenceSelector({ uuid, canEdit }: ReferenceSelectorProps) {
   };
 
   const renderRef = (linked: LinkedDoc, direction: 'out' | 'in') => (
-    <div
-      key={linked.publicId}
-      className="flex items-center justify-between gap-2 p-2 bg-muted/40 rounded-md text-sm"
-    >
-      <div className="flex items-center gap-2 min-w-0">
-        <span className={`text-[10px] font-semibold px-1 py-0.5 rounded shrink-0 ${direction === 'out' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
+    <div key={linked.publicId} className="flex items-center justify-between gap-2 rounded-md bg-muted/40 p-2 text-sm">
+      <div className="flex min-w-0 items-center gap-2">
+        <span
+          className={`shrink-0 rounded px-1 py-0.5 text-[10px] font-semibold ${direction === 'out' ? 'bg-info/10 text-info' : 'bg-success/10 text-success'}`}
+        >
           {direction === 'out' ? 'REF' : 'FROM'}
         </span>
         <Link
           href={`/correspondences/${linked.publicId}`}
-          className="font-mono font-medium hover:underline truncate text-xs"
+          className="truncate font-mono text-xs font-medium hover:underline"
         >
           {linked.correspondenceNumber}
         </Link>
       </div>
-      <div className="flex items-center gap-1 shrink-0">
+      <div className="flex shrink-0 items-center gap-1">
         <Link href={`/correspondences/${linked.publicId}`} target="_blank">
           <Button variant="ghost" size="icon" className="h-6 w-6">
             <ExternalLink className="h-3 w-3" />
@@ -117,7 +109,7 @@ export function ReferenceSelector({ uuid, canEdit }: ReferenceSelectorProps) {
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-base">
           <Link2 className="h-4 w-4" />
           Referenced Documents
           {totalCount > 0 && (
@@ -143,32 +135,35 @@ export function ReferenceSelector({ uuid, canEdit }: ReferenceSelectorProps) {
         )}
 
         {canEdit && (
-          <div className="pt-2 border-t space-y-2">
+          <div className="space-y-2 border-t pt-2">
             {isSearching ? (
               <>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
-                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Search className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       autoFocus
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search by number or subject..."
-                      className="pl-7 h-8 text-sm"
+                      className="h-8 pl-7 text-sm"
                     />
                   </div>
                   <Button
                     variant="ghost"
                     size="sm"
                     className="h-8"
-                    onClick={() => { setIsSearching(false); setSearchQuery(''); }}
+                    onClick={() => {
+                      setIsSearching(false);
+                      setSearchQuery('');
+                    }}
                   >
                     Cancel
                   </Button>
                 </div>
 
                 {searchQuery.trim().length >= 2 && (
-                  <div className="border rounded-md divide-y max-h-48 overflow-y-auto">
+                  <div className="max-h-48 divide-y overflow-y-auto rounded-md border">
                     {isSearchFetching ? (
                       <div className="flex items-center gap-2 p-3 text-sm text-muted-foreground">
                         <Loader2 className="h-3 w-3 animate-spin" />
@@ -185,16 +180,14 @@ export function ReferenceSelector({ uuid, canEdit }: ReferenceSelectorProps) {
                         .map((item: CorrespondenceRevisionItem) => (
                           <button
                             key={item.correspondence?.publicId}
-                            className="w-full flex items-center justify-between gap-2 p-2.5 text-sm hover:bg-muted/60 transition-colors text-left"
+                            className="flex w-full items-center justify-between gap-2 p-2.5 text-left text-sm transition-colors hover:bg-muted/60"
                             onClick={() => handleAdd(item.correspondence!.publicId)}
                             disabled={addMutation.isPending}
                           >
-                            <span className="font-mono font-medium text-xs">
+                            <span className="font-mono text-xs font-medium">
                               {item.correspondence?.correspondenceNumber}
                             </span>
-                            <span className="text-muted-foreground truncate flex-1 ml-2">
-                              {item.subject}
-                            </span>
+                            <span className="ml-2 flex-1 truncate text-muted-foreground">{item.subject}</span>
                           </button>
                         ))
                     )}
@@ -202,13 +195,8 @@ export function ReferenceSelector({ uuid, canEdit }: ReferenceSelectorProps) {
                 )}
               </>
             ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full h-8 text-xs"
-                onClick={() => setIsSearching(true)}
-              >
-                <Search className="h-3 w-3 mr-1.5" />
+              <Button variant="outline" size="sm" className="h-8 w-full text-xs" onClick={() => setIsSearching(true)}>
+                <Search className="mr-1.5 h-3 w-3" />
                 Add Reference Document
               </Button>
             )}
@@ -218,4 +206,3 @@ export function ReferenceSelector({ uuid, canEdit }: ReferenceSelectorProps) {
     </Card>
   );
 }
-

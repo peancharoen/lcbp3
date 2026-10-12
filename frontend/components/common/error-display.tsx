@@ -39,9 +39,9 @@ function getSeverityStyles(severity: string): {
   switch (severity) {
     case 'LOW':
       return {
-        container: 'border-yellow-200 bg-yellow-50',
-        icon: 'text-yellow-400',
-        title: 'text-yellow-800',
+        container: 'border-warning/30 bg-warning/10',
+        icon: 'text-warning',
+        title: 'text-warning',
         iconComponent: Info,
       };
     case 'MEDIUM':
@@ -53,32 +53,30 @@ function getSeverityStyles(severity: string): {
       };
     case 'HIGH':
       return {
-        container: 'border-red-200 bg-red-50',
-        icon: 'text-red-400',
-        title: 'text-red-700',
+        container: 'border-destructive/30 bg-destructive/10',
+        icon: 'text-destructive',
+        title: 'text-destructive',
         iconComponent: AlertTriangle,
       };
     case 'CRITICAL':
       return {
-        container: 'border-red-300 bg-red-100',
-        icon: 'text-red-500',
-        title: 'text-red-900',
+        container: 'border-destructive/30 bg-destructive/10',
+        icon: 'text-destructive',
+        title: 'text-destructive',
         iconComponent: XCircle,
       };
     default:
       return {
-        container: 'border-gray-200 bg-gray-50',
-        icon: 'text-gray-400',
-        title: 'text-gray-700',
+        container: 'border-border bg-muted/50',
+        icon: 'text-muted-foreground',
+        title: 'text-foreground',
         iconComponent: AlertTriangle,
       };
   }
 }
 
 // ดึง ErrorPayload ออกจาก response ที่อาจซ้อนอยู่
-function extractErrorPayload(
-  error: ApiErrorResponse | ApiErrorPayload | null | undefined
-): ApiErrorPayload | null {
+function extractErrorPayload(error: ApiErrorResponse | ApiErrorPayload | null | undefined): ApiErrorPayload | null {
   if (!error) return null;
 
   // กรณีที่ error เป็น { error: { ... } }
@@ -121,14 +119,12 @@ export function ErrorDisplay({ error, onRetry, className = '', compact = false }
         </div>
         <div className="ml-3 flex-1">
           {/* หัวข้อ Error */}
-          <h3 className={`text-sm font-medium ${styles.title}`}>
-            {payload.message}
-          </h3>
+          <h3 className={`text-sm font-medium ${styles.title}`}>{payload.message}</h3>
 
           {/* Recovery Actions */}
           {payload.recoveryActions && payload.recoveryActions.length > 0 && (
-            <div className="mt-2 text-sm text-gray-600">
-              <p className="font-medium text-gray-700">วิธีแก้ไข:</p>
+            <div className="mt-2 text-sm text-muted-foreground">
+              <p className="font-medium text-foreground">วิธีแก้ไข:</p>
               <ul className="mt-1 list-inside list-disc space-y-0.5">
                 {payload.recoveryActions.map((action, index) => (
                   <li key={index}>{action}</li>
@@ -140,10 +136,10 @@ export function ErrorDisplay({ error, onRetry, className = '', compact = false }
           {/* Error Code (แสดงเฉพาะ Development) */}
           {process.env.NODE_ENV === 'development' && payload.technicalMessage && (
             <details className="mt-2">
-              <summary className="cursor-pointer text-xs text-gray-500 hover:text-gray-700">
+              <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
                 รายละเอียดทางเทคนิค (Development)
               </summary>
-              <pre className="mt-1 overflow-x-auto rounded bg-gray-100 p-2 text-xs text-gray-600">
+              <pre className="mt-1 overflow-x-auto rounded bg-muted p-2 text-xs text-muted-foreground">
                 {payload.technicalMessage}
               </pre>
             </details>
@@ -155,7 +151,7 @@ export function ErrorDisplay({ error, onRetry, className = '', compact = false }
               <button
                 onClick={onRetry}
                 type="button"
-                className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                className="rounded-md bg-info px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-info/90 focus:outline-none focus:ring-2 focus:ring-info focus:ring-offset-1"
               >
                 ลองใหม่
               </button>
@@ -184,22 +180,13 @@ export function parseApiError(error: unknown): ApiErrorResponse {
     (error as { response?: { data?: unknown } }).response?.data
   ) {
     const data = (error as { response: { data: unknown } }).response.data;
-    if (
-      typeof data === 'object' &&
-      data !== null &&
-      'error' in data
-    ) {
+    if (typeof data === 'object' && data !== null && 'error' in data) {
       return data as ApiErrorResponse;
     }
   }
 
   // กรณี error เป็น ApiErrorResponse อยู่แล้ว
-  if (
-    error !== null &&
-    typeof error === 'object' &&
-    'error' in error &&
-    (error as ApiErrorResponse).error?.message
-  ) {
+  if (error !== null && typeof error === 'object' && 'error' in error && (error as ApiErrorResponse).error?.message) {
     return error as ApiErrorResponse;
   }
 

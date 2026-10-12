@@ -22,14 +22,14 @@ describe('StatusBadge Component', () => {
     render(<StatusBadge status="PENDING" />);
     const badge = screen.getByText('Pending');
     expect(badge).toBeInTheDocument();
-    expect(badge).toHaveClass('bg-yellow-500');
+    expect(badge).toHaveClass('bg-warning');
   });
 
   it('ควรเรนเดอร์ Approved สำหรับสถานะ APPROVED ได้อย่างถูกต้อง', () => {
     render(<StatusBadge status="APPROVED" />);
     const badge = screen.getByText('Approved');
     expect(badge).toBeInTheDocument();
-    expect(badge).toHaveClass('bg-green-500');
+    expect(badge).toHaveClass('bg-success');
   });
 
   it('ควรเรนเดอร์ Rejected สำหรับสถานะ REJECTED ได้อย่างถูกต้อง', () => {

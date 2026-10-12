@@ -50,10 +50,7 @@ function extractStructuredMessage(structured: unknown): string | undefined {
  * Extract human-readable message from API error
  * รองรับทั้ง ADR-007 structured shape และ legacy Axios shape
  */
-export function getApiErrorMessage(
-  error: unknown,
-  fallback = 'An unexpected error occurred'
-): string {
+export function getApiErrorMessage(error: unknown, fallback = 'An unexpected error occurred'): string {
   if (!error || typeof error !== 'object') {
     return fallback;
   }

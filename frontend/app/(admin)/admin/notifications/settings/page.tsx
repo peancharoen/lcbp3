@@ -15,14 +15,14 @@ import { useTelegramSettings, usePatchTelegramSettings } from '@/hooks/use-notif
 
 function StatusRow({ label, ok, detail }: { label: string; ok: boolean | null; detail?: string }) {
   return (
-    <div className="flex items-center justify-between py-2 border-b last:border-0">
+    <div className="flex items-center justify-between border-b py-2 last:border-0">
       <span className="text-sm">{label}</span>
       <span className="flex items-center gap-2 text-sm">
         {detail && <span className="text-muted-foreground">{detail}</span>}
         {ok === null ? (
-          <AlertTriangle className="h-4 w-4 text-amber-500" />
+          <AlertTriangle className="h-4 w-4 text-warning" />
         ) : ok ? (
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
+          <CheckCircle2 className="h-4 w-4 text-success" />
         ) : (
           <XCircle className="h-4 w-4 text-destructive" />
         )}
@@ -39,7 +39,7 @@ export default function NotificationSettingsPage() {
     <div className="space-y-6 p-6">
       <div>
         <h1 className="text-3xl font-bold">Notification Settings</h1>
-        <p className="text-muted-foreground mt-1">Telegram bot status and global controls</p>
+        <p className="mt-1 text-muted-foreground">Telegram bot status and global controls</p>
       </div>
 
       {isError && (
@@ -51,7 +51,7 @@ export default function NotificationSettingsPage() {
       {isLoading ? (
         <Skeleton className="h-64 w-full max-w-2xl" />
       ) : (
-        <div className="grid gap-6 max-w-2xl">
+        <div className="grid max-w-2xl gap-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

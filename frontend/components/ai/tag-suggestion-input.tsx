@@ -38,9 +38,7 @@ export function TagSuggestionInput({
 }: TagSuggestionInputProps) {
   const [manualTagName, setManualTagName] = useState('');
 
-  const pendingSuggestions = suggestedTags.filter(
-    (s) => !selectedTags.some((sel) => sel.name === s.name)
-  );
+  const pendingSuggestions = suggestedTags.filter((s) => !selectedTags.some((sel) => sel.name === s.name));
 
   const acceptSuggestion = (tag: SuggestedTag): void => {
     if (disabled) return;
@@ -61,10 +59,7 @@ export function TagSuggestionInput({
       setManualTagName('');
       return;
     }
-    onChange([
-      ...selectedTags,
-      { name: trimmed, isNew: true, confidence: 1.0 },
-    ]);
+    onChange([...selectedTags, { name: trimmed, isNew: true, confidence: 1.0 }]);
     setManualTagName('');
   };
 
@@ -73,7 +68,7 @@ export function TagSuggestionInput({
       {/* AI Suggested Tags (pending acceptance) */}
       {pendingSuggestions.length > 0 && (
         <div className="space-y-1.5">
-          <p className="text-xs text-muted-foreground flex items-center gap-1">
+          <p className="flex items-center gap-1 text-xs text-muted-foreground">
             <Sparkles className="h-3 w-3" />
             AI Suggestions (click to accept)
           </p>
@@ -86,18 +81,16 @@ export function TagSuggestionInput({
                 disabled={disabled}
                 className={cn(
                   'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs transition-colors',
-                  'hover:bg-primary/10 cursor-pointer',
+                  'cursor-pointer hover:bg-primary/10',
                   tag.isNew
-                    ? 'border-amber-300 bg-amber-50 text-amber-700'
+                    ? 'border-warning/30 bg-warning/10 text-warning'
                     : 'border-primary/30 bg-primary/5 text-primary',
                   disabled && 'cursor-not-allowed opacity-50'
                 )}
               >
                 {tag.isNew && <Plus className="h-3 w-3" />}
                 {tag.name}
-                <span className="text-[10px] opacity-60">
-                  {(tag.confidence * 100).toFixed(0)}%
-                </span>
+                <span className="text-[10px] opacity-60">{(tag.confidence * 100).toFixed(0)}%</span>
               </button>
             ))}
           </div>
@@ -113,14 +106,9 @@ export function TagSuggestionInput({
               <Badge
                 key={tag.name}
                 variant="secondary"
-                className={cn(
-                  'gap-1',
-                  tag.isNew && !tag.publicId && 'border-amber-300 bg-amber-50 text-amber-700'
-                )}
+                className={cn('gap-1', tag.isNew && !tag.publicId && 'border-warning/30 bg-warning/10 text-warning')}
               >
-                {tag.isNew && !tag.publicId && (
-                  <span className="text-[10px] font-bold">NEW</span>
-                )}
+                {tag.isNew && !tag.publicId && <span className="text-[10px] font-bold">NEW</span>}
                 {tag.name}
                 {!disabled && (
                   <button
@@ -153,13 +141,7 @@ export function TagSuggestionInput({
             placeholder="Add tag manually..."
             className="h-8 text-sm"
           />
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={addManualTag}
-            disabled={!manualTagName.trim()}
-          >
+          <Button type="button" variant="outline" size="sm" onClick={addManualTag} disabled={!manualTagName.trim()}>
             <Plus className="h-3 w-3" />
             Add
           </Button>

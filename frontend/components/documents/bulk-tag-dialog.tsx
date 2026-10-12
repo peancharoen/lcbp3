@@ -26,13 +26,7 @@ export interface BulkTagDialogProps {
   onConfirm: (addTags: number[], removeTags: number[]) => void;
 }
 
-export function BulkTagDialog({
-  open,
-  onOpenChange,
-  selectedCount,
-  isLoading = false,
-  onConfirm,
-}: BulkTagDialogProps) {
+export function BulkTagDialog({ open, onOpenChange, selectedCount, isLoading = false, onConfirm }: BulkTagDialogProps) {
   const t = useTranslations();
   const [addTags, setAddTags] = useState('');
   const [removeTags, setRemoveTags] = useState('');
@@ -65,9 +59,7 @@ export function BulkTagDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('document.bulk.tagDialog.title')}</DialogTitle>
-          <DialogDescription>
-            {t('document.bulk.tagDialog.description', { count: selectedCount })}
-          </DialogDescription>
+          <DialogDescription>{t('document.bulk.tagDialog.description', { count: selectedCount })}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">

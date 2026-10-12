@@ -21,15 +21,11 @@ import type {
 
 // === Query Keys ===
 const KEYS = {
-  attachments: (params?: RagAdminListParams) =>
-    ['rag-admin', 'attachments', params] as const,
-  classification: (params?: RagAdminClassificationListParams) =>
-    ['rag-admin', 'classification', params] as const,
-  generations: (attachmentPublicId: string) =>
-    ['rag-admin', 'generations', attachmentPublicId] as const,
+  attachments: (params?: RagAdminListParams) => ['rag-admin', 'attachments', params] as const,
+  classification: (params?: RagAdminClassificationListParams) => ['rag-admin', 'classification', params] as const,
+  generations: (attachmentPublicId: string) => ['rag-admin', 'generations', attachmentPublicId] as const,
   metrics: ['rag-admin', 'metrics'] as const,
-  failedIngestions: (params?: RagAdminFailedIngestionsParams) =>
-    ['rag-admin', 'failed-ingestions', params] as const,
+  failedIngestions: (params?: RagAdminFailedIngestionsParams) => ['rag-admin', 'failed-ingestions', params] as const,
 };
 
 // === Query Hooks ===

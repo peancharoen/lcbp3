@@ -63,12 +63,7 @@ export function ForceCloseDialog({
 
           <div className="space-y-2">
             <Label htmlFor="force-close-reason">{t('circulation.forceClose.reasonLabel')}</Label>
-            <Textarea
-              id="force-close-reason"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              rows={3}
-            />
+            <Textarea id="force-close-reason" value={reason} onChange={(e) => setReason(e.target.value)} rows={3} />
           </div>
         </div>
 

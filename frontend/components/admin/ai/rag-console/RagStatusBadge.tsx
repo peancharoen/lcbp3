@@ -19,9 +19,5 @@ const STATUS_VARIANT: Record<RagStatus, 'default' | 'secondary' | 'destructive' 
 
 /** Badge แสดงสถานะ RAG ingestion (actual enum — Q5) */
 export function RagStatusBadge({ status }: { status: RagStatus }) {
-  return (
-    <Badge variant={STATUS_VARIANT[status]}>
-      {ragAdminT(`status.${status}`)}
-    </Badge>
-  );
+  return <Badge variant={STATUS_VARIANT[status]}>{ragAdminT(`status.${status}`)}</Badge>;
 }

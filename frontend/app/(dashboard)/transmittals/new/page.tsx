@@ -13,7 +13,7 @@ export const fetchCache = 'force-no-store';
 
 export default function CreateTransmittalPage() {
   return (
-    <section className="space-y-6 max-w-4xl">
+    <section className="max-w-4xl space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link href="/transmittals">

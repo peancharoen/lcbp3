@@ -142,17 +142,11 @@ export function StagingFileViewer({
       )}
 
       {error && !isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
-          {error}
-        </div>
+        <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">{error}</div>
       )}
 
       {!isLoading && !error && blobUrl && (
-        <iframe
-          src={`${blobUrl}#toolbar=0&navpanes=0`}
-          className="absolute inset-0 w-full h-full"
-          title={title}
-        />
+        <iframe src={`${blobUrl}#toolbar=0&navpanes=0`} className="absolute inset-0 h-full w-full" title={title} />
       )}
     </div>
   );

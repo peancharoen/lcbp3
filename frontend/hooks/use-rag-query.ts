@@ -10,19 +10,10 @@ import apiClient from '@/lib/api/client';
 import { extractData } from '@/lib/api/ai';
 
 /** ประเภท segment ของ chunk ตาม contract (ตรงกับ RagSegmentType ของ backend) */
-export const RagSegmentTypeSchema = z.enum([
-  'PAGE',
-  'SECTION',
-  'SHEET',
-  'WHOLE_DOCUMENT',
-]);
+export const RagSegmentTypeSchema = z.enum(['PAGE', 'SECTION', 'SHEET', 'WHOLE_DOCUMENT']);
 
 /** โหมด retrieval ตาม contract rag-retrieval.md (VECTOR | FULL_TEXT | HYBRID) */
-export const RagRetrievalModeSchema = z.enum([
-  'VECTOR',
-  'FULL_TEXT',
-  'HYBRID',
-]);
+export const RagRetrievalModeSchema = z.enum(['VECTOR', 'FULL_TEXT', 'HYBRID']);
 
 export type RagRetrievalMode = z.infer<typeof RagRetrievalModeSchema>;
 export type RagSegmentType = z.infer<typeof RagSegmentTypeSchema>;
@@ -74,8 +65,7 @@ export interface UseRagQueryParams {
 /** Query key factory สำหรับ cache invalidation */
 export const ragQueryKeys = {
   all: ['rag-query'] as const,
-  query: (projectPublicId: string, query: string) =>
-    [...ragQueryKeys.all, projectPublicId, query] as const,
+  query: (projectPublicId: string, query: string) => [...ragQueryKeys.all, projectPublicId, query] as const,
 };
 
 /**

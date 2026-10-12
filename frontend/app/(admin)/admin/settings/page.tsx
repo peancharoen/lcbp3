@@ -10,7 +10,7 @@ export default function SettingsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">System Settings</h1>
-        <p className="text-muted-foreground mt-1">Manage global system configurations</p>
+        <p className="mt-1 text-muted-foreground">Manage global system configurations</p>
       </div>
 
       <div className="grid gap-6">

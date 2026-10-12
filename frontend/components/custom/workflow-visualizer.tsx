@@ -28,8 +28,8 @@ interface WorkflowVisualizerProps {
  */
 export function WorkflowVisualizer({ steps, className }: WorkflowVisualizerProps) {
   return (
-    <div className={cn('w-full overflow-x-auto py-4 px-2', className)}>
-      <div className="flex items-start min-w-max">
+    <div className={cn('w-full overflow-x-auto px-2 py-4', className)}>
+      <div className="flex min-w-max items-start">
         {steps.map((step, index) => {
           const isLast = index === steps.length - 1;
 
@@ -40,23 +40,23 @@ export function WorkflowVisualizer({ steps, className }: WorkflowVisualizerProps
 
           switch (step.status) {
             case 'completed':
-              statusColor = 'bg-green-600 text-white border-green-600';
-              icon = <Check className="w-4 h-4" />;
-              lineColor = 'bg-green-600';
+              statusColor = 'bg-success text-white border-success';
+              icon = <Check className="h-4 w-4" />;
+              lineColor = 'bg-success';
               break;
             case 'current':
-              statusColor = 'bg-blue-600 text-white border-blue-600 ring-4 ring-blue-100';
-              icon = <Clock className="w-4 h-4 animate-pulse" />;
+              statusColor = 'bg-info text-white border-info ring-4 ring-info/20';
+              icon = <Clock className="h-4 w-4 animate-pulse" />;
               lineColor = 'bg-muted'; // เส้นต่อไปยังเป็นสีเทา
               break;
             case 'rejected':
               statusColor = 'bg-destructive text-destructive-foreground border-destructive';
-              icon = <XCircle className="w-4 h-4" />;
+              icon = <XCircle className="h-4 w-4" />;
               lineColor = 'bg-destructive';
               break;
             case 'skipped':
               statusColor = 'bg-orange-400 text-white border-orange-400';
-              icon = <AlertCircle className="w-4 h-4" />;
+              icon = <AlertCircle className="h-4 w-4" />;
               lineColor = 'bg-orange-400';
               break;
             case 'pending':
@@ -66,9 +66,9 @@ export function WorkflowVisualizer({ steps, className }: WorkflowVisualizerProps
           }
 
           return (
-            <div key={step.id} className="relative flex flex-col items-center flex-1 group">
+            <div key={step.id} className="group relative flex flex-1 flex-col items-center">
               {/* Connector Line (Left & Right) */}
-              <div className="flex items-center w-full absolute top-4 left-0 -z-10">
+              <div className="absolute left-0 top-4 -z-10 flex w-full items-center">
                 {/* Left Half Line (Previous step connection) */}
                 <div
                   className={cn(
@@ -99,7 +99,7 @@ export function WorkflowVisualizer({ steps, className }: WorkflowVisualizerProps
               {/* Step Circle */}
               <div
                 className={cn(
-                  'w-8 h-8 rounded-full flex items-center justify-center border-2 z-10 transition-all duration-300',
+                  'z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 transition-all duration-300',
                   statusColor
                 )}
               >
@@ -107,22 +107,17 @@ export function WorkflowVisualizer({ steps, className }: WorkflowVisualizerProps
               </div>
 
               {/* Step Label */}
-              <div className="mt-3 text-center space-y-1 max-w-[120px]">
-                <p
-                  className={cn(
-                    'text-sm font-semibold',
-                    step.status === 'current' ? 'text-blue-700' : 'text-foreground'
-                  )}
-                >
+              <div className="mt-3 max-w-[120px] space-y-1 text-center">
+                <p className={cn('text-sm font-semibold', step.status === 'current' ? 'text-info' : 'text-foreground')}>
                   {step.label}
                 </p>
                 {step.subLabel && (
-                  <p className="text-xs text-muted-foreground truncate" title={step.subLabel}>
+                  <p className="truncate text-xs text-muted-foreground" title={step.subLabel}>
                     {step.subLabel}
                   </p>
                 )}
                 {step.date && (
-                  <p className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded-full inline-block">
+                  <p className="inline-block rounded-full bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground">
                     {step.date}
                   </p>
                 )}

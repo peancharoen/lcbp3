@@ -82,7 +82,10 @@ describe('use-workflows hooks', () => {
       await act(async () => {
         await result.current.mutateAsync({ workflowName: 'Workflow A', dslDefinition: {} } as any);
       });
-      expect(workflowEngineService.createDefinition).toHaveBeenCalledWith({ workflowName: 'Workflow A', dslDefinition: {} });
+      expect(workflowEngineService.createDefinition).toHaveBeenCalledWith({
+        workflowName: 'Workflow A',
+        dslDefinition: {},
+      });
     });
   });
 
@@ -95,7 +98,9 @@ describe('use-workflows hooks', () => {
       await act(async () => {
         await result.current.mutateAsync({ id: 'uuid-1', data: { workflowName: 'Workflow A Updated' } as any });
       });
-      expect(workflowEngineService.updateDefinition).toHaveBeenCalledWith('uuid-1', { workflowName: 'Workflow A Updated' });
+      expect(workflowEngineService.updateDefinition).toHaveBeenCalledWith('uuid-1', {
+        workflowName: 'Workflow A Updated',
+      });
     });
   });
 

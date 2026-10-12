@@ -42,7 +42,8 @@ export const dashboardService = {
           const firstName = log.user?.firstName || '';
           const lastName = log.user?.lastName || '';
           const fullName = firstName || lastName ? `${firstName} ${lastName}`.trim() : log.user?.username || 'System';
-          const initials = firstName && lastName ? `${firstName[0]}${lastName[0]}` : (log.user?.username?.[0] || 'S').toUpperCase();
+          const initials =
+            firstName && lastName ? `${firstName[0]}${lastName[0]}` : (log.user?.username?.[0] || 'S').toUpperCase();
 
           return {
             ...log,
@@ -50,7 +51,8 @@ export const dashboardService = {
               name: fullName,
               initials: initials,
             },
-            description: (log.details?.description as string) || `${log.action} ${log.entityType || ''} ${log.entityId || ''}`,
+            description:
+              (log.details?.description as string) || `${log.action} ${log.entityType || ''} ${log.entityId || ''}`,
             targetUrl: `/${(log.entityType || 'correspondence').toLowerCase()}s/${log.entityId || ''}`,
           } as ActivityLog;
         });

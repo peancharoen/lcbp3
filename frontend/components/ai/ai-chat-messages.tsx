@@ -20,7 +20,12 @@ interface AiChatMessagesProps {
   isColdStartLikely?: boolean;
 }
 
-export function AiChatMessages({ messages, isLoading, onSuggestedActionClick, isColdStartLikely = false }: AiChatMessagesProps) {
+export function AiChatMessages({
+  messages,
+  isLoading,
+  onSuggestedActionClick,
+  isColdStartLikely = false,
+}: AiChatMessagesProps) {
   const t = useTranslations();
   const bottomRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -38,10 +43,18 @@ export function AiChatMessages({ messages, isLoading, onSuggestedActionClick, is
         <span key={key}>
           {parts.map((part, index) => {
             if (part.startsWith('**') && part.endsWith('**')) {
-              return <strong key={index} className="font-semibold text-foreground">{part.slice(2, -2)}</strong>;
+              return (
+                <strong key={index} className="font-semibold text-foreground">
+                  {part.slice(2, -2)}
+                </strong>
+              );
             }
             if (part.startsWith('`') && part.endsWith('`')) {
-              return <code key={index} className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs text-violet-600">{part.slice(1, -1)}</code>;
+              return (
+                <code key={index} className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-violet-600">
+                  {part.slice(1, -1)}
+                </code>
+              );
             }
             return part;
           })}
@@ -53,7 +66,10 @@ export function AiChatMessages({ messages, isLoading, onSuggestedActionClick, is
       if (trimmed.startsWith('```')) {
         if (inCodeBlock) {
           elements.push(
-            <pre key={`code-${index}`} className="bg-muted border rounded-lg p-3 text-xs font-mono overflow-x-auto my-2 text-foreground whitespace-pre">
+            <pre
+              key={`code-${index}`}
+              className="my-2 overflow-x-auto whitespace-pre rounded-lg border bg-muted p-3 font-mono text-xs text-foreground"
+            >
               <code>{codeBlockContent.join('\n')}</code>
             </pre>
           );
@@ -70,7 +86,7 @@ export function AiChatMessages({ messages, isLoading, onSuggestedActionClick, is
       }
       if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
         elements.push(
-          <li key={`li-${index}`} className="ml-5 list-disc my-1 text-sm leading-relaxed">
+          <li key={`li-${index}`} className="my-1 ml-5 list-disc text-sm leading-relaxed">
             {renderInline(trimmed.slice(2), `li-inline-${index}`)}
           </li>
         );
@@ -79,7 +95,7 @@ export function AiChatMessages({ messages, isLoading, onSuggestedActionClick, is
       if (/^\d+\.\s/.test(trimmed)) {
         const dotIndex = trimmed.indexOf('.');
         elements.push(
-          <li key={`ol-${index}`} className="ml-5 list-decimal my-1 text-sm leading-relaxed">
+          <li key={`ol-${index}`} className="my-1 ml-5 list-decimal text-sm leading-relaxed">
             {renderInline(trimmed.slice(dotIndex + 1).trim(), `ol-inline-${index}`)}
           </li>
         );
@@ -88,9 +104,24 @@ export function AiChatMessages({ messages, isLoading, onSuggestedActionClick, is
       if (trimmed.startsWith('#')) {
         const hashCount = (trimmed.match(/^#+/) || [''])[0].length;
         const headerText = trimmed.replace(/^#+\s*/, '');
-        if (hashCount === 1) elements.push(<h1 key={`h1-${index}`} className="text-lg font-bold mt-3 mb-1 text-foreground">{renderInline(headerText, `h1-inline-${index}`)}</h1>);
-        else if (hashCount === 2) elements.push(<h2 key={`h2-${index}`} className="text-base font-bold mt-2 mb-1 text-foreground">{renderInline(headerText, `h2-inline-${index}`)}</h2>);
-        else elements.push(<h3 key={`h3-${index}`} className="text-sm font-semibold mt-2 mb-1 text-foreground">{renderInline(headerText, `h3-inline-${index}`)}</h3>);
+        if (hashCount === 1)
+          elements.push(
+            <h1 key={`h1-${index}`} className="mb-1 mt-3 text-lg font-bold text-foreground">
+              {renderInline(headerText, `h1-inline-${index}`)}
+            </h1>
+          );
+        else if (hashCount === 2)
+          elements.push(
+            <h2 key={`h2-${index}`} className="mb-1 mt-2 text-base font-bold text-foreground">
+              {renderInline(headerText, `h2-inline-${index}`)}
+            </h2>
+          );
+        else
+          elements.push(
+            <h3 key={`h3-${index}`} className="mb-1 mt-2 text-sm font-semibold text-foreground">
+              {renderInline(headerText, `h3-inline-${index}`)}
+            </h3>
+          );
         return;
       }
       if (trimmed === '') {
@@ -98,7 +129,7 @@ export function AiChatMessages({ messages, isLoading, onSuggestedActionClick, is
         return;
       }
       elements.push(
-        <p key={`p-${index}`} className="text-sm leading-relaxed my-1">
+        <p key={`p-${index}`} className="my-1 text-sm leading-relaxed">
           {renderInline(line, `p-inline-${index}`)}
         </p>
       );
@@ -106,15 +137,15 @@ export function AiChatMessages({ messages, isLoading, onSuggestedActionClick, is
     return <div className="space-y-1">{elements}</div>;
   };
   return (
-    <ScrollArea className="flex-1 p-4 bg-muted/30">
+    <ScrollArea className="flex-1 bg-muted/30 p-4">
       <div className="space-y-4">
         {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center text-center py-12 px-4">
-            <div className="h-12 w-12 rounded-2xl bg-gradient-to-tr from-violet-500 to-indigo-500 flex items-center justify-center text-white mb-3 shadow-md">
+          <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-violet-500 to-indigo-500 text-white shadow-md">
               <Sparkles className="h-6 w-6 animate-pulse" />
             </div>
             <h3 className="text-sm font-semibold text-foreground">ยินดีต้อนรับสู่ระบบช่วยเหลือ AI</h3>
-            <p className="text-xs text-muted-foreground mt-1 max-w-[280px]">
+            <p className="mt-1 max-w-[280px] text-xs text-muted-foreground">
               คุณสามารถพิมพ์ถามคำถามเพื่อขอสรุปข้อมูล ตรวจสอบความถูกต้อง หรือค้นหาเงื่อนไขในเอกสารฉบับนี้ได้ทันที
             </p>
           </div>
@@ -125,14 +156,18 @@ export function AiChatMessages({ messages, isLoading, onSuggestedActionClick, is
           return (
             <div key={message.id} className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
               {!isUser && (
-                <div className={`h-8 w-8 rounded-lg shrink-0 flex items-center justify-center shadow-sm ${isError ? 'bg-destructive/10 text-destructive' : 'bg-gradient-to-tr from-violet-500 to-indigo-500 text-white'}`}>
+                <div
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg shadow-sm ${isError ? 'bg-destructive/10 text-destructive' : 'bg-gradient-to-tr from-violet-500 to-indigo-500 text-white'}`}
+                >
                   {isError ? <AlertCircle className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
                 </div>
               )}
-              <div className={`flex flex-col max-w-[80%] gap-1.5`}>
-                <div className={`rounded-2xl px-4 py-2.5 shadow-sm text-sm ${isUser ? 'bg-violet-600 text-white rounded-tr-none font-medium' : isError ? 'bg-destructive/10 border border-destructive/20 text-destructive rounded-tl-none' : 'bg-card border text-card-foreground rounded-tl-none'}`}>
+              <div className={`flex max-w-[80%] flex-col gap-1.5`}>
+                <div
+                  className={`rounded-2xl px-4 py-2.5 text-sm shadow-sm ${isUser ? 'rounded-tr-none bg-violet-600 font-medium text-white' : isError ? 'rounded-tl-none border border-destructive/20 bg-destructive/10 text-destructive' : 'rounded-tl-none border bg-card text-card-foreground'}`}
+                >
                   {message.isStreaming ? (
-                    <div className="flex items-center gap-2 text-muted-foreground select-none py-1">
+                    <div className="flex select-none items-center gap-2 py-1 text-muted-foreground">
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       <span className="text-xs">
                         {isColdStartLikely ? t('ai.coldStart.hint') : 'AI กำลังอ่านวิเคราะห์ข้อมูลเอกสาร...'}
@@ -145,12 +180,12 @@ export function AiChatMessages({ messages, isLoading, onSuggestedActionClick, is
                   )}
                 </div>
                 {!isUser && message.suggestedActions && message.suggestedActions.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-1">
+                  <div className="mt-1 flex flex-wrap gap-1.5">
                     {message.suggestedActions.map((action, idx) => (
                       <button
                         key={`${action.label}-${idx}`}
                         onClick={() => onSuggestedActionClick(action.query)}
-                        className="text-xs px-2.5 py-1 rounded-full border border-violet-200 bg-violet-50/50 text-violet-700 hover:bg-violet-100 transition-colors font-medium select-none"
+                        className="select-none rounded-full border border-violet-200 bg-violet-50/50 px-2.5 py-1 text-xs font-medium text-violet-700 transition-colors hover:bg-violet-100"
                       >
                         {action.label}
                       </button>
@@ -159,7 +194,7 @@ export function AiChatMessages({ messages, isLoading, onSuggestedActionClick, is
                 )}
               </div>
               {isUser && (
-                <div className="h-8 w-8 rounded-lg shrink-0 bg-secondary flex items-center justify-center text-secondary-foreground shadow-sm">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground shadow-sm">
                   <User className="h-4 w-4" />
                 </div>
               )}
@@ -167,15 +202,13 @@ export function AiChatMessages({ messages, isLoading, onSuggestedActionClick, is
           );
         })}
         {isLoading && messages.length > 0 && !messages[messages.length - 1].isStreaming && (
-          <div className="flex gap-3 justify-start">
-            <div className="h-8 w-8 rounded-lg shrink-0 bg-gradient-to-tr from-violet-500 to-indigo-500 text-white flex items-center justify-center shadow-sm">
+          <div className="flex justify-start gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-tr from-violet-500 to-indigo-500 text-white shadow-sm">
               <Bot className="h-4 w-4" />
             </div>
-            <div className="rounded-2xl px-4 py-2.5 shadow-sm bg-card border text-card-foreground rounded-tl-none flex items-center gap-2">
+            <div className="flex items-center gap-2 rounded-2xl rounded-tl-none border bg-card px-4 py-2.5 text-card-foreground shadow-sm">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              <span className="text-xs">
-                {isColdStartLikely ? t('ai.coldStart.hint') : 'AI กำลังประมวลผลคำตอบ...'}
-              </span>
+              <span className="text-xs">{isColdStartLikely ? t('ai.coldStart.hint') : 'AI กำลังประมวลผลคำตอบ...'}</span>
             </div>
           </div>
         )}

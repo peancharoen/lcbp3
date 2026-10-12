@@ -21,25 +21,25 @@ export function AnalyticsSummaryCards({ data }: AnalyticsSummaryCardsProps) {
       title: 'Total Requests',
       value: data.totalRequests.toLocaleString(),
       subtitle: `${data.successCount} สำเร็จ / ${data.failedCount} ล้มเหลว`,
-      color: 'text-blue-600',
+      color: 'text-info',
     },
     {
       title: 'Pattern Hit Rate',
       value: `${data.patternHitRate}%`,
       subtitle: 'เป้าหมาย: 70-80%',
-      color: data.patternHitRate >= 70 ? 'text-green-600' : 'text-amber-600',
+      color: data.patternHitRate >= 70 ? 'text-success' : 'text-warning',
     },
     {
       title: 'Avg Confidence',
       value: data.avgConfidence.toFixed(2),
       subtitle: 'เป้าหมาย: ≥ 0.70',
-      color: data.avgConfidence >= 0.7 ? 'text-green-600' : 'text-amber-600',
+      color: data.avgConfidence >= 0.7 ? 'text-success' : 'text-warning',
     },
     {
       title: 'Avg Latency',
       value: `${data.avgLatencyMs.toFixed(1)}ms`,
       subtitle: 'Pattern < 10ms, LLM < 2000ms',
-      color: data.avgLatencyMs < 100 ? 'text-green-600' : 'text-amber-600',
+      color: data.avgLatencyMs < 100 ? 'text-success' : 'text-warning',
     },
   ];
 
@@ -48,17 +48,11 @@ export function AnalyticsSummaryCards({ data }: AnalyticsSummaryCardsProps) {
       {cards.map((card) => (
         <Card key={card.title}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              {card.title}
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{card.title}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${card.color}`}>
-              {card.value}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {card.subtitle}
-            </p>
+            <div className={`text-2xl font-bold ${card.color}`}>{card.value}</div>
+            <p className="mt-1 text-xs text-muted-foreground">{card.subtitle}</p>
           </CardContent>
         </Card>
       ))}

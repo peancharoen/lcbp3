@@ -22,7 +22,7 @@ export function RecentActivity({ activities, isLoading }: RecentActivityProps) {
         <CardContent>
           <div className="space-y-6">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-16 bg-muted animate-pulse rounded-md" />
+              <div key={i} className="h-16 animate-pulse rounded-md bg-muted" />
             ))}
           </div>
         </CardContent>
@@ -36,7 +36,7 @@ export function RecentActivity({ activities, isLoading }: RecentActivityProps) {
         <CardHeader>
           <CardTitle className="text-lg">Recent Activity</CardTitle>
         </CardHeader>
-        <CardContent className="text-muted-foreground text-sm text-center py-8">No recent activity.</CardContent>
+        <CardContent className="py-8 text-center text-sm text-muted-foreground">No recent activity.</CardContent>
       </Card>
     );
   }
@@ -48,9 +48,9 @@ export function RecentActivity({ activities, isLoading }: RecentActivityProps) {
       <CardContent>
         <div className="space-y-6">
           {activities.map((activity) => (
-            <div key={activity.id} className="flex gap-4 pb-4 border-b last:border-0 last:pb-0">
+            <div key={activity.id} className="flex gap-4 border-b pb-4 last:border-0 last:pb-0">
               <Avatar className="h-10 w-10 border">
-                <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                <AvatarFallback className="bg-primary/10 font-medium text-primary">
                   {activity.user.initials}
                 </AvatarFallback>
               </Avatar>
@@ -58,8 +58,8 @@ export function RecentActivity({ activities, isLoading }: RecentActivityProps) {
               <div className="flex-1 space-y-1">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm">{activity.user.name}</span>
-                    <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-normal">
+                    <span className="text-sm font-semibold">{activity.user.name}</span>
+                    <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-normal">
                       {activity.action}
                     </Badge>
                   </div>
@@ -70,8 +70,8 @@ export function RecentActivity({ activities, isLoading }: RecentActivityProps) {
                   </span>
                 </div>
 
-                <Link href={activity.targetUrl} className="block group">
-                  <p className="text-sm text-foreground group-hover:text-primary transition-colors">
+                <Link href={activity.targetUrl} className="group block">
+                  <p className="text-sm text-foreground transition-colors group-hover:text-primary">
                     {activity.description}
                   </p>
                 </Link>

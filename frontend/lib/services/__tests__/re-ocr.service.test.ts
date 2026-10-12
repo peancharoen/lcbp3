@@ -122,11 +122,9 @@ describe('reOcrService', () => {
       };
       const result = await reOcrService.triggerReplace('att-uuid-1', body, 'idem-9');
 
-      expect(api.post).toHaveBeenCalledWith(
-        '/files/att-uuid-1/re-ocr/replace',
-        body,
-        { headers: { 'Idempotency-Key': 'idem-9' } }
-      );
+      expect(api.post).toHaveBeenCalledWith('/files/att-uuid-1/re-ocr/replace', body, {
+        headers: { 'Idempotency-Key': 'idem-9' },
+      });
       expect(result).toEqual(innerPayload);
     });
   });

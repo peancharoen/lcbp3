@@ -5,8 +5,7 @@ import type { WorkflowHistoryItem } from '@/types/workflow';
 
 export const workflowHistoryKeys = {
   all: ['workflow-history'] as const,
-  instance: (instanceId: string) =>
-    [...workflowHistoryKeys.all, instanceId] as const,
+  instance: (instanceId: string) => [...workflowHistoryKeys.all, instanceId] as const,
 };
 
 /**
@@ -19,6 +18,6 @@ export function useWorkflowHistory(instanceId: string | undefined) {
     queryFn: () => workflowEngineService.getHistory(instanceId!),
     enabled: !!instanceId,
     staleTime: 60_000, // 1 นาที — ประวัติไม่เปลี่ยนบ่อย
-    retry: false,       // ถ้า 404 (endpoint ยังไม่มี) ไม่ต้อง retry
+    retry: false, // ถ้า 404 (endpoint ยังไม่มี) ไม่ต้อง retry
   });
 }

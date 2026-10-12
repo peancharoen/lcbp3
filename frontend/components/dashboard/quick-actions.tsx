@@ -8,7 +8,7 @@ export function QuickActions() {
   return (
     <div className="flex gap-3 overflow-x-auto pb-2">
       <Link href="/rfas/new">
-        <Button className="bg-blue-600 hover:bg-blue-700">
+        <Button className="bg-info hover:bg-info/90">
           <PlusCircle className="mr-2 h-4 w-4" />
           New RFA
         </Button>

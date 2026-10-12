@@ -81,9 +81,7 @@ describe('useRagQuery hook', () => {
     const callArgs = (apiClient.post as any).mock.calls[0];
     const headers = callArgs[2].headers;
     // Idempotency-Key ควรเป็น UUID รูปแบบ v4 (มี hyphen ครบ 4 ตำแหน่ง)
-    expect(headers['Idempotency-Key']).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    );
+    expect(headers['Idempotency-Key']).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
   });
 
   it('validate response ด้วย Zod และคืนค่าที่ถูกต้อง', async () => {

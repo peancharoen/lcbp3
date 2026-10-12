@@ -8,25 +8,9 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import type {
-  IntentPattern,
-  PatternType,
-  PatternLanguage,
-} from '@/lib/services/ai-intent.service';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import type { IntentPattern, PatternType, PatternLanguage } from '@/lib/services/ai-intent.service';
 
 interface PatternFormProps {
   open: boolean;
@@ -45,21 +29,11 @@ interface PatternFormProps {
 /**
  * Dialog Form สำหรับสร้าง/แก้ไข Intent Pattern
  */
-export function PatternForm({
-  open,
-  onClose,
-  onSubmit,
-  initial,
-  isLoading,
-}: PatternFormProps) {
+export function PatternForm({ open, onClose, onSubmit, initial, isLoading }: PatternFormProps) {
   const isEdit = !!initial;
-  const [patternType, setPatternType] = useState<PatternType>(
-    initial?.patternType || 'keyword'
-  );
+  const [patternType, setPatternType] = useState<PatternType>(initial?.patternType || 'keyword');
   const [patternValue, setPatternValue] = useState(initial?.patternValue || '');
-  const [language, setLanguage] = useState<PatternLanguage>(
-    initial?.language || 'any'
-  );
+  const [language, setLanguage] = useState<PatternLanguage>(initial?.language || 'any');
   const [priority, setPriority] = useState<number>(initial?.priority || 100);
   const [regexError, setRegexError] = useState<string | null>(null);
 
@@ -86,9 +60,7 @@ export function PatternForm({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            {isEdit ? 'แก้ไข Pattern' : 'เพิ่ม Pattern ใหม่'}
-          </DialogTitle>
+          <DialogTitle>{isEdit ? 'แก้ไข Pattern' : 'เพิ่ม Pattern ใหม่'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Pattern Type */}
@@ -113,9 +85,7 @@ export function PatternForm({
 
           {/* Pattern Value */}
           <div className="space-y-1">
-            <Label htmlFor="patternValue">
-              ค่า Pattern {patternType === 'regex' && '(Regular Expression)'}
-            </Label>
+            <Label htmlFor="patternValue">ค่า Pattern {patternType === 'regex' && '(Regular Expression)'}</Label>
             <Input
               id="patternValue"
               value={patternValue}
@@ -123,26 +93,17 @@ export function PatternForm({
                 setPatternValue(e.target.value);
                 if (patternType === 'regex') validateRegex(e.target.value);
               }}
-              placeholder={
-                patternType === 'keyword'
-                  ? 'สรุป, drawing, rfa'
-                  : '\\brfa\\b'
-              }
+              placeholder={patternType === 'keyword' ? 'สรุป, drawing, rfa' : '\\brfa\\b'}
               maxLength={255}
               required
             />
-            {regexError && (
-              <p className="text-xs text-destructive">{regexError}</p>
-            )}
+            {regexError && <p className="text-xs text-destructive">{regexError}</p>}
           </div>
 
           {/* Language */}
           <div className="space-y-1">
             <Label>ภาษา</Label>
-            <Select
-              value={language}
-              onValueChange={(v) => setLanguage(v as PatternLanguage)}
-            >
+            <Select value={language} onValueChange={(v) => setLanguage(v as PatternLanguage)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>

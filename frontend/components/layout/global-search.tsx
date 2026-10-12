@@ -76,7 +76,7 @@ export function GlobalSearch() {
             <Input
               type="search"
               placeholder="Search documents..."
-              className="pl-8 w-full bg-background"
+              className="w-full bg-background pl-8"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -88,7 +88,7 @@ export function GlobalSearch() {
           </div>
         </PopoverTrigger>
         <PopoverContent
-          className="p-0 w-[var(--radix-popover-trigger-width)]"
+          className="w-[var(--radix-popover-trigger-width)] p-0"
           align="start"
           onOpenAutoFocus={(e) => e.preventDefault()}
         >

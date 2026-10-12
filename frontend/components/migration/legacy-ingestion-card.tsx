@@ -14,13 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { toast } from 'sonner';
 import {
@@ -121,11 +115,11 @@ export function LegacyIngestionCard({ onIngestionStarted }: LegacyIngestionCardP
               projectCode: p.projectCode,
               projectName: p.projectName,
             }))
-          : (result as { data?: ProjectOption[] })?.data?.map((p) => ({
+          : ((result as { data?: ProjectOption[] })?.data?.map((p) => ({
               publicId: p.publicId,
               projectCode: p.projectCode,
               projectName: p.projectName,
-            })) ?? [];
+            })) ?? []);
         setProjects(projectList);
       } catch (err: unknown) {
         const errMsg = err instanceof Error ? err.message : 'ไม่สามารถโหลดรายการโครงการได้';
@@ -232,7 +226,7 @@ export function LegacyIngestionCard({ onIngestionStarted }: LegacyIngestionCardP
   };
 
   return (
-    <Card className="border-primary/20 shadow-sm mb-6 bg-gradient-to-r from-background to-muted/20">
+    <Card className="mb-6 border-primary/20 bg-gradient-to-r from-background to-muted/20 shadow-sm">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
           <UploadCloudIcon className="h-5 w-5 text-primary" />
@@ -244,7 +238,7 @@ export function LegacyIngestionCard({ onIngestionStarted }: LegacyIngestionCardP
       </CardHeader>
       <CardContent>
         {/* --- แถวที่ 1: เลือกไฟล์ Excel (NAS หรือ Upload) + Project + Contract --- */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
           {/* Excel source selection */}
           <div className="space-y-1.5">
             <Label htmlFor="excel-source" className="text-xs font-semibold">
@@ -277,13 +271,7 @@ export function LegacyIngestionCard({ onIngestionStarted }: LegacyIngestionCardP
                 disabled={uploading || nasExcelFiles.length === 0}
               >
                 <SelectTrigger id="excel-file" className="text-xs">
-                  <SelectValue
-                    placeholder={
-                      nasExcelFiles.length === 0
-                        ? 'ไม่พบไฟล์ใน NAS'
-                        : 'เลือกไฟล์ Excel...'
-                    }
-                  />
+                  <SelectValue placeholder={nasExcelFiles.length === 0 ? 'ไม่พบไฟล์ใน NAS' : 'เลือกไฟล์ Excel...'} />
                 </SelectTrigger>
                 <SelectContent>
                   {nasExcelFiles.map((file) => (
@@ -300,7 +288,7 @@ export function LegacyIngestionCard({ onIngestionStarted }: LegacyIngestionCardP
                 accept=".xlsx,.xls,.csv"
                 onChange={handleFileChange}
                 disabled={uploading}
-                className="text-xs cursor-pointer file:cursor-pointer"
+                className="cursor-pointer text-xs file:cursor-pointer"
               />
             )}
           </div>
@@ -316,13 +304,7 @@ export function LegacyIngestionCard({ onIngestionStarted }: LegacyIngestionCardP
               disabled={uploading || projects.length === 0}
             >
               <SelectTrigger id="project-name" className="text-xs">
-                <SelectValue
-                  placeholder={
-                    projects.length === 0
-                      ? 'ไม่พบโครงการ'
-                      : 'เลือกโครงการ...'
-                  }
-                />
+                <SelectValue placeholder={projects.length === 0 ? 'ไม่พบโครงการ' : 'เลือกโครงการ...'} />
               </SelectTrigger>
               <SelectContent>
                 {projects.map((project) => (
@@ -342,11 +324,7 @@ export function LegacyIngestionCard({ onIngestionStarted }: LegacyIngestionCardP
             <Select
               value={selectedContractCode}
               onValueChange={setSelectedContractCode}
-              disabled={
-                uploading ||
-                !selectedProjectPublicId ||
-                contracts.length === 0
-              }
+              disabled={uploading || !selectedProjectPublicId || contracts.length === 0}
             >
               <SelectTrigger id="contract-code" className="text-xs">
                 <SelectValue
@@ -361,10 +339,7 @@ export function LegacyIngestionCard({ onIngestionStarted }: LegacyIngestionCardP
               </SelectTrigger>
               <SelectContent>
                 {contracts.map((contract) => (
-                  <SelectItem
-                    key={contract.publicId ?? contract.contractCode}
-                    value={contract.contractCode}
-                  >
+                  <SelectItem key={contract.publicId ?? contract.contractCode} value={contract.contractCode}>
                     {contract.contractCode} — {contract.contractName}
                   </SelectItem>
                 ))}
@@ -374,7 +349,7 @@ export function LegacyIngestionCard({ onIngestionStarted }: LegacyIngestionCardP
         </div>
 
         {/* --- แถวที่ 2: Staging PDF folder (tree view) + Sheet name --- */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="staging-path" className="text-xs font-semibold">
               โฟลเดอร์ Staging PDF บน NAS
@@ -401,9 +376,7 @@ export function LegacyIngestionCard({ onIngestionStarted }: LegacyIngestionCardP
               <PopoverContent className="w-[480px] p-0" align="start">
                 <div className="max-h-[320px] overflow-y-auto p-1">
                   {nasFolderTree.length === 0 ? (
-                    <div className="px-3 py-6 text-center text-xs text-muted-foreground">
-                      ไม่พบโฟลเดอร์ใน NAS
-                    </div>
+                    <div className="px-3 py-6 text-center text-xs text-muted-foreground">ไม่พบโฟลเดอร์ใน NAS</div>
                   ) : (
                     <FolderTree
                       nodes={nasFolderTree}
@@ -444,7 +417,7 @@ export function LegacyIngestionCard({ onIngestionStarted }: LegacyIngestionCardP
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-4 pt-2 border-t">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-t pt-2">
           <div className="flex items-center space-x-2">
             <Checkbox
               id="resume-mode"
@@ -454,7 +427,7 @@ export function LegacyIngestionCard({ onIngestionStarted }: LegacyIngestionCardP
             />
             <label
               htmlFor="resume-mode"
-              className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+              className="cursor-pointer text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
               โหมด Resume (ทำต่อจาก Checkpoint เดิม)
             </label>
@@ -462,7 +435,7 @@ export function LegacyIngestionCard({ onIngestionStarted }: LegacyIngestionCardP
 
           <div className="flex items-center gap-3">
             {statusMessage && (
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <span className="flex items-center gap-1 text-xs text-muted-foreground">
                 <CheckCircle2Icon className="h-3.5 w-3.5 text-primary" />
                 {statusMessage}
               </span>
@@ -470,21 +443,19 @@ export function LegacyIngestionCard({ onIngestionStarted }: LegacyIngestionCardP
             <Button
               onClick={handleStartIngest}
               disabled={
-                uploading ||
-                (excelMode === 'nas' ? !selectedNasFilePath : !uploadedFile) ||
-                !selectedProjectPublicId
+                uploading || (excelMode === 'nas' ? !selectedNasFilePath : !uploadedFile) || !selectedProjectPublicId
               }
               size="sm"
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {uploading ? (
                 <>
-                  <RefreshCwIcon className="h-4 w-4 mr-2 animate-spin" />
+                  <RefreshCwIcon className="mr-2 h-4 w-4 animate-spin" />
                   กำลังประมวลผล...
                 </>
               ) : (
                 <>
-                  <PlayIcon className="h-4 w-4 mr-2" />
+                  <PlayIcon className="mr-2 h-4 w-4" />
                   เริ่มการนำเข้า (Start Ingest)
                 </>
               )}
@@ -506,14 +477,7 @@ interface FolderTreeProps {
   depth?: number;
 }
 
-function FolderTree({
-  nodes,
-  expanded,
-  onToggle,
-  selectedPath,
-  onSelect,
-  depth = 0,
-}: FolderTreeProps) {
+function FolderTree({ nodes, expanded, onToggle, selectedPath, onSelect, depth = 0 }: FolderTreeProps) {
   return (
     <ul className={depth === 0 ? '' : 'ml-3 border-l border-border/40 pl-1'}>
       {nodes.map((node) => {
@@ -523,8 +487,8 @@ function FolderTree({
         return (
           <li key={node.path}>
             <div
-              className={`flex items-center gap-1 rounded px-1.5 py-1 text-xs cursor-pointer hover:bg-accent ${
-                isSelected ? 'bg-primary/15 text-primary font-medium' : ''
+              className={`flex cursor-pointer items-center gap-1 rounded px-1.5 py-1 text-xs hover:bg-accent ${
+                isSelected ? 'bg-primary/15 font-medium text-primary' : ''
               }`}
               style={{ paddingLeft: `${depth * 12 + 6}px` }}
               onClick={() => onSelect(node.path)}
@@ -547,11 +511,7 @@ function FolderTree({
                   }}
                   aria-label={isExpanded ? 'ย่อ' : 'ขยาย'}
                 >
-                  {isExpanded ? (
-                    <ChevronDown className="h-3.5 w-3.5" />
-                  ) : (
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  )}
+                  {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
                 </button>
               ) : (
                 <span className="inline-block w-[22px] shrink-0" />

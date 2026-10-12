@@ -21,29 +21,25 @@ const mockMutateAsyncExtract = vi.fn();
 vi.mock('@/hooks/use-migration-review', () => ({
   useCommitMigrationReview: () => ({
     mutateAsync: mockMutateAsyncCommit,
-    isPending: false
+    isPending: false,
   }),
   useRejectMigrationReview: () => ({
     mutateAsync: mockMutateAsyncReject,
-    isPending: false
+    isPending: false,
   }),
   useStartExtractQueueItem: () => ({
     mutateAsync: mockMutateAsyncExtract,
-    isPending: false
-  })
+    isPending: false,
+  }),
 }));
 
 vi.mock('@/hooks/use-master-data', () => ({
   useProjects: () => ({
-    data: [
-      { publicId: 'proj-1', projectName: 'Project A', projectCode: 'PA' }
-    ]
+    data: [{ publicId: 'proj-1', projectName: 'Project A', projectCode: 'PA' }],
   }),
   useOrganizations: () => ({
-    data: [
-      { publicId: 'org-1', organizationName: 'Org A' }
-    ]
-  })
+    data: [{ publicId: 'org-1', organizationName: 'Org A' }],
+  }),
 }));
 
 // Mock ResizeObserver for Radix UI
@@ -112,7 +108,7 @@ describe('ReviewQueueTable', () => {
       documentNumber: 'DOC-003',
       subject: 'Legacy Migration Doc',
       aiSuggestedCorrespondenceType: 'Correspondence',
-      aiConfidence: 0.70,
+      aiConfidence: 0.7,
       status: MigrationReviewStatus.PENDING,
       // ADR-054: path ไฟล์ staging เป็น first-class field (ไม่ใช่ details.source_file_path)
       storageTempPath: '/legacy/path',
@@ -254,18 +250,20 @@ describe('ReviewQueueTable', () => {
     fireEvent.click(commitButton);
 
     await waitFor(() => {
-      expect(mockMutateAsyncCommit).toHaveBeenCalledWith(expect.objectContaining({
-        publicId: 'mig-1',
-        subject: 'Test Migration Doc',
-        correspondenceType: 'RFA',
-        projectId: 'proj-1',
-        senderId: 'org-1',
-        receiverId: 'org-2',
-        issuedDate: '2026-06-01',
-        receivedDate: '2026-06-02',
-        body: 'Migration test body',
-        tags: ['Urgent'],
-      }));
+      expect(mockMutateAsyncCommit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          publicId: 'mig-1',
+          subject: 'Test Migration Doc',
+          correspondenceType: 'RFA',
+          projectId: 'proj-1',
+          senderId: 'org-1',
+          receiverId: 'org-2',
+          issuedDate: '2026-06-01',
+          receivedDate: '2026-06-02',
+          body: 'Migration test body',
+          tags: ['Urgent'],
+        })
+      );
     });
   });
 
@@ -388,9 +386,7 @@ describe('ReviewQueueTable', () => {
     fireEvent.click(reExtractButton);
 
     await waitFor(() => {
-      expect(mockMutateAsyncExtract).toHaveBeenCalledWith(
-        expect.objectContaining({ publicId: 'mig-3' })
-      );
+      expect(mockMutateAsyncExtract).toHaveBeenCalledWith(expect.objectContaining({ publicId: 'mig-3' }));
     });
   });
 
@@ -445,12 +441,8 @@ describe('ReviewQueueTable', () => {
     expect(screen.getAllByText('DOC-100')).toHaveLength(2);
     expect(screen.queryByText('DOC-100-RA')).not.toBeInTheDocument();
     // revision badges จาก i18n key migration_review.revision_badge ("ฉบับที่")
-    expect(
-      screen.getAllByText((_, el) => el?.textContent === 'ฉบับที่ A').length
-    ).toBeGreaterThan(0);
-    expect(
-      screen.getAllByText((_, el) => el?.textContent === 'ฉบับที่ 0').length
-    ).toBeGreaterThan(0);
+    expect(screen.getAllByText((_, el) => el?.textContent === 'ฉบับที่ A').length).toBeGreaterThan(0);
+    expect(screen.getAllByText((_, el) => el?.textContent === 'ฉบับที่ 0').length).toBeGreaterThan(0);
     // staging key ยังเข้าถึงได้ผ่าน tooltip
     expect(screen.getByTitle('DOC-100-RA')).toBeInTheDocument();
   });

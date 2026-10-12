@@ -44,16 +44,18 @@ export function SearchFilters({ filters, onFilterChange }: SearchFiltersProps) {
   const clearFilters = () => onFilterChange({ types: [], statuses: [] });
 
   return (
-    <Card className="p-4 space-y-5">
+    <Card className="space-y-5 p-4">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-sm">Filters</h3>
+        <h3 className="text-sm font-semibold">Filters</h3>
         {activeCount > 0 && (
-          <Badge variant="secondary" className="text-xs">{activeCount} active</Badge>
+          <Badge variant="secondary" className="text-xs">
+            {activeCount} active
+          </Badge>
         )}
       </div>
 
       <div>
-        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Document Type</p>
+        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Document Type</p>
         <div className="space-y-2">
           {DOC_TYPES.map(({ value, label }) => (
             <div key={value} className="flex items-center space-x-2">
@@ -62,7 +64,7 @@ export function SearchFilters({ filters, onFilterChange }: SearchFiltersProps) {
                 checked={filters.types?.includes(value)}
                 onCheckedChange={(checked) => handleTypeChange(value, checked as boolean)}
               />
-              <Label htmlFor={`type-${value}`} className="text-sm cursor-pointer">
+              <Label htmlFor={`type-${value}`} className="cursor-pointer text-sm">
                 {label}
               </Label>
             </div>
@@ -71,7 +73,7 @@ export function SearchFilters({ filters, onFilterChange }: SearchFiltersProps) {
       </div>
 
       <div>
-        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Status</p>
+        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Status</p>
         <div className="space-y-2">
           {STATUSES.map(({ value, label }) => (
             <div key={value} className="flex items-center space-x-2">
@@ -80,7 +82,7 @@ export function SearchFilters({ filters, onFilterChange }: SearchFiltersProps) {
                 checked={filters.statuses?.includes(value)}
                 onCheckedChange={(checked) => handleStatusChange(value, checked as boolean)}
               />
-              <Label htmlFor={`status-${value}`} className="text-sm cursor-pointer">
+              <Label htmlFor={`status-${value}`} className="cursor-pointer text-sm">
                 {label}
               </Label>
             </div>

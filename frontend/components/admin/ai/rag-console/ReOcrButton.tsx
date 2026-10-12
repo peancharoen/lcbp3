@@ -22,9 +22,7 @@ export interface ReOcrButtonProps {
 export function ReOcrButton({ attachmentPublicId, originalFilename, mimeType }: ReOcrButtonProps) {
   const t = useRagAdminT();
   const canReOcr = useAuthStore((s) => s.hasPermission('rag.admin.write'));
-  const canReplace = useAuthStore(
-    (s) => s.hasPermission('rag.admin.write') && s.hasPermission('correspondence.edit')
-  );
+  const canReplace = useAuthStore((s) => s.hasPermission('rag.admin.write') && s.hasPermission('correspondence.edit'));
   const [open, setOpen] = useState(false);
   const [replaceOpen, setReplaceOpen] = useState(false);
   if (!canReOcr || mimeType !== 'application/pdf') return null;

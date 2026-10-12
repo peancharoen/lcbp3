@@ -196,13 +196,13 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
             <div>
               <Label>Username *</Label>
               <Input {...register('username')} disabled={!!user} autoComplete="off" />
-              {errors.username && <p className="text-sm text-red-500">{errors.username.message}</p>}
+              {errors.username && <p className="text-sm text-destructive">{errors.username.message}</p>}
             </div>
 
             <div>
               <Label>Email *</Label>
               <Input type="email" {...register('email')} autoComplete="off" />
-              {errors.email && <p className="text-sm text-red-500">{errors.email.message}</p>}
+              {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
             </div>
           </div>
 
@@ -210,13 +210,13 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
             <div>
               <Label>First Name *</Label>
               <Input {...register('firstName')} autoComplete="off" />
-              {errors.firstName && <p className="text-sm text-red-500">{errors.firstName.message}</p>}
+              {errors.firstName && <p className="text-sm text-destructive">{errors.firstName.message}</p>}
             </div>
 
             <div>
               <Label>Last Name *</Label>
               <Input {...register('lastName')} autoComplete="off" />
-              {errors.lastName && <p className="text-sm text-red-500">{errors.lastName.message}</p>}
+              {errors.lastName && <p className="text-sm text-destructive">{errors.lastName.message}</p>}
             </div>
           </div>
 
@@ -238,18 +238,20 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
                 <SelectContent>
                   <SelectItem value={ALL_ORGANIZATIONS_VALUE}>All Organizations</SelectItem>
                   {Array.isArray(organizations) &&
-                    organizations.map((org: { publicId: string; organizationCode: string; organizationName: string }) => (
-                      <SelectItem key={org.publicId} value={org.publicId}>
-                        {org.organizationCode} - {org.organizationName}
-                      </SelectItem>
-                    ))}
+                    organizations.map(
+                      (org: { publicId: string; organizationCode: string; organizationName: string }) => (
+                        <SelectItem key={org.publicId} value={org.publicId}>
+                          {org.organizationCode} - {org.organizationName}
+                        </SelectItem>
+                      )
+                    )}
                 </SelectContent>
               </Select>
             </div>
           </div>
 
           {/* Password Section - Show for Create, or Optional for Edit */}
-          <div className="space-y-4 border p-4 rounded-md">
+          <div className="space-y-4 rounded-md border p-4">
             <h3 className="text-sm font-medium">{user ? 'Change Password (Optional)' : 'Password Setup'}</h3>
 
             <div className="grid grid-cols-2 gap-4">
@@ -271,7 +273,7 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                 </div>
-                {errors.password && <p className="text-sm text-red-500">{errors.password.message}</p>}
+                {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
               </div>
 
               <div className="relative">
@@ -292,14 +294,14 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
                     {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                 </div>
-                {errors.confirmPassword && <p className="text-sm text-red-500">{errors.confirmPassword.message}</p>}
+                {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>}
               </div>
             </div>
           </div>
 
           <div>
             <Label className="mb-3 block">Roles</Label>
-            <div className="space-y-2 border p-3 rounded-md max-h-[200px] overflow-y-auto">
+            <div className="max-h-[200px] space-y-2 overflow-y-auto rounded-md border p-3">
               {Array.isArray(roles) && roles.length === 0 && (
                 <p className="text-sm text-muted-foreground">Loading roles...</p>
               )}
@@ -324,15 +326,15 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
                           }
                         }}
                       />
-                    <div className="grid gap-1.5 leading-none">
-                      <label
-                        htmlFor={`role-${role.publicId}`}
-                        className="text-sm font-medium leading-none cursor-pointer"
-                      >
-                        {role.roleName}
-                      </label>
-                      <p className="text-xs text-muted-foreground">{role.description}</p>
-                    </div>
+                      <div className="grid gap-1.5 leading-none">
+                        <label
+                          htmlFor={`role-${role.publicId}`}
+                          className="cursor-pointer text-sm font-medium leading-none"
+                        >
+                          {role.roleName}
+                        </label>
+                        <p className="text-xs text-muted-foreground">{role.description}</p>
+                      </div>
                     </div>
                   );
                 })}
@@ -346,7 +348,7 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
                 checked={watch('isActive')}
                 onCheckedChange={(chk) => setValue('isActive', chk === true)}
               />
-              <label htmlFor="is_active" className="text-sm font-medium leading-none cursor-pointer">
+              <label htmlFor="is_active" className="cursor-pointer text-sm font-medium leading-none">
                 Active User
               </label>
             </div>

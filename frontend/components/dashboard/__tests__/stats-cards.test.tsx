@@ -10,7 +10,7 @@ describe('StatsCards', () => {
     totalDocuments: 150,
     totalRfas: 45,
     approved: 120,
-    pendingApprovals: 15
+    pendingApprovals: 15,
   };
 
   it('renders loading state when isLoading is true', () => {
@@ -28,7 +28,7 @@ describe('StatsCards', () => {
 
   it('renders stats cards correctly with values', () => {
     render(<StatsCards stats={mockStats} isLoading={false} />);
-    
+
     expect(screen.getByText('Total Correspondences')).toBeInTheDocument();
     expect(screen.getByText('150')).toBeInTheDocument();
 

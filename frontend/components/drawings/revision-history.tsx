@@ -10,23 +10,23 @@ import { format } from 'date-fns';
 export function RevisionHistory({ revisions }: { revisions: DrawingRevision[] }) {
   return (
     <Card className="p-6">
-      <h3 className="text-lg font-semibold mb-4">Revision History</h3>
+      <h3 className="mb-4 text-lg font-semibold">Revision History</h3>
 
       <div className="space-y-3">
         {revisions.map((rev) => (
-          <div key={rev.publicId} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border">
+          <div key={rev.publicId} className="flex items-center justify-between rounded-lg border bg-muted/30 p-3">
             <div className="flex-1">
-              <div className="flex items-center gap-3 mb-1">
+              <div className="mb-1 flex items-center gap-3">
                 <Badge variant={rev.isCurrent ? 'default' : 'outline'}>Rev. {rev.revisionNumber}</Badge>
                 {rev.isCurrent && (
-                  <span className="text-xs text-green-600 font-medium flex items-center gap-1">
-                    <div className="h-1.5 w-1.5 rounded-full bg-green-600" />
+                  <span className="flex items-center gap-1 text-xs font-medium text-success">
+                    <div className="h-1.5 w-1.5 rounded-full bg-success" />
                     CURRENT
                   </span>
                 )}
               </div>
-              <p className="text-sm text-foreground font-medium">{rev.revisionDescription || 'No description'}</p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-sm font-medium text-foreground">{rev.revisionDescription || 'No description'}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
                 {format(new Date(rev.revisionDate), 'dd MMM yyyy')} by {rev.revisedByName}
               </p>
             </div>

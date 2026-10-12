@@ -53,11 +53,7 @@ function isStorageStateValid(role: TestRole): boolean {
  * Login ผ่าน UI แล้วบันทึก storageState (cookies + localStorage)
  * ใช้สำหรับ setup authenticated state ครั้งเดียวต่อ role
  */
-export async function loginViaUIAndSaveState(
-  page: Page,
-  role: TestRole,
-  baseURL: string,
-): Promise<void> {
+export async function loginViaUIAndSaveState(page: Page, role: TestRole, baseURL: string): Promise<void> {
   const creds = TEST_CREDENTIALS[role];
 
   // ไปหน้า login
@@ -101,7 +97,7 @@ export function getStorageState(role: TestRole): string | undefined {
 export async function loginViaAPI(
   request: APIRequestContext,
   baseURL: string,
-  role: TestRole,
+  role: TestRole
 ): Promise<{ accessToken: string; user: Record<string, unknown> }> {
   const creds = TEST_CREDENTIALS[role];
   // สำหรับ local Docker — backend ที่ port 3000
@@ -135,11 +131,7 @@ export async function loginViaAPI(
  * Inject auth state ลงในหน้าเว็บ (localStorage)
  * ใช้หลัง page.goto() เพื่อให้หน้าเว็บ authenticated ทันที
  */
-export async function injectAuthState(
-  page: Page,
-  accessToken: string,
-  user: Record<string, unknown>,
-): Promise<void> {
+export async function injectAuthState(page: Page, accessToken: string, user: Record<string, unknown>): Promise<void> {
   const authStorage = {
     state: {
       user: {
@@ -161,7 +153,7 @@ export async function injectAuthState(
     ({ authStorage }) => {
       localStorage.setItem('auth-storage', JSON.stringify(authStorage));
     },
-    { authStorage },
+    { authStorage }
   );
 }
 
@@ -170,7 +162,8 @@ export async function injectAuthState(
  * ใช้สำหรับ production ที่มี NextAuth ครอง API
  */
 export async function loginAndGoto(page: Page, role: TestRole, path: string): Promise<void> {
-  const baseURL = (page.context() as unknown as { _options?: { baseURL?: string } })._options?.baseURL ?? 'https://lcbp3.np-dms.work';
+  const baseURL =
+    (page.context() as unknown as { _options?: { baseURL?: string } })._options?.baseURL ?? 'https://lcbp3.np-dms.work';
 
   // ถ้ามี storageState cache → ใช้
   const statePath = getStorageStatePath(role);

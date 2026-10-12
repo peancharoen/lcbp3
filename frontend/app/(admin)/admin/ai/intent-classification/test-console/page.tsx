@@ -16,18 +16,12 @@ export default function TestConsolePage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => router.push('/admin/ai/intent-classification')}
-        >
+        <Button variant="ghost" size="icon" onClick={() => router.push('/admin/ai/intent-classification')}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
           <h1 className="text-2xl font-bold">Intent Test Console</h1>
-          <p className="text-muted-foreground">
-            ทดสอบ Intent Classification แบบ Real-time — พิมพ์คำถามเพื่อดูผล
-          </p>
+          <p className="text-muted-foreground">ทดสอบ Intent Classification แบบ Real-time — พิมพ์คำถามเพื่อดูผล</p>
         </div>
       </div>
 

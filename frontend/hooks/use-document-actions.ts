@@ -43,8 +43,7 @@ export function useDocumentActions({ config, onSuccess }: UseDocumentActionsOpti
   });
 
   const hardDeleteMutation = useMutation({
-    mutationFn: ({ publicId }: { publicId: string }) =>
-      documentActionService.hardDelete(config.apiBasePath, publicId),
+    mutationFn: ({ publicId }: { publicId: string }) => documentActionService.hardDelete(config.apiBasePath, publicId),
     onSuccess: (_data, { publicId }) => {
       toast.success(t('document.hardDelete.success'));
       invalidate(publicId);
@@ -65,13 +64,7 @@ export function useDocumentActions({ config, onSuccess }: UseDocumentActionsOpti
       publicId: string;
       patch: Record<string, string | number | boolean | null>;
       version: number;
-    }) =>
-      documentActionService.metadataPatch(
-        config.apiBasePath,
-        publicId,
-        patch,
-        version,
-      ),
+    }) => documentActionService.metadataPatch(config.apiBasePath, publicId, patch, version),
     onSuccess: (_data, { publicId }) => {
       toast.success(t('document.metadata.success'));
       invalidate(publicId);

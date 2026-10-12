@@ -4,14 +4,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -36,12 +29,7 @@ interface ReviewTeamFormProps {
 
 const RFA_TYPE_OPTIONS = ['SDW', 'DDW', 'ADW', 'MS', 'MAT', 'BOQ'];
 
-export function ReviewTeamForm({
-  projectPublicId,
-  defaultValues,
-  onSubmit,
-  isLoading,
-}: ReviewTeamFormProps) {
+export function ReviewTeamForm({ projectPublicId, defaultValues, onSubmit, isLoading }: ReviewTeamFormProps) {
   const [typeInput, setTypeInput] = useState('');
 
   const form = useForm<ReviewTeamFormValues>({
@@ -65,18 +53,13 @@ export function ReviewTeamForm({
   const removeRfaType = (type: string) => {
     form.setValue(
       'defaultForRfaTypes',
-      rfaTypes.filter((t) => t !== type),
+      rfaTypes.filter((t) => t !== type)
     );
   };
 
   return (
     <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit((values) =>
-          onSubmit({ ...values, projectPublicId }),
-        )}
-        className="space-y-4"
-      >
+      <form onSubmit={form.handleSubmit((values) => onSubmit({ ...values, projectPublicId }))} className="space-y-4">
         <FormField
           control={form.control}
           name="name"
@@ -107,15 +90,11 @@ export function ReviewTeamForm({
 
         <FormItem>
           <FormLabel>Default for RFA Types</FormLabel>
-          <div className="flex flex-wrap gap-2 mb-2">
+          <div className="mb-2 flex flex-wrap gap-2">
             {rfaTypes.map((type) => (
               <Badge key={type} variant="secondary" className="gap-1">
                 {type}
-                <button
-                  type="button"
-                  onClick={() => removeRfaType(type)}
-                  className="ml-1 hover:text-destructive"
-                >
+                <button type="button" onClick={() => removeRfaType(type)} className="ml-1 hover:text-destructive">
                   <X className="h-3 w-3" />
                 </button>
               </Badge>
@@ -127,7 +106,7 @@ export function ReviewTeamForm({
                 key={type}
                 type="button"
                 onClick={() => addRfaType(type)}
-                className="text-xs px-2 py-1 rounded border border-dashed hover:bg-accent"
+                className="rounded border border-dashed px-2 py-1 text-xs hover:bg-accent"
               >
                 + {type}
               </button>

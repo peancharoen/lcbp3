@@ -3,13 +3,7 @@
 // File: components/reminder/ReminderHistory.tsx
 import { format } from 'date-fns';
 import { History, Bell, ShieldAlert, AlertTriangle } from 'lucide-react';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useReminderHistory } from '@/hooks/use-reminder';
 import { ReminderType } from '@/types/workflow';
 
@@ -25,9 +19,9 @@ export function ReminderHistoryViewer({ taskPublicId }: ReminderHistoryProps) {
       case ReminderType.ESCALATION_L1:
         return <AlertTriangle className="h-4 w-4 text-orange-500" />;
       case ReminderType.ESCALATION_L2:
-        return <ShieldAlert className="h-4 w-4 text-red-500" />;
+        return <ShieldAlert className="h-4 w-4 text-destructive" />;
       default:
-        return <Bell className="h-4 w-4 text-blue-500" />;
+        return <Bell className="h-4 w-4 text-info" />;
     }
   };
 
@@ -42,29 +36,22 @@ export function ReminderHistoryViewer({ taskPublicId }: ReminderHistoryProps) {
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="text-xs text-muted-foreground py-4 text-center">
-            Loading history...
-          </div>
+          <div className="py-4 text-center text-xs text-muted-foreground">Loading history...</div>
         ) : history.length === 0 ? (
-          <div className="text-xs text-muted-foreground py-4 text-center border rounded-md border-dashed">
+          <div className="rounded-md border border-dashed py-4 text-center text-xs text-muted-foreground">
             No reminders sent yet.
           </div>
         ) : (
           <div className="space-y-4">
             {history.map((item) => (
-              <div
-                key={item.publicId}
-                className="flex items-start gap-3 text-xs border-b pb-3 last:border-0 last:pb-0"
-              >
+              <div key={item.publicId} className="flex items-start gap-3 border-b pb-3 text-xs last:border-0 last:pb-0">
                 <div className="mt-0.5">{getIcon(item.reminderType)}</div>
                 <div className="flex-1 space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="font-semibold uppercase tracking-wider">
                       {item.reminderType.replace('_', ' ')}
                     </span>
-                    <span className="text-muted-foreground">
-                      {format(new Date(item.sentAt), 'dd MMM yyyy HH:mm')}
-                    </span>
+                    <span className="text-muted-foreground">{format(new Date(item.sentAt), 'dd MMM yyyy HH:mm')}</span>
                   </div>
                   <p className="text-muted-foreground">
                     Sent to: <span className="text-foreground">{item.user?.fullName ?? 'Unknown User'}</span>

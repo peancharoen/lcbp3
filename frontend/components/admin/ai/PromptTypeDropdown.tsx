@@ -21,11 +21,7 @@ interface PromptTypeDropdownProps {
  * คอมโพเนนต์ Dropdown สำหรับเลือกประเภทของ AI Prompt
  * โหลดข้อมูลจาก ai_prompt_types API แบบ dynamic (Feature 251)
  */
-export default function PromptTypeDropdown({
-  value,
-  onChange,
-  disabled = false,
-}: PromptTypeDropdownProps) {
+export default function PromptTypeDropdown({ value, onChange, disabled = false }: PromptTypeDropdownProps) {
   const t = useTranslations();
   const { data, isLoading } = useQuery<AiPromptType[]>({
     queryKey: ['ai-prompt-types'],
@@ -35,16 +31,10 @@ export default function PromptTypeDropdown({
   const types = data ?? [];
 
   return (
-    <div className="flex flex-col gap-1.5 w-full">
-      <label className="text-xs font-medium text-muted-foreground">
-        {t('prompt_management.prompt_type')}
-      </label>
-      <Select
-        value={value}
-        onValueChange={(val) => onChange(val)}
-        disabled={disabled || isLoading}
-      >
-        <SelectTrigger className="w-full bg-background/50 border-border/50 backdrop-blur-sm">
+    <div className="flex w-full flex-col gap-1.5">
+      <label className="text-xs font-medium text-muted-foreground">{t('prompt_management.prompt_type')}</label>
+      <Select value={value} onValueChange={(val) => onChange(val)} disabled={disabled || isLoading}>
+        <SelectTrigger className="w-full border-border/50 bg-background/50 backdrop-blur-sm">
           <SelectValue placeholder={t('prompt_management.prompt_type')} />
         </SelectTrigger>
         <SelectContent>

@@ -102,7 +102,7 @@ export default function CreateCirculationPage() {
   };
 
   return (
-    <section className="space-y-6 max-w-2xl">
+    <section className="max-w-2xl space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link href="/circulation">
@@ -206,7 +206,7 @@ export default function CreateCirculationPage() {
                     <Popover open={assigneeOpen} onOpenChange={setAssigneeOpen}>
                       <PopoverTrigger asChild>
                         <FormControl>
-                          <Button variant="outline" role="combobox" className="justify-between h-auto min-h-10">
+                          <Button variant="outline" role="combobox" className="h-auto min-h-10 justify-between">
                             {selectedAssignees.length > 0 ? (
                               <div className="flex flex-wrap gap-1">
                                 {selectedAssignees.map((userUuid) => {

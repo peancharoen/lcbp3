@@ -25,13 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   useAttachmentLinks,
   useReOcrConfirm,
@@ -40,15 +34,9 @@ import {
   useReOcrStatus,
   useReOcrTrigger,
 } from '@/hooks/ai/use-re-ocr';
-import type {
-  ReOcrTriggerResponse,
-  ReOcrEngine,
-} from '@/lib/services/re-ocr.service';
+import type { ReOcrTriggerResponse, ReOcrEngine } from '@/lib/services/re-ocr.service';
 import { ReOcrDiffView } from './ReOcrDiffView';
-import {
-  ReOcrReplacePicker,
-  type ReOcrReplaceSelection,
-} from './ReOcrReplacePicker';
+import { ReOcrReplacePicker, type ReOcrReplaceSelection } from './ReOcrReplacePicker';
 import { useRagAdminT } from './rag-admin-i18n';
 
 export interface ReOcrDialogProps {
@@ -84,9 +72,7 @@ export function ReOcrDialog({
   const [engine, setEngine] = useState<ReOcrEngine>('np-dms-ocr');
   const [queueInfo, setQueueInfo] = useState<ReOcrTriggerResponse | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [targetLink, setTargetLink] = useState<string | undefined>(
-    replaceTargetCorrespondencePublicId
-  );
+  const [targetLink, setTargetLink] = useState<string | undefined>(replaceTargetCorrespondencePublicId);
   const [selection, setSelection] = useState<ReOcrReplaceSelection | null>(null);
 
   // job เดิมที่เป็น replace mode (resume) — ใช้ context จาก status แทน selection ใน dialog
@@ -126,17 +112,10 @@ export function ReOcrDialog({
   const handleConfirm = () => {
     if (status?.status !== 'completed') return;
     // replace mode ต้องยิง route แยก (dual permission — junction swap)
-    const mutation =
-      status.mode === 'replace' ? confirmReplace : confirm;
+    const mutation = status.mode === 'replace' ? confirmReplace : confirm;
     mutation.mutate(status.reOcrToken, {
       onSuccess: (res) => {
-        toast.success(
-          t(
-            res.reindexQueued
-              ? 're_ocr.toast.confirmed'
-              : 're_ocr.toast.confirmed_no_reindex'
-          )
-        );
+        toast.success(t(res.reindexQueued ? 're_ocr.toast.confirmed' : 're_ocr.toast.confirmed_no_reindex'));
         setConfirmOpen(false);
         onOpenChange(false);
       },
@@ -154,9 +133,7 @@ export function ReOcrDialog({
 
   const canStartReplace = Boolean(targetLink && selection);
   const filenameMismatch =
-    resumingReplace &&
-    status?.candidateFilename &&
-    status.candidateFilename !== originalFilename;
+    resumingReplace && status?.candidateFilename && status.candidateFilename !== originalFilename;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -177,18 +154,12 @@ export function ReOcrDialog({
             {t('re_ocr.loading')}
           </div>
         ) : !status ? (
-          <div
-            className={`mx-auto w-full space-y-4 overflow-y-auto ${
-              replaceEnabled ? 'max-w-4xl' : 'max-w-xl'
-            }`}
-          >
+          <div className={`mx-auto w-full space-y-4 overflow-y-auto ${replaceEnabled ? 'max-w-4xl' : 'max-w-xl'}`}>
             {replaceEnabled && (
               <>
                 {/* link picker — ซ่อนเมื่อ detail page preselect link แล้ว */}
                 {replaceTargetCorrespondencePublicId ? (
-                  <p className="rounded border bg-muted/40 p-2 text-sm">
-                    {t('re_ocr.replace.link_fixed')}
-                  </p>
+                  <p className="rounded border bg-muted/40 p-2 text-sm">{t('re_ocr.replace.link_fixed')}</p>
                 ) : (
                   <div>
                     <h3 className="mb-2 font-medium">{t('re_ocr.replace.link_picker')}</h3>
@@ -217,9 +188,7 @@ export function ReOcrDialog({
                       </label>
                     ))}
                     {links && links.length === 0 && (
-                      <p className="text-sm text-muted-foreground">
-                        {t('re_ocr.replace.no_links')}
-                      </p>
+                      <p className="text-sm text-muted-foreground">{t('re_ocr.replace.no_links')}</p>
                     )}
                   </div>
                 )}
@@ -231,10 +200,7 @@ export function ReOcrDialog({
             )}
             <h3 className="font-medium">{t('re_ocr.select.heading')}</h3>
             {(['np-dms-ocr', 'auto'] as const).map((value) => (
-              <label
-                key={value}
-                className="flex cursor-pointer items-start gap-3 rounded border p-3"
-              >
+              <label key={value} className="flex cursor-pointer items-start gap-3 rounded border p-3">
                 <input
                   type="radio"
                   name="re-ocr-engine"
@@ -257,15 +223,9 @@ export function ReOcrDialog({
             </p>
             <Button
               onClick={() => start(engine)}
-              disabled={
-                trigger.isPending ||
-                replaceTrigger.isPending ||
-                (replaceEnabled && !canStartReplace)
-              }
+              disabled={trigger.isPending || replaceTrigger.isPending || (replaceEnabled && !canStartReplace)}
             >
-              {(trigger.isPending || replaceTrigger.isPending) && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
+              {(trigger.isPending || replaceTrigger.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {t(replaceEnabled ? 're_ocr.replace.start' : 're_ocr.select.start')}
             </Button>
           </div>
@@ -320,7 +280,7 @@ export function ReOcrDialog({
             )}
             {filenameMismatch && (
               <div
-                className="flex shrink-0 items-center gap-2 rounded border border-yellow-400 bg-yellow-50 p-2 text-sm text-yellow-900"
+                className="flex shrink-0 items-center gap-2 rounded border border-warning bg-warning/10 p-2 text-sm text-warning"
                 role="alert"
                 data-testid="filename-mismatch"
               >
@@ -332,13 +292,11 @@ export function ReOcrDialog({
               </div>
             )}
             {!resumingReplace && status.identical && (
-              <div className="shrink-0 rounded border bg-muted/40 p-2 text-sm">
-                {t('re_ocr.diff.identical')}
-              </div>
+              <div className="shrink-0 rounded border bg-muted/40 p-2 text-sm">{t('re_ocr.diff.identical')}</div>
             )}
             {status.warning === 'RESULT_MUCH_SHORTER' && (
               <div
-                className="flex shrink-0 items-center gap-2 rounded border border-yellow-400 bg-yellow-50 p-2 text-sm text-yellow-900"
+                className="flex shrink-0 items-center gap-2 rounded border border-warning bg-warning/10 p-2 text-sm text-warning"
                 role="alert"
               >
                 <AlertTriangle className="h-4 w-4" />

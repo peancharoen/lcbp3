@@ -22,8 +22,9 @@ export default function NewTemplatePage() {
   const { data: disciplines = [] } = useDisciplines(contractId);
 
   const selectedProjectName = Array.isArray(projects)
-    ? (projects as Array<{ id?: number; publicId?: string; projectName: string }>).find((p) =>
-        String(p.publicId ?? p.id) === String(projectId))?.projectName || 'LCBP3'
+    ? (projects as Array<{ id?: number; publicId?: string; projectName: string }>).find(
+        (p) => String(p.publicId ?? p.id) === String(projectId)
+      )?.projectName || 'LCBP3'
     : 'LCBP3';
 
   const handleSave = async (data: Partial<NumberingTemplate>) => {
@@ -49,7 +50,7 @@ export default function NewTemplatePage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6 p-6">
       <h1 className="text-3xl font-bold">New Numbering Template</h1>
       <TemplateEditor
         projectId={projectId}

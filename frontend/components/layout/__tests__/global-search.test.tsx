@@ -33,7 +33,7 @@ describe('GlobalSearch', () => {
 
     render(<GlobalSearch />);
 
-    const spinners = screen.getAllByRole('generic', { name: '' }).filter(el => el.querySelector('.animate-spin'));
+    const spinners = screen.getAllByRole('generic', { name: '' }).filter((el) => el.querySelector('.animate-spin'));
     if (spinners.length > 0) {
       expect(spinners[0]).toBeInTheDocument();
     }

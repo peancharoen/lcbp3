@@ -53,13 +53,13 @@ export default function NumberingLogsPage() {
     {
       accessorKey: 'errorMessage',
       header: 'Message',
-      cell: ({ row }) => <span className="text-destructive font-medium">{row.original.errorMessage}</span>,
+      cell: ({ row }) => <span className="font-medium text-destructive">{row.original.errorMessage}</span>,
     },
     {
       accessorKey: 'stackTrace',
       header: 'Details',
       cell: ({ row }) => (
-        <div className="max-w-[400px] truncate text-xs text-muted-foreground font-mono" title={row.original.stackTrace}>
+        <div className="max-w-[400px] truncate font-mono text-xs text-muted-foreground" title={row.original.stackTrace}>
           {row.original.stackTrace}
         </div>
       ),
@@ -67,8 +67,8 @@ export default function NumberingLogsPage() {
   ];
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6 p-6">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Numbering Logs</h1>
           <p className="text-muted-foreground">Diagnostics for document numbering issues</p>

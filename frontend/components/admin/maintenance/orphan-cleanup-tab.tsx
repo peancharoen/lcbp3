@@ -59,7 +59,9 @@ export function OrphanCleanupTab() {
   return (
     <div className="space-y-4">
       <div className="flex gap-2">
-        <Button onClick={handleScan} disabled={loading}>{t('admin.maintenance.scan')}</Button>
+        <Button onClick={handleScan} disabled={loading}>
+          {t('admin.maintenance.scan')}
+        </Button>
         <Button onClick={handlePurge} disabled={loading || selected.size === 0} variant="destructive">
           {t('admin.maintenance.purge.selected')}
         </Button>
@@ -75,10 +77,10 @@ export function OrphanCleanupTab() {
           ) : (
             <ul className="space-y-2">
               {orphans.map((orphan) => (
-                <li key={orphan.path} className="flex items-center gap-3 border p-2 rounded">
+                <li key={orphan.path} className="flex items-center gap-3 rounded border p-2">
                   <Checkbox checked={selected.has(orphan.path)} onCheckedChange={() => toggle(orphan.path)} />
                   <div>
-                    <p className="font-medium text-sm">{orphan.path}</p>
+                    <p className="text-sm font-medium">{orphan.path}</p>
                     <p className="text-xs text-muted-foreground">
                       {t('admin.maintenance.orphan.size')}: {orphan.sizeBytes} bytes — {orphan.reason}
                     </p>

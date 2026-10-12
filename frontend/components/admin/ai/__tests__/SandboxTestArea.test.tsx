@@ -47,7 +47,7 @@ describe('SandboxTestArea', () => {
 
   it('renders correctly', async () => {
     render(<SandboxTestArea promptType="ocr_extraction" />);
-    
+
     await waitFor(() => {
       expect(screen.getByText(/รันบอร์ดทดลองการทำงาน/i)).toBeInTheDocument();
     });
@@ -60,7 +60,7 @@ describe('SandboxTestArea', () => {
   it('requires project and file for OCR', async () => {
     const user = userEvent.setup();
     render(<SandboxTestArea promptType="ocr_extraction" />);
-    
+
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /เริ่มรัน OCR/i })).toBeDisabled();
     });
@@ -76,7 +76,7 @@ describe('SandboxTestArea', () => {
 
   it('runs OCR and polls status', async () => {
     const user = userEvent.setup();
-    
+
     mockSubmitSandboxOcr.mockResolvedValue({ requestPublicId: 'req-1' });
     mockGetSandboxJobStatus.mockResolvedValue({ status: 'completed', ocrText: 'Extracted text from PDF' });
 
@@ -92,8 +92,11 @@ describe('SandboxTestArea', () => {
 
     expect(mockSubmitSandboxOcr).toHaveBeenCalled();
 
-    await waitFor(() => {
-      expect(mockGetSandboxJobStatus).toHaveBeenCalledWith('req-1');
-    }, { timeout: 3000 }); // Polling interval is 2s
+    await waitFor(
+      () => {
+        expect(mockGetSandboxJobStatus).toHaveBeenCalledWith('req-1');
+      },
+      { timeout: 3000 }
+    ); // Polling interval is 2s
   });
 });

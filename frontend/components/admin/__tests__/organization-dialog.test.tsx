@@ -24,9 +24,7 @@ vi.mock('@/hooks/use-master-data', () => ({
 vi.mock('@/components/ui/dialog', () => ({
   Dialog: ({ children, open }: { children: React.ReactNode; open: boolean }) =>
     open ? <div data-testid="dialog">{children}</div> : null,
-  DialogContent: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="dialog-content">{children}</div>
-  ),
+  DialogContent: ({ children }: { children: React.ReactNode }) => <div data-testid="dialog-content">{children}</div>,
   DialogHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   DialogTitle: ({ children }: { children: React.ReactNode }) => <h2>{children}</h2>,
   DialogFooter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -45,23 +43,17 @@ describe('OrganizationDialog', () => {
   });
 
   it('ควรไม่เรนเดอร์ Dialog เมื่อ open เป็น false', () => {
-    renderWithProvider(
-      <OrganizationDialog open={false} onOpenChange={mockOnOpenChange} />,
-    );
+    renderWithProvider(<OrganizationDialog open={false} onOpenChange={mockOnOpenChange} />);
     expect(screen.queryByTestId('dialog')).not.toBeInTheDocument();
   });
 
   it('ควรเรนเดอร์ Dialog เมื่อ open เป็น true', () => {
-    renderWithProvider(
-      <OrganizationDialog open={true} onOpenChange={mockOnOpenChange} />,
-    );
+    renderWithProvider(<OrganizationDialog open={true} onOpenChange={mockOnOpenChange} />);
     expect(screen.getByTestId('dialog')).toBeInTheDocument();
   });
 
   it('ควรแสดง title "New Organization" เมื่อไม่มี organization prop', () => {
-    renderWithProvider(
-      <OrganizationDialog open={true} onOpenChange={mockOnOpenChange} />,
-    );
+    renderWithProvider(<OrganizationDialog open={true} onOpenChange={mockOnOpenChange} />);
     expect(screen.getByText('New Organization')).toBeInTheDocument();
   });
 
@@ -72,16 +64,12 @@ describe('OrganizationDialog', () => {
       organizationName: 'Test Owner Co., Ltd.',
       isActive: true,
     } as any;
-    renderWithProvider(
-      <OrganizationDialog open={true} onOpenChange={mockOnOpenChange} organization={mockOrg} />,
-    );
+    renderWithProvider(<OrganizationDialog open={true} onOpenChange={mockOnOpenChange} organization={mockOrg} />);
     expect(screen.getByText('Edit Organization')).toBeInTheDocument();
   });
 
   it('ควรแสดงปุ่ม Cancel และ Create Organization สำหรับ New', () => {
-    renderWithProvider(
-      <OrganizationDialog open={true} onOpenChange={mockOnOpenChange} />,
-    );
+    renderWithProvider(<OrganizationDialog open={true} onOpenChange={mockOnOpenChange} />);
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Create Organization' })).toBeInTheDocument();
   });
@@ -93,16 +81,12 @@ describe('OrganizationDialog', () => {
       organizationName: 'Test Owner Co., Ltd.',
       isActive: true,
     } as any;
-    renderWithProvider(
-      <OrganizationDialog open={true} onOpenChange={mockOnOpenChange} organization={mockOrg} />,
-    );
+    renderWithProvider(<OrganizationDialog open={true} onOpenChange={mockOnOpenChange} organization={mockOrg} />);
     expect(screen.getByRole('button', { name: 'Save Changes' })).toBeInTheDocument();
   });
 
   it('ควรเรียก onOpenChange(false) เมื่อคลิก Cancel', async () => {
-    renderWithProvider(
-      <OrganizationDialog open={true} onOpenChange={mockOnOpenChange} />,
-    );
+    renderWithProvider(<OrganizationDialog open={true} onOpenChange={mockOnOpenChange} />);
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     await waitFor(() => {
       expect(mockOnOpenChange).toHaveBeenCalledWith(false);
@@ -110,9 +94,7 @@ describe('OrganizationDialog', () => {
   });
 
   it('ควรแสดง validation error เมื่อ submit form ว่างเปล่า', async () => {
-    renderWithProvider(
-      <OrganizationDialog open={true} onOpenChange={mockOnOpenChange} />,
-    );
+    renderWithProvider(<OrganizationDialog open={true} onOpenChange={mockOnOpenChange} />);
     const form = screen.getByRole('button', { name: 'Create Organization' }).closest('form');
     if (form) fireEvent.submit(form);
     await waitFor(() => {

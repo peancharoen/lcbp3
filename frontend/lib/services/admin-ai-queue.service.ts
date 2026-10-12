@@ -97,10 +97,7 @@ export const adminAiQueueService = {
     return extractData<{ jobId: string; status: string }>(data);
   },
 
-  getClearFailedStatus: async (
-    queueName: string,
-    jobId: string
-  ): Promise<ClearFailedResult | null> => {
+  getClearFailedStatus: async (queueName: string, jobId: string): Promise<ClearFailedResult | null> => {
     const { data } = await api.get(
       `/ai/admin/queues/${encodeURIComponent(queueName)}/clear-failed/${encodeURIComponent(jobId)}`
     );

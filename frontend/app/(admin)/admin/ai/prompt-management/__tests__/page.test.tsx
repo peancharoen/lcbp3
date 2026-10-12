@@ -55,17 +55,19 @@ describe('UnifiedPromptManagementPage', () => {
     vi.clearAllMocks();
     window.PointerEvent = MouseEvent as unknown as typeof PointerEvent;
     mockListPromptTypes.mockResolvedValue([
-      { publicId: '1', promptType: 'ocr_extraction', displayName: 'OCR Extraction', isSystemManaged: true, isActive: true },
+      {
+        publicId: '1',
+        promptType: 'ocr_extraction',
+        displayName: 'OCR Extraction',
+        isSystemManaged: true,
+        isActive: true,
+      },
       { publicId: '2', promptType: 'ocr_system', displayName: 'OCR System', isSystemManaged: true, isActive: true },
     ]);
   });
 
   const renderWithQueryClient = (component: React.ReactNode) => {
-    return render(
-      <QueryClientProvider client={queryClient}>
-        {component}
-      </QueryClientProvider>
-    );
+    return render(<QueryClientProvider client={queryClient}>{component}</QueryClientProvider>);
   };
 
   it('renders the unified page title and prompt type dropdown', async () => {

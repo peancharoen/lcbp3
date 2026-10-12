@@ -128,10 +128,7 @@ describe('visual-builder helper functions', () => {
 
     it('ควรสร้าง edges จาก transitions', () => {
       const dsl = JSON.stringify({
-        states: [
-          { name: 'Start', on: { SUBMIT: { to: 'Review' } } },
-          { name: 'Review' },
-        ],
+        states: [{ name: 'Start', on: { SUBMIT: { to: 'Review' } } }, { name: 'Review' }],
       });
 
       const result = parseDSL(dsl);
@@ -155,9 +152,7 @@ describe('visual-builder helper functions', () => {
 
     it('ควร handle role จาก require.role', () => {
       const dsl = JSON.stringify({
-        states: [
-          { name: 'Review', on: { SUBMIT: { require: { role: 'Manager' } } } },
-        ],
+        states: [{ name: 'Review', on: { SUBMIT: { require: { role: 'Manager' } } } }],
       });
 
       const result = parseDSL(dsl);
@@ -167,9 +162,7 @@ describe('visual-builder helper functions', () => {
 
     it('ควร handle role array จาก require.role', () => {
       const dsl = JSON.stringify({
-        states: [
-          { name: 'Review', on: { SUBMIT: { require: { role: ['Manager', 'Lead'] } } } },
-        ],
+        states: [{ name: 'Review', on: { SUBMIT: { require: { role: ['Manager', 'Lead'] } } } }],
       });
 
       const result = parseDSL(dsl);

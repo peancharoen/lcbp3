@@ -94,15 +94,15 @@ export function TemplateTester({ open, onOpenChange, template }: TemplateTesterP
           <DialogTitle>Test Number Generation</DialogTitle>
         </DialogHeader>
 
-        <div className="text-sm text-muted-foreground mb-2">
+        <div className="mb-2 text-sm text-muted-foreground">
           Template: <span className="font-mono font-bold text-foreground">{template?.formatTemplate}</span>
         </div>
 
-        <Card className="p-6 mt-6 bg-muted/50 rounded-lg">
-          <h3 className="text-lg font-semibold mb-4">Template Tester</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="mt-6 rounded-lg bg-muted/50 p-6">
+          <h3 className="mb-4 text-lg font-semibold">Template Tester</h3>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <div className="md:col-span-2">
-              <h4 className="text-sm font-medium mb-2">Test Parameters</h4>
+              <h4 className="mb-2 text-sm font-medium">Test Parameters</h4>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   {/* Originator */}
@@ -187,41 +187,41 @@ export function TemplateTester({ open, onOpenChange, template }: TemplateTesterP
                     </Select>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground mt-4">Format Preview: {template?.formatTemplate}</p>
+                <p className="mt-4 text-xs text-muted-foreground">Format Preview: {template?.formatTemplate}</p>
               </div>
             </div>
           </div>
         </Card>
 
-        <Button onClick={handleGenerate} className="w-full mt-4" disabled={loading || !template}>
+        <Button onClick={handleGenerate} className="mt-4 w-full" disabled={loading || !template}>
           {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Generate Test Number
         </Button>
 
         {testResult && (
           <Card
-            className={`p-4 mt-4 border text-center ${(testResult.number || '').startsWith('Error:') ? 'bg-red-50 border-red-200 text-red-700' : 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-900'}`}
+            className={`mt-4 border p-4 text-center ${(testResult.number || '').startsWith('Error:') ? 'border-destructive/30 bg-destructive/10 text-destructive' : 'border-success/30 bg-success/10'}`}
           >
-            <div className="flex justify-between items-center mb-1">
+            <div className="mb-1 flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
                 {(testResult.number || '').startsWith('Error:') ? 'Generation Failed:' : 'Generated Number:'}
               </p>
               {testResult.isDefault && !(testResult.number || '').startsWith('Error:') && (
-                <Badge variant="secondary" className="text-[10px] h-4 px-1">
+                <Badge variant="secondary" className="h-4 px-1 text-[10px]">
                   Default Template
                 </Badge>
               )}
               {!testResult.isDefault && !(testResult.number || '').startsWith('Error:') && (
-                <Badge variant="outline" className="text-[10px] h-4 px-1 border-green-300 text-green-700 bg-green-50">
+                <Badge variant="outline" className="h-4 border-success/30 bg-success/10 px-1 text-[10px] text-success">
                   Specific Template
                 </Badge>
               )}
             </div>
             <div
-              className={`text-2xl font-mono font-bold ${(testResult.number || '').startsWith('Error:') ? 'text-red-700' : 'text-green-700 dark:text-green-400'}`}
+              className={`font-mono text-2xl font-bold ${(testResult.number || '').startsWith('Error:') ? 'text-destructive' : 'text-success'}`}
             >
               {testResult.number || (
-                <div className="text-xs font-mono text-left bg-slate-100 p-2 overflow-auto max-h-48 border rounded text-foreground">
+                <div className="max-h-48 overflow-auto rounded border bg-muted p-2 text-left font-mono text-xs text-foreground">
                   Empty Result. Raw: {JSON.stringify(testResult, null, 2)}
                 </div>
               )}
