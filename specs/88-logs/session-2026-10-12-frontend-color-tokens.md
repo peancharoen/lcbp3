@@ -22,6 +22,8 @@
 | `frontend/app/globals.css`, `frontend/tailwind.config.ts` (commit `f6a538ac`) | เพิ่ม tokens `ai` (262 83% 58% / dark 258 90% 66%) และ `caution` (21 90% 48% / dark 27 96% 61%) |
 | 27 ไฟล์ใน `app/`, `components/` (commit `f6a538ac`) | purple/violet/indigo/pink→`ai`, orange→`caution`, teal/cyan→`info` 124 จุด; `text-red-500` asterisk→`text-destructive`; ปุ่มเทาใน `error-display.tsx`→`bg-muted-foreground` |
 
+| `frontend/app/(admin)/layout.tsx`, `frontend/app/(admin)/admin/migration/review/[id]/page.tsx` (commit `25b8c27b`) | `bg-white`→`bg-background` (mobile header เดิมอ่านไม่ออกใน dark; review card เสีย dark override จากสคริปต์ migrate) |
+
 ## กฎที่ Lock แล้ว
 
 ดู D365 — ใช้ tokens แทนสีดิบ, อยู่ Tailwind v3, plugin pin 0.7.4
@@ -35,4 +37,10 @@ class ที่ต้องเปลี่ยน ~228 จุด / 81 จาก 3
 - [x] `tsc --noEmit`, `eslint --quiet`, vitest 176 files / 1,234 tests ผ่าน
 - [x] squash push `852feda8` → origin/main
 - [ ] ข้อควรระวัง `ai`/`caution`: ไอคอน admin tiles ที่เคยคนละสี (violet/purple) กลายเป็นสีเดียว, gradient หัวข้อ migration review จืดลง, `bg-ai` ทึบใน dark ใช้ข้อความขาว (~4:1 < 4.5)
-- [ ] ตรวจหน้าจริง light/dark (migration, admin/ai, error-display, dashboard, workflow)
+- [x] admin mobile header dark — user ยืนยัน ok หลัง `25b8c27b`
+- [ ] ตรวจหน้าจริง light/dark ที่เหลือ (migration, admin/ai, error-display, dashboard, workflow)
+
+## บทเรียน
+
+- สคริปต์ migrate สีแมปเฉพาะ palette ดิบ ไม่ครอบคลุม `bg-white`/`text-black` และการลบ `dark:` override อาจทำให้พื้น `bg-white` ที่เหลือขาวใน dark — ต้อง grep `bg-white`/`text-black` ร่วมด้วยทุกครั้ง
+- commit local หายจาก `main` ได้ (D271/D294) — ตรวจ `git log` ก่อน push และกู้ด้วย `git cherry-pick <hash>`
