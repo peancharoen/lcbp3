@@ -58,7 +58,7 @@ export function BatchRunSummary({ result, variant = 'resolve', className }: Batc
       <CardHeader className="border-b pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base font-bold">
-            {isRag ? <FileText className="h-5 w-5 text-info" /> : <Tags className="h-5 w-5 text-purple-500" />}
+            {isRag ? <FileText className="h-5 w-5 text-info" /> : <Tags className="h-5 w-5 text-ai" />}
             {isRag ? 'สรุปการ RAG Batch' : 'สรุปการ Resolve Batch'}
           </CardTitle>
           {result.batchId && (
@@ -68,7 +68,7 @@ export function BatchRunSummary({ result, variant = 'resolve', className }: Batc
           )}
         </div>
         {result.warning && (
-          <div className="mt-2 flex items-center gap-2 rounded bg-orange-500/5 p-2 text-xs text-orange-600">
+          <div className="mt-2 flex items-center gap-2 rounded bg-caution/5 p-2 text-xs text-caution">
             <AlertCircle className="h-4 w-4 flex-shrink-0" />
             <span>
               {result.warning === 'IMPORT_IN_PROGRESS'

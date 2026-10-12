@@ -29,7 +29,7 @@ export function QueueDocNumber({ item, revisionPrefix = 'Rev.', className }: Que
     >
       <span>{base}</span>
       {rev !== undefined && (
-        <Badge variant="outline" className="border-indigo-500/40 px-1 py-0 font-mono text-[10px] text-indigo-500">
+        <Badge variant="outline" className="border-ai/40 px-1 py-0 font-mono text-[10px] text-ai">
           {revisionPrefix} {rev}
         </Badge>
       )}

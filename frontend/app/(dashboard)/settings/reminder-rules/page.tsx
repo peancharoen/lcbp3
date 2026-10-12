@@ -33,11 +33,11 @@ export default function ReminderRulesPage() {
       case ReminderType.ON_DUE:
         return 'bg-warning/10 text-warning border-warning/30';
       case ReminderType.OVERDUE:
-        return 'bg-orange-100 text-orange-800 border-orange-200';
+        return 'bg-caution/10 text-caution border-caution/30';
       case ReminderType.ESCALATION_L1:
         return 'bg-destructive/10 text-destructive border-destructive/30';
       case ReminderType.ESCALATION_L2:
-        return 'bg-purple-100 text-purple-800 border-purple-200';
+        return 'bg-ai/10 text-ai border-ai/30';
       default:
         return 'bg-muted text-foreground border-border';
     }

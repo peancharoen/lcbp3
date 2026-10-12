@@ -52,9 +52,9 @@ export function CompareResultTable({
   // FR-012a: ถ้า compareStatus = UNAVAILABLE ให้แสดงแจ้งเตือนแทนตาราง
   if (compareStatus === CompareStatus.UNAVAILABLE) {
     return (
-      <Card className="border-orange-500/30 bg-orange-500/5">
+      <Card className="border-caution/30 bg-caution/5">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base text-orange-600">
+          <CardTitle className="flex items-center gap-2 text-base text-caution">
             <FileX2 className="h-5 w-5" />
             ไม่สามารถเปรียบเทียบได้
           </CardTitle>
@@ -106,7 +106,7 @@ export function CompareResultTable({
           </div>
         )}
         {isLowConfidence && (
-          <div className="mt-1 flex items-center gap-2 text-xs text-orange-600">
+          <div className="mt-1 flex items-center gap-2 text-xs text-caution">
             <AlertCircle className="h-4 w-4" />
             <span>ค่าความมั่นใจต่ำกว่าขั้นต่ำ — ต้องตรวจสอบด้วยมือ</span>
           </div>
@@ -179,7 +179,7 @@ function CompareFieldRow({
         {fieldResult.foundInDocument ? (
           (fieldResult.ocrValue ?? '—')
         ) : (
-          <span className="italic text-orange-600">ไม่พบในเอกสาร</span>
+          <span className="italic text-caution">ไม่พบในเอกสาร</span>
         )}
       </td>
       <td className="py-2 pr-4 text-center">
@@ -219,7 +219,7 @@ function CompareFieldRow({
             </>
           )}
           <span className="text-muted-foreground">|</span>
-          <label className={cn('cursor-pointer text-xs', currentSource === 'MANUAL' && 'font-bold text-purple-600')}>
+          <label className={cn('cursor-pointer text-xs', currentSource === 'MANUAL' && 'font-bold text-ai')}>
             <input
               type="radio"
               name={`source-${fieldResult.field}`}

@@ -969,9 +969,9 @@ export default function MigrationReviewPage() {
                 {tagSuggestions.length > 0 && (
                   <div
                     data-testid="tag-suggestions-section"
-                    className="mt-4 space-y-2 rounded-md border border-purple-200 bg-purple-50/50 p-3 dark:border-purple-900 dark:bg-purple-950/40"
+                    className="mt-4 space-y-2 rounded-md border border-ai/30 bg-ai/50 p-3"
                   >
-                    <h3 className="text-sm font-semibold text-purple-700 dark:text-purple-300">
+                    <h3 className="text-sm font-semibold text-ai">
                       {migrationReviewT('tag_suggestions_title')}
                     </h3>
                     <div className="space-y-2">
@@ -982,14 +982,14 @@ export default function MigrationReviewPage() {
                             key={tag.name}
                             data-testid={`tag-chip-${tag.name}`}
                             title={tag.evidence}
-                            className="flex items-center gap-2 rounded-md border border-purple-200 bg-white p-2 dark:border-purple-800 dark:bg-purple-950/30"
+                            className="flex items-center gap-2 rounded-md border border-ai/30 bg-white p-2"
                           >
                             <span className="flex-1 text-sm font-medium">{tag.name}</span>
                             {tag.isNew && (
                               <Badge
                                 data-testid={`tag-is-new-badge-${tag.name}`}
                                 variant="secondary"
-                                className="bg-purple-100 text-xs text-purple-700 dark:bg-purple-900 dark:text-purple-200"
+                                className="bg-ai/10 text-xs text-ai"
                               >
                                 {migrationReviewT('tag_is_new_badge')}
                               </Badge>

@@ -55,6 +55,14 @@ const config = {
           DEFAULT: 'hsl(var(--info))',
           foreground: 'hsl(var(--info-foreground))',
         },
+        ai: {
+          DEFAULT: 'hsl(var(--ai))',
+          foreground: 'hsl(var(--ai-foreground))',
+        },
+        caution: {
+          DEFAULT: 'hsl(var(--caution))',
+          foreground: 'hsl(var(--caution-foreground))',
+        },
         popover: {
           DEFAULT: 'hsl(var(--popover))',
           foreground: 'hsl(var(--popover-foreground))',

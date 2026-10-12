@@ -57,7 +57,7 @@ export default function SystemTogglePage() {
                 <span className="text-muted-foreground/50">+</span>
                 <Badge
                   variant="outline"
-                  className="border-purple-500/20 bg-purple-500/5 px-1.5 py-0 text-[10px] font-semibold text-purple-600 dark:text-purple-400"
+                  className="border-ai/20 bg-ai/5 px-1.5 py-0 text-[10px] font-semibold text-ai"
                 >
                   {isHealthLoading ? 'Loading...' : toCanonicalModel(health?.activeModels?.ocr ?? 'np-dms-ocr')}
                 </Badge>

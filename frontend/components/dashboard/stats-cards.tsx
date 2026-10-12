@@ -31,8 +31,8 @@ export function StatsCards({ stats, isLoading }: StatsCardsProps) {
       title: 'Active RFAs',
       value: stats.totalRfas,
       icon: Clipboard,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50',
+      color: 'text-ai',
+      bgColor: 'bg-ai/10',
     },
     {
       title: 'Approved Documents',
@@ -45,8 +45,8 @@ export function StatsCards({ stats, isLoading }: StatsCardsProps) {
       title: 'Pending Approvals',
       value: stats.pendingApprovals,
       icon: Clock,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-50',
+      color: 'text-caution',
+      bgColor: 'bg-caution/10',
     },
   ];
 

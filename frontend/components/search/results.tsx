@@ -24,7 +24,7 @@ interface SearchResultsProps {
 
 const TYPE_META: Record<string, { icon: React.ElementType; label: string; color: string }> = {
   correspondence: { icon: FileText, label: 'Correspondence', color: 'text-info' },
-  rfa: { icon: Clipboard, label: 'RFA', color: 'text-purple-600' },
+  rfa: { icon: Clipboard, label: 'RFA', color: 'text-ai' },
   drawing: { icon: Image, label: 'Drawing', color: 'text-success' },
 };
 

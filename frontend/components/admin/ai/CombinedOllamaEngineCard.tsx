@@ -396,14 +396,14 @@ export function CombinedOllamaEngineCard({
                     ))}
 
                     {/* BGE row — Sidecar lazy-load (ไม่ได้โหลดใน Ollama) */}
-                    <tr className="border-t border-border/30 bg-purple-500/5">
+                    <tr className="border-t border-border/30 bg-ai/5">
                       <td className="px-2 py-1.5 font-mono">
                         {BGE_MODEL_NAME}
                         <span className="ml-1 text-[9px] text-muted-foreground">(sidecar)</span>
                       </td>
                       <td className="px-2 py-1.5">
                         {bgeStatus?.bgeLoaded ? (
-                          <Badge className="border-purple-500/20 bg-purple-500/10 text-[10px] text-purple-600 hover:bg-purple-500/20 dark:text-purple-400">
+                          <Badge className="border-ai/20 bg-ai/10 text-[10px] text-ai hover:bg-ai/20">
                             {t('ai.vram.residency.loaded')}
                           </Badge>
                         ) : (

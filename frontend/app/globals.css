@@ -32,6 +32,10 @@
     --warning-foreground: 0 0% 100%;
     --info: 199 89% 38%;
     --info-foreground: 0 0% 100%;
+    --ai: 262 83% 58%;
+    --ai-foreground: 0 0% 100%;
+    --caution: 21 90% 48%;
+    --caution-foreground: 0 0% 100%;
     --border: 214 31% 89%;
     --input: 214 31% 89%;
     --ring: 220 78% 40%;
@@ -68,6 +72,10 @@
     --warning-foreground: 26 83% 14%;
     --info: 199 89% 60%;
     --info-foreground: 200 90% 10%;
+    --ai: 258 90% 66%;
+    --ai-foreground: 0 0% 100%;
+    --caution: 27 96% 61%;
+    --caution-foreground: 26 83% 14%;
     --border: 219 36% 24%;
     --input: 219 36% 24%;
     --ring: 207 92% 63%;

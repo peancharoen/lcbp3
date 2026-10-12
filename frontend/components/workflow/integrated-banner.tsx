@@ -20,7 +20,7 @@ const PRIORITY_CONFIG: Record<WorkflowPriority, { labelKey: string; className: s
     labelKey: 'workflow.priority.URGENT',
     className: 'bg-destructive text-destructive-foreground animate-pulse',
   },
-  HIGH: { labelKey: 'workflow.priority.HIGH', className: 'bg-orange-500 text-white' },
+  HIGH: { labelKey: 'workflow.priority.HIGH', className: 'bg-caution text-white' },
   MEDIUM: { labelKey: 'workflow.priority.MEDIUM', className: 'bg-warning text-warning-foreground' },
   LOW: { labelKey: 'workflow.priority.LOW', className: 'bg-success text-success-foreground' },
 };

@@ -19,6 +19,9 @@
 | 99 ไฟล์ใน `app/`, `components/` | แทนสีดิบ 641 จุดด้วย tokens, ลบ `dark:` สีซ้ำซ้อน |
 | 368 ไฟล์ frontend | `prettier --write --ignore-path ../.prettierignore` (revert `eslint-frontend.json`, `__tests__/README.md`) |
 
+| `frontend/app/globals.css`, `frontend/tailwind.config.ts` (commit `f6a538ac`) | เพิ่ม tokens `ai` (262 83% 58% / dark 258 90% 66%) และ `caution` (21 90% 48% / dark 27 96% 61%) |
+| 27 ไฟล์ใน `app/`, `components/` (commit `f6a538ac`) | purple/violet/indigo/pink→`ai`, orange→`caution`, teal/cyan→`info` 124 จุด; `text-red-500` asterisk→`text-destructive`; ปุ่มเทาใน `error-display.tsx`→`bg-muted-foreground` |
+
 ## กฎที่ Lock แล้ว
 
 ดู D365 — ใช้ tokens แทนสีดิบ, อยู่ Tailwind v3, plugin pin 0.7.4
@@ -31,4 +34,5 @@ class ที่ต้องเปลี่ยน ~228 จุด / 81 จาก 3
 
 - [x] `tsc --noEmit`, `eslint --quiet`, vitest 176 files / 1,234 tests ผ่าน
 - [x] squash push `852feda8` → origin/main
+- [ ] ข้อควรระวัง `ai`/`caution`: ไอคอน admin tiles ที่เคยคนละสี (violet/purple) กลายเป็นสีเดียว, gradient หัวข้อ migration review จืดลง, `bg-ai` ทึบใน dark ใช้ข้อความขาว (~4:1 < 4.5)
 - [ ] ตรวจหน้าจริง light/dark (migration, admin/ai, error-display, dashboard, workflow)

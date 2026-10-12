@@ -105,7 +105,7 @@ export default function CreateProjectPage() {
           <CardContent className="space-y-4">
             {/* Project Code */}
             <div className="space-y-2">
-              <Label htmlFor="project_code" className="after:ml-0.5 after:text-red-500 after:content-['*']">
+              <Label htmlFor="project_code" className="after:ml-0.5 after:text-destructive after:content-['*']">
                 รหัสโครงการ (Project Code)
               </Label>
               <Input
@@ -127,7 +127,7 @@ export default function CreateProjectPage() {
 
             {/* Project Name */}
             <div className="space-y-2">
-              <Label htmlFor="project_name" className="after:ml-0.5 after:text-red-500 after:content-['*']">
+              <Label htmlFor="project_name" className="after:ml-0.5 after:text-destructive after:content-['*']">
                 ชื่อโครงการ (Project Name)
               </Label>
               <Input

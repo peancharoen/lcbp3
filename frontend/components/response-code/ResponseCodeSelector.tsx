@@ -27,10 +27,10 @@ const SEVERITY_COLORS: Record<string, string> = {
   '1A': 'bg-success/10 text-success',
   '1B': 'bg-success/10 text-success',
   '1C': 'bg-warning/10 text-warning',
-  '1D': 'bg-orange-100 text-orange-800',
+  '1D': 'bg-caution/10 text-caution',
   '1E': 'bg-info/10 text-info',
   '1F': 'bg-info/10 text-info',
-  '1G': 'bg-purple-100 text-purple-800',
+  '1G': 'bg-ai/10 text-ai',
   '2': 'bg-warning/10 text-warning',
   '3': 'bg-destructive/10 text-destructive',
   '4': 'bg-muted text-muted-foreground',
@@ -81,7 +81,7 @@ export function ResponseCodeSelector({
                   <CodeBadge code={code.code} />
                   <span className="text-sm">{code.descriptionEn}</span>
                   {(code.implications?.affectsCost || code.implications?.requiresContractReview) && (
-                    <span className="text-xs font-medium text-orange-600">⚠ Action Required</span>
+                    <span className="text-xs font-medium text-caution">⚠ Action Required</span>
                   )}
                 </div>
               </SelectItem>

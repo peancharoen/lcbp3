@@ -53,16 +53,16 @@ export function AiChatPanel({ context, isOpen, onClose, onToggle }: AiChatPanelP
         isOpen ? 'translate-x-0 translate-y-0' : 'translate-x-0 translate-y-full lg:translate-x-full lg:translate-y-0'
       }`}
     >
-      <div className="flex h-16 items-center justify-between border-b bg-gradient-to-r from-violet-50/50 to-indigo-50/50 px-4 dark:from-violet-950/20 dark:to-indigo-950/20">
+      <div className="flex h-16 items-center justify-between border-b bg-gradient-to-r from-ai/50 to-ai/50 px-4">
         <div className="flex items-center gap-2">
-          <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-tr from-violet-600 to-indigo-600 text-white shadow-md">
+          <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-tr from-ai to-ai text-white shadow-md">
             <Bot className="h-4 w-4" />
             <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-background bg-success" />
           </div>
           <div>
             <h2 className="flex items-center gap-1 text-sm font-semibold text-foreground">
               ผู้ช่วยอัจฉริยะ AI
-              <Sparkles className="h-3.5 w-3.5 animate-pulse text-violet-500" />
+              <Sparkles className="h-3.5 w-3.5 animate-pulse text-ai" />
             </h2>
             <p className="text-[10px] font-medium text-muted-foreground">พร้อมช่วยเหลือแบบเรียลไทม์</p>
           </div>

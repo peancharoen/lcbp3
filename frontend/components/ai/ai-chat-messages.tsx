@@ -51,7 +51,7 @@ export function AiChatMessages({
             }
             if (part.startsWith('`') && part.endsWith('`')) {
               return (
-                <code key={index} className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-violet-600">
+                <code key={index} className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-ai">
                   {part.slice(1, -1)}
                 </code>
               );
@@ -141,7 +141,7 @@ export function AiChatMessages({
       <div className="space-y-4">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
-            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-violet-500 to-indigo-500 text-white shadow-md">
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-ai to-ai text-white shadow-md">
               <Sparkles className="h-6 w-6 animate-pulse" />
             </div>
             <h3 className="text-sm font-semibold text-foreground">ยินดีต้อนรับสู่ระบบช่วยเหลือ AI</h3>
@@ -157,14 +157,14 @@ export function AiChatMessages({
             <div key={message.id} className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
               {!isUser && (
                 <div
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg shadow-sm ${isError ? 'bg-destructive/10 text-destructive' : 'bg-gradient-to-tr from-violet-500 to-indigo-500 text-white'}`}
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg shadow-sm ${isError ? 'bg-destructive/10 text-destructive' : 'bg-gradient-to-tr from-ai to-ai text-white'}`}
                 >
                   {isError ? <AlertCircle className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
                 </div>
               )}
               <div className={`flex max-w-[80%] flex-col gap-1.5`}>
                 <div
-                  className={`rounded-2xl px-4 py-2.5 text-sm shadow-sm ${isUser ? 'rounded-tr-none bg-violet-600 font-medium text-white' : isError ? 'rounded-tl-none border border-destructive/20 bg-destructive/10 text-destructive' : 'rounded-tl-none border bg-card text-card-foreground'}`}
+                  className={`rounded-2xl px-4 py-2.5 text-sm shadow-sm ${isUser ? 'rounded-tr-none bg-ai font-medium text-white' : isError ? 'rounded-tl-none border border-destructive/20 bg-destructive/10 text-destructive' : 'rounded-tl-none border bg-card text-card-foreground'}`}
                 >
                   {message.isStreaming ? (
                     <div className="flex select-none items-center gap-2 py-1 text-muted-foreground">
@@ -185,7 +185,7 @@ export function AiChatMessages({
                       <button
                         key={`${action.label}-${idx}`}
                         onClick={() => onSuggestedActionClick(action.query)}
-                        className="select-none rounded-full border border-violet-200 bg-violet-50/50 px-2.5 py-1 text-xs font-medium text-violet-700 transition-colors hover:bg-violet-100"
+                        className="select-none rounded-full border border-ai/30 bg-ai/50 px-2.5 py-1 text-xs font-medium text-ai transition-colors hover:bg-ai/10"
                       >
                         {action.label}
                       </button>
@@ -203,7 +203,7 @@ export function AiChatMessages({
         })}
         {isLoading && messages.length > 0 && !messages[messages.length - 1].isStreaming && (
           <div className="flex justify-start gap-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-tr from-violet-500 to-indigo-500 text-white shadow-sm">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-tr from-ai to-ai text-white shadow-sm">
               <Bot className="h-4 w-4" />
             </div>
             <div className="flex items-center gap-2 rounded-2xl rounded-tl-none border bg-card px-4 py-2.5 text-card-foreground shadow-sm">

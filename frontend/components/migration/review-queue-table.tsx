@@ -250,7 +250,7 @@ export function ReviewQueueTable({ items, isLoading }: ReviewQueueTableProps) {
     if (!compareStatus) return <span className="text-xs text-muted-foreground">—</span>;
     if (compareStatus === CompareStatus.UNAVAILABLE) {
       return (
-        <Badge variant="outline" className="border-orange-500/30 bg-orange-500/5 text-orange-600">
+        <Badge variant="outline" className="border-caution/30 bg-caution/5 text-caution">
           <GitCompare className="mr-1 h-3 w-3" />
           ไม่สามารถเปรียบเทียบ
         </Badge>

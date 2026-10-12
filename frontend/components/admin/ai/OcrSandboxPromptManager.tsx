@@ -1024,9 +1024,9 @@ export default function OcrSandboxPromptManager() {
               </Card>
             )}
             {sandboxState.result && sandboxState.result.llmPrompt && (
-              <Card className="border border-purple-500/20 bg-purple-500/5">
+              <Card className="border border-ai/20 bg-ai/5">
                 <CardHeader className="flex flex-row items-center justify-between border-b border-border/30 pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base text-purple-600 dark:text-purple-400">
+                  <CardTitle className="flex items-center gap-2 text-base text-ai">
                     <StickyNote className="h-4 w-4" />
                     LLM Prompt (Step 2 Input)
                   </CardTitle>
@@ -1036,7 +1036,7 @@ export default function OcrSandboxPromptManager() {
                 </CardHeader>
                 <CardContent className="pt-4">
                   <div className="relative max-h-[300px] overflow-auto rounded-md border border-border/10 bg-muted p-4 font-mono text-xs">
-                    <pre className="select-text whitespace-pre-wrap leading-relaxed text-purple-600 dark:text-purple-400">
+                    <pre className="select-text whitespace-pre-wrap leading-relaxed text-ai">
                       {sandboxState.result.llmPrompt}
                     </pre>
                   </div>

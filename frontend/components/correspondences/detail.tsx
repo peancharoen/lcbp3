@@ -495,7 +495,7 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
                     importance === 'URGENT'
                       ? 'bg-destructive/10 text-destructive'
                       : importance === 'HIGH'
-                        ? 'bg-orange-100 text-orange-800'
+                        ? 'bg-caution/10 text-caution'
                         : 'bg-info/10 text-info'
                   }`}
                 >

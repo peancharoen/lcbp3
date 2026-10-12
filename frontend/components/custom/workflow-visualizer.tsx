@@ -55,9 +55,9 @@ export function WorkflowVisualizer({ steps, className }: WorkflowVisualizerProps
               lineColor = 'bg-destructive';
               break;
             case 'skipped':
-              statusColor = 'bg-orange-400 text-white border-orange-400';
+              statusColor = 'bg-caution/30 text-white border-caution';
               icon = <AlertCircle className="h-4 w-4" />;
-              lineColor = 'bg-orange-400';
+              lineColor = 'bg-caution/30';
               break;
             case 'pending':
             default:

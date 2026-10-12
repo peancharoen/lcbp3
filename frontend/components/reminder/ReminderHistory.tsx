@@ -17,7 +17,7 @@ export function ReminderHistoryViewer({ taskPublicId }: ReminderHistoryProps) {
   const getIcon = (type: ReminderType) => {
     switch (type) {
       case ReminderType.ESCALATION_L1:
-        return <AlertTriangle className="h-4 w-4 text-orange-500" />;
+        return <AlertTriangle className="h-4 w-4 text-caution" />;
       case ReminderType.ESCALATION_L2:
         return <ShieldAlert className="h-4 w-4 text-destructive" />;
       default:

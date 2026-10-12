@@ -96,7 +96,7 @@ export default function OcrEngineSelector() {
                   {isAiPowered && (
                     <Badge
                       variant="secondary"
-                      className="h-4 border-purple-500/20 bg-purple-500/10 text-[10px] text-purple-600 dark:text-purple-400"
+                      className="h-4 border-ai/20 bg-ai/10 text-[10px] text-ai"
                     >
                       AI Powered
                     </Badge>
@@ -114,7 +114,7 @@ export default function OcrEngineSelector() {
                   </span>
                   {isAiPowered && (
                     <>
-                      <span className="flex items-center gap-1 text-purple-600 dark:text-purple-400">
+                      <span className="flex items-center gap-1 text-ai">
                         <Cpu className="h-3 w-3" />
                         ต้องการ VRAM: {(engine.vramRequirementMB / 1024).toFixed(1)} GB
                       </span>

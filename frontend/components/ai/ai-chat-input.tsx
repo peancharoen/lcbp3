@@ -45,7 +45,7 @@ export function AiChatInput({ onSend, isLoading }: AiChatInputProps) {
           onChange={(e) => setValue(e.target.value.slice(0, 500))}
           onKeyDown={handleKeyDown}
           placeholder="ถาม AI เกี่ยวกับเอกสารนี้... (Enter เพื่อส่ง, Shift+Enter เพื่อขึ้นบรรทัดใหม่)"
-          className="max-h-[120px] min-h-[40px] resize-none rounded-lg py-2.5 pr-12 text-sm focus-visible:ring-1 focus-visible:ring-violet-500"
+          className="max-h-[120px] min-h-[40px] resize-none rounded-lg py-2.5 pr-12 text-sm focus-visible:ring-1 focus-visible:ring-ai"
           disabled={isLoading}
         />
         <div className="absolute bottom-1 right-2 select-none text-[10px] text-muted-foreground">
@@ -56,7 +56,7 @@ export function AiChatInput({ onSend, isLoading }: AiChatInputProps) {
         onClick={handleSubmit}
         disabled={!value.trim() || isLoading}
         size="icon"
-        className="h-10 w-10 shrink-0 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:from-violet-700 hover:to-indigo-700"
+        className="h-10 w-10 shrink-0 rounded-lg bg-gradient-to-r from-ai to-ai text-white hover:from-ai/90 hover:to-ai/90"
         aria-label="ส่งข้อความ"
       >
         {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}

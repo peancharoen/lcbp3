@@ -82,7 +82,7 @@ export function AttachmentList({ attachments, className }: AttachmentListProps) 
                     มีข้อความ OCR
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="border-orange-500/30 text-xs text-orange-600">
+                  <Badge variant="outline" className="border-caution/30 text-xs text-caution">
                     ไม่มีข้อความ OCR
                   </Badge>
                 )}

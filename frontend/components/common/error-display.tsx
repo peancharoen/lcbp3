@@ -46,9 +46,9 @@ function getSeverityStyles(severity: string): {
       };
     case 'MEDIUM':
       return {
-        container: 'border-orange-200 bg-orange-50',
-        icon: 'text-orange-400',
-        title: 'text-orange-800',
+        container: 'border-caution/30 bg-caution/10',
+        icon: 'text-caution',
+        title: 'text-caution',
         iconComponent: AlertTriangle,
       };
     case 'HIGH':
@@ -159,7 +159,7 @@ export function ErrorDisplay({ error, onRetry, className = '', compact = false }
             <button
               type="button"
               onClick={() => window.open('mailto:support@np-dms.work', '_blank')}
-              className="rounded-md bg-gray-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1"
+              className="rounded-md bg-muted-foreground px-3 py-1.5 text-xs font-medium text-background shadow-sm hover:bg-muted-foreground/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
             >
               ติดต่อผู้ดูแลระบบ
             </button>

@@ -43,7 +43,7 @@ export default function MigrationReviewPage() {
     <div className="flex-1 space-y-6 p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
         <div>
-          <h2 className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-3xl font-extrabold tracking-tight text-transparent">
+          <h2 className="bg-gradient-to-r from-ai via-ai to-ai bg-clip-text text-3xl font-extrabold tracking-tight text-transparent">
             Migration Review Queue
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -100,13 +100,13 @@ export default function MigrationReviewPage() {
             <p className="mt-1 text-xs text-muted-foreground">เอกสารที่ปฎิเสธและต้องผ่านการตรวจสอบใหม่</p>
           </CardContent>
         </Card>
-        <Card className="border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-transparent shadow-sm backdrop-blur-sm">
+        <Card className="border-ai/20 bg-gradient-to-br from-ai/10 to-transparent shadow-sm backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-semibold text-indigo-500">จำนวนทั้งหมดในระบบ (Total)</CardTitle>
-            <BarChart2 className="h-4 w-4 text-indigo-500" />
+            <CardTitle className="text-sm font-semibold text-ai">จำนวนทั้งหมดในระบบ (Total)</CardTitle>
+            <BarChart2 className="h-4 w-4 text-ai" />
           </CardHeader>
           <CardContent>
-            <div className="font-mono text-2xl font-black text-indigo-500">
+            <div className="font-mono text-2xl font-black text-ai">
               {statusFilter === 'ALL' ? totalItems : '-'}
             </div>
             <p className="mt-1 text-xs text-muted-foreground">จำนวนรวมรายการย้ายข้อมูลในระบบคิว</p>

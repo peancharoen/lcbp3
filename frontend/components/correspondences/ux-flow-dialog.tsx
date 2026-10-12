@@ -115,7 +115,7 @@ export function CorrespondenceUxFlowDialog() {
               correspondence_revisions
             </span>
             <span className="text-xs text-muted-foreground">M:N</span>
-            <span className="rounded-md border border-violet-400/40 bg-violet-500/10 px-2 py-1 text-xs font-medium">
+            <span className="rounded-md border border-ai/40 bg-ai/10 px-2 py-1 text-xs font-medium">
               attachments
             </span>
           </div>

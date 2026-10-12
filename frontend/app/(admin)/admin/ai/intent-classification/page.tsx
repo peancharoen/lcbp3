@@ -18,7 +18,7 @@ import type { IntentCategory } from '@/lib/services/ai-intent.service';
 /** สีของ category badge */
 const CATEGORY_COLORS: Record<IntentCategory, string> = {
   read: 'bg-info/10 text-info',
-  suggest: 'bg-purple-100 text-purple-800',
+  suggest: 'bg-ai/10 text-ai',
   utility: 'bg-muted text-foreground',
 };
 
