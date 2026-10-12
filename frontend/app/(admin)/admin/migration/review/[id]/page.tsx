@@ -982,7 +982,7 @@ export default function MigrationReviewPage() {
                             key={tag.name}
                             data-testid={`tag-chip-${tag.name}`}
                             title={tag.evidence}
-                            className="flex items-center gap-2 rounded-md border border-ai/30 bg-white p-2"
+                            className="flex items-center gap-2 rounded-md border border-ai/30 bg-background p-2"
                           >
                             <span className="flex-1 text-sm font-medium">{tag.name}</span>
                             {tag.isNew && (

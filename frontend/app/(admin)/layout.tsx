@@ -20,7 +20,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <AdminSidebar />
       <div className="flex min-h-screen flex-1 flex-col overflow-hidden">
         {/* Mobile Header for Admin Panel */}
-        <div className="flex h-16 shrink-0 items-center border-b bg-white px-4 md:hidden">
+        <div className="flex h-16 shrink-0 items-center border-b bg-background px-4 md:hidden">
           <AdminMobileSidebar />
           <h2 className="ml-4 text-lg font-semibold">LCBP3-DMS Admin</h2>
         </div>
