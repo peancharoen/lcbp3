@@ -1,3 +1,8 @@
+// File: frontend/lib/services/dashboard.service.ts
+// Change Log:
+// - 2026-10-16: แก้ bug unwrap response — backend มี TransformInterceptor ครอบทุก response
+//   ด้วย envelope { statusCode, message, data } ทำให้ stats/activity แสดงค่าว่าง
+
 import apiClient from '@/lib/api/client';
 import { DashboardStats, ActivityLog, PendingTask } from '@/types/dashboard';
 
@@ -30,15 +35,23 @@ export const dashboardService = {
   getStats: async (projectId?: string | null): Promise<DashboardStats> => {
     const params = projectId ? { projectId } : undefined;
     const response = await apiClient.get('/dashboard/stats', { params });
-    return response.data;
+    // แกะ NestJS TransformInterceptor envelope { statusCode, message, data }
+    return (response.data?.data ?? response.data) as DashboardStats;
   },
 
   getRecentActivity: async (projectId?: string | null): Promise<ActivityLog[]> => {
     try {
       const params = projectId ? { projectId } : undefined;
       const response = await apiClient.get('/dashboard/activity', { params });
-      if (Array.isArray(response.data)) {
-        return (response.data as RawActivityLog[]).map((log) => {
+      // แกะ NestJS TransformInterceptor envelope — items อยู่ใน data ชั้นใน
+      const envelope: unknown = response.data;
+      const items: unknown[] = Array.isArray((envelope as { data?: unknown })?.data)
+        ? (envelope as { data: unknown[] }).data
+        : Array.isArray(envelope)
+          ? (envelope as unknown[])
+          : [];
+      if (items.length > 0) {
+        return (items as RawActivityLog[]).map((log) => {
           const firstName = log.user?.firstName || '';
           const lastName = log.user?.lastName || '';
           const fullName = firstName || lastName ? `${firstName} ${lastName}`.trim() : log.user?.username || 'System';
@@ -67,7 +80,16 @@ export const dashboardService = {
     try {
       const params = projectId ? { projectId } : undefined;
       const response = await apiClient.get('/dashboard/pending', { params });
-      const rawTasks = (response.data?.data || (Array.isArray(response.data) ? response.data : [])) as RawPendingTask[];
+      // แกะ NestJS TransformInterceptor envelope — paginated payload ถูก unzip
+      // เป็น { statusCode, message, data: [...], meta: {...} } จึงอ่าน data ชั้นใน
+      const envelope: unknown = response.data;
+      const rawTasks = (
+        Array.isArray((envelope as { data?: unknown })?.data)
+          ? (envelope as { data: unknown[] }).data
+          : Array.isArray(envelope)
+            ? (envelope as unknown[])
+            : []
+      ) as RawPendingTask[];
 
       return rawTasks.map((task) => {
         const assignedAt = new Date(task.assignedAt);

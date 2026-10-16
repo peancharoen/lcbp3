@@ -1,7 +1,7 @@
 'use client';
 
 import { Card } from '@/components/ui/card';
-import { FileText, Clipboard, CheckCircle, Clock } from 'lucide-react';
+import { FileText, Clipboard, CheckCircle, Clock, CalendarDays, RefreshCw } from 'lucide-react';
 import { DashboardStats } from '@/types/dashboard';
 
 export interface StatsCardsProps {
@@ -12,8 +12,8 @@ export interface StatsCardsProps {
 export function StatsCards({ stats, isLoading }: StatsCardsProps) {
   if (isLoading || !stats) {
     return (
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {[...Array(4)].map((_, i) => (
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        {[...Array(6)].map((_, i) => (
           <Card key={i} className="h-[100px] animate-pulse bg-muted p-6" />
         ))}
       </div>
@@ -35,6 +35,20 @@ export function StatsCards({ stats, isLoading }: StatsCardsProps) {
       bgColor: 'bg-ai/10',
     },
     {
+      title: 'Total Circulations',
+      value: stats.totalCirculations,
+      icon: RefreshCw,
+      color: 'text-primary',
+      bgColor: 'bg-primary/10',
+    },
+    {
+      title: 'Documents This Month',
+      value: stats.documentsThisMonth,
+      icon: CalendarDays,
+      color: 'text-warning',
+      bgColor: 'bg-warning/10',
+    },
+    {
       title: 'Approved Documents',
       value: stats.approved,
       icon: CheckCircle,
@@ -51,7 +65,7 @@ export function StatsCards({ stats, isLoading }: StatsCardsProps) {
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
       {cards.map((card) => {
         const Icon = card.icon;
 

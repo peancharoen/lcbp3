@@ -1,6 +1,8 @@
 // File: frontend/lib/services/__tests__/dashboard.service.test.ts
 // Change Log:
 // - 2026-06-13: Initial creation - unit tests for dashboardService
+// - 2026-10-16: เพิ่ม test ครอบ NestJS TransformInterceptor envelope unwrap
+//   ({ statusCode, message, data }) — regression จากที่ stats/activity แสดงค่าว่าง
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import apiClient from '@/lib/api/client';
@@ -33,6 +35,24 @@ describe('dashboardService', () => {
       const result = await dashboardService.getStats();
       expect(apiClient.get).toHaveBeenCalledWith('/dashboard/stats', { params: undefined });
       expect(result).toEqual(mockResponse.data);
+    });
+
+    it('ควรแกะ NestJS envelope { statusCode, message, data } ให้ได้ stats จริง', async () => {
+      const innerStats = {
+        totalDocuments: 1969,
+        documentsThisMonth: 0,
+        pendingApprovals: 3,
+        approved: 0,
+        totalRfas: 678,
+        totalCirculations: 0,
+      };
+      vi.mocked(apiClient.get).mockResolvedValue({
+        data: { statusCode: 200, message: 'Success', data: innerStats },
+      });
+      const result = await dashboardService.getStats();
+      expect(result).toEqual(innerStats);
+      expect(result.totalDocuments).toBe(1969);
+      expect(result.totalRfas).toBe(678);
     });
   });
 
@@ -78,6 +98,31 @@ describe('dashboardService', () => {
       expect(result[2].user.name).toBe('System');
       expect(result[2].user.initials).toBe('S');
       expect(result[2].targetUrl).toBe('/correspondences/');
+    });
+
+    it('ควรแกะ NestJS envelope แล้ว map activity items ได้ถูกต้อง', async () => {
+      vi.mocked(apiClient.get).mockResolvedValue({
+        data: {
+          statusCode: 200,
+          message: 'Success',
+          data: [
+            {
+              id: 'act-1',
+              action: 'correspondence.update',
+              entityType: 'correspondence',
+              entityId: 'uuid-corr-1',
+              details: { description: 'อัปเดตเอกสาร' },
+              createdAt: '2026-01-01T00:00:00Z',
+              user: { username: 'somchai', firstName: 'สมชาย', lastName: 'รักดี' },
+            },
+          ],
+        },
+      });
+      const result = await dashboardService.getRecentActivity();
+      expect(result).toHaveLength(1);
+      expect(result[0].user.name).toBe('สมชาย รักดี');
+      expect(result[0].description).toBe('อัปเดตเอกสาร');
+      expect(result[0].targetUrl).toBe('/correspondences/uuid-corr-1');
     });
 
     it('ควรคืนค่าเป็นอาเรย์ว่างเมื่อเกิดข้อผิดพลาดจาก API', async () => {
@@ -137,6 +182,35 @@ describe('dashboardService', () => {
       expect(result[1].daysOverdue).toBe(4);
       expect(result[1].priority).toBe('HIGH');
       expect(result[1].url).toBe('/transmittals/uuid-tr-1');
+    });
+
+    it('ควรแกะ NestJS paginated envelope { data: [...], meta } ได้ถูกต้อง', async () => {
+      const now = new Date();
+      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      vi.mocked(apiClient.get).mockResolvedValue({
+        data: {
+          statusCode: 200,
+          message: 'Success',
+          data: [
+            {
+              instanceId: 'inst-env-1',
+              workflowCode: 'WF-RFA',
+              currentState: 'REVIEWING',
+              entityType: 'RFA',
+              entityId: 'uuid-rfa-env',
+              documentNumber: 'RFA-ENV-001',
+              subject: 'งานใน envelope',
+              assignedAt: oneDayAgo.toISOString(),
+            },
+          ],
+          meta: { total: 1, page: 1, limit: 10 },
+        },
+      });
+      const result = await dashboardService.getPendingTasks();
+      expect(result).toHaveLength(1);
+      expect(result[0].publicId).toBe('inst-env-1');
+      expect(result[0].title).toBe('งานใน envelope');
+      expect(result[0].daysOverdue).toBe(1);
     });
 
     it('ควรคืนค่าเป็นอาเรย์ว่างเมื่อเกิดข้อผิดพลาดจาก API', async () => {
